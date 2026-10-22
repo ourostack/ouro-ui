@@ -25,14 +25,19 @@ interface Fixtures {
 
 type ScreenReaderTest = TestType<PlaywrightTestArgs & PlaywrightTestOptions & Fixtures, PlaywrightWorkerArgs & PlaywrightWorkerOptions>;
 
-/** Opens a story on its own and waits for its component root (`[data-ouro]`) to be visible. */
+/**
+ * Opens a story on its own and waits for its component root (`[data-ouro]`) to be in the page and
+ * for the story to show something: a component can render an empty, hidden root until it has
+ * something to show (Celebrate, beside the checklist it celebrates).
+ */
 async function openStory(page: Page, id: string): Promise<void> {
   try {
     await page.goto(`iframe.html?id=${id}&viewMode=story`);
   } catch (error) {
     throw new Error(`[sr] infrastructure: Storybook did not answer for ${id}: ${(error as Error).message}`, { cause: error });
   }
-  await expect(page.locator("#storybook-root [data-ouro]").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#storybook-root [data-ouro]").first()).toBeAttached({ timeout: 30_000 });
+  await expect(page.locator("#storybook-root *").filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
 /** The spec's story is open before the screen reader starts: both screen readers' fixtures need `page`. */

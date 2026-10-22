@@ -51,6 +51,15 @@ export const UNCHECKED = /\b(unchecked|not checked)\b/i;
 /** "checked", and neither "unchecked" nor "not checked". */
 export const CHECKED = (sentence: string): boolean => /\bchecked\b/i.test(sentence) && !UNCHECKED.test(sentence);
 
+/** "unselected" or "not selected". */
+const UNSELECTED = /\b(unselected|not selected)\b/i;
+
+/**
+ * A checked radio button: VoiceOver says "selected" ("Dark selected radio button, 2 of 3"), NVDA
+ * "checked"; neither "not" form counts.
+ */
+export const RADIO_CHECKED = (sentence: string): boolean => CHECKED(sentence) || (/\bselected\b/i.test(sentence) && !UNSELECTED.test(sentence));
+
 /** The role word for a checkbox: "checkbox" (VoiceOver) or "check box" (NVDA). */
 export const CHECKBOX = /\bcheck ?box\b/i;
 

@@ -83,11 +83,13 @@ const scriptSources = ["scripts", "site/scripts"].flatMap((folder) =>
     .map((file) => ({ file: `${folder}/${file}`, text: readFileSync(join(root, folder, file), "utf8") })),
 );
 
-test("only network fetches are retried: scripts/retry.sh wraps Playwright's downloads and nothing else", () => {
+test("only network fetches are retried: scripts/retry.sh wraps Playwright's downloads and the registry's validation as GitHub serves it, and nothing else", () => {
   const uses = [...workflows, ...actions].flatMap(({ file, text }) => [...text.matchAll(/scripts\/retry\.sh (.*)/g)].map((match) => `${file}: ${match[1]}`));
   assert.ok(uses.length > 0);
+  // The registry's remote validation fetches each of its files from GitHub at this commit; a file
+  // that is missing or invalid there fails every try.
   assert.deepEqual(
-    uses.filter((use) => !/: pnpm exec playwright install(-deps)? \$BROWSERS$/.test(use)),
+    uses.filter((use) => !/: pnpm exec playwright install(-deps)? \$BROWSERS$/.test(use) && use !== 'ci.yml: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"'),
     [],
   );
   // A script that downloads the browsers (an array of arguments, as spawn takes) does it through
@@ -126,7 +128,7 @@ test("scripts/retry.sh runs a failed fetch again after each wait, and fails with
   assert.equal(first.stdout, "");
 });
 
-test("only release.yml's release job, which pushes, keeps the checkout's credentials", () => {
+test("only the jobs that push, release.yml's release job and release-rehearsal.yml's rehearse job, keep the checkout's credentials", () => {
   const problems = [];
   for (const { file, text } of workflows) {
     const lines = text.split("\n");
@@ -135,7 +137,7 @@ test("only release.yml's release job, which pushes, keeps the checkout's credent
       const step = lines.slice(index + 1, index + 4).join("\n");
       const persists = !/^\s+persist-credentials: false$/m.test(step);
       const job = lines.slice(0, index).findLast((above) => /^ {2}[\w-]+:$/.test(above))?.trim().slice(0, -1);
-      if (persists !== (file === "release.yml" && job === "release")) problems.push(`${file}:${index + 1}`);
+      if (persists !== ((file === "release.yml" && job === "release") || (file === "release-rehearsal.yml" && job === "rehearse"))) problems.push(`${file}:${index + 1}`);
     });
   }
   assert.deepEqual(problems, [], "Set persist-credentials: false on every checkout that never pushes.");
@@ -1402,4 +1404,34 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   const tagged = run(true);
   assert.equal(tagged.status, 1);
   assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
+});
+
+test("a release rehearsal writes the release commit as Release does, on a branch of its own, runs CI and the screen-reader lane there, tags nothing and deletes the branch", () => {
+  const rehearsal = workflow("release-rehearsal.yml");
+  assert.match(rehearsal, /^run-name: Release rehearsal v\$\{\{ inputs\.version \}\}$/m);
+  assert.match(rehearsal, /^ {6}BRANCH: release\/v\$\{\{ inputs\.version \}\}-rehearsal$/m);
+  assert.match(rehearsal, /^ {10}ref: main$/m);
+  // The same script as release.yml's release commit, then its namespace checks.
+  const push = stepScript(rehearsal, "Push the rehearsal branch");
+  assert.match(push, /^git switch -c "\$BRANCH"\n(?:#.*\n)?scripts\/release-commit\.sh "\$VERSION"\ngit add CHANGES\.md\ngit commit -am "Release \$TAG \(rehearsal\)"\ngit push --force origin "\$BRANCH"$/m);
+  assert.match(stepScript(rehearsal, "Build and check the @ouro namespace for the rehearsal commit"), /^scripts\/namespace\.sh "\$RUNNER_TEMP\/ns" "\$TAG"\nnode scripts\/public-registry\.mjs verify-build "\$RUNNER_TEMP\/ns" HEAD$/m);
+  const run = stepScript(rehearsal, "Run CI and the screen-reader lane on the rehearsal commit");
+  assert.match(run, /^gh workflow run ci\.yml --ref "\$BRANCH"$/m);
+  assert.match(run, /^gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"$/m);
+  assert.match(run, /gh run watch "\$ci" --exit-status/);
+  assert.match(run, /gh run watch "\$sr" --exit-status/);
+  // It never tags, releases, merges or writes statuses, and it always deletes its branch.
+  assert.doesNotMatch(rehearsal, /git tag|gh release|gh pr|statuses|pull-requests: write/);
+  assert.match(rehearsal, /^ {6}- if: always\(\)\n {8}name: Delete the rehearsal branch\n {8}run: git push origin --delete "\$BRANCH"/m);
+  assert.match(rehearsal, /^ {4}permissions:\n {6}contents: write # [^\n]+\n {6}actions: write # [^\n]+\n {4}#/m);
+  // Release refuses to cut a version without a passing rehearsal of it on main's commit.
+  const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
+  assert.match(check, /gh run list --workflow release-rehearsal\.yml --commit "\$sha" --json conclusion,displayTitle/);
+  const filter = /--jq "([^"\\]*(?:\\.[^"\\]*)*)"\)/.exec(check.slice(check.indexOf("release-rehearsal.yml")))?.[1].replace(/\\"/g, '"').replace("$TAG", "v1.2.0");
+  const conclusion = (runs) => spawnSync("jq", ["-r", filter], { input: JSON.stringify(runs), encoding: "utf8" }).stdout.trim();
+  assert.equal(conclusion([{ conclusion: "success", displayTitle: "Release rehearsal v1.2.0" }]), "success");
+  assert.equal(conclusion([{ conclusion: "failure", displayTitle: "Release rehearsal v1.2.0" }, { conclusion: "success", displayTitle: "Release rehearsal v1.2.0" }]), "failure");
+  assert.equal(conclusion([{ conclusion: "success", displayTitle: "Release rehearsal v1.1.1" }]), "null");
+  assert.match(check, /\[ "\$rehearsal" = success \] \|\| \{ echo "::error::The release rehearsal of \$TAG on main \(\$sha\) is '\$\{rehearsal:-not run\}', not success\. Run it first: gh workflow run release-rehearsal\.yml -f version=\$VERSION"; exit 1; \}/);
+  assert.ok(check.indexOf("release-rehearsal.yml") > check.indexOf('[ "$conclusion" = success ]'));
 });
