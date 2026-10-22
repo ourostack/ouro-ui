@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note";
 
@@ -89,4 +89,25 @@ export const States: Story = {
       <AgentNote text="Bring the rollout numbers, and ask about the pilot dates." author="human" name="Ouro" time="Just now" onSave={() => {}} onDismiss={() => {}} />
     </Surface>
   ),
+};
+
+/** A note being edited, as after the person pressed Edit: the text box with Save and Cancel. */
+function Editing() {
+  const pressed = useRef(false);
+  // The story presses Edit for the person, once, after the note first shows.
+  useEffect(() => {
+    if (pressed.current) return;
+    pressed.current = true;
+    document.querySelector<HTMLButtonElement>('[data-ouro="agent-note"] [data-ouro-part="edit"]')?.click();
+  }, []);
+  return (
+    <Surface>
+      <AgentNote text={agentText} author="agent" name="Ouro" time="5 min ago" onSave={() => {}} />
+    </Surface>
+  );
+}
+
+/** Editing in place: the note's words in a text box, with Save and Cancel. */
+export const InEdit: Story = {
+  render: () => <Editing />,
 };
