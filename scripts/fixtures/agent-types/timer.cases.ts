@@ -8,4 +8,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid timer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["timerOk01"];
+export const validSnippets: string[] = ["timerOk01", "timerOk02"];

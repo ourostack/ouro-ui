@@ -57,19 +57,66 @@ export function primeAlert(): void {
   context ??= createChimeContext();
 }
 
+/** How a timer sounds at zero: once, or again and again until it is stopped. */
+export type TimerAlert = "once" | "repeat";
+
+/** The ways a timer can sound at zero. @internal */
+export const timerAlerts = ["once", "repeat"] as const satisfies readonly TimerAlert[];
+
 /**
- * The alert at zero: said once, and chimed and buzzed unless silent or stale.
+ * How often a repeating alert sounds again, in ms: every 2.5 seconds, as Spoonjoy's kitchen timer did.
+ *
+ * @claim "every 2.5 seconds, as Spoonjoy's kitchen" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > chimes and buzzes again every 2.5 seconds with alert=repeat, says it once, and stops on Dismiss)
+ */
+export const REPEAT_MS = 2500;
+
+/** How long a repeating alert keeps sounding unless stopped, in seconds: two minutes. */
+export const REPEAT_FOR = 120;
+
+/** The repeating alerts sounding now, by timer (its `timerId`, or the view's own key). */
+const repeating = new Map<string, ReturnType<typeof setInterval>>();
+
+/** How a view sounds its timer's alert. */
+export interface AlertOptions {
+  /** No chime and no vibration. */
+  silent: boolean;
+  /** Sounds again every {@link REPEAT_MS} until stopped or `repeatFor` seconds pass. */
+  repeat: boolean;
+  /** How long a repeating alert lasts, in seconds from zero. */
+  repeatFor: number;
+  /** Which timer it is, so any view of it can stop it. */
+  key: string;
+}
+
+/**
+ * The alert at zero: said once, and chimed and buzzed unless silent or stale; with `repeat`,
+ * chimed and buzzed again until {@link stopAlert} or the end of `repeatFor`.
  *
  * @claim "The alert at zero: said once" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > follows the Timer on the page, and alerts once at zero even when both show it)
  * @claim "The alert at zero: said once" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps its time through a reload with a timerId, and stays quiet about a timer that ended long ago)
  * @claim "The alert at zero: said once" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > only says the time is up when silent)
  */
-export function alertDone(label: string, done: string, event: TimerDoneEvent, silent: boolean): void {
+export function alertDone(label: string, done: string, event: TimerDoneEvent, { silent, repeat, repeatFor, key }: AlertOptions): void {
   if (!event.first) return;
   announce(`${label}: ${done}`);
   if (silent || Date.now() - event.endedAt > FRESH_MS) return;
   void chime({ context });
   buzz();
+  if (!repeat) return;
+  repeating.set(
+    key,
+    setInterval(() => {
+      if (Date.now() - event.endedAt >= repeatFor * 1000) return stopAlert(key);
+      void chime({ context });
+      buzz();
+    }, REPEAT_MS),
+  );
+}
+
+/** Stops a timer's repeating alert, if it has one: on Dismiss, Restart or Cancel in any view of it. */
+export function stopAlert(key: string): void {
+  clearInterval(repeating.get(key));
+  repeating.delete(key);
 }
 
 /**

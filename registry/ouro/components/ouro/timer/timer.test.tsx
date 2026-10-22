@@ -167,6 +167,109 @@ describe("Timer", () => {
     }
   });
 
+  it("sounds once by default, and never again while Time's up shows", async () => {
+    const { primary, timer } = await render(<Timer label="Eggs" duration={1} />);
+    await press(primary());
+    await advance(1200);
+    expect(timer().getAttribute("data-status")).toBe("done");
+    expect([tones, vibrations.length]).toEqual([3, 1]);
+    await advance(30_000);
+    expect([tones, vibrations.length]).toEqual([3, 1]);
+  });
+
+  it("chimes and buzzes again every 2.5 seconds with alert=repeat, says it once, and stops on Dismiss", async () => {
+    const announced = watchAnnouncements();
+    try {
+      const { primary, timer } = await render(<Timer label="Roast" duration={1} alert="repeat" />);
+      await press(primary());
+      await advance(1000);
+      expect(timer().getAttribute("data-status")).toBe("done");
+      expect([tones, vibrations.length]).toEqual([3, 1]);
+      await advance(2499);
+      expect([tones, vibrations.length]).toEqual([3, 1]);
+      await advance(1);
+      expect([tones, vibrations.length]).toEqual([6, 2]);
+      await advance(5000);
+      expect([tones, vibrations.length]).toEqual([12, 4]);
+      expect(announced.count("Roast: Time's up")).toBe(1);
+      await press(primary());
+      expect(timer().getAttribute("data-status")).toBe("idle");
+      await advance(10_000);
+      expect([tones, vibrations.length]).toEqual([12, 4]);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("keeps a repeating alert going for two minutes by default", async () => {
+    const { primary } = await render(<Timer label="Roast" duration={1} alert="repeat" />);
+    await press(primary());
+    await advance(1000);
+    // At zero, then every 2.5 s while less than 120 s have passed: 47 more.
+    await advance(120_000);
+    expect(vibrations).toHaveLength(48);
+    await advance(30_000);
+    expect(vibrations).toHaveLength(48);
+  });
+
+  it("stops a repeating alert on Restart, when a timer without a timerId goes, and when its repeatFor has passed", async () => {
+    const short = await render(<Timer label="Tea" duration={1} alert="repeat" repeatFor={10} />);
+    await press(short.primary());
+    await advance(1000);
+    // At zero, 2.5, 5 and 7.5 s; at 10 s its time is over.
+    await advance(20_000);
+    expect(vibrations).toHaveLength(4);
+    expect(short.timer().getAttribute("data-status")).toBe("done");
+    vibrations.length = 0;
+    const restarted = await render(<Timer label="Pie" duration={10} alert="repeat" />);
+    await press(restarted.primary());
+    await advance(10_000);
+    await advance(2500);
+    expect(vibrations).toHaveLength(2);
+    await press(restarted.secondary()!);
+    expect(restarted.timer().getAttribute("data-status")).toBe("running");
+    await advance(9000);
+    expect(vibrations).toHaveLength(2);
+    await act(async () => restarted.root.unmount());
+    vibrations.length = 0;
+    const gone = await render(<Timer label="Rice" duration={1} alert="repeat" />);
+    await press(gone.primary());
+    await advance(1000);
+    expect(vibrations).toHaveLength(1);
+    await act(async () => gone.root.unmount());
+    await advance(10_000);
+    expect(vibrations).toHaveLength(1);
+  });
+
+  it("keeps a repeating alert with a timerId going when one of its views goes, until another dismisses it", async () => {
+    const a = await render(<Timer label="Stock" duration={1} timerId="stock" alert="repeat" />);
+    const b = await render(<Timer label="Stock" duration={1} timerId="stock" />);
+    await press(a.primary());
+    await advance(1000);
+    expect(vibrations).toHaveLength(1);
+    await act(async () => a.root.unmount());
+    await advance(2500);
+    expect(vibrations).toHaveLength(2);
+    await press(b.primary());
+    expect(b.timer().getAttribute("data-status")).toBe("idle");
+    await advance(10_000);
+    expect(vibrations).toHaveLength(2);
+  });
+
+  it("only says the time is up when silent, even with alert=repeat", async () => {
+    const announced = watchAnnouncements();
+    try {
+      const { primary } = await render(<Timer label="Hush" duration={1} silent alert="repeat" />);
+      await press(primary());
+      await advance(1000);
+      await advance(10_000);
+      expect(announced.count("Hush: Time's up")).toBe(1);
+      expect([tones, vibrations.length]).toEqual([0, 0]);
+    } finally {
+      announced.stop();
+    }
+  });
+
   it("only says the time is up when silent", async () => {
     const announced = watchAnnouncements();
     try {
@@ -265,11 +368,21 @@ describe("Timer development messages", () => {
     ["sound", { sound: false }, "sound is not a prop", "<Timer silent />"],
     ["autoSaveId", { autoSaveId: "pasta" }, "autoSaveId is not a prop", '<Timer timerId="pasta" />'],
     ["storageKey", { storageKey: "pasta" }, "storageKey is not a prop", '<Timer timerId="pasta" />'],
+    ["alert", { alert: "loop" }, 'alert="loop" is not an alert; use "once" or "repeat"', '<Timer alert="repeat" />'],
+    ["repeatFor", { alert: "repeat", repeatFor: 0 }, "repeatFor={0} is not a length; it is in seconds and above 0", '<Timer alert="repeat" repeatFor={120} />'],
   ])("explains %s with the fix", async (_name, extra, problem, fix) => {
     const props = { label: "T", duration: 60, ...extra } as unknown as Parameters<typeof Timer>[0];
     const { timer } = await render(<Timer {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Timer: ${problem}. Fix: ${fix}.`);
     for (const name of ["seconds", "minutes", "sound", "autosaveid", "storagekey"]) expect(timer().hasAttribute(name)).toBe(false);
+  });
+
+  it("sounds once for an alert that is not one", async () => {
+    const { primary } = await render(<Timer {...({ label: "T", duration: 1, alert: "loop" } as unknown as Parameters<typeof Timer>[0])} />);
+    await press(primary());
+    await advance(1000);
+    await advance(10_000);
+    expect(vibrations).toHaveLength(1);
   });
 
   it.each([

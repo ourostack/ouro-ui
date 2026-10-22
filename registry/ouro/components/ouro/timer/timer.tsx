@@ -1,14 +1,24 @@
 "use client";
 
-import { useRef, type HTMLAttributes, type JSX, type Ref } from "react";
+import { useEffect, useId, useRef, type HTMLAttributes, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { formatDuration, useTimer, type TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { alertDone, doneText, primeAlert, wordsFor, type TimerLabels } from "@/registry/ouro/components/ouro/timer/timer-styles";
+import {
+  alertDone,
+  doneText,
+  primeAlert,
+  REPEAT_FOR,
+  stopAlert,
+  timerAlerts,
+  wordsFor,
+  type TimerAlert,
+  type TimerLabels,
+} from "@/registry/ouro/components/ouro/timer/timer-styles";
 
-export type { TimerLabels } from "@/registry/ouro/components/ouro/timer/timer-styles";
+export type { TimerAlert, TimerLabels } from "@/registry/ouro/components/ouro/timer/timer-styles";
 
 /** The props Timer adds to the `<div>` attributes it passes through. */
 export interface TimerOwnProps {
@@ -37,6 +47,25 @@ export interface TimerOwnProps {
    * @claim "No chime and no vibration at" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > only says the time is up when silent)
    */
   silent?: boolean | undefined;
+  /**
+   * How it sounds at zero. `once` chimes and vibrates once. `repeat` chimes and vibrates again
+   * every 2.5 seconds, for a timer that may finish while the person is across the room, until
+   * they dismiss, restart or cancel it (here, in a `TimerTray` or in any view with its
+   * `timerId`) or `repeatFor` seconds pass. Either way screen readers hear "Time's up" once,
+   * and `silent` keeps it quiet.
+   * @default "once"
+   * @claim "every 2.5 seconds, for a timer" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > chimes and buzzes again every 2.5 seconds with alert=repeat, says it once, and stops on Dismiss)
+   * @claim "until they dismiss, restart or cancel" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > stops a repeating alert on Restart, when a timer without a timerId goes, and when its repeatFor has passed)
+   * @claim "until they dismiss, restart or cancel" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > stops the Timer's repeating alert when the tray dismisses the timer)
+   * @claim "Either way screen readers hear" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > chimes and buzzes again every 2.5 seconds with alert=repeat, says it once, and stops on Dismiss)
+   */
+  alert?: TimerAlert | (string & { 'Use "once" or "repeat"': never }) | undefined;
+  /**
+   * With `alert="repeat"`, how long it keeps sounding, in seconds from zero, unless stopped.
+   * @default 120 (two minutes)
+   * @claim "how long it keeps sounding, in" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps a repeating alert going for two minutes by default)
+   */
+  repeatFor?: number | undefined;
   /** How large the time is: `md` beside other content, `lg` as a screen's focus. @default "md" */
   size?: "md" | "lg" | (string & { 'Use "md" or "lg"': never }) | undefined;
   /** The words it shows and says, for apps in other languages. */
@@ -83,8 +112,9 @@ function lengthOf(seconds: number): string {
  * A countdown timer with its own controls: the time left in large numbers, Start, then Pause
  * and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. It keeps
  * time by the clock, so it stays right in a background tab and, with `timerId`, across a reload.
- * At zero it chimes and vibrates (unless `silent`) and screen readers hear "Pasta: Time's up"
- * once; the time itself is a `timer` region, read when the person asks rather than every second.
+ * At zero it chimes and vibrates (unless `silent`), again every 2.5 seconds until stopped with
+ * `alert="repeat"`, and screen readers hear "Pasta: Time's up" once; the time itself is a
+ * `timer` region, read when the person asks rather than every second.
  *
  * Give timers that should outlive their screen a `timerId` and list them in a `TimerTray`, so a
  * person who moves on can still see and stop them.
@@ -96,6 +126,7 @@ function lengthOf(seconds: number): string {
  *
  * @example
  * <Timer label="Pasta" duration={600} timerId="pasta" />
+ * <Timer label="Roast" duration={5400} timerId="roast" alert="repeat" />
  * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > says, chimes and buzzes once at zero, shows Time's up, then dismisses or restarts)
  * @claim "A countdown timer with its own" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
  * @claim "At zero it chimes and vibrates" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > is a region listing the running, paused and finished timers with their time, and hides idle ones)
@@ -108,6 +139,8 @@ export function Timer(props: TimerProps): JSX.Element {
     timerId,
     onDone,
     silent,
+    alert: alertProp = "once",
+    repeatFor = REPEAT_FOR,
     size: sizeProp = "md",
     labels,
     className,
@@ -122,6 +155,7 @@ export function Timer(props: TimerProps): JSX.Element {
     ...rest
   } = props;
   const size = sizeProp === "lg" ? "lg" : "md";
+  const alert = timerAlerts.includes(alertProp as TimerAlert) ? (alertProp as TimerAlert) : "once";
   const words = wordsFor(labels);
   useAppearanceClassNameCheck(
     "Timer",
@@ -135,6 +169,8 @@ export function Timer(props: TimerProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           size !== sizeProp && [`size="${String(sizeProp)}" is not a size; use "md" or "lg"`, '<Timer size="lg" />'],
+          alert !== alertProp && [`alert="${String(alertProp)}" is not an alert; use "once" or "repeat"`, '<Timer alert="repeat" />'],
+          !(repeatFor > 0) && [`repeatFor={${String(repeatFor)}} is not a length; it is in seconds and above 0`, '<Timer alert="repeat" repeatFor={120} />'],
           !(duration > 0) && [`duration={${String(duration)}} is not a length; it is in seconds and above 0`, "<Timer duration={600} />"],
           seconds !== undefined && ["seconds is not a prop", `<Timer duration={${typeof seconds === "number" ? seconds : 600}} />`],
           minutes !== undefined && ["minutes is not a prop", `<Timer duration={${typeof minutes === "number" ? minutes : 10} * 60} />`],
@@ -146,17 +182,26 @@ export function Timer(props: TimerProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // A repeating alert is the timer's: any view of it stops it, so it is keyed by timerId when there is one.
+  const ownKey = useId();
+  const key = timerId ?? ownKey;
   const timer = useTimer({
     duration,
     timerId,
     onDone: (event) => {
-      alertDone(label, words.done, event, silent === true);
+      alertDone(label, words.done, event, { silent: silent === true, repeat: alert === "repeat", repeatFor, key });
       onDone?.(event);
     },
   });
   const primary = useRef<HTMLButtonElement>(null);
   const { status } = timer;
   const done = status === "done";
+  // Dismiss, Restart or Cancel, here or in another view, stops a repeating alert.
+  useEffect(() => {
+    if (!done) stopAlert(key);
+  }, [done, key]);
+  // A timer without a timerId goes with its view, and so does its alert.
+  useEffect(() => () => stopAlert(ownKey), [ownKey]);
 
   const act = () => {
     if (status === "running") return timer.pause();
