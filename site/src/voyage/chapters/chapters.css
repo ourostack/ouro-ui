@@ -61,3 +61,14 @@
 #chapter-one button:disabled {
   opacity: 0.72;
 }
+/*
+ * Chapter II as the server draws it: the chart room's map (voyage-chart.svg, inlined by
+ * chapter-two.tsx) with the route on it, the leagues counter and the rail's compass. Every colour
+ * is the theme's, so each preset repaints the chart. Its size, type and ink are on the svg itself:
+ * utilities the page has already, and an inline colour.
+ */
+/*
+ * The rail's compass, Chapter III's drawings and the agents' findings take their size, room and
+ * colour from inline styles in the server HTML, and what starts hidden is hidden there too
+ * (`opacity="0"`), which keeps them out of the first load's CSS budget (catalog.spec.ts).
+ */

@@ -5,6 +5,7 @@ import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
@@ -95,8 +96,54 @@ describe("the hero", () => {
 
   it("links each proof claim, computed from the repository, to its evidence", async () => {
     await renderPage("/voyage/");
-    expect(proof.line).toBe(proof.claims.map((claim) => claim.text).join(" · "));
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
+  });
+
+  it("says where each proof link goes: a tooltip on hover and focus that Escape closes and that covers no other link, and a description for screen readers", async () => {
+    await renderPage("/voyage/");
+    for (const each of proof.claims) await expect.element(page.getByRole("link", { name: each.text, exact: true })).toHaveAccessibleDescription(each.where);
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
+    const [first, , next] = proof.claims;
+    const link = page.getByRole("link", { name: first!.text, exact: true });
+    // On hover: the Tooltip's code comes once the pointer is in the hero, on its way to the link,
+    // and the destination shows; the link under it in the next row can still be pointed at.
+    expect(tip()).toBeNull();
+    const heading = page.getByRole("heading", { level: 1 });
+    await userEvent.hover(heading);
+    await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
+    await userEvent.hover(link);
+    await expect.poll(() => tip()?.textContent).toBe(first!.where);
+    const below = page.getByRole("link", { name: next!.text, exact: true }).element().getBoundingClientRect();
+    expect(document.elementFromPoint(below.left + below.width / 2, below.top + below.height / 2)?.closest("a")?.textContent).toBe(next!.text);
+    // Escape closes it, and the pointer stays where it is.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => tip()).toBeNull();
+    await userEvent.unhover(link);
+    // On keyboard focus too.
+    (link.element() as HTMLElement).focus();
+    await pressTab({ shift: true });
+    await pressTab();
+    await expect.poll(() => tip()?.textContent).toBe(first!.where);
+  });
+
+  it("keeps a proof link, and its keyboard focus, as the Tooltip's code loads; the link shows where it goes from its next focus", async () => {
+    await renderPage("/voyage/");
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
+    // Keyboard focus (a key first, so focus shows as the keyboard's), straight onto the first proof
+    // link: the Tooltip's code loads, unless the pointer brought it already, and that link keeps
+    // focus. It is not swapped for a new link under the Tooltip.
+    await userEvent.keyboard("{Shift}");
+    const element = page.getByRole("link", { name: proof.claims[0]!.text, exact: true }).element() as HTMLElement;
+    element.focus();
+    await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
+    expect(element.isConnected).toBe(true);
+    expect(document.activeElement).toBe(element);
+    // The next link shows its Tooltip on focus, and so does this one when focus comes back to it.
+    await pressTab();
+    await expect.poll(() => tip()?.textContent).toBe(proof.claims[1]!.where);
+    await pressTab({ shift: true });
+    await expect.poll(() => tip()?.textContent).toBe(proof.claims[0]!.where);
+    expect(document.activeElement?.textContent).toBe(proof.claims[0]!.text);
   });
 
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
@@ -107,16 +154,18 @@ describe("the hero", () => {
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
       expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)} is one of ${install.count}.`);
+      // The hero's own install line ("Built for agents too" shows it again, further down).
+      const hero = page.elementLocator(document.querySelector(".site-hero")!);
       // real clock: the hero's install command, which stays.
-      await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
+      await expect.element(hero.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
       // real clock: the install command's caption, which stays.
-      await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
+      await expect.element(hero.getByText(INSTALL_CAPTION)).toBeVisible();
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
       // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
       // announcement is recorded as it happens.
       const announced = watchAnnouncements();
-      await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
+      await userEvent.click(hero.getByRole("button", { name: "Copy", exact: true }));
       await expect.poll(() => announced.count("Copied the install command")).toBe(1);
       announced.stop();
       expect(writes).toEqual([INSTALL_COMMAND]);

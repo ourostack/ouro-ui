@@ -50,3 +50,19 @@ test("reorders without a drag: a click on the handle opens a menu of moves", asy
   await expect(page.getByTestId("saved-order")).toHaveText("Saved order: soften, wine, braise, sear");
   await expect(page.getByRole("menu")).toHaveCount(0);
 });
+
+test.describe("by touch", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("a tap on the handle opens the menu of moves, and a tap on a move makes it", async ({ page, browserName }) => {
+    // The handle cancels pointerdown, so a press selects no text and starts no native drag. WebKit,
+    // as Playwright drives it, then raises no click from a tap, though Pointer Events keeps the
+    // click: https://github.com/microsoft/playwright/issues/43569. This fails while that stands.
+    test.fail(browserName === "webkit", "Playwright's WebKit tap raises no click after a cancelled pointerdown (microsoft/playwright#43569)");
+    await openStory(page, "lists-reorderable--in-context");
+    await page.getByRole("button", { name: "Reorder Sear the ribs" }).tap();
+    await expect(page.getByRole("menu")).toBeVisible();
+    await page.getByRole("menuitem", { name: "Move to bottom" }).tap();
+    await expect(page.getByTestId("saved-order")).toHaveText("Saved order: soften, wine, braise, sear");
+  });
+});

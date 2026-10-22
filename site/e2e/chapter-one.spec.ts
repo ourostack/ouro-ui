@@ -75,6 +75,7 @@ async function signOn(page: Page, name: string, trade = "Engineer"): Promise<voi
 /** The jobs' rows as the checklist shows them, top to bottom: the job and its day. */
 const jobRows = (page: Page) => shipyard(page).locator("[data-chapter-control='jobs'] [data-ouro-part='row']").allTextContents();
 
+
 test.describe("each control in Chapter I", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -138,12 +139,15 @@ test.describe("each control in Chapter I", () => {
     await expect(plan(page)).toHaveAttribute("data-launched", "");
     await expect(plan(page)).toHaveAttribute("aria-label", "The Nautilus, built and afloat.");
     await expect(plan(page).locator(".bp-grid")).toHaveCSS("opacity", "0");
+    await expect(shipyard(page).locator("[data-chapter-afloat]")).toHaveText(SHIPYARD.afloat);
+    await expect(plan(page).locator(".bp-mooring")).toHaveCSS("opacity", "0");
     await expect(yardCrew(page)).toContainText(YARD.launch.text);
     await expect(launchButton(page)).toHaveText(SHIPYARD.again);
     await expect(shipyard(page).locator("[data-chapter-cheer] [data-ouro='avatar']")).toHaveCount(CREW.length);
     await launchButton(page).click();
     await expect(plan(page)).not.toHaveAttribute("data-launched", "");
     await expect(plan(page)).toHaveAttribute("data-built", "");
+    await expect(shipyard(page).locator("[data-chapter-afloat]")).toHaveCount(0);
     await expect(yardCrew(page)).toContainText(YARD.again.text);
     // Launch waits for the work again, and focus is where the next build starts.
     await expect(launchButton(page)).toBeDisabled();

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
+import { currentProof } from "../scripts/proof.mts";
 import { LOG, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 
@@ -91,6 +92,23 @@ test.describe("every preset, light and dark", () => {
       });
     }
   }
+});
+
+test("once the stage is off screen, the page draws no SVG text, which in WebKit makes every press lay out and repaint the whole page", async ({ page }) => {
+  // Measured on CI for pull request 153: with any SVG text drawn, a press anywhere took WebKit about
+  // 300 ms; with none, 3 ms. The drawings' labels are HTML (htmlLabels in art.ts), the legs chart's
+  // axis labels too (useAxisLabels in chapter-two.tsx), and the stage's motto is drawn only on screen.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("voyage/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  for (const id of ["chapter-one", "chapter-two", "chapter-three", "agents"]) {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+    await expect(page.locator(`#${id}[data-chapter-ready]`)).toBeAttached();
+  }
+  await expect(page.locator("#chapter-two .recharts-bar-rectangle").first()).toBeAttached();
+  await expect(page.locator("[data-stage][data-offscreen]")).toBeAttached();
+  const drawn = await page.evaluate(() => [...document.querySelectorAll("svg text")].filter((text) => text.getClientRects().length > 0).map((text) => text.textContent));
+  expect(drawn).toEqual([]);
 });
 
 test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling sideways", async ({ page }) => {
@@ -243,4 +261,20 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await page.keyboard.press("Escape");
   await expect(search).toBeFocused();
   expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), THEME_KEY))!)).toEqual({ preset: "abyss", mode: "dark" });
+});
+
+test("on a touch screen, where no tooltip can show, each proof link's destination is printed under it", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "Desktop WebKit reports a hovering pointer even with touch on");
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  await page.goto("voyage/");
+  expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
+  for (const claim of currentProof().claims) {
+    const link = page.locator("[data-site-proof]").getByRole("link", { name: claim.text, exact: true });
+    const where = page.locator(`[id="${await link.getAttribute("aria-describedby")}"]`);
+    await expect(where).toHaveText(claim.where);
+    await expect(where).toBeVisible();
+    expect((await where.boundingBox())!.width).toBeGreaterThan(40);
+  }
+  await context.close();
 });

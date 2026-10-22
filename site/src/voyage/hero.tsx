@@ -1,8 +1,9 @@
-import { Suspense, type JSX } from "react";
+import { Suspense, useEffect, useRef, useState, type JSX, type ReactElement } from "react";
 import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import type { Tooltip as TooltipComponent } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
 import { VOYAGE_HERO } from "../copy";
@@ -66,7 +67,8 @@ function CommandText(): JSX.Element {
 
 /**
  * The install command, whole at every width: on one line where it fits, on two (the run, then the
- * address) where it doesn't, never cut off or scrolled. Copy sits beside it.
+ * address) where it doesn't, never cut off or scrolled. The release it pins and Copy sit in the bar
+ * beside it.
  */
 function Install(): JSX.Element {
   return (
@@ -78,6 +80,10 @@ function Install(): JSX.Element {
         <code className="site-mono site-install-command" data-site-install="">
           <CommandText />
         </code>
+        <Badge href={RELEASE_HREF} tone="primary" variant="soft" className="site-install-release" aria-label={`${latestRelease} · latest release`} data-site-release="">
+          {latestRelease}
+          <span className="site-install-release-word"> · latest release</span>
+        </Badge>
         <Button
           variant="soft"
           tone="secondary"
@@ -99,9 +105,6 @@ function Install(): JSX.Element {
         <p className="site-install-caption" data-site-install-caption="">
           {INSTALL_HOW} <span className="site-install-count">{INSTALL_COUNT}</span>
         </p>
-        <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
-          {`${latestRelease} · latest release`}
-        </Badge>
       </div>
     </div>
   );
@@ -115,16 +118,61 @@ function CheckIcon(): JSX.Element {
   );
 }
 
-/** The proof: each claim, computed from the repository, links to where you can check it. */
+/**
+ * A proof link's Tooltip once its code has come, and the bare link until then: the same element in
+ * the row either way. Under the Tooltip the link is a new element, so a link that has focus as the
+ * code comes stays bare, and keeps that focus, until it loses it.
+ */
+function Tip({ Tooltip, held, content, children }: { Tooltip: typeof TooltipComponent | null; held: boolean; content: string; children: ReactElement }): JSX.Element {
+  return Tooltip && !held ? (
+    <Tooltip content={content} side="bottom" align="start">
+      {children}
+    </Tooltip>
+  ) : (
+    children
+  );
+}
+
+/**
+ * The proof: each claim, computed from the repository, links to where you can check it, and says
+ * where that is on hover and focus (HX Tooltip; Escape closes it) and to screen readers (the link's
+ * description). The Tooltip's code is not in the page's first load: it comes once the pointer or
+ * focus is in the hero, on its way to a link.
+ */
 function Proof(): JSX.Element {
+  const list = useRef<HTMLUListElement>(null);
+  const [Tooltip, setTooltip] = useState<typeof TooltipComponent | null>(null);
+  // The link that had focus when the Tooltip's code came: it stays bare until it loses focus.
+  const [held, setHeld] = useState(-1);
+  useEffect(() => {
+    const listening = new AbortController();
+    const load = () => {
+      listening.abort();
+      void import("@/registry/ouro/components/ouro/tooltip/tooltip").then((module) => {
+        // Gone already: the hero left the page before the code came.
+        if (!list.current) return;
+        setHeld([...list.current.querySelectorAll("a")].indexOf(document.activeElement as HTMLAnchorElement));
+        setTooltip(() => module.Tooltip);
+      });
+    };
+    const hero = list.current!.closest("section")!;
+    hero.addEventListener("pointerover", load, listening);
+    hero.addEventListener("focusin", load, listening);
+    return () => listening.abort();
+  }, []);
   return (
-    <ul className="site-proof" aria-label="What we test" data-site-proof="">
-      {proof.claims.map((claim) => (
+    <ul ref={list} className="site-proof" aria-label="What we test" data-site-proof="" data-site-proof-tips={Tooltip ? "" : undefined}>
+      {proof.claims.map((claim, index) => (
         <li key={claim.text}>
           <CheckIcon />
-          <Link href={claim.href} tone="secondary" inline>
-            {claim.text}
-          </Link>
+          <Tip Tooltip={Tooltip} held={index === held} content={claim.where}>
+            <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`} onBlur={index === held ? () => setHeld(-1) : undefined}>
+              {claim.text}
+            </Link>
+          </Tip>
+          <span className="site-proof-where" id={`site-proof-where-${index}`}>
+            {claim.where}
+          </span>
         </li>
       ))}
     </ul>

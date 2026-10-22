@@ -94,7 +94,7 @@
       "source": "original-svg",
       "published": "2026-10-20",
       "licence": "repository",
-      "sha256": "07a1ecf3c11e2991d441b038a82f7a859264e1a14653a9a67e64207f3b56380f",
+      "sha256": "cbad5fd0a597551a94542e8f1be6ba5acaf26f9229c2925303165eeb42e7ad06",
       "chapter": "I",
       "modifications": "None: drawn for this site from Verne's text alone, to the same proportions as nautilus.svg and its construction sketch (nautilus-sketch.svg). A side plan in five parts the shipyard draws as each job is ticked: the double hull (two hulls joined by T-shaped irons, no rivets), the saloon's two oblong crystal panels bound in copper and the steersman's cage with lenticular glass, the engine room aft with its electric cells and magnets on the screw's axle, the lantern's cage aft on the platform, and the organ in the saloon. No tower, fins or eye-shaped window. Colours come from the theme (chapters.css).",
       "subject": "nautilus",
@@ -294,6 +294,127 @@
       "sha256": "3e342d7097de34511a980991cf84a63c72d1a6d6beaef019af2b0be1b8ea8018",
       "modifications": "None: drawn for this site.",
       "subject": "sea"
+    },
+    {
+      "file": "voyage-chart.svg",
+      "title": "The chart room's map of the voyage",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-21",
+      "licence": "repository",
+      "sha256": "e5db7b5423aa384921ae740e764bf52649d32c288918058df4ba2ad69134f4a4",
+      "modifications": "None: drawn for this site by site/scripts/drawings/voyage-chart.mjs (the sketch it comes from: a few coastline points each, placed by eye on a plain grid, x = (longitude + 180) × 3 and y = (65 − latitude) × 2.2). No survey or map data was copied. Chapter II draws the route and the ports over it; the ports sit where Verne puts them. Colours come from the theme (chapters.css).",
+      "subject": "sea",
+      "chapter": "II",
+      "shape": [
+        {
+          "feature": "Crespo Island",
+          "quote": "I consulted the planisphere, and in 32° 40′ north lat. and 157° 50′ west long., I found a small island, recognised in 1801 by Captain Crespo",
+          "chapter": "Part One, Chapter XIV, “A Note of Invitation” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "Atlantis",
+          "quote": "the position of the _Nautilus_ was marked at 16° 17′ long., and 33° 22′ lat., at 150 leagues from the nearest coast.",
+          "chapter": "Part Two, Chapter IX, “A Vanished Continent” (Project Gutenberg #164)"
+        }
+      ]
+    },
+    {
+      "file": "compass.svg",
+      "title": "A compass rose on a chart",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-21",
+      "licence": "repository",
+      "sha256": "1dee2b21d7806e0c1b6934ca5dd8f4654825fd501796444a62aa29e580ed74bc",
+      "modifications": "None: drawn for this site as Chapter II's vignette, beside the chapter and over its course line. Colour comes from the theme.",
+      "subject": "instrument",
+      "chapter": "II"
+    },
+    {
+      "file": "squid.svg",
+      "title": "A giant squid at the porthole",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-21",
+      "licence": "repository",
+      "sha256": "966caf9409f42963332939c0e51fdbec9aedc7f55b356de83887552d009a9153",
+      "modifications": "None: drawn for this site from Verne's text alone by site/scripts/drawings/squid.mjs (the sketch it comes from: each arm a centre line of curves, offset to a tapering band). Kept gentle for a child: no fight on the platform, no one lost; the squid lets go and sinks back into the deep behind its ink. Colours come from the theme (chapters.css), the skin mixed toward red as Verne's “reddish brown”.",
+      "subject": "creature",
+      "chapter": "III",
+      "shape": [
+        {
+          "feature": "body and eyes",
+          "quote": "It was an immense cuttlefish, being eight yards long. It swam crossways in the direction of the _Nautilus_ with great speed, watching us with its enormous staring green eyes.",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "arms",
+          "quote": "Its eight arms, or rather feet, fixed to its head, that have given the name of cephalopod to these animals, were twice as long as its body, and were twisted like the furies’ hair.",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "beak",
+          "quote": "The monster’s mouth, a horned beak like a parrot’s, opened and shut vertically.",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "spindle body",
+          "quote": "Its spindle-like body formed a fleshy mass that might weigh 4,000 to 5,000 lbs.; the, varying colour changing with great rapidity, according to the irritation of the animal, passed successively from livid grey to reddish brown.",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "fins at the tail",
+          "quote": "The noose slipped as far as the tail fins and there stopped.",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "the screw (why the ship is held)",
+          "quote": "The screw is stopped. I think that the horny jaws of one of the cuttlefish is entangled in the blades.",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "the ink (how it leaves)",
+          "quote": "the animal ejected a stream of black liquid. We were blinded with it. When the cloud dispersed, the cuttlefish had disappeared",
+          "chapter": "Part Two, Chapter XVIII, “The Poulps” (Project Gutenberg #164)"
+        }
+      ]
+    },
+    {
+      "file": "organ.svg",
+      "title": "Captain Nemo's organ",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-21",
+      "licence": "repository",
+      "sha256": "059a33e814a4d920ea137daab68776fb051a1105d6c9764239ca4bb353417e9e",
+      "modifications": "None: drawn for this site by site/scripts/drawings/organ.mjs, a case of pipes over a console and its keys, with the notes it plays. Verne calls it a piano-organ in the saloon; the pipes are drawn so a child sees an organ at once. Colour comes from the theme.",
+      "subject": "instrument",
+      "chapter": "III",
+      "shape": [
+        {
+          "feature": "the organ in the saloon",
+          "quote": "scattered over a large model piano-organ which occupied one of the panels of the drawing-room.",
+          "chapter": "Part One, Chapter X, “The Man of the Seas” (Project Gutenberg #164)"
+        },
+        {
+          "feature": "Nemo at the organ",
+          "quote": "Captain Nemo was there, bending over his organ, and plunged in a musical ecstasy.",
+          "chapter": "Part One, Chapter XXI, “Captain Nemo’s Thunderbolt” (Project Gutenberg #164)"
+        }
+      ]
+    },
+    {
+      "file": "tentacle.svg",
+      "title": "A tentacle curls round a porthole",
+      "creator": "Ouro HX contributors",
+      "source": "original-svg",
+      "published": "2026-10-21",
+      "licence": "repository",
+      "sha256": "913d3773e05a9f89b20ecd9b54f420e2887af75e00aca3f6394e49d4b6a3fe7e",
+      "modifications": "None: drawn for this site as Chapter III's vignette, over its course line. Colour comes from the theme.",
+      "subject": "creature",
+      "chapter": "III"
     }
   ]
 }

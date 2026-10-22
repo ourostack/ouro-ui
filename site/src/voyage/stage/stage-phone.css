@@ -1,0 +1,24 @@
+/*
+ * Put in the page as the stage hydrates (stage.tsx), so it costs the first load's CSS nothing:
+ * before then, on a phone, the Nautilus is drawn in the desktop's line weights.
+ *
+ * On a phone the porthole is half its desktop size, so every line in it is half as thick: the
+ * Nautilus's rim is drawn bolder, the lantern glows brighter and the spur is picked out, so she
+ * still reads as Verne's ship at a glance.
+ */
+@media (max-width: 40rem) {
+  .n-outline {
+    stroke: color-mix(in oklab, var(--foreground) 65%, transparent);
+    stroke-width: 2.2;
+  }
+  .n-spur,
+  .n-spur-edge {
+    stroke-width: 1.8;
+  }
+  .n-lantern {
+    stroke-width: 2;
+  }
+  .stage-lantern-glow {
+    opacity: 0.75;
+  }
+}

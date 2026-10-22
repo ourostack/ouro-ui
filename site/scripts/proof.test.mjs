@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { URL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, proofPlugin, registryAt } from "./proof.mts";
+import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, proofPlugin, registryAt, WHERE } from "./proof.mts";
 import { release } from "../../scripts/registry.mts";
 import { scratchDir } from "../../scripts/scratch.mjs";
 
@@ -33,6 +33,10 @@ test("each claim on the hero's proof line comes from its source", () => {
   assert.deepEqual(
     proof.claims.map((claim) => claim.href.replace(/#L\d+$/, "")),
     [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage, EVIDENCE.stage],
+  );
+  assert.deepEqual(
+    proof.claims.map((claim) => claim.where),
+    [WHERE.components, WHERE.typescript, WHERE.engines, WHERE.themes, WHERE.coverage, WHERE.stage],
   );
 });
 
@@ -175,4 +179,12 @@ test("the theme claim needs the axe loop over every preset in light and dark", (
   const proof = deriveProof({ ...files, voyageSpec });
   assert.equal(proof.themes, 0);
   assert.doesNotMatch(proof.line, /axe-clean/);
+});
+
+test("the page's proof module holds only the claims the hero shows", () => {
+  const plugin = proofPlugin();
+  const module = plugin.load(plugin.resolveId("virtual:site-proof"));
+  const proof = JSON.parse(/^export default (.*);$/m.exec(module)[1]);
+  assert.deepEqual(Object.keys(proof), ["claims"]);
+  assert.deepEqual(proof.claims, currentProof().claims);
 });

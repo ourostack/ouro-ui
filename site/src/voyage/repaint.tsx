@@ -31,92 +31,94 @@ function DiveWindow(): JSX.Element {
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set(["hatch"]));
   const [open, setOpen] = useState(false);
   return (
-    <div className="site-window" data-site-sample="">
-      <div className="site-window-bar">
-        <span className="site-window-dots" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-        <span className="site-mono truncate">before-we-dive.tsx</span>
-        <span className="ms-auto inline-flex items-center gap-2">
-          <ByPreset>
-            {(item) => (
-              <span className="inline-flex items-center gap-2">
-                <Swatch preset={item.name} />
-                {item.label}
-              </span>
-            )}
-          </ByPreset>
-        </span>
-      </div>
-      <div className="site-chart-grid grid gap-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
-        <div className="rounded-xl border border-border/70 bg-card p-4 shadow-(--shadow-sm) sm:p-5">
-          <Checklist
-            label="Before we dive"
-            description="Tick them off. Conseil is watching."
-            items={DIVE_CHECKS.map((item) => ({ ...item, checked: checked.has(item.id) }))}
-            onCheckedChange={(id, isChecked) =>
-              setChecked((previous) => {
-                const next = new Set(previous);
-                if (isChecked) next.add(id);
-                else next.delete(id);
-                return next;
-              })
-            }
-            onClearChecked={() => setChecked(new Set())}
-          />
+    <div className="site-window will-change-transform" data-site-sample="">
+      <div className="overflow-hidden border border-border/70 will-change-transform" style={{ borderRadius: "inherit" }}>
+        <div className="site-window-bar">
+          <span className="site-window-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="site-mono truncate">before-we-dive.tsx</span>
+          <span className="ms-auto inline-flex items-center gap-2">
+            <ByPreset>
+              {(item) => (
+                <span className="inline-flex items-center gap-2">
+                  <Swatch preset={item.name} />
+                  {item.label}
+                </span>
+              )}
+            </ByPreset>
+          </span>
         </div>
-        <div className="grid content-between gap-6">
-          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Headings</dt>
-            <dd className="m-0 truncate font-[family-name:var(--font-heading)] font-semibold">
-              <ByPreset>{(item) => item.heading}</ByPreset>
-            </dd>
-            <dt className="text-muted-foreground">Corners</dt>
-            <dd className="site-mono m-0">
-              <ByPreset>{(item) => item.radius}</ByPreset>
-            </dd>
-            <dt className="text-muted-foreground">Colours</dt>
-            <dd className="m-0 flex flex-wrap gap-1.5">
-              <span className="sr-only">Background, primary, accent, highlight and border</span>
-              {["bg-background", "bg-primary", "bg-accent", "bg-chart-3", "bg-border"].map((color) => (
-                <span key={color} aria-hidden="true" className={`size-5 rounded-md ring-1 ring-foreground/15 ${color}`} />
-              ))}
-            </dd>
-          </dl>
-          <div className="grid gap-3">
-            <p className="m-0 text-sm text-muted-foreground">
-              {checked.size === DIVE_CHECKS.length ? "All set. Down we go." : `${DIVE_CHECKS.length - checked.size} left before we dive.`}
-            </p>
-            <Dialog
-              title="Dive to 300 fathoms?"
-              description="The lantern stays on. Ned Land would like it noted that he is against this."
-              open={open}
-              onOpenChange={setOpen}
-              footer={
-                <>
-                  <Button variant="outline" tone="secondary" onClick={() => setOpen(false)}>
-                    Not yet
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setOpen(false);
-                      toast("Diving", { description: "Conseil: Classified. One very deep dive." });
-                    }}
-                  >
-                    Dive
-                  </Button>
-                </>
+        <div className="site-chart-grid grid gap-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
+          <div className="rounded-xl border border-border/70 bg-card p-4 shadow-(--shadow-sm) sm:p-5">
+            <Checklist
+              label="Before we dive"
+              description="Tick them off. Conseil is watching."
+              items={DIVE_CHECKS.map((item) => ({ ...item, checked: checked.has(item.id) }))}
+              onCheckedChange={(id, isChecked) =>
+                setChecked((previous) => {
+                  const next = new Set(previous);
+                  if (isChecked) next.add(id);
+                  else next.delete(id);
+                  return next;
+                })
               }
-            >
+              onClearChecked={() => setChecked(new Set())}
+            />
+          </div>
+          <div className="grid content-between gap-6">
+            <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+              <dt className="text-muted-foreground">Headings</dt>
+              <dd className="m-0 truncate font-[family-name:var(--font-heading)] font-semibold">
+                <ByPreset>{(item) => item.heading}</ByPreset>
+              </dd>
+              <dt className="text-muted-foreground">Corners</dt>
+              <dd className="site-mono m-0">
+                <ByPreset>{(item) => item.radius}</ByPreset>
+              </dd>
+              <dt className="text-muted-foreground">Colours</dt>
+              <dd className="m-0 flex flex-wrap gap-1.5">
+                <span className="sr-only">Background, primary, accent, highlight and border</span>
+                {["bg-background", "bg-primary", "bg-accent", "bg-chart-3", "bg-border"].map((color) => (
+                  <span key={color} aria-hidden="true" className={`size-5 rounded-md ring-1 ring-foreground/15 ${color}`} />
+                ))}
+              </dd>
+            </dl>
+            <div className="grid gap-3">
               <p className="m-0 text-sm text-muted-foreground">
-                At 300 fathoms the sea is dark and very quiet. Captain Nemo says the fish there glow.
+                {checked.size === DIVE_CHECKS.length ? "All set. Down we go." : `${DIVE_CHECKS.length - checked.size} left before we dive.`}
               </p>
-            </Dialog>
-            <Button onClick={() => setOpen(true)} aria-haspopup="dialog" data-site-dive-trigger="">
-              Ready to dive?
-            </Button>
+              <Dialog
+                title="Dive to 300 fathoms?"
+                description="The lantern stays on. Ned Land would like it noted that he is against this."
+                open={open}
+                onOpenChange={setOpen}
+                footer={
+                  <>
+                    <Button variant="outline" tone="secondary" onClick={() => setOpen(false)}>
+                      Not yet
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setOpen(false);
+                        toast("Diving", { description: "Conseil: Classified. One very deep dive." });
+                      }}
+                    >
+                      Dive
+                    </Button>
+                  </>
+                }
+              >
+                <p className="m-0 text-sm text-muted-foreground">
+                  At 300 fathoms the sea is dark and very quiet. Captain Nemo says the fish there glow.
+                </p>
+              </Dialog>
+              <Button onClick={() => setOpen(true)} aria-haspopup="dialog" data-site-dive-trigger="">
+                Ready to dive?
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -147,7 +149,7 @@ export function Repaint(): JSX.Element {
   const { preset, setPreset } = useSiteTheme();
   const current = presetNamed(preset);
   return (
-    <section aria-labelledby="repaint-title" id="themes" className="py-20 lg:py-32">
+    <section aria-labelledby="repaint-title" id="themes" className="pt-20 pb-12 lg:pt-32 lg:pb-16">
       <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <p className="site-eyebrow">Themes</p>

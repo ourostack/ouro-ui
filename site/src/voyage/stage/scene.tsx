@@ -497,11 +497,13 @@ const Rim = memo(function Rim({ motto }: { motto: string }): JSX.Element {
       <circle className="stage-rim-outer" cx="280" cy="280" r="272" />
       <circle className="stage-rim-rule" cx="280" cy="280" r="267" />
       <circle className="stage-rim-rule" cx="280" cy="280" r="245" />
-      <text className="stage-motto" dy="4.5">
-        <textPath href="#stage-motto-path" startOffset="50%" textAnchor="middle">
-          {motto.toUpperCase()}
-        </textPath>
-      </text>
+      {motto ? (
+        <text className="stage-motto" dy="4.5">
+          <textPath href="#stage-motto-path" startOffset="50%" textAnchor="middle">
+            {motto.toUpperCase()}
+          </textPath>
+        </text>
+      ) : null}
       {/* Eight screws, 40 degrees apart, leaving the top of the ring clear for the motto. */}
       {Array.from({ length: 8 }, (_, index) => {
         const angle = ((310 + index * 40) * Math.PI) / 180;

@@ -71,10 +71,15 @@
     color: var(--muted-foreground);
     text-wrap: pretty;
   }
-  /* A framed application on the page: a card with window chrome, like React Aria's hero. */
+  /*
+   * A framed application on the page: a card with window chrome, like React Aria's hero. WebKit
+   * blurs a box shadow again, whole, on each repaint of the layer that holds it, and on each
+   * repaint of the page under it when it has none. So the window, with its shadow, is a layer of
+   * its own (`will-change-transform`), and its contents sit in a pane on another
+   * (`overflow-hidden border border-border/70 will-change-transform`, its corners inherited): a press, a
+   * menu or a toast repaints the pane and nothing under it. Measured on CI for pull request 153.
+   */
   .site-window {
-    overflow: hidden;
-    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     color: var(--card-foreground);
@@ -235,7 +240,7 @@
   }
   .site-install {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
     column-gap: 0.5rem;
     min-width: 0;
@@ -262,10 +267,15 @@
     color: var(--primary);
     font-weight: 500;
   }
-  .site-install-copy {
+  .site-install-release {
     grid-area: 1 / 3;
+    white-space: nowrap;
   }
-  @container (max-width: 34.99rem) {
+  .site-install-copy {
+    grid-area: 1 / 4;
+  }
+  /* Where the release beside the command would crowd it, the command breaks after "add". */
+  @container (max-width: 43.99rem) {
     .site-install {
       align-items: start;
     }
@@ -275,9 +285,9 @@
       align-items: center;
       min-height: 2.5rem;
     }
-    /* The command takes Copy's column too: its first line is short, and the address runs under Copy. */
+    /* The command takes the release's and Copy's columns too: its first line is short, and the address runs under them. */
     .site-install-command {
-      grid-column: 2 / 4;
+      grid-column: 2 / 5;
       padding-block: 0 0.375rem;
       white-space: normal;
       overflow-wrap: anywhere;
@@ -285,8 +295,18 @@
     .site-install-address {
       display: block;
     }
-    .site-install-copy {
+    .site-install-copy,
+    .site-install-release {
       align-self: start;
+    }
+    .site-install-release {
+      margin-top: 0.4375rem;
+    }
+  }
+  /* On a phone the release shows its number; its name still says it is the latest. */
+  @container (max-width: 23.99rem) {
+    .site-install-release-word {
+      display: none;
     }
   }
   .site-install-foot {
@@ -313,6 +333,30 @@
     font-size: 0.875rem;
     line-height: 1.4;
     color: var(--muted-foreground);
+  }
+  /* Where a pointer can hover, each link's tooltip (its destination) opens in the gap under it, so it covers no link in the next row. */
+  @media (hover: hover) {
+    .site-proof {
+      row-gap: 2rem;
+    }
+  }
+  /*
+   * The destination: the link's description for screen readers (a hidden element still describes),
+   * and, where nothing can hover, small print under the link.
+   */
+  .site-proof-where {
+    display: none;
+  }
+  @media (hover: none) {
+    .site-proof li {
+      flex-wrap: wrap;
+    }
+    .site-proof-where {
+      display: block;
+      width: 100%;
+      padding-inline-start: 1.5rem;
+      font-size: 0.75rem;
+    }
   }
   .site-proof li {
     display: flex;
