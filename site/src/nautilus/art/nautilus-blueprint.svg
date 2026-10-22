@@ -10,7 +10,8 @@
        lantern's cage aft on the platform, its beam forward; the organ in the saloon. No tower,
        no fins, no eye-shaped window. Each part is a group, data-part, that the page shows when its
        job is ticked; at the launch the whole ship (bp-ship) slides into the sea with a wake,
-       bubbles and a flash of the lantern (bp-launch, bp-flash). Colour comes from the theme
+       bubbles and a flash of the lantern, and her mooring line is cast off and falls (bp-launch,
+       bp-mooring, bp-flash). Colour comes from the theme
        (chapters.css, chapter-one.css). -->
   <defs>
     <pattern id="bp-grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -49,6 +50,10 @@
       <path d="M88 110 C70 106 52 108 34 104 C24 102 14 103 4 106" pathLength="60" />
       <path d="M88 140 C70 144 52 143 34 147 C24 149 14 148 4 145" pathLength="60" />
       <path d="M62 126 C48 124 32 127 16 126" pathLength="60" stroke-width="0.9" />
+    </g>
+    <g class="bp-mooring" stroke-width="1.4">
+      <path d="M598 118 C628 124 660 122 688 108" />
+      <path class="bp-bollard" d="M682 104 H696 M684 104 V114 H694 V104" stroke-width="1.8" />
     </g>
     <g class="bp-bubbles" fill="currentColor" stroke="none">
       <circle cx="74" cy="168" r="2.2" />

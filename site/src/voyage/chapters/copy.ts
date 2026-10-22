@@ -74,6 +74,8 @@ export const SHIPYARD = {
   again: "Build her again",
   launchHint: (left: number) => (left === 0 ? "All done. She is ready." : left === 1 ? "One job left." : `${left} jobs left.`),
   launched: "She is afloat.",
+  /** Under the plan once she floats: what is done, and where the voyage goes next. */
+  afloat: "Built and afloat. Next, we plan the voyage.",
 } as const;
 
 /** What the crew says as the work goes on. */

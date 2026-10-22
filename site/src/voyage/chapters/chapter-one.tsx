@@ -150,7 +150,7 @@ function ExpeditionMarker(): JSX.Element {
 /** The engraved plan: each built part drawn in, and the finished ship in the sea once launched. */
 const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
-    <figure ref={ref} className="m-0 border-b border-border/70" style={{ scrollMarginTop: "5rem" }}>
+    <figure ref={ref} className="relative m-0 border-b border-border/70" style={{ scrollMarginTop: "5rem" }}>
       <svg
         className="site-blueprint"
         viewBox={blueprint.viewBox}
@@ -164,6 +164,11 @@ const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<P
         data-launched={launched ? "" : undefined}
         dangerouslySetInnerHTML={{ __html: blueprint.inner }}
       />
+      {launched ? (
+        <figcaption className="site-afloat" data-chapter-afloat="">
+          {SHIPYARD.afloat}
+        </figcaption>
+      ) : null}
     </figure>
   );
 });
