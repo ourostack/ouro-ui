@@ -1,10 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** A run of the draft under review: unchanged, put in by a change, or taken out by one. */
@@ -40,23 +42,24 @@ export interface DraftReviewOwnProps {
   /**
    * Called when the person accepts a change. The click event comes second, so the app can
    * check `event.isTrusted` and act only on a person's click: accepting is a person's decision.
+   * Return the save's promise when it is saved later: the change stays decided until it settles.
    */
-  onAccept: (id: string, event: MouseEvent<HTMLElement>) => void;
+  onAccept: (id: string, event: MouseEvent<HTMLElement>) => unknown;
   /** Called when the person rejects a change, with the click event to check, as `onAccept`. */
-  onReject: (id: string, event: MouseEvent<HTMLElement>) => void;
+  onReject: (id: string, event: MouseEvent<HTMLElement>) => unknown;
   /**
    * Adds Accept all while there is more than one change.
    * @claim "Adds Accept all while there is" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
    */
-  onAcceptAll?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  onAcceptAll?: ((event: MouseEvent<HTMLElement>) => unknown) | undefined;
   /**
    * Adds Reject all while there is more than one change.
    * @claim "Adds Reject all while there is" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
    */
-  onRejectAll?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  onRejectAll?: ((event: MouseEvent<HTMLElement>) => unknown) | undefined;
   /** Adds Show after a change's `source`, to show what it was based on. */
   onShowSource?: ((id: string) => void) | undefined;
-  /** What screen readers hear for the review. @default "Changes to review" */
+  /** What screen readers hear for the review. Without it, the review is named by its heading. */
   label?: string | undefined;
   /** The heading. @default "1 change to review" or "3 changes to review" */
   heading?: ReactNode;
@@ -97,6 +100,18 @@ export interface DraftReviewOwnProps {
 /** Props for {@link DraftReview}: its own props and the `<section>` attributes it passes through. */
 export type DraftReviewProps = Omit<HTMLAttributes<HTMLElement>, keyof DraftReviewOwnProps | "children"> & DraftReviewOwnProps;
 
+/** The decisions DraftReview keeps: see `DraftReview`. */
+interface Decisions {
+  /** Each change decided and not yet gone, with whether its save is pending. */
+  ids: ReadonlyMap<string, boolean>;
+  /** The changes a bulk press decided, and whether its save is pending. */
+  bulk: { ids: readonly string[]; pending: boolean } | null;
+  /** The `changes` these were last checked against. */
+  changes: readonly DraftChange[];
+}
+
+const isPromise = (value: unknown): value is PromiseLike<unknown> => typeof (value as PromiseLike<unknown> | undefined)?.then === "function";
+
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 // An agent's text is tinted with the theme's primary color, as in DraftEditor, and underlined, so
 // it never relies on color alone; a person's is underlined only.
@@ -113,9 +128,12 @@ const inserted = {
  * Screen readers hear each change's number and whether it adds or removes text, and each
  * button names its change ("Accept, Change 2"). Accepting and rejecting are a person's
  * decisions: the callbacks receive the click event so the app can check it came from a
- * person, and an agent does not call them. When a decided change leaves the list, focus moves
- * to the change now in its place. With no changes it renders nothing, so once the last is
- * decided, move focus to what follows, such as the draft.
+ * person, and an agent does not call them. A change is decided once: its buttons, and the bulk
+ * ones after a bulk press, say they are unavailable (`aria-disabled`) and ignore presses until
+ * the change leaves `changes`, or until the app keeps it (renders it again with no save of it
+ * pending: return the save's promise from the callback). When a decided change leaves the
+ * list, focus moves to the change now in its place. With no changes it renders nothing, and
+ * focus moves to the next control after it; move it elsewhere, such as the draft, if you prefer.
  *
  * Use `DraftEditor` instead to write the draft together; DraftReview never edits text itself.
  *
@@ -128,10 +146,12 @@ const inserted = {
  * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > tints an agent's added text and leaves a person's underlined only)
  * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > says who made each change, marking an agent's, with when and what it was based on)
  * @claim "Accepting and rejecting are a person's" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
+ * @claim "A change is decided once" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > decides a change once, however often or however it is pressed) verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > decides every change once with Accept all or Reject all) verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > keeps a change decided while its save is pending, and focus on the list once it leaves)
  * @claim "Screen readers hear each change's number" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
  * @claim "each button names its change" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
  * @claim "When a decided change leaves the" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > keeps keyboard focus on the list as decided changes leave it)
  * @claim "With no changes it renders nothing" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > renders nothing with no changes)
+ * @claim "focus moves to the next control after it" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > hands focus to the next control when a press empties the review)
  * @claim "Accept all and Reject all join" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
  */
 export function DraftReview(props: DraftReviewProps): JSX.Element | null {
@@ -143,7 +163,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
     onAcceptAll,
     onRejectAll,
     onShowSource,
-    label = "Changes to review",
+    label,
     heading,
     description,
     actions,
@@ -161,8 +181,10 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
     diff,
     onApprove,
     onDecline,
+    ref,
     ...rest
   } = props;
+  const id = useId();
   const numbers = new Map(changes.map((change, index) => [change.id, index + 1]));
   const byId = new Map(changes.map((change) => [change.id, change]));
   // A change's number follows its last run in the text.
@@ -195,20 +217,82 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  // Where in the list the person decided a change with focus on its button. When the change
-  // leaves, focus goes to the Accept of the change now in its place, or of the last one.
-  const list = useRef<HTMLOListElement>(null);
-  const decided = useRef<number | null>(null);
+  // The changes decided and not yet gone, each with whether its save is pending (the callback
+  // returned a promise not yet settled), and the bulk press, if any, with the changes it decided.
+  // When `changes` comes anew, a change that is gone, or that the app kept with nothing pending,
+  // is no longer decided.
+  const [stored, setDecisions] = useState<Decisions>(() => ({ ids: new Map(), bulk: null, changes }));
+  let decisions = stored;
+  if (stored.changes !== changes) {
+    const present = new Set(changes.map((change) => change.id));
+    const bulk = stored.bulk?.pending && stored.bulk.ids.some((key) => present.has(key)) ? stored.bulk : null;
+    decisions = { ids: new Map([...stored.ids].filter(([key, pending]) => pending && present.has(key))), bulk, changes };
+    setDecisions(decisions);
+  }
+  // What the handlers read: the decisions rendered, and any made since, so a second press before
+  // the next render is ignored too.
+  const live = useRef(decisions);
   useLayoutEffect(() => {
-    const at = decided.current;
-    decided.current = null;
-    // With the last change decided the list is gone, and the app moves focus on.
-    if (at === null || !list.current || list.current.contains(document.activeElement)) return;
-    const rows = list.current.querySelectorAll<HTMLButtonElement>(":scope > li [data-decision='accept']");
-    rows[Math.min(at, rows.length - 1)]!.focus();
+    live.current = decisions;
+  });
+  // The change the person decided with focus on its button, and where it was in the list. When
+  // it leaves, focus goes to the Accept of the change now in its place, or of the last one.
+  const focusAt = useRef<{ id: string; index: number } | null>(null);
+  const list = useRef<HTMLOListElement>(null);
+  // When a press empties the review, focus moves to the next control after it.
+  const section = useMergedRef(ref, useFocusHandoff<HTMLElement>());
+  useLayoutEffect(() => {
+    const at = focusAt.current;
+    if (at === null) return;
+    if (changes.some((change) => change.id === at.id)) {
+      if (!live.current.ids.has(at.id)) focusAt.current = null;
+      return;
+    }
+    focusAt.current = null;
+    const active = document.activeElement;
+    // With the last change decided the list is gone, and the section's handoff moves focus on.
+    if (!list.current || (active !== null && active !== document.body && active.isConnected)) return;
+    const rows = list.current.querySelectorAll<HTMLButtonElement>(":scope > li [data-ouro-part='accept']");
+    rows[Math.min(at.index, rows.length - 1)]!.focus();
   }, [changes]);
-  const decide = (index: number, event: MouseEvent<HTMLElement>) => {
-    if (event.currentTarget === document.activeElement) decided.current = index;
+  const record = (next: Decisions) => {
+    live.current = next;
+    setDecisions(next);
+  };
+  const decide = (change: DraftChange, index: number, event: MouseEvent<HTMLElement>, callback: typeof onAccept) => {
+    if (live.current.ids.has(change.id) || live.current.bulk) return;
+    if (event.currentTarget === document.activeElement) focusAt.current = { id: change.id, index };
+    const ids = new Map(live.current.ids).set(change.id, false);
+    record({ ...live.current, ids });
+    const result = callback(change.id, event);
+    if (!isPromise(result)) return;
+    record({ ...live.current, ids: new Map(live.current.ids).set(change.id, true) });
+    const done = () =>
+      setDecisions((current) => {
+        if (!current.ids.has(change.id)) return current;
+        const ids = new Map(current.ids);
+        // Settled with the change still there: the app kept it, so it can be decided again.
+        if (current.changes.some((each) => each.id === change.id)) ids.delete(change.id);
+        else ids.set(change.id, false);
+        return { ...current, ids };
+      });
+    result.then(done, done);
+  };
+  const decideAll = (event: MouseEvent<HTMLElement>, callback: NonNullable<typeof onAcceptAll>) => {
+    if (live.current.bulk) return;
+    const press = { ids: changes.map((change) => change.id), pending: false };
+    record({ ...live.current, bulk: press });
+    const result = callback(event);
+    if (!isPromise(result)) return;
+    const pending = { ...press, pending: true };
+    record({ ...live.current, bulk: pending });
+    const done = () =>
+      setDecisions((current) => {
+        if (current.bulk !== pending) return current;
+        const kept = pending.ids.some((key) => current.changes.some((each) => each.id === key));
+        return { ...current, bulk: kept ? null : { ...pending, pending: false } };
+      });
+    result.then(done, done);
   };
 
   if (changes.length === 0) return null;
@@ -216,22 +300,39 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
   return (
     <section
       {...rest}
+      ref={section}
       aria-label={label}
+      aria-labelledby={label === undefined ? `${id}-heading` : undefined}
       data-ouro="draft-review"
       className={cn("box-border flex min-w-0 flex-col gap-3 rounded-xl border border-solid border-border bg-card p-3 text-card-foreground", className)}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <p data-ouro-draft-review-heading="" className="m-0 text-sm font-semibold">{heading ?? `${changes.length} ${many ? "changes" : "change"} to review`}</p>
+        <p id={`${id}-heading`} data-ouro-draft-review-heading="" className="m-0 text-sm font-semibold">{heading ?? `${changes.length} ${many ? "changes" : "change"} to review`}</p>
         {description !== undefined && description !== null && <span className={cn("text-xs", quiet)}>{description}</span>}
         {((many && (onAcceptAll || onRejectAll)) || (actions !== undefined && actions !== null)) && (
           <span className="ms-auto flex flex-wrap gap-1">
             {many && onAcceptAll && (
-              <Button size="sm" variant="soft" onClick={onAcceptAll}>
+              <Button
+                size="sm"
+                variant="soft"
+                data-ouro-control="draft-review"
+                data-ouro-part="accept-all"
+                aria-disabled={decisions.bulk ? true : undefined}
+                onClick={(event) => decideAll(event, onAcceptAll)}
+              >
                 {acceptAllLabel}
               </Button>
             )}
             {many && onRejectAll && (
-              <Button size="sm" variant="plain" tone="destructive" onClick={onRejectAll}>
+              <Button
+                size="sm"
+                variant="plain"
+                tone="destructive"
+                data-ouro-control="draft-review"
+                data-ouro-part="reject-all"
+                aria-disabled={decisions.bulk ? true : undefined}
+                onClick={(event) => decideAll(event, onRejectAll)}
+              >
                 {rejectAllLabel}
               </Button>
             )}
@@ -269,6 +370,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
       <ol ref={list} className="m-0 flex list-none flex-col gap-2 p-0">
         {changes.map((change, index) => {
           const name = changeLabel(index + 1);
+          const unavailable = decisions.ids.has(change.id) || decisions.bulk !== null ? true : undefined;
           return (
             <li key={change.id} data-ouro-draft-change={change.id} className="m-0 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 p-0 text-sm">
               <span aria-hidden="true" className={cn("w-4 shrink-0 text-xs font-semibold tabular-nums", quiet)}>
@@ -284,7 +386,14 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
               {change.time !== undefined && change.time !== null && <span className={cn("text-xs", quiet)}>{change.time}</span>}
               {change.source !== undefined && change.source !== null && <span className={cn("text-xs", quiet)}>{change.source}</span>}
               {change.source !== undefined && change.source !== null && onShowSource && (
-                <Button size="sm" variant="plain" aria-label={`${showSourceLabel}, ${name}`} onClick={() => onShowSource(change.id)}>
+                <Button
+                  size="sm"
+                  variant="plain"
+                  data-ouro-control="draft-review"
+                  data-ouro-part="show-source"
+                  aria-label={`${showSourceLabel}, ${name}`}
+                  onClick={() => onShowSource(change.id)}
+                >
                   {showSourceLabel}
                 </Button>
               )}
@@ -292,12 +401,11 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
                 <Button
                   size="sm"
                   variant="outline"
-                  data-decision="accept"
+                  data-ouro-control="draft-review"
+                  data-ouro-part="accept"
                   aria-label={`${acceptLabel}, ${name}`}
-                  onClick={(event) => {
-                    decide(index, event);
-                    onAccept(change.id, event);
-                  }}
+                  aria-disabled={unavailable}
+                  onClick={(event) => decide(change, index, event, onAccept)}
                 >
                   {acceptLabel}
                 </Button>
@@ -305,11 +413,11 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
                   size="sm"
                   variant="plain"
                   tone="destructive"
+                  data-ouro-control="draft-review"
+                  data-ouro-part="reject"
                   aria-label={`${rejectLabel}, ${name}`}
-                  onClick={(event) => {
-                    decide(index, event);
-                    onReject(change.id, event);
-                  }}
+                  aria-disabled={unavailable}
+                  onClick={(event) => decide(change, index, event, onReject)}
                 >
                   {rejectLabel}
                 </Button>

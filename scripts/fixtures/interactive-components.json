@@ -69,5 +69,6 @@
   "install-prompt",
   "conversation-list",
   "attention-card",
-  "reaction-bar"
+  "reaction-bar",
+  "draft-review"
 ]

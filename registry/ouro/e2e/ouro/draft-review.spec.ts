@@ -3,7 +3,7 @@ import { openStory } from "./story";
 
 test("a person accepts one change and rejects the rest, and the draft settles", async ({ page }) => {
   await openStory(page, "chat-draftreview--review");
-  const review = page.getByRole("region", { name: "Changes to review" });
+  const review = page.getByRole("region", { name: /^\d+ changes? to review$/ });
   await expect(review.locator("ins")).toHaveCount(2);
   await review.getByRole("button", { name: "Accept, Change 1" }).click();
   await expect(review.getByRole("button", { name: "Accept, Change 2" })).toBeVisible();

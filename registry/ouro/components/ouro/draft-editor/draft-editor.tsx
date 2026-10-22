@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode, type Ref, type TextareaHTMLAttributes } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -42,17 +43,26 @@ export interface DraftEditorOwnProps {
    * Called when the person edits, with the new text and the runs updated to match: the
    * person's typing is theirs, and what they did not touch keeps its author. Store both.
    * The runs are `undefined` when `segments` did not join to `value`, since who wrote what is
-   * then unknown.
+   * then unknown, and the agent's words are not highlighted until the runs join to the text
+   * again. To get back in step, store runs that join to the new text: your own record of who
+   * wrote what, or, when you have none, the text as the person's (`[{ author: "human", text }]`),
+   * since they have now edited it; the agent's next words are highlighted as before.
    */
   onValueChange: (value: string, segments: DraftSegment[] | undefined) => void;
   /** Who wrote which part of `value`. Agent-written runs are highlighted in place. */
   segments: readonly DraftSegment[];
-  /** A short note from whoever set the readiness ("Check the dates"). */
+  /** A short note from whoever set the readiness ("Check the dates"), after their name. */
   readinessNote?: string | undefined;
   /** The readiness badge's text, for other languages. Defaults to "Needs your input", "Ready for your review" or "Approved". */
   readinessLabel?: string | undefined;
   /** The legend for the agent's highlight, for other languages. @default "Written by an agent" */
   agentLabel?: string | undefined;
+  /**
+   * What screen readers hear after `agentLabel` in the box's description: how many runs the agent
+   * wrote and the first few words of the first. For other languages.
+   * @default (count, start) => `${count} ${count === 1 ? "passage" : "passages"}, starting “${start}”`
+   */
+  agentSummary?: ((count: number, start: string) => string) | undefined;
   /** A send button and other actions, at the end of the box. */
   actions?: ReactNode;
   /** Text shown while the draft is empty. */
@@ -123,9 +133,18 @@ const agentMark =
   "forced-colors:decoration-[Highlight]";
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
+// The words of the agent's first run the description quotes.
+const startWords = 5;
+
 // A last empty line, as the textarea keeps one under its text.
 // Stryker disable next-line StringLiteral: the layer clips to the textarea, so no highlight above the last line moves without it.
 const lastLine = "\n";
+
+/** The first few words of a run, with an ellipsis when it goes on. */
+function start(text: string): string {
+  const words = text.trim().split(/\s+/);
+  return words.length > startWords ? `${words.slice(0, startWords).join(" ")}…` : words.join(" ");
+}
 
 const join = (segments: readonly DraftSegment[]) => segments.map((segment) => segment.text).join("");
 
@@ -187,7 +206,8 @@ function rebase(segments: readonly DraftSegment[], before: string, after: string
  * the draft stands ("Needs your input", "Ready for your review", "Approved"). The person
  * edits freely; `onValueChange` gives the new text and the runs
  * updated to match, so what they type is theirs and what they leave keeps its author.
- * Screen readers hear the agent's words in the box's description. An agent can ask for
+ * Screen readers hear in the box's description how many runs the agent wrote and how the first
+ * starts, and hear where the draft stands each time it changes. An agent can ask for
  * input or say the draft is ready for review, but only a person approves it: an `approved`
  * shows only with a person in `readinessBy`.
  *
@@ -202,14 +222,15 @@ function rebase(segments: readonly DraftSegment[], before: string, after: string
  *   label="Reply"
  *   value={draft.text}
  *   segments={draft.segments}
- *   onValueChange={(text, segments) => setDraft({ text, segments })}
+ *   onValueChange={(text, segments) => setDraft({ text, segments: segments ?? [{ author: "human", text }] })}
  *   readiness="ready-for-review"
  *   readinessBy={{ author: "agent", name: "Ouro" }}
  *   actions={<Button>Send</Button>}
  * />
  * @claim "the agent's words are highlighted in" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > highlights the agent's words in place, under the text, wrapped as the text wraps)
  * @claim "so what they type is theirs" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > gives the person's typing to them and keeps the author of what they leave)
- * @claim "Screen readers hear the agent's words" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > describes the box with the agent's words, for screen readers)
+ * @claim "Screen readers hear in the box's description" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > describes the box with the agent's words, for screen readers)
+ * @claim "hear where the draft stands each time it changes" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > says where the draft stands once each time it changes, and not when it first shows)
  * @claim "an `approved` shows only with a person" registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx verify:testExists(registry/ouro/components/ouro/draft-editor/draft-editor.test.tsx::DraftEditor > shows approval only from a person)
  */
 export function DraftEditor(props: DraftEditorProps): JSX.Element {
@@ -223,6 +244,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
     readinessNote,
     readinessLabel,
     agentLabel = "Written by an agent",
+    agentSummary = (count: number, start: string) => `${count} ${count === 1 ? "passage" : "passages"}, starting “${start}”`,
     actions,
     placeholder,
     rows = 2,
@@ -250,6 +272,16 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
   const unapproved = readiness === "approved" && readinessBy?.author !== "human";
   const shown: DraftReadiness = unapproved ? "drafting" : readiness;
   const badge = shown === "drafting" ? null : readinessBadges[shown];
+  // Who set the readiness and their note, as the status line shows them.
+  const byline = readinessBy ? (readinessNote ? `${readinessBy.name}: ${readinessNote}` : readinessBy.name) : (readinessNote ?? "");
+  const standing = badge ? [readinessLabel ?? badge.label, byline].filter(Boolean).join(", ") : "";
+  // Said once each time where the draft stands changes, not when it first shows.
+  const said = useRef<string | null>(null);
+  useEffect(() => {
+    const before = said.current;
+    said.current = standing;
+    if (before !== null && standing !== before && standing !== "") announce(standing);
+  }, [standing]);
   // The selection when an edit began (the native beforeinput), so the edit is placed where it was made.
   const selection = useRef<DraftEdit["before"] | null>(null);
   useEffect(() => {
@@ -344,7 +376,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
             <span data-ouro-draft-legend="" className="inline-flex items-center gap-1.5">
               <span aria-hidden="true" className={cn("inline-block h-3 w-4", agentMark)} />
               <span aria-hidden="true">{agentLabel}</span>
-              <span className="sr-only">{`${agentLabel}: ${agentRuns.map((run) => `“${run.text.trim()}”`).join(", ")}.`}</span>
+              <span className="sr-only">{`${agentLabel}: ${agentSummary(agentRuns.length, start(agentRuns[0]!.text))}.`}</span>
             </span>
           )}
           {badge && (
@@ -352,12 +384,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
               {readinessLabel ?? badge.label}
             </Badge>
           )}
-          {badge && readinessBy && (
-            <span data-ouro-draft-readiness-by="">
-              {readinessBy.name}
-              {readinessNote ? `: ${readinessNote}` : ""}
-            </span>
-          )}
+          {badge && byline && <span data-ouro-draft-readiness-by="">{byline}</span>}
         </div>
       )}
       <div className="box-border flex min-w-0 items-end gap-2 rounded-lg border border-solid border-border bg-card p-2 text-card-foreground focus-within:border-ring">

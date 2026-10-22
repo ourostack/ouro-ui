@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DraftEditor, type DraftEditorProps, type DraftReadinessProps, type DraftSegment } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -194,7 +195,7 @@ describe("DraftEditor", () => {
     expect(layer.style.height).toBe(`${textarea.clientHeight}px`);
   });
 
-  it("says each of the agent's runs once, trimmed, in a list", async () => {
+  it("sums up the agent's runs for screen readers: how many, and how the first starts", async () => {
     const runs: DraftSegment[] = [
       { author: "agent", text: " Friday " },
       { author: "human", text: "or" },
@@ -202,8 +203,16 @@ describe("DraftEditor", () => {
     ];
     const { editor, textarea } = await render(<DraftEditor label="Reply" value=" Friday or Monday" segments={runs} onValueChange={() => {}} />);
     const status = editor.querySelector<HTMLElement>('[id$="-status"]')!;
-    expect(status.querySelector(".sr-only")!.textContent).toBe("Written by an agent: “Friday”, “Monday”.");
+    expect(status.querySelector(".sr-only")!.textContent).toBe("Written by an agent: 2 passages, starting “Friday”.");
     expect(textarea.getAttribute("aria-describedby")).toBe(status.id);
+    // A long run is cut after its first five words; a summary in other words takes the count and the start.
+    const long: DraftSegment[] = [{ author: "agent", text: "One two three four five six seven" }];
+    const { editor: other } = await render(
+      <DraftEditor label="Reply" value={long[0]!.text} segments={long} agentSummary={(count, start) => `${count} passage, « ${start} »`} onValueChange={() => {}} />,
+    );
+    expect(other.querySelector('[id$="-status"] .sr-only')!.textContent).toBe("Written by an agent: 1 passage, « One two three four five… ».");
+    const { editor: five } = await render(<DraftEditor label="Reply" value="One two three four five" segments={[{ author: "agent", text: "One two three four five" }]} onValueChange={() => {}} />);
+    expect(five.querySelector('[id$="-status"] .sr-only')!.textContent).toBe("Written by an agent: 1 passage, starting “One two three four five”.");
   });
 
   it("sets the status line quieter than the draft", async () => {
@@ -233,7 +242,7 @@ describe("DraftEditor", () => {
     mounted.push(hint);
     await expect
       .element(page.getByRole("textbox", { name: "Reply" }))
-      .toHaveAccessibleDescription("Ctrl+Enter sends. Written by an agent: “I can meet on Friday at ten.”.");
+      .toHaveAccessibleDescription("Ctrl+Enter sends. Written by an agent: 1 passage, starting “I can meet on Friday…”.");
   });
 
   it("shows a legend for the agent's words only when the agent wrote some", async () => {
@@ -244,7 +253,7 @@ describe("DraftEditor", () => {
     await rerender(<DraftEditor label="Reply" value="Hi " segments={[{ author: "human", text: "Hi" }, { author: "agent", text: " " }]} onValueChange={() => {}} />);
     expect(editor.querySelector("[data-ouro-draft-legend]")).toBeNull();
     await rerender(<DraftEditor label="Reply" value={value} segments={segments} agentLabel="Écrit par l'agent" onValueChange={() => {}} />);
-    expect(editor.querySelector("[data-ouro-draft-legend]")!.textContent).toBe("Écrit par l'agentÉcrit par l'agent: “I can meet on Friday at ten.”.");
+    expect(editor.querySelector("[data-ouro-draft-legend]")!.textContent).toBe("Écrit par l'agentÉcrit par l'agent: 1 passage, starting “I can meet on Friday…”.");
   });
 
   it("shows where the draft stands, who said so and their note", async () => {
@@ -273,8 +282,37 @@ describe("DraftEditor", () => {
     );
     expect(badge()!.textContent).toBe("Prêt");
     expect(editor.querySelector("[data-ouro-draft-readiness-by]")!.textContent).toBe("Ouro");
-    await rerender(<DraftEditor label="Reply" value="Hi" segments={[{ author: "human", text: "Hi" }]} readiness="drafting" onValueChange={() => {}} />);
+    // A note shows without a name too.
+    await rerender(<DraftEditor label="Reply" value="Hi" segments={[{ author: "human", text: "Hi" }]} readiness="needs-input" readinessNote="Which day?" onValueChange={() => {}} />);
+    expect(editor.querySelector("[data-ouro-draft-readiness-by]")!.textContent).toBe("Which day?");
+    await rerender(<DraftEditor label="Reply" value="Hi" segments={[{ author: "human", text: "Hi" }]} readiness="drafting" readinessNote="Which day?" onValueChange={() => {}} />);
     expect(badge()).toBeNull();
+    expect(editor.querySelector("[data-ouro-draft-readiness-by]")).toBeNull();
+  });
+
+  it("says where the draft stands once each time it changes, and not when it first shows", async () => {
+    // What earlier tests announced is written about 100ms later: let it land before listening.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const announced = watchAnnouncements();
+    try {
+      const props = { label: "Reply", value: "Hi", segments: [{ author: "human", text: "Hi" }] as DraftSegment[], onValueChange: () => {} };
+      const { rerender } = await render(<DraftEditor {...props} readiness="ready-for-review" readinessBy={{ author: "agent", name: "Ouro" }} />);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(announced.count("Ready for your review")).toBe(0);
+      await rerender(<DraftEditor {...props} readiness="needs-input" readinessBy={{ author: "agent", name: "Ouro" }} readinessNote="Which day suits you?" />);
+      await expect.poll(() => announced.count("Needs your input, Ouro: Which day suits you?")).toBe(1);
+      // Rendered again as it stands, with new text: nothing new to say.
+      await rerender(<DraftEditor {...props} value="Hi!" segments={[{ author: "human", text: "Hi!" }]} readiness="needs-input" readinessBy={{ author: "agent", name: "Ouro" }} readinessNote="Which day suits you?" />);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(announced.count("Needs your input")).toBe(1);
+      // Back to drafting says nothing; approved by a person is said, with their name.
+      await rerender(<DraftEditor {...props} />);
+      await rerender(<DraftEditor {...props} readiness="approved" readinessBy={{ author: "human", name: "You" }} />);
+      await expect.poll(() => announced.count("Approved, You")).toBe(1);
+      expect(announced.changes.map((change) => change.text).filter(Boolean)).toEqual(["Needs your input, Ouro: Which day suits you?", "Approved, You"]);
+    } finally {
+      announced.stop();
+    }
   });
 
   it("shows approval only from a person", async () => {

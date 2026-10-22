@@ -2,7 +2,7 @@
 
 # DraftEditor
 
-A draft a person and an agent write together. In its growing text box the agent's words are highlighted in place, and a line above it says the agent wrote some of it and where the draft stands ("Needs your input", "Ready for your review", "Approved"). The person edits freely; `onValueChange` gives the new text and the runs updated to match, so what they type is theirs and what they leave keeps its author. Screen readers hear the agent's words in the box's description. An agent can ask for input or say the draft is ready for review, but only a person approves it: an `approved` shows only with a person in `readinessBy`.
+A draft a person and an agent write together. In its growing text box the agent's words are highlighted in place, and a line above it says the agent wrote some of it and where the draft stands ("Needs your input", "Ready for your review", "Approved"). The person edits freely; `onValueChange` gives the new text and the runs updated to match, so what they type is theirs and what they leave keeps its author. Screen readers hear in the box's description how many runs the agent wrote and how the first starts, and hear where the draft stands each time it changes. An agent can ask for input or say the draft is ready for review, but only a person approves it: an `approved` shows only with a person in `readinessBy`.
 
 ```tsx
 import { DraftEditor } from "@/registry/ouro/components/ouro/draft-editor/draft-editor";
@@ -15,7 +15,7 @@ import { DraftEditor } from "@/registry/ouro/components/ouro/draft-editor/draft-
   label="Reply"
   value={draft.text}
   segments={draft.segments}
-  onValueChange={(text, segments) => setDraft({ text, segments })}
+  onValueChange={(text, segments) => setDraft({ text, segments: segments ?? [{ author: "human", text }] })}
   readiness="ready-for-review"
   readinessBy={{ author: "agent", name: "Ouro" }}
   actions={<Button>Send</Button>}
@@ -34,13 +34,14 @@ The props the modes share. Type: `DraftEditorProps`.
 | --- | --- | --- | --- |
 | `actions` | `ReactNode` |  | A send button and other actions, at the end of the box. |
 | `agentLabel` | `string` | `"Written by an agent"` | The legend for the agent's highlight, for other languages. |
+| `agentSummary` | `((count: number, start: string) => string)` | (count, start) => `${count} ${count === 1 ? "passage" : "passages"}, starting “${start}”` | What screen readers hear after `agentLabel` in the box's description: how many runs the agent wrote and the first few words of the first. For other languages. |
 | `className` | `string` |  | Layout only: width, margins, grid placement (`mt-2`). Appearance classes warn in development. |
 | `label` (required) | `string` |  | What the draft is, for screen readers ("Reply"). The box shows `placeholder` instead. Required. |
 | `maxRows` | `number` | `10` | Rows the box grows to before it scrolls. |
-| `onValueChange` (required) | `(value: string, segments: DraftSegment[] \| undefined) => void` |  | Called when the person edits, with the new text and the runs updated to match: the person's typing is theirs, and what they did not touch keeps its author. Store both. The runs are `undefined` when `segments` did not join to `value`, since who wrote what is then unknown. |
+| `onValueChange` (required) | `(value: string, segments: DraftSegment[] \| undefined) => void` |  | Called when the person edits, with the new text and the runs updated to match: the person's typing is theirs, and what they did not touch keeps its author. Store both. The runs are `undefined` when `segments` did not join to `value`, since who wrote what is then unknown, and the agent's words are not highlighted until the runs join to the text again. To get back in step, store runs that join to the new text: your own record of who wrote what, or, when you have none, the text as the person's (`[{ author: "human", text }]`), since they have now edited it; the agent's next words are highlighted as before. |
 | `placeholder` | `string` |  | Text shown while the draft is empty. |
 | `readinessLabel` | `string` |  | The readiness badge's text, for other languages. Defaults to "Needs your input", "Ready for your review" or "Approved". |
-| `readinessNote` | `string` |  | A short note from whoever set the readiness ("Check the dates"). |
+| `readinessNote` | `string` |  | A short note from whoever set the readiness ("Check the dates"), after their name. |
 | `ref` | `Ref<HTMLTextAreaElement>` |  | The `<textarea>`. |
 | `rows` | `number` | `2` | Rows the box starts with; it grows with the text. |
 | `segments` (required) | `readonly DraftSegment[]` |  | Who wrote which part of `value`. Agent-written runs are highlighted in place. |

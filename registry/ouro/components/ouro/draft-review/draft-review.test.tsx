@@ -113,7 +113,7 @@ describe("DraftReview", () => {
       return <DraftReview segments={segments} changes={left} onAccept={drop} onReject={drop} />;
     }
     const { review } = await render(<Deciding />);
-    const accept = (n: number) => review!.querySelectorAll<HTMLButtonElement>("li [data-decision='accept']")[n]!;
+    const accept = (n: number) => review!.querySelectorAll<HTMLButtonElement>("li [data-ouro-part='accept']")[n]!;
     // Change 2 of 3, accepted from the keyboard: change 3 takes its place, and its Accept the focus.
     await act(async () => accept(1).focus());
     await userEvent.keyboard("{Enter}");
@@ -131,10 +131,118 @@ describe("DraftReview", () => {
     expect(document.querySelector('[data-ouro="draft-review"]')).toBeNull();
   });
 
+  it("hands focus to the next control when a press empties the review", async () => {
+    function Deciding() {
+      const [left, setLeft] = useState(changes);
+      return (
+        <>
+          <DraftReview segments={segments} changes={left} onAccept={() => {}} onReject={() => {}} onAcceptAll={() => setLeft([])} />
+          <button type="button">Send</button>
+        </>
+      );
+    }
+    await render(<Deciding />);
+    await act(async () => page.getByRole("button", { name: "Accept all" }).element().focus());
+    await userEvent.keyboard("{Enter}");
+    expect(document.querySelector('[data-ouro="draft-review"]')).toBeNull();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Send" }).element());
+  });
+
+  it("decides a change once, however often or however it is pressed", async () => {
+    const onAccept = vi.fn();
+    const onReject = vi.fn();
+    const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} onReject={onReject} />);
+    const accept = page.getByRole("button", { name: "Accept, Change 1" });
+    const reject = page.getByRole("button", { name: "Reject, Change 1" });
+    // Forced: Playwright waits for a button to be enabled, and these say they are not.
+    await userEvent.dblClick(accept, { force: true });
+    await userEvent.click(reject, { force: true });
+    await act(async () => accept.element().focus());
+    await userEvent.keyboard("{Enter}");
+    expect(onAccept).toHaveBeenCalledTimes(1);
+    expect(onReject).not.toHaveBeenCalled();
+    // Its buttons say they are unavailable and keep focus; the other changes' do not.
+    expect(accept.element().getAttribute("aria-disabled")).toBe("true");
+    expect(reject.element().getAttribute("aria-disabled")).toBe("true");
+    expect(document.activeElement).toBe(accept.element());
+    expect(review!.querySelector("li:nth-child(2) [data-ouro-part='accept']")!.hasAttribute("aria-disabled")).toBe(false);
+    // Rejected first, a change is not accepted after.
+    await userEvent.click(page.getByRole("button", { name: "Reject, Change 2" }));
+    await userEvent.click(page.getByRole("button", { name: "Accept, Change 2" }), { force: true });
+    expect(onReject.mock.calls.map(([id]) => id)).toEqual(["room"]);
+    expect(onAccept).toHaveBeenCalledTimes(1);
+    // The app renders the changes again with both still there and nothing pending: it kept them, and they can be decided again.
+    await rerender(<DraftReview {...base} changes={[...changes]} onAccept={onAccept} onReject={onReject} />);
+    expect(accept.element().hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(accept);
+    expect(onAccept).toHaveBeenCalledTimes(2);
+  });
+
+  it("decides every change once with Accept all or Reject all", async () => {
+    const onAcceptAll = vi.fn();
+    const onRejectAll = vi.fn();
+    const onAccept = vi.fn();
+    const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} onAcceptAll={onAcceptAll} onRejectAll={onRejectAll} />);
+    await userEvent.dblClick(page.getByRole("button", { name: "Accept all" }), { force: true });
+    await userEvent.click(page.getByRole("button", { name: "Reject all" }), { force: true });
+    await userEvent.click(page.getByRole("button", { name: "Accept, Change 1" }), { force: true });
+    expect(onAcceptAll).toHaveBeenCalledTimes(1);
+    expect(onRejectAll).not.toHaveBeenCalled();
+    expect(onAccept).not.toHaveBeenCalled();
+    const unavailable = [...review!.querySelectorAll("button")].filter((button) => button.getAttribute("aria-disabled") === "true");
+    expect(unavailable.map((button) => button.dataset.ouroPart)).toEqual(["accept-all", "reject-all", "accept", "reject", "accept", "reject", "accept", "reject"]);
+    // The app kept them all: the buttons are back.
+    await rerender(<DraftReview {...base} changes={[...changes]} onAccept={onAccept} onAcceptAll={onAcceptAll} onRejectAll={onRejectAll} />);
+    expect(review!.querySelectorAll("[aria-disabled='true']")).toHaveLength(0);
+    await userEvent.click(page.getByRole("button", { name: "Reject all" }));
+    expect(onRejectAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a bulk press decided while its save is pending", async () => {
+    let finish!: () => void;
+    const onAcceptAll = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const { review, rerender } = await render(<DraftReview {...base} onAcceptAll={onAcceptAll} onRejectAll={() => {}} />);
+    await userEvent.click(page.getByRole("button", { name: "Accept all" }));
+    await rerender(<DraftReview {...base} changes={[...changes]} onAcceptAll={onAcceptAll} onRejectAll={() => {}} />);
+    expect(page.getByRole("button", { name: "Accept all" }).element().getAttribute("aria-disabled")).toBe("true");
+    await userEvent.click(page.getByRole("button", { name: "Accept all" }), { force: true });
+    expect(onAcceptAll).toHaveBeenCalledTimes(1);
+    // It failed: the changes are still there once it settles, so the buttons are back.
+    await act(async () => finish());
+    expect(review!.querySelectorAll("[aria-disabled='true']")).toHaveLength(0);
+  });
+
+  it("keeps a change decided while its save is pending, and focus on the list once it leaves", async () => {
+    const saves: Array<() => void> = [];
+    const onAccept = vi.fn(() => new Promise<void>((resolve) => saves.push(resolve)));
+    const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} />);
+    const accept = (n: number) => review!.querySelectorAll<HTMLButtonElement>("li [data-ouro-part='accept']")[n]!;
+    await act(async () => accept(1).focus());
+    await userEvent.keyboard("{Enter}");
+    // The app renders again while the save is pending (a refetch): the change is still decided, and keeps focus.
+    await rerender(<DraftReview {...base} changes={[...changes]} onAccept={onAccept} />);
+    expect(document.activeElement).toBe(accept(1));
+    expect(accept(1).getAttribute("aria-disabled")).toBe("true");
+    await userEvent.keyboard("{Enter}");
+    expect(onAccept).toHaveBeenCalledTimes(1);
+    // Saved, it leaves: focus goes to the change now in its place.
+    await rerender(<DraftReview {...base} changes={[changes[0]!, changes[2]!]} onAccept={onAccept} />);
+    expect(document.activeElement).toBe(accept(1));
+    expect(accept(1).getAttribute("aria-label")).toBe("Accept, Change 2");
+    expect(accept(1).hasAttribute("aria-disabled")).toBe(false);
+    await act(async () => saves[0]!());
+    // A save that fails, with the change still there, makes it available again.
+    await userEvent.keyboard("{Enter}");
+    expect(accept(1).getAttribute("aria-disabled")).toBe("true");
+    await act(async () => saves[1]!());
+    expect(accept(1).hasAttribute("aria-disabled")).toBe(false);
+    expect(document.activeElement).toBe(accept(1));
+  });
+
   it("leaves focus where it is when a change stays, or the press did not focus its button", async () => {
     const onAccept = vi.fn();
     const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} />);
-    const accept = () => review!.querySelectorAll<HTMLButtonElement>("li [data-decision='accept']")[0]!;
+    const accept = () => review!.querySelectorAll<HTMLButtonElement>("li [data-ouro-part='accept']")[0]!;
     await act(async () => accept().focus());
     await userEvent.keyboard("{Enter}");
     expect(onAccept).toHaveBeenCalledWith("day", expect.anything());
@@ -151,12 +259,15 @@ describe("DraftReview", () => {
     expect(document.activeElement).toBe(elsewhere);
   });
 
-  it("is a named region with a heading that counts the changes", async () => {
+  it("is a region named by its heading, which counts the changes", async () => {
     const { review, rerender } = await render(<DraftReview {...base} />);
-    await expect.element(page.getByRole("region", { name: "Changes to review" })).toBeVisible();
+    await expect.element(page.getByRole("region", { name: "3 changes to review" })).toBeVisible();
     expect(review!.querySelector("[data-ouro-draft-review-heading]")!.textContent).toBe("3 changes to review");
     await rerender(<DraftReview {...base} changes={changes.slice(0, 1)} />);
+    await expect.element(page.getByRole("region", { name: "1 change to review" })).toBeVisible();
     expect(review!.querySelector("[data-ouro-draft-review-heading]")!.textContent).toBe("1 change to review");
+    await rerender(<DraftReview {...base} heading="Since Monday" />);
+    await expect.element(page.getByRole("region", { name: "Since Monday" })).toBeVisible();
     await rerender(<DraftReview {...base} label="Modifications" heading="Trois modifications" description="Since you last edited" />);
     await expect.element(page.getByRole("region", { name: "Modifications" })).toBeVisible();
     expect(review!.textContent).toContain("Trois modificationsSince you last edited");
@@ -212,8 +323,10 @@ describe("DraftReview", () => {
     const onRejectAll = vi.fn();
     const { rerender } = await render(<DraftReview {...base} onAcceptAll={onAcceptAll} onRejectAll={onRejectAll} />);
     await userEvent.click(page.getByRole("button", { name: "Accept all" }));
-    await userEvent.click(page.getByRole("button", { name: "Reject all" }));
     expect(onAcceptAll).toHaveBeenCalledTimes(1);
+    expect(onAcceptAll.mock.calls[0]![0].isTrusted).toBe(true);
+    await rerender(<DraftReview {...base} changes={[...changes]} onAcceptAll={onAcceptAll} onRejectAll={onRejectAll} />);
+    await userEvent.click(page.getByRole("button", { name: "Reject all" }));
     expect(onRejectAll).toHaveBeenCalledTimes(1);
     await rerender(<DraftReview {...base} changes={changes.slice(0, 1)} onAcceptAll={onAcceptAll} onRejectAll={onRejectAll} />);
     await expect.element(page.getByRole("button", { name: "Accept all" })).not.toBeInTheDocument();

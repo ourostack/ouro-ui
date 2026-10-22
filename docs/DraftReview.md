@@ -2,7 +2,7 @@
 
 # DraftReview
 
-A shared draft's changes, to review one by one. It shows the draft with each change's new text underlined (tinted when an agent wrote it) and its removed text struck through, each numbered, then one row per change with who made it, when and what it was based on, and Accept and Reject. Accept all and Reject all join them while there is more than one change. Screen readers hear each change's number and whether it adds or removes text, and each button names its change ("Accept, Change 2"). Accepting and rejecting are a person's decisions: the callbacks receive the click event so the app can check it came from a person, and an agent does not call them. When a decided change leaves the list, focus moves to the change now in its place. With no changes it renders nothing, so once the last is decided, move focus to what follows, such as the draft.
+A shared draft's changes, to review one by one. It shows the draft with each change's new text underlined (tinted when an agent wrote it) and its removed text struck through, each numbered, then one row per change with who made it, when and what it was based on, and Accept and Reject. Accept all and Reject all join them while there is more than one change. Screen readers hear each change's number and whether it adds or removes text, and each button names its change ("Accept, Change 2"). Accepting and rejecting are a person's decisions: the callbacks receive the click event so the app can check it came from a person, and an agent does not call them. A change is decided once: its buttons, and the bulk ones after a bulk press, say they are unavailable (`aria-disabled`) and ignore presses until the change leaves `changes`, or until the app keeps it (renders it again with no save of it pending: return the save's promise from the callback). When a decided change leaves the list, focus moves to the change now in its place. With no changes it renders nothing, and focus moves to the next control after it; move it elsewhere, such as the draft, if you prefer.
 
 ```tsx
 import { DraftReview } from "@/registry/ouro/components/ouro/draft-review/draft-review";
@@ -35,11 +35,11 @@ Type: `DraftReviewProps`.
 | `description` | `ReactNode` |  | One quiet line after the heading ("Since you last edited"). |
 | `heading` | `ReactNode` | `"1 change to review"` or "3 changes to review" | The heading. |
 | `insertedLabel` | `string` | `"added"` | What screen readers hear for put-in text. |
-| `label` | `string` | `"Changes to review"` | What screen readers hear for the review. |
-| `onAccept` (required) | `(id: string, event: MouseEvent<HTMLElement>) => void` |  | Called when the person accepts a change. The click event comes second, so the app can check `event.isTrusted` and act only on a person's click: accepting is a person's decision. |
-| `onAcceptAll` | `((event: MouseEvent<HTMLElement>) => void)` |  | Adds Accept all while there is more than one change. |
-| `onReject` (required) | `(id: string, event: MouseEvent<HTMLElement>) => void` |  | Called when the person rejects a change, with the click event to check, as `onAccept`. |
-| `onRejectAll` | `((event: MouseEvent<HTMLElement>) => void)` |  | Adds Reject all while there is more than one change. |
+| `label` | `string` |  | What screen readers hear for the review. Without it, the review is named by its heading. |
+| `onAccept` (required) | `(id: string, event: MouseEvent<HTMLElement>) => unknown` |  | Called when the person accepts a change. The click event comes second, so the app can check `event.isTrusted` and act only on a person's click: accepting is a person's decision. Return the save's promise when it is saved later: the change stays decided until it settles. |
+| `onAcceptAll` | `((event: MouseEvent<HTMLElement>) => unknown)` |  | Adds Accept all while there is more than one change. |
+| `onReject` (required) | `(id: string, event: MouseEvent<HTMLElement>) => unknown` |  | Called when the person rejects a change, with the click event to check, as `onAccept`. |
+| `onRejectAll` | `((event: MouseEvent<HTMLElement>) => unknown)` |  | Adds Reject all while there is more than one change. |
 | `onShowSource` | `((id: string) => void)` |  | Adds Show after a change's `source`, to show what it was based on. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `rejectAllLabel` | `string` | `"Reject all"` | The bulk reject button's words, for other languages. |
