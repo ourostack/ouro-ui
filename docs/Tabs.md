@@ -62,6 +62,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `activateOnFocus`: Not a prop. Ouro UI uses `activation`: `<Tabs activation="manual">`.
 - `onChange`: Not a prop. Ouro UI uses `onValueChange`, which gets the tab's value: `<Tabs onValueChange={(value) => …}>`.
+- `pathname`: Not a prop. Tabs that are links use `currentPath`: `<Tabs currentPath={pathname}>`.
 - `tabs`: Not a prop. Ouro UI uses `items`: `<Tabs items={[{ value, label, content }]}>`.
 
 ## `className` is for layout only

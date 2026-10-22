@@ -58,7 +58,7 @@ function ownLook(component: string): (token: string) => string {
 const rootClass = "flex min-w-0 gap-4 data-[orientation=horizontal]:flex-col data-[orientation=vertical]:flex-row";
 
 /**
- * The tab list. A hairline under the row (or beside the column) is an inset shadow, not a
+ * The tab list. A hairline under the row (or on the column's end edge, the left in a right-to-left page) is an inset shadow, not a
  * border, so the row can scroll sideways on a narrow screen without clipping the indicator.
  * While it scrolls, a mask fades the side that hides more tabs (`data-fade`, set by TabsList).
  * The mask's `#000` only means opaque: a gradient mask is read for its alpha (`mask-mode:
@@ -74,7 +74,8 @@ const listClass =
   "data-[fade=right]:[mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] " +
   "data-[fade=left]:[mask-image:linear-gradient(to_left,#000_calc(100%-2rem),transparent)] " +
   "data-[fade=both]:[mask-image:linear-gradient(to_right,transparent,#000_2rem,#000_calc(100%-2rem),transparent)] " +
-  "data-[orientation=vertical]:flex-col data-[orientation=vertical]:shadow-[inset_-1px_0_0_0_var(--border)]";
+  "data-[orientation=vertical]:flex-col data-[orientation=vertical]:shadow-[inset_-1px_0_0_0_var(--border)] " +
+  "rtl:data-[orientation=vertical]:shadow-[inset_1px_0_0_0_var(--border)]";
 
 /**
  * A tab: 44px tall with 16px text on a coarse pointer, stepping down to 36px and 14px from

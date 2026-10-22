@@ -67,6 +67,14 @@ function Scene() {
           { value: "method", label: "Method", content: "Knead" },
         ]}
       />
+      <Tabs
+        label="Search scope"
+        items={[
+          { value: "recipes", label: "Recipes", href: "/search?scope=recipes" },
+          { value: "chefs", label: "Chefs", href: "/search?scope=chefs" },
+        ]}
+        value="recipes"
+      />
     </>
   );
 }
@@ -85,6 +93,7 @@ const selection = [
   '[data-ouro-control="toggle"]',
   '[role="tab"][aria-selected="true"]',
   "[data-ouro-tabs-indicator]",
+  '[data-ouro-part="link"][aria-current="page"] [data-ouro-tabs-indicator]',
 ];
 
 const painted = ["background-color", "color", "border-top-color", "outline-color"] as const;
@@ -143,6 +152,10 @@ describe("the action token", () => {
       expect(getComputedStyle(probe(plain, name)).color, name).toBe(resolved(plain, "--primary-foreground"));
     }
     expect(colours(themed)).toEqual(colours(plain));
+    // The current link of link-mode Tabs is a selection too, so its line stays on --primary.
+    const line = themed.querySelector('[data-ouro-part="link"][aria-current="page"] [data-ouro-tabs-indicator]')!;
+    expect(getComputedStyle(line).backgroundColor).toBe(resolved(themed, "--primary"));
+    expect(getComputedStyle(line).backgroundColor).not.toBe(action);
   });
 
   it("drives the Button's hover and press layer and its disabled look from the action's colours", async () => {

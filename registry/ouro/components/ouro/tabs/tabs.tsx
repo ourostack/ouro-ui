@@ -123,6 +123,8 @@ export interface TabsProps {
   activateOnFocus?: { 'Use <Tabs activation="automatic"> or activation="manual"': never };
   /** Not a prop. Ouro UI uses `items`: `<Tabs items={[{ value, label, content }]}>`. */
   tabs?: { 'Use <Tabs items={[{ value, label, content }]}>': never };
+  /** Not a prop. Tabs that are links use `currentPath`: `<Tabs currentPath={pathname}>`. */
+  pathname?: { 'Use <Tabs currentPath={pathname}>': never };
 }
 
 /** The first value that appears twice, or undefined. Development only. */
@@ -194,6 +196,7 @@ export function Tabs(props: TabsProps): JSX.Element {
     onChange,
     activateOnFocus,
     tabs,
+    pathname,
   } = props;
   // An orientation or activation that is not one of Ouro UI's (a type error) warns and renders the default.
   const orientation = orientations.includes(orientationProp as TabsOrientation) ? (orientationProp as TabsOrientation) : "horizontal";
@@ -235,6 +238,7 @@ export function Tabs(props: TabsProps): JSX.Element {
               `<Tabs activation="${activateOnFocus === (false as unknown) ? "manual" : "automatic"}">`,
             ],
             tabs !== undefined && ["tabs is not a prop", "<Tabs items={[{ value, label, content }]}>"],
+            pathname !== undefined && ["pathname is not a prop", "<Tabs currentPath={pathname}>"],
             !known(defaultValue) && [`defaultValue="${defaultValue}" matches no item`, `<Tabs defaultValue="${first}">`],
             !known(value) && [`value="${value}" matches no item`, `<Tabs value="${first}">`],
             ...(links

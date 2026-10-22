@@ -579,6 +579,26 @@ describe("Tabs as links", () => {
     expect(recipes!.getBoundingClientRect().top).toBe(all!.getBoundingClientRect().top);
   });
 
+  it("keeps the hairline and the current line together on the left of a vertical column in a right-to-left page", async () => {
+    await page.viewport(1024, 768);
+    const { host } = await render(
+      <div dir="rtl">
+        <Tabs label="Search scope" items={scopes} currentPath="/search?scope=recipes" orientation="vertical" />
+        <Tabs label="Recipe" items={items} orientation="vertical" />
+      </div>,
+    );
+    const hairline = (list: Element) => getComputedStyle(list).boxShadow.match(/(-?\d+)px 0px 0px 0px inset/)?.[1];
+    const column = host.querySelector<HTMLElement>("ul")!;
+    const tablist = host.querySelector<HTMLElement>('[role="tablist"]')!;
+    expect(hairline(column)).toBe("1");
+    expect(hairline(tablist)).toBe("1");
+    const line = host.querySelector('[aria-current="page"] [data-ouro-tabs-indicator]')!.getBoundingClientRect();
+    expect(line.left).toBe(column.getBoundingClientRect().left);
+    host.firstElementChild!.setAttribute("dir", "ltr");
+    expect(hairline(column)).toBe("-1");
+    expect(hairline(tablist)).toBe("-1");
+  });
+
   it("fades the edge of a row of links that scrolls, on the right in a right-to-left row", async () => {
     const many = Array.from({ length: 10 }, (_, index) => ({ value: `s${index}`, label: `Section ${index + 1}`, href: `/s/${index}` }));
     const { host, root } = await render(<Tabs label="Sections" items={many} currentPath="/s/0" />);
@@ -713,6 +733,7 @@ describe("Tabs development messages", () => {
     ["onChange", { onChange: () => {} }, "onChange is not a prop", "<Tabs onValueChange={(value) => …}>"],
     ["activateOnFocus", { activateOnFocus: false }, "activateOnFocus is not a prop", '<Tabs activation="manual">'],
     ["tabs", { tabs: [] }, "tabs is not a prop", '<Tabs items={[{ value, label, content }]}>'],
+    ["pathname", { pathname: "/recipes" }, "pathname is not a prop", "<Tabs currentPath={pathname}>"],
     ["orientation", { orientation: "row" }, 'orientation="row" is not an orientation; use "horizontal", "vertical"', '<Tabs orientation="horizontal">'],
     ["activation", { activation: "focus" }, 'activation="focus" is not an activation; use "automatic", "manual"', '<Tabs activation="automatic">'],
     ["unknown defaultValue", { defaultValue: "steps" }, 'defaultValue="steps" matches no item', '<Tabs defaultValue="ingredients">'],
@@ -723,6 +744,7 @@ describe("Tabs development messages", () => {
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Tabs: ${problem}. Fix: ${fix}.`);
     expect(root.hasAttribute("activateonfocus")).toBe(false);
     expect(root.hasAttribute("tabs")).toBe(false);
+    expect(root.hasAttribute("pathname")).toBe(false);
   });
 
   it("points activateOnFocus={true} to automatic activation", async () => {

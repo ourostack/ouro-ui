@@ -127,6 +127,7 @@ const searchScopes = [
  * current one comes from the router's path and is marked `aria-current="page"`.
  */
 export const Links: Story = {
+  parameters: { mode: "links" },
   render: () => (
     <Surface>
       <Tabs label="Search scope" items={searchScopes} currentPath="/search?q=soup&scope=recipes" />
@@ -137,6 +138,7 @@ export const Links: Story = {
 
 /** Links in a column, for a search's scopes beside its results. On a phone they become a row. */
 export const LinksVertical: Story = {
+  parameters: { mode: "links" },
   render: () => (
     <Surface>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>

@@ -35,6 +35,7 @@ expectTypeOf<{ label: "Recipe"; items: typeof items; activation: "focus" }>().no
 expectTypeOf<{ label: "Recipe"; items: typeof items; onChange: () => void }>().not.toExtend<TabsProps>();
 expectTypeOf<{ label: "Recipe"; items: typeof items; activateOnFocus: true }>().not.toExtend<TabsProps>();
 expectTypeOf<{ label: "Recipe"; tabs: typeof items; items: typeof items }>().not.toExtend<TabsProps>();
+expectTypeOf<{ label: "Recipes"; items: typeof pages; pathname: "/recipes" }>().not.toExtend<TabsProps>();
 
 // The parts take Base UI's props, with className for layout only.
 expectTypeOf<{ defaultValue: "a"; className: "mt-4" }>().toExtend<TabsRootProps>();
@@ -43,3 +44,5 @@ expectTypeOf<{ defaultValue: "a"; className: "mt-4" }>().toExtend<TabsRootProps>
 createElement(Tabs, { items });
 createElement(TabsRoot, { defaultValue: "a" }, createElement(TabsList, { "aria-label": "Parts" }, createElement(TabsTab, { value: "a" }, "A")));
 createElement(Tabs, { label: "Recipes", items: pages, currentPath: "/recipes" });
+// @ts-expect-error pathname is not a prop.
+createElement(Tabs, { label: "Recipes", items: pages, pathname: "/recipes" });

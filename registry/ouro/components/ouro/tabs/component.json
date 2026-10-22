@@ -1,11 +1,12 @@
 {
   "order": 1200,
   "components": ["tabs"],
+  "modes": {"tabs": ["panels", "links"]},
   "controls": {
     "tabs": [
-      {"part": "tab", "role": "tab", "portal": false},
-      {"part": "panel", "role": "tabpanel", "portal": false},
-      {"part": "link", "role": "link", "portal": false}
+      {"part": "tab", "role": "tab", "portal": false, "modes": ["panels"]},
+      {"part": "panel", "role": "tabpanel", "portal": false, "modes": ["panels"]},
+      {"part": "link", "role": "link", "portal": false, "modes": ["links"]}
     ]
   }
 }

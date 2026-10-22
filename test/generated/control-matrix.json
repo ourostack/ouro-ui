@@ -987,7 +987,7 @@
   {
     "item": "tabs",
     "stem": "tabs",
-    "mode": "default",
+    "mode": "panels",
     "part": "tab",
     "role": "tab",
     "portal": false,
@@ -996,15 +996,13 @@
       "Tabs/Playground",
       "Tabs/InContext",
       "Tabs/Vertical",
-      "Tabs/Parts",
-      "Tabs/Links",
-      "Tabs/LinksVertical"
+      "Tabs/Parts"
     ]
   },
   {
     "item": "tabs",
     "stem": "tabs",
-    "mode": "default",
+    "mode": "panels",
     "part": "panel",
     "role": "tabpanel",
     "portal": false,
@@ -1013,24 +1011,18 @@
       "Tabs/Playground",
       "Tabs/InContext",
       "Tabs/Vertical",
-      "Tabs/Parts",
-      "Tabs/Links",
-      "Tabs/LinksVertical"
+      "Tabs/Parts"
     ]
   },
   {
     "item": "tabs",
     "stem": "tabs",
-    "mode": "default",
+    "mode": "links",
     "part": "link",
     "role": "link",
     "portal": false,
     "touch": false,
     "stories": [
-      "Tabs/Playground",
-      "Tabs/InContext",
-      "Tabs/Vertical",
-      "Tabs/Parts",
       "Tabs/Links",
       "Tabs/LinksVertical"
     ]
