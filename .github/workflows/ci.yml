@@ -12,6 +12,11 @@ permissions:
 concurrency:
   group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
+# Each job ends within about twice the 90th percentile of its passing runs (the last 60 runs of
+# this workflow, 2026-10-22), and 10 minutes at least: a runner that hangs, as on a mirror that
+# stopped answering (#174's queue run 39783627653), fails its job instead of holding the merge
+# queue for GitHub's 6 hours. Two jobs take more than twice their 90th percentile, after runs that
+# passed slower: mutation-shard (a cold cache, 12 minutes) and conformance-shard (15 minutes).
 jobs:
   plan:
     # Which browser tests this run needs (scripts/test-impact.mjs). A pull request into main runs
@@ -25,6 +30,7 @@ jobs:
     # A push to main whose commit the merge queue already tested (the queue fast-forwards main to
     # the commit its group's CI passed on) runs nothing more than install-github: `tested=true`.
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read
@@ -85,6 +91,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -152,6 +159,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -217,6 +225,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -261,6 +270,7 @@ jobs:
     needs: [plan, checks, browser, scripts]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
@@ -326,6 +336,7 @@ jobs:
     # --stems holds only their maps complete (the ci job's `stems`).
     needs: [ci]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       MOTION_PARTITIONS: ouro-chromium:4,ouro-webkit:4,ouro-touch:4,site:4
       FULL_SUITE_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
@@ -364,6 +375,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -418,6 +430,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -479,6 +492,7 @@ jobs:
     needs: [plan, conformance-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       RESULT: ${{ needs.conformance-shard.result }}
     steps:
@@ -499,6 +513,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       EVENT: ${{ github.event_name }}
       PR: ${{ github.event.pull_request.number }}
@@ -558,6 +573,7 @@ jobs:
     needs: [plan, mutation-plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       EVENT: ${{ github.event_name }}
       SHARD: ${{ matrix.shard }}
@@ -624,6 +640,7 @@ jobs:
     needs: [plan, mutation-plan, mutation-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       RESULT: ${{ needs.mutation-shard.result }}
       KEY: ${{ needs.mutation-plan.outputs.key }}
@@ -664,6 +681,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -692,6 +710,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       SHADCN: shadcn@4.21.1
       REF: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -723,6 +742,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -778,6 +798,7 @@ jobs:
     needs: [plan, e2e-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Every shard passed
         env:
@@ -796,6 +817,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -828,6 +850,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -857,6 +880,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -988,6 +1012,7 @@ jobs:
     needs: [plan, install-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -1029,6 +1054,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -1065,6 +1091,7 @@ jobs:
     # unpinned CLI never runs in a job that holds a token able to push the tag.
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     name: install (shadcn@latest, nova)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1089,6 +1116,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1116,6 +1144,7 @@ jobs:
     # dispatches, including Release's CI after its prepare-main merge; type check and build.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1139,6 +1168,7 @@ jobs:
     needs: [plan, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read

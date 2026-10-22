@@ -947,6 +947,19 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.match(rerun.stdout, /^::error::an install shard of this attempt did not pass \(failure\)/m);
 });
 
+test("every job of a workflow that runs on pull requests or in the merge queue ends within an hour", () => {
+  const checked = workflows.filter(({ text }) => /^ {2}(?:pull_request|pull_request_target|merge_group):/m.test(text.split(/^jobs:$/m)[0].split(/^on:$/m)[1] ?? ""));
+  assert.ok(["ci.yml", "claims.yml", "conformance-exemptions.yml"].every((file) => checked.some((workflow) => workflow.file === file)), checked.map(({ file }) => file).join(", "));
+  for (const { file, text } of checked) {
+    const jobs = text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/);
+    for (const job of jobs) {
+      const id = job.match(/^ {2}([\w-]+):/)[1];
+      const minutes = Number(job.match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+      assert.ok(minutes >= 10 && minutes <= 60, `${file}: ${id} has timeout-minutes ${minutes}`);
+    }
+  }
+});
+
 test("an install shard ends within 40 minutes, as install-test.sh waits for the background apt without a limit", () => {
   const shard = ciJobs()["install-shard"];
   assert.match(shard, /\n {4}timeout-minutes: 40\n/);
