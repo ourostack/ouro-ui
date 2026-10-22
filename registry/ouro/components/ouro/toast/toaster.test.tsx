@@ -308,7 +308,7 @@ describe("Toaster", () => {
   it("translates the region name and the dismiss button with label and closeLabel", async () => {
     await render(<Toaster label="Benachrichtigungen" closeLabel="Schließen" />);
     expect(viewport()!.getAttribute("aria-label")).toBe("Benachrichtigungen");
-    const item = await show("Gespeichert");
+    const item = await show("Gespeichert", { duration: 0 });
     expect(item.querySelector('button[aria-label="Schließen"]')).not.toBeNull();
   });
 
@@ -548,25 +548,18 @@ describe("toast()", () => {
 
   it("dismisses itself after duration; 0 and Infinity keep it", async () => {
     await render(<Toaster />);
-    // A 100ms toast can come and go between two polls on a loaded runner, so an observer
-    // records it: its callback runs as a microtask after React inserts the toast, before
-    // the dismiss timer can fire.
-    let shown = false;
-    const observer = new MutationObserver(() => {
-      shown ||= showing("Brief");
+    fakeClock();
+    await act(async () => {
+      toast("Kept", { duration: 0 });
+      toast("Kept forever", { duration: Infinity });
+      toast("Brief", { duration: 100 });
     });
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true });
-    try {
-      await act(async () => {
-        toast("Kept", { duration: 0 });
-        toast("Kept forever", { duration: Infinity });
-        toast("Brief", { duration: 100 });
-      });
-      await gone("Brief");
-    } finally {
-      observer.disconnect();
-    }
-    expect(shown).toBe(true);
+    await until(() => [showing("Kept"), showing("Kept forever"), showing("Brief")], [true, true, true]);
+    await advance(99);
+    expect(showing("Brief")).toBe(true);
+    await advance(1);
+    await gone("Brief");
+    await advance(60_000);
     expect(showing("Kept") && showing("Kept forever")).toBe(true);
   });
 
@@ -810,6 +803,7 @@ describe("toast()", () => {
   });
 
   it("warns when no Toaster mounts", async () => {
+    // real clock: with no Toaster, no toast shows or counts down; the check for one runs a little later.
     toast("Nobody sees this");
     toast("Nor this");
     await expect

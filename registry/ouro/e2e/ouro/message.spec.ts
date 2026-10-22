@@ -17,6 +17,7 @@ test("messages say who wrote them and sit on the author's side", async ({ page }
 
 test("a streaming reply is busy and shows the typing indicator", async ({ page }) => {
   await openStory(page, "chat-message--streaming");
+  // real clock: the story's replies stream for good; nothing in it ends on a timer.
   await expect(page.getByRole("article").first()).toHaveAttribute("aria-busy", "true");
   await expect(page.locator("[data-ouro-message-typing]")).toHaveText("Writing");
 });
