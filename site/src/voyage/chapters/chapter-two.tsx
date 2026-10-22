@@ -193,14 +193,14 @@ const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] })
       <svg className="site-chart" viewBox={chart.viewBox} role="img" aria-label={describeRoute(route)} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" data-route={route.join(" ")}>
         <g dangerouslySetInnerHTML={{ __html: chart.inner }} />
         {/* A new route draws itself in afresh. */}
-        <path key={route.join()} className="ch-route" d={routePath(route)} pathLength={1} strokeWidth={2.2} />
+        <path key={route.join()} className="ch-route" d={routePath(route)} pathLength={1} strokeWidth={2.2} style={{ stroke: "var(--primary)" }} />
         {route.map((id, index) => {
           const { x, y } = chartPoint(id);
           const label = LABEL_AT[id];
           return (
             <g key={id} className="ch-port" data-port={id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
               <g className="ch-mark">
-                <circle r={9} strokeWidth={1.4} />
+                <circle r={9} strokeWidth={1.4} style={{ fill: "var(--card)", stroke: "var(--primary)" }} />
                 <ChartLabel className="ch-port-number" x={0} y={3.6} anchor="middle" fontSize={10} fontWeight={600}>
                   {index + 1}
                 </ChartLabel>

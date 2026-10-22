@@ -100,13 +100,6 @@
 .site-chart .ch-land {
   fill: color-mix(in oklab, var(--chart-3) 18%, var(--card));
 }
-.site-chart .ch-route {
-  stroke: var(--primary);
-}
-.site-chart .ch-port circle {
-  fill: var(--card);
-  stroke: var(--primary);
-}
 
 /* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
 @media (max-width: 40rem) {

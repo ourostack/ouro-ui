@@ -886,13 +886,6 @@
   letter-spacing: 0.3em;
   fill: var(--engraving);
 }
-/*
- * Off screen the motto is not drawn: it is the page's one SVG text, and while WebKit draws any,
- * every press of the pointer anywhere on the page lays out and repaints all of it (art.ts).
- */
-.stage[data-offscreen] .stage-motto {
-  display: none;
-}
 .stage-bolt circle {
   fill: color-mix(in oklab, var(--rim) 70%, var(--foreground));
   stroke: color-mix(in oklab, var(--rim) 40%, var(--foreground));

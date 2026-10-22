@@ -131,9 +131,10 @@ describe("the hero", () => {
     const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
     const link = page.getByRole("link", { name: proof.claims[0]!.text, exact: true });
     const element = link.element();
-    await pressTab();
     expect(document.querySelector("[data-site-proof-tips]")).toBeNull();
-    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the same link keeps focus.
+    // Keyboard focus, straight onto the link (a key first, so focus shows as the keyboard's): the
+    // Tooltip's code loads, and the same link keeps focus.
+    await userEvent.keyboard("{Shift}");
     (element as HTMLElement).focus();
     await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
     expect(link.element()).toBe(element);
