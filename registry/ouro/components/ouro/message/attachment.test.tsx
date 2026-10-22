@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +36,27 @@ afterEach(async () => {
 });
 
 describe("Attachment", () => {
+  it.each([
+    ["the next file's remove button", "crumb.jpg", "Remove notes.txt"],
+    ["the one before it when it was the last", "notes.txt", "Remove crumb.jpg"],
+  ])("hands focus to %s when its remove button removes it", async (_case, removed, next) => {
+    function Composer() {
+      const [files, setFiles] = useState(["menu.pdf", "crumb.jpg", "notes.txt"]);
+      return (
+        <div>
+          {files.map((file) => (
+            <Attachment key={file} name={file} onRemove={() => setFiles(files.filter((other) => other !== file))} />
+          ))}
+        </div>
+      );
+    }
+    await render(<Composer />);
+    const remove = page.getByRole("button", { name: `Remove ${removed}` });
+    (remove.element() as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(next);
+  });
+
   it("names the file and gives its size in readable units", async () => {
     const { attachment } = await render(<Attachment name="menu.pdf" size={1_258_291} />);
     expect(attachment.textContent).toBe("menu.pdf 1.2 MB");

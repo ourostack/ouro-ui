@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Breadcrumb, type BreadcrumbProps } from "@/registry/ouro/components/ouro/breadcrumb/breadcrumb";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -102,6 +102,18 @@ describe("Breadcrumb", () => {
     await expect.element(page.getByRole("menuitem", { name: "Winter" })).toHaveAttribute("href", "/cookbooks/winter");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => page.getByRole("menuitem").elements().length).toBe(0);
+  });
+
+  it("keeps the More button's edge under forced colours, which drop its fill", async () => {
+    await render(<Breadcrumb items={long} />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const more = page.getByRole("button", { name: "More" }).element();
+      expect(parseFloat(getComputedStyle(more).borderTopWidth)).toBeGreaterThan(0);
+      expect(getComputedStyle(more).borderTopStyle).toBe("solid");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("keeps more of the trail with maxItems, and at least the first and the current page", async () => {

@@ -32,6 +32,11 @@
       "reason": "a scored run's record, written by the agent-usability harness"
     },
     {
+      "match": "^site/e2e/latency-evidence/",
+      "mode": "evidence",
+      "reason": "a latency run's record: the lines the latency spec printed on CI's runners, kept as a pull request's evidence"
+    },
+    {
       "match": "^scripts/agent-usability/(screens|arms)/",
       "mode": "input",
       "reason": "what the benchmark gives each agent, frozen with its cohort"
@@ -249,6 +254,11 @@
       "match": "^test/themes/",
       "job": "themes",
       "reason": "the themes job runs the theme tests (vitest.config.ts, project themes)"
+    },
+    {
+      "match": "^test/conformance/",
+      "job": "conformance",
+      "reason": "the conformance job runs the conformance matrix (vitest.config.ts, project conformance); pnpm test leaves it out"
     },
     {
       "match": "^(registry|test|site)/.*\\.test\\.tsx?$",

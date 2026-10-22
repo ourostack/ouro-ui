@@ -16,12 +16,52 @@
   --ink: color-mix(in oklab, var(--foreground) 70%, transparent);
   --glow: var(--chart-3);
   --stage-fade: var(--ouro-duration-slow) ease;
+  position: relative;
+  display: block;
+  /* The ripples' lines are sized from the scene's width (100cqi, the drawing's 560 units). */
+  container-type: inline-size;
+  /* A picture, not a target: hit testing skips its shapes. */
+  pointer-events: none;
+}
+.stage-art {
   display: block;
   width: 100%;
   height: auto;
   overflow: visible;
-  /* A picture, not a target: hit testing skips its shapes. */
-  pointer-events: none;
+}
+/* The layers over the water (the ship, then the glass and the rim), on the same 560 by 560 drawing. */
+.stage-art-over {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+/*
+ * The fish (scene.tsx) and the bell's ripples: HTML on the glass's circle, 480 of the drawing's 560
+ * units across at 40 in, and held to it. Inside, a percentage of a box the glass's size is a share
+ * of those 480 units, so they move in the drawing's own units.
+ */
+:is(.stage-life, .stage-glass-layer) {
+  position: absolute;
+  left: calc(40 * 100% / 560);
+  top: calc(40 * 100% / 560);
+  width: calc(480 * 100% / 560);
+  height: calc(480 * 100% / 560);
+  border-radius: 50%;
+  overflow: hidden;
+}
+:is(.stage-band, .stage-drift, .stage-react, .stage-surface-world, .stage-ship-ride, .stage-caustics, .stage-specks, .stage-bubbles) {
+  position: absolute;
+  inset: 0;
+}
+/* A layer of the drawing (scene.tsx, Layer): the glass's 480 units, filling its box. */
+.stage-plane {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.stage-react > svg {
+  position: absolute;
 }
 
 .stage-sea-top,
@@ -84,10 +124,9 @@
   transition: opacity var(--stage-fade);
 }
 
-/* The surface world: sky, sun, waves and shafts, lifted out of view as the porthole goes down. */
+/* The surface world: sky, sun, waves and shafts, lifted out of view as the porthole goes down, 700 of the glass's 480 units. */
 .stage-surface-world {
-  --rise: calc(min(var(--d) * 5, 1) * -700px);
-  transform: translateY(var(--rise));
+  transform: translateY(calc(min(var(--d) * 5, 1) * -700 * 100% / 480));
 }
 .stage-sky {
   fill: color-mix(in oklab, var(--background) 80%, var(--sea-ink));
@@ -232,25 +271,26 @@
   .stage-scene:not([data-band="midnight"]) .stage-band-midnight .stage-drift {
     animation-play-state: paused;
   }
-  .stage-nautilus,
-  .stage-ripples {
+  .stage-ship-ride,
+  .stage-ripples-ride {
     transition: transform var(--ouro-duration-sheet) var(--ouro-ease-in-out);
   }
   .stage-surface-world {
     transition: transform var(--ouro-duration-slow) var(--ouro-ease-out);
   }
-  .stage-bubbles circle {
+  .stage-bubble {
     animation: stage-bubble 2400ms var(--ouro-ease-out) calc(var(--bubble-delay) * 1s) 1 both;
   }
 }
 @keyframes stage-drift {
   from {
-    transform: translateX(300px);
+    transform: translateX(calc(300 * 100% / 480));
   }
   to {
-    transform: translateX(-340px);
+    transform: translateX(calc(-340 * 100% / 480));
   }
 }
+/* In the drawing's units, 100cqi to its 560. */
 @keyframes stage-bubble {
   0% {
     transform: translate(0, 0) scale(0.6);
@@ -260,10 +300,10 @@
     opacity: 0.95;
   }
   50% {
-    transform: translate(6px, -160px) scale(1);
+    transform: translate(calc(6 * 100cqi / 560), calc(-160 * 100cqi / 560)) scale(1);
   }
   100% {
-    transform: translate(-4px, -340px) scale(1.15);
+    transform: translate(calc(-4 * 100cqi / 560), calc(-340 * 100cqi / 560)) scale(1.15);
     opacity: 0;
   }
 }
@@ -272,12 +312,19 @@
   stroke: color-mix(in oklab, var(--background) 80%, transparent);
   stroke-width: 1.2;
 }
-.stage-bubbles circle {
+/*
+ * A bubble's box sits at its circle (scene.tsx) and grows and moves about the glass's corner, as the
+ * circle did inside the drawing.
+ */
+.stage-bubble {
+  position: absolute;
+  overflow: visible;
   opacity: 0;
+  transform-origin: calc(var(--x) * -100cqi / 560) calc(var(--y) * -100cqi / 560);
 }
 @media (prefers-reduced-motion: reduce) {
   /* Still bubbles that show and fade where the moving ones would rise. */
-  .stage-bubbles circle {
+  .stage-bubble {
     animation: stage-fade-flash 1600ms ease calc(var(--bubble-delay) * 1s) 1 both;
   }
 }
@@ -295,12 +342,13 @@
  * The Nautilus: afloat at the top, riding high enough that the spur shows at the waterline, a
  * little lower for each full tank, then down beside us.
  */
-.stage-nautilus,
-.stage-ripples {
-  transform: translate(20px, calc(108px + var(--tanks) * 6px + min(var(--d) * 5, 1) * -700px));
+/* The bell's ripples ride with her; both move in the glass's 480 units, a percentage of their 480-unit box. */
+.stage-ship-ride,
+.stage-ripples-ride {
+  transform: translate(calc(20 * 100% / 480), calc((108 + var(--tanks) * 6 + min(var(--d) * 5, 1) * -700) * 100% / 480));
 }
-.stage-scene[data-dived] :is(.stage-nautilus, .stage-ripples) {
-  transform: translate(10px, 195px);
+.stage-scene[data-dived] :is(.stage-ship-ride, .stage-ripples-ride) {
+  transform: translate(calc(10 * 100% / 480), calc(195 * 100% / 480));
 }
 .stage-scene {
   --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
@@ -471,69 +519,197 @@
  * All three tanks full: the hull's lights come up and blink twice, ready to dive (with the bubbles
  * the tanks send up, stage.tsx). Colour only, so it is the same under reduced motion.
  */
-.stage-scene[data-tanks="3"]:not([data-dived]) .n-lights circle {
+/* The lights lit are a layer over the hull's (scene.tsx) that fades in and out, which the compositor does. */
+.stage-hull-lit {
+  opacity: 0;
+}
+.stage-hull-lit .n-lights circle {
+  fill: color-mix(in oklab, var(--glow) 85%, white);
+}
+.stage-scene[data-tanks="3"]:not([data-dived]) .stage-hull-lit {
   animation: stage-ready-lights 520ms ease 5 alternate both;
 }
 @keyframes stage-ready-lights {
   from {
-    fill: color-mix(in oklab, var(--glow) 70%, var(--background));
+    opacity: 0;
   }
   to {
-    fill: color-mix(in oklab, var(--glow) 85%, white);
+    opacity: 1;
   }
 }
-/* The midnight water's own lights: the lanternfish's rows of lamps and the deep jelly pulse. */
-.stage-scene[data-band="midnight"] .stage-band-midnight .c-glow,
-.stage-scene[data-band="midnight"] .stage-band-midnight .c-glow-body {
-  animation: stage-lure 1.6s ease-in-out infinite alternate;
+/*
+ * The midnight water's own lights: the lanternfish's rows of lamps and the deep jelly pulse from
+ * 0.55 to full. Each fish holds its lamps at 0.55, and draws them again over itself at full (scene.tsx,
+ * stage-glow), a layer that fades in and out, which the compositor does without the page.
+ */
+.stage-band-midnight .stage-react > svg:first-child :is(.c-glow, .c-glow-body) {
+  opacity: 0.55;
 }
-.stage-band-midnight .stage-drift:nth-child(even) .c-glow {
+.stage-glow {
+  position: absolute;
+  opacity: 0;
+}
+.stage-glow .c-glow-body {
+  opacity: 1;
+}
+.stage-scene[data-band="midnight"] .stage-band-midnight .stage-glow {
+  animation: stage-glow 32s ease-in-out infinite;
+}
+.stage-band-midnight .stage-drift:nth-child(even) .stage-glow {
   animation-delay: -0.8s;
 }
-.stage[data-offscreen] .stage-band-midnight :is(.c-glow, .c-glow-body) {
+.stage[data-offscreen] .stage-band-midnight .stage-glow {
   animation-play-state: paused;
+}
+/* Twenty pulses of 1.6 seconds, up and down, in one iteration, as the specks twinkle. */
+@keyframes stage-glow {
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0;
+  }
+  85% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 /* Glowing specks of life in the midnight water (and in Abyss's twilight too). */
 .stage-specks {
-  fill: color-mix(in oklab, var(--glow) 70%, white);
   opacity: 0;
   transition: opacity var(--stage-fade);
 }
 .stage-scene[data-band="midnight"] .stage-specks {
   opacity: 1;
 }
-.stage-specks circle {
-  animation: stage-twinkle 3.2s ease-in-out var(--twinkle-delay) infinite alternate;
+/* Each speck is a dot of its own (scene.tsx), so it twinkles on the compositor. */
+.stage-speck {
+  position: absolute;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--glow) 70%, white);
+  animation: stage-twinkle 32s ease-in-out var(--twinkle-delay) infinite;
 }
-.stage[data-offscreen] .stage-specks circle,
-.stage-scene:not([data-band="midnight"]) .stage-specks circle {
+.stage[data-offscreen] .stage-speck,
+.stage-scene:not([data-band="midnight"]) .stage-speck {
   animation-play-state: paused;
 }
+/*
+ * Ten twinkles of 3.2 seconds, up and down, in one 32-second iteration. The page wakes at the end of
+ * each iteration of an animation (React listens for animationiteration), so the slow ones run long.
+ */
 @keyframes stage-twinkle {
-  from {
+  0% {
     opacity: 0.15;
   }
-  to {
+  10% {
     opacity: 0.9;
   }
+  20% {
+    opacity: 0.15;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  40% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.15;
+  }
+  70% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.15;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.15;
+  }
 }
-/* The bell's sound: rings spreading out from the hull. */
-.stage-ripples {
-  fill: none;
-  stroke: color-mix(in oklab, var(--glow) 55%, var(--background));
-  stroke-width: 2;
+/*
+ * The bell's sound: rings spreading out from the hull (scene.tsx), on the glass's circle. Each ring
+ * is centred 208 units in and 45 down from the ship's place, 44 across with a 2-unit line, as the
+ * SVG ellipses were.
+ */
+.stage-ripples-ride {
+  position: absolute;
+  inset: 0;
 }
-.stage-ripples ellipse {
-  vector-effect: non-scaling-stroke;
+.stage-ripple {
+  position: absolute;
+  left: calc(163 * 100% / 480);
+  top: 0;
+  width: calc(90 * 100% / 480);
+  height: calc(90 * 100% / 480);
+  box-sizing: border-box;
+  border: calc(2 * 100cqi / 560) solid color-mix(in oklab, var(--glow) 55%, var(--background));
+  border-radius: 50%;
   opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   /* The beam sweeps out from the lantern, then holds. */
   .stage-beam {
-    transform-origin: 232px 8px;
+    transform-origin: calc(232 * 100% / 480) calc(8 * 100% / 480);
   }
   .stage-scene[data-lights] .stage-beam {
     animation: stage-sweep 1300ms var(--ouro-ease-out) 1 both;
@@ -543,11 +719,7 @@
     transition: transform 900ms var(--ouro-ease-out);
   }
   .stage-scene[data-lights] .stage-react {
-    transform: translate(calc(var(--scatter) * 16px), calc(var(--scatter) * -10px)) rotate(calc(var(--scatter) * 8deg));
-  }
-  .stage-react {
-    transform-box: fill-box;
-    transform-origin: center;
+    transform: translate(calc(var(--scatter) * 16 * 100% / 480), calc(var(--scatter) * -10 * 100% / 480)) rotate(calc(var(--scatter) * 8deg));
   }
   /* The octopus rises from the rocks into the light. */
   .stage-octopus {
@@ -557,12 +729,17 @@
   .stage-scene[data-lights][data-dived]:not([data-band="sunlit"]) .stage-octopus {
     transform: none;
   }
-  .stage-ripples ellipse {
+  /*
+   * Each ring only scales and fades, on the compositor, so its line widens as it spreads, as a
+   * wave does; it starts thinner than the still ring under reduced motion so it ends no heavier.
+   */
+  .stage-ripple {
+    border-width: calc(1.2 * 100cqi / 560);
     animation: stage-ripple 1800ms var(--ouro-ease-out) var(--ripple-delay) 1 both;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .stage-ripples ellipse {
+  .stage-ripple {
     animation: stage-fade-flash 1500ms ease var(--ripple-delay) 1 both;
   }
   .stage-scene[data-lights] .stage-react {
@@ -596,14 +773,16 @@
   }
 }
 /*
- * The bell's sonar reaches the fish: on each ring the creatures in view start and scatter a little,
- * then settle. Under reduced motion they flicker instead.
+ * The bell's sonar reaches the fish: on each ring the school in view starts together, then settles.
+ * One animation per band, not one per fish: starting a moving layer for each of the fish on every
+ * ring was the work the next press of the bell waited on. Under reduced motion each fish flickers
+ * instead.
  */
 @media (prefers-reduced-motion: no-preference) {
-  .stage-scene[data-ring="a"] .stage-react {
+  .stage-scene[data-ring="a"] .stage-band {
     animation: stage-startle-a 900ms var(--ouro-ease-out) 1;
   }
-  .stage-scene[data-ring="b"] .stage-react {
+  .stage-scene[data-ring="b"] .stage-band {
     animation: stage-startle-b 900ms var(--ouro-ease-out) 1;
   }
 }
@@ -621,7 +800,7 @@
     transform: none;
   }
   25% {
-    transform: translate(calc(var(--scatter, 0.5) * 12px + 4px), -10px) rotate(calc(var(--scatter, 0.5) * -10deg));
+    transform: translate(calc(10 * 100% / 480), calc(-10 * 100% / 480));
   }
 }
 @keyframes stage-startle-b {
@@ -630,7 +809,7 @@
     transform: none;
   }
   25% {
-    transform: translate(calc(var(--scatter, 0.5) * 12px + 4px), -10px) rotate(calc(var(--scatter, 0.5) * -10deg));
+    transform: translate(calc(10 * 100% / 480), calc(-10 * 100% / 480));
   }
 }
 @keyframes stage-startle-fade-a {
@@ -724,6 +903,7 @@
  * its depth, the hull's shadow, and the glass itself (a sheen, a bright arc, a glint, the rim's
  * shadow on the water). All from the theme's colours, so each preset repaints them.
  */
+/* Each line of the caustics is a layer of its own (scene.tsx), so it sways on the compositor. */
 .stage-caustics {
   fill: none;
   stroke: color-mix(in oklab, var(--glow) 25%, white);
@@ -732,26 +912,36 @@
   opacity: 0.32;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .stage-caustics path {
-    animation: stage-caustics 7s ease-in-out infinite alternate;
+  .stage-caustics > svg {
+    animation: stage-caustics 28s ease-in-out infinite;
   }
-  .stage-caustics path:nth-child(2) {
+  .stage-caustics > svg:nth-child(2) {
     animation-delay: -2.4s;
   }
-  .stage-caustics path:nth-child(3) {
+  .stage-caustics > svg:nth-child(3) {
     animation-delay: -4.8s;
   }
-  .stage[data-offscreen] .stage-caustics path,
-  .stage-scene:not([data-band="sunlit"]) .stage-caustics path {
+  .stage[data-offscreen] .stage-caustics > svg,
+  .stage-scene:not([data-band="sunlit"]) .stage-caustics > svg {
     animation-play-state: paused;
   }
 }
+/* 14 of the glass's 480 units either way, four sways of 7 seconds in one iteration, as the specks twinkle. */
 @keyframes stage-caustics {
-  from {
-    transform: translateX(-14px);
+  0% {
+    transform: translateX(calc(-14 * 100% / 480));
   }
-  to {
-    transform: translateX(14px);
+  25% {
+    transform: translateX(calc(14 * 100% / 480));
+  }
+  50% {
+    transform: translateX(calc(-14 * 100% / 480));
+  }
+  75% {
+    transform: translateX(calc(14 * 100% / 480));
+  }
+  100% {
+    transform: translateX(calc(-14 * 100% / 480));
   }
 }
 .stage-rim-shade-near {
@@ -839,7 +1029,7 @@
   --dial: color-mix(in oklab, var(--muted) 70%, var(--card));
   --quiet: color-mix(in oklab, var(--muted-foreground) 72%, var(--foreground));
   --water: color-mix(in oklab, var(--primary) 70%, var(--chart-2, var(--primary)));
-  --glass-radius: 17px;
+  --glass-radius: 17;
   --numeral-font: var(--font-mono);
   --numeral-glow: none;
   --row-gap: 0.875rem;
@@ -1132,30 +1322,53 @@
   font-weight: 500;
   color: var(--foreground);
 }
+/*
+ * A sight glass (stage.tsx): the face, then the glass's 34 units at 5 of its 44 in, holding the
+ * water and the bubbles, then the ticks, the bezel and the glint. --glass-radius is the glass's
+ * corner in those units.
+ */
 .stage-gauge {
+  position: relative;
   width: var(--glass);
   height: var(--glass);
+}
+.stage-gauge > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 .stage-gauge-face {
   fill: var(--dial);
-  rx: var(--glass-radius);
+  rx: calc(var(--glass-radius) * 1px);
 }
-.stage-gauge-shape {
-  rx: var(--glass-radius);
+.stage-gauge-glass {
+  position: absolute;
+  left: calc(5 * 100% / 44);
+  top: calc(5 * 100% / 44);
+  width: calc(34 * 100% / 44);
+  height: calc(34 * 100% / 44);
+  border-radius: calc(var(--glass-radius) * 100% / 34);
+  overflow: hidden;
+}
+.stage-gauge-glass > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .stage-gauge-bezel {
   fill: none;
   stroke: color-mix(in oklab, var(--foreground) 35%, var(--panel));
   stroke-width: 2.5;
-  rx: calc(var(--glass-radius) + 2px);
+  rx: calc(var(--glass-radius) * 1px + 2px);
 }
 .stage-gauge[data-full] .stage-gauge-bezel {
   stroke: color-mix(in oklab, var(--water) 70%, var(--foreground));
 }
 .stage-gauge-water {
-  fill: var(--water);
-  transform-box: fill-box;
+  background: var(--water);
   transform: translateY(100%);
 }
 .stage-gauge-surface {
@@ -1163,7 +1376,6 @@
   stroke: color-mix(in oklab, var(--water) 40%, white);
   stroke-width: 1.4;
   opacity: 0;
-  transform-box: view-box;
 }
 .stage-gauge[data-full] .stage-gauge-water {
   transform: translateY(20%);
@@ -1271,13 +1483,7 @@
     transition: transform 800ms cubic-bezier(0.3, 1.3, 0.5, 1);
   }
   .stage-gauge[data-full] .stage-gauge-bubble {
-    animation: stage-glass-bubble 1200ms var(--ouro-ease-out) 2 both;
-  }
-  .stage-gauge[data-full] .stage-gauge-bubble:nth-of-type(2) {
-    animation-delay: 220ms;
-  }
-  .stage-gauge[data-full] .stage-gauge-bubble:nth-of-type(3) {
-    animation-delay: 420ms;
+    animation: stage-glass-bubble 1200ms var(--ouro-ease-out) var(--gauge-bubble-delay) 2 both;
   }
   .stage-pipe-water {
     transition: transform 700ms var(--ouro-ease-out);
@@ -1288,15 +1494,15 @@
   .stage-ready {
     animation: stage-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 1 both;
   }
-  .stage-bell[data-ring="a"] .stage-bell-body {
+  .stage-bell[data-ring="a"] .stage-bell-icon {
     animation: stage-bell-a 900ms ease-out 1;
   }
-  .stage-bell[data-ring="b"] .stage-bell-body {
+  .stage-bell[data-ring="b"] .stage-bell-icon {
     animation: stage-bell-b 900ms ease-out 1;
   }
-  .stage-bell-body {
-    transform-box: fill-box;
-    transform-origin: 50% 8%;
+  /* It swings from its crown: 5.2 of the icon's 20 units down, the bell's top plus 8% of its height. */
+  .stage-bell-icon {
+    transform-origin: 50% 26%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1311,23 +1517,34 @@
   .stage-ready {
     animation: stage-fade-in 400ms ease 1 both;
   }
-  .stage-bell[data-ring="a"] .stage-bell-body {
+  .stage-bell[data-ring="a"] .stage-bell-icon {
     animation: stage-bell-glow-a 900ms ease 1;
   }
-  .stage-bell[data-ring="b"] .stage-bell-body {
+  .stage-bell[data-ring="b"] .stage-bell-icon {
     animation: stage-bell-glow-b 900ms ease 1;
   }
 }
-/* Ready to dive: the ring around Dive breathes three times. Shadow only, so it's the same under reduced motion. */
-.stage-dive[data-ready] button {
+/*
+ * Ready to dive: the ring around Dive breathes three times, out to 8px and back. The outer band is
+ * a ring of its own that fades in and out, which the compositor does without the page (a shadow
+ * that grows is repainted by the page every frame). Light only, so it's the same under reduced motion.
+ */
+.stage-dive[data-ready] button::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: calc(var(--radius-lg) + 4px);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 30%, transparent);
+  opacity: 0;
+  pointer-events: none;
   animation: stage-dive-ready 900ms ease-in-out 3 alternate;
 }
 @keyframes stage-dive-ready {
   from {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 18%, transparent);
+    opacity: 0;
   }
   to {
-    box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 30%, transparent);
+    opacity: 1;
   }
 }
 @keyframes stage-glass-bubble {
@@ -1339,7 +1556,7 @@
     opacity: 0.95;
   }
   100% {
-    transform: translateY(-22px);
+    transform: translateY(calc(-22 * 100% / 34));
     opacity: 0;
   }
 }
@@ -1552,7 +1769,7 @@
   --engraving: color-mix(in oklab, var(--primary) 70%, var(--foreground));
   --dial: color-mix(in oklab, var(--primary) 8%, var(--card));
   --water: var(--primary);
-  --glass-radius: 8px;
+  --glass-radius: 8;
 }
 [data-theme="abyss"].dark .stage,
 .dark[data-theme="abyss"] .stage {
@@ -1582,7 +1799,7 @@
   filter: drop-shadow(0 0 4px var(--primary));
 }
 [data-theme="abyss"] .stage-gauge[data-full] .stage-gauge-water {
-  fill: color-mix(in oklab, var(--primary) 80%, white);
+  background: color-mix(in oklab, var(--primary) 80%, white);
 }
 [data-theme="abyss"] .stage-gauge-ticks {
   stroke: color-mix(in oklab, var(--primary) 60%, transparent);
@@ -1612,10 +1829,10 @@
 [data-theme="abyss"] .stage-scene[data-band="midnight"] .stage-specks {
   opacity: 1;
 }
-[data-theme="abyss"] .stage-scene:not([data-band="sunlit"]) .stage-specks circle {
+[data-theme="abyss"] .stage-scene:not([data-band="sunlit"]) .stage-speck {
   animation-play-state: running;
 }
-[data-theme="abyss"] .stage[data-offscreen] .stage-specks circle {
+[data-theme="abyss"] .stage[data-offscreen] .stage-speck {
   animation-play-state: paused;
 }
 

@@ -2,10 +2,22 @@ import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Calendar, type CalendarProps, type DateRange } from "@/registry/ouro/components/ouro/calendar/calendar";
 import { addMonths, firstDayOfWeek, isIsoDate, monthGrid } from "@/registry/ouro/components/ouro/calendar/calendar-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+/** An element's fill as it shows: none when it is the colour behind it, as forced colours make most fills. */
+function shownFill(element: Element): string {
+  const fill = getComputedStyle(element).backgroundColor;
+  if (fill === "transparent" || /rgba\(.*,\s*0\)$/.test(fill)) return "none";
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const color = getComputedStyle(node).backgroundColor;
+    if (color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color)) return fill === color ? "none" : fill;
+  }
+  return fill === "rgb(255, 255, 255)" ? "none" : fill;
+}
+
 
 // Runs in Chromium and WebKit.
 
@@ -223,6 +235,34 @@ describe("Calendar", () => {
   });
 
   describe("one day", () => {
+    it("tells the chosen day and the days of a range from the rest under forced colours, which drop their fills", async () => {
+      await render(<Calendar label="Date" defaultValue="2026-10-11" />);
+      await commands.emulateMedia({ forcedColors: "active" });
+      try {
+        const look = (element: Element) => {
+          const style = getComputedStyle(element);
+          return `${shownFill(element)} ${style.color} ${style.borderTopWidth} ${style.borderTopStyle}`;
+        };
+        expect(look(day("2026-10-11"))).not.toBe(look(day("2026-10-12")));
+      } finally {
+        await commands.emulateMedia({ forcedColors: "none" });
+      }
+      await render(<Calendar label="Stay" range defaultValue={{ start: "2026-10-11", end: "2026-10-14" }} />);
+      await commands.emulateMedia({ forcedColors: "active" });
+      try {
+        const look = (element: Element) => {
+          const style = getComputedStyle(element);
+          return `${shownFill(element)} ${style.color} ${style.borderTopWidth} ${style.borderTopStyle}`;
+        };
+        const within = [...document.querySelectorAll('[data-ouro-day="2026-10-12"]')].at(-1)!;
+        const outside = [...document.querySelectorAll('[data-ouro-day="2026-10-20"]')].at(-1)!;
+        expect(within.hasAttribute("data-in-range")).toBe(true);
+        expect(look(within)).not.toBe(look(outside));
+      } finally {
+        await commands.emulateMedia({ forcedColors: "none" });
+      }
+    });
+
     it("picks a pressed day, uncontrolled", async () => {
       const onValueChange = vi.fn();
       await render(<Calendar label="Date" defaultValue="2026-10-11" onValueChange={onValueChange} />);
@@ -265,6 +305,13 @@ describe("Calendar", () => {
       await userEvent.click(day("2026-10-12"));
       expect(onValueChange).toHaveBeenCalledWith("2026-10-12");
       expect(day("2026-10-11").hasAttribute("data-selected")).toBe(true);
+    });
+
+    it('marks the chosen day data-selected="true", the only form shadcn\'s data-selected variant matches', async () => {
+      // shadcn/tailwind.css, which shadcn init imports, redefines data-selected: as
+      // [data-selected="true"], so an empty attribute leaves the chosen day unstyled in a shadcn app.
+      await render(<Calendar label="Date" defaultValue="2026-10-11" />);
+      expect(day("2026-10-11").matches('[data-selected="true"]')).toBe(true);
     });
 
     it("opens on defaultMonth", async () => {
