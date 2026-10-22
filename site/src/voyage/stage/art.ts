@@ -29,6 +29,20 @@ export function parseArt(source: string): Art {
   return { viewBox: open[1]!, width: width!, height: height!, inner };
 }
 
+/**
+ * The markup of a drawing's parts with one of these classes, in the drawing's order: a part is an
+ * element of its own (`<circle class="c-glow" … />`) or a group (`<g class="n-lights">…</g>`, with
+ * no group inside it). The stage draws a part again over its drawing, as a box of its own, where it
+ * glows or blinks: the compositor fades a box without the page.
+ */
+export function partsOf({ inner }: Art, ...classes: string[]): string {
+  const named = classes.join("|");
+  const part = new RegExp(`<g\\b[^>]*\\bclass="(?:${named})"[^>]*>[\\s\\S]*?</g>|<\\w+\\b[^>]*\\bclass="(?:${named})"[^>]*/>`, "g");
+  const parts = inner.match(part);
+  if (!parts) throw new Error(`The drawing has no part named ${classes.join(" or ")}`);
+  return parts.join("");
+}
+
 export const art = {
   anglerfish: parseArt(anglerfish),
   jellyfish: parseArt(jellyfish),
