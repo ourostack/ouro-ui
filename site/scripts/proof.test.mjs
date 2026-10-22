@@ -177,3 +177,11 @@ test("the theme claim needs the axe loop over every preset in light and dark", (
   assert.equal(proof.themes, 0);
   assert.doesNotMatch(proof.line, /axe-clean/);
 });
+
+test("the page's proof module holds only the claims the hero shows", () => {
+  const plugin = proofPlugin();
+  const module = plugin.load(plugin.resolveId("virtual:site-proof"));
+  const proof = JSON.parse(/^export default (.*);$/m.exec(module)[1]);
+  assert.deepEqual(Object.keys(proof), ["claims"]);
+  assert.deepEqual(proof.claims, currentProof().claims);
+});

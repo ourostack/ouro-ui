@@ -261,6 +261,11 @@
       "reason": "the themes job runs the theme tests (vitest.config.ts, project themes)"
     },
     {
+      "match": "^test/conformance/",
+      "job": "conformance",
+      "reason": "the conformance job runs the conformance matrix (vitest.config.ts, project conformance); pnpm test leaves it out"
+    },
+    {
       "match": "^(registry|test|site)/.*\\.test\\.tsx?$",
       "job": "ci",
       "reason": "the ci job runs pnpm test, which runs every other Vitest file"

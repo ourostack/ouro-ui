@@ -1,4 +1,4 @@
-import { lazy, Suspense, type JSX } from "react";
+import { lazy, Suspense, type ComponentType, type JSX } from "react";
 
 /**
  * Resolves once the element with this id comes within half a screen of the viewport, or at once
@@ -29,41 +29,23 @@ export function nearScreen(id: string): Promise<void> {
  * as the chapter nears the screen, and React hydrates the server's HTML then. Until that moment the
  * page's own closure carries none of its code.
  */
-const ChapterOne = lazy(() => (import.meta.env.SSR ? import("./chapter-one") : nearScreen("chapter-one").then(() => import("./chapter-one"))));
-const ChapterTwo = lazy(() => (import.meta.env.SSR ? import("./chapter-two") : nearScreen("chapter-two").then(() => import("./chapter-two"))));
-const Agents = lazy(() => (import.meta.env.SSR ? import("../agents/agents") : nearScreen("agents").then(() => import("../agents/agents"))));
-const ChapterThree = lazy(() => (import.meta.env.SSR ? import("./chapter-three") : nearScreen("chapter-three").then(() => import("./chapter-three"))));
-
-export function ChapterOneIsland(): JSX.Element {
-  return (
-    <Suspense>
-      <ChapterOne />
-    </Suspense>
-  );
+function island(id: string, load: () => Promise<{ default: ComponentType }>): () => JSX.Element {
+  const Chapter = lazy(() => (import.meta.env.SSR ? load() : nearScreen(id).then(load)));
+  return function Island(): JSX.Element {
+    return (
+      <Suspense>
+        <Chapter />
+      </Suspense>
+    );
+  };
 }
+
+export const ChapterOneIsland = island("chapter-one", () => import("./chapter-one"));
 
 /** Chapter II: its Chart, and Recharts with it, load only with this island, never with the page. */
-export function ChapterTwoIsland(): JSX.Element {
-  return (
-    <Suspense>
-      <ChapterTwo />
-    </Suspense>
-  );
-}
+export const ChapterTwoIsland = island("chapter-two", () => import("./chapter-two"));
 
-export function ChapterThreeIsland(): JSX.Element {
-  return (
-    <Suspense>
-      <ChapterThree />
-    </Suspense>
-  );
-}
+export const ChapterThreeIsland = island("chapter-three", () => import("./chapter-three"));
 
 /** "Built for agents too": its examples and Tabs load as the section nears the screen. */
-export function AgentsIsland(): JSX.Element {
-  return (
-    <Suspense>
-      <Agents />
-    </Suspense>
-  );
-}
+export const AgentsIsland = island("agents", () => import("../agents/agents"));

@@ -87,7 +87,6 @@ describe("the hero", () => {
 
   it("links each proof claim, computed from the repository, to its evidence", async () => {
     await renderPage("/voyage/");
-    expect(proof.line).toBe(proof.claims.map((claim) => claim.text).join(" · "));
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 

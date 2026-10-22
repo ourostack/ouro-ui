@@ -195,6 +195,7 @@ function Porthole(): JSX.Element {
     <svg
       className="site-porthole"
       viewBox="0 0 400 400"
+      fill="none"
       role="img"
       aria-label={`${ENCOUNTER.scene}. ${describeEncounter({ surfaced, lights, won })}`}
       data-surfaced={surfaced ? "" : undefined}
