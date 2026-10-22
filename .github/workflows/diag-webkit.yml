@@ -18,12 +18,13 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - timeout-minutes: 12
-        run: pnpm exec playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - run: pnpm site:build
       - run: |
           (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
+          pnpm exec playwright test -c .github/diag/pw-site.config.ts --project=site-webkit --workers=3 --repeat-each=18 site/e2e/zz-bell-debug.spec.ts 2>&1 | grep -E "BELL|passed|failed" | cut -c1-6000 || true
           for p in site-chromium site-webkit site-webkit-1x; do
             DEBUG=pw:api DEBUG_COLORS=false pnpm exec playwright test -c .github/diag/pw-site.config.ts --project=$p --workers=1 site/e2e/chapter-two.spec.ts -g "control: ports, in Conseil" 2>&1 | grep -E "pw:api (=>|<=)|✓|✘" | sed "s/^/A $p /" || true
           done
-          pnpm exec playwright test -c .github/diag/pw-site.config.ts --workers=2 site/e2e/chapter-two.spec.ts site/e2e/chapter-three.spec.ts site/e2e/stage.spec.ts 2>&1 | grep -E "✓|✘|passed|failed" | sed "s/^/T /" || true
