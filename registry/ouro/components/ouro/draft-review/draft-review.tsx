@@ -224,6 +224,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
     const present = new Set(changes.map((change) => change.id));
     const bulk = stored.bulk?.pending && stored.bulk.ids.some((key) => present.has(key)) ? stored.bulk : null;
     decisions = { ids: new Map([...stored.ids].filter(([key, pending]) => pending && present.has(key))), bulk, changes };
+    // Stryker disable next-line CallExpression: this render reads `decisions` either way; storing them only spares later renders the same filtering.
     setDecisions(decisions);
   }
   // What the handlers read: the decisions rendered, and any made since, so a second press before
@@ -240,15 +241,11 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
   const section = useMergedRef(ref, useFocusHandoff<HTMLElement>());
   useLayoutEffect(() => {
     const at = focusAt.current;
-    if (at === null) return;
-    if (changes.some((change) => change.id === at.id)) {
-      if (!live.current.ids.has(at.id)) focusAt.current = null;
-      return;
-    }
+    if (at === null || changes.some((change) => change.id === at.id)) return;
     focusAt.current = null;
-    const active = document.activeElement;
-    // With the last change decided the list is gone, and the section's handoff moves focus on.
-    if (!list.current || (active !== null && active !== document.body && active.isConnected)) return;
+    // With the last change decided the list is gone, and the section's handoff moves focus on. Focus
+    // the person has since moved elsewhere stays there.
+    if (!list.current || document.activeElement !== document.body) return;
     const rows = list.current.querySelectorAll<HTMLButtonElement>(":scope > li [data-ouro-part='accept']");
     rows[Math.min(at.index, rows.length - 1)]!.focus();
   }, [changes]);
@@ -264,13 +261,11 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
     const result = callback(change.id, event);
     if (!isPromise(result)) return;
     record({ ...live.current, ids: new Map(live.current.ids).set(change.id, true) });
+    // Settled, the change is no longer decided: if the app kept it, it can be decided again.
     const done = () =>
       setDecisions((current) => {
-        if (!current.ids.has(change.id)) return current;
         const ids = new Map(current.ids);
-        // Settled with the change still there: the app kept it, so it can be decided again.
-        if (current.changes.some((each) => each.id === change.id)) ids.delete(change.id);
-        else ids.set(change.id, false);
+        ids.delete(change.id);
         return { ...current, ids };
       });
     result.then(done, done);
@@ -283,12 +278,8 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
     if (!isPromise(result)) return;
     const pending = { ...press, pending: true };
     record({ ...live.current, bulk: pending });
-    const done = () =>
-      setDecisions((current) => {
-        if (current.bulk !== pending) return current;
-        const kept = pending.ids.some((key) => current.changes.some((each) => each.id === key));
-        return { ...current, bulk: kept ? null : { ...pending, pending: false } };
-      });
+    // Settled, the press is over: if the app kept any of its changes, they can be decided again.
+    const done = () => setDecisions((current) => (current.bulk === pending ? { ...current, bulk: null } : current));
     result.then(done, done);
   };
 

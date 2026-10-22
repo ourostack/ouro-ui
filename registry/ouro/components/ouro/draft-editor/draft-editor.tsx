@@ -280,6 +280,7 @@ export function DraftEditor(props: DraftEditorProps): JSX.Element {
   useEffect(() => {
     const before = said.current;
     said.current = standing;
+    // Nothing to say (drafting) says nothing: an empty announcement would cut off another one in flight.
     if (before !== null && standing !== before && standing !== "") announce(standing);
   }, [standing]);
   // The selection when an edit began (the native beforeinput), so the edit is placed where it was made.

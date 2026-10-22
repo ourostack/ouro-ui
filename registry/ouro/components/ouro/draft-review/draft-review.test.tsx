@@ -212,6 +212,56 @@ describe("DraftReview", () => {
     expect(review!.querySelectorAll("[aria-disabled='true']")).toHaveLength(0);
   });
 
+  it("keeps a bulk press decided while some of its changes remain, and through a newer press", async () => {
+    const saves: Array<() => void> = [];
+    const onAcceptAll = vi.fn(() => new Promise<void>((resolve) => saves.push(resolve)));
+    const props = { ...base, onAcceptAll, onRejectAll: () => {} };
+    const { review, rerender } = await render(<DraftReview {...props} />);
+    const acceptAll = () => review!.querySelector<HTMLButtonElement>("[data-ouro-part='accept-all']")!;
+    await userEvent.click(page.getByRole("button", { name: "Accept all" }));
+    // The app has saved one change so far: the rest are still being decided.
+    await rerender(<DraftReview {...props} changes={changes.slice(1)} />);
+    expect(acceptAll().getAttribute("aria-disabled")).toBe("true");
+    expect(review!.querySelector("li [data-ouro-part='accept']")!.getAttribute("aria-disabled")).toBe("true");
+    // Every change it decided is gone, and new ones come: a new press is theirs.
+    const next: DraftChange[] = [
+      { id: "a", author: "agent", name: "Ouro" },
+      { id: "b", author: "agent", name: "Ouro" },
+    ];
+    await rerender(<DraftReview {...props} segments={[]} changes={next} />);
+    expect(acceptAll().hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Accept all" }));
+    expect(onAcceptAll).toHaveBeenCalledTimes(2);
+    // The first press settles: the newer one is still pending.
+    await act(async () => saves[0]!());
+    expect(acceptAll().getAttribute("aria-disabled")).toBe("true");
+    await act(async () => saves[1]!());
+    expect(acceptAll().hasAttribute("aria-disabled")).toBe(false);
+  });
+
+  it("leaves focus where the person moved it, or on the page, when a decided change leaves", async () => {
+    let finish!: () => void;
+    const onAccept = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} />);
+    const accept = (n: number) => review!.querySelectorAll<HTMLButtonElement>("li [data-ouro-part='accept']")[n]!;
+    await act(async () => accept(0).focus());
+    await userEvent.keyboard("{Enter}");
+    // While it saves, the person moves on to another control.
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    mounted.push(elsewhere);
+    await act(async () => elsewhere.focus());
+    await rerender(<DraftReview {...base} changes={changes.slice(1)} onAccept={onAccept} />);
+    expect(document.activeElement).toBe(elsewhere);
+    await act(async () => finish());
+    // A press that never focused its button, with focus on the page: focus stays there.
+    await act(async () => elsewhere.blur());
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => accept(0).click());
+    await rerender(<DraftReview {...base} changes={changes.slice(2)} onAccept={onAccept} />);
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("keeps a change decided while its save is pending, and focus on the list once it leaves", async () => {
     const saves: Array<() => void> = [];
     const onAccept = vi.fn(() => new Promise<void>((resolve) => saves.push(resolve)));

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { StrictMode, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -213,6 +213,10 @@ describe("DraftEditor", () => {
     expect(other.querySelector('[id$="-status"] .sr-only')!.textContent).toBe("Written by an agent: 1 passage, « One two three four five… ».");
     const { editor: five } = await render(<DraftEditor label="Reply" value="One two three four five" segments={[{ author: "agent", text: "One two three four five" }]} onValueChange={() => {}} />);
     expect(five.querySelector('[id$="-status"] .sr-only')!.textContent).toBe("Written by an agent: 1 passage, starting “One two three four five”.");
+    // Words are counted across any run of spaces or line breaks.
+    const spaced = "One  two\n three   four five six";
+    const { editor: wide } = await render(<DraftEditor label="Reply" value={spaced} segments={[{ author: "agent", text: spaced }]} onValueChange={() => {}} />);
+    expect(wide.querySelector('[id$="-status"] .sr-only')!.textContent).toBe("Written by an agent: 1 passage, starting “One two three four five…”.");
   });
 
   it("sets the status line quieter than the draft", async () => {
@@ -310,6 +314,29 @@ describe("DraftEditor", () => {
       await rerender(<DraftEditor {...props} readiness="approved" readinessBy={{ author: "human", name: "You" }} />);
       await expect.poll(() => announced.count("Approved, You")).toBe(1);
       expect(announced.changes.map((change) => change.text).filter(Boolean)).toEqual(["Needs your input, Ouro: Which day suits you?", "Approved, You"]);
+      // Without a name or a note, only where it stands.
+      await rerender(<DraftEditor {...props} readiness="ready-for-review" />);
+      await expect.poll(() => announced.changes.map((change) => change.text)).toContain("Ready for your review");
+      // Asking, then back to drafting at once: the question is still heard, as drafting says nothing.
+      await rerender(<DraftEditor {...props} readiness="needs-input" readinessNote="Which day?" />);
+      await rerender(<DraftEditor {...props} />);
+      await expect.poll(() => announced.count("Needs your input, Which day?")).toBe(1);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("says nothing when it first shows in StrictMode, whose effects run twice", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const announced = watchAnnouncements();
+    try {
+      await render(
+        <StrictMode>
+          <DraftEditor label="Reply" value="Hi" segments={[{ author: "human", text: "Hi" }]} readiness="ready-for-review" readinessBy={{ author: "agent", name: "Ouro" }} onValueChange={() => {}} />
+        </StrictMode>,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(announced.count("Ready for your review")).toBe(0);
     } finally {
       announced.stop();
     }
