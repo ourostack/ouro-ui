@@ -85,6 +85,26 @@ describe("PresetPicker", () => {
     expect(onValueChange).toHaveBeenCalledTimes(3);
   });
 
+  it("moves to the next card with the left arrow, right to left", async () => {
+    const { cards } = await render(
+      <div dir="rtl">
+        <PresetPicker label="Layouts" items={items} onValueChange={() => {}} />
+      </div>,
+    );
+    await act(async () => cards[0]!.focus());
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(cards[1]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(cards[2]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(cards[1]);
+    // The vertical arrows keep their order.
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(cards[2]);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(cards[0]);
+  });
+
   it("moves focus with the arrow keys, Home and End, without choosing", async () => {
     const onValueChange = vi.fn();
     const { cards } = await render(<PresetPicker label="Layouts" items={items} onValueChange={onValueChange} />);

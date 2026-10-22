@@ -63,12 +63,14 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
   Home: () => 0,
   End: (_index, last) => last,
 };
+// Right to left, the next card is on the left.
+const mirrored: Readonly<Record<string, string>> = { ArrowLeft: "ArrowRight", ArrowRight: "ArrowLeft" };
 
 /**
  * Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an
  * optional tag, where choosing one applies it at once. The preset in use is marked
  * "In use" and `aria-current`. The arrow keys, Home and End move focus between the cards
- * without choosing, and Enter, Space or a click chooses. Choosing the preset already in use
+ * without choosing (right to left, the left arrow moves to the next card), and Enter, Space or a click chooses. Choosing the preset already in use
  * does nothing.
  *
  * Use `ChoiceCard` instead for a choice a form submits later (arrow keys there change the
@@ -81,6 +83,7 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
  * <PresetPicker label="Start from a layout" items={presets} value={layout} onValueChange={useLayout} />
  * @claim "The preset in use is marked" registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx verify:testExists(registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx::PresetPicker > marks the preset in use In use and current)
  * @claim "The arrow keys, Home and End" registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx verify:testExists(registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx::PresetPicker > moves focus with the arrow keys, Home and End, without choosing)
+ * @claim "right to left, the left arrow moves" registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx verify:testExists(registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx::PresetPicker > moves to the next card with the left arrow, right to left)
  * @claim "Choosing the preset already in use" registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx verify:testExists(registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx::PresetPicker > chooses a preset on a click, Enter or Space, and not the one in use)
  */
 export function PresetPicker(props: PresetPickerProps): JSX.Element {
@@ -118,7 +121,8 @@ export function PresetPicker(props: PresetPickerProps): JSX.Element {
   );
 
   const move = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const to = moves[event.key];
+    const key = getComputedStyle(list.current!).direction === "rtl" ? (mirrored[event.key] ?? event.key) : event.key;
+    const to = moves[key];
     if (!to) return;
     const cards = [...list.current!.querySelectorAll<HTMLButtonElement>(":scope > li > button")];
     event.preventDefault();
