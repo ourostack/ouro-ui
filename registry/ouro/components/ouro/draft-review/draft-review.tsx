@@ -106,7 +106,7 @@ const inserted = {
 } as const;
 
 /**
- * Review the changes made to a shared draft, one by one: the draft with each change's new
+ * A shared draft's changes, to review one by one. It shows the draft with each change's new
  * text underlined (tinted when an agent wrote it) and its removed text struck through, each
  * numbered, then one row per change with who made it, when and what it was based on, and
  * Accept and Reject. Accept all and Reject all join them while there is more than one change.
@@ -124,9 +124,9 @@ const inserted = {
  *
  * @example
  * <DraftReview segments={review.segments} changes={review.changes} onAccept={accept} onReject={reject} onAcceptAll={acceptAll} />
- * @claim "Review the changes made to a" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
- * @claim "Review the changes made to a" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > tints an agent's added text and leaves a person's underlined only)
- * @claim "Review the changes made to a" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > says who made each change, marking an agent's, with when and what it was based on)
+ * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
+ * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > tints an agent's added text and leaves a person's underlined only)
+ * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > says who made each change, marking an agent's, with when and what it was based on)
  * @claim "Accepting and rejecting are a person's" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
  * @claim "Screen readers hear each change's number" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
  * @claim "each button names its change" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)

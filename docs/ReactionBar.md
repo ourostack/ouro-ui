@@ -2,7 +2,7 @@
 
 # ReactionBar
 
-A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing.
+A message's reactions, to add to or take back. It shows each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing.
 
 ```tsx
 import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";

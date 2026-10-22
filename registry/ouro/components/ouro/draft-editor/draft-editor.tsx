@@ -182,10 +182,10 @@ function rebase(segments: readonly DraftSegment[], before: string, after: string
 }
 
 /**
- * A draft that a person and an agent write together: a growing text box in which the
- * agent's words are highlighted in place, and a line above it that says the agent wrote
- * some of it and where the draft stands ("Needs your input", "Ready for your review",
- * "Approved"). The person edits freely; `onValueChange` gives the new text and the runs
+ * A draft a person and an agent write together. In its growing text box the agent's words
+ * are highlighted in place, and a line above it says the agent wrote some of it and where
+ * the draft stands ("Needs your input", "Ready for your review", "Approved"). The person
+ * edits freely; `onValueChange` gives the new text and the runs
  * updated to match, so what they type is theirs and what they leave keeps its author.
  * Screen readers hear the agent's words in the box's description. An agent can ask for
  * input or say the draft is ready for review, but only a person approves it: an `approved`

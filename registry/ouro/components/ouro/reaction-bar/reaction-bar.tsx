@@ -59,8 +59,8 @@ export interface ReactionBarOwnProps {
 export type ReactionBarProps = Omit<HTMLAttributes<HTMLDivElement>, keyof ReactionBarOwnProps> & ReactionBarOwnProps;
 
 /**
- * A message's reactions: each one's emoji and how many chose it, with the person's own
- * pressed and tinted, and quick reactions to add with a single press. Pressing a reaction
+ * A message's reactions, to add to or take back. It shows each one's emoji and how many chose
+ * it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction
  * calls `onReact` with its key, so the app adds the person's reaction or takes it back.
  * Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and
  * count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show
@@ -74,9 +74,9 @@ export type ReactionBarProps = Omit<HTMLAttributes<HTMLDivElement>, keyof Reacti
  *
  * @example
  * <ReactionBar reactions={message.reactions} quick={quickReactions} onReact={(key) => toggleReaction(message.id, key)} />
- * @claim "reactions: each one's emoji and" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > shows each reaction as a toggle button named by its label and count)
- * @claim "reactions: each one's emoji and" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > tints the person's own reaction)
- * @claim "reactions: each one's emoji and" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > offers quick reactions that are not there yet, and moves one to the counts once chosen)
+ * @claim "It shows each one's emoji and" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > shows each reaction as a toggle button named by its label and count)
+ * @claim "It shows each one's emoji and" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > tints the person's own reaction)
+ * @claim "It shows each one's emoji and" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > offers quick reactions that are not there yet, and moves one to the counts once chosen)
  * @claim "Each reaction is a toggle button" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > shows each reaction as a toggle button named by its label and count)
  * @claim "Without `onReact` the reactions are" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > is read-only without onReact, and says which reaction is yours)
  * @claim "Without `onReact` the reactions are" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > renders nothing with nothing to show)

@@ -529,7 +529,7 @@
     "title": "MeetingRow",
     "group": "Lists",
     "source": "registry/ouro/components/ouro/meeting-row/meeting-row.tsx",
-    "summary": "One meeting in an agenda: when it starts and for how long, its title, the person's part or answer, one more line and its actions (Join, Chat)."
+    "summary": "One meeting in an agenda."
   },
   {
     "name": "scroll-area",
@@ -699,7 +699,7 @@
     "title": "ConversationList",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/conversation-list/conversation-list.tsx",
-    "summary": "A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot."
+    "summary": "A list of conversations to choose from."
   },
   {
     "name": "attention-card",
@@ -713,21 +713,21 @@
     "title": "ReactionBar",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
-    "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
+    "summary": "A message's reactions, to add to or take back."
   },
   {
     "name": "draft-editor",
     "title": "DraftEditor",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/draft-editor/draft-editor.tsx",
-    "summary": "A draft that a person and an agent write together: a growing text box in which the agent's words are highlighted in place, and a line above it that says the agent wrote some of it and where the draft stands (\"Needs your input\", \"Ready for your review\", \"Approved\")."
+    "summary": "A draft a person and an agent write together."
   },
   {
     "name": "draft-review",
     "title": "DraftReview",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/draft-review/draft-review.tsx",
-    "summary": "Review the changes made to a shared draft, one by one: the draft with each change's new text underlined (tinted when an agent wrote it) and its removed text struck through, each numbered, then one row per change with who made it, when and what it was based on, and Accept and Reject."
+    "summary": "A shared draft's changes, to review one by one."
   },
   {
     "name": "inspector",

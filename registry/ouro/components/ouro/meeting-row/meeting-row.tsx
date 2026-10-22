@@ -68,8 +68,8 @@ function statusToneWarning(value: string): readonly [string, string] {
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
- * One meeting in an agenda: when it starts and for how long, its title, the person's part or
- * answer, one more line and its actions (Join, Chat). A meeting happening now is marked
+ * One meeting in an agenda. It shows when it starts and for how long, its title, the person's
+ * part or answer, one more line and its actions (Join, Chat). A meeting happening now is marked
  * "Now", with a bar at its start edge, and past meetings are quieter, in text that keeps its
  * contrast.
  * Screen readers hear the row by its time and title, and "Now" when it is happening.
