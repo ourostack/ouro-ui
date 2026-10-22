@@ -79,6 +79,13 @@ export interface ImageFieldProps {
   removeLabel?: string | undefined;
   /** What the photo's frame says while a file is dragged over the field. @default "Drop the photo here" */
   dropLabel?: string | undefined;
+  /**
+   * The words beside the choose button that say a photo can be dropped on the field, shown
+   * while it is enabled. An empty string leaves them out. @default "or drop a photo here"
+   *
+   * @claim "The words beside the choose button" registry/ouro/components/ouro/image-field/image-field.test.tsx verify:testExists(registry/ouro/components/ouro/image-field/image-field.test.tsx::ImageField dropping a file > says beside the choose button that a photo can be dropped, in the app's words, and not while disabled)
+   */
+  dropHint?: string | undefined;
   /** Layout only: margins, width (`mt-6`). Appearance classes warn in development. */
   className?: string | undefined;
   /** Reaches the file input. */
@@ -163,6 +170,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
     changeLabel = "Change photo",
     removeLabel = "Remove",
     dropLabel = "Drop the photo here",
+    dropHint = "or drop a photo here",
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -280,12 +288,12 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
   };
 
   // A file dragged over the field lights the photo's frame; dropped, it is taken as if chosen.
-  // Dropping never opens the file in the browser, so these always cancel the default, and a
-  // disabled field ignores what is dropped.
+  // Dropping never opens the file in the browser, so these always cancel the default; text or
+  // a link dragged over leaves the frame unlit, and a disabled field ignores what is dropped.
   const [dragging, setDragging] = useState(false);
   const dragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    if (!disabled) setDragging(true);
+    if (!disabled && event.dataTransfer.types.includes("Files")) setDragging(true);
   };
   const dragLeave = (event: DragEvent<HTMLDivElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
@@ -371,6 +379,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
         >
           {showing ? changeLabel : chooseLabel}
         </Button>
+        {dropHint && !disabled ? <span className="self-center text-sm leading-5 text-muted-foreground">{dropHint}</span> : null}
         {file !== null || (src && onRemove) ? (
           <Button data-ouro-control="image-field" data-ouro-part="remove" variant="plain" tone="destructive" size="sm" disabled={disabled} aria-describedby={`${id}-label`} onClick={remove}>
             {removeLabel}

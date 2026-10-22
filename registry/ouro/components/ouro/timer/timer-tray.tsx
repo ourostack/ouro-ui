@@ -9,7 +9,9 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   alertDone,
   doneText,
+  registerView,
   REPEAT_FOR,
+  repeatLength,
   stopAlert,
   timerAlerts,
   wordsFor,
@@ -52,7 +54,12 @@ export interface TimerTrayOwnProps {
    * @claim "`repeat`, again every 2.5 seconds until" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > repeats its own alert with alert=repeat until the timer is dismissed)
    */
   alert?: TimerAlert | (string & { 'Use "once" or "repeat"': never }) | undefined;
-  /** With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up. @default 120 */
+  /**
+   * With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up. A
+   * value that is not finite and above 0 is taken as 120, and development warns.
+   * @default 120
+   * @claim "A value that is not finite" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:fileLine(registry/ouro/components/ouro/timer/timer-tray.test.tsx, /takes a repeatFor that is not finite and above 0 as two minutes/)
+   */
   repeatFor?: number | undefined;
   /** The words it shows and says, for apps in other languages. */
   labels?: TimerLabels | undefined;
@@ -102,6 +109,8 @@ function TrayRow({ item, words, silent, repeat, repeatFor, finalFocus }: TrayRow
   useEffect(() => {
     if (!done) stopAlert(item.timerId);
   }, [done, item.timerId]);
+  // The alert stops once no view of the timer is left: the row goes with the tray, or leaves timers.
+  useEffect(() => registerView(item.timerId), [item.timerId]);
   if (timer.status === "idle") return null;
   // The row goes with the timer, so focus moves on first: to the next timer, the previous one, or out.
   const stop = (event: MouseEvent<HTMLButtonElement>) => {
@@ -168,7 +177,7 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
     label = "Timers",
     silent,
     alert: alertProp = "once",
-    repeatFor = REPEAT_FOR,
+    repeatFor: repeatForProp = REPEAT_FOR,
     labels,
     finalFocus,
     className,
@@ -179,6 +188,7 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
   } = props;
   const words = wordsFor(labels);
   const alert = timerAlerts.includes(alertProp as TimerAlert) ? (alertProp as TimerAlert) : "once";
+  const repeatFor = repeatLength(repeatForProp);
   useAppearanceClassNameCheck(
     "TimerTray",
     className,
@@ -197,6 +207,10 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
           }),
           hidden !== undefined && ["hidden is not a prop; the tray hides itself while no timer is running", "<TimerTray timers={timers} />"],
           alert !== alertProp && [`alert="${String(alertProp)}" is not an alert; use "once" or "repeat"`, '<TimerTray alert="repeat" timers={timers} />'],
+          repeatFor !== repeatForProp && [
+            `repeatFor={${String(repeatForProp)}} is not a length; it is in seconds and above 0`,
+            '<TimerTray alert="repeat" repeatFor={120} timers={timers} />',
+          ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );

@@ -2059,7 +2059,8 @@
       "Timer/InContext",
       "Timer/Paused",
       "Timer/Finished",
-      "Timer/Short"
+      "Timer/Short",
+      "Timer/Repeating"
     ]
   },
   {
@@ -2075,7 +2076,8 @@
       "Timer/InContext",
       "Timer/Paused",
       "Timer/Finished",
-      "Timer/Short"
+      "Timer/Short",
+      "Timer/Repeating"
     ]
   },
   {

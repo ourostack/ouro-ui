@@ -412,6 +412,11 @@ describe("ImageField dropping a file", () => {
     const { root, field } = await render(<ImageField label="Photo" onFileChange={onFileChange} />);
     const text = new DataTransfer();
     text.setData("text/plain", "a recipe");
+    // Text dragged over is not a photo, so the frame stays unlit, and the tab still keeps it.
+    const textOver = new DragEvent("dragover", { dataTransfer: text, bubbles: true, cancelable: true });
+    await act(async () => void field().dispatchEvent(textOver));
+    expect(textOver.defaultPrevented).toBe(true);
+    expect(zone().hasAttribute("data-dragging")).toBe(false);
     const empty = new DragEvent("drop", { dataTransfer: text, bubbles: true, cancelable: true });
     await act(async () => void field().dispatchEvent(empty));
     expect(empty.defaultPrevented).toBe(true);
@@ -442,6 +447,24 @@ describe("ImageField dropping a file", () => {
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
+  });
+
+  it("says beside the choose button that a photo can be dropped, in the app's words, and not while disabled", async () => {
+    const { root, field } = await render(<ImageField label="Cover" />);
+    const hint = page.getByText("or drop a photo here");
+    await expect.element(hint).toBeVisible();
+    // Beside the button, in the group, so a screen reader reads it after Choose photo.
+    const choose = page.getByRole("button", { name: "Choose photo" }).element();
+    expect(choose.nextElementSibling).toBe(hint.element());
+    expect(field().contains(hint.element())).toBe(true);
+    expect(getComputedStyle(hint.element()).color).toBe(getComputedStyle(field().querySelector("[data-ouro-drop-zone]")!).color);
+    await act(async () => root.render(<ImageField label="Foto" chooseLabel="Elegir foto" dropHint="o suelta una foto aquí" />));
+    await expect.element(page.getByText("o suelta una foto aquí")).toBeVisible();
+    expect(field().textContent).not.toContain("or drop a photo here");
+    await act(async () => root.render(<ImageField label="Cover" dropHint="" />));
+    expect(choose.nextElementSibling).toBeNull();
+    await act(async () => root.render(<ImageField label="Cover" disabled />));
+    expect(field().textContent).not.toContain("or drop a photo here");
   });
 
   it("takes the drop label from the app", async () => {

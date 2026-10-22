@@ -248,6 +248,27 @@ describe("Timer", () => {
     expect(vibrations).toHaveLength(1);
   });
 
+  it("stops a repeating alert when the last view of its timer goes", async () => {
+    const lone = await render(<Timer label="Roast" duration={1} timerId="roast" alert="repeat" />);
+    await press(lone.primary());
+    await advance(1000);
+    await advance(2500);
+    expect(vibrations).toHaveLength(2);
+    await act(async () => lone.root.unmount());
+    await advance(10_000);
+    expect(vibrations).toHaveLength(2);
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, 0])("takes a repeatFor that is not finite and above 0 as two minutes (%s)", async (repeatFor) => {
+    const { primary } = await render(<Timer label="Roast" duration={1} alert="repeat" repeatFor={repeatFor} />);
+    await press(primary());
+    await advance(1000);
+    await advance(120_000);
+    expect(vibrations).toHaveLength(48);
+    await advance(30_000);
+    expect(vibrations).toHaveLength(48);
+  });
+
   it("keeps a repeating alert with a timerId going when one of its views goes, until another dismisses it", async () => {
     const a = await render(<Timer label="Stock" duration={1} timerId="stock" alert="repeat" />);
     const b = await render(<Timer label="Stock" duration={1} timerId="stock" />);
@@ -377,6 +398,7 @@ describe("Timer development messages", () => {
     ["storageKey", { storageKey: "pasta" }, "storageKey is not a prop", '<Timer timerId="pasta" />'],
     ["alert", { alert: "loop" }, 'alert="loop" is not an alert; use "once" or "repeat"', '<Timer alert="repeat" />'],
     ["repeatFor", { alert: "repeat", repeatFor: 0 }, "repeatFor={0} is not a length; it is in seconds and above 0", '<Timer alert="repeat" repeatFor={120} />'],
+    ["repeatFor NaN", { alert: "repeat", repeatFor: Number.NaN }, "repeatFor={NaN} is not a length; it is in seconds and above 0", '<Timer alert="repeat" repeatFor={120} />'],
   ])("explains %s with the fix", async (_name, extra, problem, fix) => {
     const props = { label: "T", duration: 60, ...extra } as unknown as Parameters<typeof Timer>[0];
     const { timer } = await render(<Timer {...props} />);

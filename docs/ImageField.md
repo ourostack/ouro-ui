@@ -37,6 +37,7 @@ Type: `ImageFieldProps`.
 | `crop` | `boolean \| ImageFieldCrop` |  | Opens the cropper on every chosen photo, so it fits `aspect` and `shape`: `crop` or `crop={{ outputWidth: 512 }}`. |
 | `description` | `ReactNode` |  | Supporting text under the label, such as the formats and size it takes. |
 | `disabled` | `boolean` |  | Turns the field off. |
+| `dropHint` | `string` | `"or drop a photo here"` | The words beside the choose button that say a photo can be dropped on the field, shown while it is enabled. An empty string leaves them out. |
 | `dropLabel` | `string` | `"Drop the photo here"` | What the photo's frame says while a file is dragged over the field. |
 | `error` | `ReadonlyErrorMessages` |  | What is wrong, shown under the field in the destructive tone. |
 | `hideLabel` | `boolean` |  | Keeps the label for screen readers only. |

@@ -1086,8 +1086,11 @@ describe("Reorderable", () => {
       await render(list({ onReorder }));
       await act(async () => handle("Soften").click());
       await menuOpen();
+      await expect.poll(() => document.activeElement?.closest('[role="menu"]')).not.toBeNull();
       await render(list({ onReorder, disabled: true }));
       await menuClosed();
+      // Focus comes back from the menu to the handle that opened it.
+      await expect.poll(() => document.activeElement).toBe(handle("Soften"));
       expect(onReorder).not.toHaveBeenCalled();
     });
 

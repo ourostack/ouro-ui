@@ -36,7 +36,7 @@ Type: `TimerProps`.
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `onDone` | `((event: TimerDoneEvent) => void)` |  | Called once when the timer reaches zero, including when it ended while the page was closed. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `repeatFor` | `number` | `120` | With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up, unless stopped. |
+| `repeatFor` | `number` | `120` | With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up, unless stopped. A value that is not finite and above 0 is taken as 120, and development warns. The alert also stops once no view of the timer (a `Timer` or a `TimerTray` row with its `timerId`) is left on the page. |
 | `silent` | `boolean` |  | No chime and no vibration at zero; it still shows and says that the time is up. |
 | `size` | `"md" \| "lg"` | `"md"` | How large the time is: `md` beside other content, `lg` as a screen's focus. |
 | `timerId` | `string` |  | Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with the component. (`id` is the element's, as on any `<div>`.) |

@@ -73,6 +73,15 @@ export const REPEAT_MS = 2500;
 /** How long a repeating alert keeps sounding unless stopped, in seconds. */
 export const REPEAT_FOR = 120;
 
+/**
+ * `repeatFor` when it is a length (finite and above 0), else {@link REPEAT_FOR}, so a bad value never rings forever.
+ *
+ * @claim "`repeatFor` when it is a length" registry/ouro/components/ouro/timer/timer.test.tsx verify:fileLine(registry/ouro/components/ouro/timer/timer.test.tsx, /takes a repeatFor that is not finite and above 0 as two minutes/)
+ */
+export function repeatLength(seconds: number): number {
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : REPEAT_FOR;
+}
+
 /** The repeating alerts sounding now, by timer (its `timerId`, or the view's own key). */
 const repeating = new Map<string, ReturnType<typeof setInterval>>();
 
@@ -111,6 +120,25 @@ export function alertDone(label: string, done: string, event: TimerDoneEvent, { 
       buzz();
     }, REPEAT_MS),
   );
+}
+
+/** How many views of a timer are mounted (a `Timer`, a tray's row), by key. */
+const views = new Map<string, number>();
+
+/**
+ * Counts a view of a timer while it is mounted. The function it returns uncounts it, and stops
+ * the timer's repeating alert once no view of the timer is left, so nothing rings with no
+ * Dismiss on screen.
+ *
+ * @claim "stops the timer's repeating alert once" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > stops a repeating alert when the last view of its timer goes)
+ */
+export function registerView(key: string): () => void {
+  views.set(key, (views.get(key) ?? 0) + 1);
+  return () => {
+    const left = views.get(key)! - 1;
+    views.set(key, left);
+    if (left === 0) stopAlert(key);
+  };
 }
 
 /** Stops a timer's repeating alert, if it has one: on Dismiss, Restart or Cancel in any view of it. */

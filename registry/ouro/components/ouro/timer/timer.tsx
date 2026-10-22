@@ -10,7 +10,9 @@ import {
   alertDone,
   doneText,
   primeAlert,
+  registerView,
   REPEAT_FOR,
+  repeatLength,
   stopAlert,
   timerAlerts,
   wordsFor,
@@ -62,8 +64,12 @@ export interface TimerOwnProps {
   alert?: TimerAlert | (string & { 'Use "once" or "repeat"': never }) | undefined;
   /**
    * With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up,
-   * unless stopped.
+   * unless stopped. A value that is not finite and above 0 is taken as 120, and development
+   * warns. The alert also stops once no view of the timer (a `Timer` or a `TimerTray` row with
+   * its `timerId`) is left on the page.
    * @default 120
+   * @claim "A value that is not finite" registry/ouro/components/ouro/timer/timer.test.tsx verify:fileLine(registry/ouro/components/ouro/timer/timer.test.tsx, /takes a repeatFor that is not finite and above 0 as two minutes/)
+   * @claim "The alert also stops once no" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > stops a repeating alert when the last view of its timer goes)
    * @claim "how long it keeps sounding, in" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps a repeating alert going for two minutes by default)
    */
   repeatFor?: number | undefined;
@@ -141,7 +147,7 @@ export function Timer(props: TimerProps): JSX.Element {
     onDone,
     silent,
     alert: alertProp = "once",
-    repeatFor = REPEAT_FOR,
+    repeatFor: repeatForProp = REPEAT_FOR,
     size: sizeProp = "md",
     labels,
     className,
@@ -157,6 +163,7 @@ export function Timer(props: TimerProps): JSX.Element {
   } = props;
   const size = sizeProp === "lg" ? "lg" : "md";
   const alert = timerAlerts.includes(alertProp as TimerAlert) ? (alertProp as TimerAlert) : "once";
+  const repeatFor = repeatLength(repeatForProp);
   const words = wordsFor(labels);
   useAppearanceClassNameCheck(
     "Timer",
@@ -171,7 +178,7 @@ export function Timer(props: TimerProps): JSX.Element {
       ? () => [
           size !== sizeProp && [`size="${String(sizeProp)}" is not a size; use "md" or "lg"`, '<Timer size="lg" />'],
           alert !== alertProp && [`alert="${String(alertProp)}" is not an alert; use "once" or "repeat"`, '<Timer alert="repeat" />'],
-          !(repeatFor > 0) && [`repeatFor={${String(repeatFor)}} is not a length; it is in seconds and above 0`, '<Timer alert="repeat" repeatFor={120} />'],
+          repeatFor !== repeatForProp && [`repeatFor={${String(repeatForProp)}} is not a length; it is in seconds and above 0`, '<Timer alert="repeat" repeatFor={120} />'],
           !(duration > 0) && [`duration={${String(duration)}} is not a length; it is in seconds and above 0`, "<Timer duration={600} />"],
           seconds !== undefined && ["seconds is not a prop", `<Timer duration={${typeof seconds === "number" ? seconds : 600}} />`],
           minutes !== undefined && ["minutes is not a prop", `<Timer duration={${typeof minutes === "number" ? minutes : 10} * 60} />`],
@@ -201,8 +208,8 @@ export function Timer(props: TimerProps): JSX.Element {
   useEffect(() => {
     if (!done) stopAlert(key);
   }, [done, key]);
-  // A timer without a timerId goes with its view, and so does its alert.
-  useEffect(() => () => stopAlert(ownKey), [ownKey]);
+  // The alert stops once no view of the timer is left (without a timerId, this is its only view).
+  useEffect(() => registerView(key), [key]);
 
   const act = () => {
     if (status === "running") return timer.pause();

@@ -217,6 +217,36 @@ describe("TimerTray", () => {
     }
   });
 
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, 0])("takes a repeatFor that is not finite and above 0 as two minutes (%s)", async (repeatFor) => {
+    store("stock", { status: "running", duration: 60, endsAt: Date.now() + 1000 });
+    await render(<TimerTray timers={[{ timerId: "stock", label: "Stock", duration: 60 }]} alert="repeat" repeatFor={repeatFor} />);
+    await advance(1000);
+    await advance(120_000);
+    expect(tones).toBe(48 * 3);
+    await advance(30_000);
+    expect(tones).toBe(48 * 3);
+  });
+
+  it("stops its repeating alert when the timer's row leaves the tray, and when the tray goes", async () => {
+    const timers = [
+      { timerId: "stock", label: "Stock", duration: 60 },
+      { timerId: "rice", label: "Rice", duration: 60 },
+    ];
+    store("stock", { status: "running", duration: 60, endsAt: Date.now() + 1000 });
+    store("rice", { status: "running", duration: 60, endsAt: Date.now() + 1000 });
+    const { root } = await render(<TimerTray timers={timers} alert="repeat" />);
+    await advance(1000);
+    await advance(2500);
+    // Both rang at zero and again 2.5 seconds later.
+    expect(tones).toBe(12);
+    await act(async () => root.render(<TimerTray timers={timers.slice(1)} alert="repeat" />));
+    await advance(2500);
+    expect(tones).toBe(15);
+    await act(async () => root.unmount());
+    await advance(10_000);
+    expect(tones).toBe(15);
+  });
+
   it("alerts on its own when the timer's screen is gone, unless silent", async () => {
     store("tea", { status: "running", duration: 60, endsAt: Date.now() + 1000 });
     store("rest", { status: "running", duration: 60, endsAt: Date.now() + 2000 });
@@ -297,6 +327,7 @@ describe("TimerTray development messages", () => {
     ["a timer's id", { timers: [{ id: "pasta", label: "Pasta", duration: 600 }] }, "id is not a key of a timer in timers", '<TimerTray timers={[{ timerId: "pasta", label, duration }]} />'],
     ["hidden", { hidden: true }, "hidden is not a prop; the tray hides itself while no timer is running", "<TimerTray timers={timers} />"],
     ["alert", { alert: "loop" }, 'alert="loop" is not an alert; use "once" or "repeat"', '<TimerTray alert="repeat" timers={timers} />'],
+    ["repeatFor", { alert: "repeat", repeatFor: Number.NaN }, "repeatFor={NaN} is not a length; it is in seconds and above 0", '<TimerTray alert="repeat" repeatFor={120} timers={timers} />'],
   ])("explains %s with the fix", async (_name, extra, problem, fix) => {
     const props = { timers: [], ...extra } as unknown as Parameters<typeof TimerTray>[0];
     const { tray } = await render(<TimerTray {...props} />);

@@ -22,6 +22,6 @@ test("a reloadDocument link is a plain link the router never renders, in the sam
   await expect(mcp).not.toHaveAttribute("data-router-link", "");
   await expect(mcp).toHaveAttribute("href", "#mcp");
   expect(await mcp.evaluate((element) => getComputedStyle(element).color)).toBe(await recipes.evaluate((element) => getComputedStyle(element).color));
-  await mcp.click();
-  await expect(page).toHaveURL(/#mcp$/);
+  // The story's hrefs are in-page, so following one proves nothing about a document load; the
+  // unit tests check that the router's link never renders it.
 });

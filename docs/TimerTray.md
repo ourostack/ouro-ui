@@ -34,7 +34,7 @@ Type: `TimerTrayProps`.
 | `label` | `string` | `"Timers"` | Names the tray for screen readers, as a region. |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
-| `repeatFor` | `number` | `120` | With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up. |
+| `repeatFor` | `number` | `120` | With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up. A value that is not finite and above 0 is taken as 120, and development warns. |
 | `silent` | `boolean` |  | No chime and no vibration when a timer reaches zero while only the tray shows it. A `Timer` on the page that shows the same timer alerts instead of the tray, by its own `silent`. |
 | `timers` (required) | `readonly TimerTrayItem[]` |  | The timers to watch, by `timerId`. Only those that are running, paused or finished show. |
 
