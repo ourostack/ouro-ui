@@ -1,0 +1,283 @@
+"use client";
+
+import type { HTMLAttributes, JSX, MouseEvent, ReactNode, Ref } from "react";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+
+/** A run of the draft under review: unchanged, put in by a change, or taken out by one. */
+export interface DraftReviewSegment {
+  /** `same` is unchanged text; `insert` is what a change put in; `delete` is what it took out. */
+  kind: "same" | "insert" | "delete";
+  /** The run's text. */
+  text: string;
+  /** The `id` of the change an `insert` or `delete` belongs to. */
+  changeId?: string | undefined;
+}
+
+/** One pending change to the draft, with who made it and what it was based on. */
+export interface DraftChange {
+  /** Identifies the change; `onAccept` and `onReject` receive it. */
+  id: string;
+  /** A person or an agent. An agent's change is marked as the agent's, in the text and in its row. */
+  author: "human" | "agent";
+  /** Who made it ("Ouro", "Ada Lovelace"). */
+  name: string;
+  /** When, already formatted ("2 min ago", `<RelativeTime>`). */
+  time?: ReactNode;
+  /** What it was based on, already worded ("Based on 3 messages"). With `onShowSource`, a Show button follows it. */
+  source?: ReactNode;
+}
+
+/** The props DraftReview adds to the `<section>` attributes it passes through. */
+export interface DraftReviewOwnProps {
+  /** The draft with the changes in place, in reading order. */
+  segments: readonly DraftReviewSegment[];
+  /** The pending changes, in reading order. They are numbered in that order, in the text and in the list. */
+  changes: readonly DraftChange[];
+  /**
+   * Called when the person accepts a change. The click event comes second, so the app can
+   * check `event.isTrusted` and act only on a person's click: accepting is a person's decision.
+   */
+  onAccept: (id: string, event: MouseEvent<HTMLElement>) => void;
+  /** Called when the person rejects a change, with the click event to check, as `onAccept`. */
+  onReject: (id: string, event: MouseEvent<HTMLElement>) => void;
+  /**
+   * Adds Accept all while there is more than one change.
+   * @claim "Adds Accept all while there is" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
+   */
+  onAcceptAll?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  /**
+   * Adds Reject all while there is more than one change.
+   * @claim "Adds Reject all while there is" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
+   */
+  onRejectAll?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  /** Adds Show after a change's `source`, to show what it was based on. */
+  onShowSource?: ((id: string) => void) | undefined;
+  /** What screen readers hear for the review. @default "Changes to review" */
+  label?: string | undefined;
+  /** The heading. @default "1 change to review" or "3 changes to review" */
+  heading?: ReactNode;
+  /** One quiet line after the heading ("Since you last edited"). */
+  description?: ReactNode;
+  /** More buttons at the end of the header, such as Approve. */
+  actions?: ReactNode;
+  /** The Accept button's word, for other languages. @default "Accept" */
+  acceptLabel?: string | undefined;
+  /** The Reject button's word, for other languages. @default "Reject" */
+  rejectLabel?: string | undefined;
+  /** The bulk accept button's words, for other languages. @default "Accept all" */
+  acceptAllLabel?: string | undefined;
+  /** The bulk reject button's words, for other languages. @default "Reject all" */
+  rejectAllLabel?: string | undefined;
+  /** The Show button's word, for other languages. @default "Show" */
+  showSourceLabel?: string | undefined;
+  /** The badge on an agent's change. @default "Agent" */
+  agentLabel?: string | undefined;
+  /** What screen readers hear before a change's text and after its buttons' words. @default (n) => `Change ${n}` */
+  changeLabel?: ((n: number) => string) | undefined;
+  /** What screen readers hear for put-in text. @default "added" */
+  insertedLabel?: string | undefined;
+  /** What screen readers hear for taken-out text. @default "removed" */
+  deletedLabel?: string | undefined;
+  /** Layout only: width, margins, grid placement (`mt-2`). Appearance classes warn in development. */
+  className?: string | undefined;
+  ref?: Ref<HTMLElement> | undefined;
+
+  /** Not a prop. The text with the changes in place is `segments`: `<DraftReview segments={segments}>`. */
+  diff?: { 'Use segments={segments}': never };
+  /** Not a prop. Accepting calls `onAccept`: `<DraftReview onAccept={(id) => accept(id)}>`. */
+  onApprove?: { 'Use onAccept={(id) => accept(id)}, and actions for a whole-draft Approve': never };
+  /** Not a prop. Rejecting calls `onReject`: `<DraftReview onReject={(id) => reject(id)}>`. */
+  onDecline?: { 'Use onReject={(id) => reject(id)}': never };
+}
+
+/** Props for {@link DraftReview}: its own props and the `<section>` attributes it passes through. */
+export type DraftReviewProps = Omit<HTMLAttributes<HTMLElement>, keyof DraftReviewOwnProps | "children"> & DraftReviewOwnProps;
+
+const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+// An agent's text is tinted with the theme's primary color, as in DraftEditor, and underlined, so
+// it never relies on color alone; a person's is underlined only.
+const inserted = {
+  agent: "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] decoration-primary",
+  human: "decoration-foreground",
+} as const;
+
+/**
+ * Review the changes made to a shared draft, one by one: the draft with each change's new
+ * text underlined (tinted when an agent wrote it) and its removed text struck through, each
+ * numbered, then one row per change with who made it, when and what it was based on, and
+ * Accept and Reject. Accept all and Reject all join them while there is more than one change.
+ * Screen readers hear each change's number and whether it adds or removes text, and each
+ * button names its change ("Accept, Change 2"). Accepting and rejecting are a person's
+ * decisions: the callbacks receive the click event so the app can check it came from a
+ * person, and an agent does not call them. With no changes it renders nothing.
+ *
+ * Use `DraftEditor` instead to write the draft together; DraftReview never edits text itself.
+ *
+ * @group Chat
+ * @see https://ourostack.github.io/ouro-ui/docs/draft-review
+ *
+ * @example
+ * <DraftReview segments={review.segments} changes={review.changes} onAccept={accept} onReject={reject} onAcceptAll={acceptAll} />
+ * @claim "Review the changes made to a" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
+ * @claim "Review the changes made to a" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > tints an agent's added text and leaves a person's underlined only)
+ * @claim "Review the changes made to a" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > says who made each change, marking an agent's, with when and what it was based on)
+ * @claim "Accepting and rejecting are a person's" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
+ * @claim "Screen readers hear each change's number" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
+ * @claim "each button names its change" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
+ * @claim "With no changes it renders nothing" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > renders nothing with no changes)
+ * @claim "Accept all and Reject all join" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
+ */
+export function DraftReview(props: DraftReviewProps): JSX.Element | null {
+  const {
+    segments,
+    changes,
+    onAccept,
+    onReject,
+    onAcceptAll,
+    onRejectAll,
+    onShowSource,
+    label = "Changes to review",
+    heading,
+    description,
+    actions,
+    acceptLabel = "Accept",
+    rejectLabel = "Reject",
+    acceptAllLabel = "Accept all",
+    rejectAllLabel = "Reject all",
+    showSourceLabel = "Show",
+    agentLabel = "Agent",
+    changeLabel = (n: number) => `Change ${n}`,
+    insertedLabel = "added",
+    deletedLabel = "removed",
+    className,
+    // Guard props (hint types), dropped here so they never reach the DOM.
+    diff,
+    onApprove,
+    onDecline,
+    ...rest
+  } = props;
+  const numbers = new Map(changes.map((change, index) => [change.id, index + 1]));
+  const byId = new Map(changes.map((change) => [change.id, change]));
+  // A change's number follows its last run in the text.
+  const lastRun = new Map<string, number>();
+  segments.forEach((segment, index) => segment.kind !== "same" && segment.changeId !== undefined && lastRun.set(segment.changeId, index));
+  const unknown = segments.find((segment) => segment.kind !== "same" && !numbers.has(segment.changeId ?? ""));
+
+  useAppearanceClassNameCheck(
+    "DraftReview",
+    className,
+    process.env.NODE_ENV !== "production"
+      ? (token: string) => `remove "${token}"; DraftReview takes its colors from the theme`
+      : /* istanbul ignore next @preserve -- production only */ "",
+  );
+  useDevWarnings(
+    "DraftReview",
+    process.env.NODE_ENV !== "production"
+      ? () => [
+          unknown !== undefined && [
+            `${unknown.kind === "insert" ? "an insert" : "a delete"} run ${unknown.changeId === undefined ? "has no changeId" : `has changeId="${unknown.changeId}", which no change has`}, so it shows as unchanged text`,
+            '<DraftReview segments={[{ kind: "insert", text: "Friday", changeId: "c1" }]} changes={[{ id: "c1", author: "agent", name: "Ouro" }]}>',
+          ],
+          diff !== undefined && ["diff is not a prop", "<DraftReview segments={segments}>"],
+          onApprove !== undefined && ["onApprove is not a prop; accept a change with onAccept, and put a whole-draft Approve in actions", "<DraftReview onAccept={(id) => accept(id)}>"],
+          onDecline !== undefined && ["onDecline is not a prop", "<DraftReview onReject={(id) => reject(id)}>"],
+        ]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+
+  if (changes.length === 0) return null;
+  const many = changes.length > 1;
+  return (
+    <section
+      {...rest}
+      aria-label={label}
+      data-ouro="draft-review"
+      className={cn("box-border flex min-w-0 flex-col gap-3 rounded-xl border border-solid border-border bg-card p-3 text-card-foreground", className)}
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <p data-ouro-draft-review-heading="" className="m-0 text-sm font-semibold">{heading ?? `${changes.length} ${many ? "changes" : "change"} to review`}</p>
+        {description !== undefined && description !== null && <span className={cn("text-xs", quiet)}>{description}</span>}
+        {((many && (onAcceptAll || onRejectAll)) || (actions !== undefined && actions !== null)) && (
+          <span className="ms-auto flex flex-wrap gap-1">
+            {many && onAcceptAll && (
+              <Button size="sm" variant="soft" onClick={onAcceptAll}>
+                {acceptAllLabel}
+              </Button>
+            )}
+            {many && onRejectAll && (
+              <Button size="sm" variant="plain" tone="destructive" onClick={onRejectAll}>
+                {rejectAllLabel}
+              </Button>
+            )}
+            {actions}
+          </span>
+        )}
+      </div>
+      <p data-ouro-draft-review-text="" className="m-0 rounded-md bg-background p-2 text-sm break-words whitespace-pre-wrap text-foreground">
+        {segments.map((segment, index) => {
+          const n = numbers.get(segment.changeId ?? "");
+          if (segment.kind === "same" || n === undefined) return <span key={index}>{segment.text}</span>;
+          const number = lastRun.get(segment.changeId!) === index && (
+            <sup aria-hidden="true" className={cn("ms-0.5 text-[0.7em] font-semibold no-underline", quiet)}>
+              {n}
+            </sup>
+          );
+          const said = <span className="sr-only">{`[${changeLabel(n)}, ${segment.kind === "insert" ? insertedLabel : deletedLabel}: `}</span>;
+          return segment.kind === "insert" ? (
+            <ins key={index} data-author={byId.get(segment.changeId!)!.author} className={cn("underline decoration-2 underline-offset-4", inserted[byId.get(segment.changeId!)!.author])}>
+              {said}
+              {segment.text}
+              <span className="sr-only">]</span>
+              {number}
+            </ins>
+          ) : (
+            <del key={index} className="text-destructive line-through decoration-2">
+              {said}
+              {segment.text}
+              <span className="sr-only">]</span>
+              {number}
+            </del>
+          );
+        })}
+      </p>
+      <ol className="m-0 flex list-none flex-col gap-2 p-0">
+        {changes.map((change, index) => {
+          const name = changeLabel(index + 1);
+          return (
+            <li key={change.id} data-ouro-draft-change={change.id} className="m-0 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 p-0 text-sm">
+              <span aria-hidden="true" className={cn("w-4 shrink-0 text-xs font-semibold tabular-nums", quiet)}>
+                {index + 1}
+              </span>
+              <span className="sr-only">{name}: </span>
+              <span className="font-semibold">{change.name}</span>
+              {change.author === "agent" && (
+                <Badge tone="primary" variant="soft">
+                  {agentLabel}
+                </Badge>
+              )}
+              {change.time !== undefined && change.time !== null && <span className={cn("text-xs", quiet)}>{change.time}</span>}
+              {change.source !== undefined && change.source !== null && <span className={cn("text-xs", quiet)}>{change.source}</span>}
+              {change.source !== undefined && change.source !== null && onShowSource && (
+                <Button size="sm" variant="plain" aria-label={`${showSourceLabel}, ${name}`} onClick={() => onShowSource(change.id)}>
+                  {showSourceLabel}
+                </Button>
+              )}
+              <span className="ms-auto flex gap-1">
+                <Button size="sm" variant="outline" aria-label={`${acceptLabel}, ${name}`} onClick={(event) => onAccept(change.id, event)}>
+                  {acceptLabel}
+                </Button>
+                <Button size="sm" variant="plain" tone="destructive" aria-label={`${rejectLabel}, ${name}`} onClick={(event) => onReject(change.id, event)}>
+                  {rejectLabel}
+                </Button>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
