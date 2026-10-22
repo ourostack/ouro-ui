@@ -1,5 +1,5 @@
 import details from "./item-details.json";
-import type { DocsItem } from "./items";
+import { docsItems, type DocsItem } from "./items";
 
 /** A registry item's details the docs show and the navigation does not need. */
 export interface DocsItemDetails {
@@ -11,8 +11,10 @@ export interface DocsItemDetails {
 
 /**
  * An item's source file and summary, from site/src/docs/item-details.json, which `pnpm run docs`
- * writes beside the catalog. Only the docs import it, so the landing page loads no summaries.
+ * writes beside the catalog, in its order. Only the docs import it, so the landing page loads no
+ * summaries.
  */
 export function itemDetails(item: DocsItem): DocsItemDetails {
-  return (details as Record<string, DocsItemDetails>)[item.name]!;
+  const [path, summary] = (details as Array<[string, string]>)[docsItems.findIndex((each) => each.name === item.name)]!;
+  return { source: `registry/ouro/components/ouro/${path}.tsx`, summary };
 }
