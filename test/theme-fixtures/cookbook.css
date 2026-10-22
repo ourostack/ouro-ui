@@ -5,6 +5,10 @@
  * and the @theme inline token lines (818-851; its keyframes and Spoonjoy's own component rules
  * are left out). It defines no --card, --chart-* or --sidebar-* and no --font-heading, as the
  * app does not. test/themes/ runs every story under it.
+ *
+ * The last block is not Spoonjoy's yet: it maps Ouro UI's action token onto Spoonjoy's action
+ * pair, as the site's Cookbook preset does, so every story's solid primary Button is scanned in
+ * Spoonjoy's charcoal (light) and brass (dark).
  */
 :root {
   color-scheme: light;
@@ -185,4 +189,10 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+}
+
+:root,
+.dark {
+  --ouro-action: var(--sj-action);
+  --ouro-action-foreground: var(--sj-on-action);
 }
