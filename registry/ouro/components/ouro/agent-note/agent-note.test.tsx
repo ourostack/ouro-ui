@@ -318,6 +318,9 @@ describe("AgentNote", () => {
       throw new Error("offline");
     }],
     ["rejects", () => Promise.reject(new Error("offline"))],
+    ["throws a string", () => {
+      throw "offline";
+    }],
   ])("stays open and can save again when onSave %s", async (_name, failing) => {
     const onSave = vi.fn<NonNullable<AgentNoteProps["onSave"]>>(failing);
     const { note } = await render(<AgentNote {...base} onSave={onSave} />);
@@ -342,12 +345,20 @@ describe("AgentNote", () => {
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
     expect(note.hasAttribute("aria-busy")).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Edit" }));
-    await userEvent.click(page.getByRole("button", { name: "Save" }));
-    // The first save succeeds late: the newer edit stays open and busy with its own save.
+    // The first save succeeds late: the newer edit stays open.
     await act(async () => pending[0]!());
     expect(note.querySelector("textarea")).not.toBeNull();
+    expect(note.hasAttribute("aria-busy")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(note.getAttribute("aria-busy")).toBe("true");
+    await expect.element(page.getByText("Saving note", { exact: true })).toBeInTheDocument();
+    // A late failure does not unlock a newer save either.
+    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
     await act(async () => pending[1]!(false));
+    expect(note.getAttribute("aria-busy")).toBe("true");
+    await act(async () => pending[2]!(false));
     expect(note.hasAttribute("aria-busy")).toBe(false);
     expect(note.querySelector("textarea")).not.toBeNull();
   });

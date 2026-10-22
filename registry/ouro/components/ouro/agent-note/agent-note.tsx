@@ -224,6 +224,7 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
   };
   const save = async (event: MouseEvent<HTMLElement>) => {
     const at = seen();
+    // Stryker disable next-line UpdateOperator: Save waits while a save is pending, so stepping the attempt down never meets an older save's.
     const current = ++attempt.current;
     setSaving(true);
     let result: boolean | void = false;
