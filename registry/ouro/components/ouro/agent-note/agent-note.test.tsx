@@ -126,7 +126,7 @@ describe("AgentNote at a glance", () => {
     onSave.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finish = resolve)));
     await act(async () => button("Save")!.click());
     expect(note.getAttribute("aria-busy")).toBe("true");
-    expect(button("Save")!.disabled).toBe(true);
+    expect(button("Save")!.getAttribute("aria-disabled")).toBe("true");
     await act(async () => finish(true));
     expect(note.hasAttribute("aria-busy")).toBe(false);
     expect(note.querySelector("textarea")).toBeNull();
@@ -298,6 +298,60 @@ describe("AgentNote", () => {
     await expect.element(page.getByRole("textbox", { name: "Edit" })).toBeVisible();
   });
 
+  it("keeps focus on Save while it saves and after the save fails", async () => {
+    let finish!: (value: boolean) => void;
+    const onSave = vi.fn(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    await render(<AgentNote {...base} onSave={onSave} />);
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    const save = page.getByRole("button", { name: "Save" }).element() as HTMLButtonElement;
+    await act(async () => save.focus());
+    await userEvent.keyboard("{Enter}");
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(save);
+    await act(async () => finish(false));
+    expect(document.activeElement).toBe(save);
+    expect(save.hasAttribute("aria-disabled")).toBe(false);
+  });
+
+  it.each([
+    ["throws", () => {
+      throw new Error("offline");
+    }],
+    ["rejects", () => Promise.reject(new Error("offline"))],
+  ])("stays open and can save again when onSave %s", async (_name, failing) => {
+    const onSave = vi.fn<NonNullable<AgentNoteProps["onSave"]>>(failing);
+    const { note } = await render(<AgentNote {...base} onSave={onSave} />);
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(note.hasAttribute("aria-busy")).toBe(false);
+    await expect.element(page.getByRole("textbox", { name: "Edit" })).toHaveValue(base.text);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] AgentNote: onSave threw "offline", so the editor stayed open. Fix: onSave={(text) => save(text).catch(() => false)}.');
+    onSave.mockImplementation(() => {});
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledTimes(2);
+    expect(note.querySelector("textarea")).toBeNull();
+  });
+
+  it("ignores a save that settles after the person cancelled and began another edit", async () => {
+    const pending: ((value: boolean | void) => void)[] = [];
+    const onSave = vi.fn(() => new Promise<boolean | void>((resolve) => pending.push(resolve)));
+    const { note } = await render(<AgentNote {...base} onSave={onSave} />);
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(note.getAttribute("aria-busy")).toBe("true");
+    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    expect(note.hasAttribute("aria-busy")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    // The first save succeeds late: the newer edit stays open and busy with its own save.
+    await act(async () => pending[0]!());
+    expect(note.querySelector("textarea")).not.toBeNull();
+    expect(note.getAttribute("aria-busy")).toBe("true");
+    await act(async () => pending[1]!(false));
+    expect(note.hasAttribute("aria-busy")).toBe(false);
+    expect(note.querySelector("textarea")).not.toBeNull();
+  });
+
   it("cancels with Cancel or Escape, keeping the note's words", async () => {
     const onSave = vi.fn();
     const { note } = await render(<AgentNote {...base} onSave={onSave} editButtonLabel="Modifier" cancelButtonLabel="Annuler" />);
@@ -325,6 +379,8 @@ describe("AgentNote", () => {
     const { rerender, note } = await render(<AgentNote {...base} onSave={() => {}} />);
     await userEvent.click(page.getByRole("button", { name: "Edit" }));
     await rerender(<AgentNote {...base} />);
+    // With nothing to save to, Save goes and Cancel stays.
+    expect([...note.querySelectorAll("button")].map((button) => button.textContent)).toEqual(["Cancel"]);
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
     expect(note.querySelector("[data-ouro-note-text]")!.textContent).toBe(base.text);
     expect(note.querySelectorAll("button")).toHaveLength(0);
@@ -340,7 +396,9 @@ describe("AgentNote", () => {
     expect(note.querySelector("[data-ouro-note-changed]")).toBeNull();
     await rerender(<AgentNote {...base} text="The agent's newer words." revision="r2" onSave={onSave} />);
     await expect.element(box).toHaveValue(`${base.text} Mine.`);
-    await expect.element(page.getByRole("status")).toHaveTextContent("Your agent changed this note while you were editing. Your words stay here; Save replaces the new version.");
+    await expect
+      .element(page.getByText("Your agent changed this note while you were editing. Your words stay here; Save replaces the new version.", { exact: true }))
+      .toHaveAttribute("role", "status");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(onSave).toHaveBeenCalledWith(`${base.text} Mine.`, "r2", expect.anything());
   });

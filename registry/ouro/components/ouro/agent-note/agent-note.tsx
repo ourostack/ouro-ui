@@ -6,6 +6,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** A person's decision about a note: the `revision` they saw when the press began, and the click. */
@@ -14,7 +15,8 @@ export type AgentNoteHandler = (revision: string | undefined, event: MouseEvent<
 /**
  * Saves the person's words. Receives the `revision` they last saw (the newer one once the note
  * changed while they edited), and the click. Return `false`, or a promise of it, to keep the
- * editor open, such as when saving failed.
+ * editor open, such as when saving failed; a throw or a rejection keeps it open too. A result
+ * that comes after the person cancelled or began another edit is ignored.
  */
 export type AgentNoteSaveHandler = (text: string, revision: string | undefined, event: MouseEvent<HTMLElement>) => boolean | void | Promise<boolean | void>;
 
@@ -74,6 +76,8 @@ export interface AgentNoteOwnProps {
   editButtonLabel?: string | undefined;
   /** The Save button's word, for other languages. @default "Save" */
   saveButtonLabel?: string | undefined;
+  /** What screen readers hear while a save is in progress, for other languages. @default "Saving note" */
+  savingLabel?: string | undefined;
   /** The Cancel button's word, for other languages. @default "Cancel" */
   cancelButtonLabel?: string | undefined;
   /** The Dismiss button's word, for other languages. @default "Dismiss" */
@@ -157,6 +161,7 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
     unpinButtonLabel = "Unpin",
     editButtonLabel = "Edit",
     saveButtonLabel = "Save",
+    savingLabel = "Saving note",
     cancelButtonLabel = "Cancel",
     dismissButtonLabel = "Dismiss",
     className,
@@ -199,22 +204,43 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
   const decisions: Record<string, AgentNoteHandler | undefined> = { pin: onPin, unpin: onUnpin, dismiss: onDismiss };
   const decide = (event: MouseEvent<HTMLElement>) => decisions[event.currentTarget.dataset.decision!]!(seen(), event);
 
+  // Each edit, save and cancel bumps the attempt, so a save that settles after the person
+  // cancelled or began another edit does not close or unlock that newer one.
+  const attempt = useRef(0);
+  const warnKey = useRef({});
   const startEditing = () => {
+    attempt.current++;
+    setSaving(false);
     setDraft(text);
     setStartedFrom(revision);
     refocus.current = "area";
     setEditing(true);
   };
   const stopEditing = () => {
+    attempt.current++;
+    setSaving(false);
     refocus.current = "edit";
     setEditing(false);
   };
   const save = async (event: MouseEvent<HTMLElement>) => {
     const at = seen();
+    const current = ++attempt.current;
     setSaving(true);
-    const result = await onSave!(draft, at, event);
-    setSaving(false);
-    if (result !== false) stopEditing();
+    let result: boolean | void = false;
+    try {
+      result = await onSave!(draft, at, event);
+    } catch (error) {
+      // The editor stays open with the person's words, and the error is reported.
+      devWarn(
+        "AgentNote",
+        `onSave threw "${error instanceof Error ? error.message : String(error)}", so the editor stayed open`,
+        "onSave={(text) => save(text).catch(() => false)}",
+        warnKey.current,
+      );
+    } finally {
+      if (attempt.current === current) setSaving(false);
+    }
+    if (attempt.current === current && result !== false) stopEditing();
   };
   const cancelOnEscape = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== "Escape") return;
@@ -343,9 +369,11 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
       <div className="flex flex-wrap items-center gap-1">
         {editing ? (
           <>
-            <Button size="sm" disabled={!draft.trim() || saving} {...pressProps} onClick={save}>
-              {saveButtonLabel}
-            </Button>
+            {onSave && (
+              <Button size="sm" loading={saving} loadingLabel={savingLabel} disabled={!draft.trim()} {...pressProps} onClick={save}>
+                {saveButtonLabel}
+              </Button>
+            )}
             <Button size="sm" variant="plain" onClick={stopEditing}>
               {cancelButtonLabel}
             </Button>
