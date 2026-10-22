@@ -557,7 +557,11 @@ fi
 # second apt beside one still running races it for dpkg's and the package lists' locks (#169's run
 # 39759795561, #161's queue run 39764170430), so the browsers then install without --with-deps.
 deps=(${CI:+--with-deps})
-if [ -n "${OURO_BROWSER_DEPS:-}" ]; then
+# In Playwright's image (OURO_SYSTEM_PACKAGES=image, as CI's jobs run) the browsers and their
+# system packages are already there, and there is no apt to run.
+if [ "${OURO_SYSTEM_PACKAGES:-}" = image ]; then
+  deps=()
+elif [ -n "${OURO_BROWSER_DEPS:-}" ]; then
   deps=()
   waited=0
   until [ -s "$OURO_BROWSER_DEPS" ]; do

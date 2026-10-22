@@ -41,10 +41,6 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
     assert.doesNotMatch(text, /(pnpm exec|npx) playwright install(?!-deps)/, `${file} downloads browsers itself`);
     assert.match(text, /uses: \.\/\.github\/actions\/playwright-browsers\n\s+with:\n\s+browsers: [a-z ]+\n/);
   }
-  // The install shards and install-latest restore them before install-test.sh, whose own
-  // `playwright install`, at the same pinned version, then downloads nothing.
-  const ci = workflows.find((workflow) => workflow.file === "ci.yml").text;
-  assert.equal(ci.match(/browsers: chromium webkit\n\s+system-packages: "false"\n(?:\s+#.*\n)*\s+- (id: debs|run: SHADCN_VERSION=latest scripts\/install-test\.sh)/g)?.length, 2);
   // Main's cache, which every other run can restore, holds each set the workflows install, on
   // each runner image they run on.
   const warm = workflows.find((workflow) => workflow.file === "browser-cache.yml").text;
@@ -62,6 +58,27 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   const warmed = /runner: \[([^\]]+)\]/.exec(warm)?.[1].split(/,\s*/);
   assert.deepEqual([...images].sort(), [...(warmed ?? [])].sort());
   assert.match(warm, /runs-on: \$\{\{ matrix\.runner \}\}/);
+});
+
+test("CI's browser jobs run in Playwright's image at the version package.json pins, and only visual installs system packages on the runner", () => {
+  const { devDependencies } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const image = `mcr.microsoft.com/playwright:v${devDependencies.playwright}-noble`;
+  const jobs = ciJobs();
+  const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
+  assert.deepEqual(inImage.sort(), ["browser", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  for (const id of inImage) {
+    // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
+    assert.match(jobs[id], new RegExp(`^ {4}container:\\n {6}image: ${image.replace(/[.]/g, "\\.")}\\n {6}options: --user 1001\\n {6}env:\\n {8}OURO_SYSTEM_PACKAGES: image\\n`, "m"), id);
+    assert.doesNotMatch(jobs[id], /playwright-browsers|browser-deps|sudo|apt-get/, id);
+  }
+  // visual's screenshots were taken with the runner's fonts, which the image lacks: it keeps the
+  // runner, and the system packages from their cache (scripts/browser-deps.sh, through the action).
+  assert.deepEqual(Object.entries(jobs).filter(([, job]) => job.includes("uses: ./.github/actions/playwright-browsers")).map(([id]) => id), ["visual"]);
+  // The script tests that drive a browser run in the image; the others need none.
+  assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
+  assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser\)/);
+  assert.match(jobs.ci, /needs: \[plan, checks, browser, scripts, scripts-browser\]/);
+  assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
 });
 
 test("the browser action restores, downloads only what is missing with retries, saves on a miss, then installs system packages from their own cache", () => {
@@ -161,7 +178,7 @@ test("only network fetches are retried: scripts/retry.sh wraps Playwright's down
   const spawned = scriptSources.flatMap(({ file, text }) => [...text.matchAll(/^.*"scripts\/retry\.sh".*$|^.*"playwright", "install".*$/gm)].map((match) => `${file}: ${match[0].trim()}`));
   assert.ok(spawned.length > 0);
   assert.deepEqual(
-    spawned.filter((line) => !/"scripts\/retry\.sh", \["pnpm", "exec", "playwright", "install"(, "--with-deps")?(, "(chromium|webkit)")+\]/.test(line)),
+    spawned.filter((line) => !/"scripts\/retry\.sh", \["pnpm", "exec", "playwright", "install"(, "--with-deps"|, \.\.\.deps)?(, "(chromium|webkit)")+\]/.test(line)),
     [],
   );
 });
@@ -772,13 +789,14 @@ test("the script test shards run every file of pnpm test:scripts between them", 
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
-  assert.match(block, /^ {4}needs: \[plan, checks, browser, scripts\]$/m);
+  assert.match(block, /^ {4}needs: \[plan, checks, browser, scripts, scripts-browser\]$/m);
   const parts = stepScript(block, "Every part passed");
-  assert.equal(runStep(parts, { CHECKS: "success", BROWSER: "success", SCRIPTS: "success" }).status, 0);
-  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { SCRIPTS: "skipped" }]) {
-    const result = runStep(parts, { CHECKS: "success", BROWSER: "success", SCRIPTS: "success", ...failed });
+  const passed = { CHECKS: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success" };
+  assert.equal(runStep(parts, passed).status, 0);
+  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }]) {
+    const result = runStep(parts, { ...passed, ...failed });
     assert.equal(result.status, 1, JSON.stringify(failed));
-    assert.match(result.stdout, /^::error::The \w+ jobs did not pass/m);
+    assert.match(result.stdout, /^::error::The [\w-]+ jobs did not pass/m);
   }
   assert.equal(block.match(/^ {6}BROWSER_SHARDS: (\d+)$/m)?.[1], String(shardCount(jobs.browser)));
   const coverage = stepScript(block, "Browser test coverage");
@@ -965,9 +983,9 @@ test("every job of a workflow that runs on pull requests or in the merge queue e
   }
 });
 
-test("an install shard ends within 40 minutes, as install-test.sh waits for the background apt without a limit", () => {
+test("an install shard ends within 30 minutes, about twice its 90th percentile", () => {
   const shard = ciJobs()["install-shard"];
-  assert.match(shard, /\n {4}timeout-minutes: 40\n/);
+  assert.match(shard, /\n {4}timeout-minutes: 30\n/);
 });
 
 test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD and OURO_COMPONENTS", async () => {
@@ -1038,22 +1056,13 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.equal(busy.status, 0, busy.stderr);
   assert.match(busy.stdout, /^waited for apt\nwaited for apt\n(?:.*\n)*npx playwright install --with-deps chromium webkit$/m);
   assert.match(run({ CI: "1" }).stdout, /^npx playwright install --with-deps chromium webkit$/m);
-  assert.match(ciJobs()["install-shard"], /^ {6}- name: Browser system packages, in the background\n {8}env:\n {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status\n/m);
-  // From their cache: restored before the background install, which uses it, and saved after the test on a miss.
-  const installJob = ciJobs()["install-shard"];
-  const restoreAt = installJob.search(/^ {6}- id: debs\n {8}uses: actions\/cache\/restore@/m);
-  const backgroundAt = installJob.indexOf('scripts/browser-deps.sh "$OURO_BROWSER_DEBS" chromium webkit');
-  const testAt = installJob.indexOf("- name: Install test");
-  // Saved only once the background install has passed: a half-filled folder would fail the next dpkg -i.
-  const readyAt = installJob.search(/^ {6}- if: always\(\) && steps\.debs\.outputs\.cache-hit != 'true'\n {8}id: debs-ready\n/m);
-  const saveAt = installJob.search(/^ {6}- if: always\(\) && steps\.debs-ready\.outputs\.ready == 'true'\n {8}uses: actions\/cache\/save@/m);
-  assert.ok(readyAt > testAt && saveAt > readyAt, `${readyAt} ${saveAt}`);
-  assert.match(installJob, /\[ "\$\(cat "\$OURO_BROWSER_DEPS" 2>\/dev\/null\)" = 0 \] && echo ready=true >> "\$GITHUB_OUTPUT" \|\| true/);
-  assert.ok(restoreAt > 0 && backgroundAt > restoreAt && testAt > backgroundAt && saveAt > testAt, `${restoreAt} ${backgroundAt} ${testAt} ${saveAt}`);
-  assert.match(installJob, /key: \$\{\{ steps\.browsers\.outputs\.debs-key \}\}/);
-  assert.match(ciJobs()["install-shard"], /^ {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status$/gm);
-  // A second apt waits for dpkg's locks rather than failing at once.
-  assert.match(ciJobs()["install-shard"], /echo 'DPkg::Lock::Timeout "600";' \| sudo tee \/etc\/apt\/apt\.conf\.d\/90ouro-dpkg-lock > \/dev\/null\n {10}# Detached/);
+  // In Playwright's image the browsers' system packages are there: no wait, no apt, no --with-deps.
+  const image = run({ CI: "1", OURO_SYSTEM_PACKAGES: "image", OURO_BROWSER_DEPS: join(scratch, "never.status") }, [], 'pgrep() { echo "pgrep $*"; return 1; }\nsleep() { echo "slept"; exit 9; }');
+  assert.equal(image.status, 0, image.stderr);
+  assert.match(image.stdout, /^npx playwright install chromium webkit$/m);
+  assert.doesNotMatch(image.stdout, /--with-deps|install-deps|slept/);
+  assert.match(ciJobs()["install-shard"], /^ {8}OURO_SYSTEM_PACKAGES: image$/m);
+  assert.doesNotMatch(ciJobs()["install-shard"], /OURO_BROWSER_DEPS|browser-deps/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
   assert.match(some.stdout, /^npx vitest run --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);

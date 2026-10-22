@@ -163,6 +163,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
       matrix:
@@ -182,9 +189,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
       - id: tests
         name: Browser tests
         run: |
@@ -223,8 +227,9 @@ jobs:
           if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs --shard "$SHARD"; else node scripts/subset-coverage.mjs --touching "$COMPONENTS" --shard "$SHARD"; fi
   scripts:
     # pnpm test:scripts, in shards that run side by side, each with the files whose measured times
-    # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`). Each
-    # uploads how long each file took. Part of the ci check.
+    # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`), but the
+    # ones that drive a browser, which scripts-browser runs: these need no browser and no system
+    # package. Each uploads how long each file took. Part of the ci check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -247,9 +252,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
       - name: Script tests
         run: |
           mkdir -p .tmp/timings
@@ -264,13 +266,53 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+  scripts-browser:
+    # The script tests that drive a browser (`node scripts/shard.mjs scripts-browser`: those that
+    # import Playwright's runtime, as the agent usability scorer does), in Playwright's image. Part
+    # of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    name: scripts (browser)
+    env:
+      TIMINGS: .tmp/timings/scripts-browser.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Script tests that drive a browser
+        run: |
+          mkdir -p .tmp/timings
+          # Word splitting is wanted: the paths have no spaces.
+          # shellcheck disable=SC2046
+          node scripts/run-script-tests.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./scripts/timings-node-reporter.mjs --test-reporter-destination="$TIMINGS" $(node scripts/shard.mjs scripts-browser)
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-scripts-browser
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
   ci:
     # Passes when every part of it passed (checks, every browser shard and every script test
-    # shard), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
+    # job), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
     # On a reduced pull request whose merged coverage falls short, the full browser suite runs here
     # and decides: a line may be covered only by another component's tests
     # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job.
-    needs: [plan, checks, browser, scripts]
+    needs: [plan, checks, browser, scripts, scripts-browser]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -288,9 +330,10 @@ jobs:
           CHECKS: ${{ needs.checks.result }}
           BROWSER: ${{ needs.browser.result }}
           SCRIPTS: ${{ needs.scripts.result }}
+          SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
         run: |
           failed=0
-          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS"; do
+          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
@@ -379,6 +422,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -408,10 +458,6 @@ jobs:
       - if: steps.affected.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
       - if: steps.affected.outputs.run == 'true'
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
-      - if: steps.affected.outputs.run == 'true'
         name: Theme scans
         env:
           SHARD: ${{ matrix.shard }}
@@ -434,6 +480,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -466,10 +519,6 @@ jobs:
           fi
       - if: steps.affected.outputs.run != 'false'
         run: pnpm i --frozen-lockfile
-      - if: steps.affected.outputs.run != 'false'
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - if: steps.affected.outputs.run == 'true'
         name: Conformance
         env:
@@ -577,6 +626,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     env:
       EVENT: ${{ github.event_name }}
       SHARD: ${{ matrix.shard }}
@@ -611,10 +667,6 @@ jobs:
           fi
       - if: steps.changed.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
-      - if: steps.changed.outputs.run == 'true'
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - if: steps.changed.outputs.run == 'true'
         name: Results from the last run
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -746,6 +798,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
       matrix:
@@ -766,9 +825,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
@@ -821,6 +877,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -831,9 +894,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - run: pnpm site:build
       - run: site/scripts/theme-install-test.sh "$RUNNER_TEMP/theme-app"
       - if: failure()
@@ -854,6 +914,13 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -864,9 +931,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - run: pnpm test:latency
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -914,10 +978,14 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    # install-test.sh waits for the background install of the browsers' system packages however
-    # long it takes, so a hung apt ends here rather than holding the runner for GitHub's 6 hours.
-    # The slowest shard seen (#174's run 39767982012, apt waited 20 minutes) took 30.
-    timeout-minutes: 40
+    timeout-minutes: 30
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
       matrix:
@@ -945,52 +1013,14 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      # The app's own `playwright install`, at the same version, then finds them here.
-      - id: browsers
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
-          system-packages: "false"
-      # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup, and up
-      # to 6.5 more on a slow Ubuntu mirror: they install from their cache of .deb files
-      # (scripts/browser-deps.sh) while the app is built, and install-test.sh waits for them
-      # (OURO_BROWSER_DEPS).
-      - id: debs
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ouro-browser-debs
-          key: ${{ steps.browsers.outputs.debs-key }}
-      - name: Browser system packages, in the background
-        env:
-          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
-        run: |
-          OURO_BROWSER_DEBS=$HOME/.cache/ouro-browser-debs
-          # A second apt (the runner's own) waits for dpkg's locks, up to 10 minutes, rather than failing at once.
-          echo 'DPkg::Lock::Timeout "600";' | sudo tee /etc/apt/apt.conf.d/90ouro-dpkg-lock > /dev/null
-          # Detached from the step's output, so the step ends now and the install carries on.
-          ( scripts/browser-deps.sh "$OURO_BROWSER_DEBS" chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
       - name: Install test
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
-          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
         run: |
           if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
           scripts/install-test.sh "$VARIANT" "$RUNNER_TEMP/app" "$REF"
           mkdir -p "$RUNNER_TEMP/passed" && echo "$PASSED" > "$RUNNER_TEMP/passed/$PASSED"
-      # A miss saves the .deb files apt kept, once the background install has passed: a half-filled
-      # folder would fail the next dpkg -i. Another job may have saved the same key first.
-      - if: always() && steps.debs.outputs.cache-hit != 'true'
-        id: debs-ready
-        env:
-          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
-        run: '[ "$(cat "$OURO_BROWSER_DEPS" 2>/dev/null)" = 0 ] && echo ready=true >> "$GITHUB_OUTPUT" || true'
-      - if: always() && steps.debs-ready.outputs.ready == 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        continue-on-error: true
-        with:
-          path: ~/.cache/ouro-browser-debs
-          key: ${{ steps.browsers.outputs.debs-key }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.PASSED }}
@@ -1095,6 +1125,13 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    # Playwright's image, at the version package.json pins: its browsers and their system packages
+    # are in it, so the job installs nothing from Ubuntu's mirror (OURO_SYSTEM_PACKAGES=image).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
     name: install (shadcn@latest, nova)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1106,11 +1143,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      # install-test.sh installs their system packages.
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
-          system-packages: "false"
       - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
