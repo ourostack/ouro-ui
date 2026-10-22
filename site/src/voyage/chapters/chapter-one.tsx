@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
+import { createContext, memo, startTransition, use, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -185,6 +185,32 @@ function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
  * day each), watch the plan gain each part and the bar fill (Progress), then Launch. The site owns
  * the order, the ticks and the plan; HX owns how each control behaves and what it announces.
  */
+/** A handler whose identity never changes but which always runs the latest render's code. */
+function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (...args: Args) => void {
+  const latest = useRef(handler);
+  useLayoutEffect(() => {
+    latest.current = handler;
+  });
+  return useCallback((...args: Args) => latest.current(...args), []);
+}
+
+/** The order of work (Reorderable), re-rendered only when the order changes. */
+const OrderOfWork = memo(function OrderOfWork({ order, onReorder }: { order: readonly PartId[]; onReorder: (ids: string[]) => void }): JSX.Element {
+  return <Reorderable label={SHIPYARD.order} items={order.map((id) => ({ id, label: partNamed(id).name }))} onReorder={onReorder} />;
+});
+
+/** The jobs (Checklist), in the order of work, re-rendered only when the order or the ticks change. */
+const Jobs = memo(function Jobs({ order, built, onTick }: { order: readonly PartId[]; built: ReadonlySet<PartId>; onTick: (id: string, checked: boolean) => void }): JSX.Element {
+  return (
+    <Checklist
+      label={SHIPYARD.jobs}
+      hideLabel
+      items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))}
+      onCheckedChange={onTick}
+    />
+  );
+});
+
 function Shipyard(): JSX.Element {
   const voyage = useVoyageStore();
   const jobs = useRef<HTMLDivElement>(null);
@@ -224,6 +250,9 @@ function Shipyard(): JSX.Element {
     else if (part.id !== "hull" && !next.has("hull")) say(YARD.noHull(part.name));
     else say(YARD.built[part.id]);
   };
+  // The lists keep one handler each, so a press elsewhere (Launch) does not re-render them.
+  const onReorder = useStable(reorder);
+  const onTick = useStable(tick);
   // Launch turns the button at once; emptying the yard for another build follows as a transition,
   // and focus goes to the first job, where the next build starts.
   const launch = () => {
@@ -249,18 +278,13 @@ function Shipyard(): JSX.Element {
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.order}
           </p>
-          <Reorderable label={SHIPYARD.order} items={order.map((id) => ({ id, label: partNamed(id).name, }))} onReorder={reorder} />
+          <OrderOfWork order={order} onReorder={onReorder} />
         </div>
         <div ref={jobs} data-chapter-control="jobs">
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.jobs}
           </p>
-          <Checklist
-            label={SHIPYARD.jobs}
-            hideLabel
-            items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))}
-            onCheckedChange={tick}
-          />
+          <Jobs order={order} built={built} onTick={onTick} />
         </div>
       </div>
       <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
