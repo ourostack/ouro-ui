@@ -198,7 +198,8 @@
     "stories": [
       "Link/Playground",
       "Link/InContext",
-      "Link/Tones"
+      "Link/Tones",
+      "Link/DocumentNavigation"
     ]
   },
   {
@@ -1609,6 +1610,7 @@
     "stories": [
       "Reorderable/Playground",
       "Reorderable/InContext",
+      "Reorderable/Disabled",
       "Reorderable/ScrollsInPlace"
     ]
   },
@@ -2070,7 +2072,8 @@
       "Timer/InContext",
       "Timer/Paused",
       "Timer/Finished",
-      "Timer/Short"
+      "Timer/Short",
+      "Timer/Repeating"
     ]
   },
   {
@@ -2086,7 +2089,8 @@
       "Timer/InContext",
       "Timer/Paused",
       "Timer/Finished",
-      "Timer/Short"
+      "Timer/Short",
+      "Timer/Repeating"
     ]
   },
   {

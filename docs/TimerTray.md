@@ -28,11 +28,13 @@ Type: `TimerTrayProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `alert` | `"once" \| "repeat"` | `"once"` | How it sounds when a timer reaches zero while only the tray shows it, as `Timer`'s `alert`: `once`, or `repeat`, again every 2.5 seconds until the timer is dismissed or `repeatFor` seconds pass. Dismiss or Cancel in the tray also stops a `Timer`'s repeating alert. |
 | `className` | `string` |  | Layout only: margins, sticky placement (`sticky top-0`). Appearance classes warn in development. |
 | `finalFocus` | `RefObject<HTMLElement \| null>` |  | Where focus goes when Cancel or Dismiss stops the tray's last timer, such as the page heading (give it `tabIndex={-1}`): `finalFocus={headingRef}`. Stopping any other timer moves focus to the next timer's button, or the previous one's. Without it focus goes to the tray, which stays in view, empty, until focus leaves it. |
 | `label` | `string` | `"Timers"` | Names the tray for screen readers, as a region. |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
+| `repeatFor` | `number` | `120` | With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up. A value that is not finite and above 0 is taken as 120, and development warns. |
 | `silent` | `boolean` |  | No chime and no vibration when a timer reaches zero while only the tray shows it. A `Timer` on the page that shows the same timer alerts instead of the tray, by its own `silent`. |
 | `timers` (required) | `readonly TimerTrayItem[]` |  | The timers to watch, by `timerId`. Only those that are running, paused or finished show. |
 
