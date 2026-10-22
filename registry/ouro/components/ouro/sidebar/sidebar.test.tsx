@@ -126,6 +126,18 @@ async function settled() {
 }
 
 describe("Sidebar", () => {
+  it("keeps each row's edge under forced colours, which drop its fill", async () => {
+    await render(<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }] }]} />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const row = page.getByRole("link", { name: "Recipes", exact: true }).element();
+      expect(parseFloat(getComputedStyle(row).borderTopWidth)).toBeGreaterThan(0);
+      expect(getComputedStyle(row).borderTopStyle).toBe("solid");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders a named nav with its sections as lists of links", async () => {
     const { root, nav } = await render(<Sidebar label="Main" sections={sections} />);
     expect(root.getAttribute("data-ouro")).toBe("sidebar");

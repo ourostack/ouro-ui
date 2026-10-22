@@ -9,7 +9,7 @@ export default function AlertDemo(): JSX.Element {
   return (
     <div className="grid max-w-md gap-3">
       <Alert tone="success" title="Recipe saved" description="It's in your cookbook now." />
-      {error ? (
+      {error && (
         <Alert
           tone="destructive"
           title="Couldn't save"
@@ -21,11 +21,10 @@ export default function AlertDemo(): JSX.Element {
           }
           onDismiss={() => setError(false)}
         />
-      ) : (
-        <Button variant="outline" tone="secondary" onClick={() => setError(true)}>
-          Show the error again
-        </Button>
       )}
+      <Button variant="outline" tone="secondary" onClick={() => setError(true)}>
+        Show the error again
+      </Button>
     </div>
   );
 }

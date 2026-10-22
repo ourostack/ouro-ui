@@ -1,7 +1,7 @@
 "use client";
 
 import { Progress as BaseProgress } from "@base-ui/react/progress";
-import { useId, type CSSProperties, type JSX, type Ref } from "react";
+import { useId, useSyncExternalStore, type CSSProperties, type JSX, type Ref } from "react";
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -31,7 +31,11 @@ export interface ProgressProps {
    * @default "Loading"
    */
   indeterminateText?: string | undefined;
-  /** How the value is written, for `showValue` and screen readers: `{ style: "unit", unit: "megabyte" }`. */
+  /**
+   * How the value is written, for `showValue` and screen readers: `{ style: "unit", unit: "megabyte" }`.
+   * In the reader's locale once the page has hydrated; en-US in the server's HTML and during
+   * hydration, since the server cannot know the reader's.
+   */
   format?: Intl.NumberFormatOptions | undefined;
   /**
    * Color role from the theme for the filled part, named after its token. `secondary` is
@@ -80,6 +84,10 @@ const indicatorClass =
   "transition-[translate] duration-(--ouro-duration-slow) ease-(--ouro-ease-out) motion-reduce:transition-none " +
   "data-indeterminate:w-1/3! data-indeterminate:translate-x-0 rtl:data-indeterminate:translate-x-0 data-indeterminate:animate-[ouro-progress_1.4s_ease-in-out_infinite] " +
   "motion-reduce:data-indeterminate:w-full! motion-reduce:data-indeterminate:animate-[ouro-pulse_1.6s_ease-in-out_infinite]";
+
+/** An empty subscription: here `useSyncExternalStore` only tells the server and hydration apart from the browser. */
+// Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
+const noSubscription = () => () => {};
 
 /**
  * A bar that shows how far along a task is, or that it is under way when you can't tell.
@@ -143,9 +151,19 @@ export function Progress(props: ProgressProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // The reader's locale is unknown on the server and during hydration, so both write the value in
+  // en-US (Base UI keeps a formatter per locale, so no formatter made earlier in another locale is
+  // reused), and the reader's browser switches to its own once hydrated.
+  const hydrated = useSyncExternalStore(
+    noSubscription,
+    () => true,
+    // Stryker disable next-line ArrowFunction: undefined, like false, reads as not yet hydrated.
+    () => false,
+  );
   return (
     <BaseProgress.Root
       ref={ref}
+      locale={hydrated ? undefined : "en-US"}
       id={id}
       value={value}
       {...(min !== undefined && { min })}
