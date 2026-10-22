@@ -2,7 +2,7 @@
 
 # DraftReview
 
-Review the changes made to a shared draft, one by one: the draft with each change's new text underlined (tinted when an agent wrote it) and its removed text struck through, each numbered, then one row per change with who made it, when and what it was based on, and Accept and Reject. Accept all and Reject all join them while there is more than one change. Screen readers hear each change's number and whether it adds or removes text, and each button names its change ("Accept, Change 2"). Accepting and rejecting are a person's decisions: the callbacks receive the click event so the app can check it came from a person, and an agent does not call them. With no changes it renders nothing.
+Review the changes made to a shared draft, one by one: the draft with each change's new text underlined (tinted when an agent wrote it) and its removed text struck through, each numbered, then one row per change with who made it, when and what it was based on, and Accept and Reject. Accept all and Reject all join them while there is more than one change. Screen readers hear each change's number and whether it adds or removes text, and each button names its change ("Accept, Change 2"). Accepting and rejecting are a person's decisions: the callbacks receive the click event so the app can check it came from a person, and an agent does not call them. When a decided change leaves the list, focus moves to the change now in its place. With no changes it renders nothing, so once the last is decided, move focus to what follows, such as the draft.
 
 ```tsx
 import { DraftReview } from "@/registry/ouro/components/ouro/draft-review/draft-review";

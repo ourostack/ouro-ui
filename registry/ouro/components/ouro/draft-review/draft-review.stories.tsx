@@ -51,7 +51,12 @@ function Reviewing() {
         onRejectAll={() => all(false)}
         onShowSource={() => {}}
       />
-      {state.changes.length === 0 && <p style={{ margin: 0 }}>{state.segments.map((segment) => segment.text).join("")}</p>}
+      {/* Once the last change is decided the review is gone, so focus moves to the settled draft. */}
+      {state.changes.length === 0 && (
+        <p ref={(node) => node?.focus()} tabIndex={-1} style={{ margin: 0 }}>
+          {state.segments.map((segment) => segment.text).join("")}
+        </p>
+      )}
     </Surface>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { HTMLAttributes, JSX, MouseEvent, ReactNode, Ref } from "react";
+import { useLayoutEffect, useRef, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -113,7 +113,9 @@ const inserted = {
  * Screen readers hear each change's number and whether it adds or removes text, and each
  * button names its change ("Accept, Change 2"). Accepting and rejecting are a person's
  * decisions: the callbacks receive the click event so the app can check it came from a
- * person, and an agent does not call them. With no changes it renders nothing.
+ * person, and an agent does not call them. When a decided change leaves the list, focus moves
+ * to the change now in its place. With no changes it renders nothing, so once the last is
+ * decided, move focus to what follows, such as the draft.
  *
  * Use `DraftEditor` instead to write the draft together; DraftReview never edits text itself.
  *
@@ -128,6 +130,7 @@ const inserted = {
  * @claim "Accepting and rejecting are a person's" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
  * @claim "Screen readers hear each change's number" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
  * @claim "each button names its change" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
+ * @claim "When a decided change leaves the" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > keeps keyboard focus on the list as decided changes leave it)
  * @claim "With no changes it renders nothing" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > renders nothing with no changes)
  * @claim "Accept all and Reject all join" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > offers Accept all and Reject all only while there is more than one change)
  */
@@ -192,6 +195,22 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  // Where in the list the person decided a change with focus on its button. When the change
+  // leaves, focus goes to the Accept of the change now in its place, or of the last one.
+  const list = useRef<HTMLOListElement>(null);
+  const decided = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const at = decided.current;
+    decided.current = null;
+    // With the last change decided the list is gone, and the app moves focus on.
+    if (at === null || !list.current || list.current.contains(document.activeElement)) return;
+    const rows = list.current.querySelectorAll<HTMLButtonElement>(":scope > li [data-decision='accept']");
+    rows[Math.min(at, rows.length - 1)]!.focus();
+  }, [changes]);
+  const decide = (index: number, event: MouseEvent<HTMLElement>) => {
+    if (event.currentTarget === document.activeElement) decided.current = index;
+  };
+
   if (changes.length === 0) return null;
   const many = changes.length > 1;
   return (
@@ -247,7 +266,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
           );
         })}
       </p>
-      <ol className="m-0 flex list-none flex-col gap-2 p-0">
+      <ol ref={list} className="m-0 flex list-none flex-col gap-2 p-0">
         {changes.map((change, index) => {
           const name = changeLabel(index + 1);
           return (
@@ -270,10 +289,28 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
                 </Button>
               )}
               <span className="ms-auto flex gap-1">
-                <Button size="sm" variant="outline" aria-label={`${acceptLabel}, ${name}`} onClick={(event) => onAccept(change.id, event)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-decision="accept"
+                  aria-label={`${acceptLabel}, ${name}`}
+                  onClick={(event) => {
+                    decide(index, event);
+                    onAccept(change.id, event);
+                  }}
+                >
                   {acceptLabel}
                 </Button>
-                <Button size="sm" variant="plain" tone="destructive" aria-label={`${rejectLabel}, ${name}`} onClick={(event) => onReject(change.id, event)}>
+                <Button
+                  size="sm"
+                  variant="plain"
+                  tone="destructive"
+                  aria-label={`${rejectLabel}, ${name}`}
+                  onClick={(event) => {
+                    decide(index, event);
+                    onReject(change.id, event);
+                  }}
+                >
                   {rejectLabel}
                 </Button>
               </span>

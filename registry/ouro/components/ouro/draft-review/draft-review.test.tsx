@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -106,6 +106,51 @@ describe("DraftReview, part by part", () => {
 });
 
 describe("DraftReview", () => {
+  it("keeps keyboard focus on the list as decided changes leave it", async () => {
+    function Deciding({ keep = false }: { keep?: boolean }) {
+      const [left, setLeft] = useState(changes);
+      const drop = (id: string) => !keep && setLeft((current) => current.filter((change) => change.id !== id));
+      return <DraftReview segments={segments} changes={left} onAccept={drop} onReject={drop} />;
+    }
+    const { review } = await render(<Deciding />);
+    const accept = (n: number) => review!.querySelectorAll<HTMLButtonElement>("li [data-decision='accept']")[n]!;
+    // Change 2 of 3, accepted from the keyboard: change 3 takes its place, and its Accept the focus.
+    await act(async () => accept(1).focus());
+    await userEvent.keyboard("{Enter}");
+    expect(document.activeElement).toBe(accept(1));
+    expect(accept(1).getAttribute("aria-label")).toBe("Accept, Change 2");
+    expect(review!.querySelectorAll("li")[1]!.dataset.ouroDraftChange).toBe("thanks");
+    // The last one, rejected: focus goes back to the one before it.
+    const reject = review!.querySelectorAll<HTMLButtonElement>("li button")[3]!;
+    expect(reject.textContent).toBe("Reject");
+    await act(async () => reject.focus());
+    await userEvent.keyboard("{Enter}");
+    expect(document.activeElement).toBe(accept(0));
+    // The last change: the review is gone, and moving focus on is the app's.
+    await userEvent.keyboard("{Enter}");
+    expect(document.querySelector('[data-ouro="draft-review"]')).toBeNull();
+  });
+
+  it("leaves focus where it is when a change stays, or the press did not focus its button", async () => {
+    const onAccept = vi.fn();
+    const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} />);
+    const accept = () => review!.querySelectorAll<HTMLButtonElement>("li [data-decision='accept']")[0]!;
+    await act(async () => accept().focus());
+    await userEvent.keyboard("{Enter}");
+    expect(onAccept).toHaveBeenCalledWith("day", expect.anything());
+    // The app kept the change (its save failed, say): focus stays on the button.
+    await rerender(<DraftReview {...base} changes={[...changes]} onAccept={onAccept} />);
+    expect(document.activeElement).toBe(accept());
+    // A click that did not focus the button (Safari's) moves nothing when the change leaves.
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    mounted.push(elsewhere);
+    await act(async () => elsewhere.focus());
+    await act(async () => accept().click());
+    await rerender(<DraftReview {...base} changes={changes.slice(1)} onAccept={onAccept} />);
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it("is a named region with a heading that counts the changes", async () => {
     const { review, rerender } = await render(<DraftReview {...base} />);
     await expect.element(page.getByRole("region", { name: "Changes to review" })).toBeVisible();
