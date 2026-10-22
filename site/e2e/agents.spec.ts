@@ -1,14 +1,17 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { agentExamples } from "../src/agents/examples";
-import generated from "../src/generated/agent-messages.json";
 import { AGENTS, AGENTS_CONTROLS, FILED, SPECIES } from "../src/voyage/agents/copy";
-import { INSTALL_COMMAND } from "../src/voyage/hero";
 import { openChapter, operable } from "./chapters";
 
 // "Built for agents too" against the production build (site-design.md §5): each control in
 // AGENTS_CONTROLS has a test named "control: <id>" that operates it and asserts what it visibly
 // changes (site/scripts/stage-census.test.mjs fails when one is missing), and every operable
 // element in the section is one of them.
+
+/** The messages site/scripts/agent-messages.mts generated, as the section shows them. */
+const generated = JSON.parse(readFileSync(resolve("site/src/generated/agent-messages.json"), "utf8")) as Record<string, { error: string; source: { file: string } }>;
 
 const open = (page: Page) => openChapter(page, "agents");
 const section = (page: Page) => page.locator("#agents");
@@ -22,7 +25,7 @@ test.describe("each control in Built for agents too", () => {
   test("control: mistakes shows each generated example, filed by Conseil, with the type check, the source and the console", async ({ page }) => {
     await open(page);
     for (const example of agentExamples) {
-      const real = generated[example.id as keyof typeof generated];
+      const real = generated[example.id]!;
       await section(page).getByRole("tab", { name: SPECIES[example.id]!.tab }).click();
       const panel = section(page).getByRole("tabpanel");
       await expect(panel).toContainText(FILED(SPECIES[example.id]!.family, example.prop));
@@ -58,10 +61,12 @@ test.describe("each control in Built for agents too", () => {
     test.skip(browserName !== "chromium", "Clipboard permissions are Chromium's to grant");
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await open(page);
+    const command = (await page.locator("[data-site-install]").textContent())!.trim();
+    expect(command).toMatch(/^npx shadcn@latest add ourostack\/ouro-ui\//);
     const block = section(page).locator("[data-chapter-control='install']");
-    await expect(block).toContainText(INSTALL_COMMAND);
+    await expect(block).toContainText(command);
     await block.getByRole("button").click();
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(INSTALL_COMMAND);
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(command);
   });
 });
 
