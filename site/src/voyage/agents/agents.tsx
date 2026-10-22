@@ -83,38 +83,40 @@ export default function Agents(): JSX.Element {
           <p className="mt-4 text-sm text-muted-foreground">{AGENTS.real}</p>
         </header>
         <div className="min-w-0 lg:col-span-8">
-          <div className="site-window will-change-transform">
-            <div className="site-window-bar">
-              <span className="site-window-dots" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-              <span className="site-mono truncate">{AGENTS.file}</span>
-            </div>
-            <div className="p-4 sm:p-6" data-chapter-control="mistakes">
-              <Tabs label={AGENTS.tabs} items={agentExamples.map((example) => ({ value: example.id, label: SPECIES[example.id]!.tab, content: <Specimen example={example} /> }))} />
-            </div>
-            <div className="grid gap-5 border-t border-border/70 p-4 sm:p-6">
-              <p className="site-eyebrow">{AGENTS.reads}</p>
-              <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
-                <li className="grid gap-1">
-                  <span data-chapter-control="llms">
-                    <Link href={href("/llms.txt")}>{AGENTS.llms}</Link>
-                  </span>
-                  <span className="text-sm text-muted-foreground">{AGENTS.llmsNote}</span>
-                </li>
-                <li className="grid gap-1">
-                  <span data-chapter-control="manifest">
-                    <Link href={`${GITHUB}/blob/main/registry.json`} external>
-                      {AGENTS.manifest}
-                    </Link>
-                  </span>
-                  <span className="text-sm text-muted-foreground">{AGENTS.manifestNote}</span>
-                </li>
-              </ul>
-              <div data-chapter-control="install">
-                <CodeBlock title={AGENTS.install} language="bash" code={INSTALL_COMMAND} />
+          <div className="site-window">
+            <div className="overflow-hidden rounded-[inherit] border border-border/70 will-change-transform">
+              <div className="site-window-bar">
+                <span className="site-window-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="site-mono truncate">{AGENTS.file}</span>
+              </div>
+              <div className="p-4 sm:p-6" data-chapter-control="mistakes">
+                <Tabs label={AGENTS.tabs} items={agentExamples.map((example) => ({ value: example.id, label: SPECIES[example.id]!.tab, content: <Specimen example={example} /> }))} />
+              </div>
+              <div className="grid gap-5 border-t border-border/70 p-4 sm:p-6">
+                <p className="site-eyebrow">{AGENTS.reads}</p>
+                <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+                  <li className="grid gap-1">
+                    <span data-chapter-control="llms">
+                      <Link href={href("/llms.txt")}>{AGENTS.llms}</Link>
+                    </span>
+                    <span className="text-sm text-muted-foreground">{AGENTS.llmsNote}</span>
+                  </li>
+                  <li className="grid gap-1">
+                    <span data-chapter-control="manifest">
+                      <Link href={`${GITHUB}/blob/main/registry.json`} external>
+                        {AGENTS.manifest}
+                      </Link>
+                    </span>
+                    <span className="text-sm text-muted-foreground">{AGENTS.manifestNote}</span>
+                  </li>
+                </ul>
+                <div data-chapter-control="install">
+                  <CodeBlock title={AGENTS.install} language="bash" code={INSTALL_COMMAND} />
+                </div>
               </div>
             </div>
           </div>

@@ -159,21 +159,23 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
         {title}
       </h3>
       <p className="mt-1 mb-4 text-muted-foreground">{intro}</p>
-      <div className="site-window will-change-transform">
-        <div className="site-window-bar">
-          <span className="site-window-dots" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className="site-mono truncate">{file}</span>
-          <span className="ms-auto -me-2" data-chapter-control={`${id}-code`}>
-            <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-              {CHAPTER_ONE.code}
-            </Button>
-          </span>
+      <div className="site-window">
+        <div className="overflow-hidden rounded-[inherit] border border-border/70 will-change-transform">
+          <div className="site-window-bar">
+            <span className="site-window-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <span className="site-mono truncate">{file}</span>
+            <span className="ms-auto -me-2" data-chapter-control={`${id}-code`}>
+              <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+                {CHAPTER_ONE.code}
+              </Button>
+            </span>
+          </div>
+          {children}
         </div>
-        {children}
       </div>
       <Sheet title={sheet.title} description={sheet.description} side="right" open={open} onOpenChange={setOpen}>
         <div className="grid gap-6 text-sm">
