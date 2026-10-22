@@ -489,8 +489,11 @@ jobs:
   mutation-plan:
     # Plans mutation testing (scripts/mutation.mjs, docs/guides/conformance.md). The shards' results
     # are kept between runs of a pull request, merged into one file, under a key with a hash of
-    # every lib/ file and of what the changed files import (scripts/mutation/cache.mjs key), since
-    # Stryker's incremental mode compares only a mutated file and its tests. With results cached
+    # every lib/ and theme file, the lockfile, app.css, the Vitest config and setup, the tests the
+    # mutants run against, and what all of these and the changed files import (scripts/mutation/
+    # cache.mjs key), since Stryker's incremental mode compares only a mutated file; a changed
+    # file's kept results are dropped before a run when it or a changed file it imports changed
+    # since (pruneChangedFiles). With results cached
     # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
     # other run, three shards that each report nothing to mutate.
     needs: [plan]
@@ -615,7 +618,9 @@ jobs:
     # The one check the rules require for mutation testing: it passes when every shard did (on a
     # merge-queue run, each shard has nothing to mutate and passes), so the shard count can change
     # without touching the ruleset. On a pull request it first merges the shards' results into one
-    # file and keeps it for the next run, under the plan's key.
+    # file and keeps it for the next run, under the plan's key. It keeps them after a failed run
+    # too: each shard uploads only the mutants of its own ranges (scopeReport), so a survivor stays
+    # Survived in the merge and fails the next run as well, unless a test that could kill it changed.
     needs: [plan, mutation-plan, mutation-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Stories that break the conformance matrix on purpose, one defect each, so each check proves it
 // can fail (test/conformance/*.test.tsx, "proves it can fail"). They are not Ouro components and
@@ -151,3 +151,48 @@ export const LoneFillHighlight: Story = {
     </div>
   ),
 };
+
+const wrapStyles = `
+.broken-wrap { display: inline-block; padding: 2px; }
+.broken-wrap:has(:focus-visible) { outline: 2px solid; outline-offset: 2px; }
+.broken-wrap-button, .broken-wrap-shadow { border: 1px solid GrayText; outline: none; background: transparent; padding: 4px 8px; }
+.broken-wrap-shadow:focus-visible { box-shadow: 0 0 0 3px royalblue; }
+`;
+
+function WrappedRing() {
+  const [open, setOpen] = useState(false);
+  const first = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (open) first.current?.focus({ focusVisible: true } as FocusOptions);
+  }, [open]);
+  return (
+    <div>
+      <style>{pairStyles + wrapStyles}</style>
+      <button type="button" className="broken-pair-outline" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+        Open
+      </button>
+      {open ? (
+        <div role="dialog" aria-label="Wrapped" data-open="" onKeyDown={(event) => event.key === "Escape" && setOpen(false)}>
+          <div data-ouro="broken-wrapped">
+            <span className="broken-wrap">
+              <button type="button" ref={first} className="broken-wrap-button">
+                Wrapped
+              </button>
+            </span>
+            <button type="button" className="broken-wrap-shadow">
+              Shadow
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Forced colours: an overlay that opens with focus inside it, on a button whose ring its wrapper
+ * draws (`:has(:focus-visible)`, as a card or a slider thumb's wrapper does), next to a button
+ * whose ring is only a box shadow, which forced colours drop. Focus moving to the second takes the
+ * wrapper's ring away, which is no cue on the second.
+ */
+export const WrapperRingThenShadow: Story = { render: () => <WrappedRing /> };
