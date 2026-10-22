@@ -278,6 +278,41 @@ test("without reduced motion, the squid sinks back into the deep behind its ink 
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("animation-name", "or-rise");
 });
 
+test("an order paints its control first, and the porthole only in a later frame", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  // What the porthole shows in the frame that paints the press (the first frame after the click),
+  // and whether it shows it by the frame after.
+  const watchNextFrames = () =>
+    page.evaluate(() => {
+      const porthole = document.querySelector(".site-porthole")!;
+      (window as unknown as { __frames: Promise<(string | null)[]> }).__frames = new Promise((resolve) => {
+        document.addEventListener(
+          "click",
+          () => requestAnimationFrame(() => {
+            const first = porthole.getAttribute("data-lights");
+            setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve([first, porthole.getAttribute("data-lights")]))), 50);
+          }),
+          { capture: true, once: true },
+        );
+      });
+    });
+  const frames = () => page.evaluate(() => (window as unknown as { __frames: Promise<(string | null)[]> }).__frames);
+  // From the Menu.
+  await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
+  await watchNextFrames();
+  await page.getByRole("menuitemcheckbox", { name: ORDERS.lights }).click();
+  expect(await frames()).toEqual([null, ""]);
+  await page.keyboard.press("Escape");
+  // From the palette, by mouse.
+  await encounter(page).getByRole("button", { name: ENCOUNTER.palette }).click();
+  await page.keyboard.type("flood");
+  await watchNextFrames();
+  await page.getByRole("option", { name: ORDERS.lights }).click();
+  expect(await frames()).toEqual(["", null]);
+});
+
 test.describe("by keyboard alone", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
