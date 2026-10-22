@@ -26,6 +26,7 @@ jobs:
   compare:
     name: required checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       drift: ${{ steps.compare.outputs.drift }}
     steps:
@@ -50,6 +51,7 @@ jobs:
     needs: [compare]
     if: always() && needs.compare.outputs.drift == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: write
