@@ -65,9 +65,11 @@ const listClass =
 /**
  * A tab: 44px tall with 16px text on a coarse pointer, stepping down to 36px and 14px from
  * `sm` with a fine pointer. The selected tab takes the foreground color, the others are
- * muted. The focus outline is inset, so the scrolling row never clips it.
+ * muted. The focus outline is inset, so the scrolling row never clips it. Under forced colours,
+ * where the fill and the underline drop away, each tab draws a border.
  *
  * @internal
+ * @claim "Under forced colours, where the fill" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > draws each tab's edge under forced colours, where its fill and the underline drop away)
  * @claim "A tab: 44px tall with 16px" registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
  * @claim "The focus outline is inset, so" registry/ouro/components/ouro/tabs/tabs-styles.ts verify:fileLine(registry/ouro/components/ouro/tabs/tabs-styles.ts, /outline-ring\s-outline-offset-2\sfocus-visible:outline-2/)
  */
@@ -76,6 +78,7 @@ const tabClass =
   "h-(--ouro-tab-h) px-3 [--ouro-tab-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-tab-h:calc(var(--spacing)*9)] " +
   "pointer-coarse:min-w-11 justify-center data-[orientation=vertical]:justify-start " +
   "rounded-md border-0 bg-transparent text-base font-medium text-muted-foreground sm:pointer-fine:text-sm " +
+  "forced-colors:border forced-colors:border-solid " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "not-data-disabled:pointer-fine:hover:text-foreground data-active:text-foreground " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +

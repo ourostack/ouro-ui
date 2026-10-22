@@ -1,0 +1,1 @@
+- Tabs: under forced colours (Windows contrast themes) a tab draws a border, so it keeps an edge when its fill and the underline drop away.
