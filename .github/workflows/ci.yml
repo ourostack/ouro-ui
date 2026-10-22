@@ -120,6 +120,22 @@ jobs:
       - run: pnpm site:build
       - run: node scripts/links.mjs site/dist
       - run: pnpm build-storybook
+      # The release rehearsal: release.yml runs CI on the release commit before it pushes the tag,
+      # so a check that reads the release's own tag fails only at release time. This writes the
+      # release commit's files here (scripts/release-commit.sh) for the next patch version, whose
+      # tag does not exist, and runs the checks that read them, and the site build, as CI on the
+      # release branch runs them.
+      - name: Release rehearsal
+        run: |
+          next=$(node -p 'const [major, minor, patch] = require("./package.json").ouro.latestRelease.slice(1).split(".").map(Number); `${major}.${minor}.${patch + 1}`')
+          if git rev-parse -q --verify "refs/tags/v$next" > /dev/null; then echo "::error::v$next already exists here, so it cannot stand for a release that has no tag yet."; exit 1; fi
+          scripts/release-commit.sh "$next"
+          # As CI runs on the release branch: a pinned registry.json fails the check only on main.
+          export GITHUB_REF="refs/heads/release/v$next" GITHUB_BASE_REF=""
+          pnpm registry --check
+          pnpm run docs --check
+          pnpm claims:check
+          pnpm site:build
   browser:
     # The browser tests (pnpm test), in shards that run side by side: each takes the test files
     # scripts/shard-timings.json says add up to its share of the time, and its slice of the suites
