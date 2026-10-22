@@ -2,9 +2,14 @@
 import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const CV = "main > section, main > div > section, section[id] { content-visibility: auto; contain-intrinsic-size: auto 900px; }";
+const L = CV + " .site-window { will-change: transform; }";
 const VARIANTS = {
-  base: "",
-  cvlayer: CV + " .site-window { will-change: transform; }",
+  cvlayer: L,
+  norecharts: L + " #chapter-two [data-ouro=chart] { display: none !important; }",
+  nocatalogue: L + " [data-composition=catalogue] { display: none !important; }",
+  noroom: L + " [data-composition=chart-room] .site-chart, [data-composition=chart-room] table, [data-composition=chart-room] [data-ouro=table] { display: none !important; }",
+  gutter: L + " html { scrollbar-gutter: stable; }",
+  scrollhtml: L + " html { overflow-y: scroll; }",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
 const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
@@ -46,6 +51,7 @@ for (const type of [webkit, chromium]) {
         await page.getByRole("button", { name: new RegExp(`^Reorder ${port}`) }).click();
         opens += Date.now() - t0;
         row.push(`open long ${await longs(page)}`);
+        if (port === "Atlantis") row.push(`lock html[${await page.evaluate(() => document.documentElement.getAttribute("style"))}] body[${await page.evaluate(() => document.body.getAttribute("style"))}] sb ${await page.evaluate(() => innerWidth - document.documentElement.clientWidth)}`);
         await record(page);
         t0 = Date.now();
         await page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to top" }).click();
