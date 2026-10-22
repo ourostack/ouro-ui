@@ -1,0 +1,14 @@
+{
+  "order": 2690,
+  "components": ["agent-note"],
+  "controls": {
+    "agent-note": [
+      {"part": "pin", "role": "button", "portal": false},
+      {"part": "unpin", "role": "button", "portal": false},
+      {"part": "edit", "role": "button", "portal": false},
+      {"part": "save", "role": "button", "portal": false},
+      {"part": "cancel", "role": "button", "portal": false},
+      {"part": "dismiss", "role": "button", "portal": false}
+    ]
+  }
+}

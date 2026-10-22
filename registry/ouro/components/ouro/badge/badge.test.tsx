@@ -108,6 +108,22 @@ describe("Badge", () => {
     }
   });
 
+  it("takes another component's data-ouro, as a link, a button or a label", async () => {
+    const { host } = await render(
+      <>
+        <Badge data-ouro="event-chip" href="/next">
+          Link
+        </Badge>
+        <Badge data-ouro="event-chip" onClick={() => {}}>
+          Button
+        </Badge>
+        <Badge data-ouro="event-chip">Label</Badge>
+      </>,
+    );
+    expect([...host.querySelectorAll<HTMLElement>('[data-ouro="event-chip"]')].map((badge) => badge.localName)).toEqual(["a", "button", "span"]);
+    expect(host.querySelector('[data-ouro="badge"]')).toBeNull();
+  });
+
   it("renders a button with onClick, with a touch target and press feedback", async () => {
     const onClick = vi.fn();
     const { badge } = await render(<Badge onClick={onClick}>Vegetarian</Badge>);

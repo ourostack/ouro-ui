@@ -1,0 +1,1 @@
+- Badge: a component built on it may name itself with `data-ouro`, as EventChip does with `data-ouro="event-chip"`; a plain Badge is still `data-ouro="badge"`.

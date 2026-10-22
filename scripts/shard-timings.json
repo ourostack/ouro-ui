@@ -409,6 +409,7 @@
   },
   "e2e": {
     "registry/ouro/e2e/ouro/accordion.spec.ts": 12200,
+    "registry/ouro/e2e/ouro/agent-note.spec.ts": 3320,
     "registry/ouro/e2e/ouro/alert.spec.ts": 10400,
     "registry/ouro/e2e/ouro/aspect-ratio.spec.ts": 3200,
     "registry/ouro/e2e/ouro/attachment.spec.ts": 7800,
@@ -417,6 +418,7 @@
     "registry/ouro/e2e/ouro/avatar.spec.ts": 5700,
     "registry/ouro/e2e/ouro/badge.spec.ts": 7100,
     "registry/ouro/e2e/ouro/breadcrumb.spec.ts": 9700,
+    "registry/ouro/e2e/ouro/briefing-card.spec.ts": 2170,
     "registry/ouro/e2e/ouro/button-group.spec.ts": 3600,
     "registry/ouro/e2e/ouro/button.spec.ts": 9754,
     "registry/ouro/e2e/ouro/calendar.spec.ts": 6288,
@@ -442,6 +444,7 @@
     "registry/ouro/e2e/ouro/dialog.spec.ts": 16700,
     "registry/ouro/e2e/ouro/edit-sheet.spec.ts": 35100,
     "registry/ouro/e2e/ouro/empty.spec.ts": 3400,
+    "registry/ouro/e2e/ouro/event-chip.spec.ts": 2040,
     "registry/ouro/e2e/ouro/field.spec.ts": 6595,
     "registry/ouro/e2e/ouro/fieldset.spec.ts": 3300,
     "registry/ouro/e2e/ouro/file-field.spec.ts": 3800,

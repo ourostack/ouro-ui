@@ -1,0 +1,113 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note";
+
+// Layout here uses inline styles and the theme's CSS variables (shadcn's names).
+
+/** A themed panel. It follows the page's scheme (the `.dark` class on the root). */
+function Surface({ children }: { children: ReactNode }) {
+  return <div style={{ background: "var(--background)", color: "var(--foreground)", padding: 16, display: "grid", gap: 12, maxWidth: 480 }}>{children}</div>;
+}
+
+const agentText = "Sam asks for the rollout numbers before the review. Last week's notes list two open questions about the pilot.";
+
+/** A note an app keeps: it acts only on a person's click about the note on screen. */
+function Keeping() {
+  const [note, setNote] = useState({ text: agentText, author: "agent" as "agent" | "human", pinned: false, revision: 1, dismissed: false });
+  const current = String(note.revision);
+  const trusted = (revision: string | undefined, event: { isTrusted: boolean }) => event.isTrusted && revision === current;
+  return (
+    <Surface>
+      {note.dismissed ? (
+        <p style={{ margin: 0, fontSize: 14 }}>Dismissed.</p>
+      ) : (
+        <AgentNote
+          text={note.text}
+          author={note.author}
+          name="Ouro"
+          time="5 min ago"
+          source="Based on 3 messages and last week's notes"
+          pinned={note.pinned}
+          revision={current}
+          onPin={(revision, event) => trusted(revision, event) && setNote({ ...note, pinned: true })}
+          onUnpin={(revision, event) => trusted(revision, event) && setNote({ ...note, pinned: false })}
+          onSave={(text, _revision, event) => {
+            if (!event.isTrusted) return false;
+            setNote({ ...note, text, author: "human", revision: note.revision + 1 });
+          }}
+          onDismiss={(revision, event) => trusted(revision, event) && setNote({ ...note, dismissed: true })}
+        />
+      )}
+      {/* The agent at work, standing in here for the app: it rewrites a note the person has not kept or dismissed. */}
+      <Button
+        variant="outline"
+        onClick={() => {
+          if (note.dismissed || note.pinned || note.author === "human") return;
+          setNote({ ...note, text: "Sam now asks for the rollout numbers and the pilot dates.", revision: note.revision + 1 });
+        }}
+      >
+        Have Ouro rewrite it
+      </Button>
+    </Surface>
+  );
+}
+
+const meta = {
+  title: "Chat/AgentNote",
+  component: AgentNote,
+  parameters: { layout: "padded" },
+  args: { text: agentText, author: "agent", name: "Ouro", time: "5 min ago", source: "Based on 3 messages and last week's notes" },
+  argTypes: {
+    author: { control: "inline-radio", options: ["agent", "human"] },
+  },
+} satisfies Meta<typeof AgentNote>;
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+/** Try every prop. */
+export const Playground: Story = {
+  render: (args) => (
+    <Surface>
+      <AgentNote {...args} onPin={() => {}} onSave={() => {}} onDismiss={() => {}} />
+    </Surface>
+  ),
+};
+
+/** Pin, edit or dismiss the agent's note: once pinned or edited, it is yours and the agent leaves it. */
+export const Keep: Story = {
+  render: () => <Keeping />,
+};
+
+/** The three states: the agent's words, pinned, and edited by the person. */
+export const States: Story = {
+  render: () => (
+    <Surface>
+      <AgentNote text={agentText} author="agent" name="Ouro" time="5 min ago" source="Based on 3 messages" onPin={() => {}} onSave={() => {}} onDismiss={() => {}} />
+      <AgentNote text={agentText} author="agent" name="Ouro" time="1 h ago" pinned onUnpin={() => {}} onSave={() => {}} onDismiss={() => {}} />
+      <AgentNote text="Bring the rollout numbers, and ask about the pilot dates." author="human" name="Ouro" time="Just now" onSave={() => {}} onDismiss={() => {}} />
+    </Surface>
+  ),
+};
+
+/** A note being edited, as after the person pressed Edit: the text box with Save and Cancel. */
+function Editing() {
+  const pressed = useRef(false);
+  // The story presses Edit for the person, once, after the note first shows.
+  useEffect(() => {
+    if (pressed.current) return;
+    pressed.current = true;
+    document.querySelector<HTMLButtonElement>('[data-ouro="agent-note"] [data-ouro-part="edit"]')?.click();
+  }, []);
+  return (
+    <Surface>
+      <AgentNote text={agentText} author="agent" name="Ouro" time="5 min ago" onSave={() => {}} />
+    </Surface>
+  );
+}
+
+/** Editing in place: the note's words in a text box, with Save and Cancel. */
+export const InEdit: Story = {
+  render: () => <Editing />,
+};
