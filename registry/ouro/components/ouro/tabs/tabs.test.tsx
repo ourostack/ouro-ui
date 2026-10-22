@@ -74,6 +74,27 @@ describe("Tabs", () => {
     }
   });
 
+  it("shows which tab is selected under forced colours: Highlight behind it and HighlightText on it", async () => {
+    try {
+      const { tabs } = await render(<Tabs label="Recipe" items={items} />);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      const look = (tab: HTMLElement) => `${getComputedStyle(tab).backgroundColor} ${getComputedStyle(tab).color}`;
+      const [selected, ...others] = tabs;
+      expect(selected!.getAttribute("aria-selected")).toBe("true");
+      // The system colours a contrast theme gives a selection, set on a probe for comparison.
+      const probe = document.body.appendChild(document.createElement("span"));
+      probe.style.cssText = "background-color: Highlight; color: HighlightText";
+      const highlight = look(probe);
+      probe.remove();
+      // The tab's colours change with a transition, so read them once it has run.
+      await expect.poll(() => look(selected!)).toBe(highlight);
+      for (const tab of others) expect(look(tab)).not.toBe(look(selected!));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders a labelled tab list with the first tab selected and its panel shown", async () => {
     const { root, tabs } = await render(<Tabs label="Recipe" items={items} />);
     expect(root.getAttribute("data-ouro")).toBe("tabs");
