@@ -633,14 +633,14 @@ const siteItems = components
   }))
   .sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group));
 outputs.set("site/src/docs/catalog.json", `${JSON.stringify(siteItems, null, 2)}\n`);
-// Each item's source file and summary, apart from the catalog: every page's navigation loads
-// the catalog, and only the docs need these (site/src/docs/item-details.ts).
-const siteDetails = Object.fromEntries(
-  siteItems.map(({ name, title }) => {
-    const entry = components.find((each) => each.name === name)!;
-    return [name, { source: `${componentsDir}${entry.folder}/${entry.stem}.tsx`, summary: summary(outputs.get(`docs/${title}.md`)!) }];
-  }),
-);
+// Each item's source file (its folder and stem under the components directory) and summary, in
+// the catalog's order, apart from the catalog: every page's navigation loads the catalog, and
+// only the docs need these (site/src/docs/item-details.ts). Pairs, not keyed objects, so the docs
+// load no name twice.
+const siteDetails = siteItems.map(({ name, title }) => {
+  const entry = components.find((each) => each.name === name)!;
+  return [`${entry.folder}/${entry.stem}`, summary(outputs.get(`docs/${title}.md`)!)];
+});
 outputs.set("site/src/docs/item-details.json", `${JSON.stringify(siteDetails, null, 2)}\n`);
 
 /** `OuroProvider` to `ouro-provider`: the address of an export's page that is not a registry item's. */
