@@ -712,6 +712,57 @@ describe("Menu presentation", () => {
   });
 });
 
+describe("Menu modal", () => {
+  /** Whether the page's scroll is locked: Base UI hides the overflow of the element that scrolls the page. */
+  const locked = () => [document.documentElement, document.body].some((element) => /hidden|clip/.test(getComputedStyle(element).overflowY));
+  /** Long enough for Base UI's lock, which it takes on a zero timeout after the menu opens. */
+  const pause = () => new Promise((resolve) => setTimeout(resolve, 100));
+
+  it("holds the page while open: its scroll is locked", async () => {
+    await render(<Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>);
+    await expect.poll(locked).toBe(false);
+    await userEvent.click(trigger());
+    await settled();
+    await expect.poll(locked).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+    await expect.poll(locked).toBe(false);
+  });
+
+  it("with modal={false}, leaves the page's scroll alone and its controls live", async () => {
+    const outside = vi.fn();
+    await render(
+      <>
+        <Menu modal={false} trigger={<Button>Actions</Button>}>
+          {basicItems}
+        </Menu>
+        <button type="button" onClick={outside}>
+          Outside
+        </button>
+      </>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await pause();
+    expect(locked()).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Outside", exact: true }));
+    expect(outside).toHaveBeenCalledOnce();
+    await expect.poll(menu).toBeNull();
+  });
+
+  it("keeps the phone sheet holding the page with modal={false}", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <Menu modal={false} trigger={<Button>Actions</Button>}>
+        {basicItems}
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    expect((await settled()).getAttribute("data-ouro-presentation")).toBe("sheet");
+    await expect.poll(locked).toBe(true);
+  });
+});
+
 describe("Menu context trigger", () => {
   const area = () => document.querySelector<HTMLElement>("[data-testid=area]")!;
 
