@@ -8,7 +8,7 @@ import { compile } from "tailwindcss";
 import postcss from "postcss";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, physicalAllowed, physicalUtilities, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -408,13 +408,48 @@ test("a real-clock escape needs a reason, and covers the statement it leads", ()
   assert.deepEqual(realClockEscapes('// real clock: a reason\nx();\n  // real clock: another\n// real clock:\n"// real clock: in a string"'), ["a reason", "another"]);
 });
 
-test("realClockProblems names a file that adds a real-clock escape the pull request does not mention", () => {
-  const base = new Map([["a.spec.ts", 1]]);
-  const head = new Map([["a.spec.ts", 2], ["b.test.tsx", 1], ["c.test.tsx", 0]]);
+test("realClockProblems names each escaped statement the pull request adds, by file and statement, unless the description names the file", () => {
+  const base = new Set(["a.spec.ts: await expect(a).toBeVisible();"]);
+  const head = new Set(["a.spec.ts: await expect(a).toBeVisible();", "a.spec.ts: await expect(b).toBeVisible();", "b.test.tsx: toast(\"Saved\");"]);
   assert.deepEqual(realClockProblems({ base, head, body: "" }).map((problem) => problem.file), ["a.spec.ts", "b.test.tsx"]);
   assert.deepEqual(realClockProblems({ base, head, body: "Escapes: `a.spec.ts` (static copy) and `b.test.tsx`." }), []);
-  // Fewer escapes, or as many, need no mention.
-  assert.deepEqual(realClockProblems({ base: new Map([["a.spec.ts", 2]]), head: new Map([["a.spec.ts", 1]]), body: "" }), []);
+  // Removing an escape needs no mention; moving one to another statement, as many as before, does.
+  assert.deepEqual(realClockProblems({ base: head, head: base, body: "" }), []);
+  assert.deepEqual(realClockProblems({ base, head: new Set(["a.spec.ts: await expect(b).toBeVisible();"]), body: "" }).map((problem) => problem.file), ["a.spec.ts"]);
+});
+
+test("realClockEscapeKeys names each escape by its file and the first line of the statement it leads", () => {
+  const text = 'it("t", async () => {\n  // real clock: no Toaster is mounted.\n  toast("Saved");\n  // real clock:\n  toast("Again");\n  // real clock: one line\n  for (const each of list)\n    toast(each);\n});';
+  assert.deepEqual(realClockEscapeKeys("a.test.tsx", text), ['a.test.tsx: toast("Saved");', "a.test.tsx: for (const each of list)"]);
+});
+
+test("a real-clock escape covers only the statement it leads, or the one statement of a loop it leads, not every read inside a block", () => {
+  const vitest = (body) => timerBoundReads("a.test.tsx", `it("t", async () => {\n${body}\n});`);
+  const copied = 'await expect.poll(() => text()).toBe("Copied");';
+  assert.deepEqual(vitest(`// real clock: the label is the point.\n${copied}`), []);
+  assert.deepEqual(vitest(`// real clock: the label is the point.\nfor (const each of list) ${copied}`), []);
+  assert.deepEqual(vitest(`// real clock: the label is the point.\nfor (const each of list) {\n${copied}\n}`), []);
+  // A block it leads (try, if, a loop of many statements) lets nothing inside through.
+  assert.equal(vitest(`// real clock: the label is the point.\ntry {\n${copied}\n} finally {\nclean();\n}`).length, 1);
+  assert.equal(vitest(`// real clock: the label is the point.\nif (ready) {\n${copied}\n}`).length, 1);
+  assert.equal(vitest(`// real clock: the label is the point.\nfor (const each of list) {\nclick();\n${copied}\n}`).length, 1);
+});
+
+test("a registry spec that opens a Toaster story has toasts: a dialog read in the Notifications region counts, and toaster.spec.ts without its held clock is flagged", () => {
+  const path = "registry/ouro/e2e/ouro/toaster.spec.ts";
+  const text = readFileSync(join(root, path), "utf8");
+  assert.deepEqual(timerBoundReads(path, text), []);
+  const loose = text.replace(/^\s*await holdClock\(page\);\n/gm, "");
+  assert.notEqual(loose, text);
+  const reads = timerBoundReads(path, loose);
+  assert.ok(reads.some((read) => read.startsWith("a press shows a toast that is announced politely and can be dismissed: await expect(toast).toBeVisible();")), reads.join("\n"));
+  assert.ok(reads.some((read) => read.startsWith('the Undo action runs and dismisses its toast: await expect(page.getByRole("dialog", { name: "Recipe restored" })).toBeVisible();')), reads.join("\n"));
+  const spec = (body) => timerBoundReads("registry/ouro/e2e/ouro/a.spec.ts", `test("s", async ({ page }) => {\n${body}\n});`);
+  const region = 'const region = page.getByRole("region", { name: "Notifications" });';
+  assert.equal(spec(`await openStory(page, "feedback-toast--stack");\n${region}\nawait expect(region.getByRole("alertdialog", { name: "Couldn't save" })).toBeVisible();`).length, 1);
+  assert.equal(spec(`await openStory(page, "feedback-toast--stack");\n${region}\nconst toast = region.getByRole("dialog", { name: "Saved" });\nawait expect(toast).toBeVisible();`).length, 1);
+  // A spec with no Toaster story reads its own dialogs.
+  assert.deepEqual(spec('await openStory(page, "overlays-dialog--playground");\nawait expect(page.getByRole("dialog")).toBeVisible();'), []);
 });
 
 test("no test or spec waits for a state that lasts a set time on the real clock", () => {

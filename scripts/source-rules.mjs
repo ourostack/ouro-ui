@@ -342,15 +342,39 @@ export function realClockEscapes(text) {
   return [...text.matchAll(/^[ \t]*\/\/\s*real clock:[ \t]*(\S.*)$/gm)].map((match) => match[1].trim());
 }
 
+/** Whether a `// real clock: <reason>` comment leads `node`. */
+function leadsEscape(text, node) {
+  return (ts.getLeadingCommentRanges(text, node.getFullStart()) ?? []).some((range) => realClockEscapes(text.slice(range.pos, range.end)).length > 0);
+}
+
 /**
- * Files whose `// real clock:` escapes (`counts`: path to number) grew against the base's, and
- * that the pull request's description does not name, as { file, message }: an escape lets a wait
- * on the real clock through, so a reviewer sees each one added, as for claims.config.json's.
+ * Each `// real clock: <reason>` escape in `text` (the file at `path`), keyed by the file and the
+ * first line of the statement it leads, whitespace collapsed: `path: statement`. The ratchet
+ * compares these keys, so an escape moved to another statement counts as a new one.
+ */
+export function realClockEscapeKeys(path, text) {
+  const source = parse(path, text);
+  const keys = [];
+  const visit = (node) => {
+    if (ts.isStatement(node) && !ts.isBlock(node) && leadsEscape(text, node)) keys.push(`${path}: ${node.getText(source).split("\n")[0].trim().replace(/\s+/g, " ")}`);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return keys;
+}
+
+/**
+ * The escapes (`realClockEscapeKeys`, sets of keys) the head adds to the base, in files the pull
+ * request's description does not name, as { file, message }: an escape lets a wait on the real
+ * clock through, so a reviewer sees each one added or moved, as for claims.config.json's.
  */
 export function realClockProblems({ base, head, body = "" }) {
-  return [...head]
-    .filter(([file, count]) => count > (base.get(file) ?? 0) && !body.includes(file))
-    .map(([file, count]) => ({ file, message: `${file} has ${count - (base.get(file) ?? 0)} more "// real clock:" escape(s) than the base; name the file in the pull request's description, with why the test means the real clock.` }));
+  const added = [...head].filter((key) => !base.has(key));
+  const files = [...new Set(added.map((key) => key.slice(0, key.indexOf(": "))))].filter((file) => !body.includes(file));
+  return files.map((file) => {
+    const statements = added.filter((key) => key.startsWith(`${file}: `)).map((key) => key.slice(file.length + 2));
+    return { file, message: `${file} has a "// real clock:" escape the base does not have, on ${statements.map((statement) => `\`${statement}\``).join(", ")}; name the file in the pull request's description, with why the test means the real clock.` };
+  });
 }
 
 /** Whether a `toast(message, options)` or `show(message, options)` call has a countdown: no `duration` of 0 or Infinity, and no `action` without a duration. */
@@ -385,7 +409,9 @@ export function timerBoundReads(path, text) {
   const labels = new Set([...timedLabels, ...[...text.matchAll(/(?:copiedLabel|failedLabel)=["']([^"']+)["']/g)].map((match) => match[1])]);
   const imports = (pattern) => source.statements.some((statement) => ts.isImportDeclaration(statement) && pattern.test(statement.moduleSpecifier.text));
   const callsToast = imports(/\/lib\/ouro\/toast$/);
-  const hasToasts = path.startsWith("site/") || callsToast || imports(/\/components\/ouro\/toast\/toaster$/);
+  // A spec that opens a Toaster story (`feedback-toast--…`) has toasts too.
+  const opensToasts = spec && /["'`]feedback-toast--/.test(text);
+  const hasToasts = path.startsWith("site/") || callsToast || opensToasts || imports(/\/components\/ouro\/toast\/toaster$/);
   const calls = (node) => {
     const found = [];
     const visit = (child) => {
@@ -396,16 +422,31 @@ export function timerBoundReads(path, text) {
     return found;
   };
   const callee = (call) => call.expression.getText(source).replace(/\s+/g, "");
-  const escaped = (node, body) => {
-    for (let at = node; at && at !== body; at = at.parent) {
-      if (!ts.isStatement(at)) continue;
-      const comments = ts.getLeadingCommentRanges(text, at.getFullStart()) ?? [];
-      if (comments.some((range) => realClockEscapes(text.slice(range.pos, range.end)).length > 0)) return true;
-    }
+  // The statement a read is in, and a loop whose one statement that is: an escape leads one of them.
+  const loop = (node) => ts.isForStatement(node) || ts.isForOfStatement(node) || ts.isForInStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node);
+  const escaped = (node) => {
+    let at = node;
+    while (at && !ts.isStatement(at)) at = at.parent;
+    if (!at) return false;
+    if (leadsEscape(text, at)) return true;
+    const parent = at.parent;
+    if (parent && loop(parent) && parent.statement === at) return leadsEscape(text, parent);
+    if (parent && ts.isBlock(parent) && parent.statements.length === 1 && parent.parent && loop(parent.parent) && parent.parent.statement === parent) return leadsEscape(text, parent.parent);
     return false;
   };
   const found = [];
+  // Within the test being checked: the names its Notifications region is kept under.
+  let regions = new Set();
+  // A read that may be a toast's: a text or dialog on the whole page, or a dialog or text in the toasts' region.
+  const toastRead = (call) => {
+    const name = callee(call);
+    const dialog = call.arguments[0] && ts.isStringLiteralLike(call.arguments[0]) && /^(alert)?dialog$/.test(call.arguments[0].text);
+    if (name === "page.getByText" || (name === "page.getByRole" && dialog)) return true;
+    const scoped = /^(\w+)\.(getByText|getByRole)$/.exec(name);
+    return Boolean(scoped && regions.has(scoped[1]) && (scoped[2] === "getByText" || dialog));
+  };
   const check = (name, body) => {
+    regions = new Set();
     const effects = calls(body)
       .map((call) => ({ at: call.getStart(source), effect: clockEffect(callee(call)) }))
       .filter((each) => each.effect)
@@ -423,13 +464,22 @@ export function timerBoundReads(path, text) {
     };
     // In a spec, the names a toast locator is kept under: `const toast = page.locator('[data-ouro="toast"]')`.
     const toastNames = new Set();
+    // The names the toasts' region is kept under (`page.getByRole("region", { name: "Notifications" })`),
+    // and those of a dialog or text read in that region, kept for a later wait.
+    const regionNames = regions;
+    const readNames = new Set();
     const declare = (node) => {
-      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && /data-ouro="toast"/.test(node.initializer.getText(source))) toastNames.add(node.name.text);
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        const initializer = node.initializer.getText(source);
+        if (/data-ouro="toast"/.test(initializer)) toastNames.add(node.name.text);
+        if (/getByRole\(\s*["']region["'][^)]*["']Notifications["']/.test(initializer)) regionNames.add(node.name.text);
+        else if (hasToasts && calls(node.initializer).some((call) => toastRead(call) && !/^page\./.test(callee(call)))) readNames.add(node.name.text);
+      }
       ts.forEachChild(node, declare);
     };
     if (spec) declare(body);
     const flag = (node, label) => {
-      if (!escaped(node, body)) found.push(`${name}: ${label}`);
+      if (!escaped(node)) found.push(`${name}: ${label}`);
     };
     const visit = (node) => {
       if (ts.isExpressionStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node)) {
@@ -445,11 +495,7 @@ export function timerBoundReads(path, text) {
         };
         collect(node);
         const label = !counted && strings.some((each) => labels.has(each));
-        const pageRead = inner.some((call) => {
-          const name = callee(call);
-          if (name === "page.getByText") return true;
-          return name === "page.getByRole" && call.arguments[0] && ts.isStringLiteralLike(call.arguments[0]) && /^(alert)?dialog$/.test(call.arguments[0].text);
-        });
+        const pageRead = inner.some(toastRead);
         const statement = node.getText(source);
         const busy = spec && names.some((each) => /\.toHaveAttribute$/.test(each)) && (/["']aria-busy["'],\s*["']true["']/.test(statement) || /["']data-status["'],\s*["']saving["']/.test(statement));
         const identifiers = [];
@@ -459,9 +505,12 @@ export function timerBoundReads(path, text) {
         };
         named(node);
         const aboutToast = strings.some((each) => each.includes('data-ouro="toast"')) || identifiers.some((each) => toastNames.has(each));
+        const readsKept = identifiers.some((each) => readNames.has(each));
+        // A wait for a toast to be gone cannot miss it: gone stays gone.
+        const gone = names.some((each) => /\.(toBeHidden|toHaveCount)$/.test(each)) && (/\.toBeHidden\(\s*\)/.test(statement) || /\.toHaveCount\(\s*0\s*\)/.test(statement));
         const toastBox = spec && aboutToast && names.some((each) => /\.(toBeVisible|boundingBox)$/.test(each));
         const { held, recorded } = state(node.getStart(source));
-        if (!held && ((waits && label) || busy || (waits && hasToasts && pageRead && !recorded) || (toastBox && !recorded))) flag(node, statement.split("\n")[0].trim());
+        if (!held && ((waits && label) || busy || (waits && hasToasts && (pageRead || readsKept) && !recorded && !gone) || (toastBox && !recorded))) flag(node, statement.split("\n")[0].trim());
       }
       if (callsToast && !spec && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && /^(toast|show)$/.test(node.expression.text) && node.arguments.length > 0 && countsDown(node)) {
         if (!state(node.getStart(source)).held) flag(node, node.getText(source).split("\n")[0].trim());
