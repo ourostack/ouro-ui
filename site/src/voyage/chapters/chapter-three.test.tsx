@@ -76,7 +76,7 @@ describe("Chapter III", () => {
     await userEvent.click(page.getByRole("button", { name: SALOON.play }));
     await expect.poll(() => announced.count(TOASTS.organ)).toBe(1);
     announced.stop();
-    await expect.element(page.getByText(SALOON.stamp, { exact: true })).toBeInTheDocument();
+    await expect.element(page.elementLocator(document.querySelector("#chapter-three")!).getByText(SALOON.stamp, { exact: true })).toBeInTheDocument();
     await expect.element(page.getByRole("link", { name: SALOON.install })).toHaveFocus();
   });
 });

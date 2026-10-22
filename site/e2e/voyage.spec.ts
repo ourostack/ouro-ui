@@ -94,6 +94,23 @@ test.describe("every preset, light and dark", () => {
   }
 });
 
+test("once the stage is off screen, the page draws no SVG text, which in WebKit makes every press lay out and repaint the whole page", async ({ page }) => {
+  // Measured on CI for pull request 153: with any SVG text drawn, a press anywhere took WebKit about
+  // 300 ms; with none, 3 ms. The drawings' labels are HTML (htmlLabels in art.ts), the legs chart's
+  // axis labels too (useAxisLabels in chapter-two.tsx), and the stage's motto is drawn only on screen.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("voyage/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  for (const id of ["chapter-one", "chapter-two", "chapter-three", "agents"]) {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+    await expect(page.locator(`#${id}[data-chapter-ready]`)).toBeAttached();
+  }
+  await expect(page.locator("#chapter-two .recharts-bar-rectangle").first()).toBeAttached();
+  await expect(page.locator("[data-stage][data-offscreen]")).toBeAttached();
+  const drawn = await page.evaluate(() => [...document.querySelectorAll("svg text")].filter((text) => text.getClientRects().length > 0).map((text) => text.textContent));
+  expect(drawn).toEqual([]);
+});
+
 test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling sideways", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   for (const preset of PRESET_NAMES) {
@@ -167,6 +184,7 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
   await page.getByRole("radio", { name: "Submerged" }).click();
   await page.keyboard.press("Escape");
   await page.locator("[data-site-dive-trigger]").click();
+  // real clock: a confirm dialog, which stays open until answered.
   await expect(page.getByRole("dialog", { name: "Dive to 300 fathoms?" })).toBeVisible();
   await page.getByRole("button", { name: "Not yet" }).click();
   await page.getByRole("checkbox", { name: "Fill the ballast tanks" }).click();
@@ -213,6 +231,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await expect(trigger).toHaveAccessibleName(/Theme: Sleek/);
   await page.keyboard.press("Enter");
   const popup = page.getByRole("dialog", { name: "Theme" });
+  // real clock: the theme picker's popup stays open until it is closed; no timer ends it.
   await expect(popup).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await pressTab(page);

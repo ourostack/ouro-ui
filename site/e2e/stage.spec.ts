@@ -79,6 +79,7 @@ test.describe("each control on the stage", () => {
   test("control: xray outlines every HX component on the page, only when pressed", async ({ page }) => {
     await open(page);
     await expect(page.locator("[data-ouro-inspector-outline]")).toHaveCount(0);
+    // real clock: the hero's line, which stays.
     await expect(page.getByText(STAGE_COPY.real)).toBeVisible();
     await page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }).click();
     await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
@@ -426,9 +427,10 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
     const started = await recordAnimations(page);
+    const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
+    await expect.poll(toasts.titles).toContain(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`);
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect.poll(() => started(".stage-ripple")).toContain("stage-ripple");
     await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-a");
@@ -524,6 +526,8 @@ test("on a phone, the bell's toast never covers the bell", async ({ browser }) =
   const toasts = await watchToasts(page, { selector: "[data-stage-control='bell'] button", kind: "below" });
   await bell.tap();
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
-  await expect.poll(toasts.cleared).toBe(true);
+  // Judged only once the toast has settled: it slides in from below its place.
+  await expect.poll(toasts.settled).toBeGreaterThan(5);
+  expect(await toasts.overlapped()).toBe(false);
   await context.close();
 });

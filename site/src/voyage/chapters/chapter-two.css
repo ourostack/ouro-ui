@@ -41,3 +41,12 @@
 .site-leagues[data-shortest] {
   color: var(--primary);
 }
+
+/*
+ * The legs chart's axis labels: Recharts draws them as SVG text, which costs WebKit a whole-page
+ * layout and repaint on every press (htmlLabels in art.ts), so they are not drawn, and the x-axis
+ * labels are HTML over the chart instead (useAxisLabels in chapter-two.tsx).
+ */
+.site-legs .recharts-cartesian-axis-tick-value {
+  display: none;
+}

@@ -107,13 +107,7 @@
   fill: var(--card);
   stroke: var(--primary);
 }
-.site-chart .ch-port text {
-  font-family: var(--font-sans);
-  fill: var(--foreground);
-}
-.site-chart .ch-port-name {
-  stroke: var(--card);
-}
+
 /* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
 @media (max-width: 40rem) {
   .site-chart :is(.ch-labels, .ch-rose) {
@@ -127,49 +121,8 @@
     stroke-width: 3.4px;
   }
 }
-.site-compass {
-  display: block;
-  width: 60%;
-  height: auto;
-  color: color-mix(in oklab, var(--primary) 60%, var(--foreground));
-}
-/* Chapter III's vignette: the arm drawn as a band, its middle the page's own colour. */
-.tn-core {
-  stroke: var(--background);
-}
-
 /*
- * Chapter III's drawings take their room here, so the page does not move as their colours come
- * with the island (chapter-three.css), and what starts hidden starts hidden.
+ * The rail's compass, Chapter III's drawings and the agents' findings take their size, room and
+ * colour from inline styles in the server HTML, and what starts hidden is hidden there too
+ * (`opacity="0"`), which keeps them out of the first load's CSS budget (catalog.spec.ts).
  */
-.site-porthole {
-  position: relative;
-  width: 100%;
-  max-width: 22rem;
-  aspect-ratio: 1;
-  margin-inline: auto;
-}
-.site-organ {
-  display: block;
-  width: 100%;
-  max-width: 20rem;
-  height: auto;
-  margin-inline: auto;
-}
-.site-organ-small {
-  width: 55%;
-  margin-inline: 0;
-}
-.site-porthole :is(.ph-sky, .ph-beam, .sq-ink),
-.site-organ .or-note {
-  opacity: 0;
-}
-
-/* "Built for agents too": what the agent hears back, quoted as the tools print it, wrapped. */
-.site-finding {
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--foreground);
-}

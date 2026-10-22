@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { BATTLE, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "../src/voyage/chapters/chapter-three-copy";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
+import { watchToasts } from "./toasts";
 
 // Chapter III, "Face the squid", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_THREE_CONTROLS has a test named "control: <id>" that operates it
@@ -74,9 +75,10 @@ test.describe("each control in Chapter III", () => {
     await expect(status(page)).toContainText(ENCOUNTER.axesReady);
     await expect(crew(page)).toContainText(FIGHT.axesDeep.text);
     await expect(scene(page)).toHaveAttribute("data-squid", "holding");
+    const toasts = await watchToasts(page);
     await order(page, ORDERS.surface);
     await expect(scene(page)).toHaveAttribute("data-squid", "gone");
-    await expect(page.getByText(TOASTS.win)).toBeVisible();
+    await expect.poll(toasts.titles).toContain(TOASTS.win);
     await expect(status(page)).toContainText(ENCOUNTER.free);
     await expect(crew(page)).toContainText(FIGHT.win.text);
   });
@@ -137,9 +139,10 @@ test.describe("each control in Chapter III", () => {
     await expect(saloon(page).locator("[data-chapter-organ-hint]")).toHaveText(SALOON.playHint);
     await win(page);
     await expect(playButton(page)).toBeEnabled();
+    const toasts = await watchToasts(page);
     await playButton(page).click();
     await expect(page.locator("[data-chapter-stamp]")).toHaveText(SALOON.stamp);
-    await expect(page.getByText(TOASTS.organ, { exact: true }).first()).toBeVisible();
+    await expect.poll(toasts.titles).toContain(TOASTS.organ);
     await expect(saloon(page).locator(".site-organ .or-note").first()).toHaveCSS("opacity", "1");
     await expect(page.getByRole("list", { name: BATTLE.label })).toContainText(BATTLE.organDone);
     await expect(saloon(page).getByRole("link", { name: SALOON.install })).toBeFocused();
