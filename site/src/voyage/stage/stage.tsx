@@ -16,6 +16,7 @@ import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
 import "./stage.css";
+import phoneStyles from "./stage-phone.css?inline";
 
 interface Entry extends LogLine {
   id: number;
@@ -93,6 +94,15 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     setDepth(fathoms);
     depthAtLastLog.current = fathoms;
   };
+
+  // The phone's bolder line weights (stage-phone.css), once, as the stage hydrates.
+  useEffect(() => {
+    if (document.getElementById("stage-phone-styles")) return;
+    const style = document.createElement("style");
+    style.id = "stage-phone-styles";
+    style.textContent = phoneStyles;
+    document.head.append(style);
+  }, []);
 
   // Fish drift only while the stage is on screen. The newest entry is the current state.
   useEffect(() => {
