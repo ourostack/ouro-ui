@@ -325,7 +325,7 @@ test("without reduced motion, each payoff moves: bubbles, the needles, the Ready
   await page.getByRole("button", { name: STAGE_COPY.bell }).click();
   await settled(page);
   const all = await moved(page);
-  for (const expected of ["transform", "stage-pop:transform", "stage-bubble:transform", "stage-ready-lights:fill", "stage-sweep:transform", "stage-bell-a:transform", "stage-ripple:transform"]) expect(all, all.join(" ")).toContain(expected);
+  for (const expected of ["transform", "stage-pop:transform", "stage-bubble:transform", "stage-ready-lights:opacity", "stage-sweep:transform", "stage-bell-a:transform", "stage-ripple:transform"]) expect(all, all.join(" ")).toContain(expected);
   // The creatures answer the light: the fish dart from the beam and the octopus rises into it.
   const moving = (selector: string) => page.locator(selector).first().evaluate((element) => getComputedStyle(element).transform);
   await expect.poll(() => moving(".stage-band-midnight .stage-react")).not.toBe("none");
@@ -335,7 +335,7 @@ test("without reduced motion, each payoff moves: bubbles, the needles, the Ready
 test("the deep glows: in midnight water the lanternfish's lamps and the deep jelly pulse, and rest off screen", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
-  const glowing = () => page.locator(".stage-band-midnight .c-glow").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).filter((animation) => (animation as CSSAnimation).animationName === "stage-lure" && animation.playState === "running").length);
+  const glowing = () => page.locator(".stage-band-midnight .stage-glow").evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).filter((animation) => (animation as CSSAnimation).animationName === "stage-glow" && animation.playState === "running").length);
   expect(await glowing()).toBe(0);
   await page.getByRole("slider", { name: STAGE_COPY.depth }).focus();
   await page.keyboard.press("End");
@@ -349,7 +349,7 @@ test("three full tanks are a small celebration: the hull's lights blink and bubb
   await expect(page.locator(".stage-bubbles")).not.toHaveAttribute("data-streaming", "");
   await fillTanks(page);
   await expect(page.locator(".stage-bubbles")).toHaveAttribute("data-streaming", "");
-  const blinks = await page.locator(".n-lights circle").first().evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName));
+  const blinks = await page.locator(".stage-hull-lit").evaluate((element) => element.getAnimations().map((animation) => (animation as CSSAnimation).animationName));
   expect(blinks).toContain("stage-ready-lights");
   await expect(page.locator("[data-stage-tank-count]")).toHaveText(STAGE_COPY.tankCount(3));
 });
