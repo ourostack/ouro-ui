@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readsBrowser } from "./phrases";
+import { quietSpot } from "./quiet-spot";
 
 // NVDA for the screen-reader lane (screen-reader.ts): one NVDA for each Playwright worker, where
 // @guidepup/playwright's nvdaTest starts one for each test. NVDA quitting between tests is what
@@ -83,7 +84,10 @@ export function nvdaFor(page: Page): NVDAPlaywright {
     await page.bringToFront();
     await page.locator("body").waitFor();
     await page.locator("body").focus();
-    await page.locator("body").click();
+    // A click gives the page the system's focus; on the page itself, never on a control it would press.
+    const spot = await quietSpot(page);
+    if (!spot) throw new Error("[sr] infrastructure: no spot in the page to click that is not a control");
+    await page.mouse.click(spot.x, spot.y);
     await page.locator("body").blur();
     await nvda.perform(nvda.keyboardCommands.readNextFocusableItem, { capture: false });
     await sleep(100);
