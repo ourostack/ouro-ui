@@ -1,0 +1,9 @@
+{
+  "order": 2670,
+  "components": ["preset-picker"],
+  "controls": {
+    "preset-picker": [
+      {"part": "item", "role": "button", "portal": false}
+    ]
+  }
+}
