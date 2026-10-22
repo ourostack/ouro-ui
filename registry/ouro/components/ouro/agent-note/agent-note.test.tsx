@@ -368,8 +368,8 @@ describe("AgentNote", () => {
     const box = note.querySelector("textarea")!;
     expect(box.readOnly).toBe(true);
     const cancel = page.getByRole("button", { name: "Cancel" });
-    expect(cancel.element().getAttribute("aria-disabled")).toBe("true");
-    // Forced: Playwright waits for a button to be enabled, and Cancel says it is not.
+    expect((cancel.element() as HTMLButtonElement).disabled).toBe(true);
+    // Forced: Playwright waits for a button to be enabled, and Cancel is not.
     await userEvent.click(cancel, { force: true });
     await act(async () => box.focus());
     await userEvent.keyboard("{Escape}");
@@ -389,7 +389,7 @@ describe("AgentNote", () => {
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await act(async () => finish(false));
     expect(note.querySelector("textarea")!.readOnly).toBe(false);
-    expect(page.getByRole("button", { name: "Cancel" }).element().hasAttribute("aria-disabled")).toBe(false);
+    expect((page.getByRole("button", { name: "Cancel" }).element() as HTMLButtonElement).disabled).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
     expect(note.querySelector("textarea")).toBeNull();
   });

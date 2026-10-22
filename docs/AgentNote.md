@@ -2,7 +2,7 @@
 
 # AgentNote
 
-A short note an agent leaves for the person, attributed to the agent. It says who wrote it, when, and what the agent read to write it, and offers the person's own actions: Pin, Edit (a text box in place, with Save and Cancel) and Dismiss. While the words are the agent's, an Agent badge sits beside its name and a bar marks the note's start edge. A note the person pinned or edited is theirs: it says so, and the agent no longer replaces it. Pinning, editing and dismissing are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the `revision` on screen when the press began, so the app can refuse a decision about a note the agent replaced under the click. A newer revision that arrives while the person edits shows a notice, spoken once, and never replaces their words. While a save is in progress the text box is read-only and Cancel waits. When the app removes a dismissed note, focus moves to the next control after it. Leave a handler out to leave its button out.
+A short note an agent leaves for the person, attributed to the agent. It says who wrote it, when, and what the agent read to write it, and offers the person's own actions: Pin, Edit (a text box in place, with Save and Cancel) and Dismiss. While the words are the agent's, an Agent badge sits beside its name and a bar marks the note's start edge. A note the person pinned or edited is theirs: it says so, and the agent no longer replaces it. Pinning, editing and dismissing are a person's decisions: the handlers receive the click event, so the app can check `event.isTrusted`, and the `revision` on screen when the press began, so the app can refuse a decision about a note the agent replaced under the click. A newer revision that arrives while the person edits shows a notice, spoken once, and never replaces their words. While a save is in progress the text box is read-only and Cancel is disabled. When the app removes a dismissed note, focus moves to the next control after it. Leave a handler out to leave its button out.
 
 ```tsx
 import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note";
@@ -98,7 +98,7 @@ type AgentNoteHandler = (revision: string | undefined, event: MouseEvent<HTMLEle
 
 ### `AgentNoteSaveHandler`
 
-Saves the person's words. Receives the `revision` they last saw (the newer one once the note changed while they edited), and the click. Return `false`, or a promise of it, to keep the editor open, such as when saving failed; a throw or a rejection keeps it open too, is reported (`reportError`) and tells the person (`saveErrorLabel`). Until it settles, the text box is read-only and Cancel waits.
+Saves the person's words. Receives the `revision` they last saw (the newer one once the note changed while they edited), and the click. Return `false`, or a promise of it, to keep the editor open, such as when saving failed; a throw or a rejection keeps it open too, is reported (`reportError`) and tells the person (`saveErrorLabel`). Until it settles, the text box is read-only and Cancel is disabled.
 
 ```ts
 type AgentNoteSaveHandler = (text: string, revision: string | undefined, event: MouseEvent<HTMLElement>) => boolean | void | Promise<boolean | void>;

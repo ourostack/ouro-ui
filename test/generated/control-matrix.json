@@ -2377,6 +2377,21 @@
     "item": "agent-note",
     "stem": "agent-note",
     "mode": "default",
+    "part": "text",
+    "role": "textbox",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "AgentNote/Playground",
+      "AgentNote/Keep",
+      "AgentNote/States",
+      "AgentNote/InEdit"
+    ]
+  },
+  {
+    "item": "agent-note",
+    "stem": "agent-note",
+    "mode": "default",
     "part": "cancel",
     "role": "button",
     "portal": false,

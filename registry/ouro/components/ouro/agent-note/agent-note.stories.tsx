@@ -1,11 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { AgentNote } from "@/registry/ouro/components/ouro/agent-note/agent-note";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 /** A themed panel. It follows the page's scheme (the `.dark` class on the root). */
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
 function Surface({ children }: { children: ReactNode }) {
   return <div style={{ background: "var(--background)", color: "var(--foreground)", padding: 16, display: "grid", gap: 12, maxWidth: 480 }}>{children}</div>;
 }
@@ -91,23 +101,16 @@ export const States: Story = {
   ),
 };
 
-/** A note being edited, as after the person pressed Edit: the text box with Save and Cancel. */
-function Editing() {
-  const pressed = useRef(false);
-  // The story presses Edit for the person, once, after the note first shows.
-  useEffect(() => {
-    if (pressed.current) return;
-    pressed.current = true;
-    document.querySelector<HTMLButtonElement>('[data-ouro="agent-note"] [data-ouro-part="edit"]')?.click();
-  }, []);
-  return (
+/** Editing in place: the note's words in a text box, with Save and Cancel. */
+export const InEdit: Story = {
+  render: () => (
     <Surface>
       <AgentNote text={agentText} author="agent" name="Ouro" time="5 min ago" onSave={() => {}} />
     </Surface>
-  );
-}
-
-/** Editing in place: the note's words in a text box, with Save and Cancel. */
-export const InEdit: Story = {
-  render: () => <Editing />,
+  ),
+  // The story presses Edit, as the person would, so it shows the text box with Save and Cancel.
+  play: async ({ canvasElement }) => {
+    (await frameUntil(() => canvasElement.querySelector<HTMLButtonElement>('[data-ouro-part="edit"]'))).click();
+    await frameUntil(() => canvasElement.querySelector("textarea"));
+  },
 };

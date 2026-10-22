@@ -1,0 +1,1 @@
+- TextArea: a component that renders it as its own part can pass its own `data-ouro-control` and `data-ouro-part`, which now win over TextArea's `text-area`/`input` pair, as they already did on Button.

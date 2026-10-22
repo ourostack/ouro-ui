@@ -255,10 +255,11 @@ export function TextArea(props: TextAreaProps): JSX.Element {
           onChange={handleChange as unknown as FieldControlProps["onChange"]}
           render={(controlProps) => (
             <textarea
-              {...(controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>)}
-              rows={rows}
+              // A component that renders TextArea as its own part passes its own pair, which wins.
               data-ouro-control="text-area"
               data-ouro-part="input"
+              {...(controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+              rows={rows}
               data-variant={variant}
               data-size={size}
               className={cn(textAreaClass, textAreaVariants[variant], textAreaSizes[size], autoGrow ? "resize-none" : "resize-y")}

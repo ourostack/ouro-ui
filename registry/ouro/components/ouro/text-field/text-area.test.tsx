@@ -131,6 +131,14 @@ describe("TextArea", () => {
     expect(textarea.style.height).toBe("150px");
   });
 
+  it("marks its textarea as its own control part, unless a component that renders it passes its own pair", async () => {
+    const { textarea } = await render(<TextArea label="Notes" />);
+    expect([textarea.dataset.ouroControl, textarea.dataset.ouroPart]).toEqual(["text-area", "input"]);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    const owned = await render(<TextArea label="Note" data-ouro-control="agent-note" data-ouro-part="text" />);
+    expect([owned.textarea.dataset.ouroControl, owned.textarea.dataset.ouroPart]).toEqual(["agent-note", "text"]);
+  });
+
   it("forwards an object ref to the textarea", async () => {
     const object = createRef<HTMLTextAreaElement>();
     const { textarea } = await render(<TextArea label="Notes" ref={object} />);

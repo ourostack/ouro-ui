@@ -19,7 +19,7 @@ export type AgentNoteHandler = (revision: string | undefined, event: MouseEvent<
  * changed while they edited), and the click. Return `false`, or a promise of it, to keep the
  * editor open, such as when saving failed; a throw or a rejection keeps it open too, is reported
  * (`reportError`) and tells the person (`saveErrorLabel`). Until it settles, the text box is
- * read-only and Cancel waits.
+ * read-only and Cancel is disabled.
  */
 export type AgentNoteSaveHandler = (text: string, revision: string | undefined, event: MouseEvent<HTMLElement>) => boolean | void | Promise<boolean | void>;
 
@@ -118,7 +118,7 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
  * the app can check `event.isTrusted`, and the `revision` on screen when the press began, so
  * the app can refuse a decision about a note the agent replaced under the click. A newer
  * revision that arrives while the person edits shows a notice, spoken once, and never replaces
- * their words. While a save is in progress the text box is read-only and Cancel waits. When the
+ * their words. While a save is in progress the text box is read-only and Cancel is disabled. When the
  * app removes a dismissed note, focus moves to the next control after it. Leave a handler out
  * to leave its button out.
  *
@@ -353,6 +353,8 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
             label={editorLabel}
             hideLabel
             readOnly={saving}
+            data-ouro-control="agent-note"
+            data-ouro-part="text"
             value={draft}
             onValueChange={(next: string) => setDraft(next)}
             onKeyDown={cancelOnEscape}
@@ -394,7 +396,7 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
                 {saveButtonLabel}
               </Button>
             )}
-            <Button size="sm" variant="plain" data-ouro-control="agent-note" data-ouro-part="cancel" aria-disabled={saving || undefined} onClick={stopEditing}>
+            <Button size="sm" variant="plain" data-ouro-control="agent-note" data-ouro-part="cancel" disabled={saving} onClick={stopEditing}>
               {cancelButtonLabel}
             </Button>
           </>
