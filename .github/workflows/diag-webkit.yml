@@ -7,6 +7,7 @@ permissions:
 jobs:
   frames:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -17,9 +18,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
+      - timeout-minutes: 12
+        run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm site:build
       - run: |
           (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
