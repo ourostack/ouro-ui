@@ -185,7 +185,10 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
   const begin = () => {
     pressed.current = { revision };
     const clear = () => setTimeout(() => (pressed.current = null), 0);
+    // A listener left behind would only clear a later press after that press's own click, as this one does.
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: the same press is cleared either way.
     window.addEventListener("pointerup", clear, { once: true });
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: the same press is cleared either way.
     window.addEventListener("keyup", clear, { once: true });
   };
   const seen = () => {
@@ -234,10 +237,12 @@ export function AgentNote(props: AgentNoteProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; AgentNote takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   // Once the person keeps a note, the agent's words no longer replace it: a kept note that comes
   // back as the agent's, with other words, is a bug in the app, and development says so.
+  // Stryker disable next-line ObjectLiteral: the first render compares the note with itself, so it never warns.
   const previous = useRef({ text, kept });
   useDevWarnings(
     "AgentNote",

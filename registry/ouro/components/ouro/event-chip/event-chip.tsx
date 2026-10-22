@@ -1,7 +1,7 @@
 "use client";
 
 import type { JSX, MouseEventHandler, ReactNode, Ref } from "react";
-import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { Badge, type BadgeProps } from "@/registry/ouro/components/ouro/badge/badge";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
@@ -145,20 +145,17 @@ export function EventChip(props: EventChipProps): JSX.Element {
       )}
     </>
   );
-  const shared = {
+  // Badge makes a link of an `href`, a button of an `onClick`, and a label of neither.
+  const chip = {
     tone: near ? "primary" : "secondary",
     variant: "outline",
+    href,
+    onClick,
+    ref,
     "data-ouro-event-chip": "",
     "data-state": state,
     className: cn("max-w-full min-w-0 gap-2", className),
-  } as const;
-  return href !== undefined ? (
-    <Badge {...shared} href={href} onClick={onClick} ref={ref as Ref<HTMLAnchorElement>}>
-      {content}
-    </Badge>
-  ) : (
-    <Badge {...shared} onClick={onClick} ref={ref as Ref<HTMLButtonElement & HTMLSpanElement>}>
-      {content}
-    </Badge>
-  );
+    children: content,
+  } as BadgeProps;
+  return <Badge {...chip} />;
 }
