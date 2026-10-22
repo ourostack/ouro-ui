@@ -14,4 +14,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid tabs snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["tabsOk01"];
+export const validSnippets: string[] = ["tabsOk01", "tabsOk02"];

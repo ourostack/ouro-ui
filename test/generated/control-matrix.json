@@ -996,7 +996,9 @@
       "Tabs/Playground",
       "Tabs/InContext",
       "Tabs/Vertical",
-      "Tabs/Parts"
+      "Tabs/Parts",
+      "Tabs/Links",
+      "Tabs/LinksVertical"
     ]
   },
   {
@@ -1011,7 +1013,26 @@
       "Tabs/Playground",
       "Tabs/InContext",
       "Tabs/Vertical",
-      "Tabs/Parts"
+      "Tabs/Parts",
+      "Tabs/Links",
+      "Tabs/LinksVertical"
+    ]
+  },
+  {
+    "item": "tabs",
+    "stem": "tabs",
+    "mode": "default",
+    "part": "link",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Tabs/Playground",
+      "Tabs/InContext",
+      "Tabs/Vertical",
+      "Tabs/Parts",
+      "Tabs/Links",
+      "Tabs/LinksVertical"
     ]
   },
   {

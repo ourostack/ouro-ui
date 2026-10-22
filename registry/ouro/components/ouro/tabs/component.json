@@ -4,7 +4,8 @@
   "controls": {
     "tabs": [
       {"part": "tab", "role": "tab", "portal": false},
-      {"part": "panel", "role": "tabpanel", "portal": false}
+      {"part": "panel", "role": "tabpanel", "portal": false},
+      {"part": "link", "role": "link", "portal": false}
     ]
   }
 }

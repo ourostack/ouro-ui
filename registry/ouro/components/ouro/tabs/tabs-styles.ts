@@ -1,4 +1,18 @@
-export { activations, indicatorClass, listClass, orientations, ownLook, panelClass, rootClass, tabClass, tabFaceClass };
+export {
+  activations,
+  indicatorClass,
+  linkIndicatorClass,
+  linkItemClass,
+  linkListClass,
+  listClass,
+  orientations,
+  ownLook,
+  panelClass,
+  rootClass,
+  tabClass,
+  tabFaceClass,
+  tabLinkClass,
+};
 export type { TabsActivation, TabsOrientation };
 
 // Class strings and value lists for Tabs, apart from the components so their files export
@@ -124,6 +138,38 @@ const indicatorClass =
   "data-[orientation=vertical]:top-0 data-[orientation=vertical]:end-0 data-[orientation=vertical]:w-0.5 " +
   "data-[orientation=vertical]:h-px data-[orientation=vertical]:origin-top data-[orientation=vertical]:translate-y-(--active-tab-top) " +
   "data-[orientation=vertical]:scale-y-[tan(atan2(var(--active-tab-height,0px),1px))]";
+
+/**
+ * The list of links when the tabs are links: the tab row's look, without the list's bullets.
+ *
+ * @internal
+ */
+const linkListClass = "list-none";
+
+/**
+ * One link's list item, which the link fills, so a column of links lines up on the hairline.
+ *
+ * @internal
+ */
+const linkItemClass = "m-0 flex p-0";
+
+/**
+ * A tab that is a link: the tab's look, filling its list item, without the link's underline.
+ *
+ * @internal
+ */
+const tabLinkClass = "flex-1 no-underline";
+
+/**
+ * The line under the current link (beside it, in a column). It is drawn inside the current
+ * link, on the row's hairline, and stands still, since a link opens a page of its own.
+ *
+ * @internal
+ */
+const linkIndicatorClass =
+  "pointer-events-none absolute z-1 bg-primary " +
+  "data-[orientation=horizontal]:inset-x-0 data-[orientation=horizontal]:bottom-0 data-[orientation=horizontal]:h-0.5 " +
+  "data-[orientation=vertical]:inset-y-0 data-[orientation=vertical]:end-0 data-[orientation=vertical]:w-0.5";
 
 /**
  * A panel. It fades in when its tab is selected; the old panel leaves at once, so the

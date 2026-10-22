@@ -18,16 +18,26 @@ import { Tabs } from "@/registry/ouro/components/ouro/tabs/tabs";
     { value: "method", label: "Method", content: <Steps /> },
   ]}
 />
+<Tabs
+  label="Recipes"
+  currentPath={location.pathname}
+  items={[
+    { value: "all", label: "All", href: "/recipes" },
+    { value: "mine", label: "Mine", href: "/my-recipes" },
+  ]}
+/>
 ```
 
 ## Usage
+
+When each tab is a view of one page with a URL of its own (a section's pages, a search's scopes), give each item an `href` instead of `content`: the tabs render as a `<nav>` of links in the same look, through your router's link, with the current one marked `aria-current="page"` from `currentPath`, and Tab moves between them as between any links.
 
 Use the parts in `tabs-parts` when `items` cannot express your layout.
 
 ## Use instead when
 
 - Use `SegmentedControl` instead when the choice changes how one view looks (list or grid) rather than which content shows.
-- Use links in a nav instead when each tab is its own page with its own URL.
+- Use `Navbar` or `Sidebar` instead for the site's own navigation.
 
 ## Props
 
@@ -35,15 +45,16 @@ Type: `TabsProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `activation` | `"automatic" \| "manual"` | `"automatic"` | How the keyboard selects a tab. `automatic` selects it as soon as the arrow keys focus it, which suits panels that show at once. `manual` moves focus only and waits for Enter or Space, for panels that load slowly. |
+| `activation` | `"automatic" \| "manual"` | `"automatic"` | How the keyboard selects a tab with a panel. `automatic` selects it as soon as the arrow keys focus it, which suits panels that show at once. `manual` moves focus only and waits for Enter or Space, for panels that load slowly. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development. |
-| `defaultValue` | `string` | the first enabled item | The tab selected first, when the component keeps its own state. |
-| `items` (required) | `readonly TabsItem[]` |  | The tabs, in order, each with the panel it shows. |
-| `label` (required) | `string` |  | Names the tab list for screen readers ("Recipe sections"). It is not shown: the tabs' own labels are the visible text. |
-| `onValueChange` | `((value: string) => void)` |  | Called with the new tab's value when the person selects a tab. |
-| `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` puts the tabs in a row above the panel; `vertical` in a column beside it, from the `sm` breakpoint (640px) up, and in a row on a phone. The arrow keys follow: left and right in a row, up and down in a column. |
+| `currentPath` | `string` |  | Links only: the path of the page being shown, from your router, with its query when the tabs differ by query (`location.pathname + location.search`). The link at that path whose parameters the path carries gets `aria-current="page"` and the current look; with links at other paths, the longest one the path sits under (`/recipes` for `/recipes/12`). |
+| `defaultValue` | `string` | the first enabled item | The tab selected first, when the component keeps its own state. Panels only. |
+| `items` (required) | `readonly TabsItem[] \| readonly TabsLinkItem[]` |  | The tabs, in order: each with the panel it shows (`content`), or each a link to its own page (`href`). Links render as a `<nav>` of links named by `label`, and Tab moves between them as between any links. |
+| `label` (required) | `string` |  | Names the tab list for screen readers ("Recipe sections"), or the nav of links. It is not shown: the tabs' own labels are the visible text. |
+| `onValueChange` | `((value: string) => void)` |  | Called with the new tab's value when the person selects a tab. Panels only: a link opens its page. |
+| `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` puts the tabs in a row above the panel; `vertical` in a column beside it, from the `sm` breakpoint (640px) up, and in a row on a phone. With panels, the arrow keys follow: left and right in a row, up and down in a column. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `value` | `string` |  | The selected tab's value, when you control it. Pair it with `onValueChange`. |
+| `value` | `string` |  | The selected tab's value, when you control it. Pair it with `onValueChange`. With links, the current page's value, when `currentPath` cannot tell; it wins over `currentPath`. |
 
 ## Don't use
 
@@ -81,6 +92,30 @@ interface TabsItem {
   content: ReactNode;
   /** Shows the tab but keeps it from being selected. */
   disabled?: boolean | undefined;
+  /** Not set: a tab with a panel. Give every item an `href`, and no `content`, for tabs that are links. */
+  href?: never;
+}
+```
+
+### `TabsLinkItem`
+
+One tab that is a link to a page of its own.
+
+```ts
+interface TabsLinkItem {
+  /** Identifies the tab: `value` names the current one with it. Unique within the tabs. */
+  value: string;
+  /** The tab's text. Keep it short: one or two words. */
+  label: ReactNode;
+  /**
+   * The page the tab opens. Internal paths render through `OuroProvider`'s `linkComponent`
+   * (your router's link).
+   */
+  href: string;
+  /** Not set: the page at `href` is the tab's content. */
+  content?: never;
+  /** A link cannot be disabled. Leave the item out instead. */
+  disabled?: never;
 }
 ```
 

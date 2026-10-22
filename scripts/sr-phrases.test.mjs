@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -71,6 +71,18 @@ test("the checkbox's name, role and state come from one sentence", () => {
   assert.equal(checked("checked"), true);
   assert.equal(checked("Email me new recipes unchecked checkbox"), false);
   assert.equal(checked("Email me new recipes, check box, not checked"), false);
+});
+
+test("a link to the current page is said with its name, the role and \"current page\" in one sentence; another link without it", () => {
+  const current = (phrase) => inOneSentence(phrase, /\brecipes\b/i, LINK, CURRENT_PAGE);
+  assert.equal(current("current page, link, Recipes"), true);
+  assert.equal(current("Recipes, current page, link. You are currently on a link, inside of web content."), true);
+  assert.equal(current("Recipes, link"), false);
+  assert.equal(current("Recipes. current page link"), false);
+  const other = (phrase) => inOneSentence(phrase, /\bcookbooks\b/i, LINK, (sentence) => !CURRENT_PAGE.test(sentence));
+  assert.equal(other("link, Cookbooks"), true);
+  assert.equal(other("visited link Cookbooks"), true);
+  assert.equal(other("current page, link, Cookbooks"), false);
 });
 
 test("a checked radio button is \"selected\" on VoiceOver and \"checked\" on NVDA, and neither is said of one that is not", () => {

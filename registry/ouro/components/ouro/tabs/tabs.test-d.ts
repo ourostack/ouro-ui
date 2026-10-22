@@ -18,6 +18,15 @@ expectTypeOf<{
 }>().toExtend<TabsProps>();
 expectTypeOf<ComponentProps<typeof Tabs>>().toEqualTypeOf<TabsProps>();
 
+// Items with href make tabs that are links, marked from currentPath; an item cannot be both,
+// and the items cannot mix the two.
+const pages = [{ value: "all", label: "All", href: "/recipes" }] as const;
+expectTypeOf<{ label: "Recipes"; items: typeof pages; currentPath: "/recipes"; orientation: "vertical" }>().toExtend<TabsProps>();
+expectTypeOf<{ label: "Recipes"; items: typeof pages; value: "all" }>().toExtend<TabsProps>();
+expectTypeOf<{ label: "Recipes"; items: readonly [{ value: "a"; label: "A"; href: "/a"; content: "A" }] }>().not.toExtend<TabsProps>();
+expectTypeOf<{ label: "Recipes"; items: readonly [{ value: "a"; label: "A"; href: "/a"; disabled: true }] }>().not.toExtend<TabsProps>();
+expectTypeOf<{ label: "Recipes"; items: ReadonlyArray<(typeof items)[number] | (typeof pages)[number]> }>().not.toExtend<TabsProps>();
+
 // label and items are required; the guessed props name the fix.
 expectTypeOf<{ items: typeof items }>().not.toExtend<TabsProps>();
 expectTypeOf<{ label: "Recipe" }>().not.toExtend<TabsProps>();
@@ -33,3 +42,4 @@ expectTypeOf<{ defaultValue: "a"; className: "mt-4" }>().toExtend<TabsRootProps>
 // @ts-expect-error label is required.
 createElement(Tabs, { items });
 createElement(TabsRoot, { defaultValue: "a" }, createElement(TabsList, { "aria-label": "Parts" }, createElement(TabsTab, { value: "a" }, "A")));
+createElement(Tabs, { label: "Recipes", items: pages, currentPath: "/recipes" });
