@@ -1293,14 +1293,16 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   const step = stepScript(block, "Release rehearsal");
   assert.ok(block.indexOf("name: Release rehearsal") > block.indexOf("pnpm build-storybook"));
   const run = (tagExists) => {
-    const stubs = `pnpm() { printf 'CALL pnpm %s\\n' "$*"; }\nscripts/release-commit.sh() { printf 'CALL release-commit %s\\n' "$*"; }\ngit() { return ${tagExists ? 0 : 1}; }`;
-    return spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stubs}\n${step}`], { cwd: root, encoding: "utf8" });
+    const stubs = `pnpm() { printf 'CALL pnpm %s (%s, base %s)\\n' "$*" "$GITHUB_REF" "$GITHUB_BASE_REF"; }\nscripts/release-commit.sh() { printf 'CALL release-commit %s\\n' "$*"; }\ngit() { return ${tagExists ? 0 : 1}; }`;
+    // As on a pull request into main, where registry --check fails a pinned registry.json.
+    return spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stubs}\n${step}`], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_REF: "refs/pull/9/merge", GITHUB_BASE_REF: "main" } });
   };
   const [major, minor, patch] = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease.slice(1).split(".").map(Number);
   const next = `${major}.${minor}.${patch + 1}`;
   const rehearsed = run(false);
   assert.equal(rehearsed.status, 0, rehearsed.stderr);
-  assert.equal(rehearsed.stdout, [`CALL release-commit ${next}`, "CALL pnpm registry --check", "CALL pnpm run docs --check", "CALL pnpm claims:check", "CALL pnpm site:build", ""].join("\n"));
+  const branch = `(refs/heads/release/v${next}, base )`;
+  assert.equal(rehearsed.stdout, [`CALL release-commit ${next}`, ...["registry --check", "run docs --check", "claims:check", "site:build"].map((command) => `CALL pnpm ${command} ${branch}`), ""].join("\n"));
   // A version whose tag exists would not rehearse a release that has none.
   const tagged = run(true);
   assert.equal(tagged.status, 1);
