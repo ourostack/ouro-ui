@@ -1,4 +1,4 @@
-import { memo, startTransition, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
+import { memo, startTransition, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type SVGProps } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -294,31 +294,43 @@ const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }
   );
 });
 
+/** The bubbles that rise in a flooding sight glass: [cx, cy, r, delay in ms], in the glass's 44 units. */
+const GAUGE_BUBBLES: ReadonlyArray<[number, number, number, number]> = [
+  [15, 34, 1.7, 0],
+  [24, 36, 1.2, 220],
+  [30, 33, 1.5, 420],
+];
+
 /**
  * A ballast tank's sight glass: the water inside rises when the tank floods, with a few bubbles,
- * and drains when it empties. Its shape and glow come from the preset (stage.css).
+ * and drains when it empties. Its shape and glow come from the preset (stage.css). The glass is
+ * drawn in SVG; the water and each bubble are boxes of their own over it, clipped to the glass,
+ * because the compositor moves a box without the page, and an SVG shape that moves is redrawn by
+ * the page every frame, which a press made then waits on (site/e2e/stage.latency.spec.ts).
  */
 function SightGlass({ full }: { full: boolean }): JSX.Element {
-  const clip = useId();
   return (
-    <svg className="stage-gauge" viewBox="0 0 44 44" aria-hidden="true" data-full={full ? "" : undefined}>
-      <defs>
-        <clipPath id={clip}>
-          <rect className="stage-gauge-shape" x="5" y="5" width="34" height="34" rx="17" />
-        </clipPath>
-      </defs>
-      <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
-      <g clipPath={`url(#${clip})`}>
-        <rect className="stage-gauge-water" x="5" y="5" width="34" height="34" />
-        <path className="stage-gauge-surface" d="M5 12 Q13.5 9.5 22 12 T39 12" />
-        <circle className="stage-gauge-bubble" cx="15" cy="34" r="1.7" />
-        <circle className="stage-gauge-bubble" cx="24" cy="36" r="1.2" />
-        <circle className="stage-gauge-bubble" cx="30" cy="33" r="1.5" />
-      </g>
-      <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
-      <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
-      <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
-    </svg>
+    <span className="stage-gauge" aria-hidden="true" data-full={full ? "" : undefined}>
+      <svg viewBox="0 0 44 44">
+        <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
+      </svg>
+      <span className="stage-gauge-glass">
+        <span className="stage-gauge-water" />
+        <svg viewBox="5 5 34 34">
+          <path className="stage-gauge-surface" d="M5 12 Q13.5 9.5 22 12 T39 12" />
+        </svg>
+        {GAUGE_BUBBLES.map(([cx, cy, r, delay]) => (
+          <svg key={cx} viewBox="5 5 34 34" className="stage-gauge-bubble" style={{ "--gauge-bubble-delay": `${delay}ms` } as CSSProperties}>
+            <circle cx={cx} cy={cy} r={r} />
+          </svg>
+        ))}
+      </span>
+      <svg viewBox="0 0 44 44">
+        <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
+        <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
+        <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
+      </svg>
+    </span>
   );
 }
 

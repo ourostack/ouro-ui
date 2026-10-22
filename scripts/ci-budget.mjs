@@ -48,11 +48,13 @@ export function jobGraph(text) {
     const id = block.match(/^ {2}([\w-]+):/)[1];
     const name = block.match(/^ {4}name: (.+)$/m)?.[1] ?? id;
     const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()).filter(Boolean) ?? [];
-    // A matrix value in the name matches the values the matrix lists, or any text without a comma or parenthesis.
+    // A matrix value in the name matches the values the matrix lists, or any text without a comma or
+    // parenthesis, and so does any other expression (a shard count a job's needs compute).
     const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const source = name.split(/(\$\{\{ *matrix\.\w+ *\}\})/).map((part) => {
+    const source = name.split(/(\$\{\{[^}]*\}\})/).map((part) => {
+      if (!/^\$\{\{[^}]*\}\}$/.test(part)) return escape(part);
       const key = /^\$\{\{ *matrix\.(\w+) *\}\}$/.exec(part)?.[1];
-      if (!key) return escape(part);
+      if (!key) return "[^,()]+";
       const values = block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
       return values ? `(?:${values.map(escape).join("|")})` : "[^,()]+";
     });
