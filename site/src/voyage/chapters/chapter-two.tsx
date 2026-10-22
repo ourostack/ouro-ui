@@ -18,7 +18,7 @@ import chartSource from "../../nautilus/art/voyage-chart.svg?raw";
 import compassSource from "../../nautilus/art/compass.svg?raw";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
-import { labelBox, labelStyle, parseArt } from "../stage/art";
+import { labelBox, labelStyle, parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
 import {
   CATALOGUE,
@@ -44,7 +44,15 @@ import { arrivals, chartPoint, isBook, isShortest, legs, portNamed, routeLeagues
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-two.css?inline";
 
-const chart = parseArt(chartSource);
+// The sea and the land take the theme's colours in the drawing's own markup, so the server HTML has
+// them without a rule in the first load's CSS (catalog.spec.ts).
+const map = parseArt(chartSource);
+const chart: Art = {
+  ...map,
+  inner: map.inner
+    .replace('class="ch-sea"', 'class="ch-sea" style="fill:color-mix(in oklab,var(--primary) 6%,var(--card))"')
+    .replace('class="ch-land"', 'class="ch-land" style="fill:color-mix(in oklab,var(--chart-3) 18%,var(--card))"'),
+};
 const compass = parseArt(compassSource);
 
 /** How the plan stands: the chart room and the catalogue write it, the rail beside them reads it. */
@@ -174,8 +182,6 @@ function ChartLabel({ x, y, anchor, className, fontSize, fontWeight, halo = fals
         style={{
           ...labelStyle,
           textAlign: box.align,
-          fontFamily: "var(--font-sans)",
-          color: "var(--foreground)",
           // A halo of the card's colour, so the name reads across coasts and the route.
           ...(halo ? { WebkitTextStroke: "3px var(--card)", paintOrder: "stroke fill" } : {}),
         }}
@@ -194,23 +200,26 @@ const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] })
         <g dangerouslySetInnerHTML={{ __html: chart.inner }} />
         {/* A new route draws itself in afresh. */}
         <path key={route.join()} className="ch-route" d={routePath(route)} pathLength={1} strokeWidth={2.2} style={{ stroke: "var(--primary)" }} />
-        {route.map((id, index) => {
-          const { x, y } = chartPoint(id);
-          const label = LABEL_AT[id];
-          return (
-            <g key={id} className="ch-port" data-port={id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
-              <g className="ch-mark">
-                <circle r={9} strokeWidth={1.4} style={{ fill: "var(--card)", stroke: "var(--primary)" }} />
-                <ChartLabel className="ch-port-number" x={0} y={3.6} anchor="middle" fontSize={10} fontWeight={600}>
-                  {index + 1}
-                </ChartLabel>
-                <ChartLabel className="ch-port-name" x={label.dx} y={label.dy} anchor={label.anchor} fontSize={11} fontWeight={500} halo>
-                  {portNamed(id).short}
-                </ChartLabel>
+        {/* The ports' marks, card-filled and ringed in the primary colour, and their numbers and names in the page's sans and the foreground colour, which their HTML takes from here. */}
+        <g style={{ fill: "var(--card)", stroke: "var(--primary)", fontFamily: "var(--font-sans)", color: "var(--foreground)" }}>
+          {route.map((id, index) => {
+            const { x, y } = chartPoint(id);
+            const label = LABEL_AT[id];
+            return (
+              <g key={id} className="ch-port" data-port={id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
+                <g className="ch-mark">
+                  <circle r={9} strokeWidth={1.4} />
+                  <ChartLabel className="ch-port-number" x={0} y={3.6} anchor="middle" fontSize={10} fontWeight={600}>
+                    {index + 1}
+                  </ChartLabel>
+                  <ChartLabel className="ch-port-name" x={label.dx} y={label.dy} anchor={label.anchor} fontSize={11} fontWeight={500} halo>
+                    {portNamed(id).short}
+                  </ChartLabel>
+                </g>
               </g>
-            </g>
-          );
-        })}
+            );
+          })}
+        </g>
       </svg>
     </figure>
   );
@@ -323,7 +332,7 @@ function useAxisLabels(host: RefObject<HTMLElement | null>): AxisLabel[] {
       const origin = element.getBoundingClientRect();
       const svg = element.querySelector("svg.recharts-surface");
       const surface = svg?.getBoundingClientRect();
-      const next = [...element.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick-value")].map((text) => ({
+      const next = [...element.querySelectorAll(".recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value")].map((text) => ({
         x: surface!.left - origin.left + Number(text.getAttribute("x")),
         y: surface!.top - origin.top + Number(text.getAttribute("y")),
         text: text.textContent ?? "",

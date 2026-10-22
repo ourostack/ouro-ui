@@ -129,15 +129,14 @@ describe("the hero", () => {
   it("keeps a proof link, and its keyboard focus, as the Tooltip's code loads; the link shows where it goes from its next focus", async () => {
     await renderPage("/voyage/");
     const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
-    const link = page.getByRole("link", { name: proof.claims[0]!.text, exact: true });
-    const element = link.element();
-    expect(document.querySelector("[data-site-proof-tips]")).toBeNull();
-    // Keyboard focus, straight onto the link (a key first, so focus shows as the keyboard's): the
-    // Tooltip's code loads, and the same link keeps focus.
+    // Keyboard focus (a key first, so focus shows as the keyboard's), straight onto the first proof
+    // link: the Tooltip's code loads, unless the pointer brought it already, and that link keeps
+    // focus. It is not swapped for a new link under the Tooltip.
     await userEvent.keyboard("{Shift}");
-    (element as HTMLElement).focus();
+    const element = page.getByRole("link", { name: proof.claims[0]!.text, exact: true }).element() as HTMLElement;
+    element.focus();
     await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
-    expect(link.element()).toBe(element);
+    expect(element.isConnected).toBe(true);
     expect(document.activeElement).toBe(element);
     // The next link shows its Tooltip on focus, and so does this one when focus comes back to it.
     await pressTab();

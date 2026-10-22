@@ -94,12 +94,6 @@
   color: var(--ch-ink);
   font-family: var(--font-heading);
 }
-.site-chart .ch-sea {
-  fill: color-mix(in oklab, var(--primary) 6%, var(--card));
-}
-.site-chart .ch-land {
-  fill: color-mix(in oklab, var(--chart-3) 18%, var(--card));
-}
 
 /* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
 @media (max-width: 40rem) {
