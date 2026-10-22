@@ -28,9 +28,10 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * Playwright has no session of its own for the frame until `sessionAfter` ms, when the frame
  * navigates, as for a frame first looked up while it was still in its parent's process. The frame
  * is busy until `busyUntil` ms: its watch answers only then. With `lost`, Chromium sends the frame's
- * touches nowhere, so the page never handles them.
+ * touches nowhere, so the page never handles them. With `busyOnceSent`, the frame turns busy once a
+ * touch is sent: no call into it answers after that, its wait and its tidying up included.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -76,6 +77,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   // Playwright lists a sandboxed srcdoc frame in another process with no URL.
   const target = frame("target", listedUrl, tests, "TARGET-FRAME-ID");
   const listed = [top, tests];
+  if (busyOnceSent) target.never = () => sent.length > 0;
   // "none" before the frame draws, then "pending" until the page around it draws, "stale" until the frame draws again, then "clear".
   let embedding = "none";
   if (reembed) {
@@ -432,6 +434,23 @@ test("a touch the page never handles is refused within the command's ceiling in 
     const took = performance.now() - started;
     // The ceiling, then 2 seconds at most for what the kit reads of the frames after it.
     assert.ok(took < CEILING_MS + 2000, `refused after ${took}ms`);
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+  } finally {
+    unstarve();
+    stop();
+  }
+});
+
+test("a touch into a frame that turns busy once it is sent is refused within the command's ceiling in real time, its wait for the frame included, however long Node is starved", { timeout: 40_000 }, async () => {
+  // Its watch answers 3 seconds in, so its wait starts late, and on its own bound would run to 15 seconds.
+  const { sent, start, stop } = stage({ listAfter: 0, lost: true, busyOnceSent: true, busyUntil: 3000 });
+  const unstarve = starveNode(200, 10);
+  try {
+    const started = performance.now();
+    await assert.rejects(start(), /^Error: touchStep: the page did not handle the touchStart at \(100, 350\) within 5000ms\. /);
+    const took = performance.now() - started;
+    // The ceiling, then 2 seconds at most for tidying up (and a stall's overshoot): the wait in the busy frame ends at the ceiling too.
+    assert.ok(took < CEILING_MS + 2500, `refused after ${took}ms`);
     assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
   } finally {
     unstarve();

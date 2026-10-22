@@ -367,14 +367,16 @@ function within<T>(promise: Promise<T>, limit: number | Limit, message: string):
 
 /**
  * Calls `TOUCH_WATCH` in one frame. A failed call is kept, with its reason, and so is a call
- * still unanswered after `ms`: Playwright waits for a frame's document before it evaluates
- * there, and a frame whose document never arrives never answers.
+ * still unanswered after `limit` (`ms`, or a command's `Limit`, so the call ends by the command's
+ * ceiling): Playwright waits for a frame's document before it evaluates there, and a frame whose
+ * document never arrives never answers.
  * @claim "A failed call is kept, with" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
  */
-function callWatch<T>(frame: Frame, action: TouchWatchAction, point: TouchPoint, ms: number): Promise<FrameAnswer<T>> {
+function callWatch<T>(frame: Frame, action: TouchWatchAction, point: TouchPoint, limit: number | Limit): Promise<FrameAnswer<T>> {
   const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase() })})`;
   const url = () => frame.url() || "a frame with no URL yet";
-  return within(frame.evaluate<T>(call), ms, `did not answer within ${Math.round(ms)}ms`).then(
+  const ms = typeof limit === "number" ? limit : limit.kit - kitNow();
+  return within(frame.evaluate<T>(call), limit, `did not answer within ${Math.round(ms)}ms`).then(
     (value) => ({ frame, url: url(), action, value }),
     (error: unknown) => ({ frame, url: url(), action, error: (error instanceof Error ? error.message : String(error)).split("\n")[0]! }),
   );
@@ -654,7 +656,7 @@ async function watchTarget(
   const calls = new Map<Frame, Promise<FrameAnswer<null>>>();
   let changed = () => {};
   const watch = (frame: Frame) => {
-    const call = callWatch<null>(frame, "expect", expected, TOUCH_HANDLED_TIMEOUT_MS);
+    const call = callWatch<null>(frame, "expect", expected, trace.limit(TOUCH_HANDLED_TIMEOUT_MS));
     calls.set(frame, call);
     trace.answered.delete(frame);
     void call.then(() => {
@@ -667,7 +669,7 @@ async function watchTarget(
   try {
     for (const frame of page.frames()) watch(frame);
     if ("frame" in target) {
-      const answer = await (calls.get(target.frame) ?? callWatch<null>(target.frame, "expect", expected, TOUCH_HANDLED_TIMEOUT_MS));
+      const answer = await (calls.get(target.frame) ?? callWatch<null>(target.frame, "expect", expected, trace.limit(TOUCH_HANDLED_TIMEOUT_MS)));
       traceStep(trace, `the gesture's frame answered: ${answer.url}`);
       if (answer.error === undefined) return { calls };
       // A lift is sent all the same, so the finger is not left down.
@@ -785,7 +787,7 @@ async function watchTarget(
  * @claim "One event is never on its" https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc verify:urlOk(https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc)
  * @claim "The page then handles a touchend" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
  * @claim "Each wait is bounded: up to" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a missing touch event remains bounded while the page clock is frozen)
- * @claim "Reading the frames for its error" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touch the page never handles is refused within the command's ceiling in real time, however long Node is starved) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_CEILING_MS\s=\s2\s\*\sTOUCH_HANDLED_TIMEOUT_MS;/)
+ * @claim "Reading the frames for its error" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touch the page never handles is refused within the command's ceiling in real time, however long Node is starved) verify:testExists(scripts/touch-kit-frames.test.mjs::a touch into a frame that turns busy once it is sent is refused within the command's ceiling in real time, its wait for the frame included, however long Node is starved) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_CEILING_MS\s=\s2\s\*\sTOUCH_HANDLED_TIMEOUT_MS;/)
  */
 async function sendTouch(
   command: string,
@@ -862,9 +864,10 @@ async function sendTraced(
     await send();
     traceStep(trace, "sent");
     if (gone) throw new Error(gone);
-    // Each frame waits once its watch has started, and stops after the bound on its own; a frame that never answers is let go a little later.
+    // Each frame waits once its watch has started, and stops after the bound on its own; a frame that
+    // never answers is let go a little later, and by the command's ceiling in real time at the latest.
     waits = [...calls].map(([frame, call]) =>
-      call.then((answer) => (answer.error === undefined ? callWatch<TouchSeen>(frame, "wait", expected, TOUCH_HANDLED_TIMEOUT_MS + TOUCH_TIDY_MS) : undefined)),
+      call.then((answer) => (answer.error === undefined ? callWatch<TouchSeen>(frame, "wait", expected, trace.limit(TOUCH_HANDLED_TIMEOUT_MS + TOUCH_TIDY_MS)) : undefined)),
     );
     // Page timers may be frozen by a test; keep the acknowledgement deadline on the provider.
     const deadline = new Promise<undefined>((resolve) => {
