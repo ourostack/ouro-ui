@@ -166,6 +166,7 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
   await page.getByRole("radio", { name: "Submerged" }).click();
   await page.keyboard.press("Escape");
   await page.locator("[data-site-dive-trigger]").click();
+  // real clock: a confirm dialog, which stays open until answered.
   await expect(page.getByRole("dialog", { name: "Dive to 300 fathoms?" })).toBeVisible();
   await page.getByRole("button", { name: "Not yet" }).click();
   await page.getByRole("checkbox", { name: "Fill the ballast tanks" }).click();
@@ -212,6 +213,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await expect(trigger).toHaveAccessibleName(/Theme: Sleek/);
   await page.keyboard.press("Enter");
   const popup = page.getByRole("dialog", { name: "Theme" });
+  // real clock: the theme picker's popup stays open until it is closed; no timer ends it.
   await expect(popup).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await pressTab(page);
