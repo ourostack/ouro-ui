@@ -4,18 +4,16 @@ const [base, label] = [process.argv[2], process.argv[3]];
 const CV = "main > section, main > div > section, section[id] { content-visibility: auto; contain-intrinsic-size: auto 900px; }";
 const VARIANTS = {
   base: "",
-  cvwin: CV + " .site-window { box-shadow: none !important; }",
   cvlayer: CV + " .site-window { will-change: transform; }",
-  cvlayernochart: CV + " .site-window { will-change: transform; } .site-chart { display: none !important; }",
-  cvlayernopop: CV + " .site-window { will-change: transform; } [data-ouro=menu-popup], [role=menu] { box-shadow: none !important; transition: none !important; animation: none !important; }",
-  cvwinmain: "main > section { content-visibility: auto; contain-intrinsic-size: auto 900px; } .site-window { will-change: transform; }",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
+const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
+const longs = (page) => page.evaluate(() => { cancelAnimationFrame(window.__raf); const l = window.__long; return `${l.length}x sum ${l.reduce((a, b) => a + b, 0)} max ${Math.max(0, ...l)}`; });
 for (const type of [webkit, chromium]) {
   const browser = await type.launch();
   for (const [name, css] of Object.entries(VARIANTS)) {
     if (type === chromium && name !== "base") continue;
-    if (label === "main" && !["base", "cvlayer"].includes(name)) continue;
+    if (label === "main") continue;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(base + "voyage/");
@@ -43,12 +41,16 @@ for (const type of [webkit, chromium]) {
       t0 = Date.now();
       let [opens, picks] = [0, 0];
       for (const port of ["Atlantis", "Crespo Island"]) {
+        await record(page);
         t0 = Date.now();
         await page.getByRole("button", { name: new RegExp(`^Reorder ${port}`) }).click();
         opens += Date.now() - t0;
+        row.push(`open long ${await longs(page)}`);
+        await record(page);
         t0 = Date.now();
         await page.getByRole("menu", { name: `Reorder ${port}` }).getByRole("menuitem", { name: "Move to top" }).click();
         picks += Date.now() - t0;
+        row.push(`pick long ${await longs(page)}`);
       }
       row.push(`2 moves open ${opens}ms pick ${picks}ms`);
       await page.locator("#chapter-three").scrollIntoViewIfNeeded();
