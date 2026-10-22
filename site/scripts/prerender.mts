@@ -74,7 +74,7 @@ function pageAssets(kind: string): string[] {
 
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {
   const head = headTags(route, canonical).join("\n    ");
-  // After the entry's own stylesheet, which Vite puts in <head>: a page's theme rules must come later to win.
+  // Each page imports its own stylesheets (the entry has none), Tailwind's first, so a page's theme rules come later and win.
   const assets = pageAssets(pageKind(path)).join("\n    ");
   const html = await render(path);
   return template

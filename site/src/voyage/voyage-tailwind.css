@@ -1,0 +1,9 @@
+/*
+ * The voyage page's own Tailwind build. site/src/styles.css, which the landing page and the docs
+ * load, scans every registry component and every site file, because the docs show them all. This
+ * stylesheet is the same, less (voyage-sources.generated.css) every registry component and site
+ * file the voyage's import graph never reaches, so a new component costs the voyage's CSS nothing
+ * until the voyage renders it (site/e2e/catalog.spec.ts holds each page's CSS to its ceiling).
+ */
+@import "../styles.css";
+@import "./voyage-sources.generated.css";

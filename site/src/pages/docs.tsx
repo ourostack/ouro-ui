@@ -1,3 +1,5 @@
+// First, so the page's own rules come after Tailwind's and win.
+import "../styles.css";
 import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";

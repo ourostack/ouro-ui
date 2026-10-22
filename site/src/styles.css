@@ -3,7 +3,9 @@
  * app.css (Tailwind, ouro-base.css, the Ouro theme and shadcn's @theme mapping) and adds
  * its own source files to what Tailwind scans. It renders no registry test, story or
  * end-to-end harness, so their class names (test fixtures like `bg-red-500`) stay out of
- * every page's stylesheet (site/e2e/catalog.spec.ts holds each page's CSS to 40 KB gzip).
+ * every page's stylesheet (site/e2e/catalog.spec.ts holds each page's CSS to its ceiling).
+ * The landing page and the docs import it; the voyage imports it less what it never renders
+ * (site/src/voyage/voyage-tailwind.css).
  */
 @import "../../app.css";
 

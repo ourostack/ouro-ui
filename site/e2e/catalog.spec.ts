@@ -237,6 +237,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   const manifest = buildManifest();
   const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
   const report: Record<string, unknown> = {};
+  const sheets: Record<string, string[]> = {};
   for (const [kind, path, ready] of [
     ["landing", "./", page.locator("html[data-site-ready]")],
     ["voyage", "voyage/", page.locator("html[data-site-ready]")],
@@ -273,8 +274,12 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILING };
     expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
     expect(styles.length, `${kind} loads its stylesheets`).toBeGreaterThan(0);
+    sheets[kind] = [...new Set(styles)];
     expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILING);
   }
+  // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
+  // registry components and site files it never renders: it loads none of the docs' stylesheets.
+  expect(sheets["voyage"]!.filter((sheet) => sheets["docs"]!.includes(sheet) || sheets["landing"]!.includes(sheet)), "voyage shares a stylesheet with the docs or the landing page").toEqual([]);
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
 });
