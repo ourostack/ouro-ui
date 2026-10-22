@@ -19,11 +19,12 @@ const arm = (page) => page.evaluate(() => {
 });
 const mark = (page, name) => page.evaluate((name) => { window.__mark = name; }, name);
 const dump = (page) => page.evaluate(() => `frames ${window.__frames} long ${window.__long.join(" ")}`);
-for (const type of [webkit, chromium]) {
+for (const type of [webkit, chromium]) try {
   const browser = await type.launch();
   for (const [name, css] of Object.entries(VARIANTS)) {
     if (type === chromium && name !== "asis") continue;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    page.setDefaultTimeout(30000);
     await page.emulateMedia({ reducedMotion: "reduce" });
     if (css) await page.addInitScript((css) => { document.addEventListener("DOMContentLoaded", () => { const s = document.createElement("style"); s.textContent = css; document.head.append(s); }); }, css);
     const t = [Date.now()];
@@ -51,4 +52,4 @@ for (const type of [webkit, chromium]) {
     await page.close();
   }
   await browser.close();
-}
+} catch (e) { console.log(`R error ${e.message.split("\n")[0]}`); }
