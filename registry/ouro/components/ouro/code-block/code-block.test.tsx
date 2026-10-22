@@ -130,16 +130,25 @@ describe("CodeBlock", () => {
   });
 
   it("copies the code exactly with its copy button", async () => {
-    const code = "line one\n\tline two  ";
-    await render(<CodeBlock code={code} copyLabel="Copy the command" />);
-    const button = page.getByRole("button", { name: "Copy the command" });
-    await userEvent.click(button);
-    await expect.poll(() => clipboard).toEqual([code]);
-    // The button is CodeBlock's own control, marked as its copy part rather than a CopyButton's trigger.
-    const copied = document.querySelector("button")!;
-    expect(copied.getAttribute("data-ouro-control")).toBe("code-block");
-    expect(copied.getAttribute("data-ouro-part")).toBe("copy");
-    await expect.poll(() => copied.getAttribute("aria-label")).toBe("Copied");
+    // The page's timers stand still, so the two-second Copied cannot end before the check on a
+    // loaded runner; the wait is on real frames, since expect.poll would move the timers on.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const code = "line one\n\tline two  ";
+      await render(<CodeBlock code={code} copyLabel="Copy the command" />);
+      const button = page.getByRole("button", { name: "Copy the command" });
+      await userEvent.click(button);
+      // The button is CodeBlock's own control, marked as its copy part rather than a CopyButton's trigger.
+      const copied = document.querySelector("button")!;
+      const deadline = performance.now() + 5000;
+      while (copied.getAttribute("aria-label") !== "Copied" && performance.now() < deadline) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(copied.getAttribute("aria-label")).toBe("Copied");
+      expect(clipboard).toEqual([code]);
+      expect(copied.getAttribute("data-ouro-control")).toBe("code-block");
+      expect(copied.getAttribute("data-ouro-part")).toBe("copy");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("scrolls a long line sideways and becomes a tab stop only while it overflows", async () => {

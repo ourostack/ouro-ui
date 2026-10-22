@@ -8,7 +8,7 @@ import { compile } from "tailwindcss";
 import postcss from "postcss";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -328,6 +328,45 @@ test("no test or spec presses Tab itself: they use pressTab(), which works in We
   const presses = files.map(read).flatMap(({ path, text }) => directTabPresses(text).map((line) => `${path}:${line}`));
   assert.deepEqual(presses, [], "Use pressTab() from lib/ouro/testing/tab (Vitest) or e2e/ouro/story (Playwright).");
   for (const path of tabPressPending) assert.ok(directTabPresses(read(path).text).length > 0, `${path} no longer presses Tab itself: remove it from tabPressPending`);
+});
+
+test("timerBoundReads finds a wait for a state that lasts a set time, in a test that holds no clock", () => {
+  const vitest = (body) => timerBoundReads("a.test.tsx", `import { toast } from "@/registry/ouro/lib/ouro/toast";\nit("t", async () => {\n${body}\n});`);
+  assert.deepEqual(vitest('await expect.poll(() => button.textContent).toBe("Link copied");'), ['t: await expect.poll(() => button.textContent).toBe("Link copied");']);
+  assert.equal(vitest('await expect.element(page.getByRole("button", { name: "Copied" })).toBeVisible();').length, 1);
+  // A label the file gives the component counts too.
+  assert.equal(timerBoundReads("a.test.tsx", 'it("t", async () => {\nrender(<CopyButton copiedLabel="Key copied" />);\nawait expect.poll(() => text()).toBe("Key copied");\n});').length, 1);
+  // A toast that counts down: no duration, or a finite one; one with an action and no duration stays.
+  assert.deepEqual(vitest('toast("Saved");\ntoast("Brief", { duration: 100 });\nawait show("Plain", options);'), ['t: toast("Saved")', 't: toast("Brief", { duration: 100 })', 't: show("Plain", options)']);
+  assert.deepEqual(vitest('toast("Kept", { duration: 0 });\ntoast("Forever", { duration: Infinity });\ntoast("Undo", { action: { label: "Undo", onClick } });'), []);
+  // Held clocks, recorded states and a stated reason pass; so do a sync read and a label in a name.
+  for (const body of [
+    'vi.useFakeTimers({ toFake: ["setTimeout"] });\nawait expect.poll(() => text()).toBe("Copied");\ntoast("Saved");',
+    'fakeClock();\ntoast("Saved");',
+    '// real clock: nothing here ends on a timer.\ntoast("Saved");',
+    'expect(button.textContent).toBe("Copied");',
+    'await expect.poll(() => announced.count("Copied the theme")).toBe(1);',
+  ])
+    assert.deepEqual(vitest(body), [], body);
+  // In a spec: Playwright's waits, a busy or saving state, and a toast's box.
+  const spec = (body) => timerBoundReads("a.spec.ts", `test("s", async ({ page }) => {\n${body}\n});`);
+  assert.equal(spec('await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();').length, 1);
+  assert.equal(spec('await expect(save).toHaveAttribute("aria-busy", "true");').length, 1);
+  assert.equal(spec('await expect(status).toHaveAttribute("data-status", "saving");').length, 1);
+  assert.equal(spec(`const box = await page.locator('[data-ouro="toast"]').first().boundingBox();`).length, 1);
+  assert.equal(spec(`const toast = page.locator('[data-ouro="toast"]').first();\nawait expect(toast).toBeVisible();`).length, 1);
+  // A count of what a watch recorded is no wait on the label itself.
+  assert.deepEqual(vitest('await expect.poll(() => announced.count("Link copied")).toBe(1);'), []);
+  assert.deepEqual(spec('await page.clock.install();\nawait holdClock(page);\nawait expect(save).toHaveAttribute("aria-busy", "true");'), []);
+  assert.deepEqual(spec('const toasts = await watchToasts(page);\nawait expect.poll(toasts.titles).toContain("Saved");'), []);
+  // describe titles name the test.
+  assert.deepEqual(timerBoundReads("a.spec.ts", 'test.describe("d", () => {\ntest("s", async ({ page }) => {\nawait expect(b).toHaveAttribute("aria-busy", "true");\n});\n});'), ['d > s: await expect(b).toHaveAttribute("aria-busy", "true");']);
+});
+
+test("no test or spec waits for a state that lasts a set time on the real clock", () => {
+  const files = tracked("registry/**/*.test.ts", "registry/**/*.test.tsx", "registry/ouro/e2e/**/*.spec.ts", "test/**/*.test.tsx", "site/src/**/*.test.tsx", "site/e2e/**/*.spec.ts");
+  const reads = files.map(read).flatMap(({ path, text }) => timerBoundReads(path, text).map((line) => `${path}: ${line}`));
+  assert.deepEqual(reads, [], "Hold the page's clock (vi.useFakeTimers, holdClock) or record the state as it happens (watchAnnouncements, watchToasts); see timerBoundReads in scripts/source-rules.mjs.");
 });
 
 /** The class tokens in a file that use a hover variant without `pointer-fine:` before it. */

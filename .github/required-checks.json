@@ -12,5 +12,9 @@
   "motion-coverage",
   "themes (1/3)",
   "themes (2/3)",
-  "themes (3/3)"
+  "themes (3/3)",
+  "theme-install",
+  "latency",
+  "lighthouse",
+  "ci-budget"
 ]

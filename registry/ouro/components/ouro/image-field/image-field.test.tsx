@@ -42,15 +42,35 @@ async function render(node: ReactNode) {
 }
 
 /**
- * Chooses files as the system picker would: they land in the input, which then changes. Waits a
- * frame inside `act`, because a turned-away file's message shows on the next frame.
+ * Chooses files as the system picker would: they land in the input, which then changes. Waits
+ * inside `act` for the field to settle: for the photo it opens (`decode()`) to open or fail, and
+ * a frame, because a turned-away file's message shows on the next frame.
+ *
+ * The open is awaited here, not polled after: WebKit runs a decode's reaction in whichever task
+ * next drains microtasks. When that is the task in which `act` closes its scope, the field's
+ * update lands after React has left the scope but before the act environment is switched off,
+ * and React warns that it was not wrapped in act. A test that stubs `decode` settles it itself.
  */
 async function pick(input: HTMLInputElement, ...files: File[]) {
   const data = new DataTransfer();
   for (const file of files) data.items.add(file);
   input.files = data.files;
+  const decode = HTMLImageElement.prototype.decode;
+  const opening: Array<Promise<void>> = [];
+  if (!vi.isMockFunction(decode)) {
+    HTMLImageElement.prototype.decode = function (this: HTMLImageElement) {
+      const opened = decode.call(this);
+      opening.push(opened);
+      return opened;
+    };
+  }
   await act(async () => {
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+    try {
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    } finally {
+      HTMLImageElement.prototype.decode = decode;
+    }
+    await Promise.allSettled(opening);
     await new Promise((resolve) => requestAnimationFrame(resolve));
   });
 }
@@ -106,7 +126,7 @@ describe("ImageField", () => {
     );
     const file = await photo();
     await pick(input(), file);
-    await expect.poll(() => onFileChange.mock.calls).toEqual([[file]]);
+    expect(onFileChange.mock.calls).toEqual([[file]]);
     expect(preview()!.src).toMatch(/^blob:/);
     expect(new FormData(host.querySelector("form")!).get("photo")).toBe(input().files![0]);
     expect(input().files![0]!.name).toBe("garden.png");
@@ -128,7 +148,7 @@ describe("ImageField", () => {
     expect(input().files).toHaveLength(0);
     await pick(input(), await photo(2, 2, "dot.png"));
     expect(field().hasAttribute("data-invalid")).toBe(false);
-    await expect.poll(() => onFileChange.mock.calls.map(([file]) => file?.name)).toEqual(["dot.png"]);
+    expect(onFileChange.mock.calls.map(([file]) => file?.name)).toEqual(["dot.png"]);
   });
 
   it("announces a turned-away file once from a status region that is always there, and describes Choose photo with it", async () => {

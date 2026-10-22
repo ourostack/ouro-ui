@@ -112,6 +112,10 @@ export function ouroTestProjects({
           headless: true,
           provider: playwright({
             contextOptions: { hasTouch: true, isMobile: true, viewport: page ?? { width: 390, height: 844 } },
+            // A frame of another site in a process of its own, as in desktop Chrome: the headless
+            // shell otherwise runs every frame in the page's, so the touch kit's handling of such
+            // frames would go untested (commands.touch.test.ts).
+            launchOptions: { args: ["--site-per-process"] },
           }),
           instances: [{ browser: "chromium" as const }],
           viewport: { width: 390, height: 844 },

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { formsSet, sets, setsTouching, subset } from "./subset-coverage.mjs";
+import { formsSet, sets, setsTouching, shardSets, subset } from "./subset-coverage.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
@@ -55,4 +55,12 @@ test("a pull request's reduced run checks only the sets that install a selected 
   assert.ok(!setsTouching(registry, ["dialog"]).includes(formsSet) || subset(registry, formsSet).items.includes("dialog"));
   assert.deepEqual(setsTouching(registry, ["chart"]), []);
   assert.deepEqual(setsTouching(registry, []), []);
+});
+
+test("CI's browser test shards share the sets out: each set in exactly one shard, whatever the count", () => {
+  for (const count of [1, 2, 5, 6, 8]) {
+    const shards = Array.from({ length: count }, (_, position) => shardSets(sets, { index: position + 1, count }));
+    assert.equal(shards.flat().length, sets.length);
+    for (const set of sets) assert.equal(shards.filter((shard) => shard.includes(set)).length, 1, `${set.join(",")} with ${count} shards`);
+  }
 });
