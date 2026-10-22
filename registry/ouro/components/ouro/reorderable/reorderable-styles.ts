@@ -56,6 +56,9 @@ const contentClass = "min-w-0 flex-1";
  * is disabled (`aria-disabled`) it is dimmed, takes no hover or press, lets a touch scroll the
  * page, and is GrayText under forced colours.
  *
+ * @claim "While the list is disabled" registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > disabled > draws a disabled handle in GrayText under forced colours) verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > disabled > takes no drag, no menu and no pick-up, and keeps its handles focusable and marked unavailable)
+ * @claim "While the list is disabled" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > takes no tap and no drag on a disabled handle, whose touch scrolls the page instead)
+ *
  * @internal
  * @claim "`touch-none` keeps a touch that starts" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > moves a row with a touch drag on its handle, without scrolling the page)
  * @claim "`touch-none` keeps a touch that starts" registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx::Reorderable on a phone > lets a touch that starts on a row, outside its handle, scroll the page)

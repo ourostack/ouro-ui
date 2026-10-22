@@ -52,7 +52,7 @@ export interface TimerTrayOwnProps {
    * @claim "`repeat`, again every 2.5 seconds until" registry/ouro/components/ouro/timer/timer-tray.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer-tray.test.tsx::TimerTray > repeats its own alert with alert=repeat until the timer is dismissed)
    */
   alert?: TimerAlert | (string & { 'Use "once" or "repeat"': never }) | undefined;
-  /** With `alert="repeat"`, how long it keeps sounding, in seconds from zero. @default 120 (two minutes) */
+  /** With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up. @default 120 */
   repeatFor?: number | undefined;
   /** The words it shows and says, for apps in other languages. */
   labels?: TimerLabels | undefined;

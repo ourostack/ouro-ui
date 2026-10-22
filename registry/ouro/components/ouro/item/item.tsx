@@ -25,7 +25,7 @@ export interface ItemOwnProps {
    * A short line under the title. Pass `<Text lines={2}>` to clamp a long one. With `href`, it
    * also describes the link (`aria-describedby`), so a screen reader that lands on the row hears
    * its title and then this line: a result's byline and snippet, a recipe's time.
-   * @claim "With `href`, it also describes the" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > describes the row's link by its description, which keeps its place under the title)
+   * @claim "With `href`, it also describes the" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item with href > describes the row's link by its description, which keeps its place under the title)
    */
   description?: ReactNode;
   /**

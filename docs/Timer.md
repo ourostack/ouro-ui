@@ -2,7 +2,7 @@
 
 # Timer
 
-A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. It keeps time by the clock, so it stays right in a background tab and, with `timerId`, across a reload. At zero it chimes and vibrates (unless `silent`) and screen readers hear "Pasta: Time's up" once; the time itself is a `timer` region, read when the person asks rather than every second.
+A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. It keeps time by the clock, so it stays right in a background tab and, with `timerId`, across a reload. At zero it chimes and vibrates (unless `silent`), again every 2.5 seconds until stopped with `alert="repeat"`, and screen readers hear "Pasta: Time's up" once; the time itself is a `timer` region, read when the person asks rather than every second.
 
 ```tsx
 import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
@@ -12,6 +12,7 @@ import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 
 ```tsx
 <Timer label="Pasta" duration={600} timerId="pasta" />
+<Timer label="Roast" duration={5400} timerId="roast" alert="repeat" />
 ```
 
 ## Usage
@@ -28,12 +29,14 @@ Type: `TimerProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `alert` | `"once" \| "repeat"` | `"once"` | How it sounds when the time is up. `once` chimes and vibrates once. `repeat` chimes and vibrates again every 2.5 seconds, for a timer that may finish while the person is across the room, until they dismiss, restart or cancel it (here, in a `TimerTray` or in any view with its `timerId`) or `repeatFor` seconds pass. Either way screen readers hear "Time's up" once, and `silent` keeps it quiet. |
 | `className` | `string` |  | Layout only: margins, width (`mt-6`). Appearance classes warn in development. |
 | `duration` (required) | `number` |  | How long it runs, in seconds: `duration={600}`. |
 | `label` (required) | `string` |  | What the timer is for, shown above the time and naming it for screen readers: "Pasta", "Break". |
 | `labels` | `TimerLabels` |  | The words it shows and says, for apps in other languages. |
 | `onDone` | `((event: TimerDoneEvent) => void)` |  | Called once when the timer reaches zero, including when it ended while the page was closed. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
+| `repeatFor` | `number` | `120` | With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up, unless stopped. |
 | `silent` | `boolean` |  | No chime and no vibration at zero; it still shows and says that the time is up. |
 | `size` | `"md" \| "lg"` | `"md"` | How large the time is: `md` beside other content, `lg` as a screen's focus. |
 | `timerId` | `string` |  | Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with the component. (`id` is the element's, as on any `<div>`.) |

@@ -57,10 +57,10 @@ export function primeAlert(): void {
   context ??= createChimeContext();
 }
 
-/** How a timer sounds at zero: once, or again and again until it is stopped. */
+/** How a timer sounds when its time is up: once, or again until it is stopped. */
 export type TimerAlert = "once" | "repeat";
 
-/** The ways a timer can sound at zero. @internal */
+/** The ways a timer can sound when its time is up. @internal */
 export const timerAlerts = ["once", "repeat"] as const satisfies readonly TimerAlert[];
 
 /**
@@ -70,7 +70,7 @@ export const timerAlerts = ["once", "repeat"] as const satisfies readonly TimerA
  */
 export const REPEAT_MS = 2500;
 
-/** How long a repeating alert keeps sounding unless stopped, in seconds: two minutes. */
+/** How long a repeating alert keeps sounding unless stopped, in seconds. */
 export const REPEAT_FOR = 120;
 
 /** The repeating alerts sounding now, by timer (its `timerId`, or the view's own key). */
@@ -78,11 +78,11 @@ const repeating = new Map<string, ReturnType<typeof setInterval>>();
 
 /** How a view sounds its timer's alert. */
 export interface AlertOptions {
-  /** No chime and no vibration. */
+  /** Keeps it quiet: the alert is only said. */
   silent: boolean;
-  /** Sounds again every {@link REPEAT_MS} until stopped or `repeatFor` seconds pass. */
+  /** Sounds again at {@link REPEAT_MS} intervals until stopped or `repeatFor` seconds pass. */
   repeat: boolean;
-  /** How long a repeating alert lasts, in seconds from zero. */
+  /** How long a repeating alert lasts, in seconds from when the time was up. */
   repeatFor: number;
   /** Which timer it is, so any view of it can stop it. */
   key: string;

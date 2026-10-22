@@ -48,7 +48,7 @@ export interface TimerOwnProps {
    */
   silent?: boolean | undefined;
   /**
-   * How it sounds at zero. `once` chimes and vibrates once. `repeat` chimes and vibrates again
+   * How it sounds when the time is up. `once` chimes and vibrates once. `repeat` chimes and vibrates again
    * every 2.5 seconds, for a timer that may finish while the person is across the room, until
    * they dismiss, restart or cancel it (here, in a `TimerTray` or in any view with its
    * `timerId`) or `repeatFor` seconds pass. Either way screen readers hear "Time's up" once,
@@ -61,8 +61,9 @@ export interface TimerOwnProps {
    */
   alert?: TimerAlert | (string & { 'Use "once" or "repeat"': never }) | undefined;
   /**
-   * With `alert="repeat"`, how long it keeps sounding, in seconds from zero, unless stopped.
-   * @default 120 (two minutes)
+   * With `alert="repeat"`, how long it keeps sounding, in seconds from when the time was up,
+   * unless stopped.
+   * @default 120
    * @claim "how long it keeps sounding, in" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > keeps a repeating alert going for two minutes by default)
    */
   repeatFor?: number | undefined;
