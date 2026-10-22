@@ -26,6 +26,10 @@ if [ "${#debs[@]}" -gt 0 ]; then
     exit 0
   fi
   echo "The cached system packages did not install (dpkg -i, $dir.log); installing them from the network."
+  # Mend what dpkg left half done, and drop the files, so the network install starts clean.
+  sudo dpkg --configure -a || true
+  sudo apt-get -f install -y || true
+  find "$dir" -maxdepth 1 -name '*.deb' -delete
 fi
 
 mkdir -p "$dir/partial"

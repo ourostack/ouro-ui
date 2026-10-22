@@ -49,6 +49,10 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   // each runner image they run on.
   const warm = workflows.find((workflow) => workflow.file === "browser-cache.yml").text;
   assert.match(warm, /browsers: \[chromium, chromium webkit\]/);
+  // It keeps the system packages' .deb files too (the action's default), daily, since they are kept per runner image version.
+  assert.doesNotMatch(warm, /system-packages/);
+  assert.match(warm, /schedule:\n\s+- cron: "\d+ \d+ \* \* \*"/);
+  assert.match(warm, /- scripts\/browser-deps\.sh/);
   assert.match(warm, /push:\n\s+branches: \[main\]/);
   const images = new Set(
     workflows
@@ -92,7 +96,8 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   writeFileSync(join(bin, "tee"), `#!/usr/bin/env bash\nprintf 'tee %s\\n' "$*" >> "${log}"\ncat >> "${log}"\n`);
   writeFileSync(join(bin, "dpkg"), `#!/usr/bin/env bash\nprintf 'dpkg %s\\n' "$*" >> "${log}"\nexit "\${DPKG:-0}"\n`);
   writeFileSync(join(bin, "pnpm"), `#!/usr/bin/env bash\nprintf 'pnpm %s\\n' "$*" >> "${log}"\n`);
-  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm"]) chmodSync(join(bin, name), 0o755);
+  writeFileSync(join(bin, "apt-get"), `#!/usr/bin/env bash\nprintf 'apt-get %s\\n' "$*" >> "${log}"\n`);
+  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get"]) chmodSync(join(bin, name), 0o755);
   const run = (dir, env = {}) => {
     writeFileSync(log, "");
     const result = spawnSync("bash", [join(root, "scripts/browser-deps.sh"), dir, "chromium", "webkit"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ...env } });
@@ -106,11 +111,12 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   assert.equal(hit.status, 0, hit.stderr);
   assert.match(hit.calls, /^dpkg -i .*libavif16_1\.0\.4_amd64\.deb .*libwoff1_1\.0\.2_amd64\.deb$/m);
   assert.doesNotMatch(hit.calls, /pnpm/);
-  // dpkg fails: Playwright installs them from the network, which also mends what dpkg left half done.
+  // dpkg fails: what it left half done is mended, the cached files go, and Playwright installs them from the network.
   const broken = run(cached, { DPKG: "1" });
   assert.equal(broken.status, 0, broken.stderr);
   assert.match(broken.stdout, /did not install/);
-  assert.match(broken.calls, /^pnpm exec playwright install-deps chromium webkit$/m);
+  assert.match(broken.calls, /^dpkg -i .*\ndpkg --configure -a\napt-get -f install -y\n(?:.*\n)*pnpm exec playwright install-deps chromium webkit$/m);
+  assert.deepEqual(readdirSync(cached).filter((name) => name.endsWith(".deb")), []);
   // A miss: apt keeps the .deb files it downloads in the folder, for the cache to save.
   const empty = join(scratch, "empty");
   const miss = run(empty);
