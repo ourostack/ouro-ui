@@ -61,6 +61,19 @@ async function settled(element: Element) {
 }
 
 describe("Tabs", () => {
+  it("draws each tab's edge under forced colours, where its fill and the underline drop away", async () => {
+    try {
+      const { tabs } = await render(<Tabs label="Recipe" items={items} />);
+      const edge = (tab: HTMLElement) => ["top", "right", "bottom", "left"].every((side) => parseFloat(getComputedStyle(tab).getPropertyValue(`border-${side}-width`)) > 0 && getComputedStyle(tab).getPropertyValue(`border-${side}-style`) === "solid");
+      expect(tabs.some(edge)).toBe(false);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      expect(tabs.every(edge)).toBe(true);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders a labelled tab list with the first tab selected and its panel shown", async () => {
     const { root, tabs } = await render(<Tabs label="Recipe" items={items} />);
     expect(root.getAttribute("data-ouro")).toBe("tabs");
