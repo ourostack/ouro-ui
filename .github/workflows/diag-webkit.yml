@@ -23,4 +23,4 @@ jobs:
       - run: pnpm site:build
       - run: |
           (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
-          for n in 1 2; do node .github/diag/frames4.mjs http://127.0.0.1:4179/ouro-ui/; done
+          node .github/diag/load.mjs http://127.0.0.1:4179/ouro-ui/; node .github/diag/frames4.mjs http://127.0.0.1:4179/ouro-ui/
