@@ -29,6 +29,17 @@
   /* A picture, not a target: hit testing skips its shapes. */
   pointer-events: none;
 }
+/*
+ * Each press sets --d and --tanks on the scene, and the browser restyles every element that inherits
+ * them, some 550. The parts below never read them or the colours made from them, so each holds its
+ * own copy: a press restyles that part's root and none of the elements inside it.
+ */
+:is(.stage-life, .stage-specks, .stage-caustics, .stage-seabed, .stage-kelp > svg, .stage-hidden, .stage-ship-ride > *, .stage-rim) {
+  --d: 0;
+  --tanks: 0;
+  --sea-top: initial;
+  --sea-bottom: initial;
+}
 .stage-art {
   display: block;
   width: 100%;
@@ -249,12 +260,23 @@
 /* Which water we are in: one band of life shows at a time. */
 .stage-band {
   opacity: 0;
-  transition: opacity var(--stage-fade);
+  transition:
+    opacity var(--stage-fade),
+    visibility var(--stage-fade);
 }
 .stage-scene[data-band="sunlit"] .stage-band-sunlit,
 .stage-scene[data-band="twilight"] .stage-band-twilight,
 .stage-scene[data-band="midnight"] .stage-band-midnight {
   opacity: 1;
+}
+/*
+ * Once a band has faded out it is hidden: the browser keeps no layers for its fish and paints none of
+ * them, so a press in another water has fewer layers to sort. The fish wait where they were.
+ */
+.stage-scene:not([data-band="sunlit"]) .stage-band-sunlit,
+.stage-scene:not([data-band="twilight"]) .stage-band-twilight,
+.stage-scene:not([data-band="midnight"]) .stage-band-midnight {
+  visibility: hidden;
 }
 
 /* The drift: from off the glass on the right to off it on the left, while the stage is on screen. */
@@ -636,7 +658,13 @@
 /* Glowing specks of life in the midnight water (and in Abyss's twilight too). */
 .stage-specks {
   opacity: 0;
-  transition: opacity var(--stage-fade);
+  transition:
+    opacity var(--stage-fade),
+    visibility var(--stage-fade);
+}
+/* Faded out, they are hidden like a band (Abyss shows them in every water). */
+.stage-scene:not([data-band="midnight"]) .stage-specks {
+  visibility: hidden;
 }
 .stage-scene[data-band="midnight"] .stage-specks {
   opacity: 1;
@@ -1831,6 +1859,7 @@
 }
 [data-theme="abyss"] .stage-scene .stage-specks {
   opacity: 0.55;
+  visibility: visible;
 }
 [data-theme="abyss"] .stage-scene[data-band="midnight"] .stage-specks {
   opacity: 1;
@@ -1941,6 +1970,15 @@
   }
   .stage-frame {
     border-color: CanvasText;
+  }
+  /*
+   * The sight glasses' water and the deep's specks are HTML boxes painted by their background, which
+   * forced colours would turn into Canvas, so a flooded glass would look empty and the specks would
+   * vanish. They keep the drawing's colours, as the SVG fills around them do.
+   */
+  .stage-gauge-water,
+  .stage-speck {
+    forced-color-adjust: none;
   }
 }
 
