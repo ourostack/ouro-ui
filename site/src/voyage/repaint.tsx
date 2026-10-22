@@ -32,7 +32,7 @@ function DiveWindow(): JSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <div className="site-window will-change-transform" data-site-sample="">
-      <div className="overflow-hidden rounded-[inherit] border border-border/70 will-change-transform">
+      <div className="overflow-hidden border border-border/70 will-change-transform" style={{ borderRadius: "inherit" }}>
         <div className="site-window-bar">
           <span className="site-window-dots" aria-hidden="true">
             <span />

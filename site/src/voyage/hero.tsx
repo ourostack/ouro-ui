@@ -80,7 +80,7 @@ function Install(): JSX.Element {
         <code className="site-mono site-install-command" data-site-install="">
           <CommandText />
         </code>
-        <Badge href={RELEASE_HREF} tone="primary" variant="soft" className="site-install-release" data-site-release="">
+        <Badge href={RELEASE_HREF} tone="primary" variant="soft" className="site-install-release" aria-label={`${latestRelease} · latest release`} data-site-release="">
           {latestRelease}
           <span className="site-install-release-word"> · latest release</span>
         </Badge>

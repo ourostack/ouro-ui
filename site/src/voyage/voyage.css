@@ -76,7 +76,7 @@
    * blurs a box shadow again, whole, on each repaint of the layer that holds it, and on each
    * repaint of the page under it when it has none. So the window, with its shadow, is a layer of
    * its own (`will-change-transform`), and its contents sit in a pane on another
-   * (`overflow-hidden rounded-[inherit] border border-border/70 will-change-transform`): a press, a
+   * (`overflow-hidden border border-border/70 will-change-transform`, its corners inherited): a press, a
    * menu or a toast repaints the pane and nothing under it. Measured on CI for pull request 153.
    */
   .site-window {
@@ -306,12 +306,7 @@
   /* On a phone the release shows its number; its name still says it is the latest. */
   @container (max-width: 23.99rem) {
     .site-install-release-word {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+      display: none;
     }
   }
   .site-install-foot {
