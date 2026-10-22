@@ -364,6 +364,23 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
   assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
 });
 
+test("Release opens the pull request that prepares main with a title and body that pass the claims lint, the new tag sourced from package.json", () => {
+  const prepare = releaseStep("Prepare main for the next release");
+  const [, title, body] = prepare.match(/--title "([^"]+)" \\\n\s*--body "([^"]+)"/) ?? [];
+  assert.ok(body, "release.yml opens the pull request with --title and --body");
+  // The step runs after latest-release.mjs set "$TAG", so package.json's latestRelease is the tag;
+  // the repository's own value stands in for it here.
+  const tag = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
+  const opened = body.replaceAll("$TAG", tag);
+  const appended = prepare.match(/gh pr edit "\$NEXT_BRANCH" --body "\$pr_body\n((?:[^"\\]|\\.)*)"/)?.[1];
+  assert.ok(appended, "release.yml adds the approval command to the body when it cannot approve");
+  const edited = `${opened}\n${appended.replaceAll("\\`", "`").replaceAll("$cmd", "gh api -X POST repos/o/r/actions/runs/39754777487/approve")}`;
+  for (const text of [opened, edited]) {
+    const lint = spawnSync(process.execPath, ["scripts/claims.mjs", "lint", "--pr"], { cwd: root, encoding: "utf8", env: { ...process.env, PR_TITLE: title, PR_BODY: text } });
+    assert.equal(lint.status, 0, lint.stdout + lint.stderr);
+  }
+});
+
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
   assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
