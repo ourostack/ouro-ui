@@ -23,4 +23,11 @@ jobs:
       - run: pnpm site:build
       - run: |
           (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
-          node .github/diag/frames.mjs http://127.0.0.1:4179/ouro-ui/ branch
+          for p in site-chromium site-webkit; do
+            echo "=== $p ports api"
+            DEBUG=pw:api DEBUG_COLORS=false pnpm exec playwright test -c .github/diag/pw-site.config.ts --project=$p --workers=1 site/e2e/chapter-two.spec.ts -g "control: ports moves a port" 2>&1 | grep -E "pw:api|✓|✘|passed|failed" | sed "s/^/$p /" || true
+          done
+          for w in 1 2; do
+            echo "=== workers $w"
+            pnpm exec playwright test -c .github/diag/pw-site.config.ts --workers=$w site/e2e/chapter-two.spec.ts -g "control: (ports|legs)" 2>&1 | grep -E "✓|✘|passed|failed" | sed "s/^/w$w /" || true
+          done
