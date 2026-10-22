@@ -3449,6 +3449,71 @@
       ]
     },
     {
+      "name": "conversation-list",
+      "type": "registry:ui",
+      "title": "ConversationList",
+      "description": "A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot.",
+      "docs": "A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. Import: import { ConversationList } from \"@/components/ouro/conversation-list/conversation-list\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/conversation-list.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/conversation-list/conversation-list.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/conversation-list/conversation-list.tsx"
+        }
+      ]
+    },
+    {
+      "name": "attention-card",
+      "type": "registry:ui",
+      "title": "AttentionCard",
+      "description": "Something that waits on the person: a mention, a question asked of them or a request still unanswered.",
+      "docs": "Something that waits on the person: a mention, a question asked of them or a request still unanswered. Import: import { AttentionCard } from \"@/components/ouro/attention-card/attention-card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/attention-card.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-tones",
+        "ourostack/ouro-ui/lib-touch-target",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/attention-card/attention-card.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/attention-card/attention-card.tsx"
+        }
+      ]
+    },
+    {
+      "name": "reaction-bar",
+      "type": "registry:ui",
+      "title": "ReactionBar",
+      "description": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press.",
+      "docs": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Import: import { ReactionBar } from \"@/components/ouro/reaction-bar/reaction-bar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/reaction-bar.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/reaction-bar/reaction-bar.tsx"
+        }
+      ]
+    },
+    {
       "name": "layout-proposal",
       "type": "registry:ui",
       "title": "LayoutProposal",
@@ -10069,6 +10134,185 @@
       }
     },
     {
+      "name": "conversation-list-tests",
+      "type": "registry:item",
+      "title": "ConversationList tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for conversation-list, and the tests of everything it installs. Add it beside conversation-list: add conversation-list conversation-list-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "conversation-list's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/conversation-list",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/conversation-list/conversation-list.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/conversation-list/conversation-list.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/conversation-list/conversation-list.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/conversation-list/conversation-list.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/conversation-list/conversation-list.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/conversation-list/conversation-list.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/conversation-list.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/conversation-list.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "attention-card-tests",
+      "type": "registry:item",
+      "title": "AttentionCard tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for attention-card, and the tests of everything it installs. Add it beside attention-card: add attention-card attention-card-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "attention-card's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/attention-card",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/attention-card/attention-card.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/attention-card/attention-card.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/attention-card/attention-card.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/attention-card/attention-card.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/attention-card/attention-card.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/attention-card/attention-card.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/attention-card/attention-card.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/attention-card/attention-card.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/attention-card.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/attention-card.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "reaction-bar-tests",
+      "type": "registry:item",
+      "title": "ReactionBar tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for reaction-bar, and the tests of everything it installs. Add it beside reaction-bar: add reaction-bar reaction-bar-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "reaction-bar's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/message",
+        "ourostack/ouro-ui/message-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/reaction-bar"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reaction-bar/reaction-bar.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/reaction-bar/reaction-bar.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reaction-bar/reaction-bar.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reaction-bar/reaction-bar.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/reaction-bar.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/reaction-bar.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "layout-proposal-tests",
       "type": "registry:item",
       "title": "LayoutProposal tests",
@@ -10279,6 +10523,7 @@
         "ourostack/ouro-ui/alert-tests",
         "ourostack/ouro-ui/aspect-ratio-tests",
         "ourostack/ouro-ui/attachment-tests",
+        "ourostack/ouro-ui/attention-card-tests",
         "ourostack/ouro-ui/auth-layout-tests",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
@@ -10301,6 +10546,7 @@
         "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
+        "ourostack/ouro-ui/conversation-list-tests",
         "ourostack/ouro-ui/copy-button-tests",
         "ourostack/ouro-ui/copy-prompt-tests",
         "ourostack/ouro-ui/date-picker-tests",
@@ -10366,6 +10612,7 @@
         "ourostack/ouro-ui/preset-picker-tests",
         "ourostack/ouro-ui/progress-tests",
         "ourostack/ouro-ui/radio-group-tests",
+        "ourostack/ouro-ui/reaction-bar-tests",
         "ourostack/ouro-ui/relative-time-tests",
         "ourostack/ouro-ui/reorderable-tests",
         "ourostack/ouro-ui/resizable-tests",

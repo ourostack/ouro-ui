@@ -379,7 +379,9 @@ export async function decideReducedRun(components, coverageDir, shards, { root =
   const fullEnv = { ...process.env };
   delete fullEnv.OURO_STORIES;
   // A download, so it is tried again after a failure (scripts/retry.sh); the tests are not.
-  const browsers = await spawn("scripts/retry.sh", ["pnpm", "exec", "playwright", "install", "--with-deps", "chromium", "webkit"], fullEnv);
+  // In Playwright's image the system packages are already there (OURO_SYSTEM_PACKAGES=image), with no apt to run.
+  const deps = process.env["OURO_SYSTEM_PACKAGES"] === "image" ? [] : ["--with-deps"];
+  const browsers = await spawn("scripts/retry.sh", ["pnpm", "exec", "playwright", "install", ...deps, "chromium", "webkit"], fullEnv);
   const all = browsers.status === 0 ? await spawn("pnpm", ["test"], fullEnv) : browsers;
   output("reduced=false");
   output("stems=");

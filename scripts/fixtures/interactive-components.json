@@ -67,5 +67,8 @@
   "share-button",
   "sync-status",
   "install-prompt",
+  "conversation-list",
+  "attention-card",
+  "reaction-bar",
   "preset-picker"
 ]
