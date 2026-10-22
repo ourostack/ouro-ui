@@ -1019,6 +1019,111 @@ describe("Reorderable", () => {
     });
   });
 
+  describe("disabled", () => {
+    it("takes no drag, no menu and no pick-up, and keeps its handles focusable and marked unavailable", async () => {
+      const onReorder = vi.fn();
+      const element = await render(list({ onReorder, disabled: true }));
+      for (const name of names) {
+        expect(handle(name).getAttribute("aria-disabled")).toBe("true");
+        expect(handle(name).hasAttribute("aria-describedby")).toBe(false);
+        expect(handle(name).disabled).toBe(false);
+      }
+      await expect.element(page.getByRole("button", { name: "Reorder Sear", exact: true })).toBeDisabled();
+      // Still in the tab order, so focus stays put while a save is in flight.
+      const before = document.createElement("button");
+      host.prepend(before);
+      before.focus();
+      await pressTab();
+      expect(document.activeElement).toBe(handle("Sear"));
+      const look = getComputedStyle(handle("Sear"));
+      expect(look.opacity).toBe("0.5");
+      expect(look.cursor).toBe("not-allowed");
+      // Space picks nothing up, Enter, an arrow key and a click open no menu.
+      await press(" ");
+      expect(handle("Sear").hasAttribute("data-grabbed")).toBe(false);
+      await press("{ArrowDown}");
+      await press("{Enter}");
+      await act(async () => handle("Sear").click());
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+      expect(order(element)).toEqual(names);
+      // A pointer drag moves nothing.
+      const [x, y] = await dragBy("Sear", 120);
+      expect(element.hasAttribute("data-dragging")).toBe(false);
+      expect(rows(element)[0]!.style.transform).toBe("");
+      await pointer(window, "pointerup", x, y);
+      expect(order(element)).toEqual(names);
+      expect(onReorder).not.toHaveBeenCalled();
+      expect(said()).not.toMatch(/picked up|moved|dropped/);
+    });
+
+    it("reorders again once it turns off, and marks no handle unavailable", async () => {
+      const onReorder = vi.fn();
+      await render(list({ onReorder, disabled: true }));
+      await render(list({ onReorder, disabled: false }));
+      expect(handle("Sear").hasAttribute("aria-disabled")).toBe(false);
+      expect(handle("Sear").getAttribute("aria-describedby")).not.toBeNull();
+      expect(document.getElementById(handle("Sear").getAttribute("aria-describedby")!)!.textContent).toBe(instructions);
+      await focus("Sear");
+      await press(" ");
+      expect(handle("Sear").hasAttribute("data-grabbed")).toBe(true);
+      await press("{ArrowDown}{ }");
+      expect(onReorder).toHaveBeenCalledTimes(1);
+    });
+
+    it("puts back a row held from the keyboard and closes an open menu when it turns on", async () => {
+      const onReorder = vi.fn();
+      const element = await render(list({ onReorder }));
+      await focus("Braise");
+      await press(" ");
+      await press("{ArrowUp}{ArrowUp}");
+      expect(order(element)).toEqual(["Sear", "Braise", "Soften", "Deglaze"]);
+      await render(list({ onReorder, disabled: true }));
+      expect(order(element)).toEqual(names);
+      expect(handle("Braise").hasAttribute("data-grabbed")).toBe(false);
+      expect(document.activeElement).toBe(handle("Braise"));
+      await expect.poll(said).toBe("Braise put back. Position 4 of 4.");
+      await render(list({ onReorder }));
+      await act(async () => handle("Soften").click());
+      await menuOpen();
+      await render(list({ onReorder, disabled: true }));
+      await menuClosed();
+      expect(onReorder).not.toHaveBeenCalled();
+    });
+
+    it("puts back a row being dragged when it turns on, and reports nothing", async () => {
+      const onReorder = vi.fn();
+      const element = await render(list({ onReorder }));
+      const [x, y] = await dragBy("Sear", 120);
+      expect(element.hasAttribute("data-dragging")).toBe(true);
+      await render(list({ onReorder, disabled: true }));
+      expect(element.hasAttribute("data-dragging")).toBe(false);
+      expect(order(element)).toEqual(names);
+      await expect.poll(said).toBe("Sear put back. Position 1 of 4.");
+      // The pointer, still down, moves nothing, and its release reports nothing.
+      await pointer(window, "pointermove", x, y + 40);
+      expect(element.hasAttribute("data-dragging")).toBe(false);
+      await pointer(window, "pointerup", x, y + 40);
+      await rest(element);
+      expect(order(element)).toEqual(names);
+      expect(onReorder).not.toHaveBeenCalled();
+    });
+
+    it("draws a disabled handle in GrayText under forced colours", async () => {
+      try {
+        await render(list({ disabled: true }));
+        await commands.emulateMedia({ forcedColors: "active" });
+        const probe = document.body.appendChild(document.createElement("span"));
+        probe.style.color = "GrayText";
+        const gray = getComputedStyle(probe).color;
+        probe.remove();
+        await expect.poll(() => getComputedStyle(handle("Sear")).color).toBe(gray);
+        expect(getComputedStyle(handle("Sear")).borderTopStyle).toBe("solid");
+      } finally {
+        await commands.emulateMedia({ forcedColors: "none" });
+      }
+    });
+  });
+
   it("has helpers that place, move and scroll", () => {
     expect(moveItem(["a", "b", "c", "d"], 0, 2)).toEqual(["b", "c", "a", "d"]);
     expect(moveItem(["a", "b", "c", "d"], 3, 1)).toEqual(["a", "d", "b", "c"]);

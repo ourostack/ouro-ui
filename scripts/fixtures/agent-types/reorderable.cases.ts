@@ -38,4 +38,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid reorderable snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["reorderableOk01"];
+export const validSnippets: string[] = ["reorderableOk01", "reorderableOk02"];
