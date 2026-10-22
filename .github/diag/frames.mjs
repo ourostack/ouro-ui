@@ -3,14 +3,11 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
-  nosvg: "main svg { display: none !important; }",
-  nouse: "main svg use { display: none !important; }",
-  nofx: "main svg *, main svg { filter: none !important; mask: none !important; clip-path: none !important; }",
-  notext: "main svg text, main svg foreignObject { display: none !important; }",
-  icons: "main button svg, main a svg, main [data-ouro] svg, main li svg { display: none !important; }",
-  art: ".site-hero svg, #chapter-one svg, #chapter-two .site-chart, #chapter-three svg, #chapter-two .recharts-wrapper svg, main section svg[viewBox] { display: none !important; }",
-  stage: ".site-hero svg { display: none !important; }",
-  chapters: "#chapter-one svg, #chapter-two svg, #chapter-three svg, #agents svg { display: none !important; }",
+  notext: "main svg text { display: none !important; }",
+  textnosel: "main svg text { -webkit-user-select: none !important; user-select: none !important; }",
+  svgnosel: "main svg { -webkit-user-select: none !important; user-select: none !important; }",
+  textnoevents: "main svg text { pointer-events: none !important; }",
+  bodynosel: "body { -webkit-user-select: none !important; user-select: none !important; }",
 };
 const census = (page) => page.evaluate(() => {
   const q = (s) => document.querySelectorAll(s).length;
@@ -49,7 +46,16 @@ for (const type of [webkit, chromium]) {
     await page.locator("#chapter-two").scrollIntoViewIfNeeded();
     await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
     await page.waitForTimeout(800);
-    if (name === "asis") console.log(`${type.name()} census: ${await census(page)}`);
+    const selection = await page.evaluate(() => new Promise((resolve) => {
+      const node = document.querySelector("#chapter-two p")?.firstChild ?? document.body;
+      const t0 = performance.now();
+      getSelection().collapse(node, 0);
+      const t1 = performance.now();
+      void document.body.offsetHeight;
+      const t2 = performance.now();
+      requestAnimationFrame(() => { const t3 = performance.now(); getSelection().removeAllRanges(); void document.body.offsetHeight; resolve(`selection set ${Math.round(t1 - t0)} layout ${Math.round(t2 - t1)} frame ${Math.round(t3 - t2)} clear+layout ${Math.round(performance.now() - t3)}`); });
+    }));
+    console.log(`${type.name()} ${name} ${selection}`);
     const targets = {
       text: page.locator("#chapter-two h2").first(),
     };
