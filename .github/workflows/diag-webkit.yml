@@ -19,16 +19,6 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm site:build && node .github/diag/size.mjs branch
-      - name: islands as before
-        run: |
-          cp .github/diag/size.mjs /tmp/size.mjs
-          git show 3b4ad05d:site/src/voyage/chapters/island.tsx > site/src/voyage/chapters/island.tsx
-          pnpm site:build && node /tmp/size.mjs old-island
-      - name: hero as before
-        run: |
-          git checkout -q -- site/src/voyage/chapters/island.tsx
-          git show 3b4ad05d:site/src/voyage/hero.tsx > site/src/voyage/hero.tsx
-          pnpm site:build && node /tmp/size.mjs old-hero
       - name: main
         run: |
           git checkout -q -f origin/main
