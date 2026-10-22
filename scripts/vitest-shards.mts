@@ -1,12 +1,13 @@
 // How CI shards the browser tests (`vitest run --shard=<index>/<count>`, .github/workflows/ci.yml).
 // Each test file runs in one shard, chosen by its measured time (scripts/shard.mjs) so the shards
-// take about as long as each other, except the sliced suites: each runs in every shard, over that
-// shard's slice of the stories or pages it iterates (test/slice.ts). Vitest's own split counts files,
-// and one of these files alone took longer than a whole shard should.
+// take about as long as each other, each Vitest project spread evenly across them, except the
+// sliced suites: each runs in every shard, over that shard's slice of the stories or pages it
+// iterates (test/slice.ts). Vitest's own split counts files, and one of these files alone took
+// longer than a whole shard should.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { BaseSequencer, type Reporter, type TestModule, type TestSpecification, type Vitest } from "vitest/node";
-import { readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 
 export { slicedSuites };
 
@@ -33,7 +34,8 @@ export class TimedSequencer extends BaseSequencer {
     const key = (spec: TestSpecification) => timingKey(spec.project.name, config.root, spec.moduleId);
     const sliced = files.filter((spec) => slicedSuites.includes(path(spec)));
     const rest = files.filter((spec) => !slicedSuites.includes(path(spec)));
-    const mine = new Set(shardKeys(rest.map(key), { index, count }, readTimings("vitest")));
+    // Each project spread across the shards: Vitest runs the projects side by side.
+    const mine = new Set(shardKeys(rest.map(key), { index, count }, readTimings("vitest"), projectOf));
     return [...sliced, ...rest.filter((spec) => mine.has(key(spec)))];
   }
 }

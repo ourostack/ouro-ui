@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "n
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
@@ -33,6 +33,32 @@ test("the same files and times give the same shards in any order", () => {
   assert.deepEqual(balance(["e", "d", "c", "b", "a"], 3, timings), balance(["a", "b", "c", "d", "e"], 3, timings));
   const all = [1, 2, 3].flatMap((index) => shardKeys(["a", "b", "c", "d", "e"], { index, count: 3 }, timings));
   assert.deepEqual(all.sort(), ["a", "b", "c", "d", "e"]);
+});
+
+test("with groups, each group's files spread as evenly as the shards allow, then the least in all", () => {
+  const timings = { "A a1": 60, "A a2": 50, "A a3": 10, "B b1": 30 };
+  const keys = Object.keys(timings);
+  // Without groups, A's files take 70 in one shard and 50 in the other.
+  assert.deepEqual(balance(keys, 2, timings).map((shard) => shard.keys), [["A a1", "A a3"], ["A a2", "B b1"]]);
+  const grouped = balance(keys, 2, timings, (key) => key.split(" ")[0]);
+  assert.deepEqual(grouped, [
+    { keys: ["A a1"], weight: 60 },
+    { keys: ["A a2", "A a3", "B b1"], weight: 90 },
+  ]);
+  assert.deepEqual([1, 2].flatMap((index) => shardKeys(keys, { index, count: 2 }, timings, (key) => key.split(" ")[0])).sort(), keys.sort());
+});
+
+test("CI's browser shards each take an even share of every Vitest project, which run side by side", () => {
+  assert.equal(projectOf("ouro-touch (chromium) registry/ouro/components/ouro/sheet/sheet.touch.test.tsx"), "ouro-touch (chromium)");
+  const timings = readTimings("vitest");
+  const keys = Object.keys(timings).filter((key) => !slicedSuites.some((suite) => key.endsWith(` ${suite}`)));
+  const shards = balance(keys, 4, timings, projectOf);
+  for (const project of new Set(keys.map(projectOf))) {
+    const files = keys.filter((key) => projectOf(key) === project);
+    const shares = shards.map((shard) => shard.keys.filter((key) => projectOf(key) === project).reduce((sum, key) => sum + timings[key], 0));
+    // No shard has more of a project than another by more than that project's longest file.
+    assert.ok(Math.max(...shares) - Math.min(...shares) <= Math.max(...files.map((key) => timings[key])), `${project}: ${shares.join(", ")}ms`);
+  }
 });
 
 test("a shard is <index>/<count>, as Vitest and Playwright take it", () => {
