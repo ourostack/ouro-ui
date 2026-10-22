@@ -454,7 +454,10 @@ jobs:
       - run: pnpm registry --check
       - run: pnpm controls:matrix --check
       - run: npx --yes $SHADCN registry validate ./registry.json
-      - run: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
+      # The registry as GitHub serves it at this commit: the CLI fetches each of its few hundred
+      # files, and now and then one fetch fails (a different file each time), so the fetch is
+      # tried again (scripts/retry.sh). A missing file fails every try.
+      - run: scripts/retry.sh npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
       - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"
   e2e-shard:
     # The end-to-end specs each item ships, against this repository's Storybook, and the site's, in
