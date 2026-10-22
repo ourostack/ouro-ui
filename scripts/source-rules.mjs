@@ -20,6 +20,11 @@
 //   links on a plain Tab unless a system setting is on, so tests use pressTab() (testing/tab.ts,
 //   e2e/ouro/story.ts), which works whatever the setting.
 //
+// - physicalUtilities: a class that places, pads, borders or rounds a part by a physical side
+//   (`left-2`, `ml-2`, `pr-4`, `border-l`, `rounded-r-xl`, `text-left`), which stays on that
+//   side in a right-to-left page. Components use the logical side (`start-2`, `ms-2`, `pe-4`,
+//   `border-s`, `rounded-e-xl`, `text-start`), unless `physicalAllowed` lists the class with why
+//   it must follow the screen, not the text.
 // - timerBoundReads: a test or spec that waits for a state that lasts a set time on the real
 //   clock: a confirmation label (Copied, Link copied), a toast with a countdown, a story's save in
 //   progress. A loaded runner can take longer than that time between two steps, and the state is
@@ -29,6 +34,8 @@
 //
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
+import { readFileSync } from "node:fs";
+import { URL } from "node:url";
 import ts from "typescript";
 
 const kind = (path) => (path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
@@ -234,6 +241,81 @@ export function alarmingTestTitle(name) {
 export function directTabPresses(text) {
   const press = /(keyboard|press)\(\s*["'`]([^"'`]*[{+])?Tab[}"'`]|userEvent\.tab\(/;
   return text.split("\n").flatMap((line, index) => (press.test(line) && !/^\s*(\*|\/\/)/.test(line) ? [`${index + 1}: ${line.trim()}`] : []));
+}
+
+/**
+ * A Tailwind class whose side is physical, after its variants and `!`: inset (`left-*`,
+ * `right-*`), margin, padding and scroll margin and padding on one side (`ml-*`, `pr-*`,
+ * `scroll-ml-*`), one side's border (`border-l`, `border-r-2`), one side's or corner's radius
+ * (`rounded-l-*`, `rounded-tr-*`), and alignment, float and clear (`text-left`, `float-right`).
+ */
+const physicalClass =
+  /^-?(?:(?:left|right|ml|mr|pl|pr|scroll-ml|scroll-mr|scroll-pl|scroll-pr)-(?:\d+(?:\.\d+)?|\d+\/\d+|px|full|auto|\[.+\]|\(.+\))|(?:border|rounded)-(?:l|r|tl|tr|bl|br)(?:-.+)?|(?:text|float|clear)-(?:left|right))$/;
+
+/**
+ * Utilities with no logical form, which a right-to-left page must reverse with an `rtl:` (or
+ * `ltr:`) class of the same kind in the same class list: a horizontal translate, a transform
+ * origin, a background position and an object position on a side.
+ */
+const reversible = {
+  "translate-x": /^-?translate-x-.+$/,
+  origin: /^origin-(?:left|right|top-left|top-right|bottom-left|bottom-right)$/,
+  "background position": /^bg-(?:left|right)(?:-(?:top|bottom))?$/,
+  "object position": /^object-(?:left|right)(?:-(?:top|bottom))?$/,
+};
+
+/** The kind of `reversible` utility a class is, or undefined. */
+const reversibleKind = (utility) => Object.keys(reversible).find((kind) => reversible[kind].test(utility));
+
+/** Whether a class token applies only in one direction (`rtl:`, `ltr:`), so it is a reversal itself. */
+const directional = (token) => /(?:^|:)(?:rtl|ltr):/.test(token);
+
+/** A class token's utility, without its variants (split on `:` outside `[...]`) and its `!`. */
+function utilityOf(token) {
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < token.length; index++) {
+    const char = token[index];
+    if (char === "[" || char === "(") depth++;
+    else if (char === "]" || char === ")") depth--;
+    else if (char === ":" && depth === 0) start = index + 1;
+  }
+  return token.slice(start).replace(/^!|!$/g, "");
+}
+
+/**
+ * The physical-side classes allowed in a file, by path and then by class, each with why the class
+ * must follow the screen rather than the direction of the text: scripts/physical-allowed.json. A
+ * pull request that adds one names it in its description (scripts/conformance-exemptions.mjs).
+ */
+export const physicalAllowed = JSON.parse(readFileSync(new URL("./physical-allowed.json", import.meta.url), "utf8"));
+
+/**
+ * The physical-side class tokens in a file's string literals and template text, as "line: token",
+ * leaving out the ones `allowed` lists for the file (`physicalAllowed[path]`): each `physicalClass`,
+ * and each `reversible` one (a horizontal translate, an origin, a background or object position on
+ * a side) its class list does not reverse with an `rtl:` class of the same kind.
+ */
+export function physicalUtilities(path, text, allowed = physicalAllowed[path] ?? {}) {
+  const source = parse(path, text);
+  const found = [];
+  const visit = (node) => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      const tokens = node.text.split(/\s+/).filter(Boolean);
+      // The kinds this class list reverses for right to left.
+      const reversed = new Set(tokens.filter(directional).map((token) => reversibleKind(utilityOf(token))).filter(Boolean));
+      for (const token of tokens) {
+        if (Object.hasOwn(allowed, token)) continue;
+        const utility = utilityOf(token);
+        const kind = reversibleKind(utility);
+        if (physicalClass.test(utility) || (kind && !directional(token) && !reversed.has(kind))) found.push(`${line}: ${token}`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
 }
 
 /** Labels a component shows for a set time on the real clock: CopyButton's and ShareButton's confirmations. */
