@@ -22,6 +22,7 @@ jobs:
   exemptions:
     name: conformance exemptions
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - if: github.event_name == 'merge_group'
         run: echo "Checked on the pull request, against its description; nothing to check in the merge queue."
