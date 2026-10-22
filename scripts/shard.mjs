@@ -84,6 +84,25 @@ export function scriptTestFiles(rootDir = root) {
   return script.split(/\s+/).filter((word) => /\.test\.m?[jt]s$/.test(word));
 }
 
+/** The modules `file` (relative to `rootDir`) imports for their runtime, not for types only: the specifiers. */
+const runtimeImports = (file, rootDir) => [...readFileSync(join(rootDir, file), "utf8").matchAll(/^import (?!type )[^;]*?from "([^"]+)";/gms)].map((match) => match[1]);
+
+/**
+ * Whether the script test `file` drives a browser: it, or a module of this repository it imports
+ * at any depth, imports Playwright's runtime ("playwright"), as the agent usability scorer does.
+ * Those run in Playwright's image (CI's scripts-browser job); the other script tests need no browser.
+ */
+export function drivesBrowser(file, rootDir = root, seen = new Set()) {
+  if (seen.has(file)) return false;
+  seen.add(file);
+  return runtimeImports(file, rootDir).some((spec) => {
+    if (spec === "playwright" || spec === "playwright-core") return true;
+    if (!spec.startsWith(".")) return false;
+    const next = join(dirname(file), spec).split("\\").join("/");
+    return existsSync(join(rootDir, next)) && drivesBrowser(next, rootDir, seen);
+  });
+}
+
 /** Every file under `dir`, at any depth. */
 const filesUnder = (dir) => readdirSync(dir, { recursive: true }).map(String).map((file) => join(dir, file));
 
@@ -163,8 +182,12 @@ export function installSpecShard(specs, shard, timings = readTimings("e2e")) {
 const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(([a], [b]) => (a < b ? -1 : 1)));
 
 function main([command, ...args]) {
+  if (command === "scripts-browser") {
+    console.log(scriptTestFiles().filter((file) => drivesBrowser(file)).join("\n"));
+    return 0;
+  }
   if (command === "scripts") {
-    const files = scriptTestFiles();
+    const files = scriptTestFiles().filter((file) => !drivesBrowser(file));
     console.log(shardKeys(files, parseShard(args[0]), readTimings("scripts")).join("\n"));
     return 0;
   }
@@ -202,7 +225,7 @@ function main([command, ...args]) {
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | e2e <index>/<count> | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser | e2e <index>/<count> | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 

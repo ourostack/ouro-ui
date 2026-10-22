@@ -1,0 +1,9 @@
+{
+  "order": 2610,
+  "components": ["attention-card"],
+  "controls": {
+    "attention-card": [
+      {"part": "open", "role": "button", "portal": false}
+    ]
+  }
+}
