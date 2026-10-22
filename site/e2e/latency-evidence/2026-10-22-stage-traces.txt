@@ -1,0 +1,92 @@
+# Dive under Chrome's tracing on CI's runners, main against this branch
+#
+# Scratch workflow run https://github.com/ourostack/ouro-ui/actions/runs/39733548126 (branch
+# scratch/stage-perf-ab-4, never merged). On each of four runners: base = main at ed6be201, html =
+# this pull request's stage. "TRACE": 20 Dive and Surface presses at 4x CPU throttle under a Chrome
+# trace (tracing slows them), with the presses' mean phases from Event Timing (input delay, handlers,
+# handlers to commit, commit to presented) and the busy time of the compositor's draw thread
+# (VizCompositorThread, software, as CI has no GPU) and of the raster workers in each press's
+# window. "IDLE": three seconds of the stage at rest at 4x, "full" just after the third tank floods
+# (the moment Dive is pressed) and "dived" after Dive: frames drawn and main-thread frames a
+# second, and each thread's busy ms a second.
+#
+119673886680 TRACE base dive x4: p95 96 median 80 | 104,80,80,88,96,72,96,80,80,80,88,56,88,72,88,72,80,72,80,96
+119673886680 TRACE base   mean phases: input delay 14.5, handlers 2.0, handlers->commit 8.0, commit->presented 44.7
+119673886680 TRACE base       40.8  VizCompositorThread
+119673886680 TRACE base       24.9  ThreadPoolForegroundWorker
+119673886680 TRACE base dive x4: p95 104 median 84 | 104,96,88,80,72,72,80,72,96,88,80,80,96,88,80,96,88,80,104,72
+119673886680 TRACE base   mean phases: input delay 15.9, handlers 2.2, handlers->commit 14.0, commit->presented 38.4
+119673886680 TRACE base       41.1  VizCompositorThread
+119673886680 TRACE base       23.8  ThreadPoolForegroundWorker
+119673886680 IDLE base full x4: frames drawn/s 60, main frames/s 56; busy ms/s: CrRendererMain 881, VizCompositorThread 343, Compositor 86, ThreadPoolForegroundWorker 12, ThreadPoolForegroundWorker 12, Chrome_Chil
+119673886680 IDLE base dived x4: frames drawn/s 60, main frames/s 30; busy ms/s: VizCompositorThread 280, CrRendererMain 117, Compositor 50, CrGpuMain 5, Chrome_ChildIOThread 2
+119673886680 TRACE html dive x4: p95 80 median 72 | 80,80,80,80,56,64,64,72,64,72,72,64,72,96,80,56,80,72,56,80
+119673886680 TRACE html   mean phases: input delay 11.0, handlers 2.0, handlers->commit 20.9, commit->presented 28.5
+119673886680 TRACE html       34.8  VizCompositorThread
+119673886680 TRACE html       20.0  ThreadPoolForegroundWorker
+119673886680 TRACE html dive x4: p95 80 median 64 | 64,80,80,56,64,64,64,80,64,56,64,64,56,64,80,64,80,80,64,64
+119673886680 TRACE html   mean phases: input delay 10.7, handlers 2.1, handlers->commit 21.1, commit->presented 28.8
+119673886680 TRACE html       33.9  VizCompositorThread
+119673886680 TRACE html       19.5  ThreadPoolForegroundWorker
+119673886680 IDLE html full x4: frames drawn/s 60, main frames/s 49; busy ms/s: VizCompositorThread 337, CrRendererMain 285, Compositor 57, ThreadPoolForegroundWorker 3, Chrome_ChildIOThread 3, ThreadPoolForegroun
+119673886680 IDLE html dived x4: frames drawn/s 60, main frames/s 2; busy ms/s: VizCompositorThread 235, Compositor 44, CrRendererMain 10, CrGpuMain 4, Chrome_ChildIOThread 2
+119673887085 TRACE base dive x4: p95 104 median 80 | 104,72,88,64,80,64,96,72,64,72,96,80,80,104,72,88,80,72,88,56
+119673887085 TRACE base   mean phases: input delay 14.2, handlers 2.2, handlers->commit 6.8, commit->presented 45.9
+119673887085 TRACE base       40.6  VizCompositorThread
+119673887085 TRACE base       23.8  ThreadPoolForegroundWorker
+119673887085 TRACE base dive x4: p95 104 median 80 | 120,88,88,64,88,56,96,72,104,72,72,72,88,88,104,72,72,72,72,88
+119673887085 TRACE base   mean phases: input delay 14.2, handlers 2.1, handlers->commit 11.0, commit->presented 40.4
+119673887085 TRACE base       40.0  VizCompositorThread
+119673887085 TRACE base       23.4  ThreadPoolForegroundWorker
+119673887085 IDLE base full x4: frames drawn/s 60, main frames/s 56; busy ms/s: CrRendererMain 837, VizCompositorThread 347, Compositor 89, ThreadPoolForegroundWorker 15, ThreadPoolForegroundWorker 12, Chrome_Chil
+119673887085 IDLE base dived x4: frames drawn/s 60, main frames/s 30; busy ms/s: VizCompositorThread 299, CrRendererMain 137, Compositor 50, CrGpuMain 5, Chrome_ChildIOThread 2
+119673887085 TRACE html dive x4: p95 96 median 64 | 72,72,80,72,64,56,72,56,64,96,64,64,64,64,64,104,64,80,80,56
+119673887085 TRACE html   mean phases: input delay 11.9, handlers 2.1, handlers->commit 18.5, commit->presented 29.8
+119673887085 TRACE html       33.2  VizCompositorThread
+119673887085 TRACE html       18.8  ThreadPoolForegroundWorker
+119673887085 TRACE html dive x4: p95 88 median 68 | 80,88,64,80,64,80,64,72,64,88,80,64,64,88,72,64,56,56,56,88
+119673887085 TRACE html   mean phases: input delay 11.4, handlers 2.1, handlers->commit 19.2, commit->presented 29.1
+119673887085 TRACE html       33.4  VizCompositorThread
+119673887085 TRACE html       20.9  ThreadPoolForegroundWorker
+119673887085 IDLE html full x4: frames drawn/s 60, main frames/s 48; busy ms/s: VizCompositorThread 321, CrRendererMain 275, Compositor 61, ThreadPoolForegroundWorker 4, Chrome_ChildIOThread 3, ThreadPoolForegroun
+119673887085 IDLE html dived x4: frames drawn/s 60, main frames/s 2; busy ms/s: VizCompositorThread 229, Compositor 48, CrRendererMain 10, CrGpuMain 4, Chrome_ChildIOThread 2
+119673887147 TRACE base dive x4: p95 88 median 68 | 88,88,88,64,72,56,56,40,72,64,88,56,80,72,72,56,80,56,64,48
+119673887147 TRACE base   mean phases: input delay 17.4, handlers 2.2, handlers->commit -0.1, commit->presented 44.4
+119673887147 TRACE base       25.2  VizCompositorThread
+119673887147 TRACE base       10.1  ThreadPoolForegroundWorker
+119673887147 TRACE base dive x4: p95 104 median 80 | 104,88,104,80,88,72,80,72,72,72,72,80,72,88,64,96,56,80,80,56
+119673887147 TRACE base   mean phases: input delay 18.7, handlers 2.2, handlers->commit 4.5, commit->presented 41.4
+119673887147 TRACE base       27.4  VizCompositorThread
+119673887147 TRACE base       11.5  ThreadPoolForegroundWorker
+119673887147 IDLE base full x4: frames drawn/s 60, main frames/s 55; busy ms/s: CrRendererMain 912, VizCompositorThread 257, Compositor 88, ThreadPoolForegroundWorker 12, ThreadPoolForegroundWorker 11, Chrome_Chil
+119673887147 IDLE base dived x4: frames drawn/s 60, main frames/s 30; busy ms/s: VizCompositorThread 232, CrRendererMain 166, Compositor 54, CrGpuMain 5, Chrome_ChildIOThread 2
+119673887147 TRACE html dive x4: p95 80 median 72 | 72,88,80,72,72,72,56,48,48,64,48,56,72,64,72,64,72,72,72,64
+119673887147 TRACE html   mean phases: input delay 14.3, handlers 2.4, handlers->commit 22.0, commit->presented 24.2
+119673887147 TRACE html       23.7  VizCompositorThread
+119673887147 TRACE html        8.9  ThreadPoolForegroundWorker
+119673887147 TRACE html dive x4: p95 80 median 56 | 56,80,56,64,64,88,56,56,56,64,72,64,56,56,56,64,56,48,48,56
+119673887147 TRACE html   mean phases: input delay 12.7, handlers 2.2, handlers->commit 16.7, commit->presented 26.8
+119673887147 TRACE html       20.9  VizCompositorThread
+119673887147 TRACE html        8.9  ThreadPoolForegroundWorker
+119673887147 IDLE html full x4: frames drawn/s 60, main frames/s 49; busy ms/s: CrRendererMain 285, VizCompositorThread 223, Compositor 49, ThreadPoolForegroundWorker 3, Chrome_ChildIOThread 2
+119673887147 IDLE html dived x4: frames drawn/s 60, main frames/s 2; busy ms/s: VizCompositorThread 174, Compositor 41, CrRendererMain 11, CrGpuMain 5, Chrome_ChildIOThread 2
+119673887174 TRACE base dive x4: p95 56 median 48 | 56,56,40,56,40,48,40,56,56,56,40,56,40,56,40,48,40,40,40,48
+119673887174 TRACE base   mean phases: input delay 5.6, handlers 1.6, handlers->commit 17.0, commit->presented 30.7
+119673887174 TRACE base       23.6  VizCompositorThread
+119673887174 TRACE base       15.5  ThreadPoolForegroundWorker
+119673887174 TRACE base dive x4: p95 88 median 56 | 56,72,56,72,56,56,48,56,56,72,56,88,72,88,104,56,40,40,40,56
+119673887174 TRACE base   mean phases: input delay 11.2, handlers 2.1, handlers->commit 16.7, commit->presented 29.1
+119673887174 TRACE base       24.3  VizCompositorThread
+119673887174 TRACE base       12.2  ThreadPoolForegroundWorker
+119673887174 IDLE base full x4: frames drawn/s 60, main frames/s 58; busy ms/s: CrRendererMain 627, VizCompositorThread 228, Compositor 59, ThreadPoolForegroundWorker 9, ThreadPoolForegroundWorker 9, Chrome_ChildI
+119673887174 IDLE base dived x4: frames drawn/s 60, main frames/s 33; busy ms/s: VizCompositorThread 174, CrRendererMain 84, Compositor 29, CrGpuMain 6
+119673887174 TRACE html dive x4: p95 72 median 48 | 48,48,40,56,48,56,40,48,48,64,48,72,48,56,48,72,48,72,48,72
+119673887174 TRACE html   mean phases: input delay 9.7, handlers 2.0, handlers->commit 17.6, commit->presented 28.4
+119673887174 TRACE html       23.0  VizCompositorThread
+119673887174 TRACE html       12.5  ThreadPoolForegroundWorker
+119673887174 TRACE html dive x4: p95 64 median 48 | 48,64,48,56,48,56,40,48,48,56,48,56,56,64,48,72,40,64,40,40
+119673887174 TRACE html   mean phases: input delay 7.9, handlers 1.9, handlers->commit 19.2, commit->presented 25.9
+119673887174 TRACE html       21.4  VizCompositorThread
+119673887174 TRACE html       12.6  ThreadPoolForegroundWorker
+119673887174 IDLE html full x4: frames drawn/s 60, main frames/s 48; busy ms/s: CrRendererMain 246, VizCompositorThread 222, Compositor 42, ThreadPoolForegroundWorker 2, Chrome_ChildIOThread 2
+119673887174 IDLE html dived x4: frames drawn/s 60, main frames/s 2; busy ms/s: VizCompositorThread 141, Compositor 28, CrRendererMain 6, CrGpuMain 5
