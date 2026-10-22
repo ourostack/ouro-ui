@@ -281,6 +281,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   // registry components and site files it never renders: it loads none of the docs' stylesheets.
   expect(sheets["voyage"]!.filter((sheet) => sheets["docs"]!.includes(sheet) || sheets["landing"]!.includes(sheet)), "voyage shares a stylesheet with the docs or the landing page").toEqual([]);
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
+  expect(JSON.stringify(report), "MEASURE (temporary)").toBe("");
   expect(errors).toEqual([]);
 });
 
