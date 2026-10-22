@@ -8287,6 +8287,8 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/item",
         "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",
@@ -8304,6 +8306,7 @@
         "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/reorderable"
