@@ -348,15 +348,24 @@ function leadsEscape(text, node) {
 }
 
 /**
- * Each `// real clock: <reason>` escape in `text` (the file at `path`), keyed by the file and the
- * first line of the statement it leads, whitespace collapsed: `path: statement`. The ratchet
- * compares these keys, so an escape moved to another statement counts as a new one.
+ * Each `// real clock: <reason>` escape in `text` (the file at `path`), keyed by the file, the
+ * titles of the suites and test it is in (` > ` between them) and the whole statement it leads,
+ * whitespace collapsed: `path: test: statement`, once per escape. The ratchet counts these keys,
+ * so an escape moved to another statement, or added to one already escaped, counts as a new one.
  */
 export function realClockEscapeKeys(path, text) {
   const source = parse(path, text);
   const keys = [];
+  const testOf = (node) => {
+    const titles = [];
+    for (let at = node.parent; at; at = at.parent) {
+      if (!ts.isCallExpression(at) || !at.arguments[0] || !ts.isStringLiteralLike(at.arguments[0])) continue;
+      if (/^(it|test|describe|suite)(\.\w+)*$/.test(at.expression.getText(source))) titles.unshift(at.arguments[0].text);
+    }
+    return titles.join(" > ");
+  };
   const visit = (node) => {
-    if (ts.isStatement(node) && !ts.isBlock(node) && leadsEscape(text, node)) keys.push(`${path}: ${node.getText(source).split("\n")[0].trim().replace(/\s+/g, " ")}`);
+    if (ts.isStatement(node) && !ts.isBlock(node) && leadsEscape(text, node)) keys.push(`${path}: ${testOf(node)}: ${node.getText(source).trim().replace(/\s+/g, " ")}`);
     ts.forEachChild(node, visit);
   };
   visit(source);
@@ -364,12 +373,15 @@ export function realClockEscapeKeys(path, text) {
 }
 
 /**
- * The escapes (`realClockEscapeKeys`, sets of keys) the head adds to the base, in files the pull
- * request's description does not name, as { file, message }: an escape lets a wait on the real
- * clock through, so a reviewer sees each one added or moved, as for claims.config.json's.
+ * The escapes (`realClockEscapeKeys`, lists of keys) the head has more of than the base, counted per
+ * key, in files the pull request's description does not name, as { file, message }: an escape lets
+ * a wait on the real clock through, so a reviewer sees each one added or moved, as for
+ * claims.config.json's.
  */
 export function realClockProblems({ base, head, body = "" }) {
-  const added = [...head].filter((key) => !base.has(key));
+  const count = (keys) => keys.reduce((counts, key) => counts.set(key, (counts.get(key) ?? 0) + 1), new Map());
+  const before = count([...base]);
+  const added = [...count([...head])].filter(([key, n]) => n > (before.get(key) ?? 0)).map(([key]) => key);
   const files = [...new Set(added.map((key) => key.slice(0, key.indexOf(": "))))].filter((file) => !body.includes(file));
   return files.map((file) => {
     const statements = added.filter((key) => key.startsWith(`${file}: `)).map((key) => key.slice(file.length + 2));
@@ -438,12 +450,16 @@ export function timerBoundReads(path, text) {
   // Within the test being checked: the names its Notifications region is kept under.
   let regions = new Set();
   // A read that may be a toast's: a text or dialog on the whole page, or a dialog or text in the toasts' region.
+  // The toasts' region: a name it is kept under, or a `getByRole("region", { name: "Notifications" })` call.
+  const isRegion = (expression) =>
+    (ts.isIdentifier(expression) && regions.has(expression.text)) ||
+    (ts.isCallExpression(expression) && /(^|\.)getByRole$/.test(callee(expression)) && /^getByRole\(\s*["']region["'][^)]*["']Notifications["']/.test(expression.getText(source).slice(expression.expression.getText(source).lastIndexOf("getByRole"))));
   const toastRead = (call) => {
     const name = callee(call);
     const dialog = call.arguments[0] && ts.isStringLiteralLike(call.arguments[0]) && /^(alert)?dialog$/.test(call.arguments[0].text);
     if (name === "page.getByText" || (name === "page.getByRole" && dialog)) return true;
-    const scoped = /^(\w+)\.(getByText|getByRole)$/.exec(name);
-    return Boolean(scoped && regions.has(scoped[1]) && (scoped[2] === "getByText" || dialog));
+    if (!ts.isPropertyAccessExpression(call.expression) || !/^getBy(Text|Role)$/.test(call.expression.name.text)) return false;
+    return isRegion(call.expression.expression) && (call.expression.name.text === "getByText" || Boolean(dialog));
   };
   const check = (name, body) => {
     regions = new Set();
@@ -473,7 +489,7 @@ export function timerBoundReads(path, text) {
         const initializer = node.initializer.getText(source);
         if (/data-ouro="toast"/.test(initializer)) toastNames.add(node.name.text);
         if (/getByRole\(\s*["']region["'][^)]*["']Notifications["']/.test(initializer)) regionNames.add(node.name.text);
-        else if (hasToasts && calls(node.initializer).some((call) => toastRead(call) && !callee(call).startsWith("page."))) readNames.add(node.name.text);
+        else if (hasToasts && calls(node.initializer).some(toastRead)) readNames.add(node.name.text);
       }
       ts.forEachChild(node, declare);
     };
