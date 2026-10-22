@@ -162,12 +162,15 @@ export function currentInstall(root = repo): Install {
 
 const id = "virtual:site-proof";
 
-/** Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds. */
+/**
+ * Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds:
+ * only its claims, which is all the hero shows, since the module is in the page's first load.
+ */
 export function proofPlugin(root = repo): { name: string; resolveId: (source: string) => string | undefined; load: (source: string) => string | undefined } {
   return {
     name: "site-proof",
     resolveId: (source) => (source === id ? `\0${id}` : undefined),
-    load: (source) => (source === `\0${id}` ? `export default ${JSON.stringify(currentProof(root))};\nexport const install = ${JSON.stringify(currentInstall(root))};` : undefined),
+    load: (source) => (source === `\0${id}` ? `export default ${JSON.stringify({ claims: currentProof(root).claims })};\nexport const install = ${JSON.stringify(currentInstall(root))};` : undefined),
   };
 }
 

@@ -129,28 +129,21 @@ function Proof(): JSX.Element {
   const refocus = useRef(-1);
   const [Tip, setTip] = useState<typeof TooltipComponent | null>(null);
   useEffect(() => {
-    const hero = list.current?.closest("section");
-    if (!hero) return;
-    let live = true;
+    const listening = new AbortController();
     const load = () => {
-      hero.removeEventListener("pointerover", load);
-      hero.removeEventListener("focusin", load);
+      listening.abort();
       void import("@/registry/ouro/components/ouro/tooltip/tooltip").then(({ Tooltip }) => {
-        if (!live) return;
-        refocus.current = [...(list.current?.querySelectorAll("a") ?? [])].indexOf(document.activeElement as HTMLAnchorElement);
+        refocus.current = [...list.current!.querySelectorAll("a")].indexOf(document.activeElement as HTMLAnchorElement);
         setTip(() => Tooltip);
       });
     };
-    hero.addEventListener("pointerover", load);
-    hero.addEventListener("focusin", load);
-    return () => {
-      live = false;
-      hero.removeEventListener("pointerover", load);
-      hero.removeEventListener("focusin", load);
-    };
+    const hero = list.current!.closest("section")!;
+    hero.addEventListener("pointerover", load, listening);
+    hero.addEventListener("focusin", load, listening);
+    return () => listening.abort();
   }, []);
   useLayoutEffect(() => {
-    if (Tip && refocus.current >= 0) list.current?.querySelectorAll("a")[refocus.current]?.focus();
+    if (Tip) list.current!.querySelectorAll("a")[refocus.current]?.focus();
   }, [Tip]);
   return (
     <ul ref={list} className="site-proof" aria-label="What we test" data-site-proof="" data-site-proof-tips={Tip ? "" : undefined}>
