@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import { performance } from "node:perf_hooks";
 import { mock, test } from "node:test";
 import { clearTimeout, setTimeout } from "node:timers";
-import { touchDrag, touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
+import { DRAG_SLACK_MS, drag, touchDrag, touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
 
 // The touch kit's frame logic against a stand-in Chromium page, where Playwright lists a frame
 // exactly when the test says. In a real browser the delay before Playwright lists a new frame in
@@ -556,5 +556,52 @@ test("a refusal after many rounds of asking keeps the first and last of its step
     });
   } finally {
     stop();
+  }
+});
+
+/** A page whose mouse answers each call at once, except the `hangAt`th (from 1), which never answers. */
+function mousePage(hangAt = 0) {
+  const calls = [];
+  const answer = (name) => async () => {
+    calls.push(name);
+    if (calls.length === hangAt) return new Promise(() => {});
+  };
+  return { calls, page: { mouse: { move: answer("move"), down: answer("down"), up: answer("up") }, waitForTimeout: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } };
+}
+
+test("a mouse drag the browser stops answering is refused before the test's time limit, naming the stuck move and each move's time", { timeout: 15_000 }, async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    // The move to the start, the press, move 1, then move 2 never answers.
+    const { calls, page } = mousePage(4);
+    const started = performance.now();
+    const refusal = await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 }).then(
+      () => assert.fail("the drag passed"),
+      (error) => error,
+    );
+    const took = performance.now() - started;
+    assert.ok(took >= DRAG_SLACK_MS && took < DRAG_SLACK_MS + 2000, `refused after ${Math.round(took)}ms`);
+    assert.match(
+      refusal.message,
+      /^drag: move 2 was still unanswered \d+ms later, \d+ms into a 40ms drag of 4 moves \(limit 6040ms\)\. Each step before it, pauses between moves left out: the move to the start \d+ms, the press \d+ms, move 1 \d+ms\.$/,
+    );
+    assert.equal(warn.mock.callCount(), 1);
+    assert.equal(warn.mock.calls[0].arguments[0], refusal.message);
+    // The button is let go, so the next test does not start with it pressed.
+    assert.deepEqual(calls, ["move", "down", "move", "move", "up"]);
+  } finally {
+    warn.mock.restore();
+  }
+});
+
+test("a mouse drag that finishes logs nothing", async () => {
+  const warn = mock.method(console, "warn", () => {});
+  try {
+    const { calls, page } = mousePage();
+    await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
+    assert.deepEqual(calls, ["move", "down", "move", "move", "move", "move", "up"]);
+    assert.equal(warn.mock.callCount(), 0);
+  } finally {
+    warn.mock.restore();
   }
 });
