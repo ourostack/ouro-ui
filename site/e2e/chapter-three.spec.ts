@@ -274,6 +274,8 @@ test("without reduced motion, the squid sinks back into the deep behind its ink 
   await win(page);
   await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "-100px 130px");
   await expect(scene(page).locator(".sq-ink")).toHaveCSS("animation-name", "sq-ink");
+  // The whole crew turns out and hops, with the shared frame's styles, whether or not Chapter I has loaded.
+  await expect(crew(page).locator("[data-chapter-cheer] > *").first()).toHaveCSS("animation-name", "site-hop");
   await playButton(page).click();
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("animation-name", "or-rise");
 });
