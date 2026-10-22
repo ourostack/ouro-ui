@@ -173,11 +173,16 @@ describe("the action token", () => {
     expect(matchMedia("(forced-colors: active)").matches).toBe(true);
     const plain = await render(false);
     const themed = await render(true);
-    for (const name of ["solid button", "solid link button", "disabled solid button"]) {
-      const [before, after] = [getComputedStyle(probe(plain, name)), getComputedStyle(probe(themed, name))];
-      for (const property of painted) expect(after.getPropertyValue(property), `${name} ${property}`).toBe(before.getPropertyValue(property));
-    }
-    expect(colours(themed)).toEqual(colours(plain));
+    const buttons = (host: HTMLElement) =>
+      Object.fromEntries(
+        ["solid button", "solid link button", "disabled solid button"].map((name) => {
+          const style = getComputedStyle(probe(host, name));
+          return [name, Object.fromEntries(painted.map((property) => [property, style.getPropertyValue(property)]))];
+        }),
+      );
+    // A colour still easing into its forced value settles before the two are compared.
+    await expect.poll(() => buttons(themed)).toEqual(buttons(plain));
+    await expect.poll(() => colours(themed)).toEqual(colours(plain));
   });
 });
 

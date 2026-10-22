@@ -495,6 +495,8 @@ describe("Tabs as links", () => {
     // The current link takes the foreground and the line; the others are muted, with no line.
     expect(getComputedStyle(mine!).color).not.toBe(getComputedStyle(all!).color);
     expect(getComputedStyle(mine!).textDecorationLine).toBe("none");
+    expect(mine!.getAttribute("data-active")).toBe("");
+    expect(all!.hasAttribute("data-active")).toBe(false);
     expect(all!.getAttribute("data-ouro-control")).toBe("tabs");
     expect(all!.getAttribute("data-ouro-part")).toBe("link");
     const line = host.querySelectorAll<HTMLElement>("[data-ouro-tabs-indicator]");
@@ -676,6 +678,11 @@ describe("Tabs as links", () => {
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Tabs: ${name} does nothing when the tabs are links. Fix: <Tabs currentPath={pathname}>.`);
     expect(warn).toHaveBeenCalledTimes(1);
     expect(current(host)).toEqual(["All recipes"]);
+  });
+
+  it("says nothing for tabs with panels given only what panels take", async () => {
+    await render(<Tabs label="Recipe" items={items} defaultValue="method" activation="manual" onValueChange={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("says currentPath marks a link when the tabs have panels", async () => {

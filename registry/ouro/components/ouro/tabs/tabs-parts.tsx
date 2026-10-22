@@ -171,8 +171,8 @@ export function TabsLinkList({ orientation, current, children }: { orientation: 
     const here = list.querySelector('[aria-current="page"]');
     if (!here) return;
     const [box, link] = [list.getBoundingClientRect(), here.getBoundingClientRect()];
-    if (link.left < box.left) list.scrollLeft -= box.left - link.left;
-    else if (link.right > box.right) list.scrollLeft += link.right - box.right;
+    // Back by what hides past the start, or on by what hides past the end; nothing when it shows.
+    list.scrollLeft += Math.min(link.left - box.left, 0) + Math.max(link.right - box.right, 0);
   }, [current, orientation]);
   return (
     <ul ref={own} data-orientation={orientation} className={cn(listClass, linkListClass)}>
