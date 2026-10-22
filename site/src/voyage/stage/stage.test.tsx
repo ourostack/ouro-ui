@@ -69,7 +69,7 @@ describe("the drawings", () => {
     const drawing = parseArt('<svg viewBox="0 0 9 9"><path class="c-glow-body" d="M0"/><path class="c-line" d="M1"/><g class="n-lights"><circle r="1"/></g><circle class="c-glow" r="2" /></svg>');
     expect(partsOf(drawing, "c-glow-body", "c-glow")).toBe('<path class="c-glow-body" d="M0"/><circle class="c-glow" r="2" />');
     expect(partsOf(drawing, "n-lights")).toBe('<g class="n-lights"><circle r="1"/></g>');
-    expect(() => partsOf(drawing, "n-beacon")).toThrow(/no part named n-beacon/);
+    expect(() => partsOf(drawing, "n-beacon")).toThrow(/missing its n-beacon/);
     expect(partsOf(art.nautilus, "n-lights")).toMatch(/^<g class="n-lights">(<circle [^>]*\/>)+<\/g>$/);
   });
 });

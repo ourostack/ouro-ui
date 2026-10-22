@@ -90,7 +90,7 @@ const stripTones = {
  * @claim "One action: a block as tall" registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx verify:testExists(registry/ouro/components/ouro/swipe-actions/swipe-actions.test.tsx::SwipeActions > renders the row closed, with both sides out of reach and an actions button named after the row)
  */
 const actionClass =
-  "press relative m-0 box-border inline-flex min-w-18 shrink-0 cursor-pointer items-center justify-center border-0 px-4 " +
+  "press relative m-0 box-border inline-flex min-w-18 shrink-0 cursor-pointer items-center justify-center border-0 forced-colors:border forced-colors:border-solid px-4 " +
   "text-base font-medium whitespace-nowrap pointer-fine:text-sm " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid active:opacity-80";
 

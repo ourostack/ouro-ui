@@ -22,7 +22,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (path: string) => readFileSync(join(repo, path), "utf8");
+const reader = (root: string) => (path: string) => readFileSync(join(root, path), "utf8");
 
 /** One claim on the proof line, and where a reader checks it. */
 export interface Claim {
@@ -95,7 +95,8 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
   return { components, typescript, engines, touch, coverage, themes, stage, claims, line: claims.map((claim) => claim.text).join(" · ") };
 }
 
-export function currentProof(): Proof {
+export function currentProof(root = repo): Proof {
+  const read = reader(root);
   return deriveProof({
     registry: read("registry.json"),
     testProjects: read("registry/ouro/lib/ouro/testing/vitest.ts"),
@@ -124,30 +125,37 @@ export function pickInstall(release: string, registry: string): Install {
   return { item, release, count: names.length };
 }
 
-/** registry.json as it was at a tag, fetching the tag first when this clone (a shallow CI checkout) lacks it. */
-export function registryAt(tag: string): string {
-  const show = () => execFileSync("git", ["show", `${tag}:registry.json`], { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+/**
+ * registry.json as it was at a tag, fetching the tag first when this clone (a shallow CI checkout)
+ * lacks it. On the release commit for that tag (release.yml), whose registry.json records the
+ * tag's version (scripts/registry.mts --release), it is this checkout's own: CI on that commit runs
+ * before the tag exists, and has to pass for the tag to be pushed.
+ */
+export function registryAt(tag: string, root = repo): string {
+  const own = reader(root)("registry.json");
+  if (tag === `v${(JSON.parse(own) as { version?: string }).version}`) return own;
+  const show = () => execFileSync("git", ["show", `${tag}:registry.json`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
   try {
     return show();
   } catch {
-    execFileSync("git", ["fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], { cwd: repo, stdio: "ignore" });
+    execFileSync("git", ["fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], { cwd: root, stdio: "ignore" });
     return show();
   }
 }
 
-export function currentInstall(): Install {
-  const release = (JSON.parse(read("package.json")) as { ouro: { latestRelease: string } }).ouro.latestRelease;
-  return pickInstall(release, registryAt(release));
+export function currentInstall(root = repo): Install {
+  const release = (JSON.parse(reader(root)("package.json")) as { ouro: { latestRelease: string } }).ouro.latestRelease;
+  return pickInstall(release, registryAt(release, root));
 }
 
 const id = "virtual:site-proof";
 
-/** Serves `virtual:site-proof`, the proof computed from the repository when the site builds. */
-export function proofPlugin(): { name: string; resolveId: (source: string) => string | undefined; load: (source: string) => string | undefined } {
+/** Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds. */
+export function proofPlugin(root = repo): { name: string; resolveId: (source: string) => string | undefined; load: (source: string) => string | undefined } {
   return {
     name: "site-proof",
     resolveId: (source) => (source === id ? `\0${id}` : undefined),
-    load: (source) => (source === `\0${id}` ? `export default ${JSON.stringify(currentProof())};\nexport const install = ${JSON.stringify(currentInstall())};` : undefined),
+    load: (source) => (source === `\0${id}` ? `export default ${JSON.stringify(currentProof(root))};\nexport const install = ${JSON.stringify(currentInstall(root))};` : undefined),
   };
 }
 
