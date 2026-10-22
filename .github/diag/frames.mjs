@@ -4,12 +4,18 @@ const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
   nosvg: "main svg { display: none !important; }",
-  svglayers: "main svg { will-change: transform; }",
-  nomap: "#chapter-two .site-chart { display: none !important; }",
-  nolegs: "#chapter-two [data-ouro-chart] { display: none !important; }",
-  nostage: ".site-hero svg { display: none !important; }",
-  noone: "#chapter-one svg, #chapter-three svg { display: none !important; }",
+  noactivedesc: { pseudo: "active" },
+  nohoverdesc: { pseudo: "hover" },
+  nobothdesc: { pseudo: "active|hover|focus-visible|focus-within|focus" },
 };
+/** Drops each rule whose selector has the pseudo-class anywhere but on its subject, and says what it dropped. */
+const drop = (page, pseudo) => page.evaluate((pseudo) => {
+  const pattern = new RegExp(`:(${pseudo})(?![\\w-])(?=[^,]*?[\\s)>~+])`);
+  const dropped = [];
+  const walk = (owner) => { for (let i = owner.cssRules.length - 1; i >= 0; i--) { const rule = owner.cssRules[i]; if (rule.selectorText && pattern.test(rule.selectorText)) { dropped.push(rule.selectorText); owner.deleteRule(i); } else if (rule.cssRules) walk(rule); } };
+  for (const sheet of document.styleSheets) { try { walk(sheet); } catch {} }
+  return `dropped ${dropped.length}: ${dropped.slice(0, 12).join(" | ")}`;
+}, pseudo);
 const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
 const longs = (page) => page.evaluate(() => { cancelAnimationFrame(window.__raf); const l = window.__long; return `${l.length}x${l.reduce((a, b) => a + b, 0)}`; });
 const probe = (page) => page.evaluate(() => new Promise((resolve) => {
@@ -68,11 +74,12 @@ for (const type of [webkit, chromium]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(base + "voyage/");
     await page.locator("html[data-site-ready]").waitFor({ state: "attached" });
-    if (css) await page.addStyleTag({ content: css });
+    if (typeof css === "string" && css) await page.addStyleTag({ content: css });
     await page.locator("#chapter-two").scrollIntoViewIfNeeded();
     await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
     await page.waitForTimeout(800);
     const row = [];
+    if (typeof css === "object") row.push(await drop(page, css.pseudo));
     
     row.push(await probe(page));
     const handle = page.getByRole("button", { name: /^Reorder Atlantis/ });
