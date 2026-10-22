@@ -8,7 +8,7 @@ import { DocsShell } from "../components/layout";
 import { LiveDemo } from "../components/live-demo";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown } from "../docs/content";
-import { itemDetails, loadItemDetails } from "../docs/item-details";
+import { itemDetails } from "../docs/item-details";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
@@ -414,9 +414,7 @@ function docFor(path: string): { item: DocsItem } | { page: DocsPage } | undefin
 /** Loads the Markdown a path's page shows, before it renders or hydrates (`loadPage` calls it). */
 export async function prepare(path: string): Promise<void> {
   const doc = docFor(path);
-  // The index lists every item's summary, and an item's page links its source.
-  const details = routeFor(path)?.path === "/docs/" || (doc !== undefined && "item" in doc) ? loadItemDetails() : undefined;
-  await Promise.all([details, doc && loadMarkdown("item" in doc ? itemFiles(doc.item) : [doc.page.file])]);
+  if (doc) await loadMarkdown("item" in doc ? itemFiles(doc.item) : [doc.page.file]);
 }
 
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */

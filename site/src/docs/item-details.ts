@@ -1,3 +1,4 @@
+import details from "./item-details.json";
 import type { DocsItem } from "./items";
 import { docsItems } from "./items";
 
@@ -9,21 +10,13 @@ export interface DocsItemDetails {
   summary: string;
 }
 
-let details: ReadonlyArray<readonly [string, string]> | undefined;
-
 /**
- * Loads site/src/docs/item-details.json, which `pnpm run docs` writes beside the catalog, in its
- * order: its own chunk, which the docs route loads before it renders (`prepare` in
- * site/src/pages/docs.tsx), so neither the landing page nor the docs' first load carries every
- * item's summary.
+ * An item's source file and summary, from site/src/docs/item-details.json, which `pnpm run docs`
+ * writes beside the catalog, in its order. Only the docs import it, so the landing page loads no
+ * summaries. The docs index shows every summary, so it is in the docs' first load: a chunk of its
+ * own, loaded in `prepare`, would only move it out of what site/e2e/catalog.spec.ts measures.
  */
-export async function loadItemDetails(): Promise<void> {
-  details ??= (await import("./item-details.json")).default as unknown as ReadonlyArray<readonly [string, string]>;
-}
-
-/** An item's source file and summary, once `loadItemDetails` has loaded them. */
 export function itemDetails(item: DocsItem): DocsItemDetails {
-  if (!details) throw new Error("item details are not loaded: the docs route loads them before it renders.");
-  const [path, summary] = details[docsItems.findIndex((each) => each.name === item.name)]!;
+  const [path, summary] = (details as unknown as ReadonlyArray<readonly [string, string]>)[docsItems.findIndex((each) => each.name === item.name)]!;
   return { source: `registry/ouro/components/ouro/${path}.tsx`, summary };
 }
