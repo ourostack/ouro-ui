@@ -68,10 +68,10 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 // A row highlights while pressed instead of scaling, as Item's linked row does, and is a
 // full touch target on a coarse pointer.
 const row =
-  "press relative box-border flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent px-3 " +
+  "press relative box-border flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 " +
-  "pointer-fine:hover:bg-muted active:bg-muted aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground";
+  "pointer-fine:hover:bg-muted active:bg-muted aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
 
 const moves: Readonly<Record<string, (index: number, last: number) => number>> = {
   ArrowDown: (index, last) => Math.min(index + 1, last),
