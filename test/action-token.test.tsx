@@ -106,16 +106,19 @@ async function render(tokens: boolean): Promise<HTMLElement> {
   return host;
 }
 
-function colours(host: HTMLElement): Record<string, Record<string, string>> {
+function colours(host: HTMLElement, properties: readonly string[] = painted): Record<string, Record<string, string>> {
   return Object.fromEntries(
     selection.map((selector) => {
       const element = host.querySelector(selector);
       expect(element, selector).not.toBeNull();
       const style = getComputedStyle(element!);
-      return [selector, Object.fromEntries(painted.map((property) => [property, style.getPropertyValue(property)]))];
+      return [selector, Object.fromEntries(properties.map((property) => [property, style.getPropertyValue(property)]))];
     }),
   );
 }
+
+/** What forced colours paint that the action token could change: fill, label and focus ring. */
+const forcedPainted = ["background-color", "color", "outline-color"];
 
 /** A token's colour as the browser resolves it inside `host`. */
 function resolved(host: HTMLElement, variable: string): string {
@@ -177,15 +180,14 @@ describe("the action token", () => {
       Object.fromEntries(
         ["solid button", "solid link button", "disabled solid button"].map((name) => {
           const style = getComputedStyle(probe(host, name));
-          // The fill, the label and the focus ring: what the action token could change. The
-          // transparent border is left out; under forced colours Chromium on Linux can leave it
+          // A transparent border is left out: under forced colours Chromium on Linux can leave it
           // part way through its ease.
-          return [name, Object.fromEntries(["background-color", "color", "outline-color"].map((property) => [property, style.getPropertyValue(property)]))];
+          return [name, Object.fromEntries(forcedPainted.map((property) => [property, style.getPropertyValue(property)]))];
         }),
       );
     // A colour still easing into its forced value settles before the two are compared.
     await expect.poll(() => buttons(themed)).toEqual(buttons(plain));
-    await expect.poll(() => colours(themed)).toEqual(colours(plain));
+    await expect.poll(() => colours(themed, forcedPainted)).toEqual(colours(plain, forcedPainted));
   });
 });
 
