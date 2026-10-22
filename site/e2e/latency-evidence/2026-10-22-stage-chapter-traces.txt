@@ -1,0 +1,688 @@
+# Six controls under Chrome's tracing on CI's runners, main against this branch
+#
+# Scratch workflow run https://github.com/ourostack/ouro-ui/actions/runs/39744978007 (branch
+# scratch/stage-perf-ab-6, never merged). On each of four runners (the job id first; CPUs below):
+# base = main at ac0d93fc, new = this pull request at 747c7bfc. For each control, two traced runs
+# of 20 presses at 4x CPU throttle per build, the builds' order reversed for the second (tracing
+# slows the presses). After each run: its p95, median and samples; the presses' mean phases from
+# Event Timing (input delay, handlers, handlers to commit, commit to presented); and the main
+# thread's self time per press, in ms, for style (Document::recalcStyle), layout
+# (LocalFrameView::performLayout), layerization (PaintArtifactCompositor::Update), paint and script
+# (FunctionCall).
+#
+# 119711074138 Model name: AMD EPYC 9V45 96-Core Processor
+# 119711074215 Model name: AMD EPYC 9V45 96-Core Processor
+# 119711074289 Model name: Intel(R) Xeon(R) 6973P-C
+# 119711074415 Model name: AMD EPYC 7763 64-Core Processor
+119711074138 TRACE base dive x4: p95 64 median 56 | 48,56,56,56,56,56,48,48,48,64,64,56,48,56,48,56,40,40,64,56
+119711074138 TRACE base dive mean phases: input delay 7.2, handlers 1.6, handlers->commit 15.1, commit->presented 24.1
+119711074138 TRACE base dive 6.8 FunctionCall
+119711074138 TRACE base dive 5.4 LocalFrameView::performLayout
+119711074138 TRACE base dive 3.6 PaintArtifactCompositor::Update
+119711074138 TRACE base dive 3.5 Document::recalcStyle
+119711074138 TRACE base dive 2.6 Paint
+119711074138 TRACE new dive x4: p95 72 median 56 | 56,56,56,56,48,72,48,48,40,48,64,72,56,72,40,48,40,80,64,56
+119711074138 TRACE new dive mean phases: input delay 8.2, handlers 1.8, handlers->commit 15.7, commit->presented 26.1
+119711074138 TRACE new dive 7.5 FunctionCall
+119711074138 TRACE new dive 4.5 LocalFrameView::performLayout
+119711074138 TRACE new dive 4.2 Document::recalcStyle
+119711074138 TRACE new dive 3.5 PaintArtifactCompositor::Update
+119711074138 TRACE new dive 2.5 Paint
+119711074138 TRACE new dive x4: p95 72 median 60 | 48,72,56,56,56,56,64,64,56,56,72,72,64,64,56,80,56,64,56,72
+119711074138 TRACE new dive mean phases: input delay 9.7, handlers 1.9, handlers->commit 16.2, commit->presented 26.3
+119711074138 TRACE new dive 8.1 FunctionCall
+119711074138 TRACE new dive 4.7 Document::recalcStyle
+119711074138 TRACE new dive 4.4 LocalFrameView::performLayout
+119711074138 TRACE new dive 3.5 PaintArtifactCompositor::Update
+119711074138 TRACE new dive 2.8 Paint
+119711074138 TRACE base dive x4: p95 72 median 56 | 80,56,56,56,72,64,64,56,56,64,56,72,56,64,64,56,48,56,56,64
+119711074138 TRACE base dive mean phases: input delay 8.5, handlers 1.8, handlers->commit 18.3, commit->presented 25.6
+119711074138 TRACE base dive 7.8 FunctionCall
+119711074138 TRACE base dive 5.6 LocalFrameView::performLayout
+119711074138 TRACE base dive 4.4 Document::recalcStyle
+119711074138 TRACE base dive 3.9 PaintArtifactCompositor::Update
+119711074138 TRACE base dive 2.8 Paint
+119711074138 TRACE base depth x4: p95 72 median 64 | 48,72,64,72,64,64,72,56,56,64,64,48,64,56,48,72,64,56,56,64
+119711074138 TRACE base depth mean phases: input delay 13.3, handlers 6.9, handlers->commit 12.9, commit->presented 26.2
+119711074138 TRACE base depth 9.1 Paint
+119711074138 TRACE base depth 8.6 PaintArtifactCompositor::Update
+119711074138 TRACE base depth 8.5 FunctionCall
+119711074138 TRACE base depth 6.6 Document::recalcStyle
+119711074138 TRACE base depth 2.8 LocalFrameView::performLayout
+119711074138 TRACE new depth x4: p95 72 median 56 | 56,56,48,72,56,56,72,72,56,56,48,72,64,72,48,72,56,40,56,56
+119711074138 TRACE new depth mean phases: input delay 11.8, handlers 7.0, handlers->commit 11.0, commit->presented 28.2
+119711074138 TRACE new depth 8.7 FunctionCall
+119711074138 TRACE new depth 8.3 Paint
+119711074138 TRACE new depth 6.7 Document::recalcStyle
+119711074138 TRACE new depth 6.6 PaintArtifactCompositor::Update
+119711074138 TRACE new depth 2.6 LocalFrameView::performLayout
+119711074138 TRACE new depth x4: p95 72 median 64 | 64,72,72,64,72,72,56,56,64,64,56,72,72,56,64,72,64,48,48,64
+119711074138 TRACE new depth mean phases: input delay 16.0, handlers 7.3, handlers->commit 13.8, commit->presented 25.7
+119711074138 TRACE new depth 9.4 Paint
+119711074138 TRACE new depth 8.5 FunctionCall
+119711074138 TRACE new depth 7.8 PaintArtifactCompositor::Update
+119711074138 TRACE new depth 6.8 Document::recalcStyle
+119711074138 TRACE new depth 3.1 LocalFrameView::performLayout
+119711074138 TRACE base depth x4: p95 80 median 64 | 72,56,72,64,80,64,64,120,64,64,56,64,80,64,64,64,64,64,72,64
+119711074138 TRACE base depth mean phases: input delay 18.0, handlers 9.1, handlers->commit 19.2, commit->presented 22.5
+119711074138 TRACE base depth 10.9 PaintArtifactCompositor::Update
+119711074138 TRACE base depth 10.5 Paint
+119711074138 TRACE base depth 9.6 FunctionCall
+119711074138 TRACE base depth 7.3 Document::recalcStyle
+119711074138 TRACE base depth 3.7 LocalFrameView::performLayout
+119711074138 TRACE base tank x4: p95 72 median 56 | 72,56,56,56,56,56,56,72,72,72,56,56,64,64,56,48,40,56,56,56
+119711074138 TRACE base tank mean phases: input delay 12.1, handlers 5.3, handlers->commit 29.2, commit->presented 13.3
+119711074138 TRACE base tank 13.2 FunctionCall
+119711074138 TRACE base tank 7.9 LocalFrameView::performLayout
+119711074138 TRACE base tank 4.4 PaintArtifactCompositor::Update
+119711074138 TRACE base tank 3.4 Document::recalcStyle
+119711074138 TRACE base tank 2.9 Paint
+119711074138 TRACE new tank x4: p95 64 median 56 | 64,56,56,56,56,64,56,64,56,40,56,56,64,64,56,48,48,64,56,48
+119711074138 TRACE new tank mean phases: input delay 12.0, handlers 4.7, handlers->commit 22.0, commit->presented 18.5
+119711074138 TRACE new tank 13.8 FunctionCall
+119711074138 TRACE new tank 7.6 LocalFrameView::performLayout
+119711074138 TRACE new tank 3.4 Document::recalcStyle
+119711074138 TRACE new tank 3.2 PaintArtifactCompositor::Update
+119711074138 TRACE new tank 2.9 Paint
+119711074138 TRACE new tank x4: p95 72 median 56 | 56,56,56,72,72,72,72,56,56,56,56,56,72,56,56,72,72,56,56,56
+119711074138 TRACE new tank mean phases: input delay 14.7, handlers 5.8, handlers->commit 27.9, commit->presented 14.5
+119711074138 TRACE new tank 13.8 FunctionCall
+119711074138 TRACE new tank 7.8 LocalFrameView::performLayout
+119711074138 TRACE new tank 4.4 Document::recalcStyle
+119711074138 TRACE new tank 3.6 PaintArtifactCompositor::Update
+119711074138 TRACE new tank 3.5 Paint
+119711074138 TRACE base tank x4: p95 80 median 60 | 72,72,72,72,56,72,72,56,56,72,56,56,56,80,56,64,96,56,56,56
+119711074138 TRACE base tank mean phases: input delay 13.5, handlers 5.8, handlers->commit 32.7, commit->presented 15.1
+119711074138 TRACE base tank 14.9 FunctionCall
+119711074138 TRACE base tank 8.4 LocalFrameView::performLayout
+119711074138 TRACE base tank 4.8 PaintArtifactCompositor::Update
+119711074138 TRACE base tank 4.2 Document::recalcStyle
+119711074138 TRACE base tank 3.6 Paint
+119711074138 TRACE base launch x4: p95 88 median 68 | 80,80,80,64,96,64,88,64,72,56,56,64,80,64,72,80,80,64,64,64
+119711074138 TRACE base launch mean phases: input delay 10.6, handlers 2.9, handlers->commit 5.0, commit->presented 34.2
+119711074138 TRACE base launch 5.3 Document::recalcStyle
+119711074138 TRACE base launch 5.1 FunctionCall
+119711074138 TRACE base launch 4.7 PaintArtifactCompositor::Update
+119711074138 TRACE base launch 3.1 Paint
+119711074138 TRACE base launch 1.9 LocalFrameView::performLayout
+119711074138 TRACE new launch x4: p95 88 median 72 | 88,64,112,56,80,64,80,64,72,72,88,64,80,48,88,64,72,72,88,56
+119711074138 TRACE new launch mean phases: input delay 10.8, handlers 3.3, handlers->commit 6.3, commit->presented 33.0
+119711074138 TRACE new launch 5.7 Document::recalcStyle
+119711074138 TRACE new launch 5.5 FunctionCall
+119711074138 TRACE new launch 3.5 Paint
+119711074138 TRACE new launch 2.6 PaintArtifactCompositor::Update
+119711074138 TRACE new launch 2.2 LocalFrameView::performLayout
+119711074138 TRACE new launch x4: p95 88 median 72 | 64,40,72,56,88,80,88,72,88,64,80,64,72,64,80,64,80,72,96,72
+119711074138 TRACE new launch mean phases: input delay 10.5, handlers 3.0, handlers->commit 10.0, commit->presented 28.8
+119711074138 TRACE new launch 5.8 FunctionCall
+119711074138 TRACE new launch 5.4 Document::recalcStyle
+119711074138 TRACE new launch 3.3 Paint
+119711074138 TRACE new launch 2.6 PaintArtifactCompositor::Update
+119711074138 TRACE new launch 2.2 LocalFrameView::performLayout
+119711074138 TRACE base launch x4: p95 104 median 88 | 104,88,80,80,96,80,96,88,96,80,96,80,96,64,88,88,88,80,104,56
+119711074138 TRACE base launch mean phases: input delay 12.6, handlers 3.3, handlers->commit 4.2, commit->presented 36.9
+119711074138 TRACE base launch 6.6 Document::recalcStyle
+119711074138 TRACE base launch 5.8 FunctionCall
+119711074138 TRACE base launch 5.0 PaintArtifactCompositor::Update
+119711074138 TRACE base launch 3.7 Paint
+119711074138 TRACE base launch 2.5 LocalFrameView::performLayout
+119711074138 TRACE base sign x4: p95 80 median 72 | 72,80,72,80,80,72,72,72,72,72,80,72,64,64,64,64,72,72,72,64
+119711074138 TRACE base sign mean phases: input delay 8.5, handlers 8.5, handlers->commit 12.7, commit->presented 2.9
+119711074138 TRACE base sign 9.2 FunctionCall
+119711074138 TRACE base sign 2.9 Document::recalcStyle
+119711074138 TRACE base sign 1.7 PaintArtifactCompositor::Update
+119711074138 TRACE base sign 1.5 LocalFrameView::performLayout
+119711074138 TRACE base sign 1.3 Paint
+119711074138 TRACE new sign x4: p95 56 median 48 | 56,48,48,48,48,48,48,48,56,56,48,48,56,48,48,56,48,56,56,56
+119711074138 TRACE new sign mean phases: input delay 8.6, handlers 3.7, handlers->commit 12.8, commit->presented 2.8
+119711074138 TRACE new sign 7.0 FunctionCall
+119711074138 TRACE new sign 2.5 Document::recalcStyle
+119711074138 TRACE new sign 1.2 Paint
+119711074138 TRACE new sign 1.0 LocalFrameView::performLayout
+119711074138 TRACE new sign 0.7 PaintArtifactCompositor::Update
+119711074138 TRACE new sign x4: p95 56 median 56 | 56,56,56,56,48,56,48,56,56,56,56,48,48,56,48,48,48,56,56,56
+119711074138 TRACE new sign mean phases: input delay 9.0, handlers 3.8, handlers->commit 12.4, commit->presented 2.3
+119711074138 TRACE new sign 7.1 FunctionCall
+119711074138 TRACE new sign 2.6 Document::recalcStyle
+119711074138 TRACE new sign 1.2 Paint
+119711074138 TRACE new sign 1.0 LocalFrameView::performLayout
+119711074138 TRACE new sign 0.7 PaintArtifactCompositor::Update
+119711074138 TRACE base sign x4: p95 80 median 72 | 80,64,64,64,96,80,72,72,64,72,72,72,64,64,72,72,72,72,72,80
+119711074138 TRACE base sign mean phases: input delay 8.7, handlers 8.5, handlers->commit 13.2, commit->presented 2.5
+119711074138 TRACE base sign 9.3 FunctionCall
+119711074138 TRACE base sign 3.1 Document::recalcStyle
+119711074138 TRACE base sign 1.8 PaintArtifactCompositor::Update
+119711074138 TRACE base sign 1.5 LocalFrameView::performLayout
+119711074138 TRACE base sign 1.3 Paint
+119711074138 TRACE base order x4: p95 96 median 88 | 96,88,88,88,88,96,88,80,88,88,88,72,88,80,72,72,64,72,64,64
+119711074138 TRACE base order mean phases: input delay 10.0, handlers 27.7, handlers->commit 12.4, commit->presented 2.4
+119711074138 TRACE base order 20.2 FunctionCall
+119711074138 TRACE base order 6.3 Document::recalcStyle
+119711074138 TRACE base order 3.4 LocalFrameView::performLayout
+119711074138 TRACE base order 1.7 Paint
+119711074138 TRACE base order 1.6 PaintArtifactCompositor::Update
+119711074138 TRACE new order x4: p95 88 median 72 | 80,72,88,72,72,64,72,72,72,56,64,64,112,72,80,72,80,72,72,64
+119711074138 TRACE new order mean phases: input delay 9.9, handlers 24.7, handlers->commit 11.4, commit->presented 2.1
+119711074138 TRACE new order 18.8 FunctionCall
+119711074138 TRACE new order 5.6 Document::recalcStyle
+119711074138 TRACE new order 2.9 LocalFrameView::performLayout
+119711074138 TRACE new order 1.5 Paint
+119711074138 TRACE new order 0.8 PaintArtifactCompositor::Update
+119711074138 TRACE new order x4: p95 88 median 64 | 88,64,80,112,72,64,72,56,64,64,64,56,64,72,72,64,72,64,56,56
+119711074138 TRACE new order mean phases: input delay 9.2, handlers 22.7, handlers->commit 10.9, commit->presented 2.6
+119711074138 TRACE new order 17.1 FunctionCall
+119711074138 TRACE new order 5.3 Document::recalcStyle
+119711074138 TRACE new order 2.9 LocalFrameView::performLayout
+119711074138 TRACE new order 1.5 Paint
+119711074138 TRACE new order 0.8 PaintArtifactCompositor::Update
+119711074138 TRACE base order x4: p95 88 median 76 | 88,88,80,104,80,72,72,88,88,72,80,64,80,72,64,64,72,72,80,64
+119711074138 TRACE base order mean phases: input delay 10.0, handlers 26.0, handlers->commit 11.8, commit->presented 2.2
+119711074138 TRACE base order 19.4 FunctionCall
+119711074138 TRACE base order 5.8 Document::recalcStyle
+119711074138 TRACE base order 3.2 LocalFrameView::performLayout
+119711074138 TRACE base order 1.6 PaintArtifactCompositor::Update
+119711074138 TRACE base order 1.6 Paint
+119711074215 TRACE base dive x4: p95 64 median 56 | 56,56,56,56,72,64,48,48,48,56,56,56,56,56,56,64,48,56,64,48
+119711074215 TRACE base dive mean phases: input delay 8.7, handlers 1.8, handlers->commit 17.4, commit->presented 23.0
+119711074215 TRACE base dive 6.8 FunctionCall
+119711074215 TRACE base dive 5.0 Document::recalcStyle
+119711074215 TRACE base dive 4.9 LocalFrameView::performLayout
+119711074215 TRACE base dive 3.9 PaintArtifactCompositor::Update
+119711074215 TRACE base dive 2.7 Paint
+119711074215 TRACE new dive x4: p95 64 median 56 | 64,56,56,64,56,56,48,48,56,48,56,88,56,56,56,56,56,56,56,56
+119711074215 TRACE new dive mean phases: input delay 9.2, handlers 1.9, handlers->commit 17.6, commit->presented 23.1
+119711074215 TRACE new dive 7.0 FunctionCall
+119711074215 TRACE new dive 4.5 LocalFrameView::performLayout
+119711074215 TRACE new dive 4.5 Document::recalcStyle
+119711074215 TRACE new dive 3.5 PaintArtifactCompositor::Update
+119711074215 TRACE new dive 2.6 Paint
+119711074215 TRACE new dive x4: p95 88 median 56 | 56,96,56,56,56,56,48,48,48,64,56,48,64,72,56,88,48,64,48,88
+119711074215 TRACE new dive mean phases: input delay 8.6, handlers 1.8, handlers->commit 16.4, commit->presented 27.1
+119711074215 TRACE new dive 7.6 FunctionCall
+119711074215 TRACE new dive 4.6 LocalFrameView::performLayout
+119711074215 TRACE new dive 4.1 Document::recalcStyle
+119711074215 TRACE new dive 3.7 PaintArtifactCompositor::Update
+119711074215 TRACE new dive 2.9 Paint
+119711074215 TRACE base dive x4: p95 88 median 56 | 56,88,56,56,72,88,40,80,56,80,80,80,56,72,56,56,56,104,56,56
+119711074215 TRACE base dive mean phases: input delay 10.4, handlers 1.8, handlers->commit 16.5, commit->presented 29.2
+119711074215 TRACE base dive 7.7 FunctionCall
+119711074215 TRACE base dive 5.8 LocalFrameView::performLayout
+119711074215 TRACE base dive 4.6 Document::recalcStyle
+119711074215 TRACE base dive 4.3 PaintArtifactCompositor::Update
+119711074215 TRACE base dive 3.0 Paint
+119711074215 TRACE base depth x4: p95 72 median 64 | 80,56,64,64,64,64,56,72,56,64,64,56,64,64,48,64,72,72,48,56
+119711074215 TRACE base depth mean phases: input delay 15.3, handlers 7.5, handlers->commit 15.7, commit->presented 22.4
+119711074215 TRACE base depth 9.9 PaintArtifactCompositor::Update
+119711074215 TRACE base depth 9.7 Paint
+119711074215 TRACE base depth 8.5 FunctionCall
+119711074215 TRACE base depth 6.1 Document::recalcStyle
+119711074215 TRACE base depth 3.1 LocalFrameView::performLayout
+119711074215 TRACE new depth x4: p95 72 median 56 | 64,56,64,72,56,48,56,56,56,64,48,56,56,48,56,72,48,56,56,64
+119711074215 TRACE new depth mean phases: input delay 13.5, handlers 6.2, handlers->commit 11.2, commit->presented 24.9
+119711074215 TRACE new depth 8.4 Paint
+119711074215 TRACE new depth 7.8 PaintArtifactCompositor::Update
+119711074215 TRACE new depth 7.0 FunctionCall
+119711074215 TRACE new depth 6.1 Document::recalcStyle
+119711074215 TRACE new depth 3.1 LocalFrameView::performLayout
+119711074215 TRACE new depth x4: p95 72 median 56 | 64,48,48,56,56,64,48,64,48,56,80,56,48,56,48,56,48,56,56,72
+119711074215 TRACE new depth mean phases: input delay 12.2, handlers 6.9, handlers->commit 12.3, commit->presented 22.6
+119711074215 TRACE new depth 8.2 Paint
+119711074215 TRACE new depth 8.0 FunctionCall
+119711074215 TRACE new depth 7.4 PaintArtifactCompositor::Update
+119711074215 TRACE new depth 5.5 Document::recalcStyle
+119711074215 TRACE new depth 2.7 LocalFrameView::performLayout
+119711074215 TRACE base depth x4: p95 72 median 64 | 56,64,80,72,64,72,64,64,64,56,64,56,56,56,56,56,56,56,64,64
+119711074215 TRACE base depth mean phases: input delay 13.8, handlers 7.0, handlers->commit 9.7, commit->presented 30.0
+119711074215 TRACE base depth 9.3 PaintArtifactCompositor::Update
+119711074215 TRACE base depth 8.6 FunctionCall
+119711074215 TRACE base depth 8.3 Paint
+119711074215 TRACE base depth 7.6 Document::recalcStyle
+119711074215 TRACE base depth 2.9 LocalFrameView::performLayout
+119711074215 TRACE base tank x4: p95 64 median 56 | 56,56,64,64,64,56,56,56,64,56,64,48,56,48,56,48,56,48,72,56
+119711074215 TRACE base tank mean phases: input delay 11.1, handlers 5.0, handlers->commit 26.6, commit->presented 14.0
+119711074215 TRACE base tank 13.9 FunctionCall
+119711074215 TRACE base tank 7.5 LocalFrameView::performLayout
+119711074215 TRACE base tank 4.6 PaintArtifactCompositor::Update
+119711074215 TRACE base tank 3.2 Document::recalcStyle
+119711074215 TRACE base tank 3.1 Paint
+119711074215 TRACE new tank x4: p95 48 median 48 | 48,48,48,48,48,48,48,48,48,48,48,48,48,48,40,40,40,48,40,48
+119711074215 TRACE new tank mean phases: input delay 11.2, handlers 4.9, handlers->commit 24.3, commit->presented 5.5
+119711074215 TRACE new tank 11.0 FunctionCall
+119711074215 TRACE new tank 6.2 LocalFrameView::performLayout
+119711074215 TRACE new tank 3.1 PaintArtifactCompositor::Update
+119711074215 TRACE new tank 2.7 Document::recalcStyle
+119711074215 TRACE new tank 2.5 Paint
+119711074215 TRACE new tank x4: p95 64 median 56 | 64,64,56,64,56,64,56,64,56,48,56,56,40,56,56,56,56,48,56,56
+119711074215 TRACE new tank mean phases: input delay 10.9, handlers 4.8, handlers->commit 24.8, commit->presented 15.2
+119711074215 TRACE new tank 13.6 FunctionCall
+119711074215 TRACE new tank 7.2 LocalFrameView::performLayout
+119711074215 TRACE new tank 3.1 Document::recalcStyle
+119711074215 TRACE new tank 3.0 PaintArtifactCompositor::Update
+119711074215 TRACE new tank 2.5 Paint
+119711074215 TRACE base tank x4: p95 64 median 56 | 64,64,64,56,64,56,56,56,64,56,64,56,56,56,56,48,56,64,56,56
+119711074215 TRACE base tank mean phases: input delay 10.7, handlers 4.8, handlers->commit 25.6, commit->presented 16.8
+119711074215 TRACE base tank 14.6 FunctionCall
+119711074215 TRACE base tank 7.4 LocalFrameView::performLayout
+119711074215 TRACE base tank 4.2 PaintArtifactCompositor::Update
+119711074215 TRACE base tank 3.3 Document::recalcStyle
+119711074215 TRACE base tank 2.8 Paint
+119711074215 TRACE base launch x4: p95 64 median 56 | 48,48,64,40,48,48,64,40,56,56,72,56,64,56,56,56,56,40,64,48
+119711074215 TRACE base launch mean phases: input delay 7.2, handlers 2.6, handlers->commit 11.9, commit->presented 21.7
+119711074215 TRACE base launch 4.7 FunctionCall
+119711074215 TRACE base launch 4.3 Document::recalcStyle
+119711074215 TRACE base launch 3.6 PaintArtifactCompositor::Update
+119711074215 TRACE base launch 2.1 Paint
+119711074215 TRACE base launch 1.7 LocalFrameView::performLayout
+119711074215 TRACE new launch x4: p95 64 median 52 | 48,32,56,48,56,40,56,40,64,40,56,40,56,40,56,40,56,40,64,56
+119711074215 TRACE new launch mean phases: input delay 5.9, handlers 2.6, handlers->commit 12.3, commit->presented 25.3
+119711074215 TRACE new launch 5.0 Document::recalcStyle
+119711074215 TRACE new launch 4.7 FunctionCall
+119711074215 TRACE new launch 2.2 Paint
+119711074215 TRACE new launch 2.1 PaintArtifactCompositor::Update
+119711074215 TRACE new launch 1.7 LocalFrameView::performLayout
+119711074215 TRACE new launch x4: p95 64 median 44 | 48,40,40,40,48,40,64,40,56,56,64,40,64,40,72,40,64,40,64,40
+119711074215 TRACE new launch mean phases: input delay 6.7, handlers 2.6, handlers->commit 11.0, commit->presented 25.3
+119711074215 TRACE new launch 5.0 Document::recalcStyle
+119711074215 TRACE new launch 4.9 FunctionCall
+119711074215 TRACE new launch 2.3 Paint
+119711074215 TRACE new launch 2.1 PaintArtifactCompositor::Update
+119711074215 TRACE new launch 1.7 LocalFrameView::performLayout
+119711074215 TRACE base launch x4: p95 80 median 64 | 72,56,64,32,72,48,80,56,64,56,88,64,64,56,72,64,72,72,48,72
+119711074215 TRACE base launch mean phases: input delay 9.0, handlers 2.7, handlers->commit 9.0, commit->presented 29.5
+119711074215 TRACE base launch 5.3 FunctionCall
+119711074215 TRACE base launch 4.6 PaintArtifactCompositor::Update
+119711074215 TRACE base launch 4.5 Document::recalcStyle
+119711074215 TRACE base launch 3.1 Paint
+119711074215 TRACE base launch 1.8 LocalFrameView::performLayout
+119711074215 TRACE base sign x4: p95 56 median 48 | 56,48,48,48,48,48,48,48,56,48,48,48,48,40,40,40,40,40,40,40
+119711074215 TRACE base sign mean phases: input delay 6.1, handlers 5.7, handlers->commit 11.3, commit->presented 2.2
+119711074215 TRACE base sign 6.7 FunctionCall
+119711074215 TRACE base sign 1.8 Document::recalcStyle
+119711074215 TRACE base sign 1.4 PaintArtifactCompositor::Update
+119711074215 TRACE base sign 1.0 LocalFrameView::performLayout
+119711074215 TRACE base sign 0.9 Paint
+119711074215 TRACE new sign x4: p95 40 median 40 | 40,48,40,32,40,40,40,40,32,40,40,32,40,32,32,32,40,32,40,40
+119711074215 TRACE new sign mean phases: input delay 6.8, handlers 3.2, handlers->commit 10.9, commit->presented 1.9
+119711074215 TRACE new sign 5.8 FunctionCall
+119711074215 TRACE new sign 1.7 Document::recalcStyle
+119711074215 TRACE new sign 0.9 Paint
+119711074215 TRACE new sign 0.8 LocalFrameView::performLayout
+119711074215 TRACE new sign 0.7 PaintArtifactCompositor::Update
+119711074215 TRACE new sign x4: p95 48 median 40 | 48,40,40,32,32,40,40,40,40,40,40,72,32,32,32,32,40,32,40,32
+119711074215 TRACE new sign mean phases: input delay 6.9, handlers 3.1, handlers->commit 10.8, commit->presented 2.1
+119711074215 TRACE new sign 5.8 FunctionCall
+119711074215 TRACE new sign 1.7 Document::recalcStyle
+119711074215 TRACE new sign 0.9 Paint
+119711074215 TRACE new sign 0.9 LocalFrameView::performLayout
+119711074215 TRACE new sign 0.6 PaintArtifactCompositor::Update
+119711074215 TRACE base sign x4: p95 64 median 52 | 48,48,48,48,56,56,56,56,56,64,48,96,56,56,48,48,48,48,56,40
+119711074215 TRACE base sign mean phases: input delay 6.9, handlers 6.2, handlers->commit 11.0, commit->presented 2.7
+119711074215 TRACE base sign 7.2 FunctionCall
+119711074215 TRACE base sign 2.2 Document::recalcStyle
+119711074215 TRACE base sign 1.6 PaintArtifactCompositor::Update
+119711074215 TRACE base sign 1.1 LocalFrameView::performLayout
+119711074215 TRACE base sign 1.0 Paint
+119711074215 TRACE base order x4: p95 80 median 64 | 64,64,72,64,64,64,56,48,56,48,80,56,72,56,80,56,80,56,72,56
+119711074215 TRACE base order mean phases: input delay 7.9, handlers 20.1, handlers->commit 12.0, commit->presented 3.4
+119711074215 TRACE base order 15.6 FunctionCall
+119711074215 TRACE base order 4.4 Document::recalcStyle
+119711074215 TRACE base order 2.5 LocalFrameView::performLayout
+119711074215 TRACE base order 1.5 PaintArtifactCompositor::Update
+119711074215 TRACE base order 1.2 Paint
+119711074215 TRACE new order x4: p95 72 median 56 | 80,56,64,48,56,56,72,56,72,48,56,48,48,56,64,48,48,48,64,48
+119711074215 TRACE new order mean phases: input delay 7.9, handlers 17.3, handlers->commit 11.6, commit->presented 3.3
+119711074215 TRACE new order 14.2 FunctionCall
+119711074215 TRACE new order 3.9 Document::recalcStyle
+119711074215 TRACE new order 1.8 LocalFrameView::performLayout
+119711074215 TRACE new order 1.1 Paint
+119711074215 TRACE new order 0.8 PaintArtifactCompositor::Update
+119711074215 TRACE new order x4: p95 72 median 56 | 72,56,64,56,56,48,56,56,56,64,56,56,48,56,56,48,64,56,48,80
+119711074215 TRACE new order mean phases: input delay 8.3, handlers 19.1, handlers->commit 10.5, commit->presented 1.8
+119711074215 TRACE new order 14.9 FunctionCall
+119711074215 TRACE new order 4.4 Document::recalcStyle
+119711074215 TRACE new order 2.1 LocalFrameView::performLayout
+119711074215 TRACE new order 1.2 Paint
+119711074215 TRACE new order 0.7 PaintArtifactCompositor::Update
+119711074215 TRACE base order x4: p95 88 median 72 | 72,72,64,64,64,64,96,56,56,56,72,64,80,88,80,64,80,72,80,72
+119711074215 TRACE base order mean phases: input delay 8.9, handlers 23.1, handlers->commit 11.7, commit->presented 2.9
+119711074215 TRACE base order 17.0 FunctionCall
+119711074215 TRACE base order 5.1 Document::recalcStyle
+119711074215 TRACE base order 2.9 LocalFrameView::performLayout
+119711074215 TRACE base order 1.6 PaintArtifactCompositor::Update
+119711074215 TRACE base order 1.6 Paint
+119711074289 TRACE base dive x4: p95 56 median 48 | 48,56,48,56,40,56,40,40,40,40,56,48,40,40,40,56,48,56,48,56
+119711074289 TRACE base dive mean phases: input delay 6.5, handlers 1.4, handlers->commit 12.7, commit->presented 24.5
+119711074289 TRACE base dive 6.5 FunctionCall
+119711074289 TRACE base dive 5.1 LocalFrameView::performLayout
+119711074289 TRACE base dive 3.3 PaintArtifactCompositor::Update
+119711074289 TRACE base dive 3.2 Document::recalcStyle
+119711074289 TRACE base dive 2.2 Paint
+119711074289 TRACE new dive x4: p95 64 median 40 | 64,72,64,56,40,32,40,32,40,40,40,40,40,48,40,40,32,40,40,40
+119711074289 TRACE new dive mean phases: input delay 6.7, handlers 1.5, handlers->commit 13.6, commit->presented 18.8
+119711074289 TRACE new dive 5.5 FunctionCall
+119711074289 TRACE new dive 3.8 LocalFrameView::performLayout
+119711074289 TRACE new dive 3.0 PaintArtifactCompositor::Update
+119711074289 TRACE new dive 2.6 Document::recalcStyle
+119711074289 TRACE new dive 2.0 Paint
+119711074289 TRACE new dive x4: p95 56 median 48 | 48,56,48,48,40,48,40,48,40,40,40,56,48,56,40,40,40,48,40,48
+119711074289 TRACE new dive mean phases: input delay 6.4, handlers 1.4, handlers->commit 15.1, commit->presented 20.2
+119711074289 TRACE new dive 6.3 FunctionCall
+119711074289 TRACE new dive 3.7 LocalFrameView::performLayout
+119711074289 TRACE new dive 3.1 Document::recalcStyle
+119711074289 TRACE new dive 2.9 PaintArtifactCompositor::Update
+119711074289 TRACE new dive 1.9 Paint
+119711074289 TRACE base dive x4: p95 64 median 48 | 64,64,48,56,48,56,48,40,48,64,48,56,48,56,48,56,48,40,48,56
+119711074289 TRACE base dive mean phases: input delay 6.4, handlers 1.6, handlers->commit 15.1, commit->presented 28.6
+119711074289 TRACE base dive 8.2 FunctionCall
+119711074289 TRACE base dive 5.4 LocalFrameView::performLayout
+119711074289 TRACE base dive 3.7 PaintArtifactCompositor::Update
+119711074289 TRACE base dive 3.2 Document::recalcStyle
+119711074289 TRACE base dive 2.4 Paint
+119711074289 TRACE base depth x4: p95 56 median 48 | 40,40,56,48,48,56,56,48,56,56,56,48,48,48,48,56,64,48,48,48
+119711074289 TRACE base depth mean phases: input delay 4.9, handlers 5.1, handlers->commit 6.2, commit->presented 30.8
+119711074289 TRACE base depth 8.5 Document::recalcStyle
+119711074289 TRACE base depth 6.2 PaintArtifactCompositor::Update
+119711074289 TRACE base depth 5.9 FunctionCall
+119711074289 TRACE base depth 4.0 Paint
+119711074289 TRACE base depth 2.3 LocalFrameView::performLayout
+119711074289 TRACE new depth x4: p95 56 median 56 | 48,48,56,56,56,48,56,56,56,48,40,56,56,56,56,56,56,40,48,56
+119711074289 TRACE new depth mean phases: input delay 6.3, handlers 4.7, handlers->commit 4.7, commit->presented 31.6
+119711074289 TRACE new depth 6.9 Document::recalcStyle
+119711074289 TRACE new depth 6.0 FunctionCall
+119711074289 TRACE new depth 5.8 PaintArtifactCompositor::Update
+119711074289 TRACE new depth 4.4 Paint
+119711074289 TRACE new depth 2.5 LocalFrameView::performLayout
+119711074289 TRACE new depth x4: p95 56 median 48 | 48,56,56,48,56,40,48,56,40,56,48,56,56,48,48,40,48,56,48,56
+119711074289 TRACE new depth mean phases: input delay 4.1, handlers 4.8, handlers->commit 8.0, commit->presented 28.9
+119711074289 TRACE new depth 7.1 Document::recalcStyle
+119711074289 TRACE new depth 6.4 FunctionCall
+119711074289 TRACE new depth 5.3 PaintArtifactCompositor::Update
+119711074289 TRACE new depth 4.0 Paint
+119711074289 TRACE new depth 2.5 LocalFrameView::performLayout
+119711074289 TRACE base depth x4: p95 56 median 48 | 40,56,48,56,48,56,48,40,56,48,40,48,56,56,48,48,56,48,48,56
+119711074289 TRACE base depth mean phases: input delay 2.6, handlers 4.9, handlers->commit 10.1, commit->presented 26.3
+119711074289 TRACE base depth 7.8 Document::recalcStyle
+119711074289 TRACE base depth 6.0 FunctionCall
+119711074289 TRACE base depth 5.2 PaintArtifactCompositor::Update
+119711074289 TRACE base depth 3.7 Paint
+119711074289 TRACE base depth 2.0 LocalFrameView::performLayout
+119711074289 TRACE base tank x4: p95 48 median 40 | 48,40,40,40,40,40,48,48,40,40,40,40,40,48,48,40,40,40,40,48
+119711074289 TRACE base tank mean phases: input delay 7.8, handlers 4.1, handlers->commit 19.9, commit->presented 10.8
+119711074289 TRACE base tank 10.6 FunctionCall
+119711074289 TRACE base tank 5.7 LocalFrameView::performLayout
+119711074289 TRACE base tank 3.6 PaintArtifactCompositor::Update
+119711074289 TRACE base tank 2.1 Document::recalcStyle
+119711074289 TRACE base tank 1.7 Paint
+119711074289 TRACE new tank x4: p95 48 median 40 | 48,48,48,40,40,48,40,40,40,40,40,40,48,40,40,40,40,40,48,40
+119711074289 TRACE new tank mean phases: input delay 7.7, handlers 4.0, handlers->commit 19.0, commit->presented 11.8
+119711074289 TRACE new tank 10.9 FunctionCall
+119711074289 TRACE new tank 6.2 LocalFrameView::performLayout
+119711074289 TRACE new tank 2.5 Document::recalcStyle
+119711074289 TRACE new tank 2.4 PaintArtifactCompositor::Update
+119711074289 TRACE new tank 1.6 Paint
+119711074289 TRACE new tank x4: p95 40 median 32 | 40,40,32,32,32,40,32,32,32,32,40,32,32,32,32,32,32,32,32,32
+119711074289 TRACE new tank mean phases: input delay 7.7, handlers 4.1, handlers->commit 18.6, commit->presented 4.4
+119711074289 TRACE new tank 7.7 FunctionCall
+119711074289 TRACE new tank 4.8 LocalFrameView::performLayout
+119711074289 TRACE new tank 2.4 Document::recalcStyle
+119711074289 TRACE new tank 2.3 PaintArtifactCompositor::Update
+119711074289 TRACE new tank 1.7 Paint
+119711074289 TRACE base tank x4: p95 56 median 40 | 56,40,40,40,40,48,40,48,56,56,40,40,40,40,40,40,40,40,40,48
+119711074289 TRACE base tank mean phases: input delay 7.8, handlers 4.1, handlers->commit 20.2, commit->presented 12.8
+119711074289 TRACE base tank 10.9 FunctionCall
+119711074289 TRACE base tank 6.4 LocalFrameView::performLayout
+119711074289 TRACE base tank 3.3 PaintArtifactCompositor::Update
+119711074289 TRACE base tank 2.2 Paint
+119711074289 TRACE base tank 2.1 Document::recalcStyle
+119711074289 TRACE base launch x4: p95 56 median 40 | 40,40,40,32,40,32,48,32,40,32,40,32,40,40,56,48,56,40,56,40
+119711074289 TRACE base launch mean phases: input delay 5.4, handlers 2.1, handlers->commit 12.5, commit->presented 18.4
+119711074289 TRACE base launch 4.3 Document::recalcStyle
+119711074289 TRACE base launch 3.8 FunctionCall
+119711074289 TRACE base launch 3.1 PaintArtifactCompositor::Update
+119711074289 TRACE base launch 1.5 Paint
+119711074289 TRACE base launch 1.2 LocalFrameView::performLayout
+119711074289 TRACE new launch x4: p95 56 median 40 | 48,40,40,40,40,40,48,40,40,40,40,40,56,40,56,40,40,40,40,40
+119711074289 TRACE new launch mean phases: input delay 5.3, handlers 2.1, handlers->commit 10.6, commit->presented 24.6
+119711074289 TRACE new launch 4.9 Document::recalcStyle
+119711074289 TRACE new launch 4.4 FunctionCall
+119711074289 TRACE new launch 2.0 PaintArtifactCompositor::Update
+119711074289 TRACE new launch 1.6 Paint
+119711074289 TRACE new launch 1.4 LocalFrameView::performLayout
+119711074289 TRACE new launch x4: p95 40 median 40 | 40,32,40,32,32,40,48,32,40,32,40,32,40,40,40,32,40,32,40,40
+119711074289 TRACE new launch mean phases: input delay 5.3, handlers 2.2, handlers->commit 11.8, commit->presented 13.1
+119711074289 TRACE new launch 3.8 Document::recalcStyle
+119711074289 TRACE new launch 3.7 FunctionCall
+119711074289 TRACE new launch 1.4 PaintArtifactCompositor::Update
+119711074289 TRACE new launch 1.4 Paint
+119711074289 TRACE new launch 1.2 LocalFrameView::performLayout
+119711074289 TRACE base launch x4: p95 56 median 44 | 56,40,48,40,56,40,56,40,56,40,56,40,56,40,56,40,64,40,48,40
+119711074289 TRACE base launch mean phases: input delay 5.4, handlers 2.0, handlers->commit 11.9, commit->presented 27.3
+119711074289 TRACE base launch 4.9 Document::recalcStyle
+119711074289 TRACE base launch 4.1 PaintArtifactCompositor::Update
+119711074289 TRACE base launch 4.0 FunctionCall
+119711074289 TRACE base launch 1.9 Paint
+119711074289 TRACE base launch 1.5 LocalFrameView::performLayout
+119711074289 TRACE base sign x4: p95 48 median 40 | 48,40,40,40,48,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40
+119711074289 TRACE base sign mean phases: input delay 5.5, handlers 5.4, handlers->commit 10.5, commit->presented 1.6
+119711074289 TRACE base sign 6.0 FunctionCall
+119711074289 TRACE base sign 1.7 Document::recalcStyle
+119711074289 TRACE base sign 1.3 PaintArtifactCompositor::Update
+119711074289 TRACE base sign 0.8 LocalFrameView::performLayout
+119711074289 TRACE base sign 0.7 Paint
+119711074289 TRACE new sign x4: p95 32 median 32 | 32,32,32,32,32,32,32,32,32,32,32,32,32,24,24,32,24,32,32,24
+119711074289 TRACE new sign mean phases: input delay 5.5, handlers 2.6, handlers->commit 10.2, commit->presented 1.3
+119711074289 TRACE new sign 4.6 FunctionCall
+119711074289 TRACE new sign 1.4 Document::recalcStyle
+119711074289 TRACE new sign 0.6 Paint
+119711074289 TRACE new sign 0.5 LocalFrameView::performLayout
+119711074289 TRACE new sign 0.5 PaintArtifactCompositor::Update
+119711074289 TRACE new sign x4: p95 32 median 32 | 32,32,32,32,32,32,32,32,32,32,32,32,32,24,24,32,24,24,32,24
+119711074289 TRACE new sign mean phases: input delay 5.6, handlers 2.7, handlers->commit 10.3, commit->presented 1.7
+119711074289 TRACE new sign 4.9 FunctionCall
+119711074289 TRACE new sign 1.5 Document::recalcStyle
+119711074289 TRACE new sign 0.6 Paint
+119711074289 TRACE new sign 0.5 LocalFrameView::performLayout
+119711074289 TRACE new sign 0.5 PaintArtifactCompositor::Update
+119711074289 TRACE base sign x4: p95 48 median 48 | 56,48,48,48,48,48,40,48,40,40,48,48,48,40,40,48,40,48,40,40
+119711074289 TRACE base sign mean phases: input delay 5.8, handlers 5.8, handlers->commit 10.0, commit->presented 2.2
+119711074289 TRACE base sign 6.5 FunctionCall
+119711074289 TRACE base sign 1.9 Document::recalcStyle
+119711074289 TRACE base sign 1.4 PaintArtifactCompositor::Update
+119711074289 TRACE base sign 0.9 LocalFrameView::performLayout
+119711074289 TRACE base sign 0.7 Paint
+119711074289 TRACE base order x4: p95 64 median 48 | 72,56,56,48,48,48,48,48,64,48,48,48,48,48,48,48,48,48,48,48
+119711074289 TRACE base order mean phases: input delay 6.1, handlers 18.2, handlers->commit 9.4, commit->presented 2.3
+119711074289 TRACE base order 14.2 FunctionCall
+119711074289 TRACE base order 3.8 Document::recalcStyle
+119711074289 TRACE base order 1.9 LocalFrameView::performLayout
+119711074289 TRACE base order 1.1 PaintArtifactCompositor::Update
+119711074289 TRACE base order 0.9 Paint
+119711074289 TRACE new order x4: p95 56 median 48 | 56,48,56,56,48,48,48,48,40,48,40,48,48,40,48,40,48,48,48,48
+119711074289 TRACE new order mean phases: input delay 6.7, handlers 17.3, handlers->commit 8.2, commit->presented 2.2
+119711074289 TRACE new order 14.2 FunctionCall
+119711074289 TRACE new order 3.4 Document::recalcStyle
+119711074289 TRACE new order 1.7 LocalFrameView::performLayout
+119711074289 TRACE new order 1.0 Paint
+119711074289 TRACE new order 0.7 PaintArtifactCompositor::Update
+119711074289 TRACE new order x4: p95 56 median 48 | 56,48,48,48,48,56,48,48,48,48,48,48,48,48,56,48,56,48,40,40
+119711074289 TRACE new order mean phases: input delay 7.0, handlers 17.5, handlers->commit 8.7, commit->presented 3.2
+119711074289 TRACE new order 14.5 FunctionCall
+119711074289 TRACE new order 4.0 Document::recalcStyle
+119711074289 TRACE new order 1.9 LocalFrameView::performLayout
+119711074289 TRACE new order 0.9 Paint
+119711074289 TRACE new order 0.8 PaintArtifactCompositor::Update
+119711074289 TRACE base order x4: p95 64 median 48 | 64,56,56,48,64,48,64,48,56,56,48,40,48,40,48,48,48,48,56,48
+119711074289 TRACE base order mean phases: input delay 6.3, handlers 17.9, handlers->commit 9.8, commit->presented 3.2
+119711074289 TRACE base order 14.2 FunctionCall
+119711074289 TRACE base order 3.9 Document::recalcStyle
+119711074289 TRACE base order 2.0 LocalFrameView::performLayout
+119711074289 TRACE base order 1.0 PaintArtifactCompositor::Update
+119711074289 TRACE base order 0.9 Paint
+119711074415 TRACE base dive x4: p95 120 median 80 | 96,128,88,88,64,80,64,80,72,120,72,72,88,72,88,80,88,80,72,88
+119711074415 TRACE base dive mean phases: input delay 12.5, handlers 2.3, handlers->commit 20.6, commit->presented 30.9
+119711074415 TRACE base dive 9.5 FunctionCall
+119711074415 TRACE base dive 7.4 PaintArtifactCompositor::Update
+119711074415 TRACE base dive 7.4 LocalFrameView::performLayout
+119711074415 TRACE base dive 6.2 Document::recalcStyle
+119711074415 TRACE base dive 3.5 Paint
+119711074415 TRACE new dive x4: p95 72 median 64 | 64,64,64,56,56,64,56,48,48,64,48,72,64,64,48,96,64,72,64,56
+119711074415 TRACE new dive mean phases: input delay 9.6, handlers 2.0, handlers->commit 18.5, commit->presented 21.7
+119711074415 TRACE new dive 7.9 FunctionCall
+119711074415 TRACE new dive 4.8 PaintArtifactCompositor::Update
+119711074415 TRACE new dive 4.6 Document::recalcStyle
+119711074415 TRACE new dive 4.3 LocalFrameView::performLayout
+119711074415 TRACE new dive 2.6 Paint
+119711074415 TRACE new dive x4: p95 80 median 64 | 64,72,64,80,64,64,64,72,64,56,56,72,64,72,64,72,80,72,64,56
+119711074415 TRACE new dive mean phases: input delay 9.6, handlers 2.0, handlers->commit 19.8, commit->presented 27.0
+119711074415 TRACE new dive 8.0 FunctionCall
+119711074415 TRACE new dive 5.3 Document::recalcStyle
+119711074415 TRACE new dive 4.9 PaintArtifactCompositor::Update
+119711074415 TRACE new dive 4.9 LocalFrameView::performLayout
+119711074415 TRACE new dive 3.1 Paint
+119711074415 TRACE base dive x4: p95 104 median 72 | 80,104,80,88,64,72,56,72,72,80,80,72,72,64,64,104,72,56,64,56
+119711074415 TRACE base dive mean phases: input delay 10.6, handlers 2.0, handlers->commit 20.9, commit->presented 28.1
+119711074415 TRACE base dive 8.4 FunctionCall
+119711074415 TRACE base dive 6.7 PaintArtifactCompositor::Update
+119711074415 TRACE base dive 6.1 Document::recalcStyle
+119711074415 TRACE base dive 5.9 LocalFrameView::performLayout
+119711074415 TRACE base dive 3.7 Paint
+119711074415 TRACE base depth x4: p95 88 median 72 | 56,56,72,72,72,88,72,88,72,80,72,64,72,72,72,72,56,64,56,72
+119711074415 TRACE base depth mean phases: input delay 17.2, handlers 7.8, handlers->commit 17.8, commit->presented 26.2
+119711074415 TRACE base depth 14.6 PaintArtifactCompositor::Update
+119711074415 TRACE base depth 10.8 Paint
+119711074415 TRACE base depth 9.0 FunctionCall
+119711074415 TRACE base depth 8.0 Document::recalcStyle
+119711074415 TRACE base depth 3.0 LocalFrameView::performLayout
+119711074415 TRACE new depth x4: p95 88 median 72 | 72,80,96,88,72,80,72,64,72,72,72,88,72,72,72,56,56,72,72,72
+119711074415 TRACE new depth mean phases: input delay 17.3, handlers 7.3, handlers->commit 16.8, commit->presented 31.6
+119711074415 TRACE new depth 12.1 PaintArtifactCompositor::Update
+119711074415 TRACE new depth 10.9 Paint
+119711074415 TRACE new depth 9.6 Document::recalcStyle
+119711074415 TRACE new depth 8.9 FunctionCall
+119711074415 TRACE new depth 3.2 LocalFrameView::performLayout
+119711074415 TRACE new depth x4: p95 72 median 64 | 64,72,56,88,56,56,72,56,72,64,64,56,56,64,64,64,72,64,72,72
+119711074415 TRACE new depth mean phases: input delay 14.3, handlers 7.6, handlers->commit 13.6, commit->presented 28.5
+119711074415 TRACE new depth 9.8 PaintArtifactCompositor::Update
+119711074415 TRACE new depth 9.4 Paint
+119711074415 TRACE new depth 8.3 FunctionCall
+119711074415 TRACE new depth 6.6 Document::recalcStyle
+119711074415 TRACE new depth 3.2 LocalFrameView::performLayout
+119711074415 TRACE base depth x4: p95 88 median 88 | 88,56,88,88,96,88,80,88,80,80,88,56,72,88,88,80,64,88,88,80
+119711074415 TRACE base depth mean phases: input delay 20.7, handlers 9.4, handlers->commit 16.4, commit->presented 34.1
+119711074415 TRACE base depth 16.5 PaintArtifactCompositor::Update
+119711074415 TRACE base depth 12.6 Paint
+119711074415 TRACE base depth 10.8 FunctionCall
+119711074415 TRACE base depth 7.9 Document::recalcStyle
+119711074415 TRACE base depth 3.8 LocalFrameView::performLayout
+119711074415 TRACE base tank x4: p95 80 median 72 | 80,64,64,72,72,80,72,72,64,64,72,72,80,72,80,72,72,80,80,72
+119711074415 TRACE base tank mean phases: input delay 15.1, handlers 6.8, handlers->commit 37.8, commit->presented 12.3
+119711074415 TRACE base tank 16.4 FunctionCall
+119711074415 TRACE base tank 10.4 LocalFrameView::performLayout
+119711074415 TRACE base tank 6.7 PaintArtifactCompositor::Update
+119711074415 TRACE base tank 3.8 Paint
+119711074415 TRACE base tank 3.7 Document::recalcStyle
+119711074415 TRACE new tank x4: p95 64 median 56 | 64,64,56,56,56,64,64,56,56,48,56,56,56,56,56,56,64,56,56,48
+119711074415 TRACE new tank mean phases: input delay 12.2, handlers 5.9, handlers->commit 32.3, commit->presented 6.6
+119711074415 TRACE new tank 12.5 FunctionCall
+119711074415 TRACE new tank 8.2 LocalFrameView::performLayout
+119711074415 TRACE new tank 4.7 PaintArtifactCompositor::Update
+119711074415 TRACE new tank 3.2 Paint
+119711074415 TRACE new tank 3.2 Document::recalcStyle
+119711074415 TRACE new tank x4: p95 80 median 64 | 80,80,72,80,64,80,64,64,64,64,64,72,56,64,64,64,72,72,56,64
+119711074415 TRACE new tank mean phases: input delay 12.9, handlers 6.0, handlers->commit 32.1, commit->presented 15.9
+119711074415 TRACE new tank 16.5 FunctionCall
+119711074415 TRACE new tank 10.3 LocalFrameView::performLayout
+119711074415 TRACE new tank 4.7 PaintArtifactCompositor::Update
+119711074415 TRACE new tank 3.2 Document::recalcStyle
+119711074415 TRACE new tank 3.2 Paint
+119711074415 TRACE base tank x4: p95 80 median 64 | 80,64,64,64,80,80,80,72,80,56,64,64,64,64,64,64,80,80,72,64
+119711074415 TRACE base tank mean phases: input delay 12.6, handlers 5.9, handlers->commit 33.1, commit->presented 17.1
+119711074415 TRACE base tank 16.3 FunctionCall
+119711074415 TRACE base tank 10.1 LocalFrameView::performLayout
+119711074415 TRACE base tank 6.6 PaintArtifactCompositor::Update
+119711074415 TRACE base tank 3.7 Paint
+119711074415 TRACE base tank 2.8 Document::recalcStyle
+119711074415 TRACE base launch x4: p95 96 median 80 | 88,80,104,56,80,80,88,72,80,72,88,80,96,80,96,72,72,56,88,80
+119711074415 TRACE base launch mean phases: input delay 11.6, handlers 3.2, handlers->commit 5.8, commit->presented 37.4
+119711074415 TRACE base launch 6.8 PaintArtifactCompositor::Update
+119711074415 TRACE base launch 6.2 Document::recalcStyle
+119711074415 TRACE base launch 6.2 FunctionCall
+119711074415 TRACE base launch 3.4 Paint
+119711074415 TRACE base launch 2.1 LocalFrameView::performLayout
+119711074415 TRACE new launch x4: p95 96 median 80 | 96,88,96,80,88,80,96,56,80,56,64,64,88,64,80,56,72,64,96,64
+119711074415 TRACE new launch mean phases: input delay 11.1, handlers 3.2, handlers->commit 9.2, commit->presented 27.6
+119711074415 TRACE new launch 6.0 FunctionCall
+119711074415 TRACE new launch 5.7 Document::recalcStyle
+119711074415 TRACE new launch 3.3 Paint
+119711074415 TRACE new launch 3.2 PaintArtifactCompositor::Update
+119711074415 TRACE new launch 1.9 LocalFrameView::performLayout
+119711074415 TRACE new launch x4: p95 88 median 72 | 80,72,80,64,88,64,80,64,88,72,72,56,64,64,88,56,88,64,88,56
+119711074415 TRACE new launch mean phases: input delay 9.9, handlers 3.0, handlers->commit 7.8, commit->presented 36.8
+119711074415 TRACE new launch 6.5 FunctionCall
+119711074415 TRACE new launch 5.2 Document::recalcStyle
+119711074415 TRACE new launch 3.6 PaintArtifactCompositor::Update
+119711074415 TRACE new launch 3.4 Paint
+119711074415 TRACE new launch 1.9 LocalFrameView::performLayout
+119711074415 TRACE base launch x4: p95 96 median 88 | 80,104,96,88,96,88,88,64,96,80,96,56,96,64,88,64,72,80,88,88
+119711074415 TRACE base launch mean phases: input delay 12.3, handlers 3.3, handlers->commit 0.3, commit->presented 44.2
+119711074415 TRACE base launch 7.3 PaintArtifactCompositor::Update
+119711074415 TRACE base launch 6.7 FunctionCall
+119711074415 TRACE base launch 6.0 Document::recalcStyle
+119711074415 TRACE base launch 3.8 Paint
+119711074415 TRACE base launch 2.0 LocalFrameView::performLayout
+119711074415 TRACE base sign x4: p95 80 median 72 | 88,80,72,80,80,72,64,72,72,72,80,64,64,64,64,64,72,64,72,72
+119711074415 TRACE base sign mean phases: input delay 8.7, handlers 8.4, handlers->commit 11.9, commit->presented 3.5
+119711074415 TRACE base sign 9.4 FunctionCall
+119711074415 TRACE base sign 2.5 Document::recalcStyle
+119711074415 TRACE base sign 2.4 PaintArtifactCompositor::Update
+119711074415 TRACE base sign 1.2 LocalFrameView::performLayout
+119711074415 TRACE base sign 1.2 Paint
+119711074415 TRACE new sign x4: p95 56 median 48 | 56,48,56,48,56,48,48,56,56,48,48,48,48,48,48,40,48,48,56,56
+119711074415 TRACE new sign mean phases: input delay 8.8, handlers 4.2, handlers->commit 10.5, commit->presented 4.3
+119711074415 TRACE new sign 7.5 FunctionCall
+119711074415 TRACE new sign 1.9 Document::recalcStyle
+119711074415 TRACE new sign 1.2 Paint
+119711074415 TRACE new sign 0.9 LocalFrameView::performLayout
+119711074415 TRACE new sign 0.8 PaintArtifactCompositor::Update
+119711074415 TRACE new sign x4: p95 56 median 56 | 64,56,56,56,56,48,56,56,56,56,48,48,48,48,48,48,48,48,56,56
+119711074415 TRACE new sign mean phases: input delay 9.1, handlers 4.2, handlers->commit 11.8, commit->presented 2.5
+119711074415 TRACE new sign 7.8 FunctionCall
+119711074415 TRACE new sign 2.1 Document::recalcStyle
+119711074415 TRACE new sign 1.2 Paint
+119711074415 TRACE new sign 0.9 LocalFrameView::performLayout
+119711074415 TRACE new sign 0.8 PaintArtifactCompositor::Update
+119711074415 TRACE base sign x4: p95 80 median 72 | 80,80,80,72,80,80,64,88,64,64,64,64,64,64,64,80,72,72,80,72
+119711074415 TRACE base sign mean phases: input delay 9.2, handlers 8.5, handlers->commit 13.0, commit->presented 2.8
+119711074415 TRACE base sign 9.8 FunctionCall
+119711074415 TRACE base sign 2.6 Document::recalcStyle
+119711074415 TRACE base sign 2.4 PaintArtifactCompositor::Update
+119711074415 TRACE base sign 1.3 Paint
+119711074415 TRACE base sign 1.3 LocalFrameView::performLayout
+119711074415 TRACE base order x4: p95 96 median 80 | 96,80,88,80,96,80,80,80,80,72,80,72,88,88,72,80,80,88,96,72
+119711074415 TRACE base order mean phases: input delay 10.7, handlers 27.5, handlers->commit 12.8, commit->presented 2.7
+119711074415 TRACE base order 21.7 FunctionCall
+119711074415 TRACE base order 5.7 Document::recalcStyle
+119711074415 TRACE base order 3.0 LocalFrameView::performLayout
+119711074415 TRACE base order 2.0 PaintArtifactCompositor::Update
+119711074415 TRACE base order 1.6 Paint
+119711074415 TRACE new order x4: p95 88 median 80 | 96,80,80,88,88,88,88,80,88,80,88,72,80,80,88,80,80,72,72,72
+119711074415 TRACE new order mean phases: input delay 11.7, handlers 27.4, handlers->commit 11.9, commit->presented 2.4
+119711074415 TRACE new order 21.7 FunctionCall
+119711074415 TRACE new order 6.2 Document::recalcStyle
+119711074415 TRACE new order 2.9 LocalFrameView::performLayout
+119711074415 TRACE new order 1.7 Paint
+119711074415 TRACE new order 0.9 PaintArtifactCompositor::Update
+119711074415 TRACE new order x4: p95 88 median 80 | 88,80,88,80,88,88,88,80,80,88,80,80,80,80,80,80,72,72,80,64
+119711074415 TRACE new order mean phases: input delay 11.4, handlers 26.8, handlers->commit 11.9, commit->presented 2.3
+119711074415 TRACE new order 21.2 FunctionCall
+119711074415 TRACE new order 5.8 Document::recalcStyle
+119711074415 TRACE new order 2.9 LocalFrameView::performLayout
+119711074415 TRACE new order 1.6 Paint
+119711074415 TRACE new order 0.9 PaintArtifactCompositor::Update
+119711074415 TRACE base order x4: p95 104 median 88 | 104,104,104,96,96,96,88,88,88,88,88,88,96,88,80,80,88,88,88,72
+119711074415 TRACE base order mean phases: input delay 11.5, handlers 30.6, handlers->commit 13.2, commit->presented 2.8
+119711074415 TRACE base order 23.5 FunctionCall
+119711074415 TRACE base order 6.3 Document::recalcStyle
+119711074415 TRACE base order 3.5 LocalFrameView::performLayout
+119711074415 TRACE base order 2.1 PaintArtifactCompositor::Update
+119711074415 TRACE base order 1.7 Paint
