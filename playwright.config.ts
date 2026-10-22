@@ -7,9 +7,20 @@ export default defineConfig({
   testDir: "registry/ouro/e2e",
   // The screen-reader specs need VoiceOver or NVDA: playwright.screen-reader.config.ts runs them.
   testIgnore: /\.sr\.spec\.ts$/,
+  // Every test on its own, so CI's --shard splits tests, not files: by file, the site projects'
+  // long specs all landed in the last of the e2e shards (8.5 min of specs against 3-4 for the
+  // others). The specs share no state between tests.
+  fullyParallel: true,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 1 : 0,
-  reporter: process.env["CI"] ? [["list"], ["html", { open: "never" }]] : "list",
+  reporter: process.env["CI"]
+    ? [
+        ["list"],
+        ["html", { open: "never" }],
+        // CI's e2e shards: how long each spec file took, for `node scripts/shard.mjs refresh`.
+        ...(process.env["OURO_E2E_TIMINGS"] ? [["./scripts/timings-playwright-reporter.mjs", { outputFile: process.env["OURO_E2E_TIMINGS"] }] as const] : []),
+      ]
+    : "list",
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },

@@ -195,6 +195,8 @@ export interface Opener {
   /** The trigger's accessible name, or the shortcut's keys. */
   name: string;
   open: () => Promise<void>;
+  /** The trigger or plain button `open` clicks; absent for a shortcut and for a trigger opened from the keyboard. */
+  element?: HTMLElement;
 }
 
 /** Whether a trigger is there for screen readers and the keyboard only: clipped to a pixel, so no tap or click can land on it. */
@@ -235,12 +237,14 @@ export function overlayOpeners(
   const roots = [...(Array.isArray(scope) ? scope : [scope]), ...(top ? [...document.querySelectorAll<HTMLElement>('body > [data-ouro]:not([data-ouro$="-portal"])')] : [])];
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
-    .map((element) => ({ name: accessibleName(element), open: () => (clipped(element) ? openFromKeyboard(element) : userEvent.click(element)) }));
+    .map((element) =>
+      clipped(element) ? { name: accessibleName(element), open: () => openFromKeyboard(element) } : { name: accessibleName(element), open: () => userEvent.click(element), element },
+    );
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
     const button = roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>("button")]).find((item) => accessibleName(item) === label);
     if (!button) throw new Error(`${id}: no button named "${label}" (parameters.plainOpeners)`);
-    return { name: label, open: () => userEvent.click(button) };
+    return { name: label, open: () => userEvent.click(button), element: button };
   });
   const shortcut = parameters.openShortcut;
   return [...triggers, ...plain, ...(shortcut ? [{ name: shortcut, open: () => userEvent.keyboard(shortcut) }] : [])];

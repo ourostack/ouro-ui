@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { BELL_TOASTS, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
+import { watchToasts } from "./toasts";
 
 // The porthole stage against the production build (site-design.md, "Verification in CI"): each
 // control in STAGE_CONTROLS has a test named "control: <id>" that operates it and asserts what it
@@ -210,8 +211,9 @@ test.describe("each control on the stage", () => {
   test("control: bell brings a toast from the crew, rings, and sends rings through the water", async ({ page }) => {
     await open(page);
     const started = await recordAnimations(page);
+    const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
-    await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
+    await expect.poll(toasts.titles).toContain(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`);
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
     await expect(page.locator(".stage-ripple")).toHaveCount(3);
@@ -519,14 +521,9 @@ test("on a phone, the bell's toast never covers the bell", async ({ browser }) =
   await open(page);
   const bell = page.getByRole("button", { name: STAGE_COPY.bell });
   await bell.evaluate((element) => element.scrollIntoView({ block: "end" }));
+  const toasts = await watchToasts(page, { selector: "[data-stage-control='bell'] button", kind: "below" });
   await bell.tap();
-  const toast = page.locator('[data-ouro="toast"]').first();
-  await expect(toast).toBeVisible();
-  await expect
-    .poll(async () => {
-      const [b, t] = await Promise.all([bell.boundingBox(), toast.boundingBox()]);
-      return b!.y + b!.height <= t!.y;
-    })
-    .toBe(true);
+  await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
+  await expect.poll(toasts.cleared).toBe(true);
   await context.close();
 });

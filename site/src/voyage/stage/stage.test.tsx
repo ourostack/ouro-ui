@@ -102,8 +102,12 @@ describe("the hero", () => {
       await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
+      // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
+      // announcement is recorded as it happens.
+      const announced = watchAnnouncements();
       await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
-      await expect.element(page.getByText("Copied the install command", { exact: true })).toBeVisible();
+      await expect.poll(() => announced.count("Copied the install command")).toBe(1);
+      announced.stop();
       expect(writes).toEqual([INSTALL_COMMAND]);
     } finally {
       spy.mockRestore();
@@ -204,14 +208,18 @@ describe("the stage's controls", () => {
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     const ring = () => document.querySelector<HTMLElement>("[data-stage-control='bell']")!.dataset.ring;
     expect(ring()).toBeUndefined();
+    // Each toast shows for five seconds, which a loaded runner can outlast between two steps; the
+    // announcements are recorded as they happen.
+    const announced = watchAnnouncements();
     await userEvent.click(bell);
-    await expect.element(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
+    await expect.poll(() => announced.count(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBe(1);
     await expect.poll(lastLog).toContain(LOG.bell.text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
     await expect.poll(() => document.querySelectorAll(".stage-ripple").length).toBe(3);
     await userEvent.click(bell);
-    await expect.element(page.getByText(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBeVisible();
+    await expect.poll(() => announced.count(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBe(1);
+    announced.stop();
     expect(ring()).toBe("b");
     // The second ring's answer took the first one's place: one toast shows, and the first answer is gone.
     const toaster = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;

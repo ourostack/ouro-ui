@@ -22,7 +22,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       # Write fresh references, then compare against them in a second run, so a baseline
       # that does not reproduce on the same machine fails here instead of in CI.
       - run: pnpm test:visual --update
