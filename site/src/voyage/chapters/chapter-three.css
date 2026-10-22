@@ -100,14 +100,21 @@
     transform-origin: 90% 10%;
     animation: sq-stir 2.6s ease-in-out 3;
   }
-  /* Beaten, it sinks back to the deep it came from: small and faint, far below the glass. */
+  /*
+   * Beaten, it sinks back to the deep it came from: small and faint, far below the glass. It lets
+   * go once the menu or the palette that gave the order has closed (a beat later), so the two never
+   * move at once: the whole drawing repaints each frame it moves, which WebKit paints slowly.
+   */
   .site-porthole .ph-squid {
     transform-box: view-box;
     transform-origin: 200px 200px;
     transition:
-      opacity 1.4s ease 0.3s,
-      translate 1.6s var(--ouro-ease-in-out),
-      scale 1.6s var(--ouro-ease-in-out);
+      opacity 1.4s ease 0.55s,
+      translate 1.6s var(--ouro-ease-in-out) 0.25s,
+      scale 1.6s var(--ouro-ease-in-out) 0.25s;
+  }
+  .site-porthole[data-squid="gone"] .sq-ink {
+    animation-delay: 0.25s;
   }
   .site-porthole[data-squid="gone"] .ph-squid {
     translate: -100px 130px;
