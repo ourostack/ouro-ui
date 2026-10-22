@@ -18,19 +18,19 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
-      - run: pnpm site:build
-      - run: |
-          (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
-          node .github/diag/frames.mjs http://127.0.0.1:4179/ouro-ui/ branch
+      - run: pnpm site:build && node .github/diag/size.mjs branch
+      - name: islands as before
+        run: |
+          cp .github/diag/size.mjs /tmp/size.mjs
+          git show 3b4ad05d:site/src/voyage/chapters/island.tsx > site/src/voyage/chapters/island.tsx
+          pnpm site:build && node /tmp/size.mjs old-island
+      - name: hero as before
+        run: |
+          git checkout -q -- site/src/voyage/chapters/island.tsx
+          git show 3b4ad05d:site/src/voyage/hero.tsx > site/src/voyage/hero.tsx
+          pnpm site:build && node /tmp/size.mjs old-hero
       - name: main
         run: |
-          cp .github/diag/frames.mjs /tmp/frames.mjs
-          git checkout -q origin/main
+          git checkout -q -f origin/main
           pnpm i --frozen-lockfile
-          pnpm site:build
-          (pnpm site:preview --host 127.0.0.1 --port 4180 --strictPort &) ; sleep 5
-          cp /tmp/frames.mjs .github/frames.mjs
-          node .github/frames.mjs http://127.0.0.1:4180/ouro-ui/ main
+          pnpm site:build && node /tmp/size.mjs main
