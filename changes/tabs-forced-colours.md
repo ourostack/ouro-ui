@@ -1,1 +1,2 @@
 - Tabs: under forced colours (Windows contrast themes) a tab draws a border, so it keeps an edge when its fill and the underline drop away.
+- Tabs: under forced colours the selected tab is filled with Highlight and lettered in HighlightText, so it stands out from the others.
