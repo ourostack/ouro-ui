@@ -183,7 +183,7 @@ Delete a helper and its own tests only after verifying that no remaining app fil
 Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).[^upgrade-test]
 
 [^upgrade-test]: scripts/install-test.sh; scripts/upgrade-note.mjs verify:testExists(scripts/upgrade-note.test.mjs::the upgrade install test runs the note's commands and copies none) verify:ciJob(install-upgrade)
-[^upgrade-releases]: https://github.com/ourostack/ouro-ui/releases; .github/workflows/release.yml verify:urlOk(https://github.com/ourostack/ouro-ui/releases) verify:fileLine(.github/workflows/release.yml, /changes\.mjs assemble/)
+[^upgrade-releases]: https://github.com/ourostack/ouro-ui/releases; .github/workflows/release.yml; scripts/release-commit.sh verify:urlOk(https://github.com/ourostack/ouro-ui/releases) verify:fileLine(.github/workflows/release.yml, /scripts\/release-commit\.sh "\$VERSION"/) verify:fileLine(scripts/release-commit.sh, /changes\.mjs assemble/)
 [^upgrade-v0.1.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0)
 [^upgrade-v0.2.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.2.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.2.0)
 [^upgrade-v0.3.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0) verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-layer: 50;/)
