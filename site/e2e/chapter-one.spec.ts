@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
 import { diagnostics } from "./diagnostics";
+import { watchToasts } from "./toasts";
 
 // Chapter I, "Build the ship", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_ONE_CONTROLS has a test named "control: <id>" that operates it and
@@ -201,6 +202,7 @@ test.describe("each control in Chapter I", () => {
   test("control: sign puts you on the crew list with your trade, and the crew says welcome", async ({ page }) => {
     await open(page);
     await expect(signCrew(page)).toContainText(SIGN.opening.text);
+    const toasts = await watchToasts(page, { selector: "[data-composition='articles'] [data-chapter-control='leave'] button", kind: "row" });
     await signOn(page, "Ada Lovelace");
     const roster = page.getByRole("list", { name: ARTICLES.roster });
     await expect(roster.getByText("Ada Lovelace")).toBeVisible();
@@ -208,12 +210,12 @@ test.describe("each control in Chapter I", () => {
     await expect(roster.getByText("Engineer", { exact: true })).toBeVisible();
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
     await expect(signCrew(page)).toContainText(SIGN.welcome("Ada Lovelace", "Engineer").text);
-    await expect(page.getByText(ARTICLES.signed("Ada Lovelace"))).toBeVisible();
+    await expect.poll(toasts.titles).toContain(ARTICLES.signed("Ada Lovelace"));
     // The articles are blank again for the next hand, and focus is on your row, clear of the toast.
     await expect(nameField(page)).toHaveValue("");
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
-    await expect.poll(async () => (await leave.boundingBox())!.y + 40 <= (await page.locator('[data-ouro="toast"]').first().boundingBox())!.y || (await leave.boundingBox())!.x + 200 <= (await page.locator('[data-ouro="toast"]').first().boundingBox())!.x).toBe(true);
+    await expect.poll(toasts.cleared).toBe(true);
   });
 
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
@@ -331,12 +333,12 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await tradeField(page).tap();
   await page.getByRole("option", { name: "Cook" }).tap();
   await oath(page).tap();
+  const toasts = await watchToasts(page, { selector: "[data-composition='articles'] [data-chapter-crew]", kind: "below" });
   await signButton(page).tap();
   await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
   // The toast never covers your row or Conseil's welcome under it.
-  const toast = page.locator('[data-ouro="toast"]').first();
-  await expect(toast).toBeVisible();
-  await expect.poll(async () => (await signCrew(page).boundingBox())!.y + (await signCrew(page).boundingBox())!.height <= (await toast.boundingBox())!.y).toBe(true);
+  await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
+  await expect.poll(toasts.cleared).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await context.close();

@@ -21,11 +21,35 @@ jobs:
     # dispatched runs (how release.yml runs CI on its release branch) and release branches.
     # The jobs that read the plan run whatever happens to it and run everything unless it says
     # `full=false`, so every required check still reports: a reduced job passes on what it ran.
+    #
+    # A push to main whose commit the merge queue already tested (the queue fast-forwards main to
+    # the commit its group's CI passed on) runs nothing more than install-github: `tested=true`.
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
       full: ${{ steps.plan.outputs.full }}
       components: ${{ steps.plan.outputs.components }}
+      tested: ${{ steps.tested.outputs.tested }}
     steps:
+      - id: tested
+        name: Did the merge queue test this commit?
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # A merge group's run, or the run release.yml dispatches on a queue branch (a queue entry
+          # made with GITHUB_TOKEN starts no merge_group run), that passed on this very commit.
+          passed=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&status=success&per_page=100" --jq '[.workflow_runs[] | select(.event == "merge_group" or (.event == "workflow_dispatch" and (.head_branch | startswith("gh-readonly-queue/main/"))))] | length') || passed=0
+          if [ "${passed:-0}" -gt 0 ]; then
+            echo "The merge queue's CI passed on $SHA: only install-github runs."
+            echo "tested=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No merge queue run passed on $SHA: everything runs."
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -54,16 +78,13 @@ jobs:
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
           fi
-  ci:
+  checks:
+    # The checks that need no browser: the generated docs, the types, the lint, the site as Pages
+    # builds it with every internal link in it, in exact letter case (scripts/links.mjs; the
+    # sources' links are checked in the script tests), and Storybook. Part of the ci check.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    outputs:
-      reduced: ${{ steps.tests.outputs.reduced }}
-      stems: ${{ steps.tests.outputs.stems }}
-    env:
-      FULL: ${{ needs.plan.outputs.full != 'false' }}
-      COMPONENTS: ${{ needs.plan.outputs.components }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,7 +95,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm run docs --check
       - run: pnpm typecheck
       - run: pnpm lint
@@ -83,8 +103,8 @@ jobs:
       # the checkout; urlOk reads scripts/claims-urls.json. On a pull request, the required checks
       # are read at its base, and the addresses it adds to the cache or changes are fetched again.
       # The ratchet runs here too, in a required check: what the pull request adds to, changes in
-      # or removes from claims.config.json's exemptions must be named in its description (push
-      # again or re-run this job after editing the description).
+      # or removes from claims.config.json's exemptions must be named in its description. After
+      # editing the description, push again: a re-run reads the description the run started with.
       - name: Claims
         env:
           BASE_REF: ${{ github.base_ref }}
@@ -97,55 +117,203 @@ jobs:
           else
             pnpm claims:check
           fi
-      # Every browser test (pnpm test), or on a reduced pull request the selected components'
-      # tests, the shared suites over their stories and the site's tests, still in every Vitest
-      # project (scripts/test-impact.mjs vitest); when only coverage falls short there, the full
-      # suite decides. The step says which ran, for the motion-coverage job.
+      - run: pnpm site:build
+      - run: node scripts/links.mjs site/dist
+      - run: pnpm build-storybook
+  browser:
+    # The browser tests (pnpm test), in shards that run side by side: each takes the test files
+    # scripts/shard-timings.json says add up to its share of the time, and its slice of the suites
+    # that iterate every story or page (scripts/vitest-shards.mts, test/slice.ts). On a reduced
+    # pull request, the selected components' tests, the shared suites over their stories and the
+    # site's tests, still in every Vitest project (scripts/test-impact.mjs vitest). Each shard
+    # uploads its motion evidence, its coverage (the ci job merges it and holds it to 100%) and how
+    # long each file took (`node scripts/shard.mjs refresh`), then checks its share of the installed
+    # subsets: an app that installs some components with their tests reaches 100% of what it
+    # installed (the button, the dialog, the sheet and the forms set, each alone and together; on a
+    # reduced pull request, the sets that install a selected component). Part of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    name: browser (${{ matrix.shard }}/4)
+    env:
+      FULL: ${{ needs.plan.outputs.full != 'false' }}
+      COMPONENTS: ${{ needs.plan.outputs.components }}
+      SHARD: ${{ matrix.shard }}/4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - id: tests
         name: Browser tests
         run: |
           if [ "$FULL" = true ]; then
-            pnpm test
-            printf 'reduced=false\nstems=\n' >> "$GITHUB_OUTPUT"
+            pnpm exec vitest run --coverage --shard="$SHARD"
           else
-            node scripts/test-impact.mjs vitest "$COMPONENTS"
+            node scripts/test-impact.mjs vitest "$COMPONENTS" --shard "$SHARD"
           fi
-      # The motion evidence that run wrote, one partition per Vitest project
-      # (scripts/motion-reporter.mts), uploaded before any later Vitest run in this job
-      # rewrites it. The motion-coverage job merges it.
+      # The motion evidence that run wrote, one partition per Vitest project and shard
+      # (scripts/motion-reporter.mts), uploaded before the subset runs below rewrite it. The
+      # motion-coverage job merges it.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: motion-ci
+          name: motion-browser-${{ matrix.shard }}
           path: .tmp/motion/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
-      # An app that installs some components with their tests reaches 100% of what it
-      # installed: the button, the dialog, the sheet and the forms set, each alone and together
-      # (on a reduced pull request, the sets that install a selected component).
+      # A reduced run that selected no component measures no coverage, so none may be there.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-browser-${{ matrix.shard }}
+          path: coverage/coverage-final.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-browser-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Coverage of installed subsets
         run: |
-          if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs; else node scripts/subset-coverage.mjs --touching "$COMPONENTS"; fi
-      - run: pnpm test:scripts
-      # The site as Pages builds it, then every internal link in it, in exact letter case
-      # (scripts/links.mjs; the sources' links are checked in test:scripts).
-      - run: pnpm site:build
-      - run: node scripts/links.mjs site/dist
-      - run: pnpm build-storybook
+          if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs --shard "$SHARD"; else node scripts/subset-coverage.mjs --touching "$COMPONENTS" --shard "$SHARD"; fi
+  scripts:
+    # pnpm test:scripts, in shards that run side by side, each with the files whose measured times
+    # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`). Each
+    # uploads how long each file took. Part of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    name: scripts (${{ matrix.shard }}/2)
+    env:
+      SHARD: ${{ matrix.shard }}/2
+      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of2.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
+      - name: Script tests
+        run: |
+          mkdir -p .tmp/timings
+          # Word splitting is wanted: the paths have no spaces.
+          # shellcheck disable=SC2046
+          node scripts/run-script-tests.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./scripts/timings-node-reporter.mjs --test-reporter-destination="$TIMINGS" $(node scripts/shard.mjs scripts "$SHARD")
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-scripts-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
+  ci:
+    # Passes when every part of it passed (checks, every browser shard and every script test
+    # shard), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
+    # On a reduced pull request whose merged coverage falls short, the full browser suite runs here
+    # and decides: a line may be covered only by another component's tests
+    # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job.
+    needs: [plan, checks, browser, scripts]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      reduced: ${{ steps.tests.outputs.reduced }}
+      stems: ${{ steps.tests.outputs.stems }}
+      fallback: ${{ steps.tests.outputs.fallback }}
+    env:
+      FULL: ${{ needs.plan.outputs.full != 'false' }}
+      COMPONENTS: ${{ needs.plan.outputs.components }}
+      BROWSER_SHARDS: 4
+    steps:
+      - name: Every part passed
+        env:
+          CHECKS: ${{ needs.checks.result }}
+          BROWSER: ${{ needs.browser.result }}
+          SCRIPTS: ${{ needs.scripts.result }}
+        run: |
+          failed=0
+          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS"; do
+            if [ "${part#*=}" != success ]; then
+              echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
+              failed=1
+            fi
+          done
+          exit "$failed"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-browser-*
+          path: ${{ runner.temp }}/coverage
+      - id: tests
+        name: Browser test coverage
+        run: |
+          if [ "$FULL" = true ]; then
+            node scripts/coverage-merge.mjs "$RUNNER_TEMP/coverage" --shards "$BROWSER_SHARDS"
+            printf 'reduced=false\nstems=\nfallback=false\n' >> "$GITHUB_OUTPUT"
+          else
+            node scripts/test-impact.mjs coverage "$RUNNER_TEMP/coverage" "$COMPONENTS" --shards "$BROWSER_SHARDS"
+          fi
+      # The full suite's motion evidence, when it decided here, in place of the shards'.
+      - if: steps.tests.outputs.fallback == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: motion-full
+          path: .tmp/motion/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
   motion-coverage:
     # Holds every component.json "motion" map complete against the records the browser tests
     # made (scripts/motion-coverage.mts): each declared property ran, nothing undeclared ran,
     # each named test recorded its state, and each motion state was proved with reduced motion.
-    # --expect names each Vitest project the ci job's `pnpm test` runs, unsharded, so a missing
-    # or doubled partition fails (scripts/workflows.test.mjs derives the list from vitest.config.ts).
+    # --expect names each Vitest project the browser shards run, once per shard, so a missing or
+    # doubled partition fails (scripts/workflows.test.mjs derives the list from vitest.config.ts);
+    # when the full suite decided in the ci job, its unsharded partitions instead.
     # A reduced pull request still runs every project; it ran only some components' tests, so
     # --stems holds only their maps complete (the ci job's `stems`).
     needs: [ci]
     runs-on: ubuntu-latest
     env:
-      MOTION_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
+      MOTION_PARTITIONS: ouro-chromium:4,ouro-webkit:4,ouro-touch:4,site:4
+      FULL_SUITE_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
+      FALLBACK: ${{ needs.ci.outputs.fallback }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -159,10 +327,11 @@ jobs:
       # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: motion-*
+          pattern: ${{ needs.ci.outputs.fallback == 'true' && 'motion-full' || 'motion-browser-*' }}
           path: ${{ runner.temp }}/motion
       - name: Motion coverage
         run: |
+          if [ "$FALLBACK" = true ]; then MOTION_PARTITIONS=$FULL_SUITE_PARTITIONS; fi
           if [ "$REDUCED" = true ]; then
             pnpm motion:coverage --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS" --stems "$STEMS"
           else
@@ -175,7 +344,7 @@ jobs:
     # shard (test/themes/), in Chromium, beside the ci job. On a reduced pull request, only the
     # selected components' stories, and nothing when it selected none.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
@@ -206,7 +375,9 @@ jobs:
       - if: steps.affected.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
       - if: steps.affected.outputs.run == 'true'
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - if: steps.affected.outputs.run == 'true'
         name: Theme scans
         env:
@@ -227,7 +398,7 @@ jobs:
     # the selected components' stories; with none selected, only the checks' proofs that they can
     # fail (the broken stories, on the first shard), which every run checks.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
@@ -262,7 +433,9 @@ jobs:
       - if: steps.affected.outputs.run != 'false'
         run: pnpm i --frozen-lockfile
       - if: steps.affected.outputs.run != 'false'
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - if: steps.affected.outputs.run == 'true'
         name: Conformance
         env:
@@ -285,8 +458,8 @@ jobs:
   conformance:
     # The one check the rules require for the conformance matrix: it passes when every shard did,
     # so the shard count can change without touching the ruleset.
-    needs: [conformance-shard]
-    if: ${{ !cancelled() }}
+    needs: [plan, conformance-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       RESULT: ${{ needs.conformance-shard.result }}
@@ -305,6 +478,8 @@ jobs:
     # since (pruneChangedFiles). With results cached
     # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
     # other run, three shards that each report nothing to mutate.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       EVENT: ${{ github.event_name }}
@@ -362,7 +537,8 @@ jobs:
     # reruns only the mutants its change touched. Pull requests only; on any other run, and on a
     # pull request that changes no runtime source, it reports that there is nothing to mutate. The
     # `mutation` job below is the one check the rules require.
-    needs: [mutation-plan]
+    needs: [plan, mutation-plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       EVENT: ${{ github.event_name }}
@@ -399,7 +575,9 @@ jobs:
       - if: steps.changed.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
       - if: steps.changed.outputs.run == 'true'
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - if: steps.changed.outputs.run == 'true'
         name: Results from the last run
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -425,8 +603,8 @@ jobs:
     # file and keeps it for the next run, under the plan's key. It keeps them after a failed run
     # too: each shard uploads only the mutants of its own ranges (scopeReport), so a survivor stays
     # Survived in the merge and fails the next run as well, unless a test that could kill it changed.
-    needs: [mutation-plan, mutation-shard]
-    if: ${{ !cancelled() }}
+    needs: [plan, mutation-plan, mutation-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       RESULT: ${{ needs.mutation-shard.result }}
@@ -465,6 +643,8 @@ jobs:
   visual:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -476,7 +656,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm test:visual
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -489,6 +671,8 @@ jobs:
   registry:
     # registry.json is generated (scripts/registry.mts) and valid for the pinned shadcn CLI,
     # both from the checkout and through the GitHub path at this commit.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     env:
       SHADCN: shadcn@4.21.1
@@ -508,15 +692,26 @@ jobs:
       - run: npx --yes $SHADCN registry validate ./registry.json
       - run: npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
       - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"
-  e2e:
-    # The end-to-end specs each item ships, against this repository's Storybook. On a reduced pull
-    # request, the selected components' specs and the site's.
+  e2e-shard:
+    # The end-to-end specs each item ships, against this repository's Storybook, and the site's, in
+    # shards that run side by side: each takes the spec files whose measured times add up to its
+    # share (`node scripts/shard.mjs e2e`, times in scripts/shard-timings.json), and its two
+    # workers split their tests (fullyParallel). Each uploads how long each file took. On a reduced
+    # pull request, the selected components' specs and the site's, by Playwright's --shard. Part
+    # of the e2e check.
     needs: [plan]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: e2e (${{ matrix.shard }}/3)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
+      SHARD: ${{ matrix.shard }}/3
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of3.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -527,28 +722,58 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
-            pnpm test:e2e
-          else
+            specs=$(node scripts/shard.mjs e2e "$SHARD")
+            [ -n "$specs" ] || { echo "::error::Shard $SHARD has no spec file to run."; exit 1; }
             # Word splitting is wanted: the paths have no spaces.
+            # shellcheck disable=SC2086
+            pnpm test:e2e $specs
+          else
+            # Word splitting is wanted: the paths have no spaces. A shard may get none of a few specs.
             # shellcheck disable=SC2046
-            pnpm test:e2e $(node scripts/test-impact.mjs e2e "$COMPONENTS")
+            pnpm test:e2e --pass-with-no-tests --shard="$SHARD" $(node scripts/test-impact.mjs e2e "$COMPONENTS")
           fi
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.shard }}
           path: playwright-report/
           if-no-files-found: ignore
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-e2e-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
+  e2e:
+    # Passes when every e2e shard passed.
+    needs: [plan, e2e-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every shard passed
+        env:
+          SHARDS: ${{ needs.e2e-shard.result }}
+        run: |
+          if [ "$SHARDS" != success ]; then
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/3) jobs."
+            exit 1
+          fi
   theme-install:
     name: theme-install
     # The copy-theme install proof (site/scripts/theme-install-test.sh): each site preset's "Copy
     # theme" CSS, pasted at the end of a clean shadcn app's stylesheet with Checklist and Dialog
     # added, renders the same computed colours, radii, fonts and shadows as the site, light and
     # dark, and its fonts load.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -560,7 +785,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm site:build
       - run: site/scripts/theme-install-test.sh "$RUNNER_TEMP/theme-app"
       - if: failure()
@@ -577,6 +804,8 @@ jobs:
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
     # test shares the CPU.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -588,7 +817,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm test:latency
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -602,6 +833,8 @@ jobs:
     # mobile, simulated; performance 90, accessibility 100, best practices 95, LCP 2 s, CLS 0.05,
     # TBT 150 ms), with the build served as Pages serves it: HTTP/2 over TLS, gzipped
     # (site/scripts/serve-pages.mjs).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -621,24 +854,137 @@ jobs:
           name: lighthouse-reports
           path: .tmp/lhci/
           if-no-files-found: ignore
-  install:
-    # Installs every item into a fresh Vite app with the pinned shadcn CLI and runs the
-    # app's type check, build, the shipped Vitest tests and the shipped Playwright specs
-    # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a
-    # stock shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit.
-    # namespace: `shadcn add @ouro/dialog` from the registry Pages serves, built and served locally.
-    # next: a Next.js App Router app renders every component from a Server Component page and
-    # runs `next build`.
+  install-shard:
+    # Installs every item into a fresh Vite app with the pinned shadcn CLI and runs the app's type
+    # check, build, the shipped Vitest tests and the shipped Playwright specs
+    # (scripts/install-test.sh). shadcn: the app keeps the theme `shadcn init` wrote, and a stock
+    # shadcn button builds beside Ouro's. ouro: ouro-theme comes from GitHub at this commit. The
+    # shipped tests take most of the time, so each app is installed in two jobs side by side and
+    # each runs half of them (OURO_SHARD); on a reduced pull request, the selected components'
+    # shipped tests, and none when it selected none (OURO_COMPONENTS). Each shard that passes
+    # leaves a marker, which its variant's install check counts.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        variant: [shadcn, ouro, namespace, next]
-        preset: [nova]
-        include:
-          # Another shadcn preset than the README's, so its preset wording is verified.
-          - variant: shadcn
+        variant: [shadcn, ouro]
+        # Another shadcn preset than the README's, so its preset wording is verified.
+        preset: [nova, vega]
+        shard: [1, 2]
+        exclude:
+          - variant: ouro
             preset: vega
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/2)
+    env:
+      FULL: ${{ needs.plan.outputs.full != 'false' }}
+      COMPONENTS: ${{ needs.plan.outputs.components }}
+      OURO_PRESET: ${{ matrix.preset }}
+      OURO_SHARD: ${{ matrix.shard }}/2
+      PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      # The app's own `playwright install`, at the same version, then finds them here.
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
+          system-packages: "false"
+      # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup: they
+      # install while the app is built, and install-test.sh waits for them (OURO_BROWSER_DEPS).
+      - name: Browser system packages, in the background
+        env:
+          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
+        run: |
+          # Detached from the step's output, so the step ends now and the install carries on.
+          ( pnpm exec playwright install-deps chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
+      - name: Install test
+        env:
+          VARIANT: ${{ matrix.variant }}
+          REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
+        run: |
+          if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
+          scripts/install-test.sh "$VARIANT" "$RUNNER_TEMP/app" "$REF"
+          mkdir -p "$RUNNER_TEMP/passed" && echo "$PASSED" > "$RUNNER_TEMP/passed/$PASSED"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.PASSED }}
+          path: ${{ runner.temp }}/passed/
+          if-no-files-found: error
+          retention-days: 1
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/app/src/index.css
+            ${{ runner.temp }}/app/components.json
+            ${{ runner.temp }}/app/package.json
+            ${{ runner.temp }}/app/playwright-report/
+          if-no-files-found: ignore
+  install-gate:
+    # A variant's install check: passes when each of its two shards passed, as their markers show,
+    # and every install shard of this attempt passed: a marker can be an earlier attempt's, after
+    # "Re-run all jobs" (artifacts outlive an attempt), so the markers alone could pass a shard
+    # that has just failed.
+    needs: [plan, install-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [shadcn, ouro]
+        preset: [nova, vega]
+        exclude:
+          - variant: ouro
+            preset: vega
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }})
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-*
+          path: ${{ runner.temp }}/passed
+          merge-multiple: true
+      - name: Every shard passed
+        env:
+          VARIANT: ${{ matrix.variant }}
+          PRESET: ${{ matrix.preset }}
+          SHARDS: ${{ needs.install-shard.result }}
+        run: |
+          failed=0
+          if [ "$SHARDS" != success ]; then
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/2) jobs."
+            failed=1
+          fi
+          for shard in 1 2; do
+            if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
+              echo "::error::install ($VARIANT, $PRESET, $shard/2) did not pass: see that job."
+              failed=1
+            fi
+          done
+          exit "$failed"
+  install:
+    # Installs every item into a fresh app and runs its type check and build
+    # (scripts/install-test.sh). namespace: `shadcn add @ouro/dialog` from the registry Pages
+    # serves, built and served locally. next: a Next.js App Router app renders every component from
+    # a Server Component page and runs `next build`.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [namespace, next]
+        preset: [nova]
     name: install (${{ matrix.variant }}, ${{ matrix.preset }})
     env:
       OURO_PRESET: ${{ matrix.preset }}
@@ -681,11 +1027,18 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      # install-test.sh installs their system packages.
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
+          system-packages: "false"
       - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
     # commands in UPGRADING.md against this commit's registry, in a src/ and an app/
     # layout, keeping Ouro's tests and without them (scripts/install-test.sh upgrade).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -725,3 +1078,44 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: scripts/install-test.sh github "$RUNNER_TEMP/app"
+  ci-budget:
+    # Records this run's critical path, the longest chain of jobs that wait on one another, each
+    # counted from its start to its end so a queue for a free runner does not count, and its wall
+    # time, in the step summary and the ci-timings artifact (scripts/ci-budget.mjs). On a pull
+    # request a critical path over budget (the CI target, plus a margin for runner noise) warns; the
+    # check fails when the median of the last full runs is over it, or one run passes a hard ceiling
+    # (scripts/ci-budget.mjs, judge). It also records the wall time a developer waits, queues included, with its median
+    # over the latest runs, and the runner time the run took from the shared pool. A required check
+    # (ruleset 24881709); it fails only a pull request, never a merge group or a push.
+    needs: [plan, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/workflows/ci.yml
+            scripts/ci-budget.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Critical path
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVENT: ${{ github.event_name }}
+          FULL: ${{ needs.plan.outputs.full != 'false' }}
+        run: node scripts/ci-budget.mjs --out "$RUNNER_TEMP/ci-timings.json"
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-timings
+          path: ${{ runner.temp }}/ci-timings.json
+          if-no-files-found: ignore
+          retention-days: 90

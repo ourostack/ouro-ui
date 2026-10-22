@@ -33,7 +33,9 @@ jobs:
           echo "Owned fixture: $GITHUB_WORKSPACE/.tmp/adopt-a-form-value; jsdom link: $GITHUB_WORKSPACE/node_modules/jsdom" >> "$GITHUB_STEP_SUMMARY"
       - name: Actual Router, privacy, mask and hydration regressions
         run: pnpm exec vitest run --config test/form-answer.config.ts --coverage | tee .tmp/adopt-a-form-value/node-proof.log
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - name: Shipped Form, constructor and Link regressions with focused coverage
         run: |
           pnpm exec vitest run --project ouro-chromium --project ouro-webkit --project ouro-touch \

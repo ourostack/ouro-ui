@@ -219,6 +219,12 @@ async function settled(element: Element, where: string, first: Array<CSSTransiti
       current = next;
       mark = ran.log.length;
     }
+    // WebKit lists a finished transition until its next animation update, the update that also
+    // gives the element its end style. For a composited property (opacity, scale) a timer sets
+    // that update, and under load it trails the frame the transition finished in, so until then
+    // the computed style can hold an earlier update's value. Waiting for it means the caller
+    // reads the end state.
+    while (element.getAnimations().some((animation) => animation instanceof CSSTransition && animation.playState === "finished")) await nextFrame();
   } finally {
     ran.stop();
   }

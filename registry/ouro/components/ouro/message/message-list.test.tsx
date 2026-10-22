@@ -220,6 +220,39 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Ouro: Preheat the oven."]);
   });
 
+  it("reads innerText only for a message it reads out, not for a user's message or a streamed token", async () => {
+    const items = history(2);
+    const { live, rerender } = await render(<Chat items={items} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    const layout = vi.spyOn(HTMLElement.prototype, "innerText", "get");
+    await rerender(<Chat items={[...items, { id: 2, role: "user", text: "Thanks" }]} />);
+    await rerender(<Chat items={[...items, { id: 2, role: "user", text: "Thanks" }, { id: 3, role: "assistant", text: "Rest", streaming: true }]} />);
+    await rerender(<Chat items={[...items, { id: 2, role: "user", text: "Thanks" }, { id: 3, role: "assistant", text: "Rest it", streaming: true }]} />);
+    await act(async () => {});
+    expect(layout).not.toHaveBeenCalled();
+    await rerender(<Chat items={[...items, { id: 2, role: "user", text: "Thanks" }, { id: 3, role: "assistant", text: "Rest it." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    expect(layout).toHaveBeenCalled();
+    stop();
+    expect(spoken).toEqual(["Ouro: Rest it."]);
+  });
+
+  it("reads out nothing while it is in a closed panel, without laying out what the panel hides, and reads on once shown", async () => {
+    const items = history(2);
+    const panel = (node: ReactNode, open: boolean) => <div hidden={open ? undefined : ("until-found" as unknown as boolean)}>{node}</div>;
+    const { live, rerender } = await render(panel(<Chat items={items} />, false));
+    const { spoken, stop } = recordAnnouncements(live);
+    const layout = vi.spyOn(HTMLElement.prototype, "innerText", "get");
+    // A streaming reply that ends after the panel opens is still read.
+    await rerender(panel(<Chat items={[...items, { id: 2, role: "assistant", text: "Hidden." }, { id: 3, role: "assistant", text: "Rest", streaming: true }]} />, false));
+    await act(async () => {});
+    expect(layout).not.toHaveBeenCalled();
+    await rerender(panel(<Chat items={[...items, { id: 2, role: "assistant", text: "Hidden." }, { id: 3, role: "assistant", text: "Rest it." }]} />, true));
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Rest it."]);
+  });
+
   it("does not read back the user's own message", async () => {
     const items = history(2);
     const { live, rerender } = await render(<Chat items={items} />);
