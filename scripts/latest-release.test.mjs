@@ -78,7 +78,8 @@ test("the release commit names only its own tag: release.yml's release-branch co
   const release = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
   const step = release.slice(release.indexOf("name: Push the release branch"));
   const body = step.slice(step.indexOf('git switch -c "$BRANCH"\n') + 'git switch -c "$BRANCH"\n'.length, step.indexOf('git commit -am "Release $TAG"'));
-  assert.match(body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*node scripts\/registry\.mts --release "\$VERSION"/);
+  assert.match(body, /^\s*scripts\/release-commit\.sh "\$VERSION"$/m);
+  assert.match(readFileSync(join(root, "scripts/release-commit.sh"), "utf8"), /\nnode scripts\/latest-release\.mjs set "v\$version"\npnpm run docs\nnode scripts\/registry\.mts --release "\$version"\n/);
   const copy = scratchDir("ouro-release-");
   for (const path of tracked("*")) {
     mkdirSync(dirname(join(copy, path)), { recursive: true });
