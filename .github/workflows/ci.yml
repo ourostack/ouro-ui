@@ -925,6 +925,8 @@ jobs:
         env:
           OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
         run: |
+          # A second apt (the runner's own) waits for dpkg's locks, up to 10 minutes, rather than failing at once.
+          echo 'DPkg::Lock::Timeout "600";' | sudo tee /etc/apt/apt.conf.d/90ouro-dpkg-lock > /dev/null
           # Detached from the step's output, so the step ends now and the install carries on.
           ( pnpm exec playwright install-deps chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
       - name: Install test

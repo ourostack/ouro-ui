@@ -893,13 +893,13 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const tail = install.slice(install.indexOf("# The shipped tests to run:"));
   // The install, type check and build come before, whatever the settings.
   assert.ok(install.indexOf('node "$root/scripts/install-check.mjs" "$app" "$variant" tests') < install.indexOf("# The shipped tests to run:"));
-  const run = (env, files = []) => {
+  const run = (env, files = [], more = "") => {
     const scratch = scratchDir("ouro-install-tail-");
     for (const file of files) {
       mkdirSync(join(scratch, dirname(file)), { recursive: true });
       writeFileSync(join(scratch, file), "");
     }
-    const stubs = 'npx() { echo "npx $*"; }';
+    const stubs = `npx() { echo "npx $*"; }\n${more}`;
     return spawnSync("bash", ["-e", "-u", "-o", "pipefail", "-c", `${stubs}\nroot=${JSON.stringify(root)}\n${tail}`], { cwd: scratch, encoding: "utf8", env: { ...process.env, CI: "", ...env } });
   };
   const all = run({});
@@ -930,18 +930,36 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.equal(none.status, 0);
   assert.doesNotMatch(none.stdout, /npx vitest/);
   assert.match(none.stdout, /no component selected/);
-  // The browsers' system packages from the background install: waited for, then not installed again.
+  // The browsers' system packages from the background install: waited for, however long it takes,
+  // then not installed again. An app's install --with-deps runs apt beside it: on #169's run
+  // 39759795561 and #161's queue run 39764170430 the background apt outlasted a 15-minute wait and
+  // the two raced for dpkg's and the package lists' locks.
   const scratch = scratchDir("ouro-install-deps-");
   const status = join(scratch, "deps.status");
   writeFileSync(status, "0\n");
-  assert.match(run({ CI: "1", OURO_BROWSER_DEPS: status }).stdout, /^npx playwright install chromium webkit$/m);
+  const idle = "pgrep() { return 1; }";
+  assert.match(run({ CI: "1", OURO_BROWSER_DEPS: status }, [], idle).stdout, /^npx playwright install chromium webkit$/m);
+  // Still running: the status lands only after 500 polls of 2 seconds, past the 15 minutes the old wait gave up at.
+  const late = join(scratch, "late.status");
+  const slow = run({ CI: "1", OURO_BROWSER_DEPS: late, LATE: late }, [], `${idle}\npolls=0\nsleep() { polls=$((polls + 1)); [ "$polls" -lt 500 ] || { echo 0 > "$LATE"; echo "polled $polls times"; }; }`);
+  assert.equal(slow.status, 0, slow.stderr);
+  assert.match(slow.stdout, /^polled 500 times$/m);
+  assert.match(slow.stdout, /^npx playwright install chromium webkit$/m);
+  // It failed: the system packages are installed here, once it has finished, and the browsers without them.
   writeFileSync(status, "100\n");
-  const failed = run({ CI: "1", OURO_BROWSER_DEPS: status });
-  assert.match(failed.stdout, /^npx playwright install --with-deps chromium webkit$/m);
-  assert.match(failed.stdout, /did not finish; installing them here/);
+  const failed = run({ CI: "1", OURO_BROWSER_DEPS: status }, [], idle);
+  assert.match(failed.stdout, /did not install them; installing them here/);
+  assert.match(failed.stdout, /^npx playwright install-deps chromium webkit$[\s\S]*^npx playwright install chromium webkit$/m);
+  for (const result of [slow, failed]) assert.doesNotMatch(result.stdout, /--with-deps/);
+  // Whatever else runs apt (the runner's own updates) is waited out before the app's playwright install, which may run apt.
+  const busy = run({ CI: "1" }, [], 'checks=0\npgrep() { checks=$((checks + 1)); [ "$checks" -lt 3 ]; }\nsleep() { echo "waited for apt"; }');
+  assert.equal(busy.status, 0, busy.stderr);
+  assert.match(busy.stdout, /^waited for apt\nwaited for apt\n(?:.*\n)*npx playwright install --with-deps chromium webkit$/m);
   assert.match(run({ CI: "1" }).stdout, /^npx playwright install --with-deps chromium webkit$/m);
   assert.match(ciJobs()["install-shard"], /^ {6}- name: Browser system packages, in the background\n {8}env:\n {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status\n/m);
   assert.match(ciJobs()["install-shard"], /^ {10}OURO_BROWSER_DEPS: \$\{\{ runner\.temp \}\}\/browser-deps\.status$/gm);
+  // A second apt waits for dpkg's locks rather than failing at once.
+  assert.match(ciJobs()["install-shard"], /echo 'DPkg::Lock::Timeout "600";' \| sudo tee \/etc\/apt\/apt\.conf\.d\/90ouro-dpkg-lock > \/dev\/null\n {10}# Detached/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
   assert.match(some.stdout, /^npx vitest run --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
