@@ -17,11 +17,14 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: cp .github/diag/lcp.mjs .github/diag/html.mjs /tmp/
-      - run: pnpm i --frozen-lockfile && pnpm site:build && node /tmp/html.mjs branch
-      - name: before
-        run: |
-          rm -rf .lighthouseci
-          git checkout -q -f f0226773
-          pnpm i --frozen-lockfile && pnpm site:build
-          node /tmp/html.mjs f0226773
+      - run: cp .github/diag/lcp.mjs .github/diag/html.mjs .github/diag/strip.mjs /tmp/
+      - run: pnpm i --frozen-lockfile && pnpm site:build && cp site/dist/voyage/index.html /tmp/voyage.html
+      - run: |
+          for how in asis nolabels pad1k noagents; do
+            cp /tmp/voyage.html site/dist/voyage/index.html
+            node /tmp/strip.mjs $how
+            node /tmp/html.mjs $how | cut -c1-40
+            rm -rf .lighthouseci
+            npx --yes @lhci/cli@0.15.1 collect --config=site/lighthouserc.json > /dev/null 2>&1
+            node /tmp/lcp.mjs $how | cut -c1-60
+          done
