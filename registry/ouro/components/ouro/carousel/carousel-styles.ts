@@ -23,7 +23,8 @@ const rootClass =
 const viewportClass =
   "box-border flex min-w-0 gap-4 overflow-x-auto overflow-y-hidden overscroll-x-contain snap-x snap-mandatory " +
   "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg " +
-  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
+  "forced-colors:outline-1 forced-colors:outline-solid forced-colors:-outline-offset-1";
 
 /** @internal */
 const slideClass = "box-border min-w-0 shrink-0 grow-0 basis-(--ouro-carousel-basis) snap-start";

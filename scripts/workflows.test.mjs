@@ -600,7 +600,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   const jobs = ciJobs();
   // ci-budget reads it too, in its step's env (the budget job's own test).
   const readers = Object.keys(jobs).filter((name) => /^ {6}FULL: \$\{\{ needs\.plan\.outputs\.full/m.test(jobs[name]));
-  assert.deepEqual(readers.sort(), ["browser", "ci", "e2e-shard", "install-shard", "themes"]);
+  assert.deepEqual(readers.sort(), ["browser", "ci", "conformance-shard", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     const needs = jobs[name].match(/^ {4}needs: \[([^\]]*)\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.plan\.outputs\.tested != 'true' \}\}$/m)?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
@@ -649,6 +649,8 @@ test("every required check is still a job that reports, under the name the rules
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), ["install (shadcn, nova, 1/2)", "install (shadcn, nova, 2/2)", "install (shadcn, vega, 1/2)", "install (shadcn, vega, 2/2)", "install (ouro, nova, 1/2)", "install (ouro, nova, 2/2)"]);
+  // conformance and mutation report under the names the ruleset will require once this workflow is on main.
+  for (const check of ["conformance", "mutation"]) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
 });
 
 test("the required ci job runs the claims ratchet on a pull request, against its base, with its description", () => {
@@ -740,6 +742,85 @@ test("the themes shards pass as not affected when a pull request changes no comp
   const scan = stepScript(block, "Theme scans");
   assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=unset/);
   assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=checkbox$/m);
+});
+
+test("the conformance shards run only the checks' proofs on the first shard when a pull request changes no component, and check only the selected stories, every nth per shard", () => {
+  const block = ciJobs()["conformance-shard"];
+  const affected = stepScript(block, "Is any story affected?");
+  const none = runStep(affected, { FULL: "false", COMPONENTS: "", SHARD: "2" });
+  assert.equal(none.status, 0);
+  assert.equal(none.output.run, "false");
+  assert.match(none.stdout, /^Not affected: /m);
+  assert.equal(runStep(affected, { FULL: "false", COMPONENTS: "", SHARD: "1" }).output.run, "proofs");
+  assert.equal(runStep(affected, { FULL: "false", COMPONENTS: "dialog", SHARD: "2" }).output.run, "true");
+  assert.equal(runStep(affected, { FULL: "true", COMPONENTS: "", SHARD: "3" }).output.run, "true");
+  const later = block.slice(block.indexOf("name: Is any story affected?")).split(/\n {6}- /).slice(1);
+  for (const step of later) assert.match(step, /^if: (steps\.affected\.outputs\.run (==|!=) '(true|false|proofs)'|failure\(\))$/m, step);
+  const run = stepScript(block, "Conformance");
+  assert.match(runStep(run, { FULL: "true" }).calls, /CALL pnpm conformance\nOURO_STORIES=unset/);
+  assert.match(runStep(run, { FULL: "false", COMPONENTS: "checkbox-group" }).calls, /CALL pnpm conformance\nOURO_STORIES=checkbox$/m);
+  assert.match(block, /^ {8}name: The checks prove they can fail\n {8}run: pnpm conformance -t "can fail"$/m);
+  // The shard is the matrix entry over the matrix's size, and the job's name says the same count.
+  assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  const shards = block.match(/^ {8}shard: \[([^\]]*)\]$/m)[1].split(",").map((value) => Number(value.trim()));
+  assert.deepEqual(shards, shards.map((_, index) => index + 1));
+  assert.match(block, new RegExp(`^ {4}name: conformance \\(\\$\\{\\{ matrix\\.shard \\}\\}/${shards.length}\\)$`, "m"));
+});
+
+test("conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
+  const jobs = ciJobs();
+  for (const [check, needs] of [["conformance", "plan, conformance-shard"], ["mutation", "plan, mutation-plan, mutation-shard"]]) {
+    assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${needs}\\]\n {4}if: ${untested.replace(/[$(){}!.]/g, "\\$&")}$`, "m"), check);
+    const script = stepScript(jobs[check], "Every shard passed");
+    assert.equal(runStep(script, { RESULT: "success" }).status, 0, check);
+    for (const result of ["failure", "cancelled", "skipped"]) assert.notEqual(runStep(script, { RESULT: result }).status, 0, `${check} with ${result}`);
+  }
+});
+
+test("the mutation plan keys the kept results by pull request and dependency hash, and runs five shards without them, three with", () => {
+  const block = ciJobs()["mutation-plan"];
+  const key = stepScript(block, "The cache key's prefix");
+  const pull = runStep(key, { EVENT: "pull_request", PR: "139" });
+  assert.match(pull.calls, /^CALL node scripts\/mutation\/cache\.mjs key HEAD\^1$/m);
+  assert.equal(pull.output.key, "stryker-139--");
+  assert.equal(runStep(key, { EVENT: "merge_group", PR: "" }).output.key, "");
+  assert.match(block, /^ {8}uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ steps\.key\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n {10}restore-keys: \$\{\{ steps\.key\.outputs\.key \}\}\n {10}lookup-only: true$/m);
+  const count = stepScript(block, "How many shards");
+  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "5", shards: "[1,2,3,4,5]" });
+  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" }).output, { count: "3", shards: "[1,2,3]" });
+  assert.deepEqual(runStep(count, { KEY: "", MATCHED: "" }).output, { count: "3", shards: "[1,2,3]" });
+});
+
+test("the mutation shards mutate a pull request's changed runtime lines, split by file, start from the kept results, and report nothing to mutate otherwise", () => {
+  const block = ciJobs()["mutation-shard"];
+  const changed = stepScript(block, "Is any runtime source changed?");
+  assert.equal(runStep(changed, { EVENT: "push" }).output.run, "false");
+  assert.equal(runStep(changed, { EVENT: "merge_group" }).output.run, "false");
+  const later = block.slice(block.indexOf("name: Is any runtime source changed?")).split(/\n {6}- /).slice(1);
+  for (const step of later) assert.match(step, /^(?:if: steps\.changed\.outputs\.run == 'true'|if: \$\{\{ !cancelled\(\) && steps\.changed\.outputs\.run == 'true' \}\})$/m, step);
+  assert.match(block, /^ {8}name: Mutation testing\n {8}run: pnpm mutation HEAD\^1 --shard "\$SHARD\/\$COUNT"$/m);
+  assert.match(block, /^ {4}needs: \[plan, mutation-plan\]$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.mutation-plan\.outputs\.shards\) \}\}$/m);
+  assert.match(block, /^ {6}COUNT: \$\{\{ needs\.mutation-plan\.outputs\.count \}\}$/m);
+  assert.match(block, /^ {4}name: mutation \(\$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.mutation-plan\.outputs\.count \}\}\)$/m);
+  assert.match(block, /uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ needs\.mutation-plan\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n/);
+  // A shard never saves on its own: the mutation job keeps the merged file.
+  assert.doesNotMatch(block, /actions\/cache(?:\/save)?@/);
+  assert.match(block, /uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: stryker-incremental-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/stryker-incremental\.json\n/);
+  assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
+});
+
+test("the mutation job merges the shards' results and keeps them under the plan's key on a pull request, and never fails for the cache", () => {
+  const block = ciJobs().mutation;
+  const steps = block.slice(block.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const last = steps.at(-1);
+  assert.match(last, /^name: Every shard passed$/m);
+  for (const step of steps.slice(0, -1)) {
+    assert.match(step, /^if: (?:env\.KEY != ''|\$\{\{ env\.KEY != '' && hashFiles\('\.tmp\/stryker-incremental\.json'\) != '' \}\})$/m, step);
+    assert.match(step, /^ {8}continue-on-error: true$/m, step);
+  }
+  assert.match(block, /run: node scripts\/mutation\/cache\.mjs merge \.tmp\/stryker-incremental\.json \.tmp\/shards\/\*\/stryker-incremental\.json/);
+  assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
 });
 
 test("the e2e shards run every spec, or the selected components' and the site's, and the e2e check passes when they all did", async () => {
@@ -1279,6 +1360,20 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
   assert.match(calls[1], /^issue list --state open --label screen-reader-infra /);
   assert.match(calls[2], /^issue create --title Screen-reader lane: infrastructure failure --label screen-reader-infra --body The screen-reader lane could not drive VoiceOver or NVDA \(nightly\): https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
   assert.equal(calls[5], "issue comment 12 --body Failed again (nightly): https://github.com/o/r/actions/runs/1");
+});
+
+test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {
+  const { text } = workflows.find(({ file }) => file === "conformance-exemptions.yml");
+  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n/m);
+  assert.match(text, /^ {4}name: conformance exemptions$/m);
+  // One run per pull request, and one per merge-queue entry: never one entry's run cancelling another's.
+  assert.match(text, /^ {2}group: conformance-exemptions-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}$/m);
+  const steps = text.slice(text.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const queue = steps.filter((step) => /^if: github\.event_name == 'merge_group'$/m.test(step));
+  assert.equal(queue.length, 1);
+  assert.doesNotMatch(queue[0], /uses:|node |pnpm /);
+  for (const step of steps.filter((step) => !queue.includes(step))) assert.match(step, /^if: github\.event_name == 'pull_request'$/m, step);
+  assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/conformance-exemptions\.mjs/);
 });
 
 test("CI rehearses the release commit on every run: release.yml's own edits, for a version with no tag yet, then the checks and the site build that read them", () => {

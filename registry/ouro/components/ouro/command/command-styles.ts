@@ -84,7 +84,9 @@ const commandGroupLabelClass = "box-border px-2 pt-2 pb-1 text-xs leading-4 font
 const commandItemClass =
   "relative box-border flex min-h-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-md px-2 py-1.5 " +
   "text-base leading-5 pointer-fine:text-sm text-popover-foreground outline-none select-none [-webkit-tap-highlight-color:transparent] " +
-  "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50";
+  "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 " +
+  // Forced colours drop the fill, so the highlight takes the system's pair.
+  "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText]";
 
 /**
  * The close button: always present for screen readers (a phone has no Escape key), hidden
