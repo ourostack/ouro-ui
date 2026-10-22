@@ -17,12 +17,11 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: cp .github/diag/lcp.mjs /tmp/lcp.mjs
-      - run: pnpm i --frozen-lockfile && pnpm site:build
-      - run: npx --yes @lhci/cli@0.15.1 collect --config=site/lighthouserc.json && node /tmp/lcp.mjs branch
+      - run: cp .github/diag/lcp.mjs .github/diag/html.mjs /tmp/
+      - run: pnpm i --frozen-lockfile && pnpm site:build && node /tmp/html.mjs branch
       - name: before
         run: |
           rm -rf .lighthouseci
           git checkout -q -f f0226773
           pnpm i --frozen-lockfile && pnpm site:build
-          npx --yes @lhci/cli@0.15.1 collect --config=site/lighthouserc.json && node /tmp/lcp.mjs f0226773
+          node /tmp/html.mjs f0226773
