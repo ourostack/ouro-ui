@@ -18,6 +18,10 @@ if [ "$(uname -s)" != Linux ]; then
   exec "$here/retry.sh" pnpm exec playwright install-deps "$@"
 fi
 
+# A second apt (an app's playwright install --with-deps, unattended upgrades) waits for dpkg's
+# lock, up to 10 minutes, rather than failing at once.
+echo 'DPkg::Lock::Timeout "600";' | sudo tee /etc/apt/apt.conf.d/90ouro-dpkg-lock > /dev/null
+
 shopt -s nullglob
 debs=("$dir"/*.deb)
 if [ "${#debs[@]}" -gt 0 ]; then
