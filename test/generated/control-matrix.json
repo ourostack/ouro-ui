@@ -2312,5 +2312,18 @@
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
+  },
+  {
+    "item": "preset-picker",
+    "stem": "preset-picker",
+    "mode": "default",
+    "part": "item",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "PresetPicker/Playground",
+      "PresetPicker/Choosing"
+    ]
   }
 ]
