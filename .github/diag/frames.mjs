@@ -7,11 +7,11 @@ const W = " .site-window { will-change: transform; }";
 const S = ":is(#themes, #chapter-one, #chapter-two, #chapter-three, #agents)";
 const VARIANTS = {
   layer: W,
-  winnoshadow: W + " .site-window { box-shadow: none !important; }",
-  stage: W + " .stage-porthole::before { filter: none !important; } [class*=stage-], [class*=stage-]::before { box-shadow: none !important; }",
-  specimens: W + " .site-specimen, .site-specimen *, .site-specimen-switch::after, .site-specimen-switch::before { box-shadow: none !important; }",
-  ouro: W + " [data-ouro], [data-ouro] *, [data-ouro]::before, [data-ouro]::after { box-shadow: none !important; }",
-  heroother: W + " .site-install, .site-hero *, .site-hero *::before { box-shadow: none !important; filter: none !important; }",
+  winvisible: W + " .site-window { overflow: visible !important; }",
+  sharp: W + " .site-window { box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 10%, transparent) !important; }",
+  square: W + " .site-window { border-radius: 0 !important; }",
+  oneshadow: W + " .site-window { box-shadow: 0 1px 3px oklch(0.19 0.02 250 / 0.08) !important; }",
+  nolayer: "",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
 const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
