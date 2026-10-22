@@ -33,6 +33,15 @@ export interface CelebrateOwnProps {
 /** Props for {@link Celebrate}: its own props and the `<span>` attributes it passes through. */
 export type CelebrateProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof CelebrateOwnProps> & CelebrateOwnProps;
 
+/**
+ * How long after the moment starts its message is spoken. The moment usually follows the person's
+ * own change, the last box ticked with Space, and VoiceOver reads that box's new state and its
+ * usage hint first; a message written just after the change came while VoiceOver was still
+ * reading the box, and VoiceOver dropped it. So it waits for that reading to end. The badge and
+ * the confetti show at once.
+ */
+const SPEAK_DELAY_MS = 1500;
+
 // Twelve pieces around the circle, at two distances, in the theme's tones.
 const PIECES = 12;
 const tones = ["bg-primary", "bg-success", "bg-warning", "bg-destructive"] as const;
@@ -96,7 +105,7 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
   // Spoken when the moment starts, not when a page renders with it already shown.
   const shown = useRef(show);
   useEffect(() => {
-    if (show && !shown.current) announce(message);
+    if (show && !shown.current) announce(message, { delayMs: SPEAK_DELAY_MS });
     shown.current = show;
   }, [show, message]);
 
