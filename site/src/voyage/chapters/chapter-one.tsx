@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -18,6 +18,7 @@ import dividersSource from "../../nautilus/art/dividers.svg?raw";
 import islandSource from "../../nautilus/art/island-yard.svg?raw";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
+import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
 import type { CrewName } from "../stage/copy";
 import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
@@ -185,32 +186,6 @@ function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
  * day each), watch the plan gain each part and the bar fill (Progress), then Launch. The site owns
  * the order, the ticks and the plan; HX owns how each control behaves and what it announces.
  */
-/** A handler whose identity never changes but which always runs the latest render's code. */
-function useStable<Args extends unknown[]>(handler: (...args: Args) => void): (...args: Args) => void {
-  const latest = useRef(handler);
-  useLayoutEffect(() => {
-    latest.current = handler;
-  });
-  return useCallback((...args: Args) => latest.current(...args), []);
-}
-
-/** The order of work (Reorderable), re-rendered only when the order changes. */
-const OrderOfWork = memo(function OrderOfWork({ order, onReorder }: { order: readonly PartId[]; onReorder: (ids: string[]) => void }): JSX.Element {
-  return <Reorderable label={SHIPYARD.order} items={order.map((id) => ({ id, label: partNamed(id).name }))} onReorder={onReorder} />;
-});
-
-/** The jobs (Checklist), in the order of work, re-rendered only when the order or the ticks change. */
-const Jobs = memo(function Jobs({ order, built, onTick }: { order: readonly PartId[]; built: ReadonlySet<PartId>; onTick: (id: string, checked: boolean) => void }): JSX.Element {
-  return (
-    <Checklist
-      label={SHIPYARD.jobs}
-      hideLabel
-      items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))}
-      onCheckedChange={onTick}
-    />
-  );
-});
-
 function Shipyard(): JSX.Element {
   const voyage = useVoyageStore();
   const jobs = useRef<HTMLDivElement>(null);
@@ -231,13 +206,13 @@ function Shipyard(): JSX.Element {
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
   const say = (next: CrewLine) => startTransition(() => setLine(next));
-  const reorder = (ids: string[]) => {
+  const reorder = useStable((ids: string[]) => {
     const next = ids as PartId[];
     setOrder(next);
     const first = next[0]!;
     say(first === "hull" ? YARD.inOrder : YARD.outOfOrder[first]);
-  };
-  const tick = (id: string, checked: boolean) => {
+  });
+  const tick = useStable((id: string, checked: boolean) => {
     const part = partNamed(id as PartId);
     const next = new Set(built);
     if (checked) next.add(part.id);
@@ -249,10 +224,7 @@ function Shipyard(): JSX.Element {
     else if (next.size === PARTS.length) say(YARD.ready);
     else if (part.id !== "hull" && !next.has("hull")) say(YARD.noHull(part.name));
     else say(YARD.built[part.id]);
-  };
-  // The lists keep one handler each, so a press elsewhere (Launch) does not re-render them.
-  const onReorder = useStable(reorder);
-  const onTick = useStable(tick);
+  });
   // Launch turns the button at once; emptying the yard for another build follows as a transition,
   // and focus goes to the first job, where the next build starts.
   const launch = () => {
@@ -278,13 +250,13 @@ function Shipyard(): JSX.Element {
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.order}
           </p>
-          <OrderOfWork order={order} onReorder={onReorder} />
+          <OrderList order={order} onReorder={reorder} />
         </div>
         <div ref={jobs} data-chapter-control="jobs">
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.jobs}
           </p>
-          <Jobs order={order} built={built} onTick={onTick} />
+          <JobList order={order} built={built} onTick={tick} />
         </div>
       </div>
       <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
@@ -304,6 +276,19 @@ function Shipyard(): JSX.Element {
     </div>
   );
 }
+
+/*
+ * The yard's two lists, each a memoized piece with a steady handler: Launch, a tick or a reorder
+ * re-renders only the lists it changes, not five handles with their menus and five checkboxes that
+ * stay as they were (chapter-one.latency.spec.ts).
+ */
+const OrderList = memo(function OrderList({ order, onReorder }: { order: readonly PartId[]; onReorder: (ids: string[]) => void }): JSX.Element {
+  return <Reorderable label={SHIPYARD.order} items={order.map((id) => ({ id, label: partNamed(id).name }))} onReorder={onReorder} />;
+});
+
+const JobList = memo(function JobList({ order, built, onTick }: { order: readonly PartId[]; built: ReadonlySet<PartId>; onTick: (id: string, checked: boolean) => void }): JSX.Element {
+  return <Checklist label={SHIPYARD.jobs} hideLabel items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))} onCheckedChange={onTick} />;
+});
 
 const tradeLabel = (value: string) => TRADES.find((trade) => trade.value === value)?.label ?? value;
 
@@ -329,12 +314,10 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
-  // A new signing brings a new, empty form; focus goes to your row's Leave, and your row and
-  // Conseil's welcome under it are kept clear of the toast.
+  // A new signing brings a new, empty form, and focus goes to your row's Leave.
   useEffect(() => {
     if (signings === 0) return;
     box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
-    keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
   }, [signings]);
 
   const field = (name: string) => box.current?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
@@ -375,7 +358,15 @@ function Articles(): JSX.Element {
     setYou({ name, trade });
     setSignings((count) => count + 1);
     setLine(SIGN.welcome(name, trade));
-    toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+    // The toast follows once the press has painted, as the bell's does: the toast stack measures
+    // and re-lays itself out, so it waits for the press's own paint rather than holding it up. Your
+    // row and Conseil's welcome under it are kept clear of it.
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+        keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
+      }),
+    );
   };
   // Off the list, and back to the articles' first field to sign again.
   const leave = () => {
