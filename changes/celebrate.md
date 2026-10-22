@@ -1,1 +1,0 @@
-- New: `Celebrate`, a moment of celebration: confetti bursts from a badge with the message and screen readers hear it once; with reduced motion only the badge fades in.
