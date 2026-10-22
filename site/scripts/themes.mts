@@ -274,8 +274,10 @@ const SYNC_END = "/* synced from Spoonjoy: end */";
 
 /**
  * What the site adds for the variables Spoonjoy does not define (it has no --card, --chart-*,
- * --sidebar-*, --font-heading or --shadow-* of shadcn's names), each mapped onto Spoonjoy's own
- * palette so the preset still follows its .dark.
+ * --sidebar-*, --font-heading or --shadow-* of shadcn's names, and no --ouro-action), each mapped
+ * onto Spoonjoy's own palette so the preset still follows its .dark. --ouro-action and its
+ * foreground give the primary Button Spoonjoy's charcoal action (amber in the dark) while its
+ * selection stays brass (--primary).
  */
 const COOKBOOK_ADDITIONS = [
   "--card: var(--sj-panel-solid)",
@@ -299,6 +301,8 @@ const COOKBOOK_ADDITIONS = [
   "--shadow-md: var(--sj-shadow-soft)",
   "--shadow-lg: var(--sj-shadow-soft)",
   "--shadow-xl: var(--sj-shadow)",
+  "--ouro-action: var(--sj-action)",
+  "--ouro-action-foreground: var(--sj-on-action)",
 ];
 
 /**
@@ -329,7 +333,8 @@ export function cookbookCss(blocks: string, commit: string): string {
     " * Cookbook: Spoonjoy's own tokens, synced from spoonjoy/spoonjoy-v2's app/styles/tailwind.css at",
     ` * commit ${commit} by \`node site/scripts/themes.mts sync-cookbook <checkout>\`. Don't edit the`,
     " * synced part; CI checks its checksum. Spoonjoy defines no --card, --chart-*, --sidebar-*,",
-    " * --font-heading or --shadow-* of shadcn's names, so the last block maps them onto its palette.",
+    " * --font-heading or --shadow-* of shadcn's names and no --ouro-action, so the last block maps them",
+    " * onto its palette.",
     ` * sha256 of the synced part: ${sha256(blocks)}`,
     " */",
     SYNC_START,

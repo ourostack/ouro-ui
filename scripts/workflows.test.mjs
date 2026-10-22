@@ -364,6 +364,23 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
   assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
 });
 
+test("Release opens the pull request that prepares main with a title and body that pass the claims lint, the new tag sourced from package.json", () => {
+  const prepare = releaseStep("Prepare main for the next release");
+  const [, title, body] = prepare.match(/--title "([^"]+)" \\\n\s*--body "([^"]+)"/) ?? [];
+  assert.ok(body, "release.yml opens the pull request with --title and --body");
+  // The step runs after latest-release.mjs set "$TAG", so package.json's latestRelease is the tag;
+  // the repository's own value stands in for it here.
+  const tag = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
+  const opened = body.replaceAll("$TAG", tag);
+  const appended = prepare.match(/gh pr edit "\$NEXT_BRANCH" --body "\$pr_body\n((?:[^"\\]|\\.)*)"/)?.[1];
+  assert.ok(appended, "release.yml adds the approval command to the body when it cannot approve");
+  const edited = `${opened}\n${appended.replaceAll("\\`", "`").replaceAll("$cmd", "gh api -X POST repos/o/r/actions/runs/39754777487/approve")}`;
+  for (const text of [opened, edited]) {
+    const lint = spawnSync(process.execPath, ["scripts/claims.mjs", "lint", "--pr"], { cwd: root, encoding: "utf8", env: { ...process.env, PR_TITLE: title, PR_BODY: text } });
+    assert.equal(lint.status, 0, lint.stdout + lint.stderr);
+  }
+});
+
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
   assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
@@ -403,6 +420,52 @@ test("Release takes main's CI from main's runs on its commit: a push, a dispatch
   assert.equal(conclusion([run("workflow_dispatch", "main", 1)]), "1");
   // A pull request's run, or a dispatch on another branch, is not main's CI.
   assert.equal(conclusion([run("pull_request", "fix", 1), run("workflow_dispatch", "release/v1.0.0", 2)]), "");
+});
+
+test("Release stops when install-github, which the rules cannot require, failed in main's own CI run on its commit", () => {
+  const release = workflow("release.yml");
+  const filter = release.match(/own=\$\(gh run list --workflow ci\.yml --commit "\$sha" --json databaseId,event,headBranch --jq '([^']+)'\)/)?.[1];
+  assert.ok(filter, "release.yml finds main's own CI run on the commit");
+  const own = (runs) => spawnSync("jq", ["-r", filter], { input: JSON.stringify(runs), encoding: "utf8" }).stdout.trim();
+  const run = (event, headBranch, databaseId) => ({ event, headBranch, databaseId });
+  const queue = "gh-readonly-queue/main/pr-9-abc";
+  // The newest of main's push and dispatch runs; the queue's run and other branches' runs are not main's own.
+  assert.equal(own([run("push", "main", 2), run("merge_group", queue, 1)]), "2");
+  assert.equal(own([run("workflow_dispatch", "main", 3), run("push", "main", 2)]), "3");
+  assert.equal(own([run("merge_group", queue, 1), run("push", "fix", 4), run("workflow_dispatch", queue, 5)]), "");
+  // The step against a stand-in gh: main's push run (5) skipped every required job, the queue's run (6) passed them.
+  const check = (github, ownRun = "5") => {
+    const dir = scratchDir("ouro-release-github-");
+    const stubs = `git() { case "$1" in ls-remote) return 1 ;; rev-parse) echo abc123 ;; esac; }
+gh() {
+  case "$*" in
+    *release-rehearsal.yml*) echo success ;;
+    "run list --workflow ci.yml "*"[0].databaseId // empty"*) echo "$OWN" ;;
+    "run list"*) echo "$OWN 6" ;;
+    *"/rules/branches/main "*) echo ci ;;
+    "run view "*"--json status"*) echo completed ;;
+    *"/runs/5/jobs"*) printf 'ci\\tskipped\\ninstall-github\\t%s\\n' "$GITHUB" ;;
+    *"/runs/6/jobs"*) printf 'ci\\tsuccess\\ninstall-github\\tskipped\\nci-budget\\tfailure\\n' ;;
+    *) return 99 ;;
+  esac
+}
+export -f gh
+`;
+    return spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GITHUB: github, OWN: ownRun, VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: join(dir, "output.txt"), GITHUB_ENV: join(dir, "env.txt"), POLL_SECONDS: "0" },
+    });
+  };
+  const green = check("success");
+  assert.equal(green.status, 0, green.stdout + green.stderr);
+  const red = check("failure");
+  assert.equal(red.status, 1, red.stdout + red.stderr);
+  assert.match(red.stdout, /::error::install-github is 'failure' in main's own CI run 5 \(abc123\), not success/);
+  assert.match(check("skipped").stdout, /install-github is 'skipped'/);
+  // With no run of main's own on the commit, the queue's run alone decides.
+  const queued = check("failure", "");
+  assert.equal(queued.status, 0, queued.stdout + queued.stderr);
 });
 
 test("Release deploys Pages itself and fails when the published llms.txt or README names another release", () => {
@@ -1264,7 +1327,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   // It runs whatever the other jobs did, but not on a cancelled run, which would hold a runner for
   // nothing, nor on a push the merge queue already tested, which runs nothing to measure.
   assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
-  // Whether the run was full, which the median of full runs reads back from its ci-timings artifact.
+  // Whether the run was full, which its ci-timings record says.
   assert.match(block, /^ {10}FULL: \$\{\{ needs\.plan\.outputs\.full != 'false' \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
@@ -1471,7 +1534,7 @@ test("a release's tag never stays out without main and Pages following unnoticed
     const output = join(dir, "output.txt");
     writeFileSync(output, "");
     // Main's rules require ci alone here; its run (42) passed it, and the rehearsal passed.
-    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$*" in "release view"*) [ "$RELEASED" = true ] ;; *release-rehearsal.yml*) echo success ;; "run list"*) echo 42 ;; *"/rules/branches/main "*) echo ci ;; "run watch"*) return 1 ;; "run view 42 --json status"*) echo completed ;; *"/runs/42/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\n' ;; esac; }\nexport -f gh\n`;
+    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$*" in "release view"*) [ "$RELEASED" = true ] ;; *release-rehearsal.yml*) echo success ;; "run list"*) echo 42 ;; *"/rules/branches/main "*) echo ci ;; "run watch"*) return 1 ;; "run view 42 --json status"*) echo completed ;; *"/runs/42/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\ninstall-github\\tsuccess\\n' ;; esac; }\nexport -f gh\n`;
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
       encoding: "utf8",
       cwd: root,
