@@ -133,7 +133,9 @@ function Proof(): JSX.Element {
     const load = () => {
       listening.abort();
       void import("@/registry/ouro/components/ouro/tooltip/tooltip").then(({ Tooltip }) => {
-        refocus.current = [...list.current!.querySelectorAll("a")].indexOf(document.activeElement as HTMLAnchorElement);
+        // Gone already: the hero left the page before the code came.
+        if (!list.current) return;
+        refocus.current = [...list.current.querySelectorAll("a")].indexOf(document.activeElement as HTMLAnchorElement);
         setTip(() => Tooltip);
       });
     };
