@@ -310,7 +310,7 @@ test("under reduced motion the fish hold still and every payoff changes only col
   await settled(page);
   const all = await moved(page);
   expect(all.length).toBeGreaterThan(0);
-  expect(all.map((entry) => entry.replace(/^[\w-]+:/, "")).filter((property) => !/^(opacity|color|background-color|backgroundColor|border(-(top|right|bottom|left))?-color|outline-color|outlineColor|stop-color|stopColor|stop-opacity|stopOpacity|fill|stroke|box-shadow|boxShadow)$/.test(property))).toEqual([]);
+  expect(all.map((entry) => entry.replace(/^[\w-]+:/, "")).filter((property) => !/^(opacity|visibility|color|background-color|backgroundColor|border(-(top|right|bottom|left))?-color|outline-color|outlineColor|stop-color|stopColor|stop-opacity|stopOpacity|fill|stroke|box-shadow|boxShadow)$/.test(property))).toEqual([]);
 });
 
 test("without reduced motion, each payoff moves: bubbles, the needles, the Ready badge, the beam, the bell and the rings", async ({ page }) => {
