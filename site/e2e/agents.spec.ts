@@ -26,8 +26,10 @@ test.describe("each control in Built for agents too", () => {
     await open(page);
     for (const example of agentExamples) {
       const real = generated[example.id]!;
-      await section(page).getByRole("tab", { name: SPECIES[example.id]!.tab }).click();
-      const panel = section(page).getByRole("tabpanel");
+      const tab = section(page).getByRole("tab", { name: SPECIES[example.id]!.tab });
+      await tab.click();
+      // The tab's own panel (the one it leaves fades out beside it for a moment).
+      const panel = page.locator(`[id="${await tab.getAttribute("aria-controls")}"]`);
       await expect(panel).toContainText(FILED(SPECIES[example.id]!.family, example.prop));
       await expect(panel.locator("[data-agents-error]")).toHaveText(real.error);
       await expect(panel.locator("[data-agents-console]")).toHaveText(example.devMessage);

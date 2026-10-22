@@ -96,9 +96,9 @@ describe("the hero", () => {
     const link = page.getByRole("link", { name: claim.text, exact: true });
     await expect.element(link).toHaveAccessibleDescription(claim.where);
     const where = document.getElementById(link.element().getAttribute("aria-describedby")!)!;
-    expect(getComputedStyle(where).visibility).toBe("hidden");
+    expect(getComputedStyle(where).display).toBe("none");
     (link.element() as HTMLElement).focus();
-    await expect.poll(() => getComputedStyle(where).visibility).toBe("visible");
+    await expect.poll(() => getComputedStyle(where).display).toBe("block");
     for (const each of proof.claims) await expect.element(page.getByRole("link", { name: each.text, exact: true })).toHaveAccessibleDescription(each.where);
   });
 

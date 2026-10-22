@@ -330,10 +330,3 @@
   outline-offset: 2px;
 }
 
-/* The Code sheet's lines wrap at the panel's edge rather than run off it. */
-.site-code-line {
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}

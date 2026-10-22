@@ -343,27 +343,18 @@
   /* Where each proof link goes: a small label under it on hover and keyboard focus, read to screen readers as the link's description. */
   .site-proof-where {
     position: absolute;
-    top: calc(100% + 0.25rem);
+    top: 100%;
     left: 1.5rem;
     z-index: 10;
+    display: none;
     padding: 0.25rem 0.5rem;
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: 0.25rem;
     background: var(--foreground);
     color: var(--background);
     font-size: 0.75rem;
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 120ms ease,
-      visibility 0s linear 120ms;
   }
-  .site-proof li:hover .site-proof-where,
-  .site-proof li:focus-within .site-proof-where {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 120ms ease;
+  .site-proof li:is(:hover, :focus-within) .site-proof-where {
+    display: block;
   }
   .site-proof-check {
     flex-shrink: 0;

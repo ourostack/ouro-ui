@@ -25,7 +25,10 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: ENCOUNTER.dialog
 async function order(page: Page, name: string): Promise<void> {
   await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
   const menu = page.getByRole("menu");
-  await menu.getByRole("menuitem", { name, exact: true }).or(menu.getByRole("menuitemcheckbox", { name, exact: true })).click();
+  const checkbox = menu.getByRole("menuitemcheckbox", { name, exact: true });
+  await menu.getByRole("menuitem", { name, exact: true }).or(checkbox).click();
+  // A checkbox item leaves the menu open, so more can be ticked; Escape closes it.
+  if (await checkbox.count()) await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
 }
 
@@ -120,7 +123,9 @@ test.describe("each control in Chapter III", () => {
     await expect(scene(page)).toHaveAttribute("data-lights", "");
     await expect(trigger).toBeFocused();
     await trigger.click();
+    await expect(search).toBeFocused();
     await page.keyboard.type("harpoon");
+    await expect(page.getByRole("option", { name: ORDERS.axes })).toBeVisible();
     await page.keyboard.press("Enter");
     await expect(status(page)).toContainText(ENCOUNTER.axesReady);
   });
@@ -279,7 +284,7 @@ test.describe("by keyboard alone", () => {
     await expect.poll(() => dialog(page).evaluate((panel) => panel.contains(document.activeElement))).toBe(true);
     for (let step = 0; step < 4; step++) {
       await page.keyboard.press("Tab");
-      expect(await dialog(page).evaluate((panel) => panel.contains(document.activeElement))).toBe(true);
+      await expect.poll(() => dialog(page).evaluate((panel) => panel.contains(document.activeElement))).toBe(true);
     }
     await page.keyboard.press("Escape");
     await expect(dialog(page)).toBeHidden();

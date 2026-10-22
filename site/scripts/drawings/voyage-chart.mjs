@@ -35,7 +35,7 @@ for (let lat = 60; lat >= -60; lat -= 30) if (lat !== 0) graticule.push(`M0 ${Y(
 
 
 const rose = (cx, cy, r) => `
-    <g class="ch-rose" transform="translate(${cx} ${cy})">
+    <g class="ch-rose" transform="translate(${cx} ${cy})" opacity="0.7">
       <circle r="${r}" stroke-width="1" />
       <circle r="${r - 5}" stroke-width="0.6" stroke-dasharray="1.5 2.5" />
       <path d="M0 ${-r - 6} L4 -4 L${r + 6} 0 L4 4 L0 ${r + 6} L-4 4 L${-r - 6} 0 L-4 -4 Z" stroke-width="1.1" />
@@ -52,16 +52,16 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fil
        pole. The chart room draws the route and the ports on top of it (chapter-two.tsx). Colour
        comes from the theme. -->
   <rect class="ch-sea" x="0" y="0" width="${W}" height="${H}" stroke="none" />
-  <g class="ch-grid" stroke-width="0.6" stroke-dasharray="2 4">
+  <g class="ch-grid" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45">
     <path d="${graticule.join(" ")}" />
   </g>
-  <path class="ch-line" d="M0 ${Y(0)} H${W}" stroke-width="0.9" stroke-dasharray="6 4" />
+  <path class="ch-line" d="M0 ${Y(0)} H${W}" stroke-width="0.9" stroke-dasharray="6 4" opacity="0.55" />
   <g class="ch-land" stroke-width="1.1">
 ${Object.entries(land)
   .map(([name, points]) => `    <path data-land="${name}" d="${path(points)}" />`)
   .join("\n")}
   </g>
-  <g class="ch-labels" fill="currentColor" stroke="none" font-size="8" letter-spacing="1.5">
+  <g class="ch-labels" fill="currentColor" stroke="none" font-size="8" letter-spacing="1.5" opacity="0.45">
     <text x="${X(-150)}" y="${Y(10)}">PACIFIC OCEAN</text>
     <text x="${X(-58)}" y="${Y(36)}">NORTH ATLANTIC</text>
     <text x="${X(-32)}" y="${Y(-34)}">SOUTH ATLANTIC</text>

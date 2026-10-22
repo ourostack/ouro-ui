@@ -78,7 +78,7 @@ export default function Agents(): JSX.Element {
           <p className="site-lede mt-4">{AGENTS.intro}</p>
           <p className="mt-4 text-sm text-muted-foreground">{AGENTS.real}</p>
         </header>
-        <div className="lg:col-span-8">
+        <div className="min-w-0 lg:col-span-8">
           <div className="site-window">
             <div className="site-window-bar">
               <span className="site-window-dots" aria-hidden="true">

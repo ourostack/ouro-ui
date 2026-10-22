@@ -122,7 +122,7 @@ export default function ChapterThree(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_THREE.intro}</p>
             <Battle />
           </header>
-          <div className="grid gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
             <Composition id="encounter" title={ENCOUNTER.title} intro={ENCOUNTER.intro} file={ENCOUNTER.file} sheet={CODE_SHEETS_THREE.encounter}>
               <Encounter />
             </Composition>
@@ -216,14 +216,14 @@ function Porthole(): JSX.Element {
         </g>
         <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" />
         <g className="ph-squid" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: squid.inner }} />
-        <g className="ph-bubbles">
+        <g className="ph-bubbles" fill="white" fillOpacity={0.45}>
           <circle cx="90" cy="320" r="4" />
           <circle cx="110" cy="290" r="2.5" />
           <circle cx="300" cy="330" r="3.5" />
           <circle cx="320" cy="300" r="2" />
         </g>
       </g>
-      <circle className="ph-glass" cx="200" cy="200" r="176" />
+      <circle className="ph-glass" cx="200" cy="200" r="176" fill="none" stroke="white" strokeOpacity={0.3} strokeWidth={3} />
       <circle className="ph-ring" cx="200" cy="200" r="186" />
       {BOLTS.map((bolt, index) => (
         <circle key={index} className="ph-bolt" cx={bolt.x} cy={bolt.y} r="4.5" />
@@ -336,12 +336,12 @@ function Encounter(): JSX.Element {
         onOpenChange={setAlarm}
         footer={
           <>
-            <span data-chapter-control="surface">
+            <span className="grid" data-chapter-control="surface">
               <Button variant="outline" tone="secondary" onClick={() => choose("surface")}>
                 {ENCOUNTER.hope}
               </Button>
             </span>
-            <span data-chapter-control="axes">
+            <span className="grid" data-chapter-control="axes">
               <Button onClick={() => choose("axes")}>{ORDERS.axes}</Button>
             </span>
           </>

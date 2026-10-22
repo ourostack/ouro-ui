@@ -7,6 +7,7 @@ import { GITHUB } from "../../paths";
 import { Container } from "../layout";
 import type { Art } from "../stage/art";
 import { CHAPTER_ONE, CODE_SHEETS, CREW, type CrewLine, type SheetLine } from "./copy";
+import frameStyles from "./frame.css?inline";
 
 /**
  * What every chapter shares: the frame each composition sits in (window chrome, its Code sheet),
@@ -18,18 +19,23 @@ import { CHAPTER_ONE, CODE_SHEETS, CREW, type CrewLine, type SheetLine } from ".
 /** Where the chapters' own source lives, for each Code sheet. */
 export const CHAPTER_SOURCE = `${GITHUB}/tree/main/site/src/voyage/chapters`;
 
+/** Puts a stylesheet in the page once, however often what needs it mounts. */
+function addStyles(id: string, styles: string): void {
+  if (document.getElementById(id)) return;
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = styles;
+  document.head.append(style);
+}
+
 /**
- * Hydrated: the chapter's own styles go into the page (once, however often it mounts), and the
- * chapter marks itself ready (the end-to-end specs wait for it before they press).
+ * Hydrated: the frame's styles and the chapter's own go into the page (once each), and the chapter
+ * marks itself ready (the end-to-end specs wait for it before they press).
  */
 export function useChapterReady(root: RefObject<HTMLElement | null>, id: string, styles: string): void {
   useEffect(() => {
-    if (!document.getElementById(id)) {
-      const style = document.createElement("style");
-      style.id = id;
-      style.textContent = styles;
-      document.head.append(style);
-    }
+    addStyles("site-chapter-frame-styles", frameStyles);
+    addStyles(id, styles);
     root.current?.setAttribute("data-chapter-ready", "");
   }, [root, id, styles]);
 }

@@ -84,7 +84,7 @@ export default function ChapterOne(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_ONE.intro}</p>
             <Expedition />
           </header>
-          <div className="grid gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
             <Composition id="shipyard" title={SHIPYARD.title} intro={SHIPYARD.intro} file={SHIPYARD.file} sheet={CODE_SHEETS.shipyard}>
               <Shipyard />
             </Composition>

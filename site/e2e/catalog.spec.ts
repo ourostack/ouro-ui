@@ -284,9 +284,11 @@ const rechartsIn = (modules: readonly string[]) => modules.some((module) => modu
 
 /**
  * The chapters, each its own island. Chapter II draws an HX Chart, so its closure, and only its, holds
- * Recharts; the budget counts what the island adds without that shared chunk (site-design.md, Budgets:
- * "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's Recharts chunk only in
- * Chapter II's closure, never in the initial closure (asserted by module name)").
+ * Recharts; the budget counts what the island adds without that chunk and without shared HX chunks
+ * (site-design.md, Budgets: "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's
+ * Recharts chunk only in Chapter II's closure, never in the initial closure (asserted by module
+ * name)"). A shared HX chunk holds only registry/ modules and is imported from outside the island
+ * too (another chapter, a docs page): the island pays for it only if it is first to load it.
  */
 const ISLANDS = [
   { chapter: "Chapter I", entry: "src/voyage/chapters/chapter-one.tsx", source: "site/src/voyage/chapters/chapter-one", recharts: false },
@@ -308,6 +310,10 @@ for (const island of ISLANDS) {
       for (const dependency of item.imports ?? []) visit(dependency);
     };
     visit(island.entry);
+    const keys = new Set(Object.keys(manifest).filter((key) => closure.has(manifest[key]!.file)));
+    const importedFromOutside = (file: string) =>
+      Object.entries(manifest).some(([key, item]) => !keys.has(key) && (item.imports ?? []).some((dependency) => manifest[dependency]?.file === file));
+    const hxOnly = (file: string) => (moduleMap[file] ?? []).length > 0 && moduleMap[file]!.every((module) => module.startsWith("registry/"));
     const own = manifest[island.entry]!.file;
     expect(voyage.has(own), "the chapter's own chunk is not in the voyage's first load").toBe(false);
     expect([...voyage].flatMap((file) => moduleMap[file] ?? []).filter((module) => module.startsWith(island.source))).toEqual([]);
@@ -315,10 +321,13 @@ for (const island of ISLANDS) {
     const added = [...closure].filter((file) => !voyage.has(file));
     const withRecharts = added.filter((file) => rechartsIn(moduleMap[file] ?? []));
     expect(withRecharts.length > 0, `${island.chapter} ${island.recharts ? "loads" : "never loads"} Recharts`).toBe(island.recharts);
-    const counted = added.filter((file) => !withRecharts.includes(file));
-    const gzip = counted.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
-    const shared = withRecharts.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
-    test.info().annotations.push({ type: island.entry, description: `${gzip} bytes gzip over ${counted.length} files${island.recharts ? `, plus ${shared} bytes in the Recharts chunk` : ""}` });
-    expect(gzip, `${island.chapter}'s island, gzip bytes`).toBeLessThanOrEqual(ISLAND_CEILING);
+    const sharedHx = added.filter((file) => !withRecharts.includes(file) && hxOnly(file) && importedFromOutside(file));
+    const counted = added.filter((file) => !withRecharts.includes(file) && !sharedHx.includes(file));
+    const size = (file: string) => gzipSync(readFileSync(resolve("site/dist", file))).byteLength;
+    const sum = (files: readonly string[]) => files.reduce((total, file) => total + size(file), 0);
+    const gzip = sum(counted);
+    const breakdown = counted.map((file) => `${file} ${size(file)}`).join(", ");
+    test.info().annotations.push({ type: island.entry, description: `${gzip} bytes gzip over ${counted.length} files (${breakdown}), plus ${sum(sharedHx)} in shared HX chunks${island.recharts ? ` and ${sum(withRecharts)} in the Recharts chunk` : ""}` });
+    expect(gzip, `${island.chapter}'s island, gzip bytes: ${breakdown}`).toBeLessThanOrEqual(ISLAND_CEILING);
   });
 }

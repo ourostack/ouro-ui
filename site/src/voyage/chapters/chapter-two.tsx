@@ -100,7 +100,7 @@ export default function ChapterTwo(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_TWO.intro}</p>
             <Planning />
           </header>
-          <div className="grid gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
             <Composition id="chart-room" title={CHART_ROOM.title} intro={CHART_ROOM.intro} file={CHART_ROOM.file} sheet={CODE_SHEETS_TWO.chartRoom}>
               <ChartRoom />
             </Composition>
@@ -179,10 +179,10 @@ const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] })
             <g key={id} className="ch-port" data-port={id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
               <g className="ch-mark">
                 <circle r={9} strokeWidth={1.4} />
-                <text className="ch-port-number" y={3.6} textAnchor="middle" fill="currentColor" stroke="none">
+                <text className="ch-port-number" y={3.6} textAnchor="middle" fontSize={10} fontWeight={600} stroke="none">
                   {index + 1}
                 </text>
-                <text className="ch-port-name" x={label.dx} y={label.dy} textAnchor={label.anchor} fill="currentColor" stroke="none">
+                <text className="ch-port-name" x={label.dx} y={label.dy} textAnchor={label.anchor} fontSize={11} fontWeight={500} paintOrder="stroke" strokeWidth={3}>
                   {portNamed(id).short}
                 </text>
               </g>

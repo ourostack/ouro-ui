@@ -74,7 +74,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill=
        seen through the Nautilus's glass. A spindle body with fins at its tail, the head with one
        great staring eye and a parrot's beak, eight arms twice as long as the body, twisting away,
        and one laid against the glass with its suckers turned to us. Drawn by
-       site/scripts/drawings/squid.mjs; its colours come from the theme (chapter-three.css), and
+       site/scripts/drawings/squid.mjs; its colours come from the theme (chapters.css), but for the
+       pupil, the glint and the beak, which keep their own; and
        the page moves its parts as the fight goes (sq-glass-arm lets go, the whole squid swims off
        behind its ink). -->
   <g class="sq-ink" stroke="none">
@@ -92,9 +93,9 @@ ${arms.map((chain, index) => `      <path class="sq-arm" data-arm="${index + 1}"
       <path class="sq-marks" d="M300 120 C318 96 346 62 380 32 M314 140 C334 114 364 80 398 50" stroke-width="1" stroke-dasharray="2 5" />
       <ellipse class="sq-head" cx="244" cy="190" rx="30" ry="24" transform="rotate(-38 244 190)" />
       <circle class="sq-eye" cx="252" cy="178" r="15" />
-      <circle class="sq-pupil" cx="248" cy="181" r="6.5" stroke="none" />
-      <circle class="sq-glint" cx="245" cy="177" r="2.2" stroke="none" />
-      <path class="sq-beak" d="M218 204 L232 212 L216 218 Z" stroke-width="1.4" />
+      <circle class="sq-pupil" cx="248" cy="181" r="6.5" stroke="none" fill="#141a22" />
+      <circle class="sq-glint" cx="245" cy="177" r="2.2" stroke="none" fill="white" />
+      <path class="sq-beak" d="M218 204 L232 212 L216 218 Z" stroke-width="1.4" fill="#3b2a22" />
     </g>
     <g class="sq-glass-arm" stroke-width="1.5">
       <path class="sq-arm" d="${band(glass, 20, 72)}" />

@@ -72,27 +72,13 @@
   margin-block-end: 1.5rem;
   padding: 0.5rem max(1rem, calc(50% - 600px));
   border-block: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  background: color-mix(in oklab, var(--background) 94%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .site-phone-marker {
-    background: var(--background);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+  background: var(--background);
 }
 .site-marker-dot {
   width: 0.5rem;
   height: 0.5rem;
   border: 1.5px solid var(--muted-foreground);
   border-radius: 999px;
-  transition: background-color var(--ouro-duration-slow) ease, border-color var(--ouro-duration-slow) ease;
-}
-.site-marker-dot[data-done] {
-  border-color: var(--primary);
-  background: var(--primary);
 }
 
 /*
@@ -114,16 +100,6 @@
 .site-chart .ch-land {
   fill: color-mix(in oklab, var(--chart-3) 18%, var(--card));
 }
-.site-chart .ch-grid,
-.site-chart .ch-labels {
-  opacity: 0.45;
-}
-.site-chart .ch-line {
-  opacity: 0.55;
-}
-.site-chart .ch-rose {
-  opacity: 0.7;
-}
 .site-chart .ch-route {
   stroke: var(--primary);
 }
@@ -131,20 +107,12 @@
   fill: var(--card);
   stroke: var(--primary);
 }
-.site-chart .ch-port-number {
+.site-chart .ch-port text {
   font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
   fill: var(--foreground);
 }
 .site-chart .ch-port-name {
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 500;
-  fill: var(--foreground);
-  paint-order: stroke;
   stroke: var(--card);
-  stroke-width: 3px;
 }
 /* On a phone the chart's small print would be specks: the ports and the route speak for themselves. */
 @media (max-width: 40rem) {
@@ -167,9 +135,6 @@
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
-}
-.site-leagues[data-shortest] {
-  color: var(--primary);
 }
 .site-compass {
   display: block;
@@ -209,22 +174,8 @@
 .site-porthole .ph-wave {
   fill: var(--ph-sea);
 }
-.site-porthole[data-surfaced] .ph-sky {
-  opacity: 1;
-}
 .site-porthole .ph-beam {
   opacity: 0;
-}
-.site-porthole[data-lights] .ph-beam {
-  opacity: 1;
-}
-.site-porthole .ph-beam-core {
-  stop-color: var(--chart-3);
-  stop-opacity: 0.6;
-}
-.site-porthole .ph-beam-edge {
-  stop-color: var(--chart-3);
-  stop-opacity: 0;
 }
 .site-porthole .ph-squid {
   color: var(--sq-line);
@@ -246,29 +197,8 @@
 .site-porthole .sq-eye {
   fill: color-mix(in oklab, var(--success) 70%, white);
 }
-.site-porthole .sq-pupil {
-  fill: oklch(0.16 0.02 250);
-}
-.site-porthole .sq-glint {
-  fill: white;
-}
-.site-porthole .sq-beak {
-  fill: oklch(0.3 0.03 40);
-}
 .site-porthole .sq-ink {
-  fill: oklch(0.16 0.02 250);
   opacity: 0;
-}
-.site-porthole[data-lights] .ph-squid {
-  filter: brightness(1.2);
-}
-.site-porthole .ph-bubbles {
-  fill: color-mix(in oklab, white 45%, transparent);
-}
-.site-porthole .ph-glass {
-  fill: none;
-  stroke: color-mix(in oklab, white 30%, transparent);
-  stroke-width: 3;
 }
 .site-porthole .ph-ring {
   fill: none;
@@ -305,26 +235,6 @@
 }
 .site-organ .or-note {
   opacity: 0;
-}
-.site-organ[data-played] .or-note {
-  opacity: 1;
-}
-.site-organ[data-played] .or-fill {
-  fill: color-mix(in oklab, var(--chart-3) 34%, var(--card));
-}
-/* The log's stamp: inked once the organ plays. */
-.site-stamp {
-  justify-self: start;
-  padding: 0.375rem 0.875rem;
-  border: 3px double var(--primary);
-  border-radius: calc(var(--radius) * 0.6);
-  color: var(--primary);
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  rotate: -3deg;
 }
 
 /* "Built for agents too": what the agent hears back, quoted as the tools print it, wrapped. */

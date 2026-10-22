@@ -21,8 +21,8 @@ const catalogueCrew = (page: Page) => catalogue(page).locator("[data-chapter-cre
 const total = (page: Page) => room(page).locator(".site-leagues");
 const dayField = (page: Page) => page.getByRole("textbox", { name: CHART_ROOM.departure });
 const classify = (page: Page) => page.getByRole("combobox", { name: CATALOGUE.classify });
-/** The catalogue's rows as the table shows them, top to bottom: each row's first cell. */
-const names = (page: Page) => catalogue(page).locator("tbody tr th").allTextContents();
+/** The catalogue's rows as the table shows them, top to bottom: each row's first cell, without its link's "opens in a new tab". */
+const names = async (page: Page) => (await catalogue(page).locator("tbody tr th").allInnerTexts()).map((name) => name.replace(/\s*\(opens in a new tab\)$/, "").trim());
 
 /** Moves a port to the bottom of the plan from its handle's menu. */
 async function toBottom(page: Page, name: string): Promise<void> {
@@ -231,7 +231,10 @@ test("on a phone, the chart room and the catalogue work by touch, and nothing ov
   await expect(marker.getByRole("img")).toHaveAccessibleName("0 of 3 done");
   // Conseil's shortest way, by touch: each handle's menu is a sheet on a phone.
   for (const name of ["Crespo Island", "Atlantis", "Vigo Bay", "The Red Sea tunnel", "The South Pole"]) {
-    await page.getByRole("button", { name: new RegExp(`^Reorder ${name}`) }).tap();
+    const handle = page.getByRole("button", { name: new RegExp(`^Reorder ${name}`) });
+    // Desktop WebKit with touch on raises no click from a tap on the handle, which takes the
+    // press for a drag; Chromium's phone profile taps it, as a phone does.
+    await (browserName === "webkit" ? handle.click() : handle.tap());
     await page.getByRole("menu", { name: `Reorder ${name}` }).getByRole("menuitem", { name: "Move to bottom" }).tap();
   }
   await expect(chart(page)).toHaveAttribute("data-route", "crespo atlantis vigo tunnel pole");
@@ -242,7 +245,9 @@ test("on a phone, the chart room and the catalogue work by touch, and nothing ov
   await catalogue(page).scrollIntoViewIfNeeded();
   await expect.poll(async () => (await marker.boundingBox())!.y).toBeLessThan(80);
   await classify(page).tap();
-  await page.getByRole("option", { name: "Crustacean", exact: true }).tap();
+  // The same in desktop WebKit: its emulated tap on an option closes the list before it picks.
+  const option = page.getByRole("option", { name: "Crustacean", exact: true });
+  await (browserName === "webkit" ? option.click() : option.tap());
   await expect(catalogueCrew(page)).toContainText(CLASSING.right(FINDS[0].name, "Crustacean").text);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);

@@ -1,0 +1,21 @@
+/*
+ * What every chapter's frame needs once it answers, put in the page by useChapterReady with the
+ * chapter's own styles (so it costs the first paint nothing): the Code sheet's lines wrap at the
+ * panel's edge rather than run off it.
+ */
+/* The phone marker's dots fill as the chapter's steps are done (no step is done before it answers). */
+.site-marker-dot {
+  transition:
+    background-color var(--ouro-duration-slow) ease,
+    border-color var(--ouro-duration-slow) ease;
+}
+.site-marker-dot[data-done] {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.site-code-line {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

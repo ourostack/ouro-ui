@@ -36,3 +36,8 @@
     opacity: 0;
   }
 }
+
+/* Only once you plan: the total turns the primary colour when the route is the shortest. */
+.site-leagues[data-shortest] {
+  color: var(--primary);
+}
