@@ -859,6 +859,8 @@ describe("MenuBar", () => {
     expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");
     expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
     expect(Math.round(element.getBoundingClientRect().width)).toBe(innerWidth);
+    // The bar decides how its menus hold the page: a menu in it passes Base UI no modal, which would warn.
+    expect(warnings().filter((message) => String(message).includes("modal"))).toEqual([]);
   });
 });
 
