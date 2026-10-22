@@ -110,6 +110,7 @@ function TrayRow({ item, words, silent, repeat, repeatFor, finalFocus }: TrayRow
     if (!done) stopAlert(item.timerId);
   }, [done, item.timerId]);
   // The alert stops once no view of the timer is left: the row goes with the tray, or leaves timers.
+  // Stryker disable next-line ArrayDeclaration: rows are keyed by timerId, so a row's timerId never changes while it is mounted.
   useEffect(() => registerView(item.timerId), [item.timerId]);
   if (timer.status === "idle") return null;
   // The row goes with the timer, so focus moves on first: to the next timer, the previous one, or out.

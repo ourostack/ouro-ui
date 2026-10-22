@@ -162,6 +162,7 @@ export function Timer(props: TimerProps): JSX.Element {
     ...rest
   } = props;
   const size = sizeProp === "lg" ? "lg" : "md";
+  // Stryker disable next-line StringLiteral: any alert but "repeat" sounds once, so the fallback's name changes nothing.
   const alert = timerAlerts.includes(alertProp as TimerAlert) ? (alertProp as TimerAlert) : "once";
   const repeatFor = repeatLength(repeatForProp);
   const words = wordsFor(labels);
