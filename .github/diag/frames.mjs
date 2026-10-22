@@ -7,9 +7,11 @@ const W = " .site-window { will-change: transform; }";
 const S = ":is(#themes, #chapter-one, #chapter-two, #chapter-three, #agents)";
 const VARIANTS = {
   layer: W,
-  noart: W + " main svg { visibility: hidden !important; }",
-  noshadowall: W + " *, *::before, *::after { box-shadow: none !important; filter: none !important; backdrop-filter: none !important; }",
-  notext: W + " main * { color: transparent !important; text-shadow: none !important; }",
+  winnoshadow: W + " .site-window { box-shadow: none !important; }",
+  stage: W + " .stage-porthole::before { filter: none !important; } [class*=stage-], [class*=stage-]::before { box-shadow: none !important; }",
+  specimens: W + " .site-specimen, .site-specimen *, .site-specimen-switch::after, .site-specimen-switch::before { box-shadow: none !important; }",
+  ouro: W + " [data-ouro], [data-ouro] *, [data-ouro]::before, [data-ouro]::after { box-shadow: none !important; }",
+  heroother: W + " .site-install, .site-hero *, .site-hero *::before { box-shadow: none !important; filter: none !important; }",
 };
 const frames = (page) => page.evaluate(() => new Promise((r) => { const t = []; let last = performance.now(); const tick = (now) => { t.push(now - last); last = now; if (t.length < 40) requestAnimationFrame(tick); else { t.sort((a, b) => a - b); r(`${t[20].toFixed(0)}/${t[36].toFixed(0)}`); } }; requestAnimationFrame(tick); }));
 const record = (page) => page.evaluate(() => { const w = window; w.__long = []; let last = performance.now(); const tick = (now) => { if (now - last > 40) w.__long.push(Math.round(now - last)); last = now; w.__raf = requestAnimationFrame(tick); }; w.__raf = requestAnimationFrame(tick); });
