@@ -100,6 +100,40 @@ describe("AttentionCard", () => {
     expect(reply.getBoundingClientRect().top).toBeGreaterThanOrEqual(message.getBoundingClientRect().bottom);
   });
 
+  it("sets the time quieter than the title, and opens from a plain, left-aligned button that underlines on hover", async () => {
+    const { card } = await render(
+      <AttentionCard {...base} time="9:41" onOpen={() => {}}>
+        Can you review?
+      </AttentionCard>,
+    );
+    const header = card.firstElementChild!;
+    const [, title, time] = [...header.children] as HTMLElement[];
+    expect(time!.textContent).toBe("9:41");
+    expect(getComputedStyle(time!).color).not.toBe(getComputedStyle(title!).color);
+    const open = card.querySelector<HTMLButtonElement>('[data-ouro-part="open"]')!;
+    const style = getComputedStyle(open);
+    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(style.borderTopWidth).toBe("0px");
+    expect(style.paddingTop).toBe("0px");
+    expect(style.textAlign).toBe("start");
+    expect(style.cursor).toBe("pointer");
+    expect(style.touchAction).toBe("manipulation");
+    expect(style.width).toBe(`${card.querySelector("[data-ouro-attention-message]")!.parentElement!.getBoundingClientRect().width}px`);
+    expect(style.textDecorationLine).toBe("none");
+    await userEvent.hover(open);
+    expect(getComputedStyle(open).textDecorationLine).toBe("underline");
+  });
+
+  it.each([undefined, null])("leaves out the time and actions when they are %s", async (missing) => {
+    const { card } = await render(
+      <AttentionCard {...base} time={missing} actions={missing}>
+        Hi
+      </AttentionCard>,
+    );
+    expect(card.firstElementChild!.children).toHaveLength(2);
+    expect(card.children).toHaveLength(2);
+  });
+
   it("leaves out the time when there is none", async () => {
     const { card } = await render(
       <AttentionCard {...base} time={null}>
@@ -146,6 +180,16 @@ describe("AttentionCard", () => {
 });
 
 describe("AttentionCard development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<AttentionCard {...base}>Hi</AttentionCard>);
+    await render(
+      <AttentionCard {...base} tone="warning" time="9:41" onOpen={() => {}}>
+        Hi
+      </AttentionCard>,
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a missing reason", { reason: undefined }, "reason is missing, so the card does not say why it needs the person"],
     ["a missing title", { title: undefined }, "title is missing, so the card does not say where it happened"],

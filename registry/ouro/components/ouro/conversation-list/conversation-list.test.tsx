@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { ConversationList, type ConversationListItem, type ConversationListProps } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -151,11 +152,56 @@ describe("ConversationList", () => {
     expect(rows[1]!.getBoundingClientRect().height).toBeLessThan(tall);
   });
 
+  it("pads a compact row less than a comfortable one", async () => {
+    const { rows, rerender } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
+    expect(getComputedStyle(rows[0]!).paddingTop).toBe("8px");
+    await rerender(<ConversationList label="Conversations" items={items} density="compact" onSelect={() => {}} />);
+    expect(getComputedStyle(rows[0]!).paddingTop).toBe("6px");
+  });
+
+  it("is a plain row that shows a focus ring from the keyboard and does not select its text", async () => {
+    const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
+    const style = getComputedStyle(rows[0]!);
+    expect(style.userSelect).toBe("none");
+    expect(style.touchAction).toBe("manipulation");
+    expect(style.outlineStyle).toBe("none");
+    await pressTab();
+    expect(document.activeElement).toBe(rows[0]);
+    expect(getComputedStyle(rows[0]!).outlineStyle).toBe("solid");
+    expect(getComputedStyle(rows[0]!).outlineWidth).toBe("2px");
+  });
+
+  it("keeps the page from scrolling on the keys that move focus, and only on those", async () => {
+    const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
+    const press = (key: string) => {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      rows[0]!.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(press("ArrowDown")).toBe(true);
+    expect(press("a")).toBe(false);
+  });
+
+  it("shows the subtitle under the title, quieter, and nothing for a row with only a title", async () => {
+    const { rows } = await render(
+      <ConversationList label="Conversations" items={[items[0]!, { id: "new", title: "New topic", time: undefined, subtitle: undefined, preview: undefined }]} onSelect={() => {}} />,
+    );
+    const column = (row: HTMLElement) => row.querySelector<HTMLElement>(".flex-col")!;
+    const [titleLine, subtitle] = [...column(rows[0]!).children] as HTMLElement[];
+    expect(subtitle!.tagName).toBe("SPAN");
+    expect(subtitle!.textContent).toBe("Weekend hikes");
+    expect(getComputedStyle(subtitle!).color).not.toBe(getComputedStyle(titleLine!.firstElementChild!).color);
+    expect(column(rows[1]!).children).toHaveLength(1);
+    expect(column(rows[1]!).firstElementChild!.children).toHaveLength(1);
+  });
+
   it("leaves out the time and preview when a row has none, and shows badges after the title", async () => {
     const { rows } = await render(
       <ConversationList label="Conversations" items={[{ id: "new", title: "New topic", time: null, preview: null, badges: <Badge>Muted</Badge> }]} onSelect={() => {}} />,
     );
     expect(rows[0]!.textContent).toBe("NTNew topicMuted");
+    // The title and its badge, with no empty time after them.
+    expect(rows[0]!.querySelector(".flex-col")!.firstElementChild!.children).toHaveLength(2);
     expect(rows[0]!.querySelector("[data-ouro-conversation-preview]")).toBeNull();
   });
 
@@ -209,6 +255,12 @@ describe("ConversationList", () => {
 });
 
 describe("ConversationList development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
+    await render(<ConversationList label="Conversations" items={items} density="compact" selectedId="ada" onSelect={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["an unknown density", { density: "cozy" }, 'density="cozy" is not a density; use "comfortable" or "compact"', '<ConversationList density="compact">'],
     ["value", { value: "ada" }, "value is not a prop", "<ConversationList selectedId={openId}>"],
