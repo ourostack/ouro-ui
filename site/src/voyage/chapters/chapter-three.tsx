@@ -285,6 +285,8 @@ function Encounter(): JSX.Element {
           </span>
           <span data-chapter-control="orders">
             <Menu
+              // Not holding the page spares WebKit a layout and repaint of the whole voyage on each open and close.
+              modal={false}
               trigger={
                 <Button variant="outline" tone="secondary">
                   {ENCOUNTER.orders}
