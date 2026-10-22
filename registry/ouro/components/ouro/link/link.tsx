@@ -32,7 +32,11 @@ export interface LinkOwnProps {
   external?: boolean | undefined;
   /**
    * Text color from the theme, named after its token. `secondary` is the page's foreground,
-   * for links in navigation and lists; the underline still marks it as a link.
+   * for links in navigation and lists; the underline still marks it as a link. `primary`
+   * reads `--primary`, not a theme's `--ouro-action`: a link is text in a sentence and the
+   * action colour is a fill. For a link that looks like the page's main action, use
+   * `<Button href>`.
+   * @claim "`primary` reads `--primary`, not a theme's" test/action-token.test.tsx verify:testExists(test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary)
    * @default "primary"
    */
   tone?:

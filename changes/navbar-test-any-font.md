@@ -1,1 +1,0 @@
-- Fixed: Navbar's overflow tests [use labels too long to fit at 768px in any font](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/components/ouro/navbar/navbar.test.tsx "verify:fileLine(registry/ouro/components/ouro/navbar/navbar.test.tsx, /Long enough not to fit at 768px in any app's font/)"), so they pass in an app whose theme sets a narrower font.
