@@ -61,6 +61,40 @@ async function settled(element: Element) {
 }
 
 describe("Tabs", () => {
+  it("draws each tab's edge under forced colours, where its fill and the underline drop away", async () => {
+    try {
+      const { tabs } = await render(<Tabs label="Recipe" items={items} />);
+      const edge = (tab: HTMLElement) => ["top", "right", "bottom", "left"].every((side) => parseFloat(getComputedStyle(tab).getPropertyValue(`border-${side}-width`)) > 0 && getComputedStyle(tab).getPropertyValue(`border-${side}-style`) === "solid");
+      expect(tabs.some(edge)).toBe(false);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      expect(tabs.every(edge)).toBe(true);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("shows which tab is selected under forced colours: Highlight behind it and HighlightText on it", async () => {
+    try {
+      const { tabs } = await render(<Tabs label="Recipe" items={items} />);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      const look = (tab: HTMLElement) => `${getComputedStyle(tab).backgroundColor} ${getComputedStyle(tab).color}`;
+      const [selected, ...others] = tabs;
+      expect(selected!.getAttribute("aria-selected")).toBe("true");
+      // The system colours a contrast theme gives a selection, set on a probe for comparison.
+      const probe = document.body.appendChild(document.createElement("span"));
+      probe.style.cssText = "background-color: Highlight; color: HighlightText";
+      const highlight = look(probe);
+      probe.remove();
+      // The tab's colours change with a transition, so read them once it has run.
+      await expect.poll(() => look(selected!)).toBe(highlight);
+      for (const tab of others) expect(look(tab)).not.toBe(look(selected!));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders a labelled tab list with the first tab selected and its panel shown", async () => {
     const { root, tabs } = await render(<Tabs label="Recipe" items={items} />);
     expect(root.getAttribute("data-ouro")).toBe("tabs");
