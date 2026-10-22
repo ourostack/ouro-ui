@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { performance } from "node:perf_hooks";
 import { test } from "node:test";
 import { setImmediate } from "node:timers";
 import vm from "node:vm";
@@ -201,7 +202,9 @@ for (const unreachableOtherFrame of [false, true]) {
 
 for (const missing of ["touchEnd", "touchMove"]) {
   test(`touchStep rejects a missing ${missing} at its provider deadline with frozen page timers`, async (t) => {
-    t.mock.timers.enable({ apis: ["setTimeout"] });
+    // The kit counts its limit on performance.now(); keep that on the mocked clock too.
+    t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+    t.mock.method(performance, "now", () => Date.now());
     const h = frozenFrame();
     await touchStep(h.ctx, { type: "touchStart", x: 100, y: 100 });
     await touchStep(h.ctx, { type: "touchMove", x: 150, y: 100 });

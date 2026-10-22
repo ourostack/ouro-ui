@@ -60,6 +60,21 @@ afterEach(async () => {
 });
 
 describe("CopyButton", () => {
+  // The page's timers stand still until a test moves them on (`wait`): announce()'s delay and the
+  // two-second confirmation. On a loaded runner more than two seconds can pass between two steps,
+  // and the confirmation would end in between: a click finds the button by its accessible name,
+  // which the confirmation sets, so a click on "Copied" waited for a button that said "Copy" again.
+  beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+  afterEach(() => vi.useRealTimers());
+  /** Moves the page's timers on by `ms`. */
+  const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+  /** Waits on real frames until `read()` is `expected`: expect.poll moves the page's timers on at each retry. */
+  async function until<T>(read: () => T, expected: T) {
+    const deadline = performance.now() + 5000;
+    while (read() !== expected && performance.now() < deadline) await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(read()).toBe(expected);
+  }
+
   it("is a small outline button that says Copy beside a copy icon, marked as the copy-button control", async () => {
     const { wrapper, button } = await render(<CopyButton value="sk-123" />);
     expect(wrapper.getAttribute("data-status")).toBe("idle");
@@ -78,13 +93,17 @@ describe("CopyButton", () => {
     try {
       const { wrapper, button } = await render(<CopyButton value="sk-123" label="Copy key" copiedLabel="Key copied" onCopy={onCopy} />);
       await userEvent.click(button);
-      await expect.poll(() => button.textContent).toBe("Key copied");
+      await until(() => button.textContent, "Key copied");
       expect(clipboard).toEqual(["sk-123"]);
       expect(onCopy).toHaveBeenCalledExactlyOnceWith("sk-123");
       expect(wrapper.getAttribute("data-status")).toBe("copied");
       expect(document.activeElement).toBe(button);
-      await expect.poll(() => announced.count("Key copied")).toBe(1);
-      await expect.poll(() => button.textContent).toBe("Copy key");
+      await wait(100);
+      expect(announced.count("Key copied")).toBe(1);
+      await wait(1899);
+      expect(button.textContent).toBe("Key copied");
+      await wait(1);
+      expect(button.textContent).toBe("Copy key");
       expect(wrapper.getAttribute("data-status")).toBe("idle");
       expect(announced.count("Key copied")).toBe(1);
     } finally {
@@ -97,10 +116,19 @@ describe("CopyButton", () => {
     try {
       const { button } = await render(<CopyButton value="a" />);
       await userEvent.click(button);
-      await expect.poll(() => announced.count("Copied")).toBe(1);
+      await until(() => button.textContent, "Copied");
+      await wait(100);
+      expect(announced.count("Copied")).toBe(1);
       await userEvent.click(button);
-      await expect.poll(() => announced.count("Copied")).toBe(2);
+      await until(() => clipboard.length, 2);
+      await wait(100);
+      expect(announced.count("Copied")).toBe(2);
       expect(clipboard).toEqual(["a", "a"]);
+      // The second click, 100ms in, starts the two seconds again: the first click's would end here.
+      await wait(1800);
+      expect(button.textContent).toBe("Copied");
+      await wait(100);
+      expect(button.textContent).toBe("Copy");
     } finally {
       announced.stop();
     }
@@ -113,7 +141,7 @@ describe("CopyButton", () => {
     const rect = button.getBoundingClientRect();
     expect(Math.round(rect.width)).toBe(Math.round(rect.height));
     await userEvent.click(button);
-    await expect.poll(() => button.getAttribute("aria-label")).toBe("Copied");
+    await until(() => button.getAttribute("aria-label"), "Copied");
   });
 
   it("copies through a selection when the page has no Clipboard API, and keeps focus on the button", async () => {
@@ -124,7 +152,7 @@ describe("CopyButton", () => {
     });
     const { button } = await render(<CopyButton value="npm i" />);
     await userEvent.click(button);
-    await expect.poll(() => button.textContent).toBe("Copied");
+    await until(() => button.textContent, "Copied");
     expect(exec).toHaveBeenCalledOnce();
     expect(clipboard[0]!.startsWith("copy:")).toBe(true);
     expect(document.activeElement).toBe(button);
@@ -136,7 +164,7 @@ describe("CopyButton", () => {
     vi.spyOn(document, "execCommand").mockReturnValue(true);
     const { button } = await render(<CopyButton value="x" />);
     await userEvent.click(button);
-    await expect.poll(() => button.textContent).toBe("Copied");
+    await until(() => button.textContent, "Copied");
   });
 
   it.each([
@@ -155,9 +183,10 @@ describe("CopyButton", () => {
     try {
       const { wrapper, button } = await render(<CopyButton value="x" failedLabel="Copy blocked" onCopy={onCopy} />);
       await userEvent.click(button);
-      await expect.poll(() => button.textContent).toBe("Copy blocked");
+      await until(() => button.textContent, "Copy blocked");
       expect(wrapper.getAttribute("data-status")).toBe("failed");
-      await expect.poll(() => announced.count("Copy blocked")).toBe(1);
+      await wait(100);
+      expect(announced.count("Copy blocked")).toBe(1);
       expect(onCopy).not.toHaveBeenCalled();
     } finally {
       announced.stop();
@@ -187,7 +216,7 @@ describe("CopyButton", () => {
     const clear = vi.spyOn(globalThis, "clearTimeout");
     const { root, button } = await render(<CopyButton value="x" />);
     await userEvent.click(button);
-    await expect.poll(() => button.textContent).toBe("Copied");
+    await until(() => button.textContent, "Copied");
     const confirmation = schedule.mock.calls.findIndex(([, delay]) => delay === 2000);
     expect(confirmation).toBeGreaterThanOrEqual(0);
     const timer = schedule.mock.results[confirmation]!.value as ReturnType<typeof setTimeout>;
@@ -203,19 +232,19 @@ describe("CopyButton", () => {
       get: () => ({ writeText: (text: string) => new Promise<void>((resolve) => (finish = () => (clipboard.push(text), resolve()))) }),
     });
     // Let an announcement an earlier test started land before watching.
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+    await wait(300);
     const announced = watchAnnouncements();
     const onCopy = vi.fn();
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       const { root, button } = await render(<CopyButton value="sk-123" onCopy={onCopy} />);
       await userEvent.click(button);
-      await expect.poll(() => typeof finish).toBe("function");
+      await until(() => typeof finish, "function");
       await act(async () => root.unmount());
       const schedule = vi.spyOn(globalThis, "setTimeout");
       await act(async () => finish());
       // Longer than announce() waits before it speaks.
-      await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+      await wait(300);
       expect(clipboard).toEqual(["sk-123"]);
       // The text is on the clipboard, so the app still hears that it was copied.
       expect(onCopy).toHaveBeenCalledExactlyOnceWith("sk-123");

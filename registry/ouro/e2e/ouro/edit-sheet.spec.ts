@@ -1,15 +1,19 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../ouro-fixtures";
-import { openStory } from "./story";
+import { holdClock, openStory } from "./story";
 
 test("saves with loading, then closes and returns focus to the trigger", async ({ page }) => {
+  await page.clock.install();
   await openStory(page, "overlays-editsheet--playground");
   const trigger = page.getByRole("button", { name: "Edit" });
   await trigger.click();
   const sheet = page.getByRole("dialog", { name: "Edit recipe" });
   await sheet.getByRole("textbox", { name: "Name" }).fill("Green shakshuka");
+  // The story's save takes 600ms of the page's clock, which stands still while the spec reads the busy state.
+  await holdClock(page);
   await sheet.getByRole("button", { name: "Save" }).click();
   await expect(sheet.getByRole("button", { name: "Save" })).toHaveAttribute("aria-busy", "true");
+  await page.clock.resume();
   await expect(sheet).toBeHidden();
   await expect(trigger).toBeFocused();
 });
@@ -49,6 +53,7 @@ test.describe("on a phone with the keyboard up", () => {
    * scroll on it. Checks the field and Save sit above the keyboard.
    */
   async function editWithKeyboardUp(page: Page) {
+    await page.clock.install();
     await openStory(page, "overlays-editsheet--playground");
     await page.getByRole("button", { name: "Edit" }).tap();
     const sheet = page.getByRole("dialog", { name: "Edit recipe" });
@@ -84,17 +89,21 @@ test.describe("on a phone with the keyboard up", () => {
 
   test("keeps the field and Save above the keyboard, and saves from a tap on Save", async ({ page }) => {
     const { sheet, serves, save } = await editWithKeyboardUp(page);
+    await holdClock(page);
     await save.tap();
     await expect(save).toHaveAttribute("aria-busy", "true");
     // The field keeps focus, so the keyboard (and the inset) stay up until the save lands.
     await expect(serves).toBeFocused();
+    await page.clock.resume();
     await expect(sheet).toBeHidden();
   });
 
   test("saves from Enter in the field", async ({ page }) => {
     const { sheet, serves, save } = await editWithKeyboardUp(page);
+    await holdClock(page);
     await serves.press("Enter");
     await expect(save).toHaveAttribute("aria-busy", "true");
+    await page.clock.resume();
     await expect(sheet).toBeHidden();
   });
 });
