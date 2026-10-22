@@ -449,11 +449,26 @@ describe("AgentNote", () => {
       await rerender(<AgentNote {...base} text="Newer still." revision="r3" onSave={onSave} />);
       await new Promise((resolve) => setTimeout(resolve, 150));
       expect(announced.count("Your agent changed this note while you were editing.")).toBe(1);
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      expect(onSave).toHaveBeenCalledWith(`${base.text} Mine.`, "r3", expect.anything());
+      // Saved, the notice goes, unspoken.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(announced.count("Your agent changed this note while you were editing.")).toBe(1);
     } finally {
       announced.stop();
     }
-    await userEvent.click(page.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith(`${base.text} Mine.`, "r3", expect.anything());
+  });
+
+  it("says nothing about a change underneath when it first shows", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const announced = watchAnnouncements();
+    try {
+      await render(<AgentNote {...base} revision="r1" onSave={() => {}} />);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(announced.count("Your agent changed this note")).toBe(0);
+    } finally {
+      announced.stop();
+    }
   });
 
   it("renders in server HTML and hydrates without a warning", async () => {
