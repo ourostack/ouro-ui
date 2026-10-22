@@ -942,6 +942,11 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.match(rerun.stdout, /^::error::an install shard of this attempt did not pass \(failure\)/m);
 });
 
+test("an install shard ends within 40 minutes, as install-test.sh waits for the background apt without a limit", () => {
+  const shard = ciJobs()["install-shard"];
+  assert.match(shard, /\n {4}timeout-minutes: 40\n/);
+});
+
 test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD and OURO_COMPONENTS", async () => {
   const install = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
   const tail = install.slice(install.indexOf("# The shipped tests to run:"));

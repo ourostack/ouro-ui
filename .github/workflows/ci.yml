@@ -887,6 +887,10 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    # install-test.sh waits for the background install of the browsers' system packages however
+    # long it takes, so a hung apt ends here rather than holding the runner for GitHub's 6 hours.
+    # The slowest shard seen (#174's run 39767982012, apt waited 20 minutes) took 30.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
