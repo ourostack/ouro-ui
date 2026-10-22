@@ -1,0 +1,16 @@
+# The focus test "Sign hands focus straight to your row's Leave, with nothing unfocused in between"
+# against #167's first commit and this branch
+#
+# Scratch workflow run https://github.com/ourostack/ouro-ui/actions/runs/39777315008 (branch
+# scratch/stage-perf-ab-10, never merged), on two runners (the job id first). Each runner built the
+# site at old = 3c635c8a (Leave focused by an effect after the new form) and new = ced39e04 (this
+# branch), and ran the test from ced39e04 against each build in two Chromium projects, five times
+# each (--repeat-each 5). Each line: the build and Playwright's summary, then the first value the
+# test recorded as Leave came in.
+#
+119819443782 FX old + "focus on Sign the articles",
+119819443782 FX old 10 failed
+119819443782 FX new 10 passed (17.6s)
+119819444439 FX old + "focus on Sign the articles",
+119819444439 FX old 10 failed
+119819444439 FX new 10 passed (16.4s)

@@ -79,6 +79,7 @@ test.describe("each control on the stage", () => {
   test("control: xray outlines every HX component on the page, only when pressed", async ({ page }) => {
     await open(page);
     await expect(page.locator("[data-ouro-inspector-outline]")).toHaveCount(0);
+    // real clock: the hero's line, which stays.
     await expect(page.getByText(STAGE_COPY.real)).toBeVisible();
     await page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }).click();
     await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
@@ -310,7 +311,7 @@ test("under reduced motion the fish hold still and every payoff changes only col
   await settled(page);
   const all = await moved(page);
   expect(all.length).toBeGreaterThan(0);
-  expect(all.map((entry) => entry.replace(/^[\w-]+:/, "")).filter((property) => !/^(opacity|color|background-color|backgroundColor|border(-(top|right|bottom|left))?-color|outline-color|outlineColor|stop-color|stopColor|stop-opacity|stopOpacity|fill|stroke|box-shadow|boxShadow)$/.test(property))).toEqual([]);
+  expect(all.map((entry) => entry.replace(/^[\w-]+:/, "")).filter((property) => !/^(opacity|visibility|color|background-color|backgroundColor|border(-(top|right|bottom|left))?-color|outline-color|outlineColor|stop-color|stopColor|stop-opacity|stopOpacity|fill|stroke|box-shadow|boxShadow)$/.test(property))).toEqual([]);
 });
 
 test("without reduced motion, each payoff moves: bubbles, the needles, the Ready badge, the beam, the bell and the rings", async ({ page }) => {
@@ -409,6 +410,47 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await expect(water).toHaveCSS("opacity", "1");
   });
 
+  /** The share of the lower half of two same-sized screenshots whose pixels differ clearly. */
+  const changedShare = (page: Page, before: Buffer, after: Buffer) =>
+    page.evaluate(
+      async ({ before, after }) => {
+        const pixels = async (png: string) => {
+          const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(png), (char) => char.charCodeAt(0))], { type: "image/png" }));
+          const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d")!;
+          context.drawImage(bitmap, 0, 0);
+          return context.getImageData(0, 0, bitmap.width, bitmap.height);
+        };
+        const [a, b] = await Promise.all([pixels(before), pixels(after)]);
+        let changed = 0;
+        let total = 0;
+        for (let row = Math.ceil(a.height / 2); row < a.height; row++) {
+          for (let column = 0; column < a.width; column++) {
+            const at = (row * a.width + column) * 4;
+            total++;
+            const apart = (channel: number) => Math.abs((a.data[at + channel] ?? 0) - (b.data[at + channel] ?? 0));
+            if (apart(0) + apart(1) + apart(2) > 96) changed++;
+          }
+        }
+        return changed / total;
+      },
+      { before: before.toString("base64"), after: after.toString("base64") },
+    );
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`under forced colours (${colorScheme}) a flooded sight glass shows its water`, async ({ page }) => {
+      await page.emulateMedia({ forcedColors: "active", colorScheme, reducedMotion: "reduce" });
+      await open(page);
+      const glass = page.locator("[data-stage-control='tank-aft'] .stage-gauge-glass");
+      await settled(page);
+      const empty = await glass.screenshot({ animations: "disabled" });
+      await tank(page, AFT.name).click();
+      await expect(page.locator("[data-stage-control='tank-aft'] .stage-gauge-water")).toHaveCSS("opacity", "1");
+      await settled(page);
+      const full = await glass.screenshot({ animations: "disabled" });
+      expect(await changedShare(page, empty, full), "the water fills most of the glass's lower half").toBeGreaterThan(0.6);
+    });
+  }
+
   test("full tanks make Dive the panel's one bright button, ringed and breathing", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
@@ -426,9 +468,10 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
     const started = await recordAnimations(page);
+    const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();
+    await expect.poll(toasts.titles).toContain(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`);
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect.poll(() => started(".stage-ripple")).toContain("stage-ripple");
     await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-a");
@@ -524,6 +567,8 @@ test("on a phone, the bell's toast never covers the bell", async ({ browser }) =
   const toasts = await watchToasts(page, { selector: "[data-stage-control='bell'] button", kind: "below" });
   await bell.tap();
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
-  await expect.poll(toasts.cleared).toBe(true);
+  // Judged only once the toast has settled: it slides in from below its place.
+  await expect.poll(toasts.settled).toBeGreaterThan(5);
+  expect(await toasts.overlapped()).toBe(false);
   await context.close();
 });

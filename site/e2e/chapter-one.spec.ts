@@ -215,7 +215,49 @@ test.describe("each control in Chapter I", () => {
     await expect(nameField(page)).toHaveValue("");
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
-    await expect.poll(toasts.cleared).toBe(true);
+    // Judged only once the toast has settled: it slides in from below its place.
+    await expect.poll(toasts.settled).toBeGreaterThan(5);
+    expect(await toasts.overlapped()).toBe(false);
+  });
+
+  test("Sign hands focus straight to your row's Leave, with nothing unfocused in between", async ({ page }) => {
+    await open(page);
+    await nameField(page).fill("Ada Lovelace");
+    await chooseTrade(page, "Engineer");
+    await oath(page).click();
+    // Records each moment the page has nothing focused: after any change to the articles (a
+    // microtask, before a paint) and before every frame. And when your row's Leave comes in, whether
+    // it already has focus: Sign's own commit must move it there.
+    await articles(page).evaluate((box) => {
+      const lost: string[] = ((window as unknown as { __lost: string[] }).__lost = []);
+      const leaves: string[] = ((window as unknown as { __leaves: string[] }).__leaves = []);
+      const check = (when: string) => {
+        if (document.activeElement === document.body || document.activeElement === null) lost.push(when);
+      };
+      const LEAVE = "[data-chapter-control='leave'] button";
+      new MutationObserver((records) => {
+        for (const record of records)
+          for (const node of record.addedNodes) {
+            if (!(node instanceof Element)) continue;
+            const leave = node.matches(LEAVE) ? node : node.querySelector(LEAVE);
+            if (leave) leaves.push(document.activeElement === leave ? "focused" : `focus on ${document.activeElement?.textContent ?? "nothing"}`);
+          }
+        check("after a change");
+      }).observe(box, { childList: true, subtree: true });
+      const frame = () => {
+        check("before a frame");
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    await signButton(page).click();
+    const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
+    await expect(leave).toBeFocused();
+    await expect(nameField(page)).toHaveValue("");
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(await page.evaluate(() => (window as unknown as { __leaves: string[] }).__leaves)).toEqual(["focused"]);
+    expect(await page.evaluate(() => (window as unknown as { __lost: string[] }).__lost)).toEqual([]);
+    await expect(leave).toBeFocused();
   });
 
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
@@ -338,7 +380,9 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
   // The toast never covers your row or Conseil's welcome under it.
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
-  await expect.poll(toasts.cleared).toBe(true);
+  // Judged only once the toast has settled: it slides in from below its place.
+  await expect.poll(toasts.settled).toBeGreaterThan(5);
+  expect(await toasts.overlapped()).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await context.close();

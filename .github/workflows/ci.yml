@@ -12,6 +12,21 @@ permissions:
 concurrency:
   group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
+# Each job ends within about twice the 90th percentile of its passing runs (the last 60 runs of
+# this workflow, 2026-10-22), and 10 minutes at least: a runner that hangs, as on a mirror that
+# stopped answering (#174's queue run 39783627653), fails its job instead of holding the merge
+# queue for GitHub's 6 hours. Some take more, after runs that passed slower: mutation-shard (a cold
+# cache, 12 minutes) and conformance-shard (15 minutes); ci, whose fallback to the full suite on a
+# reduced pull request took 15.7 minutes (#159); browser and e2e-shard, which a slow mirror took to
+# 50.6 and 38.9 minutes while still installing; and themes, visual and theme-install, where an apt
+# install stopped after 15 minutes and tried again still fits.
+# The jobs that run a browser run in Playwright's image, at the version package.json pins, by
+# digest: its browsers and their system packages are in it, so they install nothing from Ubuntu's
+# mirror (OURO_SYSTEM_PACKAGES=image). The image has no zstd, so actions/cache there used gzip and
+# missed the caches the runner saved, Stryker's among them: the runner's own zstd is lent to it,
+# which needs the image's Ubuntu (24.04), so these jobs name that runner. Their pnpm store cache is
+# off, as the store's path differs there: pnpm i takes about 5 seconds from the network, and a
+# cache that missed cost 10 more to save.
 jobs:
   plan:
     # Which browser tests this run needs (scripts/test-impact.mjs). A pull request into main runs
@@ -25,6 +40,7 @@ jobs:
     # A push to main whose commit the merge queue already tested (the queue fast-forwards main to
     # the commit its group's CI passed on) runs nothing more than install-github: `tested=true`.
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read
@@ -85,6 +101,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -103,7 +120,8 @@ jobs:
       # the checkout; urlOk reads scripts/claims-urls.json. On a pull request, the required checks
       # are read at its base, and the addresses it adds to the cache or changes are fetched again.
       # The ratchet runs here too, in a required check: what the pull request adds to, changes in
-      # or removes from claims.config.json's exemptions must be named in its description. After
+      # or removes from claims.config.json's exemptions must be named in its description, and so
+      # must each file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs). After
       # editing the description, push again: a re-run reads the description the run started with.
       - name: Claims
         env:
@@ -113,6 +131,7 @@ jobs:
           if [ -n "$BASE_REF" ]; then
             git fetch --no-tags --depth=1 origin "$BASE_REF"
             CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
+            REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
             CLAIMS_BASE_REF="origin/$BASE_REF" pnpm claims:check --network=changed
           else
             pnpm claims:check
@@ -149,7 +168,14 @@ jobs:
     # reduced pull request, the sets that install a selected component). Part of the ci check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
       matrix:
@@ -167,11 +193,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
       - id: tests
         name: Browser tests
         run: |
@@ -210,11 +233,13 @@ jobs:
           if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs --shard "$SHARD"; else node scripts/subset-coverage.mjs --touching "$COMPONENTS" --shard "$SHARD"; fi
   scripts:
     # pnpm test:scripts, in shards that run side by side, each with the files whose measured times
-    # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`). Each
-    # uploads how long each file took. Part of the ci check.
+    # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`), but the
+    # ones that drive a browser, which scripts-browser runs: these need no browser and no system
+    # package. Each uploads how long each file took. Part of the ci check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -233,9 +258,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
       - name: Script tests
         run: |
           mkdir -p .tmp/timings
@@ -250,15 +272,56 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+  scripts-browser:
+    # The script tests that drive a browser (`node scripts/shard.mjs scripts-browser`: those that
+    # import Playwright's runtime, as the agent usability scorer does), in Playwright's image. Part
+    # of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    name: scripts (browser)
+    env:
+      TIMINGS: .tmp/timings/scripts-browser.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - name: Script tests that drive a browser
+        run: |
+          mkdir -p .tmp/timings
+          # Word splitting is wanted: the paths have no spaces.
+          # shellcheck disable=SC2046
+          node scripts/run-script-tests.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./scripts/timings-node-reporter.mjs --test-reporter-destination="$TIMINGS" $(node scripts/shard.mjs scripts-browser)
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-scripts-browser
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
   ci:
     # Passes when every part of it passed (checks, every browser shard and every script test
-    # shard), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
+    # job), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
     # On a reduced pull request whose merged coverage falls short, the full browser suite runs here
     # and decides: a line may be covered only by another component's tests
     # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job.
-    needs: [plan, checks, browser, scripts]
+    needs: [plan, checks, browser, scripts, scripts-browser]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
@@ -273,9 +336,10 @@ jobs:
           CHECKS: ${{ needs.checks.result }}
           BROWSER: ${{ needs.browser.result }}
           SCRIPTS: ${{ needs.scripts.result }}
+          SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
         run: |
           failed=0
-          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS"; do
+          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
@@ -324,6 +388,7 @@ jobs:
     # --stems holds only their maps complete (the ci job's `stems`).
     needs: [ci]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       MOTION_PARTITIONS: ouro-chromium:4,ouro-webkit:4,ouro-touch:4,site:4
       FULL_SUITE_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
@@ -361,7 +426,14 @@ jobs:
     # selected components' stories, and nothing when it selected none.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -378,7 +450,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - id: affected
         name: Is any story affected?
         run: |
@@ -390,10 +462,6 @@ jobs:
           fi
       - if: steps.affected.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
-      - if: steps.affected.outputs.run == 'true'
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - if: steps.affected.outputs.run == 'true'
         name: Theme scans
         env:
@@ -415,7 +483,14 @@ jobs:
     # fail (the broken stories, on the first shard), which every run checks.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
@@ -433,7 +508,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - id: affected
         name: Is any story affected?
         run: |
@@ -448,10 +523,6 @@ jobs:
           fi
       - if: steps.affected.outputs.run != 'false'
         run: pnpm i --frozen-lockfile
-      - if: steps.affected.outputs.run != 'false'
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - if: steps.affected.outputs.run == 'true'
         name: Conformance
         env:
@@ -477,6 +548,7 @@ jobs:
     needs: [plan, conformance-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       RESULT: ${{ needs.conformance-shard.result }}
     steps:
@@ -487,13 +559,17 @@ jobs:
   mutation-plan:
     # Plans mutation testing (scripts/mutation.mjs, docs/guides/conformance.md). The shards' results
     # are kept between runs of a pull request, merged into one file, under a key with a hash of
-    # every lib/ file and of what the changed files import (scripts/mutation/cache.mjs key), since
-    # Stryker's incremental mode compares only a mutated file and its tests. With results cached
+    # every lib/ and theme file, the lockfile, app.css, the Vitest config and setup, the tests the
+    # mutants run against, and what all of these and the changed files import (scripts/mutation/
+    # cache.mjs key), since Stryker's incremental mode compares only a mutated file; a changed
+    # file's kept results are dropped before a run when it or a changed file it imports changed
+    # since (pruneChangedFiles). With results cached
     # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
     # other run, three shards that each report nothing to mutate.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       EVENT: ${{ github.event_name }}
       PR: ${{ github.event.pull_request.number }}
@@ -552,7 +628,14 @@ jobs:
     # `mutation` job below is the one check the rules require.
     needs: [plan, mutation-plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     env:
       EVENT: ${{ github.event_name }}
       SHARD: ${{ matrix.shard }}
@@ -572,7 +655,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - id: changed
         name: Is any runtime source changed?
         run: |
@@ -587,10 +670,6 @@ jobs:
           fi
       - if: steps.changed.outputs.run == 'true'
         run: pnpm i --frozen-lockfile
-      - if: steps.changed.outputs.run == 'true'
-        uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - if: steps.changed.outputs.run == 'true'
         name: Results from the last run
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -613,10 +692,13 @@ jobs:
     # The one check the rules require for mutation testing: it passes when every shard did (on a
     # merge-queue run, each shard has nothing to mutate and passes), so the shard count can change
     # without touching the ruleset. On a pull request it first merges the shards' results into one
-    # file and keeps it for the next run, under the plan's key.
+    # file and keeps it for the next run, under the plan's key. It keeps them after a failed run
+    # too: each shard uploads only the mutants of its own ranges (scopeReport), so a survivor stays
+    # Survived in the merge and fails the next run as well, unless a test that could kill it changed.
     needs: [plan, mutation-plan, mutation-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       RESULT: ${{ needs.mutation-shard.result }}
       KEY: ${{ needs.mutation-plan.outputs.key }}
@@ -657,6 +739,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -685,6 +768,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       SHADCN: shadcn@4.21.1
       REF: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -715,7 +799,14 @@ jobs:
     # of the e2e check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
       matrix:
@@ -734,11 +825,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
@@ -771,6 +859,7 @@ jobs:
     needs: [plan, e2e-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Every shard passed
         env:
@@ -788,7 +877,14 @@ jobs:
     # dark, and its fonts load.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -797,11 +893,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - run: pnpm site:build
       - run: site/scripts/theme-install-test.sh "$RUNNER_TEMP/theme-app"
       - if: failure()
@@ -820,7 +913,14 @@ jobs:
     # test shares the CPU.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -829,11 +929,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium
       - run: pnpm test:latency
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -850,6 +947,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -879,7 +977,14 @@ jobs:
     # leaves a marker, which its variant's install check counts.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
       matrix:
@@ -905,26 +1010,12 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      # The app's own `playwright install`, at the same version, then finds them here.
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
-          system-packages: "false"
-      # The browsers' system packages took 0.7 to 3.7 minutes of the shipped tests' setup: they
-      # install while the app is built, and install-test.sh waits for them (OURO_BROWSER_DEPS).
-      - name: Browser system packages, in the background
-        env:
-          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
-        run: |
-          # Detached from the step's output, so the step ends now and the install carries on.
-          ( pnpm exec playwright install-deps chromium webkit > "$RUNNER_TEMP/browser-deps.log" 2>&1; echo $? > "$OURO_BROWSER_DEPS" ) < /dev/null > /dev/null 2>&1 &
       - name: Install test
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
-          OURO_BROWSER_DEPS: ${{ runner.temp }}/browser-deps.status
         run: |
           if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
           scripts/install-test.sh "$VARIANT" "$RUNNER_TEMP/app" "$REF"
@@ -953,6 +1044,7 @@ jobs:
     needs: [plan, install-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -994,6 +1086,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -1029,7 +1122,14 @@ jobs:
     # installs with what `npx shadcn@latest` runs today. Here rather than in release.yml, so the
     # unpinned CLI never runs in a job that holds a token able to push the tag.
     if: startsWith(github.ref, 'refs/heads/release/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
     name: install (shadcn@latest, nova)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1039,13 +1139,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      # install-test.sh installs their system packages.
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
-          system-packages: "false"
       - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
@@ -1054,6 +1149,7 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1081,6 +1177,7 @@ jobs:
     # dispatches, including Release's CI after its prepare-main merge; type check and build.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1106,6 +1203,7 @@ jobs:
     needs: [plan, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read

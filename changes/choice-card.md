@@ -1,1 +1,0 @@
-- New: `ChoiceCard`, choices shown as cards with a picture, a label and a description, on a native radio group under a legend: arrow keys move between them and a plain form submits the chosen value.

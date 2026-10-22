@@ -1,0 +1,9 @@
+{
+  "order": 2600,
+  "components": ["conversation-list"],
+  "controls": {
+    "conversation-list": [
+      {"part": "row", "role": "button", "portal": false}
+    ]
+  }
+}

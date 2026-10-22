@@ -8,7 +8,7 @@ In an app with Tailwind CSS v4 and an `@/*` path alias, run shadcn's `init` once
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.1.0
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.2.0
 ```
 
 `ouro-base` is the only Ouro UI item that writes to your stylesheet (the file `components.json` names in `tailwind.css`), apart from the optional `ouro-theme`. It adds what a shadcn theme lacks and the components need:
@@ -28,14 +28,14 @@ To change a token afterwards, edit it where the CLI wrote it, or set it in a `:r
 ## Adding components
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.1.0
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.0
 ```
 
 A component installs its own files in `components/ouro/<component>/`, the components it renders, and only the helpers it imports, one file each in `lib/ouro/`.[^lands] Its install message names what came with it. It adds the npm packages it imports (`@base-ui/react`, `clsx`, `tailwind-merge`) and nothing for tests.
 
 A component that finds no `ouro-base` tokens still installs, type checks and builds, but renders without them: a `Sheet` with no backdrop, layer or spring, a field with no border.[^theme-check] In development, the first Ouro UI component to mount checks the page once and logs `[ouro-ui] theme: ouro-base is not in this page's CSS …` with the command to run. Production builds contain no such check.[^dev-strip]
 
-`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.1.0` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
+`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.2.0` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
 
 ## What an add changes in package.json
 
@@ -48,7 +48,7 @@ Each component has a `<name>-tests` item with its Vitest browser tests, type tes
 
 ## Updating
 
-List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.1.0 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
+List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.2.0 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
 
 ## Vite and React Router apps: the "use client" notice
 
