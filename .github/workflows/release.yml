@@ -1,5 +1,6 @@
 name: Release
-# Cuts v<version>. The tag points at a release commit that main never receives: a branch
+# Cuts v<version>, once a rehearsal of it (release-rehearsal.yml) has passed on main's commit.
+# The tag points at a release commit that main never receives: a branch
 # off green main whose registry.json pins every same-repo registryDependency to the tag
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
 # installs every Ouro dependency at that tag while main stays unpinned. The @ouro namespace
@@ -88,6 +89,11 @@ jobs:
           # and decides when it is the latest).
           conclusion=$(gh run list --workflow ci.yml --commit "$sha" --json conclusion,event,headBranch --jq '[.[] | select((.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch")) or .event == "merge_group" or (.event == "workflow_dispatch" and (.headBranch | startswith("gh-readonly-queue/main/"))))][0].conclusion')
           [ "$conclusion" = success ] || { echo "::error::CI on main ($sha) is '${conclusion:-not run}', not success"; exit 1; }
+          # A rehearsal of this version on this commit (release-rehearsal.yml) ran the full CI and the
+          # screen-reader lane on the release commit as this run will write it, so a check that fails
+          # only on a release commit stops there, before anything is cut.
+          rehearsal=$(gh run list --workflow release-rehearsal.yml --commit "$sha" --json conclusion,displayTitle --jq "[.[] | select(.displayTitle == \"Release rehearsal $TAG\")][0].conclusion")
+          [ "$rehearsal" = success ] || { echo "::error::The release rehearsal of $TAG on main ($sha) is '${rehearsal:-not run}', not success. Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'
@@ -111,12 +117,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
-          # The tagged commit names itself: its README, UPGRADING.md, llms.txt and site show $TAG.
-          node scripts/latest-release.mjs set "$TAG"
-          pnpm run docs
-          node scripts/registry.mts --release "$VERSION"
-          # The tag holds this release's changes, assembled from changes/*.md; main keeps the fragments only.
-          node scripts/changes.mjs assemble changes > CHANGES.md
+          # The tagged commit names itself: its README, UPGRADING.md, llms.txt and site show $TAG,
+          # its registry.json is released at $VERSION, and CHANGES.md holds this release's changes.
+          scripts/release-commit.sh "$VERSION"
           git add CHANGES.md
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"

@@ -215,7 +215,7 @@ export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: S
 /** Part: the button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. */
 export function SheetTrigger(props: Drawer.Trigger.Props): JSX.Element {
   useSheetPart("SheetTrigger", "…");
-  return <Drawer.Trigger {...(props.render === undefined ? { "data-ouro-control": "sheet", "data-ouro-part": "trigger" } : {})} {...props} />;
+  return <Drawer.Trigger {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "sheet", "data-ouro-part": "trigger" } : {})} {...props} />;
 }
 
 /**
@@ -445,6 +445,8 @@ export function SheetContent({ className, ref, ...props }: SheetContentProps): J
         "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain touch-auto px-5 pt-2 pb-5",
         // A body that overflows is a tab stop (useKeyboardScrollable); show where focus is.
         "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid",
+        // Under forced colours, where the body ends while it is one.
+        "forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1",
         className,
       )}
     />
@@ -454,5 +456,5 @@ export function SheetContent({ className, ref, ...props }: SheetContentProps): J
 /** Part: closes the sheet. Pass your button as `render={<Button>Done</Button>}`. */
 export function SheetClose(props: Drawer.Close.Props): JSX.Element {
   useSheetPart("SheetClose", "<SheetContent><SheetClose>…</SheetClose></SheetContent>");
-  return <Drawer.Close {...(props.render === undefined ? { "data-ouro-control": "sheet", "data-ouro-part": "close" } : {})} {...props} />;
+  return <Drawer.Close {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "sheet", "data-ouro-part": "close" } : {})} {...props} />;
 }

@@ -8,15 +8,15 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
-import { art, parseArt } from "./art";
+import { art, parseArt, partsOf } from "./art";
 
-// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later, as
-// a deferred render, so the tests poll it) and the log, the copy reads at grade 6 or under, the
+// The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
+// once the press has painted, so the tests poll it) and the log, the copy reads at grade 6 or under, the
 // theme paints the sea, and the hero's install line and proof
 // line say what they should.
 
 const root = document.documentElement;
-const scene = () => document.querySelector<SVGSVGElement>(".stage-scene")!;
+const scene = () => document.querySelector<HTMLElement>(".stage-scene")!;
 // The log's lines, oldest first, as its fold holds them; the newest is also the crew's line under the porthole.
 const logText = () => [...document.querySelectorAll(".stage-log-fold [data-ouro='message']")].map((message) => message.textContent ?? "");
 const TANK_NAMES = TANKS.map((tank) => tank.name);
@@ -63,6 +63,14 @@ describe("the drawings", () => {
     expect(parseArt('<svg xmlns="x" viewBox="0 0 30 10"><title>A</title><!-- note -->\n  <path d="M0 0"/></svg>')).toEqual({ viewBox: "0 0 30 10", width: 30, height: 10, inner: '<path d="M0 0"/>' });
     expect(() => parseArt("<svg></svg>")).toThrow(/viewBox/);
     expect(art.nautilus.width / art.nautilus.height).toBeGreaterThan(4);
+  });
+
+  it("give up the parts the stage lights again over them, in their order", () => {
+    const drawing = parseArt('<svg viewBox="0 0 9 9"><path class="c-glow-body" d="M0"/><path class="c-line" d="M1"/><g class="n-lights"><circle r="1"/></g><circle class="c-glow" r="2" /></svg>');
+    expect(partsOf(drawing, "c-glow-body", "c-glow")).toBe('<path class="c-glow-body" d="M0"/><circle class="c-glow" r="2" />');
+    expect(partsOf(drawing, "n-lights")).toBe('<g class="n-lights"><circle r="1"/></g>');
+    expect(() => partsOf(drawing, "n-beacon")).toThrow(/missing its n-beacon/);
+    expect(partsOf(art.nautilus, "n-lights")).toMatch(/^<g class="n-lights">(<circle [^>]*\/>)+<\/g>$/);
   });
 });
 
@@ -210,7 +218,7 @@ describe("the stage's controls", () => {
     await expect.poll(() => scene().getAttribute("aria-label")).toContain("The fish hold still.");
   });
 
-  it("rings the bell: a toast from the crew, in turn, and a line in the log", async () => {
+  it("rings the bell: a toast from the crew, in turn, each replacing the last, and a line in the log", async () => {
     await renderPage("/voyage/");
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     const ring = () => document.querySelector<HTMLElement>("[data-stage-control='bell']")!.dataset.ring;
@@ -223,11 +231,15 @@ describe("the stage's controls", () => {
     await expect.poll(lastLog).toContain(LOG.bell.text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
-    await expect.poll(() => document.querySelectorAll(".stage-ripples ellipse").length).toBe(3);
+    await expect.poll(() => document.querySelectorAll(".stage-ripple").length).toBe(3);
     await userEvent.click(bell);
     await expect.poll(() => announced.count(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBe(1);
     announced.stop();
     expect(ring()).toBe("b");
+    // The second ring's answer took the first one's place: one toast shows, and the first answer is gone.
+    const toaster = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
+    expect(toaster().querySelectorAll('[data-ouro="toast"]')).toHaveLength(1);
+    expect(toaster().textContent).not.toContain(BELL_TOASTS[0]!.text);
   });
 
   it("keeps the newest five lines in the log, the newest also under the porthole", async () => {

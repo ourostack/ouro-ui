@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { URL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, registryAt } from "./proof.mts";
+import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, proofPlugin, registryAt } from "./proof.mts";
+import { release } from "../../scripts/registry.mts";
+import { scratchDir } from "../../scripts/scratch.mjs";
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const sources = () => ({
@@ -73,8 +76,49 @@ test("the install command adds a component the latest release has", () => {
   assert.ok(names.includes(install.item), `${install.item} is not in ${release}'s registry.json`);
   assert.equal(install.count, names.length);
   assert.equal(install.item, PREFERRED_INSTALL.find((name) => names.includes(name)));
-  // The same answer as git itself gives.
-  assert.equal(registryAt(release), execFileSync("git", ["show", `${release}:registry.json`], { encoding: "utf8" }));
+  // The same answer as git itself gives at that tag, or, on the release commit for it, whose tag CI
+  // there runs before, the commit's own registry.json, released at that version.
+  const own = read("registry.json");
+  const expected = `v${JSON.parse(own).version}` === release ? own : execFileSync("git", ["show", `${release}:registry.json`], { encoding: "utf8" });
+  assert.equal(registryAt(release), expected);
+});
+
+/**
+ * A checkout of a release commit as release.yml makes it, before its tag exists: registry.json
+ * released at `version` (scripts/registry.mts --release), package.json's ouro.latestRelease naming
+ * that tag, the proof's other sources as they are here, and an origin that has no such tag.
+ */
+function releaseCheckout(version) {
+  const origin = scratchDir("ouro-proof-origin-");
+  const dir = scratchDir("ouro-proof-release-");
+  const git = (cwd, ...args) => execFileSync("git", args, { cwd, stdio: "ignore" });
+  git(origin, "init", "--quiet", "--bare");
+  for (const path of ["registry/ouro/lib/ouro/testing/vitest.ts", "vitest.config.ts", "site/src/themes/themes.json", "site/e2e/voyage.spec.ts", "site/src/voyage/stage/stage.tsx"]) {
+    mkdirSync(join(dir, dirname(path)), { recursive: true });
+    writeFileSync(join(dir, path), read(path));
+  }
+  writeFileSync(join(dir, "registry.json"), `${JSON.stringify(release(JSON.parse(read("registry.json")), version), null, 2)}\n`);
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "ouro-ui", ouro: { latestRelease: `v${version}` } }));
+  git(dir, "init", "--quiet");
+  git(dir, "add", ".");
+  git(dir, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", `Release v${version}`);
+  git(dir, "remote", "add", "origin", origin);
+  return dir;
+}
+
+test("a release commit's site build takes the install line from its own registry.json, before its tag exists", () => {
+  const dir = releaseCheckout("9.9.9");
+  const names = JSON.parse(readFileSync(join(dir, "registry.json"), "utf8")).items.filter((entry) => entry.type === "registry:ui").map((entry) => entry.name);
+  const expected = { item: PREFERRED_INSTALL.find((name) => names.includes(name)), release: "v9.9.9", count: names.length };
+  // No fetch of the tag that CI on this commit has to pass before it can exist.
+  assert.equal(registryAt("v9.9.9", dir), readFileSync(join(dir, "registry.json"), "utf8"));
+  assert.deepEqual(currentInstall(dir), expected);
+  // What the site build loads as virtual:site-proof (site/vite.config.ts).
+  const plugin = proofPlugin(dir);
+  const module = plugin.load(plugin.resolveId("virtual:site-proof"));
+  assert.ok(module.includes(`export const install = ${JSON.stringify(expected)};`), module);
+  // Another tag still comes from git, and one that origin lacks fails.
+  assert.throws(() => registryAt("v9.9.8", dir), /git fetch/);
 });
 
 test("the install command switches to Checklist once a release has it", () => {
