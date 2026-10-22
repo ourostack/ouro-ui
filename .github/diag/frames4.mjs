@@ -8,8 +8,17 @@ const VARIANTS = {
   nowinshadow: ".site-window { box-shadow: none !important; }",
   poplayer: "[role='menu'] { will-change: transform; }",
   winnolayer: ".site-window { will-change: auto !important; }",
-  nofilter: "*, *::before, *::after { filter: none !important; backdrop-filter: none !important; }",
+  nohas: "drop:has",
+  nohover: "drop:hover|focus-visible|focus|active",
+  outerlayer: ".site-window { will-change: transform; }",
 };
+const drop = (page, pseudo) => page.evaluate((pseudo) => {
+  const pattern = new RegExp(`:(${pseudo})(?![\\w-])`);
+  let dropped = 0;
+  const walk = (owner) => { for (let i = owner.cssRules.length - 1; i >= 0; i--) { const rule = owner.cssRules[i]; if (rule.selectorText && pattern.test(rule.selectorText)) { dropped++; owner.deleteRule(i); } else if (rule.cssRules) walk(rule); } };
+  for (const sheet of document.styleSheets) { try { walk(sheet); } catch {} }
+  return dropped;
+}, pseudo);
 const frames = (page, n) => page.evaluate((n) => new Promise((resolve) => {
   const out = []; let last = performance.now();
   const loop = () => { const t = performance.now(); out.push(Math.round(t - last)); last = t; if (out.length < n) requestAnimationFrame(loop); else resolve(out); };
@@ -27,7 +36,7 @@ for (const [type, scale] of [[webkit, 2], [chromium, 1]]) {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(base + "voyage/");
       await page.locator("html[data-site-ready]").waitFor({ state: "attached" });
-      if (css) await page.addStyleTag({ content: css });
+      if (css && !css.startsWith("drop:")) await page.addStyleTag({ content: css });
       await page.waitForTimeout(500);
       const pScroll = frames(page, 10);
       await page.evaluate(() => document.querySelector("#chapter-two").scrollIntoView());
@@ -36,6 +45,7 @@ for (const [type, scale] of [[webkit, 2], [chromium, 1]]) {
       const handle = page.getByRole("button", { name: /^Reorder The South Pole/ });
       await handle.scrollIntoViewIfNeeded();
       await page.waitForTimeout(1000);
+      const dropped = css.startsWith("drop:") ? ` dropped ${await drop(page, css.slice(5))}` : "";
       const box = await handle.boundingBox();
       await page.mouse.move(box.x + 5, box.y + 5);
       const opens = [], closes = [], picks = [];
@@ -55,7 +65,7 @@ for (const [type, scale] of [[webkit, 2], [chromium, 1]]) {
       await page.mouse.move(ib.x + 5, ib.y + 5);
       await page.waitForTimeout(300);
       const pp = frames(page, 5); await page.mouse.down(); await page.mouse.up(); picks.push(sum(await pp));
-      console.log(`R ${type.name()}@${scale} ${name} | scroll ${sum(scroll)} [${scroll.join("/")}] | open ${opens.join(",")} | close ${closes.join(",")} | pick ${picks.join(",")}`);
+      console.log(`R ${type.name()}@${scale} ${name}${dropped} | scroll ${sum(scroll)} [${scroll.join("/")}] | open ${opens.join(",")} | close ${closes.join(",")} | pick ${picks.join(",")}`);
       await page.close();
     } catch (e) { console.log(`R error ${type.name()}@${scale} ${name} ${e.message.split("\n")[0]}`); }
   }
