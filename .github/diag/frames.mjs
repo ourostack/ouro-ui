@@ -3,12 +3,20 @@ import { chromium, webkit } from "@playwright/test";
 const [base, label] = [process.argv[2], process.argv[3]];
 const VARIANTS = {
   asis: "",
-  notext: "main svg text { display: none !important; }",
-  textnosel: "main svg text { -webkit-user-select: none !important; user-select: none !important; }",
-  svgnosel: "main svg { -webkit-user-select: none !important; user-select: none !important; }",
-  textnoevents: "main svg text { pointer-events: none !important; }",
-  bodynosel: "body { -webkit-user-select: none !important; user-select: none !important; }",
+  noactive: { pseudo: "active" },
+  nohover: { pseudo: "hover" },
+  nofocus: { pseudo: "focus|focus-visible|focus-within" },
+  textfixed: "main svg text { text-rendering: optimizeSpeed; }",
+  textgeometric: "main svg text { text-rendering: geometricPrecision; }",
 };
+/** Drops each rule whose selector has the pseudo-class at all, and counts them. */
+const drop = (page, pseudo) => page.evaluate((pseudo) => {
+  const pattern = new RegExp(`:(${pseudo})(?![\\w-])`);
+  let dropped = 0;
+  const walk = (owner) => { for (let i = owner.cssRules.length - 1; i >= 0; i--) { const rule = owner.cssRules[i]; if (rule.selectorText && pattern.test(rule.selectorText)) { dropped++; owner.deleteRule(i); } else if (rule.cssRules) walk(rule); } };
+  for (const sheet of document.styleSheets) { try { walk(sheet); } catch {} }
+  return dropped;
+}, pseudo);
 const census = (page) => page.evaluate(() => {
   const q = (s) => document.querySelectorAll(s).length;
   const big = [...document.querySelectorAll("main svg")].map((svg) => [svg.querySelectorAll("*").length, (svg.getAttribute("class") || svg.parentElement?.className || "?").toString().slice(0, 30), svg.closest("section[id], section")?.id || "hero?"]).sort((a, b) => b[0] - a[0]).slice(0, 12);
@@ -42,10 +50,12 @@ for (const type of [webkit, chromium]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(base + "voyage/");
     await page.locator("html[data-site-ready]").waitFor({ state: "attached" });
-    if (css) await page.addStyleTag({ content: css });
+    let dropped = "";
+    if (typeof css === "string" && css) await page.addStyleTag({ content: css });
     await page.locator("#chapter-two").scrollIntoViewIfNeeded();
     await page.locator("#chapter-two[data-chapter-ready]").waitFor({ state: "attached" });
     await page.waitForTimeout(800);
+    if (typeof css === "object") dropped = `dropped ${await drop(page, css.pseudo)}`;
     const selection = await page.evaluate(() => new Promise((resolve) => {
       const node = document.querySelector("#chapter-two p")?.firstChild ?? document.body;
       const t0 = performance.now();
@@ -69,7 +79,7 @@ for (const type of [webkit, chromium]) {
       const t1 = Date.now();
       await page.mouse.up();
       const t2 = Date.now();
-      console.log(`${type.name()} ${name} ${target}: down ${t1 - t0} up ${t2 - t1} | ${await read(page)}`);
+      console.log(`${type.name()} ${name} ${dropped} ${target}: down ${t1 - t0} up ${t2 - t1} | ${await read(page)}`);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(600);
     }
