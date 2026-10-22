@@ -223,7 +223,58 @@ describe("LayoutProposal", () => {
   });
 });
 
+describe("LayoutProposal, part by part", () => {
+  it("sets who proposed it quieter than the title", async () => {
+    const { bar } = await render(<LayoutProposal {...base} time="Just now" />);
+    const by = bar.querySelector<HTMLElement>("[data-ouro-proposal-by]")!;
+    expect(by.textContent).toBe("Ouro · Just now");
+    expect(getComputedStyle(by).color).not.toBe(getComputedStyle(by.previousElementSibling!).color);
+  });
+
+  it.each([undefined, null])("leaves out the time, reason and preview when they are %s", async (missing) => {
+    const { bar } = await render(
+      <LayoutProposal {...base} time={missing} reason={missing}>
+        {missing}
+      </LayoutProposal>,
+    );
+    expect(bar.querySelector("[data-ouro-proposal-by]")!.textContent).toBe("Ouro");
+    expect(bar.querySelector("[data-ouro-proposal-reason]")).toBeNull();
+    // The title line alone, with no empty reason or preview after it.
+    expect(bar.firstElementChild!.children).toHaveLength(1);
+  });
+});
+
+describe("LayoutProposal presses", () => {
+  it("forgets a press that ends away from the button, by pointer or by key", async () => {
+    const onApply = vi.fn();
+    const { button, rerender } = await render(<LayoutProposal {...base} onApply={onApply} />);
+    const apply = button("Apply")!;
+    await act(async () => {
+      apply.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      window.dispatchEvent(new PointerEvent("pointerup"));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await rerender(<LayoutProposal {...base} id="p2" onApply={onApply} />);
+    await act(async () => apply.click());
+    expect(onApply).toHaveBeenLastCalledWith("p2", expect.anything());
+    await act(async () => {
+      apply.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await rerender(<LayoutProposal {...base} id="p3" onApply={onApply} />);
+    await act(async () => apply.click());
+    expect(onApply).toHaveBeenLastCalledWith("p3", expect.anything());
+  });
+});
+
 describe("LayoutProposal development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<LayoutProposal {...base} />);
+    await render(<LayoutProposal {...base} reason="You open customer chats first." time="Just now" onPreview={() => {}} onEndPreview={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a missing id", { id: undefined }, "id is missing, so the app cannot tell a replaced proposal from the one the person saw", '<LayoutProposal id={proposal.id} title="Customers first" by="Ouro">'],
     ["onPreview without onEndPreview", { onPreview: () => {} }, "onPreview needs onEndPreview, so the person can leave the preview", "<LayoutProposal onPreview={(id) => preview(id)} onEndPreview={(id) => endPreview(id)}>"],

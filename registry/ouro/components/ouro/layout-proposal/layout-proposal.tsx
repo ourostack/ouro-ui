@@ -144,7 +144,10 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
   const begin = () => {
     pressed.current = id;
     const clear = () => setTimeout(() => (pressed.current = null), 0);
+    // A listener left behind would only clear a later press after that press's own click, as this one does.
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral,StringLiteral: the same press is cleared either way, by this event or the other.
     window.addEventListener("pointerup", clear, { once: true });
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral,StringLiteral: the same press is cleared either way, by this event or the other.
     window.addEventListener("keyup", clear, { once: true });
   };
   const toggle = previewing ? onEndPreview : onPreview;
@@ -167,7 +170,8 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; LayoutProposal takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "LayoutProposal",

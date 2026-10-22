@@ -174,7 +174,41 @@ describe("PresetPicker", () => {
   });
 });
 
+describe("PresetPicker, part by part", () => {
+  it("keeps the page from scrolling on the keys that move focus, and only on those", async () => {
+    const { cards } = await render(<PresetPicker label="Layouts" items={items} onValueChange={() => {}} />);
+    const press = (key: string) => {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      cards[0]!.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(press("ArrowDown")).toBe(true);
+    expect(press("a")).toBe(false);
+  });
+
+  it("shows a tag and a description only when given, quieter than the name", async () => {
+    const { cards } = await render(
+      <PresetPicker label="Layouts" items={[{ value: "a", label: "Plain", tag: "Saved", description: "A line about it." }, { value: "b", label: "Bare", description: null }, { value: "c", label: "Bare too" }]} onValueChange={() => {}} />,
+    );
+    const nameLine = (card: HTMLElement) => card.firstElementChild!;
+    const [name, tag] = [...nameLine(cards[0]!).children] as HTMLElement[];
+    expect(tag!.textContent).toBe("Saved");
+    expect(getComputedStyle(tag!).color).not.toBe(getComputedStyle(name!).color);
+    expect(cards[0]!.children).toHaveLength(2);
+    for (const card of cards.slice(1)) {
+      expect(nameLine(card).children).toHaveLength(1);
+      expect(card.children).toHaveLength(1);
+    }
+  });
+});
+
 describe("PresetPicker development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<PresetPicker label="Layouts" items={items} onValueChange={() => {}} />);
+    await render(<PresetPicker label="Layouts" items={items} value="chats" onValueChange={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["a missing label", { label: undefined }, "label is missing, so screen readers cannot name the presets", '<PresetPicker label="Start from a layout" items={presets} onValueChange={use}>'],
     ["current", { current: "chats" }, "current is not a prop", "<PresetPicker value={current}>"],

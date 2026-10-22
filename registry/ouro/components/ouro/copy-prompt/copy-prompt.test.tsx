@@ -121,6 +121,18 @@ describe("CopyPrompt", () => {
 });
 
 describe("CopyPrompt development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(<CopyPrompt text={text} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("copies nothing made up when the text is missing", async () => {
+    const props = {} as unknown as CopyPromptProps;
+    await render(<CopyPrompt {...props} />);
+    await userEvent.click(page.getByRole("button"));
+    expect(clipboard.every((copied) => copied === "")).toBe(true);
+  });
+
   it.each([
     ["a missing text", { text: undefined }, "text is missing, so there is nothing to copy", '<CopyPrompt text="Suggest a layout for my mornings.">'],
     ["value", { value: text }, "value is not a prop", '<CopyPrompt text="Suggest a layout for my mornings.">'],
