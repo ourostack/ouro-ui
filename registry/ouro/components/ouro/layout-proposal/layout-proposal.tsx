@@ -211,8 +211,10 @@ export function LayoutProposal(props: LayoutProposalProps): JSX.Element {
     const settle = () => setDecided((current) => (current === pending ? null : current));
     (result as PromiseLike<unknown>).then(settle, settle);
   };
-  const unavailable = decided?.id === proposalId ? true : undefined;
-  const busy = (part: string) => (unavailable && decided!.pending && decided!.part === part) || undefined;
+  // The decision about the proposal on screen, if the person made one.
+  const mine = decided !== null && decided.id === proposalId ? decided : null;
+  const unavailable = mine ? true : undefined;
+  const busy = (part: string) => (mine?.pending && mine.part === part) || undefined;
 
   // Speak the note when a preview starts, not when the bar first renders.
   const wasPreviewing = useRef(previewing);

@@ -168,6 +168,8 @@ describe("LayoutProposal", () => {
       event.preventDefault();
     };
     window.addEventListener("error", onError);
+    // The browser reports the uncaught error to the console as well.
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       const boom = new Error("apply failed");
       const { button } = await render(
@@ -185,6 +187,7 @@ describe("LayoutProposal", () => {
       expect(button("Discard")!.hasAttribute("aria-disabled")).toBe(false);
     } finally {
       window.removeEventListener("error", onError);
+      consoleError.mockRestore();
     }
   });
 
