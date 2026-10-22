@@ -115,10 +115,7 @@ const isPromise = (value: unknown): value is PromiseLike<unknown> => typeof (val
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 // An agent's text is tinted with the theme's primary color, as in DraftEditor, and underlined, so
 // it never relies on color alone; a person's is underlined only, in the text's own color.
-const inserted = {
-  agent: "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] decoration-primary",
-  human: "",
-} as const;
+const agentInsertClass = "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] decoration-primary";
 
 /**
  * A shared draft's changes, to review one by one. It shows the draft with each change's new
@@ -351,7 +348,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
           );
           const said = <span className="sr-only">{`[${changeLabel(n)}, ${segment.kind === "insert" ? insertedLabel : deletedLabel}: `}</span>;
           return segment.kind === "insert" ? (
-            <ins key={index} data-author={byId.get(segment.changeId!)!.author} className={cn("underline decoration-2 underline-offset-4", inserted[byId.get(segment.changeId!)!.author])}>
+            <ins key={index} data-author={byId.get(segment.changeId!)!.author} className={cn("underline decoration-2 underline-offset-4", byId.get(segment.changeId!)!.author === "agent" && agentInsertClass)}>
               {said}
               {segment.text}
               <span className="sr-only">]</span>
