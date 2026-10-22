@@ -305,6 +305,48 @@ describe("expectMotion", () => {
     expect(taken()).toHaveLength(1);
   });
 
+  // WebKit lists a finished transition until its next animation update, which for a composited
+  // property can trail by more than a frame under load; until then the element's computed style
+  // can hold an earlier value. The stand-in keeps listing it for three more reads.
+  it("waits until the browser stops listing a finished transition, so the end style is what the caller reads next", async () => {
+    const tick = part("tick", "opacity 400ms linear");
+    tick.style.opacity = "1";
+    const [transition] = tick.getAnimations();
+    const own = tick.getAnimations.bind(tick);
+    let lingering = 3;
+    tick.getAnimations = () => {
+      const listed = own();
+      if (transition!.playState !== "finished" || listed.includes(transition!) || lingering === 0) return listed;
+      lingering -= 1;
+      return [...listed, transition!];
+    };
+    const proof = expectMotion(tick, { stem: "checkbox", state: "data-checked", properties: ["opacity"], reduced: false });
+    transition!.finish();
+    await proof;
+    expect(lingering).toBe(0);
+    expect(taken()).toHaveLength(1);
+  });
+
+  // The real case behind the stand-in above, as Celebrate's pieces hit it on a loaded runner
+  // (opacity 0.89 and 0.95 read at the end, #148): the page is blocked from inside the delayed
+  // opacity transition until past the end of both. In WebKit on Linux the caller then read the
+  // value of the last animation update before the block every time, until the helper waited for
+  // the finished transitions to go.
+  it("reads the end style after the page was blocked past the end of its transitions", async () => {
+    const piece = part("piece", "transform 500ms ease-out, opacity 300ms ease 200ms", { opacity: "1", transform: "none" }, ["data-open"]);
+    piece.style.opacity = "0";
+    piece.style.transform = "translateX(20px)";
+    setTimeout(() => {
+      const end = performance.now() + 400;
+      while (performance.now() < end) {
+        // Busy: nothing else runs on the page meanwhile.
+      }
+    }, 260);
+    await expectMotion(piece, { stem: "celebrate", state: "data-open", properties: ["opacity", "transform"], reduced: false });
+    expect(getComputedStyle(piece).opacity).toBe("0");
+    expect(taken()).toHaveLength(1);
+  });
+
   it("fails when nothing runs on the part", async () => {
     const tick = part("tick", "none");
     tick.style.opacity = "1";

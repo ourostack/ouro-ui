@@ -1,9 +1,9 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
 import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 import siteCss from "../site/src/styles.css?inline";
 import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory, settle, stemSelected, stories, storySelected, type Opener, type OuroStoryParameters } from "./stories.tsx";
+import { sliced } from "./slice.ts";
 
 // Runs in the `touch` project: Chromium as a phone with a coarse pointer. iOS Safari zooms the
 // page when a text control under 16px takes focus, and does not zoom back; Chromium's emulation
@@ -26,6 +26,15 @@ import { accessibleName, cleanupStories, isVisible, overlayOpeners, renderStory,
 // waiting it out cost most of the file's time: below 640px a Menu is a bottom sheet that takes
 // 500ms to rise and 200ms to fall, so a story with ten row menus (Reorderable/ScrollsInPlace)
 // spent over 7s of a 15s limit on motion in portrait and under 1s in landscape.
+//
+// The scan stays inside the page for the same reason. A button opens its overlay with the click
+// the page dispatches, which is its activation (what a screen reader or the keyboard sends), and
+// each path ends by unmounting the subject with its overlays open, since the next path renders
+// it afresh anyway. A real click or Escape is a round trip through Vitest's Node process to
+// Playwright, and in a loaded CI shard each took 0.3s on average and up to 1s (25 to 100ms on an
+// idle runner, while the page's own frames kept to 18ms), so Reorderable/ScrollsInPlace's ten row
+// menus spent 5s of its 7s on them, and up to 15s in a busier shard. A combobox input, a trigger
+// only the keyboard reaches and a shortcut still get the browser's real input.
 
 /** Text-entry controls: what iOS zooms into on focus. */
 const textEntry =
@@ -112,15 +121,23 @@ const demoSubjects: Subject[] = Object.entries(demoModules).map(([path, module])
   demo: true,
 }));
 const subjects = [...storySubjects, ...demoSubjects];
-/** What this run scans: on a pull request's reduced run, only the selected components' stories and demos (test/stories.tsx). */
-const scanned = subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id)));
+/**
+ * What this run scans: on a pull request's reduced run, only the selected components' stories and
+ * demos (test/stories.tsx); in a CI shard, its slice of them (test/slice.ts).
+ */
+const scanned = sliced(subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id))));
 
 const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 
-/** Opens an overlay and returns the popups it added. */
+/**
+ * Opens an overlay and returns the popups it added. A button is activated in the page, with the
+ * click a screen reader or the keyboard sends it; anything else (a combobox input, a shortcut, a
+ * trigger only the keyboard reaches) gets the browser's real input. See the comment at the top.
+ */
 async function openVia(opener: Opener, where: string, timeout: number): Promise<HTMLElement[]> {
   const before = new Set(visiblePopups());
-  await opener.open();
+  if (opener.element instanceof HTMLButtonElement) opener.element.click();
+  else await opener.open();
   let added: HTMLElement[] = [];
   await vi.waitFor(
     () => {
@@ -132,25 +149,6 @@ async function openVia(opener: Opener, where: string, timeout: number): Promise<
   await settle();
   // A popup that opened inside another one (a listbox in a dialog) is scanned with its parent.
   return added.filter((popup) => !added.some((other) => other !== popup && other.contains(popup)));
-}
-
-/**
- * Closes the overlays the scan opened with Escape, so the subject unmounts the way a person
- * leaves it. Popups the subject shows on its own (a story's toasts) stay.
- */
-async function closeAll(where: string, opened: HTMLElement[]): Promise<void> {
-  const stillOpen = () => opened.filter((popup) => popup.isConnected && isVisible(popup)).length;
-  for (let round = 0; round < maxDepth + 2 && stillOpen() > 0; round++) {
-    const open = stillOpen();
-    await userEvent.keyboard("{Escape}");
-    await vi.waitFor(
-      () => {
-        if (stillOpen() >= open) throw new Error(`${where}: Escape did not close the overlay`);
-      },
-      { timeout: 10_000, interval: 20 },
-    );
-  }
-  await settle();
 }
 
 /**
@@ -169,18 +167,17 @@ async function scan(subject: Subject, path: number[] = [], depth = maxDepth, opt
     await settle();
     let scope: ParentNode[] = [host];
     let where = subject.id;
-    const opened: HTMLElement[] = [];
     for (const [level, index] of path.entries()) {
       const opener = overlayOpeners(subject.id, scope, subject.parameters, level === 0)[index]!;
-      const added = await openVia(opener, where, options.openTimeout ?? openTimeout);
-      opened.push(...added);
-      scope = added;
+      scope = await openVia(opener, where, options.openTimeout ?? openTimeout);
       where += ` with "${opener.name}" open`;
     }
     const found = smallControls(where, path.length === 0 ? [document] : scope);
     const children = overlayOpeners(subject.id, scope, subject.parameters, path.length === 0);
-    await closeAll(where, opened);
     await cleanupStories();
+    // An overlay that outlived the unmount, or a page an overlay left inert or hidden, would hide the next path's controls from the scan.
+    const left = [...document.body.querySelectorAll(`${popupSelector}, [inert], [data-base-ui-inert]`), ...[document.documentElement, document.body].filter((root) => root.inert || root.hasAttribute("aria-hidden"))];
+    if (left.length > 0) throw new Error(`${where}: unmounting the subject left ${left.map((element) => element.outerHTML.slice(0, 120)).join(", ")} on the page`);
     if (path.length === depth && children.length > 0) {
       const names = children.map((opener) => `"${opener.name}"`).join(", ");
       throw new Error(`${where} has an overlay opener (${names}) deeper than the scan opens (${depth} levels): raise maxDepth`);
@@ -389,6 +386,20 @@ describe("the 16px detector", () => {
     );
     const subject: Subject = { id: "Fixture/Deep", Subject: Deep, parameters: {}, demo: false };
     await expect(scan(subject, [], 0)).rejects.toThrow('Fixture/Deep has an overlay opener ("One") deeper than the scan opens (0 levels): raise maxDepth');
+  });
+
+  it("fails when an overlay outlives the subject, which would hide the next path's controls", async () => {
+    const Leaky = () => (
+      <button aria-haspopup="dialog" onClick={() => document.body.append(Object.assign(document.createElement("div"), { role: "dialog", inert: true }))}>
+        Leak
+      </button>
+    );
+    const subject: Subject = { id: "Fixture/Leaky", Subject: Leaky, parameters: {}, demo: false };
+    try {
+      await expect(scan(subject)).rejects.toThrow('Fixture/Leaky with "Leak" open: unmounting the subject left <div role="dialog" inert=""></div> on the page');
+    } finally {
+      document.body.querySelectorAll(":scope > [role=dialog]").forEach((node) => node.remove());
+    }
   });
 
   it("does not click an opener whose popup is already open, as a combobox input with an inline list", async () => {

@@ -20,6 +20,13 @@
 //   links on a plain Tab unless a system setting is on, so tests use pressTab() (testing/tab.ts,
 //   e2e/ouro/story.ts), which works whatever the setting.
 //
+// - timerBoundReads: a test or spec that waits for a state that lasts a set time on the real
+//   clock: a confirmation label (Copied, Link copied), a toast with a countdown, a story's save in
+//   progress. A loaded runner can take longer than that time between two steps, and the state is
+//   gone when the check looks. Such a test holds the page's clock (vi.useFakeTimers, holdClock) or
+//   records the state as it happens (watchAnnouncements, watchToasts). A test that means to run on
+//   the real clock says why in a `// real clock: <reason>` comment.
+//
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
 import ts from "typescript";
@@ -227,4 +234,87 @@ export function alarmingTestTitle(name) {
 export function directTabPresses(text) {
   const press = /(keyboard|press)\(\s*["'`]([^"'`]*[{+])?Tab[}"'`]|userEvent\.tab\(/;
   return text.split("\n").flatMap((line, index) => (press.test(line) && !/^\s*(\*|\/\/)/.test(line) ? [`${index + 1}: ${line.trim()}`] : []));
+}
+
+/** Labels a component shows for a set time on the real clock: CopyButton's and ShareButton's confirmations. */
+const timedLabels = ["Copied", "Link copied", "Copy blocked", "Couldn't share"];
+/** A test body that holds the page's clock, or records the timed state as it happens. */
+const holdsClock = /vi\.useFakeTimers\(|fakeClock\(|showOnFakeClock\(|holdClock\(|page\.clock\.(install|pauseAt)|watchToasts\(/;
+
+/** Whether a `toast(message, options)` or `show(message, options)` call has a countdown: no `duration` of 0 or Infinity, and no `action` without a duration. */
+function countsDown(call) {
+  const options = call.arguments[1];
+  if (!options) return true;
+  if (!ts.isObjectLiteralExpression(options)) return true;
+  const property = (name) => options.properties.find((each) => ts.isPropertyAssignment(each) && ts.isIdentifier(each.name) && each.name.text === name);
+  const duration = property("duration");
+  if (duration) return !/^(0|Infinity)$/.test(duration.initializer.getText());
+  return !property("action");
+}
+
+/**
+ * The reads in a Vitest test or Playwright spec of a state that lasts a set time on the real
+ * clock, as "test name: statement", where the test neither holds the page's clock nor records the
+ * state as it happens: a wait (`expect.poll`, `expect.element`, Playwright's `expect(locator)`) on a
+ * confirmation label (`timedLabels`, and the file's own `copiedLabel` and `failedLabel` values); in
+ * a spec, a wait on `aria-busy="true"`, `data-status="saving"` or a toast's box; in a test, a toast
+ * with a countdown (`toast()`, or a file's `show()` helper, with no `duration: 0`). A test whose
+ * body has a `// real clock: <reason>` comment is left alone.
+ */
+export function timerBoundReads(path, text) {
+  const source = parse(path, text);
+  const spec = /\.spec\.ts$/.test(path);
+  const labels = new Set([...timedLabels, ...[...text.matchAll(/(?:copiedLabel|failedLabel)=["']([^"']+)["']/g)].map((match) => match[1])]);
+  const toasts = /from\s+["'][^"']*\/lib\/ouro\/toast["']/.test(text);
+  const found = [];
+  const check = (name, body) => {
+    const code = body.getText(source);
+    if (/\/\/\s*real clock:/.test(code) || holdsClock.test(code)) return;
+    // In a spec, the names a toast locator is kept under: `const toast = page.locator('[data-ouro="toast"]')`.
+    const toastNames = new Set();
+    const visit = (node) => {
+      if (spec && ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && /data-ouro="toast"/.test(node.initializer.getText(source))) toastNames.add(node.name.text);
+      if (ts.isExpressionStatement(node) || ts.isVariableStatement(node) || ts.isReturnStatement(node)) {
+        const statement = node.getText(source);
+        const waits = spec ? /\bexpect\b/.test(statement) : /expect\s*\.\s*(poll|element)\s*\(/.test(statement);
+        // A count of what a watch recorded (announcements) is no wait on the state itself.
+        const recorded = /\.(count|matching)\(/.test(statement);
+        const label = !recorded && [...statement.matchAll(/["'`]([^"'`]+)["'`]/g)].some((match) => labels.has(match[1]));
+        const toastBox = /data-ouro="toast"/.test(statement) || [...toastNames].some((name) => new RegExp(`\\b${name}\\b`).test(statement));
+        const state = spec && (/toHaveAttribute\(\s*["']aria-busy["'],\s*["']true["']/.test(statement) || /toHaveAttribute\(\s*["']data-status["'],\s*["']saving["']/.test(statement) || (toastBox && /toBeVisible|boundingBox/.test(statement)));
+        if ((waits && label) || state) found.push(`${name}: ${statement.split("\n")[0].trim()}`);
+      }
+      if (toasts && !spec && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && /^(toast|show)$/.test(node.expression.text) && node.arguments.length > 0 && countsDown(node)) {
+        found.push(`${name}: ${node.getText(source).split("\n")[0].trim()}`);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(body);
+  };
+  const aliases = new Set();
+  const title = (node) => (ts.isStringLiteralLike(node) ? node.text : node.getText(source));
+  const walk = (node, scope) => {
+    if (ts.isVariableDeclaration(node) && node.initializer && ts.isIdentifier(node.name)) {
+      const root = calleeRoot(node.initializer);
+      if (root && (suiteCalls.has(root) || aliases.has(root)) && ts.isCallExpression(node.initializer)) aliases.add(node.name.text);
+    }
+    if (ts.isCallExpression(node) && node.arguments.length > 1) {
+      const root = calleeRoot(node.expression);
+      const factory = ts.isPropertyAccessExpression(node.expression) && /^(skipIf|runIf|each|for|extend)$/.test(node.expression.name.text);
+      if (root && !factory && (suiteCalls.has(root) || aliases.has(root))) {
+        const callee = node.expression.getText(source);
+        const named = [...scope, title(node.arguments[0])];
+        if (/(^|\.)(describe|suite)\b/.test(callee)) {
+          for (const argument of node.arguments.slice(1)) walk(argument, named);
+          return;
+        }
+        const body = node.arguments.find((argument) => ts.isArrowFunction(argument) || ts.isFunctionExpression(argument));
+        if (body && !/\.(configure|use|beforeEach|afterEach|beforeAll|afterAll|step|extend|skip|fixme|fail|slow)$/.test(callee)) check(named.join(" > "), body);
+        return;
+      }
+    }
+    ts.forEachChild(node, (child) => walk(child, scope));
+  };
+  walk(source, []);
+  return found;
 }
