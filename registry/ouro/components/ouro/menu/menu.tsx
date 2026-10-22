@@ -512,7 +512,8 @@ export function Menu(props: MenuProps): JSX.Element {
   }
 
   return (
-    <BaseMenu.Root {...control} modal={sheet || modal}>
+    // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
+    <BaseMenu.Root {...control} modal={label === undefined ? sheet || modal : undefined}>
       {label !== undefined ? (
         <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass}>
           {label}
