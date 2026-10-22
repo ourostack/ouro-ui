@@ -2,6 +2,7 @@ import type {} from "@vitest/browser-playwright";
 import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
+import { hrtime } from "node:process";
 
 export interface EmulateMediaOptions {
   reducedMotion?: "reduce" | "no-preference";
@@ -248,10 +249,16 @@ const STALL_TICK_MS = 10;
 const STALL_MS = 50;
 const stalls = { holders: 0, ticker: undefined as ReturnType<typeof setInterval> | undefined, last: 0, lost: 0 };
 
+/**
+ * The machine's monotonic clock, in ms, for telling stalls: a test that mocks `performance.now()`
+ * and moves it on by hand has not held Node up.
+ */
+const machineNow = () => Number(hrtime.bigint()) / 1e6;
+
 /** The time Node's event loop has been held up while a touch command ran, in ms, a stall still under way included. */
 function stalledFor(): number {
   if (!stalls.ticker) return stalls.lost;
-  const late = performance.now() - stalls.last - STALL_TICK_MS;
+  const late = machineNow() - stalls.last - STALL_TICK_MS;
   return stalls.lost + (late > STALL_MS ? late : 0);
 }
 
@@ -269,9 +276,9 @@ function kitNow(): number {
 /** Counts Node's stalls until the returned function is called; commands that overlap share one count. */
 function countStalls(): () => void {
   if (stalls.holders++ === 0) {
-    stalls.last = performance.now();
+    stalls.last = machineNow();
     stalls.ticker = setInterval(() => {
-      const now = performance.now();
+      const now = machineNow();
       const late = now - stalls.last - STALL_TICK_MS;
       if (late > STALL_MS) stalls.lost += late;
       stalls.last = now;
