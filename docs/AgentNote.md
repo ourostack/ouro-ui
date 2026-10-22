@@ -57,6 +57,7 @@ Type: `AgentNoteProps`.
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `revision` | `string` |  | Which version of the note this is, such as a counter or a hash. The handlers receive the one on screen when the press began; while the person edits, a newer one shows a notice and keeps their words. |
 | `saveButtonLabel` | `string` | `"Save"` | The Save button's word, for other languages. |
+| `savingLabel` | `string` | `"Saving note"` | What screen readers hear while a save is in progress, for other languages. |
 | `source` | `ReactNode` |  | What the agent read to write it, already worded, such as the messages and transcripts it used. |
 | `text` (required) | `string` |  | The note, as plain text. It shows as text, never as markup, keeping its line breaks. |
 | `time` | `ReactNode` |  | When, already formatted ("5 min ago", `<RelativeTime>`). |
@@ -95,7 +96,7 @@ type AgentNoteHandler = (revision: string | undefined, event: MouseEvent<HTMLEle
 
 ### `AgentNoteSaveHandler`
 
-Saves the person's words. Receives the `revision` they last saw (the newer one once the note changed while they edited), and the click. Return `false`, or a promise of it, to keep the editor open, such as when saving failed.
+Saves the person's words. Receives the `revision` they last saw (the newer one once the note changed while they edited), and the click. Return `false`, or a promise of it, to keep the editor open, such as when saving failed; a throw or a rejection keeps it open too. A result that comes after the person cancelled or began another edit is ignored.
 
 ```ts
 type AgentNoteSaveHandler = (text: string, revision: string | undefined, event: MouseEvent<HTMLElement>) => boolean | void | Promise<boolean | void>;

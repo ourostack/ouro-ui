@@ -468,6 +468,20 @@
     "summary": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it."
   },
   {
+    "name": "briefing-card",
+    "title": "BriefingCard",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/briefing-card/briefing-card.tsx",
+    "summary": "What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions."
+  },
+  {
+    "name": "event-chip",
+    "title": "EventChip",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/event-chip/event-chip.tsx",
+    "summary": "An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one line, and where the person stands with it after a dot (\"Needs you\")."
+  },
+  {
     "name": "accordion",
     "title": "Accordion",
     "group": "Lists",
@@ -707,6 +721,13 @@
     "group": "Chat",
     "source": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
     "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
+  },
+  {
+    "name": "agent-note",
+    "title": "AgentNote",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/agent-note/agent-note.tsx",
+    "summary": "A short note an agent leaves for the person, attributed to the agent."
   },
   {
     "name": "inspector",

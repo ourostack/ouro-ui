@@ -3514,6 +3514,74 @@
       ]
     },
     {
+      "name": "agent-note",
+      "type": "registry:ui",
+      "title": "AgentNote",
+      "description": "A short note an agent leaves for the person, attributed to the agent.",
+      "docs": "A short note an agent leaves for the person, attributed to the agent. Import: import { AgentNote } from \"@/components/ouro/agent-note/agent-note\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, button, field, text-area, text-field, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/agent-note.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-dev",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/text-area"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/agent-note/agent-note.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/agent-note/agent-note.tsx"
+        }
+      ]
+    },
+    {
+      "name": "briefing-card",
+      "type": "registry:ui",
+      "title": "BriefingCard",
+      "description": "What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions.",
+      "docs": "What the person needs to know about one thing before they act on it (a meeting, a customer, a handover), in one card: a status badge and the title, a quiet line, labelled rows of counts, links and small buttons, an agent's note, and a row of actions. Import: import { BriefingCard } from \"@/components/ouro/briefing-card/briefing-card\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/briefing-card.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-tones",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/briefing-card/briefing-card.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/briefing-card/briefing-card.tsx"
+        }
+      ]
+    },
+    {
+      "name": "event-chip",
+      "type": "registry:ui",
+      "title": "EventChip",
+      "description": "An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one line, and where the person stands with it after a dot (\"Needs you\").",
+      "docs": "An upcoming event as a small chip that leads to it: how soon it starts, its title cut to one line, and where the person stands with it after a dot (\"Needs you\"). Import: import { EventChip } from \"@/components/ouro/event-chip/event-chip\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/event-chip.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-tones",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/event-chip/event-chip.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/event-chip/event-chip.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -10249,6 +10317,177 @@
       }
     },
     {
+      "name": "agent-note-tests",
+      "type": "registry:item",
+      "title": "AgentNote tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for agent-note, and the tests of everything it installs. Add it beside agent-note: add agent-note agent-note-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "agent-note's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/agent-note",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/agent-note/agent-note.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/agent-note/agent-note.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/agent-note/agent-note.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/agent-note/agent-note.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/agent-note/agent-note.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/agent-note/agent-note.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/agent-note.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/agent-note.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "briefing-card-tests",
+      "type": "registry:item",
+      "title": "BriefingCard tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for briefing-card, and the tests of everything it installs. Add it beside briefing-card: add briefing-card briefing-card-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "briefing-card's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/agent-note",
+        "ourostack/ouro-ui/agent-note-tests",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/briefing-card",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/link",
+        "ourostack/ouro-ui/link-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/briefing-card/briefing-card.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/briefing-card/briefing-card.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/briefing-card/briefing-card.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/briefing-card/briefing-card.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/briefing-card/briefing-card.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/briefing-card/briefing-card.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/briefing-card.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/briefing-card.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "event-chip-tests",
+      "type": "registry:item",
+      "title": "EventChip tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for event-chip, and the tests of everything it installs. Add it beside event-chip: add event-chip event-chip-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "event-chip's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/event-chip",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/event-chip/event-chip.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/event-chip/event-chip.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/event-chip/event-chip.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/event-chip/event-chip.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/event-chip/event-chip.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/event-chip/event-chip.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/event-chip.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/event-chip.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -10294,6 +10533,7 @@
       "docs": "Every Ouro UI component and its tests are installed. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
       "registryDependencies": [
         "ourostack/ouro-ui/accordion-tests",
+        "ourostack/ouro-ui/agent-note-tests",
         "ourostack/ouro-ui/alert-tests",
         "ourostack/ouro-ui/aspect-ratio-tests",
         "ourostack/ouro-ui/attachment-tests",
@@ -10302,6 +10542,7 @@
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/breadcrumb-tests",
+        "ourostack/ouro-ui/briefing-card-tests",
         "ourostack/ouro-ui/button-group-tests",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/calendar-tests",
@@ -10327,6 +10568,7 @@
         "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/edit-sheet-tests",
         "ourostack/ouro-ui/empty-tests",
+        "ourostack/ouro-ui/event-chip-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/fieldset-tests",
         "ourostack/ouro-ui/file-field-tests",
