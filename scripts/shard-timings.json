@@ -503,8 +503,11 @@
     "registry/ouro/e2e/ouro/toggle-group.spec.ts": 5449,
     "registry/ouro/e2e/ouro/toggle.spec.ts": 2161,
     "registry/ouro/e2e/ouro/tooltip.spec.ts": 13215,
+    "site/e2e/agents.spec.ts": 31615,
     "site/e2e/catalog.spec.ts": 24338,
     "site/e2e/chapter-one.spec.ts": 381735,
+    "site/e2e/chapter-three.spec.ts": 300000,
+    "site/e2e/chapter-two.spec.ts": 300000,
     "site/e2e/stage.spec.ts": 320251,
     "site/e2e/voyage.spec.ts": 129954
   }
