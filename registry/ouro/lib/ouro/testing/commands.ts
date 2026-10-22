@@ -513,8 +513,8 @@ async function frameAtPoint(session: CDPSession, { x, y }: { x: number; y: numbe
       lap("frame id");
       return at;
     } finally {
-      await session.send("Runtime.releaseObject", { objectId: object.objectId! }).catch(() => {});
-      lap("released");
+      // Nothing waits on Chromium letting go of the node: under load each answer can take a second.
+      void session.send("Runtime.releaseObject", { objectId: object.objectId! }).catch(() => {});
     }
   } catch (error) {
     lap("failed");
@@ -892,13 +892,18 @@ async function sendTraced(
   // Once a frame has handled the event, only its tidying is waited for: a busy frame elsewhere, as a
   // cross-origin page still running its scripts, would hold the command up to TOUCH_TIDY_MS. Calls
   // into one frame run in order, so that frame is still tidied before the next command watches it,
-  // and the next touchstart waits for a watcher armed for itself (frameAtPoint).
+  // and the next touchstart waits for a watcher armed for itself (frameAtPoint). The frame that
+  // handled a touchstart or touchmove has nothing to tidy: seeing the event ended its wait and
+  // cleared what it expected (TOUCH_WATCH), so it is not asked, which saves a round trip into the
+  // page on each step of a gesture. A lift is tidied and waited for: it ends the frame's watch.
   const tidy = async (handled?: Frame) => {
     const answered = (await Promise.all([...calls.values()].map(now))).flatMap((answer) => (answer && answer.error === undefined ? [answer.frame] : []));
     for (const [frame, call] of calls) if (!answered.includes(frame)) void call.then(() => callWatch(frame, "settle", expected, TOUCH_TIDY_MS));
-    const settled = watchTouch(page, "settle", expected, TOUCH_TIDY_MS, answered);
-    const waited = handled ? answered.filter((frame) => frame === handled) : answered;
-    await Promise.all(handled ? settled.filter((_, index) => answered[index] === handled) : settled);
+    const done = handled && expected.type !== "touchEnd" ? handled : undefined;
+    const tidied = answered.filter((frame) => frame !== done);
+    const settled = watchTouch(page, "settle", expected, TOUCH_TIDY_MS, tidied);
+    const waited = handled ? tidied.filter((frame) => frame === handled) : tidied;
+    await Promise.all(handled ? settled.filter((_, index) => tidied[index] === handled) : settled);
     traceStep(trace, `tidied, waiting for ${waited.map((frame) => frame.url() || "a frame with no URL yet").join(", ") || "no frame"}`);
   };
   let waits: Promise<FrameAnswer<TouchSeen> | undefined>[];
