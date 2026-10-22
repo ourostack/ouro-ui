@@ -487,8 +487,10 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * where Chromium's hit test stops at the frame's element, it waits until Playwright lists that
  * frame, found by Chromium's id for it, then for that frame's own watcher, armed for this touch,
  * until Chromium's hit test at the point reaches inside the frame, asked through the frame's own
- * session, and for two animation frames there: a touch Chromium sends to such a frame while it is
- * busy is lost, and one sent before the frame takes input goes to the page around it. A touchstart
+ * session, and until the frame has drawn, then the page around it, then the frame again: a touch
+ * Chromium sends to such a frame while it is busy is lost, and one sent before the frame takes
+ * input goes to the page around it, as does one sent after the page around it embeds the frame
+ * afresh and before the frame draws again. A touchstart
  * that a frame outside it still handles throws, naming both: it never passes as handled.
  *
  * Playwright learns of a new frame, and of a frame's new document, from Chromium on its own
@@ -509,6 +511,7 @@ type TouchTarget = { point: { x: number; y: number } } | { frame: Frame };
  * @claim "A touchstart that a frame outside" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart that Chromium sends to the page around a frame in another process throws, and never passes as handled)
  * @claim "On a frame in another process" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a busy cross-origin frame is sent only once that frame's watcher is armed for it)
  * @claim "it waits until Playwright lists that" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it) verify:testExists(scripts/touch-kit-frames.test.mjs::a frame in another process is found by Chromium's id for it, whatever address Playwright lists it with)
+ * @claim "as does one sent after the page" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touchstart into a frame in another process waits until that frame has drawn after the page around it has)
  * @claim "and one sent before the frame" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into a cross-origin iframe added just before it is handled)
  * @claim "It throws after 5 seconds, naming" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works)
  * @claim "It throws after 5 seconds, naming" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
@@ -573,7 +576,14 @@ async function watchTarget(
           inside = await hitsInside(session, found[index]!.session, at, target.point);
           traceStep(trace, `the hit test ${inside ? "reaches" : "does not reach"} inside the frame`);
           if (inside) {
-            await within(there.evaluate(TWO_FRAMES), deadline - performance.now(), "").catch(() => {});
+            // When the page around the frame embeds it afresh, as when the frame's visual properties
+            // change, Chromium sends the frame touches only once it has drawn again. So the frame
+            // draws, then the page around it, then the frame once more.
+            const draw = (frame: Frame | null) => (frame ? within(frame.evaluate(TWO_FRAMES), deadline - performance.now(), "").catch(() => {}) : undefined);
+            await draw(there);
+            await draw(there.parentFrame());
+            await draw(there);
+            traceStep(trace, "the frame drew after the page around it");
             return { calls, inside: there };
           }
         }
@@ -721,7 +731,7 @@ async function sendTraced(
   if (handler && inside && !isWithin(handler, inside)) {
     throw new Error(
       `${command}: Chromium sent the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) to ${handler.url() || "a frame with no URL yet"}, ` +
-        `not to the frame in another process there (${inside.url() || "a frame with no URL yet"}), though that frame's watcher was armed, its hit test there reached inside it and it had drawn. ` +
+        `not to the frame in another process there (${inside.url() || "a frame with no URL yet"}), though that frame's watcher was armed, its hit test there reached inside it and it had drawn after the page around it. ` +
         `The frame never saw the touch; the finger is lifted before the next gesture.`,
     );
   }

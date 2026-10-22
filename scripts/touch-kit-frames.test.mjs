@@ -21,9 +21,12 @@ import { touchStep } from "../registry/ouro/lib/ouro/testing/commands.ts";
  * into it, as for a frame whose document never arrives, or "tidy" for its tidying up only, as for a
  * frame that turned busy after its watch started. The frame's own hit test reaches inside it from
  * `hitTestableAfter` ms, and Chromium sends it touches from `routedAfter` ms: until then the test's
- * page gets them, on the frame's element, as in CI.
+ * page gets them, on the frame's element, as in CI. With `reembed`, the page around the frame
+ * embeds it afresh at its next draw after the frame first draws, as when the frame's visual
+ * properties change; Chromium then sends the frame touches only once it has drawn again, and until
+ * then the test's page gets them (a screenshot after the frame draws does this in Chromium).
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -41,6 +44,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
         // The kit's wait for the frame to draw, before a touch into a frame in another process.
         if (call.includes("requestAnimationFrame(() => requestAnimationFrame(")) {
           self.drew = true;
+          self.onDraw?.();
           return undefined;
         }
         const action = /\)\("(\w+)"/.exec(call)[1];
@@ -67,6 +71,12 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   // Playwright lists a sandboxed srcdoc frame in another process with no URL.
   const target = frame("target", listedUrl, tests, "TARGET-FRAME-ID");
   const listed = [top, tests];
+  // "none" before the frame draws, then "pending" until the page around it draws, "stale" until the frame draws again, then "clear".
+  let embedding = "none";
+  if (reembed) {
+    target.onDraw = () => (embedding = embedding === "none" ? "pending" : embedding === "stale" ? "clear" : embedding);
+    tests.onDraw = () => (embedding = embedding === "pending" ? "stale" : embedding);
+  }
   if (stuck) {
     const other = frame("stuck", "", tests, "STUCK-FRAME-ID");
     other.never = (call) => stuck === "watch" || /\)\("settle"/.test(call);
@@ -101,7 +111,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       if (method === "Input.dispatchTouchEvent") {
         sent.push({ type: params.type, targetListed: listed.includes(target), targetArmed: target.armed, targetDrew: target.drew, at: since() });
         // Until Chromium routes touches into the frame, the page around it gets them, on its element.
-        if (params.type === "touchStart" && since() < routedAfter) {
+        if (params.type === "touchStart" && (since() < routedAfter || embedding === "pending" || embedding === "stale")) {
           tests.sees = "touchstart";
           for (const resolve of tests.waiting.splice(0)) resolve({ seen: true, active: true, moved: false, saw: ["touchstart"] });
           return {};
@@ -262,12 +272,23 @@ test("a touchstart into a frame in another process that is armed and drawn waits
   }
 });
 
+test("a touchstart into a frame in another process waits until that frame has drawn after the page around it has", async () => {
+  const { sent, target, start, stop } = stage({ listAfter: 0, reembed: true });
+  try {
+    await start();
+    assert.deepEqual(sent.map(({ type }) => type), ["touchStart"]);
+    assert.equal(target.sees, "touchstart");
+  } finally {
+    stop();
+  }
+});
+
 test("a touchstart that Chromium sends to the page around a frame in another process throws, and never passes as handled", async () => {
   const { tests, target, start, stop } = stage({ listAfter: 0, routedAfter: 60_000 });
   try {
     await assert.rejects(
       start(),
-      /^Error: touchStep: Chromium sent the touchStart at \(100, 350\) to http:\/\/localhost:63315\/__vitest_test__\/, not to the frame in another process there \(a frame with no URL yet\), though that frame's watcher was armed, its hit test there reached inside it and it had drawn\. The frame never saw the touch; the finger is lifted before the next gesture\.$/,
+      /^Error: touchStep: Chromium sent the touchStart at \(100, 350\) to http:\/\/localhost:63315\/__vitest_test__\/, not to the frame in another process there \(a frame with no URL yet\), though that frame's watcher was armed, its hit test there reached inside it and it had drawn after the page around it\. The frame never saw the touch; the finger is lifted before the next gesture\.$/,
     );
     assert.equal(tests.sees, "touchstart");
     assert.equal(target.sees, undefined);
