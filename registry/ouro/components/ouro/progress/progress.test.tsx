@@ -203,3 +203,49 @@ describe("Progress", () => {
     ]);
   });
 });
+
+describe("Progress across locales", () => {
+  // A server in one locale and a reader in another, each formatting with its own runtime default as
+  // `Intl.NumberFormat` without a locale does. Base UI keeps one formatter per locale and options, so
+  // the case uses options no other test does, to start from an empty cache as a fresh page would.
+  const RealNumberFormat = Intl.NumberFormat;
+  function runtimeLocale(locale: string) {
+    const Localized = function (requested?: Intl.LocalesArgument, options?: Intl.NumberFormatOptions) {
+      return new RealNumberFormat(requested ?? locale, options);
+    } as unknown as typeof Intl.NumberFormat;
+    Object.assign(Localized, { supportedLocalesOf: RealNumberFormat.supportedLocalesOf });
+    Intl.NumberFormat = Localized;
+  }
+  afterEach(() => {
+    Intl.NumberFormat = RealNumberFormat;
+  });
+
+  it("writes the value in en-US on a server in any locale, hydrates it as it is, and shows the reader's once hydrated", async () => {
+    const options = { style: "unit", unit: "megabyte", minimumFractionDigits: 1 } as const;
+    const node = <Progress label="Uploading" value={40.5} showValue format={options} />;
+    runtimeLocale("de-DE");
+    const html = renderToString(node);
+    const english = new RealNumberFormat("en-US", options).format(40.5);
+    const server = new DOMParser().parseFromString(html, "text/html");
+    expect(server.querySelector("[data-ouro-progress-value]")!.textContent).toBe(english);
+    expect(server.querySelector('[role="progressbar"]')!.getAttribute("aria-valuetext")).toBe(english);
+    runtimeLocale("fr-FR");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    const french = new RealNumberFormat("fr-FR", options).format(40.5);
+    await expect.poll(() => host.querySelector("[data-ouro-progress-value]")!.textContent).toBe(french);
+    expect(host.querySelector('[role="progressbar"]')!.getAttribute("aria-valuetext")).toBe(french);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+  });
+});

@@ -137,6 +137,20 @@ async function settled() {
 }
 
 describe("NavigationMenu", () => {
+  it("keeps each trigger's and link's edge under forced colours, which drop their fill", async () => {
+    // Forced colours first: switched after the render, a transition would still be easing.
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await render(<NavigationMenu label="Main" items={items} />);
+      for (const element of [page.getByRole("button", { name: "Recipes" }).element(), page.getByRole("link", { name: "Pricing" }).element()]) {
+        expect(parseFloat(getComputedStyle(element).borderTopWidth)).toBeGreaterThan(0);
+        expect(getComputedStyle(element).borderTopStyle).toBe("solid");
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders a named nav with a button for each panel and a link for each page", async () => {
     const { root } = await render(<NavigationMenu label="Main" items={items} />);
     expect(root.tagName).toBe("NAV");
