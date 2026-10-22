@@ -1097,11 +1097,23 @@ describe("Reorderable", () => {
     it("puts back a row being dragged when it turns on, and reports nothing", async () => {
       const onReorder = vi.fn();
       const element = await render(list({ onReorder }));
+      const dragged = rows(element)[0]!;
       const [x, y] = await dragBy("Sear", 120);
       expect(element.hasAttribute("data-dragging")).toBe(true);
+      freeze();
       await render(list({ onReorder, disabled: true }));
       expect(element.hasAttribute("data-dragging")).toBe(false);
       expect(order(element)).toEqual(names);
+      // It springs straight back into its place, without the bounce a flick gets.
+      const seen = [shifted(dragged)];
+      while (element.hasAttribute("data-ouro-settling")) {
+        frames!.step(16);
+        seen.push(shifted(dragged));
+      }
+      await rest(element);
+      expect(seen[0]).toBeGreaterThan(0);
+      expect(Math.min(...seen)).toBe(0);
+      for (let index = 1; index < seen.length; index++) expect(seen[index]!).toBeLessThanOrEqual(seen[index - 1]!);
       await expect.poll(said).toBe("Sear put back. Position 1 of 4.");
       // The pointer, still down, moves nothing, and its release reports nothing.
       await pointer(window, "pointermove", x, y + 40);
