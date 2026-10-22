@@ -473,7 +473,7 @@ export function timerBoundReads(path, text) {
         const initializer = node.initializer.getText(source);
         if (/data-ouro="toast"/.test(initializer)) toastNames.add(node.name.text);
         if (/getByRole\(\s*["']region["'][^)]*["']Notifications["']/.test(initializer)) regionNames.add(node.name.text);
-        else if (hasToasts && calls(node.initializer).some((call) => toastRead(call) && !/^page\./.test(callee(call)))) readNames.add(node.name.text);
+        else if (hasToasts && calls(node.initializer).some((call) => toastRead(call) && !callee(call).startsWith("page."))) readNames.add(node.name.text);
       }
       ts.forEachChild(node, declare);
     };
