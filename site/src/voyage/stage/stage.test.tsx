@@ -9,7 +9,7 @@ import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
-import { art, parseArt } from "./art";
+import { art, parseArt, partsOf } from "./art";
 
 // The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
 // once the press has painted, so the tests poll it) and the log, the copy reads at grade 6 or under, the
@@ -65,6 +65,14 @@ describe("the drawings", () => {
     expect(() => parseArt("<svg></svg>")).toThrow(/viewBox/);
     expect(art.nautilus.width / art.nautilus.height).toBeGreaterThan(4);
   });
+
+  it("give up the parts the stage lights again over them, in their order", () => {
+    const drawing = parseArt('<svg viewBox="0 0 9 9"><path class="c-glow-body" d="M0"/><path class="c-line" d="M1"/><g class="n-lights"><circle r="1"/></g><circle class="c-glow" r="2" /></svg>');
+    expect(partsOf(drawing, "c-glow-body", "c-glow")).toBe('<path class="c-glow-body" d="M0"/><circle class="c-glow" r="2" />');
+    expect(partsOf(drawing, "n-lights")).toBe('<g class="n-lights"><circle r="1"/></g>');
+    expect(() => partsOf(drawing, "n-beacon")).toThrow(/missing its n-beacon/);
+    expect(partsOf(art.nautilus, "n-lights")).toMatch(/^<g class="n-lights">(<circle [^>]*\/>)+<\/g>$/);
+  });
 });
 
 describe("the hero", () => {
@@ -117,14 +125,23 @@ describe("the hero", () => {
     await expect.poll(() => tip()?.textContent).toBe(first!.where);
   });
 
-  it("keeps a proof link's keyboard focus while the Tooltip's code loads, then shows where it goes", async () => {
+  it("keeps a proof link, and its keyboard focus, as the Tooltip's code loads; the link shows where it goes from its next focus", async () => {
     await renderPage("/voyage/");
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
     const link = page.getByRole("link", { name: proof.claims[0]!.text, exact: true });
-    expect(document.querySelector('[data-ouro="tooltip"]')).toBeNull();
-    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the link keeps focus.
+    const element = link.element();
     await pressTab();
-    (link.element() as HTMLElement).focus();
-    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(proof.claims[0]!.where);
+    expect(document.querySelector("[data-site-proof-tips]")).toBeNull();
+    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the same link keeps focus.
+    (element as HTMLElement).focus();
+    await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
+    expect(link.element()).toBe(element);
+    expect(document.activeElement).toBe(element);
+    // The next link shows its Tooltip on focus, and so does this one when focus comes back to it.
+    await pressTab();
+    await expect.poll(() => tip()?.textContent).toBe(proof.claims[1]!.where);
+    await pressTab({ shift: true });
+    await expect.poll(() => tip()?.textContent).toBe(proof.claims[0]!.where);
     expect(document.activeElement?.textContent).toBe(proof.claims[0]!.text);
   });
 

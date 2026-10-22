@@ -60,6 +60,7 @@ A menu in a `MenuBar`: `label` is its button's text.
 Not in this mode (typed `never`):
 
 - `contextTrigger`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
+- `modal`: Not with `label`: the `MenuBar` decides how its menus hold the page.
 - `trigger`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
 
 ### Context: `MenuContextProps`
@@ -74,6 +75,7 @@ Not in this mode (typed `never`):
 
 - `align`: Not with `contextTrigger`: a context menu opens at the pointer.
 - `label`: Not with `contextTrigger`. `label` is for a Menu inside `MenuBar`.
+- `modal`: Not with `contextTrigger`: a context menu holds the page while it is open.
 - `side`: Not with `contextTrigger`: a context menu opens at the pointer.
 - `trigger`: Not with `contextTrigger`. Use one way to open a menu.
 
@@ -84,6 +86,7 @@ A dropdown: `trigger` opens it. Below 640px it is a bottom sheet.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"start"` | How the menu lines up with the trigger along that side. |
+| `modal` | `boolean` | `true` | Whether the open dropdown holds the page: it locks the page's scroll, and a click outside only closes it. `modal={false}` leaves the page scrolling and its controls live, and spares the browser a layout and repaint of the whole page each time the menu opens and closes: for a small menu that a list repeats on every row. The phone sheet always holds the page. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
 | `trigger` (required) | `ReactElement` |  | The button that opens the menu, usually a Button: `trigger={<Button>Actions</Button>}`. |
 

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { changedLines, shardUnits, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { fileURLToPath } from "node:url";
+import { changedLines, inScope, shardUnits, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, mergeReports, parseTestSeconds, planShards, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, scopeReport, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -256,6 +258,24 @@ test("dependencyFiles takes every lib file and what the changed files import, th
   assert.equal(dependencyHash(files, (path) => ({ ...sources, "registry/ouro/components/ouro/e/e.tsx": "changed" })[path]), hash({}));
 });
 
+test("dependencyFiles also takes what decides an outcome beyond the source: the lockfile, the theme and app.css, the Vitest config and setup and what they import, the tests and what they import, but not the changed files themselves", () => {
+  const sources = {
+    "registry/ouro/components/ouro/a/a.tsx": "export const a = 1;",
+    "registry/ouro/components/ouro/a/a.test.tsx": 'import { a } from "./a";\nimport { render } from "@/test/render";',
+    "test/render.tsx": 'import { x } from "./x.mts";',
+    "test/x.mts": "export const x = 1;",
+    "vitest.config.ts": 'import { commands } from "./test/commands.ts";',
+    "test/commands.ts": "export const commands = {};",
+    "app.css": '@import "tailwindcss";\n@import "./registry/ouro/theme/ouro.css";',
+    "registry/ouro/theme/ouro.css": ":root {}",
+    "pnpm-lock.yaml": "lockfileVersion: 9",
+  };
+  const options = { read: (path) => sources[path], exists: (path) => path in sources, list: () => ["registry/ouro/theme/ouro.css"], harness: ["pnpm-lock.yaml", "app.css", "vitest.config.ts"], tests: ["registry/ouro/components/ouro/a/a.test.tsx"] };
+  const files = dependencyFiles(["registry/ouro/components/ouro/a/a.tsx"], options);
+  assert.deepEqual(files, ["app.css", "pnpm-lock.yaml", "registry/ouro/components/ouro/a/a.test.tsx", "registry/ouro/theme/ouro.css", "test/commands.ts", "test/render.tsx", "test/x.mts", "vitest.config.ts"]);
+  for (const path of ["pnpm-lock.yaml", "app.css", "vitest.config.ts", "scripts/mutation/setup.ts", "scripts/mutation/plugins.mjs"]) assert.ok(harnessFiles.includes(path), path);
+});
+
 test("mergeReports makes one incremental report of the shards', renaming each test by its file and name so killedBy still names it", () => {
   const shard = (path, tests, killedBy) => ({
     schemaVersion: "2",
@@ -284,6 +304,83 @@ test("mergeReports keeps every shard's mutants of a file whose changed ranges we
   assert.equal(new Set(mutants.map((mutant) => mutant.id)).size, 2, "each mutant keeps an id of its own");
   const names = Object.fromEntries(merged.testFiles["sheet.test.tsx"].tests.map(({ id, name }) => [id, name]));
   assert.deepEqual(mutants.map((mutant) => names[mutant.killedBy[0]]), ["line 216", "line 438"]);
+});
+
+test("a shard's fresh Survived outlives another shard's carried-over Killed: each report is cut to its own ranges, and a merge keeps the undetected status", () => {
+  const at = (line) => ({ start: { line, column: 4 }, end: { line, column: 30 } });
+  const mutant = (line, status) => ({ id: "0", mutatorName: "StringLiteral", replacement: '""', location: at(line), status, killedBy: status === "Killed" ? ["0"] : [], coveredBy: ["0"] });
+  const report = (mutants) => ({ schemaVersion: "2", files: { "pagination.tsx": { language: "typescript", source: "same", mutants } }, testFiles: { "pagination.test.tsx": { tests: [{ id: "0", name: "keeps each page's edge" }] } } });
+  // Shard 1 owns line 135 and finds M survives; shard 2 owns line 290 and carries M as it was last time.
+  const one = report([mutant(135, "Survived")]);
+  const two = report([mutant(135, "Killed"), mutant(290, "Killed")]);
+  const status = (merged) => merged.files["pagination.tsx"].mutants.find((m) => m.location.start.line === 135).status;
+  assert.equal(status(mergeReports([one, two])), "Survived", "unscoped, the undetected status still wins");
+  assert.equal(status(mergeReports([two, one])), "Survived");
+  const scoped = scopeReport(two, { "pagination.tsx": [[290, 290]] });
+  assert.deepEqual(scoped.files["pagination.tsx"].mutants.map((m) => m.location.start.line), [290]);
+  assert.equal(status(mergeReports([scopeReport(one, { "pagination.tsx": [[135, 135]] }), scoped])), "Survived");
+  // A mutant must lie wholly inside a range, as Stryker's own \`path:start-end\` reads it; a file outside the shard is dropped.
+  assert.deepEqual(scopeReport(report([{ ...mutant(135, "Killed"), location: { start: { line: 134, column: 1 }, end: { line: 136, column: 2 } } }]), { "pagination.tsx": [[135, 136]] }).files, {});
+  assert.deepEqual(scopeReport(two, { "other.tsx": [[1, 400]] }).files, {});
+});
+
+test("inScope keeps Stryker's results inside the run's own ranges, by a relative or an absolute file name", () => {
+  const path = "registry/ouro/components/ouro/pagination/pagination.tsx";
+  const at = (line) => ({ start: { line, column: 4 }, end: { line, column: 30 } });
+  const changes = { [path]: [[135, 135]] };
+  assert.ok(inScope({ fileName: path, location: at(135) }, changes));
+  assert.ok(inScope({ fileName: join(dirname(fileURLToPath(import.meta.url)), "..", path), location: at(135) }, changes));
+  assert.ok(!inScope({ fileName: path, location: at(290) }, changes));
+});
+
+test("pruneChangedFiles drops the kept mutants of a file whose source changed, since Stryker would reuse a Killed on a line the change left alone", () => {
+  const report = { files: { "a.tsx": { source: "old", mutants: [{ id: "0" }] }, "b.tsx": { source: "same", mutants: [{ id: "1" }] }, "gone.tsx": { source: "x", mutants: [] } } };
+  const sources = { "a.tsx": "new", "b.tsx": "same" };
+  const pruned = pruneChangedFiles(report, {
+    read: (path) => {
+      if (!(path in sources)) throw new Error("ENOENT");
+      return sources[path];
+    },
+    exists: (path) => path in sources,
+  });
+  assert.deepEqual(Object.keys(pruned.files), ["b.tsx"]);
+});
+
+test("pruneChangedFiles also drops a changed file's kept results when a changed file it imports, directly or through others, changed since: Stryker does not see an import change", () => {
+  const dialog = "registry/ouro/components/ouro/dialog/dialog.tsx";
+  const parts = "registry/ouro/components/ouro/dialog/dialog-parts.tsx";
+  const styles = "registry/ouro/components/ouro/dialog/dialog-styles.ts";
+  const sources = {
+    [dialog]: 'import { Popup } from "@/registry/ouro/components/ouro/dialog/dialog-parts";\nexport const on = "on";',
+    [parts]: 'import { popup } from "./dialog-styles";\nexport const Popup = 1;',
+    [styles]: 'export const popup = "a";',
+    "registry/ouro/components/ouro/other/other.tsx": 'export const other = "x";',
+  };
+  const options = (changes) => ({ changed: [dialog, parts, styles], read: (path) => changes[path] ?? sources[path], exists: (path) => path in sources });
+  const found = recordSources(
+    {
+      files: {
+        [dialog]: { source: sources[dialog], mutants: [{ id: "0", status: "Killed" }] },
+        [parts]: { source: sources[parts], mutants: [{ id: "1", status: "Killed" }] },
+        "registry/ouro/components/ouro/other/other.tsx": { source: sources["registry/ouro/components/ouro/other/other.tsx"], mutants: [{ id: "2", status: "Killed" }] },
+      },
+    },
+    [dialog, parts, styles],
+    (path) => sources[path],
+  );
+  const kept = (changes) => Object.keys(pruneChangedFiles(found, options(changes)).files).sort();
+  assert.deepEqual(kept({}), [parts, dialog, "registry/ouro/components/ouro/other/other.tsx"].sort(), "nothing changed: everything kept");
+  // dialog-parts edited: dialog imports it, so dialog's Killed may be stale too.
+  assert.deepEqual(kept({ [parts]: sources[parts].replace("= 1", "= 2") }), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // dialog-styles has no mutants, so no source of its own in the report: its digest decides, and it reaches dialog through dialog-parts.
+  assert.deepEqual(kept({ [styles]: 'export const popup = "b";' }), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // A changed file with no digest kept (a report from before) counts as changed.
+  assert.deepEqual(Object.keys(pruneChangedFiles({ files: found.files }, options({})).files), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // dialog-styles reverted to main: no longer a changed file, but its recorded digest still differs, so dialog's results go.
+  const reverted = { changed: [dialog, parts], read: (path) => ({ [styles]: 'export const popup = "main";' })[path] ?? sources[path], exists: (path) => path in sources };
+  assert.deepEqual(Object.keys(pruneChangedFiles(found, reverted).files), ["registry/ouro/components/ouro/other/other.tsx"]);
+  // The digests survive a merge.
+  assert.deepEqual(mergeReports([found, { files: {}, testFiles: {}, ouroSources: { "x.tsx": "1" } }]).ouroSources, { ...found.ouroSources, "x.tsx": "1" });
 });
 
 test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {

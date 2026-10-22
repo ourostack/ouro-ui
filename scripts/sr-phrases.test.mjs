@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, firstMatch, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, firstMatch, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -71,6 +71,18 @@ test("the checkbox's name, role and state come from one sentence", () => {
   assert.equal(checked("checked"), true);
   assert.equal(checked("Email me new recipes unchecked checkbox"), false);
   assert.equal(checked("Email me new recipes, check box, not checked"), false);
+});
+
+test("a checked radio button is \"selected\" on VoiceOver and \"checked\" on NVDA, and neither is said of one that is not", () => {
+  const dark = (phrase) => inOneSentence(phrase, /\bdark\b/i, RADIO_CHECKED);
+  // VoiceOver, as heard on the release rehearsal (ColorSchemeToggle).
+  assert.equal(dark('"Dark selected radio button, 2 of 3" | "You are currently on a selected radio button, 2 of 3."'), true);
+  // NVDA.
+  assert.equal(dark("Dark  radio button  checked  2 of 3"), true);
+  assert.equal(dark("Dark  radio button  not checked  2 of 3"), false);
+  assert.equal(dark("Dark radio button, unselected, 2 of 3"), false);
+  assert.equal(dark("Dark radio button, not selected, 2 of 3"), false);
+  assert.equal(dark("Dark radio button, 2 of 3"), false);
 });
 
 test("the dialog's title and role, the select's label, role and state, the options and the toast come from one sentence", () => {

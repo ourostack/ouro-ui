@@ -402,6 +402,18 @@ describe("Reorderable", () => {
       expect(element.hasAttribute("data-ouro-settling")).toBe(false);
     });
 
+    it("leaves the page's scroll alone while the menu is open: its menu does not hold the page", async () => {
+      await render(list());
+      const locked = () => [document.documentElement, document.body].some((element) => /hidden|clip/.test(getComputedStyle(element).overflowY));
+      await userEvent.click(handle("Soften"));
+      await menuOpen();
+      // Base UI takes its lock on a zero timeout after the menu opens.
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(locked()).toBe(false);
+      await userEvent.click(move("Move down"));
+      await menuClosed();
+    });
+
     it("moves a row to the top and to the bottom, and disables the moves that cannot apply", async () => {
       const onReorder = vi.fn();
       const element = await render(list({ onReorder }));

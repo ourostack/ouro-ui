@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, CODE_SHEETS_TWO, FINDS, MUSEUM, PLANNING, ROUTE, SPECIMENS, START_ROUTE } from "../src/voyage/chapters/chapter-two-copy";
 import { arrivals, routeLeagues, SHORTEST, writeDay, writeLeagues } from "../src/voyage/chapters/route";
 import { diagnostics } from "./diagnostics";
@@ -69,7 +69,10 @@ test.describe("each control in Chapter II", () => {
     // The days beside the ports follow the new order.
     const firstDay = room(page).locator("[data-chapter-control='ports'] [data-chapter-day]").first();
     await expect(firstDay).toHaveText(CHART_ROOM.sail(writeDay(arrivals(moved, "1867-11-06")[0]!)));
-    // Conseil's shortest way: the counter turns, and the rail ticks the step.
+  });
+
+  test("control: ports, in Conseil's shortest order, turns the counter and ticks the rail", async ({ page }) => {
+    await open(page);
     await planShortest(page);
     await expect(total(page)).toHaveText(writeLeagues(SHORTEST));
     await expect(total(page)).toHaveAttribute("data-shortest", "");
@@ -225,8 +228,9 @@ test("X-ray outlines Chapter II's HX components", async ({ page }) => {
 test("on a phone, the chart room and the catalogue work by touch, and nothing overflows", async ({ browser, browserName }) => {
   // The handle and the Combobox's items cancel pointerdown. WebKit, as Playwright drives it, then
   // raises no click from a tap, though Pointer Events keeps the click: microsoft/playwright#43569.
-  // The registry's own touch specs for both fail in WebKit the same way while that stands.
-  test.fail(browserName === "webkit", "Playwright's WebKit tap raises no click after a cancelled pointerdown (microsoft/playwright#43569)");
+  // So in WebKit those two steps are clicks; every other step, and every check, runs in both. The
+  // registry's own touch specs for both are the canaries that fail in WebKit while that stands.
+  const press = (target: Locator) => (browserName === "webkit" ? target.click() : target.tap());
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
   const errors = diagnostics(page);
@@ -236,7 +240,7 @@ test("on a phone, the chart room and the catalogue work by touch, and nothing ov
   await expect(marker.getByRole("img")).toHaveAccessibleName("0 of 3 done");
   // Conseil's shortest way, by touch: each handle's menu is a sheet on a phone.
   for (const name of ["Crespo Island", "Atlantis", "Vigo Bay", "The Red Sea tunnel", "The South Pole"]) {
-    await page.getByRole("button", { name: new RegExp(`^Reorder ${name}`) }).tap();
+    await press(page.getByRole("button", { name: new RegExp(`^Reorder ${name}`) }));
     const menu = page.getByRole("menu", { name: `Reorder ${name}` });
     await expect(menu).toBeVisible();
     await menu.getByRole("menuitem", { name: "Move to bottom" }).tap();
@@ -250,7 +254,7 @@ test("on a phone, the chart room and the catalogue work by touch, and nothing ov
   await expect.poll(async () => (await marker.boundingBox())!.y).toBeLessThan(80);
   // With a coarse pointer on a narrow screen the Combobox is a button that opens a sheet of the classes.
   await catalogue(page).getByRole("button", { name: CATALOGUE.classify }).or(classify(page)).tap();
-  await page.getByRole("option", { name: "Crustacean", exact: true }).tap();
+  await press(page.getByRole("option", { name: "Crustacean", exact: true }));
   await expect(catalogueCrew(page)).toContainText(CLASSING.right(FINDS[0].name, "Crustacean").text);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);

@@ -78,17 +78,13 @@
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     color: var(--card-foreground);
-    /*
-     * A sharp lift, not the theme's soft shadow: a blurred shadow round a window this size is what
-     * WebKit on Linux spent most of a press's time repainting, each time a menu or a dialog locked
-     * the page's scroll (measured on CI for pull request 153). Chart's shadow is sharp already, and
-     * Abyss keeps its glow. Each window also carries `will-change-transform`, a layer of its own,
-     * so a press inside it repaints the window and not the page under it.
-     */
-    box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
-  }
-  :is([data-theme="chart"], [data-theme="abyss"]) .site-window {
     box-shadow: var(--shadow-sm);
+    /*
+     * Each window also carries `will-change-transform`, a layer of its own: a press inside the
+     * window repaints the window, not its shadow on the page under it. The menus a press opens in
+     * the chapters leave the page's scroll alone (`modal={false}`), so opening one does not make
+     * WebKit repaint every window's shadow (measured on CI for pull request 153).
+     */
   }
   .site-window-bar {
     display: flex;

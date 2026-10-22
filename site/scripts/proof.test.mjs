@@ -80,8 +80,11 @@ test("the install command adds a component the latest release has", () => {
   assert.ok(names.includes(install.item), `${install.item} is not in ${release}'s registry.json`);
   assert.equal(install.count, names.length);
   assert.equal(install.item, PREFERRED_INSTALL.find((name) => names.includes(name)));
-  // The same answer as git itself gives.
-  assert.equal(registryAt(release), execFileSync("git", ["show", `${release}:registry.json`], { encoding: "utf8" }));
+  // The same answer as git itself gives at that tag, or, on the release commit for it, whose tag CI
+  // there runs before, the commit's own registry.json, released at that version.
+  const own = read("registry.json");
+  const expected = `v${JSON.parse(own).version}` === release ? own : execFileSync("git", ["show", `${release}:registry.json`], { encoding: "utf8" });
+  assert.equal(registryAt(release), expected);
 });
 
 /**

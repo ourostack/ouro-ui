@@ -4,8 +4,9 @@
  * First, the drawings' colours. The squid's skin is Verne's "livid grey to reddish brown", mixed
  * from the theme, so each preset repaints it. They come with the island, not in the page's
  * stylesheet, which keeps the first load's CSS within its budget (catalog.spec.ts); chapters.css
- * holds the drawings' sizes and what starts hidden, and before this arrives the squid and the
- * organ are line drawings (their roots draw no fill).
+ * holds the drawings' sizes and what starts hidden. Before this arrives the porthole shows its sea,
+ * its brass ring and bolts (their colours are in the server HTML), and the squid and the organ are
+ * line drawings (their roots draw no fill).
  *
  * Then the motion:
  * the squid's arm stirs at the glass a few times, then it sinks back into the deep behind its ink when the fight
@@ -14,18 +15,11 @@
  * the ink fade, the notes appear in place.
  */
 .site-porthole {
-  --ph-sea: color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250));
   --sq-skin: color-mix(in oklab, var(--destructive) 50%, oklch(0.58 0.05 25));
   --sq-line: color-mix(in oklab, white 72%, var(--sq-skin));
 }
-.site-porthole .ph-sea {
-  fill: var(--ph-sea);
-}
 .site-porthole .ph-sky rect {
   fill: color-mix(in oklab, var(--primary) 28%, oklch(0.93 0.02 230));
-}
-.site-porthole .ph-wave {
-  fill: var(--ph-sea);
 }
 .site-porthole .ph-squid {
   color: var(--sq-line);
@@ -46,17 +40,6 @@
 }
 .site-porthole .sq-eye {
   fill: color-mix(in oklab, var(--success) 70%, white);
-}
-.site-porthole .ph-ring {
-  fill: none;
-  stroke: var(--chart-3);
-  stroke-width: 18;
-  paint-order: stroke;
-}
-.site-porthole .ph-bolt {
-  fill: color-mix(in oklab, var(--chart-3) 55%, var(--background));
-  stroke: color-mix(in oklab, var(--chart-3) 40%, var(--foreground));
-  stroke-width: 1.2;
 }
 .site-organ {
   color: color-mix(in oklab, var(--primary) 65%, var(--foreground));
@@ -100,17 +83,19 @@
     transform-origin: 90% 10%;
     animation: sq-stir 2.6s ease-in-out 3;
   }
-  /* Beaten, it sinks back to the deep it came from: small and faint, far below the glass. */
+  /*
+   * Beaten, it sinks back to the deep it came from: small and faint, far below the glass. The squid
+   * is a drawing on a layer of its own (chapter-three.tsx), so it moves without repainting the sea
+   * or the menu that gave the order, which closes as it goes.
+   */
   .site-porthole .ph-squid {
-    transform-box: view-box;
-    transform-origin: 200px 200px;
     transition:
       opacity 1.4s ease 0.3s,
       translate 1.6s var(--ouro-ease-in-out),
       scale 1.6s var(--ouro-ease-in-out);
   }
   .site-porthole[data-squid="gone"] .ph-squid {
-    translate: -100px 130px;
+    translate: -25% 32.5%;
     scale: 0.35;
     opacity: 0.3;
   }

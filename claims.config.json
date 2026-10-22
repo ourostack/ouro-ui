@@ -32,6 +32,11 @@
       "reason": "a scored run's record, written by the agent-usability harness"
     },
     {
+      "match": "^site/e2e/latency-evidence/",
+      "mode": "evidence",
+      "reason": "a latency run's record: the lines the latency spec printed on CI's runners, kept as a pull request's evidence"
+    },
+    {
       "match": "^scripts/agent-usability/(screens|arms)/",
       "mode": "input",
       "reason": "what the benchmark gives each agent, frozen with its cohort"

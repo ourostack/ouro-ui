@@ -186,53 +186,77 @@ const BOLTS = Array.from({ length: 12 }, (_, index) => {
 /** The sea's surface across the porthole, when we are up: a line of gentle waves. */
 const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 + 20} ${index % 2 ? 158 : 142} ${index * 40 + 40} 150`).join(" ")} V164 H0 Z`;
 
-/** The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface. */
+/** The sea behind the glass, and its surface when we are up. */
+const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
+
+/**
+ * The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface.
+ * Three drawings stacked: the sea behind, the squid, the glass and its brass ring in front. The squid
+ * is a drawing of its own on a layer of its own (`will-change-transform`), clipped to the glass, so
+ * it sinks without repainting the sea or the menu that gave the order. The sea, the ring and its
+ * bolts carry their colours in the server HTML; the rest comes with the island (chapter-three.css).
+ */
 function Porthole(): JSX.Element {
   const fight = useFight();
   // The picture follows the order once its press has painted: the menu closing, the dialog going.
   const { surfaced, lights, won } = useAfterPaint(useMemo(() => ({ surfaced: fight.surfaced, lights: fight.lights, won: fight.won }), [fight.surfaced, fight.lights, fight.won]));
   return (
-    <svg
+    <div
       className="site-porthole"
-      viewBox="0 0 400 400"
-      fill="none"
       role="img"
       aria-label={`${ENCOUNTER.scene}. ${describeEncounter({ surfaced, lights, won })}`}
       data-surfaced={surfaced ? "" : undefined}
       data-lights={lights ? "" : undefined}
       data-squid={won ? "gone" : "holding"}
     >
-      <defs>
-        <clipPath id="porthole-glass">
-          <circle cx="200" cy="200" r="176" />
-        </clipPath>
-        <radialGradient id="porthole-beam" cx="0.32" cy="0.4" r="0.65">
-          <stop offset="0" className="ph-beam-core" />
-          <stop offset="1" className="ph-beam-edge" />
-        </radialGradient>
-      </defs>
-      <g clipPath="url(#porthole-glass)">
-        <rect className="ph-sea" width="400" height="400" />
-        <g className="ph-sky">
-          <rect width="400" height="150" />
-          <circle className="ph-sun" cx="292" cy="84" r="20" />
-          <path className="ph-wave" d={WAVE} />
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
+        <defs>
+          <clipPath id="porthole-glass">
+            <circle cx="200" cy="200" r="176" />
+          </clipPath>
+          <radialGradient id="porthole-beam" cx="0.32" cy="0.4" r="0.65">
+            <stop offset="0" className="ph-beam-core" />
+            <stop offset="1" className="ph-beam-edge" />
+          </radialGradient>
+        </defs>
+        <g clipPath="url(#porthole-glass)">
+          <rect className="ph-sea" width="400" height="400" style={{ fill: SEA }} />
+          <g className="ph-sky">
+            <rect width="400" height="150" />
+            <circle className="ph-sun" cx="292" cy="84" r="20" />
+            <path className="ph-wave" d={WAVE} style={{ fill: SEA }} />
+          </g>
+          <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" />
         </g>
-        <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" />
-        <g className="ph-squid" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: squid.inner }} />
+      </svg>
+      <div className="absolute inset-0 [clip-path:circle(44%)]">
+        <svg
+          viewBox="0 0 400 400"
+          aria-hidden="true"
+          className="ph-squid absolute inset-0 size-full will-change-transform"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          dangerouslySetInnerHTML={{ __html: squid.inner }}
+        />
+      </div>
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
         <g className="ph-bubbles" fill="white" fillOpacity={0.45}>
           <circle cx="90" cy="320" r="4" />
           <circle cx="110" cy="290" r="2.5" />
           <circle cx="300" cy="330" r="3.5" />
           <circle cx="320" cy="300" r="2" />
         </g>
-      </g>
-      <circle className="ph-glass" cx="200" cy="200" r="176" fill="none" stroke="white" strokeOpacity={0.3} strokeWidth={3} />
-      <circle className="ph-ring" cx="200" cy="200" r="186" />
-      {BOLTS.map((bolt, index) => (
-        <circle key={index} className="ph-bolt" cx={bolt.x} cy={bolt.y} r="4.5" />
-      ))}
-    </svg>
+        <circle className="ph-glass" cx="200" cy="200" r="176" stroke="white" strokeOpacity={0.3} strokeWidth={3} />
+        <circle className="ph-ring" cx="200" cy="200" r="186" style={{ stroke: "var(--chart-3)", strokeWidth: "18" }} />
+        <g className="ph-bolts" style={{ fill: "color-mix(in oklab, var(--chart-3) 55%, var(--background))", stroke: "color-mix(in oklab, var(--chart-3) 40%, var(--foreground))", strokeWidth: "1.2" }}>
+          {BOLTS.map((bolt, index) => (
+            <circle key={index} cx={bolt.x} cy={bolt.y} r="4.5" />
+          ))}
+        </g>
+      </svg>
+    </div>
   );
 }
 
@@ -285,6 +309,8 @@ function Encounter(): JSX.Element {
           </span>
           <span data-chapter-control="orders">
             <Menu
+              // Not holding the page spares WebKit a layout and repaint of the whole voyage on each open and close.
+              modal={false}
               trigger={
                 <Button variant="outline" tone="secondary">
                   {ENCOUNTER.orders}
