@@ -103,6 +103,15 @@ jobs:
           done
           # shellcheck disable=SC2086 # one argument per run
           scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require"; exit 1; }
+          # install-github, the install a user runs today (`shadcn add` from main), runs only in main's
+          # own CI run (a push, or a dispatch on main), and the rules cannot require it: the queue's
+          # run skips it. So when main has its own run on this commit, the newest must have passed it.
+          own=$(gh run list --workflow ci.yml --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select(.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch"))][0].databaseId // empty')
+          if [ -n "$own" ]; then
+            jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$own/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || { echo "::error::Could not read the jobs of run $own."; exit 1; }
+            github=$(awk -F '\t' '$1 == "install-github" { print $2; exit }' <<<"$jobs")
+            [ "$github" = success ] || { echo "::error::install-github is '${github:-not in the run}' in main's own CI run $own ($sha), not success: the install a user runs today must pass before a release."; exit 1; }
+          fi
           # A rehearsal of this version on this commit (release-rehearsal.yml) ran the full CI and the
           # screen-reader lane on the release commit as this run will write it, so a check that fails
           # only on a release commit stops there, before anything is cut.
