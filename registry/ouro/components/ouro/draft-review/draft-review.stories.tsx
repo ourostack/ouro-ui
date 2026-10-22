@@ -73,6 +73,7 @@ type Story = StoryObj<typeof meta>;
 
 /** Try every prop. */
 export const Playground: Story = {
+  parameters: { screenshot: { name: "draft-review" } },
   render: (args) => (
     <Surface>
       <DraftReview {...args} />

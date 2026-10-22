@@ -102,8 +102,8 @@ export type DraftReviewProps = Omit<HTMLAttributes<HTMLElement>, keyof DraftRevi
 
 /** The decisions DraftReview keeps: see `DraftReview`. */
 interface Decisions {
-  /** The decided changes not yet gone, mapped to whether their save is pending. */
-  ids: ReadonlyMap<string, boolean>;
+  /** The decided changes not yet gone, mapped to the press whose save is pending, or to null. */
+  ids: ReadonlyMap<string, object | null>;
   /** The changes a bulk press decided, and whether its save is pending. */
   bulk: { ids: readonly string[]; pending: boolean } | null;
   /** The `changes` these were last checked against. */
@@ -125,10 +125,11 @@ const agentInsertClass = "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,t
  * Screen readers hear each change's number and whether it adds or removes text, and each
  * button names its change ("Accept, Change 2"). Accepting and rejecting are a person's
  * decisions: the callbacks receive the click event so the app can check it came from a
- * person, and an agent does not call them. A change is decided once: its buttons, and the bulk
- * ones after a bulk press, say they are unavailable (`aria-disabled`) and ignore presses until
- * the change leaves `changes`, or until the app keeps it (renders it again with no save of it
- * pending: return the save's promise from the callback). When a decided change leaves the
+ * person, and an agent does not call them. A change is decided once: its buttons say they are
+ * unavailable (`aria-disabled`) and ignore presses until the change leaves `changes`, or until
+ * the app keeps it (renders it again with no save of it pending: return the save's promise from
+ * the callback). The bulk buttons do the same while one change is decided, and the changes'
+ * buttons after a bulk press. When a decided change leaves the
  * list, focus moves to the change now in its place. With no changes it renders nothing, and
  * focus moves to the next control after it; move it elsewhere, such as the draft, if you prefer.
  *
@@ -143,6 +144,7 @@ const agentInsertClass = "rounded-xs bg-[color-mix(in_oklab,var(--primary)_16%,t
  * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > tints an agent's added text and leaves a person's underlined only)
  * @claim "It shows the draft with each" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > says who made each change, marking an agent's, with when and what it was based on)
  * @claim "Accepting and rejecting are a person's" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
+ * @claim "The bulk buttons do the same while" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > keeps Accept all and Reject all from a change whose save is pending)
  * @claim "A change is decided once" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > decides a change once, however often or however it is pressed) verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > decides every change once with Accept all or Reject all) verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > keeps a change decided while its save is pending, and focus on the list once it leaves)
  * @claim "Screen readers hear each change's number" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > numbers each change and tells screen readers whether it adds or removes text)
  * @claim "each button names its change" registry/ouro/components/ouro/draft-review/draft-review.test.tsx verify:testExists(registry/ouro/components/ouro/draft-review/draft-review.test.tsx::DraftReview > accepts and rejects one change, with buttons named by their change and the click event)
@@ -223,7 +225,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
   if (stored.changes !== changes) {
     const present = new Set(changes.map((change) => change.id));
     const bulk = stored.bulk?.pending && stored.bulk.ids.some((key) => present.has(key)) ? stored.bulk : null;
-    decisions = { ids: new Map([...stored.ids].filter(([key, pending]) => pending && present.has(key))), bulk, changes };
+    decisions = { ids: new Map([...stored.ids].filter(([key, press]) => press !== null && present.has(key))), bulk, changes };
     // Stryker disable next-line CallExpression: this render reads `decisions` either way; storing them only spares later renders the same filtering.
     setDecisions(decisions);
   }
@@ -249,6 +251,14 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
     const rows = list.current.querySelectorAll<HTMLButtonElement>(":scope > li [data-ouro-part='accept']");
     rows[Math.min(at.index, rows.length - 1)]!.focus();
   }, [changes]);
+  // The changes whose save settled since the last render. A change the app still shows after
+  // that render was kept, so focus no longer waits for it to leave.
+  const settled = useRef(new Set<string>());
+  useLayoutEffect(() => {
+    const at = focusAt.current;
+    if (at !== null && settled.current.has(at.id) && changes.some((change) => change.id === at.id)) focusAt.current = null;
+    settled.current.clear();
+  });
   const record = (next: Decisions) => {
     live.current = next;
     setDecisions(next);
@@ -256,22 +266,27 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
   const decide = (change: DraftChange, index: number, event: MouseEvent<HTMLElement>, callback: typeof onAccept) => {
     if (live.current.ids.has(change.id) || live.current.bulk) return;
     if (event.currentTarget === document.activeElement) focusAt.current = { id: change.id, index };
-    const ids = new Map(live.current.ids).set(change.id, false);
-    record({ ...live.current, ids });
+    record({ ...live.current, ids: new Map(live.current.ids).set(change.id, null) });
     const result = callback(change.id, event);
     if (!isPromise(result)) return;
-    record({ ...live.current, ids: new Map(live.current.ids).set(change.id, true) });
-    // Settled, the change is no longer decided: if the app kept it, it can be decided again.
-    const done = () =>
+    const press = {};
+    record({ ...live.current, ids: new Map(live.current.ids).set(change.id, press) });
+    // Settled, this press's decision ends: if the app kept the change, it can be decided again,
+    // and focus no longer waits for it to leave (decided after the render the settling joins).
+    const done = () => {
+      if (live.current.ids.get(change.id) === press) settled.current.add(change.id);
       setDecisions((current) => {
+        if (current.ids.get(change.id) !== press) return current;
         const ids = new Map(current.ids);
         ids.delete(change.id);
         return { ...current, ids };
       });
+    };
     result.then(done, done);
   };
   const decideAll = (event: MouseEvent<HTMLElement>, callback: NonNullable<typeof onAcceptAll>) => {
-    if (live.current.bulk) return;
+    // Not while a bulk press, or a single change's decision, is still being saved.
+    if (live.current.bulk || live.current.ids.size > 0) return;
     const press = { ids: changes.map((change) => change.id), pending: false };
     record({ ...live.current, bulk: press });
     const result = callback(event);
@@ -305,7 +320,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
                 variant="soft"
                 data-ouro-control="draft-review"
                 data-ouro-part="accept-all"
-                aria-disabled={decisions.bulk ? true : undefined}
+                aria-disabled={decisions.bulk || decisions.ids.size > 0 ? true : undefined}
                 onClick={(event) => decideAll(event, onAcceptAll)}
               >
                 {acceptAllLabel}
@@ -318,7 +333,7 @@ export function DraftReview(props: DraftReviewProps): JSX.Element | null {
                 tone="destructive"
                 data-ouro-control="draft-review"
                 data-ouro-part="reject-all"
-                aria-disabled={decisions.bulk ? true : undefined}
+                aria-disabled={decisions.bulk || decisions.ids.size > 0 ? true : undefined}
                 onClick={(event) => decideAll(event, onRejectAll)}
               >
                 {rejectAllLabel}

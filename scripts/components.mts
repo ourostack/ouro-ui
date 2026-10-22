@@ -29,9 +29,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { componentsDir } from "./components-dir.mts";
 import { MOTION_KINDS, STATE_ATTRIBUTES } from "./motion-states.mts";
 
-export const componentsDir = "registry/ouro/components/ouro/";
+export { componentsDir };
 export const MANIFEST = "component.json";
 
 export interface Component {

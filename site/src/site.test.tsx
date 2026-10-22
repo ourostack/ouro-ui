@@ -3,7 +3,9 @@ import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
-import { docsItems, itemMarkdown, summary } from "./docs/items";
+import { loadMarkdown, markdown } from "./docs/content";
+import { itemDetails } from "./docs/item-details";
+import { docsItems, GITHUB, itemMarkdown, summary } from "./docs/items";
 import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
@@ -132,6 +134,35 @@ describe("docs", () => {
     expect(host.querySelector("a a")).toBeNull();
     const comparison = host.querySelector<HTMLAnchorElement>('section[aria-labelledby="group-guides"] a[href$="/docs/why-no-skill-settings-form/"]');
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
+  });
+
+  it("gives each item its own summary and source file, by name", () => {
+    const item = (name: string) => docsItems.find((each) => each.name === name)!;
+    expect(itemDetails(item("toaster"))).toEqual({
+      source: "registry/ouro/components/ouro/toast/toaster.tsx",
+      summary: "Shows the toasts you send with `toast(\"Saved\")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone.",
+    });
+    expect(itemDetails(item("draft-review"))).toEqual({ source: "registry/ouro/components/ouro/draft-review/draft-review.tsx", summary: "A shared draft's changes, to review one by one." });
+    // Every item's source is a file its registry item installs, named for it.
+    for (const each of docsItems) {
+      const { source } = itemDetails(each);
+      expect(registry.items.find((entry) => entry.name === each.name)!.files!.map((file) => file.path), each.name).toContain(source);
+      expect(source.endsWith(`/${each.name}.tsx`), each.name).toBe(true);
+    }
+  });
+
+  it("shows each item's own summary on its docs index card", async () => {
+    const host = await renderPage("/docs/");
+    await loadMarkdown(docsItems.map((item) => `docs/${item.title}.md`));
+    for (const item of docsItems) {
+      const card = host.querySelector<HTMLAnchorElement>(`section[aria-labelledby^="group-"] a[href$="/docs/${item.name}/"]`)!;
+      expect(card.lastElementChild!.textContent, item.name).toBe(summary(markdown(`docs/${item.title}.md`)).replace(/`/g, ""));
+    }
+  });
+
+  it("links an item page's Source on GitHub to its own file", async () => {
+    await renderPage("/docs/toaster/");
+    await expect.element(page.getByRole("link", { name: "Source on GitHub" })).toHaveAttribute("href", `${GITHUB}/blob/main/registry/ouro/components/ouro/toast/toaster.tsx`);
   });
 
   it("has a page for every registry item at docs/<name>", () => {

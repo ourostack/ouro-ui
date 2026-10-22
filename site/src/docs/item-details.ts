@@ -1,3 +1,4 @@
+import { componentsDir } from "../../../scripts/components-dir.mts";
 import details from "./item-details.json";
 import { docsItems, type DocsItem } from "./items";
 
@@ -11,10 +12,10 @@ export interface DocsItemDetails {
 
 /**
  * An item's source file and summary, from site/src/docs/item-details.json, which `pnpm run docs`
- * writes beside the catalog, in its order. Only the docs import it, so the landing page loads no
- * summaries.
+ * writes beside the catalog, in its order (folder and stem under `componentsDir`, and the
+ * summary). Only the docs import it, so the landing page loads no summaries.
  */
 export function itemDetails(item: DocsItem): DocsItemDetails {
   const [path, summary] = (details as Array<[string, string]>)[docsItems.findIndex((each) => each.name === item.name)]!;
-  return { source: `registry/ouro/components/ouro/${path}.tsx`, summary };
+  return { source: `${componentsDir}${path}.tsx`, summary };
 }

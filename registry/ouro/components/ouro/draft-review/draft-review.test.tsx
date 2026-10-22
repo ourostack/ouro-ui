@@ -212,6 +212,78 @@ describe("DraftReview", () => {
     expect(review!.querySelectorAll("[aria-disabled='true']")).toHaveLength(0);
   });
 
+  it("keeps Accept all and Reject all from a change whose save is pending", async () => {
+    let finish!: () => void;
+    const onAccept = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const onAcceptAll = vi.fn();
+    const onRejectAll = vi.fn();
+    const { review } = await render(<DraftReview {...base} onAccept={onAccept} onAcceptAll={onAcceptAll} onRejectAll={onRejectAll} />);
+    await userEvent.click(page.getByRole("button", { name: "Accept, Change 1" }));
+    const bulk = [...review!.querySelectorAll<HTMLButtonElement>("[data-ouro-part='accept-all'], [data-ouro-part='reject-all']")];
+    expect(bulk.map((button) => button.getAttribute("aria-disabled"))).toEqual(["true", "true"]);
+    // Forced: Playwright waits for a button to be enabled, and these say they are not.
+    await userEvent.click(page.getByRole("button", { name: "Reject all" }), { force: true });
+    await userEvent.click(page.getByRole("button", { name: "Accept all" }), { force: true });
+    expect(onRejectAll).not.toHaveBeenCalled();
+    expect(onAcceptAll).not.toHaveBeenCalled();
+    // The save failed and the app kept the change: the bulk buttons are back.
+    await act(async () => finish());
+    expect(bulk.map((button) => button.hasAttribute("aria-disabled"))).toEqual([false, false]);
+    await userEvent.click(page.getByRole("button", { name: "Reject all" }));
+    expect(onRejectAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends only the decision a settling save belongs to", async () => {
+    const saves: Array<() => void> = [];
+    const onAccept = vi.fn(() => new Promise<void>((resolve) => saves.push(resolve)));
+    const { review, rerender } = await render(<DraftReview {...base} onAccept={onAccept} />);
+    const accept = () => review!.querySelector<HTMLButtonElement>("li [data-ouro-part='accept']")!;
+    await userEvent.click(page.getByRole("button", { name: "Accept, Change 1" }));
+    // The change leaves, comes back, and the person accepts it again.
+    await rerender(<DraftReview {...base} changes={changes.slice(1)} onAccept={onAccept} />);
+    await rerender(<DraftReview {...base} changes={[...changes]} onAccept={onAccept} />);
+    expect(accept().hasAttribute("aria-disabled")).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Accept, Change 1" }));
+    expect(onAccept).toHaveBeenCalledTimes(2);
+    // The first save settles: the second decision stands.
+    await act(async () => saves[0]!());
+    expect(accept().getAttribute("aria-disabled")).toBe("true");
+    await act(async () => saves[1]!());
+    expect(accept().hasAttribute("aria-disabled")).toBe(false);
+  });
+
+  it("moves focus on when a save removes its change as it settles, and not once the app has kept it", async () => {
+    function Saving() {
+      const [left, setLeft] = useState(changes);
+      const save = async (id: string) => {
+        await Promise.resolve();
+        setLeft((current) => current.filter((change) => change.id !== id));
+      };
+      return (
+        <>
+          <DraftReview segments={segments} changes={left} onAccept={save} onReject={() => Promise.reject(new Error("offline"))} />
+          {/* The app removes the first change on its own, such as when another device accepted it. */}
+          <button type="button" hidden data-remove-first="" onClick={() => setLeft((current) => current.slice(1))} />
+        </>
+      );
+    }
+    const { review } = await render(<Saving />);
+    const accept = (n: number) => review!.querySelectorAll<HTMLButtonElement>("li [data-ouro-part='accept']")[n]!;
+    await act(async () => accept(1).focus());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => review!.querySelectorAll("li").length).toBe(2);
+    expect(document.activeElement).toBe(accept(1));
+    // A failed save keeps the change: once it has, focus does not jump to it when it leaves later.
+    const reject = review!.querySelectorAll<HTMLButtonElement>("li [data-ouro-part='reject']")[0]!;
+    await act(async () => reject.focus());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => reject.hasAttribute("aria-disabled")).toBe(false);
+    await act(async () => reject.blur());
+    await act(async () => document.querySelector<HTMLButtonElement>("[data-remove-first]")!.click());
+    expect(review!.querySelectorAll("li")).toHaveLength(1);
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("keeps a bulk press decided while some of its changes remain, and through a newer press", async () => {
     const saves: Array<() => void> = [];
     const onAcceptAll = vi.fn(() => new Promise<void>((resolve) => saves.push(resolve)));
