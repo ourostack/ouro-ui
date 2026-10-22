@@ -125,14 +125,23 @@ describe("the hero", () => {
     await expect.poll(() => tip()?.textContent).toBe(first!.where);
   });
 
-  it("keeps a proof link's keyboard focus while the Tooltip's code loads, then shows where it goes", async () => {
+  it("keeps a proof link, and its keyboard focus, as the Tooltip's code loads; the link shows where it goes from its next focus", async () => {
     await renderPage("/voyage/");
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
     const link = page.getByRole("link", { name: proof.claims[0]!.text, exact: true });
-    expect(document.querySelector('[data-ouro="tooltip"]')).toBeNull();
-    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the link keeps focus.
+    const element = link.element();
     await pressTab();
-    (link.element() as HTMLElement).focus();
-    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(proof.claims[0]!.where);
+    expect(document.querySelector("[data-site-proof-tips]")).toBeNull();
+    // Keyboard focus, straight onto the link: the Tooltip's code loads, and the same link keeps focus.
+    (element as HTMLElement).focus();
+    await expect.poll(() => document.querySelector("[data-site-proof-tips]")).not.toBeNull();
+    expect(link.element()).toBe(element);
+    expect(document.activeElement).toBe(element);
+    // The next link shows its Tooltip on focus, and so does this one when focus comes back to it.
+    await pressTab();
+    await expect.poll(() => tip()?.textContent).toBe(proof.claims[1]!.where);
+    await pressTab({ shift: true });
+    await expect.poll(() => tip()?.textContent).toBe(proof.claims[0]!.where);
     expect(document.activeElement?.textContent).toBe(proof.claims[0]!.text);
   });
 

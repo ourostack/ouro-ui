@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useLayoutEffect, useRef, useState, type JSX } from "react";
+import { Suspense, useEffect, useRef, useState, type JSX, type ReactElement } from "react";
 import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -119,24 +119,40 @@ function CheckIcon(): JSX.Element {
 }
 
 /**
+ * A proof link's Tooltip once its code has come, and the bare link until then: the same element in
+ * the row either way. Under the Tooltip the link is a new element, so a link that has focus as the
+ * code comes stays bare, and keeps that focus, until it loses it.
+ */
+function Tip({ Tooltip, held, content, children }: { Tooltip: typeof TooltipComponent | null; held: boolean; content: string; children: ReactElement }): JSX.Element {
+  return Tooltip && !held ? (
+    <Tooltip content={content} side="bottom" align="start">
+      {children}
+    </Tooltip>
+  ) : (
+    children
+  );
+}
+
+/**
  * The proof: each claim, computed from the repository, links to where you can check it, and says
  * where that is on hover and focus (HX Tooltip; Escape closes it) and to screen readers (the link's
  * description). The Tooltip's code is not in the page's first load: it comes once the pointer or
- * focus is in the hero, on its way to a link, and a link that has focus by then keeps it.
+ * focus is in the hero, on its way to a link.
  */
 function Proof(): JSX.Element {
   const list = useRef<HTMLUListElement>(null);
-  const refocus = useRef(-1);
-  const [Tip, setTip] = useState<typeof TooltipComponent | null>(null);
+  const [Tooltip, setTooltip] = useState<typeof TooltipComponent | null>(null);
+  // The link that had focus when the Tooltip's code came: it stays bare until it loses focus.
+  const [held, setHeld] = useState(-1);
   useEffect(() => {
     const listening = new AbortController();
     const load = () => {
       listening.abort();
-      void import("@/registry/ouro/components/ouro/tooltip/tooltip").then(({ Tooltip }) => {
+      void import("@/registry/ouro/components/ouro/tooltip/tooltip").then((module) => {
         // Gone already: the hero left the page before the code came.
         if (!list.current) return;
-        refocus.current = [...list.current.querySelectorAll("a")].indexOf(document.activeElement as HTMLAnchorElement);
-        setTip(() => Tooltip);
+        setHeld([...list.current.querySelectorAll("a")].indexOf(document.activeElement as HTMLAnchorElement));
+        setTooltip(() => module.Tooltip);
       });
     };
     const hero = list.current!.closest("section")!;
@@ -144,33 +160,21 @@ function Proof(): JSX.Element {
     hero.addEventListener("focusin", load, listening);
     return () => listening.abort();
   }, []);
-  useLayoutEffect(() => {
-    if (Tip) list.current!.querySelectorAll("a")[refocus.current]?.focus();
-  }, [Tip]);
   return (
-    <ul ref={list} className="site-proof" aria-label="What we test" data-site-proof="" data-site-proof-tips={Tip ? "" : undefined}>
-      {proof.claims.map((claim, index) => {
-        const link = (
-          <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`}>
-            {claim.text}
-          </Link>
-        );
-        return (
-          <li key={claim.text}>
-            <CheckIcon />
-            {Tip ? (
-              <Tip content={claim.where} side="bottom" align="start">
-                {link}
-              </Tip>
-            ) : (
-              link
-            )}
-            <span className="site-proof-where" id={`site-proof-where-${index}`}>
-              {claim.where}
-            </span>
-          </li>
-        );
-      })}
+    <ul ref={list} className="site-proof" aria-label="What we test" data-site-proof="" data-site-proof-tips={Tooltip ? "" : undefined}>
+      {proof.claims.map((claim, index) => (
+        <li key={claim.text}>
+          <CheckIcon />
+          <Tip Tooltip={Tooltip} held={index === held} content={claim.where}>
+            <Link href={claim.href} tone="secondary" inline aria-describedby={`site-proof-where-${index}`} onBlur={index === held ? () => setHeld(-1) : undefined}>
+              {claim.text}
+            </Link>
+          </Tip>
+          <span className="site-proof-where" id={`site-proof-where-${index}`}>
+            {claim.where}
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }
