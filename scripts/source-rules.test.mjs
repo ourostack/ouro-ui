@@ -8,7 +8,7 @@ import { compile } from "tailwindcss";
 import postcss from "postcss";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, testNames, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, physicalAllowed, physicalUtilities, testNames, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -431,4 +431,58 @@ test("every shadow reads the theme: shadcn's --shadow-* tokens or --ouro-shadow-
   );
   const offenders = runtime.map(read).flatMap(({ path, text }) => fixedShadows(text).map((token) => `${path}: ${token}`));
   assert.deepEqual(offenders, [], "Write shadow-(--shadow-lg), so a theme's --shadow-lg applies; a sheet reads --ouro-shadow-sheet-<side>.");
+});
+
+test("physicalUtilities finds a class on a physical side, after its variants, and leaves logical sides, words and allowed classes", () => {
+  const source = [
+    'const a = "ml-2 pr-[env(safe-area-inset-right)] -left-1/2 sm:right-0 data-[side=x]:border-l rounded-tr-xl text-left float-right !pl-4";',
+    'const b = `ms-2 pe-4 start-0 end-0 border-s rounded-e-xl text-start border-r-border ${x} right-click scroll-mr-2`;',
+    'const c = "left right border-ring rounded-lg text-lefty";',
+  ].join("\n");
+  assert.deepEqual(physicalUtilities("x.ts", source, {}), [
+    "1: ml-2",
+    "1: pr-[env(safe-area-inset-right)]",
+    "1: -left-1/2",
+    "1: sm:right-0",
+    "1: data-[side=x]:border-l",
+    "1: rounded-tr-xl",
+    "1: text-left",
+    "1: float-right",
+    "1: !pl-4",
+    "2: border-r-border",
+    "2: scroll-mr-2",
+  ]);
+  assert.deepEqual(physicalUtilities("x.ts", 'const a = "ml-2 left-1/2";', { "left-1/2": "centred" }), ["1: ml-2"]);
+});
+
+test("physicalUtilities finds a horizontal translate, a transform origin, a background or object position on a side, unless the same classes reverse it for right to left", () => {
+  const source = [
+    'const a = "translate-x-2 -translate-x-full data-open:translate-x-0 origin-left origin-top-right bg-left object-right-bottom bg-right-top";',
+    'const b = "-translate-x-[calc(100%-var(--p))] rtl:translate-x-[calc(100%-var(--p))] origin-left rtl:origin-right object-left ltr:object-left rtl:object-right";',
+    'const c = "translate-y-2 origin-center origin-top bg-center object-cover object-top bg-local translate-x";',
+  ].join("\n");
+  assert.deepEqual(physicalUtilities("x.ts", source, {}), [
+    "1: translate-x-2",
+    "1: -translate-x-full",
+    "1: data-open:translate-x-0",
+    "1: origin-left",
+    "1: origin-top-right",
+    "1: bg-left",
+    "1: object-right-bottom",
+    "1: bg-right-top",
+  ]);
+});
+
+test("no component places, pads, borders or rounds a part by a physical side unless physicalAllowed says why, and every allowance is still used", () => {
+  const runtime = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  const offenders = runtime.map(read).flatMap(({ path, text }) => physicalUtilities(path, text).map((found) => `${path}:${found}`));
+  assert.deepEqual(offenders, [], "Use the logical side, which follows the text in a right-to-left page: start-*/end-*, ms-*/me-*, ps-*/pe-*, border-s/border-e, rounded-s/rounded-e (rounded-ss/se/es/ee), text-start/text-end. A class that must follow the screen goes in physicalAllowed (scripts/source-rules.mjs) with its reason.");
+  for (const [path, allowed] of Object.entries(physicalAllowed)) {
+    for (const [token, reason] of Object.entries(allowed)) {
+      assert.ok(reason.length > 0, `${path}: ${token} needs a reason`);
+      assert.ok(physicalUtilities(path, read(path).text, {}).some((found) => found.endsWith(`: ${token}`)), `${path} no longer uses ${token}: remove it from physicalAllowed`);
+    }
+  }
 });
