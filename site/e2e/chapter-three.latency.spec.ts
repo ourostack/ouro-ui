@@ -69,17 +69,17 @@ const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; befo
  * samples). Re-measure and update a control's line when a change makes it faster or knowingly slower.
  */
 const BASELINE_MEDIAN: Record<(typeof CHAPTER_THREE_CONTROLS)[number], number> = {
-  "encounter-code": 72,
-  alarm: 72,
-  orders: 48,
-  palette: 72,
-  axes: 64,
-  surface: 64,
-  "saloon-code": 72,
-  organ: 48,
+  "encounter-code": 48,
+  alarm: 48,
+  orders: 64,
+  palette: 48,
+  axes: 40,
+  surface: 40,
+  "saloon-code": 48,
+  organ: 64,
   install: 24,
   components: 24,
-  again: 48,
+  again: 56,
 };
 
 function presses(page: Page, id: (typeof CHAPTER_THREE_CONTROLS)[number]): Presses {

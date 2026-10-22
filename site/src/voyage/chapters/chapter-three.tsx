@@ -1,4 +1,4 @@
-import { createContext, startTransition, use, useEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
+import { createContext, startTransition, use, useDeferredValue, useEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
@@ -60,7 +60,8 @@ const useFight = () => {
 
 /**
  * Runs an order on the fight: what changes, what the crew says, and the toast when the squid lets
- * go or the organ plays. The site's rules; HX only carries the order here (dialog, menu, palette).
+ * go. (The organ's toast comes with the saloon's deferred render, so Play answers at once.) The
+ * site's rules; HX only carries the order here (dialog, menu, palette).
  */
 function giveOrder(store: FightStore, order: Order): void {
   const fight = store.get();
@@ -92,7 +93,6 @@ function giveOrder(store: FightStore, order: Order): void {
       if (!fight.won) say(FIGHT.organHeld);
       else if (!fight.played) {
         say(FIGHT.organ, { played: true });
-        toast(TOASTS.organ, { tone: "success", description: TOASTS.organNote });
       }
       break;
   }
@@ -148,7 +148,7 @@ function useBattle(): Step[] {
 /** The rail beside the chapter: the organ, lit once it plays, and how the fight stands. Left out on a phone. */
 function Battle(): JSX.Element {
   const steps = useBattle();
-  const { played } = useFight();
+  const played = useDeferredValue(useFight().played);
   return (
     <div className="mt-10 hidden lg:block" data-chapter-battle="">
       <OrganArt className="site-organ site-organ-small" played={played} />
@@ -360,12 +360,17 @@ function Encounter(): JSX.Element {
 function Saloon(): JSX.Element {
   const store = useFightStore();
   const { won, played } = useFight();
+  // Play answers at once (the button and its hint); the organ, the stamp, the way on and the toast
+  // follow in a render of their own.
+  const shown = useDeferredValue(played);
   const next = useRef<HTMLDivElement>(null);
   const [rounds, setRounds] = useState(0);
-  // Played: focus goes to the way into the library. Round again: back to the alarm.
+  // Played: the toast, and focus goes to the way into the library. Round again: back to the alarm.
   useEffect(() => {
-    if (played) next.current?.querySelector<HTMLElement>("a")?.focus();
-  }, [played]);
+    if (!shown) return;
+    toast(TOASTS.organ, { tone: "success", description: TOASTS.organNote });
+    next.current?.querySelector<HTMLElement>("a")?.focus();
+  }, [shown]);
   useEffect(() => {
     if (rounds) document.querySelector<HTMLElement>("#chapter-three [data-chapter-control='alarm'] button")?.focus();
   }, [rounds]);
@@ -376,12 +381,12 @@ function Saloon(): JSX.Element {
   return (
     <div className="grid gap-6 p-4 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:items-center sm:p-6">
       <figure className="m-0">
-        <OrganArt className="site-organ" played={played} label={played ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
+        <OrganArt className="site-organ" played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
       </figure>
       <div className="grid content-start gap-5">
-        <div className="site-log grid gap-2" data-chapter-log={played ? "done" : "waiting"}>
+        <div className="site-log grid gap-2" data-chapter-log={shown ? "done" : "waiting"}>
           <p className="site-eyebrow">{SALOON.log}</p>
-          {played ? (
+          {shown ? (
             <>
               <p className="site-stamp m-0" data-chapter-stamp="">
                 {SALOON.stamp}
@@ -402,7 +407,7 @@ function Saloon(): JSX.Element {
             {played ? SALOON.playing : won ? null : SALOON.playHint}
           </span>
         </div>
-        {played ? (
+        {shown ? (
           <div ref={next} className="grid gap-3 border-t border-border/70 pt-5" data-chapter-next="">
             <p className="m-0 font-medium">{SALOON.next}</p>
             <div className="flex flex-wrap gap-3">

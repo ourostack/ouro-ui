@@ -56,15 +56,15 @@ const steps: Record<(typeof CHAPTER_TWO_CONTROLS)[number], { press: Step; before
  * samples). Re-measure and update a control's line when a change makes it faster or knowingly slower.
  */
 const BASELINE_MEDIAN: Record<(typeof CHAPTER_TWO_CONTROLS)[number], number> = {
-  "chart-room-code": 72,
-  ports: 80,
+  "chart-room-code": 64,
+  ports: 72,
   departure: 32,
-  legs: 40,
-  "catalogue-code": 72,
+  legs: 32,
+  "catalogue-code": 64,
   sort: 48,
   filter: 32,
   notes: 24,
-  classify: 40,
+  classify: 64,
   museum: 72,
 };
 
