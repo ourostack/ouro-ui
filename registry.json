@@ -3429,6 +3429,70 @@
       ]
     },
     {
+      "name": "layout-proposal",
+      "type": "registry:ui",
+      "title": "LayoutProposal",
+      "description": "A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards.",
+      "docs": "A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards. Import: import { LayoutProposal } from \"@/components/ouro/layout-proposal/layout-proposal\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/layout-proposal.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/layout-proposal/layout-proposal.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/layout-proposal/layout-proposal.tsx"
+        }
+      ]
+    },
+    {
+      "name": "preset-picker",
+      "type": "registry:ui",
+      "title": "PresetPicker",
+      "description": "Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once.",
+      "docs": "Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once. Import: import { PresetPicker } from \"@/components/ouro/preset-picker/preset-picker\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/preset-picker.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/preset-picker/preset-picker.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/preset-picker/preset-picker.tsx"
+        }
+      ]
+    },
+    {
+      "name": "copy-prompt",
+      "type": "registry:ui",
+      "title": "CopyPrompt",
+      "description": "A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own.",
+      "docs": "A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own. Import: import { CopyPrompt } from \"@/components/ouro/copy-prompt/copy-prompt\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, copy-button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/copy-prompt.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/copy-button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/copy-prompt/copy-prompt.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/copy-prompt/copy-prompt.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -9948,6 +10012,168 @@
       }
     },
     {
+      "name": "layout-proposal-tests",
+      "type": "registry:item",
+      "title": "LayoutProposal tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for layout-proposal, and the tests of everything it installs. Add it beside layout-proposal: add layout-proposal layout-proposal-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "layout-proposal's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/layout-proposal",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/layout-proposal/layout-proposal.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/layout-proposal/layout-proposal.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/layout-proposal/layout-proposal.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/layout-proposal/layout-proposal.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/layout-proposal/layout-proposal.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/layout-proposal/layout-proposal.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/layout-proposal.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/layout-proposal.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "preset-picker-tests",
+      "type": "registry:item",
+      "title": "PresetPicker tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for preset-picker, and the tests of everything it installs. Add it beside preset-picker: add preset-picker preset-picker-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "preset-picker's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/preset-picker"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/preset-picker/preset-picker.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/preset-picker/preset-picker.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/preset-picker/preset-picker.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/preset-picker/preset-picker.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/preset-picker/preset-picker.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/preset-picker/preset-picker.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/preset-picker/preset-picker.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/preset-picker/preset-picker.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/preset-picker.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/preset-picker.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "copy-prompt-tests",
+      "type": "registry:item",
+      "title": "CopyPrompt tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for copy-prompt, and the tests of everything it installs. Add it beside copy-prompt: add copy-prompt copy-prompt-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "copy-prompt's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/copy-button-tests",
+        "ourostack/ouro-ui/copy-prompt",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/copy-prompt/copy-prompt.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-prompt/copy-prompt.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/copy-prompt/copy-prompt.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-prompt/copy-prompt.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/copy-prompt/copy-prompt.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/copy-prompt/copy-prompt.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/copy-prompt.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/copy-prompt.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -10018,6 +10244,7 @@
         "ourostack/ouro-ui/command-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/copy-button-tests",
+        "ourostack/ouro-ui/copy-prompt-tests",
         "ourostack/ouro-ui/date-picker-tests",
         "ourostack/ouro-ui/description-list-tests",
         "ourostack/ouro-ui/dialog-tests",
@@ -10036,6 +10263,7 @@
         "ourostack/ouro-ui/item-group-tests",
         "ourostack/ouro-ui/item-tests",
         "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/layout-proposal-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-claims-tests",
@@ -10076,6 +10304,7 @@
         "ourostack/ouro-ui/page-header-tests",
         "ourostack/ouro-ui/pagination-tests",
         "ourostack/ouro-ui/popover-tests",
+        "ourostack/ouro-ui/preset-picker-tests",
         "ourostack/ouro-ui/progress-tests",
         "ourostack/ouro-ui/radio-group-tests",
         "ourostack/ouro-ui/relative-time-tests",

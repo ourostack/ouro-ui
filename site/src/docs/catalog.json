@@ -256,6 +256,13 @@
     "summary": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove."
   },
   {
+    "name": "preset-picker",
+    "title": "PresetPicker",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/preset-picker/preset-picker.tsx",
+    "summary": "Presets shown as cards (a layout, a template, a mode) with a name, a line about it and an optional tag, where choosing one applies it at once."
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",
@@ -686,6 +693,20 @@
     "group": "Chat",
     "source": "registry/ouro/components/ouro/message/attachment.tsx",
     "summary": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size."
+  },
+  {
+    "name": "layout-proposal",
+    "title": "LayoutProposal",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/layout-proposal/layout-proposal.tsx",
+    "summary": "A change an agent proposes to the surface the person is using (a layout, a set of columns, an arrangement), which the person previews, then applies or discards."
+  },
+  {
+    "name": "copy-prompt",
+    "title": "CopyPrompt",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/copy-prompt/copy-prompt.tsx",
+    "summary": "A ready-made prompt in the page's own type, with a button that copies it, for the person to hand to an agent of their own."
   },
   {
     "name": "inspector",
