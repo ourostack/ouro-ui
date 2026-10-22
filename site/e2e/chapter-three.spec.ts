@@ -213,6 +213,21 @@ test("Chapter III is in the server HTML, and its code loads only as it nears the
   expect(chunks).toHaveLength(1);
 });
 
+test("before its island, the porthole is the sea in its brass ring: their colours are in the server HTML", async ({ browser }) => {
+  // No script at all: the page as the server sends it, before any island hydrates.
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 }, baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  await page.goto("voyage/");
+  const porthole = page.locator(".site-porthole");
+  const paint = (selector: string, property: string) => porthole.locator(selector).first().evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);
+  expect(await paint(".ph-sea", "fill")).not.toBe("none");
+  expect(await paint(".ph-ring", "stroke")).not.toBe("none");
+  expect(await paint(".ph-bolts circle", "fill")).not.toBe("none");
+  expect(await paint(".ph-bolts circle", "stroke")).not.toBe("none");
+  await test.info().attach("porthole before hydration", { body: await porthole.screenshot(), contentType: "image/png" });
+  await context.close();
+});
+
 test("X-ray outlines Chapter III's HX components", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
@@ -266,7 +281,7 @@ test("without reduced motion, the squid sinks back into the deep behind its ink 
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   await win(page);
-  await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "-100px 130px");
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "-25% 32.5%");
   await expect(scene(page).locator(".sq-ink")).toHaveCSS("animation-name", "sq-ink");
   // The whole crew turns out and hops, with the shared frame's styles, whether or not Chapter I has loaded.
   await expect(crew(page).locator("[data-chapter-cheer] > *").first()).toHaveCSS("animation-name", "site-hop");

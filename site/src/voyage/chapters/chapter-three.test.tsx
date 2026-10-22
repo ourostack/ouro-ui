@@ -28,7 +28,7 @@ afterEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
-const scene = () => document.querySelector<SVGSVGElement>(".site-porthole")!;
+const scene = () => document.querySelector<HTMLElement>(".site-porthole")!;
 const crew = () => document.querySelector("[data-composition='encounter'] [data-chapter-crew]")!.textContent ?? "";
 
 async function order(name: string): Promise<void> {
