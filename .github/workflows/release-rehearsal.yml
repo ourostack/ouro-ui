@@ -68,23 +68,23 @@ jobs:
       - name: Run CI and the screen-reader lane on the rehearsal commit
         run: |
           sha=$(git rev-parse HEAD)
-          # Dispatched together: they run side by side.
-          gh workflow run ci.yml --ref "$BRANCH"
+          # Dispatched together: they run side by side. CI and every other workflow that reports a
+          # check main's rules require (scripts/dispatch-required.sh), as Release runs them.
           gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
-          ci=
+          ci=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
           sr=
           for _ in $(seq 60); do
-            ci=$(gh run list --workflow ci.yml --branch "$BRANCH" --commit "$sha" --event workflow_dispatch --json databaseId --jq '.[0].databaseId // empty')
             sr=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --commit "$sha" --event workflow_dispatch --json databaseId --jq '.[0].databaseId // empty')
-            [ -n "$ci" ] && [ -n "$sr" ] && break
+            [ -n "$sr" ] && break
             sleep 5
           done
-          [ -n "$ci" ] || { echo "::error::CI did not start on $BRANCH ($sha)"; exit 1; }
           [ -n "$sr" ] || { echo "::error::The screen-reader lane did not start on $BRANCH ($sha)"; exit 1; }
-          echo "CI: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ci" >> "$GITHUB_STEP_SUMMARY"
+          for run in $ci; do echo "CI: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run" >> "$GITHUB_STEP_SUMMARY"; done
           echo "Screen-reader lane: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr" >> "$GITHUB_STEP_SUMMARY"
           failed=0
-          gh run watch "$ci" --exit-status --interval 30 >/dev/null || { echo "::error::CI failed on the rehearsal commit $sha: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$ci"; failed=1; }
+          # Judged on the checks main's rules require, not on each run's conclusion (ci-budget's).
+          # shellcheck disable=SC2086 # one argument per run
+          scripts/required-ci.sh $ci >/dev/null || { echo "::error::CI did not pass the checks main's rules require on the rehearsal commit $sha (runs $ci)"; failed=1; }
           gh run watch "$sr" --exit-status --interval 30 >/dev/null || { echo "::error::The screen-reader lane failed on the rehearsal commit $sha: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr. An infrastructure failure (SR_CLASS=infrastructure in its log) can be rehearsed again."; failed=1; }
           exit "$failed"
       - if: always()

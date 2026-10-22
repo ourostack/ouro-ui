@@ -265,28 +265,32 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
 
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
-  assert.match(release, /gh run watch "\$run" --exit-status --interval 30 \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
+  assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
   // gh's exit code also fails on local branch cleanup, so the pull request's state decides, and
   // the branch is deleted through the API afterwards.
   assert.doesNotMatch(release, /gh pr merge[^\n]*--delete-branch/);
   assert.match(release, /gh pr view "\$NUMBER" --json state --jq \.state\)" = MERGED/);
-  assert.match(release, /gh workflow run ci\.yml --ref main/);
+
   // Pages deploys main's new tip only after CI on it has run.
-  assert.ok(release.indexOf('gh run watch "$ci"') > release.indexOf("gh workflow run ci.yml --ref main"));
-  assert.ok(release.indexOf("gh workflow run pages.yml --ref main") > release.indexOf('gh run watch "$ci"'));
+  assert.match(release, /gh workflow run "\$workflow" --ref main/);
+  assert.ok(release.indexOf('state_of "$context" "$jobs"', release.indexOf('gh workflow run "$workflow" --ref main')) > 0);
+  assert.ok(release.indexOf("gh workflow run pages.yml --ref main") > release.indexOf('gh workflow run "$workflow" --ref main'));
 });
 
 test("Release takes main's CI from the latest run on its commit: a push, a dispatch on main, or the merge queue's run", () => {
   const release = workflow("release.yml");
-  const filter = release.match(/conclusion=\$\(gh run list --workflow ci\.yml --commit "\$sha" --json conclusion,event,headBranch --jq '([^']+)'\)/)?.[1];
+  const filter = release.match(/ci=\$\(gh run list --workflow "\$workflow" --commit "\$sha" --json databaseId,event,headBranch --jq '([^']+)'\)/)?.[1];
   assert.ok(filter, "release.yml reads the runs on main's commit, on any branch");
+  // That run passes when the checks main's rules require passed, whatever ci-budget did.
+  assert.match(release, /\n +scripts\/required-ci\.sh \$runs \|\| \{ echo "::error::CI on main \(\$sha\) did not pass the checks main's rules require[^\n]+exit 1; \}\n/);
   // gh run list lists the newest run first.
   const conclusion = (runs) => {
     const result = spawnSync("jq", ["-r", filter], { input: JSON.stringify(runs), encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr);
     return result.stdout.trim();
   };
-  const run = (event, headBranch, conclusion) => ({ event, headBranch, conclusion });
+  // Each run's id stands for how it went, so the test reads which run was taken.
+  const run = (event, headBranch, conclusion) => ({ event, headBranch, databaseId: conclusion });
   const queue = "gh-readonly-queue/main/pr-9-abc";
   assert.equal(conclusion([run("push", "main", "success")]), "success");
   // The push run after the queue ran only install-github; it decides, being the latest.
@@ -309,6 +313,53 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   assert.ok(check > deploy, "and the published pages are checked last");
 });
 
+test("every wait of Release, and of its rehearsal, on a CI run judges only the checks main's rules require, through scripts/required-ci.sh", () => {
+  // ci-budget, which the rules do not require, failed CI on "Prepare main" for v1.2.0 (run 39754777487) and stopped the release.
+  for (const name of ["Check the version, the tag and main's CI", "Run CI on the release commit", "Prepare main for the next release", "Pass the merge queue and CI on main"]) {
+    const step = releaseStep(name);
+    // The queue job runs no code from the repository, so it judges the jobs itself (state_of), as the script does.
+    assert.match(step, name === "Pass the merge queue and CI on main" ? /\[ "\$\(state_of "\$context" "\$jobs"\)" = success \]/ : /scripts\/required-ci\.sh \$(run|runs)\b/, name);
+    assert.doesNotMatch(step, /gh run watch "\$(run|ci)"[^\n]*--exit-status|--workflow (ci\.yml|"\$workflow")[^\n]*conclusion/, name);
+  }
+  assert.doesNotMatch(stepScript(workflow("release-rehearsal.yml"), "Run CI and the screen-reader lane on the rehearsal commit"), /gh run watch "\$ci"/);
+});
+
+test("required-ci.sh waits for the runs, then passes them when each check main's rules require passed in them, whatever the other jobs did", () => {
+  const bin = scratchDir("ouro-required-ci-");
+  const log = join(bin, "calls.log");
+  // A stand-in gh: logs, answers the rules, and run 5's jobs from $JOBS and run 6's from $EXEMPT (name<TAB>conclusion lines).
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${log}"\ncase "$*" in\n  "run watch "*) exit 1 ;;\n  *"/rules/branches/main "*) printf '%s\\n' ci e2e "install (shadcn, nova)" "conformance exemptions" lighthouse ;;\n  *"/actions/runs/5/jobs"*) printf '%b' "$JOBS" ;;\n  *"/actions/runs/6/jobs"*) printf '%b' "$EXEMPT" ;;\n  *) exit 99 ;;\nesac\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const lines = (jobs) => jobs.map(([name, conclusion]) => `${name}\\t${conclusion}\\n`).join("");
+  const run = (jobs, exempt = [["conformance exemptions", "success"]], runs = ["5", "6"]) => spawnSync("bash", [join(root, "scripts/required-ci.sh"), ...runs], { cwd: root, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "ourostack/ouro-ui", JOBS: lines(jobs), EXEMPT: lines(exempt) } });
+  const passing = [["plan", "success"], ["ci", "success"], ["e2e", "success"], ["install (shadcn, nova)", "success"], ["lighthouse", "success"]];
+  // ci-budget failed, and gh run watch said so: the required checks decide.
+  const green = run([...passing, ["ci-budget", "failure"]]);
+  assert.equal(green.status, 0, green.stdout + green.stderr);
+  assert.match(green.stdout, /passed the checks main's rules require/);
+  assert.match(readFileSync(log, "utf8"), /^run watch 5 --interval 30\nrun watch 6 --interval 30$/m);
+  // A required check that failed, was skipped or is in none of the runs fails them, by name.
+  const red = run([...passing.filter(([name]) => name !== "lighthouse"), ["lighthouse", "failure"]]);
+  assert.equal(red.status, 1);
+  assert.match(red.stdout, /::error::.*lighthouse: failure/);
+  assert.match(run(passing.filter(([name]) => name !== "e2e")).stdout, /e2e: not in the run/);
+  assert.equal(run([...passing.filter(([name]) => name !== "e2e"), ["e2e", "skipped"]]).status, 1);
+  // Without the run of the workflow that reports conformance exemptions, that check is missing.
+  assert.match(run(passing, [], ["5"]).stdout, /conformance exemptions: not in the run/);
+});
+
+test("each check main's rules require comes from a workflow Release can start by dispatch", async () => {
+  const { readWorkflows, requiredProducers } = await import("./required-producers.mjs");
+  const all = readWorkflows();
+  const { producers, problems } = requiredProducers(requiredChecks, all);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(producers, ["ci.yml", "conformance-exemptions.yml"]);
+  const spec = (on) => ({ file: "x.yml", text: `on:\n  pull_request:\n${on}jobs:\n  check:\n    name: lane\n    runs-on: ubuntu-latest\n` });
+  assert.deepEqual(requiredProducers(["lane"], [spec("")]).problems, ['x.yml reports the required check "lane" but has no workflow_dispatch trigger, so Release cannot start it']);
+  assert.deepEqual(requiredProducers(["lane"], [spec("  workflow_dispatch:\n")]), { producers: ["x.yml"], problems: [] });
+  assert.deepEqual(requiredProducers(["nobody"], all).problems, ['no workflow reports the required check "nobody"']);
+});
+
 const releaseStep = (name) => {
   const release = workflow("release.yml");
   const start = release.search(new RegExp(`^ {6}(- | {2})name: ${name.replace(/[?()]/g, "\\$&")}\n`, "m"));
@@ -327,7 +378,7 @@ for (const scenario of scenarios) {
     // passed on as GitHub does. gh merge exits non-zero even when state says MERGED, exercising
     // independent readback.
     const prepare = releaseStep("Prepare main for the next release");
-    const gate = prepare.slice(prepare.indexOf('if [ -n "$run" ] && gh api'));
+    const gate = prepare.slice(prepare.indexOf("sha=$(git rev-parse HEAD)\nruns="));
     const queue = releaseStep("Pass the merge queue and CI on main");
     const remove = releaseStep("Delete the branch that prepared main");
     const deploy = releaseStep("Deploy Pages and check what is published");
@@ -343,7 +394,8 @@ for (const scenario of scenarios) {
         printf 'CALL %s\\n' "$*" >&2
         case "$*" in
           "api -X POST "*"/approve") [ "$SCENARIO" != approval-failed ] ;;
-          "run watch 1 "*) [ "$SCENARIO" != pr-ci-failed ] ;;
+          # gh run watch fails a run any job of which failed (ci-budget's, here): the jobs decide.
+          "run watch 1 "*|"run watch 2 "*) return 1 ;;
           "pr merge "*) return 1 ;;
           "pr view "*"--json number"*) echo 9 ;;
           # gh merge could not queue it (no auto-merge): queued by the API instead, at CI's commit.
@@ -368,6 +420,9 @@ for (const scenario of scenarios) {
           # The dispatched runs on the queue's branches, finished, and their jobs.
           "run list --workflow ci.yml --branch gh-readonly-queue/main/pr-9-abc "*) echo "7 completed 1111111111111111111111111111111111111111" ;;
           "run list --workflow ci.yml --branch gh-readonly-queue/main/pr-9-def "*) echo "8 completed 2222222222222222222222222222222222222222" ;;
+          # The CI runs the gates wait on (1: the pull request's, 2: main's tip), judged on the required checks.
+          "api repos/ourostack/ouro-ui/actions/runs/1/jobs"*) if [ "$SCENARIO" = pr-ci-failed ]; then printf 'ci\tfailure\n'; else printf 'ci\tsuccess\ninstall (shadcn, nova)\tsuccess\ninstall-github\tskipped\nlighthouse\tsuccess\nci-budget\tfailure\n'; fi ;;
+          "api repos/ourostack/ouro-ui/actions/runs/2/jobs"*) if [ "$SCENARIO" = ci-failed ]; then printf 'ci\tsuccess\ninstall (shadcn, nova)\tsuccess\nlighthouse\tfailure\n'; else printf 'ci\tsuccess\ninstall (shadcn, nova)\tsuccess\ninstall-github\tsuccess\nlighthouse\tsuccess\nci-budget\tfailure\n'; fi ;;
           "api repos/ourostack/ouro-ui/actions/runs/7/jobs"*) printf 'ci\\tsuccess\\ninstall (shadcn, nova)\\tsuccess\\ninstall-github\\tskipped\\nlighthouse\\tsuccess\\nplan\\tsuccess\\n' ;;
           "api repos/ourostack/ouro-ui/actions/runs/8/jobs"*) printf 'ci\\tfailure\\nlighthouse\\tskipped\\n' ;;
           "api -X POST repos/ourostack/ouro-ui/statuses/"*) return 0 ;;
@@ -378,8 +433,8 @@ for (const scenario of scenarios) {
           "api "*"commits/main"*) if [ "$SCENARIO" = queue-tip ]; then echo 1111111111111111111111111111111111111111; else echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; fi ;;
           "workflow run ci.yml --ref main") [ "$SCENARIO" != dispatch-failed ] ;;
           "workflow run ci.yml --ref prepare/"*) return 0 ;;
+          "run list --workflow ci.yml --branch prepare/after-v9.9.9 "*) echo 1 ;;
           "run list --workflow ci.yml "*) if [ "$SCENARIO" != ci-missing ]; then echo 2; fi ;;
-          "run watch 2 "*) [ "$SCENARIO" != ci-failed ] ;;
           "run list --workflow pages.yml "*) if [ "$pages" = 1 ]; then echo 4; else echo 3; fi ;;
           "workflow run pages.yml --ref main") pages=1 ;;
           "run watch 4 "*) return 0 ;;
@@ -388,9 +443,9 @@ for (const scenario of scenarios) {
       }
       seq() { printf '%s\\n' 1 2 3 4 5; }
       sleep() { :; }
+      export -f gh seq sleep
       node() { printf 'PUBLISHED %s\\n' "$*"; }
-      run=1
-      sha=headsha
+      git() { echo headsha; }
       pages=0
       ${gate}
       NUMBER=$(sed -n 's/^number=//p' "$GITHUB_OUTPUT")
@@ -401,7 +456,7 @@ for (const scenario of scenarios) {
       ${deploy}
     `], {
       cwd: root, encoding: "utf8",
-      env: { ...process.env, SCENARIO: scenario, NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
+      env: { ...process.env, SCENARIO: scenario, PRODUCERS: "ci.yml", NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
     });
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     // Queued by the API only while gh left the pull request open and out of the queue, a few times.
@@ -645,6 +700,10 @@ test("every required check is still a job that reports, under the name the rules
     // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
     if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === untested, `${id} has if: ${condition}`);
+  }
+  // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
+  for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
+    for (const [, name] of text.matchAll(/^ {4}name: (.+)$/gm)) names.set(name, file);
   }
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
@@ -1205,10 +1264,12 @@ test("a release's tag never stays out without main and Pages following unnoticed
     const dir = scratchDir("ouro-release-check-");
     const output = join(dir, "output.txt");
     writeFileSync(output, "");
-    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$1 $2" in "release view") [ "$RELEASED" = true ] ;; "run list") echo success ;; esac; }\n`;
+    // Main's rules require ci alone here; its run (42) passed it, and the rehearsal passed.
+    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$*" in "release view"*) [ "$RELEASED" = true ] ;; *release-rehearsal.yml*) echo success ;; "run list"*) echo 42 ;; *"/rules/branches/main "*) echo ci ;; "run watch"*) return 1 ;; *"/runs/42/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\n' ;; esac; }\nexport -f gh\n`;
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
       encoding: "utf8",
-      env: { ...process.env, RELEASED: String(released), VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, "env.txt") },
+      cwd: root,
+      env: { ...process.env, RELEASED: String(released), VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, "env.txt") },
     });
     assert.equal(result.status, 0, result.stderr);
     return Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map((line) => line.split("=")));
@@ -1217,7 +1278,7 @@ test("a release's tag never stays out without main and Pages following unnoticed
   assert.deepEqual(rerun, { new: "false" });
   assert.equal(runs("success", "skipped", "skipped", rerun.new), false);
   const fresh = checked(false);
-  assert.deepEqual(fresh, { new: "true" });
+  assert.deepEqual(fresh, { producers: "ci.yml", new: "true" });
   assert.equal(runs("success", "skipped", "skipped", fresh.new), true);
   const script = releaseStep("Report a release main and Pages did not follow");
   const report = (tagged) =>
@@ -1364,7 +1425,7 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
 
 test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {
   const { text } = workflows.find(({ file }) => file === "conformance-exemptions.yml");
-  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n/m);
+  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n {2}workflow_dispatch:\n/m);
   assert.match(text, /^ {4}name: conformance exemptions$/m);
   // One run per pull request, and one per merge-queue entry: never one entry's run cancelling another's.
   assert.match(text, /^ {2}group: conformance-exemptions-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}$/m);
@@ -1372,7 +1433,9 @@ test("the conformance exemptions check runs on each pull request and its descrip
   const queue = steps.filter((step) => /^if: github\.event_name == 'merge_group'$/m.test(step));
   assert.equal(queue.length, 1);
   assert.doesNotMatch(queue[0], /uses:|node |pnpm /);
-  for (const step of steps.filter((step) => !queue.includes(step))) assert.match(step, /^if: github\.event_name == 'pull_request'$/m, step);
+  // A dispatched run (Release's, on a pull request or queue entry GITHUB_TOKEN made) checks too, against main.
+  for (const step of steps.filter((step) => !queue.includes(step))) assert.match(step, /^if: github\.event_name != 'merge_group'$/m, step);
+  assert.match(text, /^ {10}BASE_REF: \$\{\{ github\.base_ref \|\| 'main' \}\}$/m);
   assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/conformance-exemptions\.mjs/);
 });
 
@@ -1416,9 +1479,9 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   assert.match(push, /^git switch -c "\$BRANCH"\n(?:#.*\n)?scripts\/release-commit\.sh "\$VERSION"\ngit add CHANGES\.md\ngit commit -am "Release \$TAG \(rehearsal\)"\ngit push --force origin "\$BRANCH"$/m);
   assert.match(stepScript(rehearsal, "Build and check the @ouro namespace for the rehearsal commit"), /^scripts\/namespace\.sh "\$RUNNER_TEMP\/ns" "\$TAG"\nnode scripts\/public-registry\.mjs verify-build "\$RUNNER_TEMP\/ns" HEAD$/m);
   const run = stepScript(rehearsal, "Run CI and the screen-reader lane on the rehearsal commit");
-  assert.match(run, /^gh workflow run ci\.yml --ref "\$BRANCH"$/m);
+  assert.match(run, /^ci=\$\(scripts\/dispatch-required\.sh "\$BRANCH" "\$sha"\)$/m);
   assert.match(run, /^gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"$/m);
-  assert.match(run, /gh run watch "\$ci" --exit-status/);
+  assert.match(run, /scripts\/required-ci\.sh \$ci >\/dev\/null \|\| /);
   assert.match(run, /gh run watch "\$sr" --exit-status/);
   // It never tags, releases, merges or writes statuses, and it always deletes its branch.
   assert.doesNotMatch(rehearsal, /git tag|gh release|gh pr|statuses|pull-requests: write/);
