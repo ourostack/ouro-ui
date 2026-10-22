@@ -13,13 +13,13 @@
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, libDir, planShards, runtimeSource, shardCost, testSeconds } from "./mutation/cache.mjs";
+import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, runtimeSource, scopeReport, shardCost, testFilesFor, testSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
-export { runtimeSource };
+export { runtimeSource, testFilesFor };
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -174,45 +174,6 @@ export function mutateRanges(changes) {
     .flatMap(([path, ranges]) => ranges.map(([start, end]) => `${path}:${start}-${end}`));
 }
 
-/** A folder's test files, for the ouro-chromium and ouro-touch projects. */
-function testsIn(dir) {
-  return existsSync(join(root, dir))
-    ? readdirSync(join(root, dir))
-        .filter((file) => /\.test\.tsx?$/.test(file) && !/\.visual\.test\./.test(file))
-        .map((file) => `${dir}${file}`)
-    : [];
-}
-
-/** The component folders whose runtime code imports a lib/ file (`lib/ouro/<name>`), directly. */
-function importersOf(libFile, rootDir = root) {
-  const name = libFile.slice(libDir.length).replace(/\.tsx?$/, "");
-  const pattern = new RegExp(`from "@/registry/ouro/lib/ouro/${name}"`);
-  const folders = readdirSync(join(rootDir, componentsDir)).filter((folder) =>
-    readdirSync(join(rootDir, componentsDir, folder)).some((file) => runtimeSource(`${componentsDir}${folder}/${file}`) && pattern.test(readFileSync(join(rootDir, componentsDir, folder, file), "utf8"))),
-  );
-  return folders.sort();
-}
-
-/**
- * The test files that can kill a mutant in these runtime files: `own`, each component file's
- * folder's tests and each lib/ file's own tests, and `wider`, the tests of the folders whose code
- * imports a changed lib/ file (a helper some branch of which only a component's tests reach).
- */
-export function testFilesFor(paths, rootDir = root) {
-  const own = new Set();
-  const wider = new Set();
-  for (const path of paths) {
-    if (path.startsWith(componentsDir)) {
-      for (const file of testsIn(`${componentsDir}${path.slice(componentsDir.length).split("/")[0]}/`)) own.add(file);
-    } else {
-      const stem = path.replace(/\.tsx?$/, "");
-      for (const extension of [".test.ts", ".test.tsx"]) if (existsSync(join(rootDir, `${stem}${extension}`))) own.add(`${stem}${extension}`);
-      for (const folder of importersOf(path, rootDir)) for (const file of testsIn(`${componentsDir}${folder}/`)) wider.add(file);
-    }
-  }
-  return { own: [...own].sort(), wider: [...wider].filter((file) => !own.has(file)).sort() };
-}
-
 /** The mutants that no test failed on: survived, or reached by no test. */
 export function survivors(results) {
   return results.filter((mutant) => mutant.status === "Survived" || mutant.status === "NoCoverage");
@@ -280,8 +241,14 @@ async function main(args) {
       .join("\n")}`,
   );
   process.env["OURO_MUTATION_TESTS"] = JSON.stringify(testsByFile);
+  const incrementalFile = join(root, ".tmp/stryker-incremental.json");
+  const kept = existsSync(incrementalFile) ? JSON.parse(readFileSync(incrementalFile, "utf8")) : null;
+  // Every runtime file the pull request changes, a deletion-only change too: what pruneChangedFiles
+  // follows imports to, and what each run records the digest of.
+  const changedFiles = [...new Set(whole.stdout.split("\n").filter((line) => line.startsWith("+++ b/")).map((line) => line.slice(6)))].filter(runtimeSource);
+  if (kept) writeFileSync(incrementalFile, JSON.stringify(pruneChangedFiles(kept, { changed: changedFiles })));
   const { Stryker } = await import("@stryker-mutator/core");
-  const results = await new Stryker({
+  const stryker = new Stryker({
     mutate,
     testRunner: "vitest-browser",
     plugins: [join(root, "scripts/mutation/plugins.mjs")],
@@ -296,13 +263,23 @@ async function main(args) {
     clearTextReporter: { reportTests: false, reportMutants: false, reportScoreTable: true },
     tempDirName: ".tmp/stryker",
     // Results kept from the last run (CI restores the shards' results, merged, under a key that
-    // changes with what the mutated files import): a mutant whose code and tests have not changed
+    // changes with the tests, the harness and what the mutated files import, and the results of a
+    // file whose source changed are dropped above): a mutant whose file and tests have not changed
     // since is not run again.
     incremental: true,
     incrementalFile: ".tmp/stryker-incremental.json",
     timeoutMS: 10_000,
     thresholds: { high: 100, low: 100, break: null },
-  }).runMutationTest();
+  });
+  let results;
+  try {
+    results = await stryker.runMutationTest();
+  } finally {
+    // What this run owns, alone: Stryker also writes every kept mutant it did not run, with the
+    // status it had, which another shard's fresh result must not meet in the merge.
+    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(recordSources(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes), changedFiles)));
+  }
+  results = results.filter((mutant) => inScope(mutant, changes));
   const surviving = survivors(results);
   if (surviving.length === 0) {
     console.log(`Every one of ${results.filter((mutant) => mutant.status !== "Ignored").length} mutants in the changed lines failed a test.`);
@@ -312,6 +289,12 @@ async function main(args) {
     `${surviving.length} mutant(s) in the changed lines failed no test. Add a test that fails on each change, or, when it cannot alter behaviour, write the reason on the line before it: // Stryker disable next-line <Mutator>: <why>\n${surviving.map(describeSurvivor).join("\n")}`,
   );
   return 1;
+}
+
+/** Whether Stryker's result for a mutant lies in the changed ranges this run mutated (its file name may be absolute). */
+export function inScope(mutant, changes) {
+  const path = relative(root, resolvePath(root, mutant.fileName)).split("\\").join("/");
+  return Object.keys(scopeReport({ files: { [path]: { mutants: [mutant] } } }, changes).files).length > 0;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) process.exitCode = await main(process.argv.slice(2));
