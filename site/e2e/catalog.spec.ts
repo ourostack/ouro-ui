@@ -41,7 +41,7 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
  * stopped loading every page's Markdown first and after #138's claims), 157,250 and 167,396 bytes,
  * plus 1 KiB. The voyage preview gets 270 KB.
  */
-const CEILINGS = { landing: 1, voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { landing: 157_250 + 1024, voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILING = 40 * 1024;
