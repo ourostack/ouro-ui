@@ -17,6 +17,7 @@ import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER,
 import { Composition, Crew, Handoff, PhoneMarker, Steps, useAfterPaint, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
+import artStyles from "./chapter-three-art.css?inline";
 import chapterStyles from "./chapter-three.css?inline";
 
 const organ = parseArt(organSource);
@@ -110,6 +111,8 @@ export default function ChapterThree(): JSX.Element {
   useChapterReady(root, "chapter-three-styles", chapterStyles);
   return (
     <section ref={root} id="chapter-three" aria-labelledby="chapter-three-title" className="pb-20 lg:pb-32" data-chapter="three">
+      {/* The drawings' colours, in the chapter's own server HTML rather than the page's stylesheet. */}
+      <style>{artStyles}</style>
       <Handoff art={tentacle} line={CHAPTER_THREE.handoff} />
       <FightContext value={fight}>
         <BattleMarker />
