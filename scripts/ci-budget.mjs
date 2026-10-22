@@ -21,10 +21,12 @@
 //   node scripts/ci-budget.mjs [--out <file>]   needs GH_TOKEN, GITHUB_REPOSITORY, RUN_ID,
 //                                               RUN_ATTEMPT and EVENT, and FULL (false on a
 //                                               reduced run)
+import { Buffer } from "node:buffer";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { inflateRawSync } from "node:zlib";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -122,72 +124,103 @@ export function runWalls(runs) {
 }
 
 /**
- * The budget's verdict on a run: `{ fail, reason, warning }`. Only a pull request is held to it.
- * Its critical path past the ceiling fails it. Over the limit (the target and its margin), it fails
- * when it is also more than `regressionMinutes` over main's baseline (`baselineSeconds`, the median
- * critical path of main's latest passing merge queue runs); within that, with no baseline, or when
- * the baseline is itself over the limit (main is slow, not this change), it warns.
+ * The budget's verdict on a run: `{ fail, reason, warning }`. A run with a job that no ci.yml job
+ * name matches (`unmatched`) fails, whatever its event: its critical path would leave that job out.
+ * Otherwise only a pull request is held to it. Its critical path past the ceiling fails it. Over
+ * the limit (the target and its margin), it fails when it is also more than `regressionMinutes`
+ * over main's baseline (`baselineSeconds`, the median critical path of main's latest passing merge
+ * queue runs), even when that baseline is itself over the limit; within that, or with no baseline,
+ * it warns.
  */
-export function judge({ event, criticalSeconds, baselineSeconds }, { targetMinutes, margin, ceilingMinutes, regressionMinutes } = budget) {
+export function judge({ event, criticalSeconds, baselineSeconds, unmatched = [] }, { targetMinutes, margin, ceilingMinutes, regressionMinutes } = budget) {
   const limit = targetMinutes * 60 * (1 + margin);
+  if (unmatched.length > 0) return { fail: true, reason: "unmatched", warning: null };
   if (event !== "pull_request") return { fail: false, warning: null };
   if (criticalSeconds > ceilingMinutes * 60) return { fail: true, reason: "ceiling", warning: null };
   if (criticalSeconds <= limit) return { fail: false, warning: null };
   if (baselineSeconds === null || baselineSeconds === undefined) return { fail: false, warning: "no-baseline" };
-  if (baselineSeconds > limit) return { fail: false, warning: "baseline-over" };
   if (criticalSeconds > baselineSeconds + regressionMinutes * 60) return { fail: true, reason: "regression", warning: null };
   return { fail: false, warning: "over" };
 }
 
-/** Whether every job of a run but this one passed or was skipped. */
-export function passed(jobs, graph) {
-  const own = graph.find((node) => node.id === self)?.pattern;
-  const others = jobs.filter((job) => !own?.test(job.name));
+/** Whether a run's ci-timings record shows every job but ci-budget passed or was skipped. */
+export function recordPassed(record) {
+  const others = (record?.jobs ?? []).filter((job) => job.job !== self);
   return others.length > 0 && others.every((job) => job.conclusion === "success" || job.conclusion === "skipped");
 }
 
 /**
- * Main's baseline from merge queue runs, newest first, each `{ attempt, jobs }`: the median critical
- * path of the first `count` that passed (every job but this one), each on its first attempt, since
- * the jobs API of a re-run keeps the times of the jobs it did not run again. `{ seconds, values }`;
- * seconds is null when none passed.
+ * Main's baseline from merge queue runs, newest first, each `{ attempt, record }` with the run's own
+ * ci-timings record: the median of the critical paths the first `count` that passed recorded, each
+ * on its first attempt, since the jobs API of a re-run keeps the times of the jobs it did not run
+ * again. Each run's critical path is the one its own ci.yml measured, not this run's job graph's.
+ * `{ seconds, values }`; seconds is null when none passed.
  */
-export function baseline(runs, graph, count = budget.baselineRuns) {
+export function baseline(runs, count = budget.baselineRuns) {
   const values = [];
   for (const run of runs) {
     if (values.length >= count) break;
-    if (run.attempt !== 1 || !passed(run.jobs, graph)) continue;
-    const path = criticalPath(run.jobs, graph);
-    if (path.seconds > 0) values.push(path.seconds);
+    if (run.attempt !== 1 || !recordPassed(run.record) || typeof run.record.criticalPathSeconds !== "number") continue;
+    if (run.record.criticalPathSeconds > 0) values.push(run.record.criticalPathSeconds);
   }
   return { seconds: percentile(values, 0.5), values };
 }
 
+/**
+ * The one file of a zip archive (an artifact as the API downloads it): read from the central
+ * directory, which holds the sizes a streamed local header may leave out. Stored or deflated.
+ */
+export function unzipOne(zip) {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (end < 0) throw new Error("not a zip archive");
+  const central = zip.readUInt32LE(end + 16);
+  if (zip.readUInt32LE(central) !== 0x02014b50) throw new Error("no central directory");
+  const method = zip.readUInt16LE(central + 10);
+  const size = zip.readUInt32LE(central + 20);
+  const local = zip.readUInt32LE(central + 42);
+  const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+  const data = zip.subarray(start, start + size);
+  if (method === 0) return data;
+  if (method === 8) return inflateRawSync(data);
+  throw new Error(`zip compression method ${method}`);
+}
+
 const minutes = (value) => `${(value / 60).toFixed(1)} min`;
 
-/** The JSON answer of a GitHub API GET, retried up to three times. */
-async function getJson(url, token) {
+/** The answer of a GitHub API GET, retried up to three times: JSON, or with `raw` the bytes. */
+async function get(url, token, { raw = false } = {}) {
   let response;
   for (let tries = 1; ; tries += 1) {
-    response = await globalThis.fetch(url, { headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" } });
+    // An artifact's download answers with a redirect to storage, which takes no GitHub token.
+    response = await globalThis.fetch(url, {
+      headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
+      redirect: raw ? "manual" : "follow",
+    });
+    if (raw && response.status >= 300 && response.status < 400) response = await globalThis.fetch(response.headers.get("location"));
     if (response.ok || tries === 3) break;
     await delay(2000 * tries);
   }
   if (!response.ok) throw new Error(`${url} answered ${response.status}: ${await response.text()}`);
-  return response.json();
+  return raw ? Buffer.from(await response.arrayBuffer()) : response.json();
 }
+
+const getJson = (url, token) => get(url, token);
 
 /**
  * Main's latest completed merge queue runs of ci.yml that ran once, newest first, as
- * `{ attempt, jobs }`, until `count` of them passed (of the latest 30).
+ * `{ attempt, record }` with each run's ci-timings record (null when it has none), until `count`
+ * of them passed (of the latest 30).
  */
 async function mergeQueueRuns({ repository, token, count }) {
   const found = [];
   const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=merge_group&status=completed&per_page=30`, token);
   for (const run of runs) {
-    if (found.filter((candidate) => candidate.conclusion === "success").length >= count) break;
+    if (found.filter((candidate) => recordPassed(candidate.record)).length >= count) break;
     if (run.run_attempt !== 1) continue;
-    found.push({ attempt: 1, conclusion: run.conclusion, jobs: await fetchJobs({ repository, runId: run.id, attempt: 1, token }) });
+    const { artifacts } = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${run.id}/artifacts?name=ci-timings`, token);
+    const artifact = artifacts.find((candidate) => !candidate.expired);
+    const record = artifact ? JSON.parse(unzipOne(await get(artifact.archive_download_url, token, { raw: true })).toString("utf8")) : null;
+    found.push({ attempt: 1, record });
   }
   return found;
 }
@@ -231,12 +264,12 @@ async function main(argv) {
   let mainBaseline = { seconds: null, values: [] };
   if (event === "pull_request") {
     try {
-      mainBaseline = baseline(await mergeQueueRuns({ repository, token, count: budget.baselineRuns }), graph);
+      mainBaseline = baseline(await mergeQueueRuns({ repository, token, count: budget.baselineRuns }));
     } catch (error) {
       console.log(`::warning::Main's baseline, from its latest merge queue runs, could not be read: ${error.message}`);
     }
   }
-  const verdict = judge({ event, criticalSeconds: path.seconds, baselineSeconds: mainBaseline.seconds });
+  const verdict = judge({ event, criticalSeconds: path.seconds, baselineSeconds: mainBaseline.seconds, unmatched: path.unmatched });
   const record = {
     run: `https://github.com/${repository}/actions/runs/${runId}/attempts/${attempt}`,
     event,
@@ -280,7 +313,6 @@ async function main(argv) {
   ].join("\n");
   console.log(summary);
   if (process.env["GITHUB_STEP_SUMMARY"]) appendFileSync(process.env["GITHUB_STEP_SUMMARY"], summary);
-  if (path.unmatched.length > 0) console.log(`::warning::Jobs no ci.yml job name matches, left out of the critical path: ${path.unmatched.join(", ")}`);
   const chain = path.jobs.map((job) => `${job.name} ${minutes(job.seconds)}`).join(" → ");
   const advice = "Make the slowest job on it faster or split it (scripts/shard.mjs), or raise the budget in scripts/ci-budget.mjs with the reason.";
   const over = `over the ${budget.targetMinutes}-minute budget and its ${budget.margin * 100}% margin`;
@@ -288,10 +320,13 @@ async function main(argv) {
   const because = {
     over: `but within ${budget.regressionMinutes} min of main's baseline (${baselineText}): more likely a slow runner than this change`,
     "no-baseline": "with no passing merge queue run on main to compare it with",
-    "baseline-over": `but main's baseline (${baselineText}) is over it too: the slowdown is on main, not in this change`,
   }[verdict.warning];
   if (verdict.warning) console.log(`::warning::The critical path took ${minutes(path.seconds)}, ${over}, ${because}: ${chain}.`);
   if (verdict.fail) {
+    if (verdict.reason === "unmatched") {
+      console.log(`::error::No ci.yml job name matches these jobs, so the critical path would leave them out: ${path.unmatched.join(", ")}. Give each job a name the job graph reads (jobGraph), with every matrix value it uses listed in its matrix.`);
+      return 1;
+    }
     const why = verdict.reason === "ceiling" ? `over the ${budget.ceilingMinutes}-minute ceiling` : `${over}, and more than ${budget.regressionMinutes} min over main's baseline (${baselineText})`;
     console.log(`::error::The critical path took ${minutes(path.seconds)}, ${why}: ${chain}. ${advice}`);
     return 1;

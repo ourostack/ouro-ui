@@ -1,6 +1,8 @@
+import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { baseline, budget, criticalPath, jobGraph, judge, passed, percentile, runnerTime, runWalls, wallTime } from "./ci-budget.mjs";
+import { deflateRawSync } from "node:zlib";
+import { baseline, budget, criticalPath, jobGraph, judge, percentile, recordPassed, runnerTime, runWalls, unzipOne, wallTime } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -87,15 +89,24 @@ test("a pull request over the budget fails only when it is also more than 2 minu
   assert.deepEqual(pr(12 * min + 1, 10 * min + 1), { fail: false, warning: "over" });
 });
 
-test("a pull request after main slowed down only warns, the one that fixes it included", () => {
+test("after main slowed down, a pull request near main's baseline only warns, the one that fixes it included, and one clearly slower still fails", () => {
   const min = 60;
   const pr = (criticalSeconds, baselineSeconds) => judge({ event: "pull_request", criticalSeconds, baselineSeconds });
-  // Main's own baseline over the budget: the slowdown is main's, and every pull request warns.
-  assert.deepEqual(pr(14 * min, 13 * min), { fail: false, warning: "baseline-over" });
+  // Main's own baseline over the budget, and the pull request within 2 minutes of it: a warning.
+  assert.deepEqual(pr(14 * min, 13 * min), { fail: false, warning: "over" });
   // A fix that only partly helps is still over the budget, and still passes.
-  assert.deepEqual(pr(12.5 * min, 14 * min), { fail: false, warning: "baseline-over" });
+  assert.deepEqual(pr(12.5 * min, 14 * min), { fail: false, warning: "over" });
+  // More than 2 minutes over a baseline that is itself over the budget: this change made it slower still.
+  assert.deepEqual(pr(14.9 * min, 12.5 * min), { fail: true, reason: "regression", warning: null });
   // A pull request far over a slow main still fails past the ceiling.
   assert.deepEqual(pr(budget.ceilingMinutes * min + 1, 14 * min), { fail: true, reason: "ceiling", warning: null });
+});
+
+test("a run with a job that no ci.yml job matches fails, whatever its event, so the critical path never leaves a job out", () => {
+  for (const event of ["pull_request", "merge_group", "push"]) {
+    assert.deepEqual(judge({ event, criticalSeconds: 60, baselineSeconds: 60, unmatched: ["install (shadcn, nova, 3/3)"] }), { fail: true, reason: "unmatched", warning: null });
+  }
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 60, baselineSeconds: 60, unmatched: [] }), { fail: false, warning: null });
 });
 
 test("with no baseline a pull request only warns, past the ceiling it fails, and only a pull request is judged", () => {
@@ -105,36 +116,62 @@ test("with no baseline a pull request only warns, past the ceiling it fails, and
   for (const event of ["push", "merge_group", "workflow_dispatch"]) assert.deepEqual(judge({ event, criticalSeconds: 30 * min, baselineSeconds: 9 * min }), { fail: false, warning: null });
 });
 
-test("main's baseline is the median critical path of its latest merge queue runs that passed, ci-budget's own result aside", () => {
-  const graph = jobGraph(workflow);
-  // A run whose critical path is plan, browser and ci: 1 + `browser` + 1 minutes.
-  const run = (browser, { attempt = 1, conclusion = "success", budgetConclusion = "success" } = {}) => ({
+test("main's baseline is the median of the critical paths its latest passing merge queue runs recorded in their own ci-timings, ci-budget's own result aside", () => {
+  // A merge queue run's ci-timings record: its critical path as that run's ci.yml measured it, and its jobs but ci-budget, still running then.
+  const run = (minutes, { attempt = 1, conclusion = "success" } = {}) => ({
     attempt,
-    jobs: [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 1 + browser, conclusion), job("browser (2/2)", 1, 1, 2), job("ci", 1 + browser, 1 + browser, 2 + browser), job("lint", 0, 0, 1), job("install (next)", 0, 0, 1, "skipped"), job("ci-budget", 2 + browser, 2 + browser, 3 + browser, budgetConclusion)],
+    record: { criticalPathSeconds: minutes * 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "browser (1/2)", conclusion }, { job: "install (next)", conclusion: "skipped" }] },
   });
-  assert.equal(passed(run(5).jobs, graph), true);
-  // ci-budget's own failure does not make a run fail; any other job's does.
-  assert.equal(passed(run(5, { budgetConclusion: "failure" }).jobs, graph), true);
-  assert.equal(passed(run(5, { conclusion: "failure" }).jobs, graph), false);
-  assert.equal(passed(run(5, { conclusion: "cancelled" }).jobs, graph), false);
-  const runs = [
-    run(20, { conclusion: "failure" }),
-    run(8),
-    run(30, { attempt: 2 }),
-    run(9, { budgetConclusion: "failure" }),
-    run(6),
-    run(7),
-    run(10),
-    run(40),
-  ];
+  assert.equal(recordPassed(run(5).record), true);
+  assert.equal(recordPassed(run(5, { conclusion: "failure" }).record), false);
+  assert.equal(recordPassed(run(5, { conclusion: "cancelled" }).record), false);
+  // ci-budget's own result, had it been recorded, does not count.
+  assert.equal(recordPassed({ criticalPathSeconds: 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "ci-budget", conclusion: "failure" }] }), true);
+  assert.equal(recordPassed({ criticalPathSeconds: 60, jobs: [] }), false);
+  const runs = [run(20, { conclusion: "failure" }), run(10), run(30, { attempt: 2 }), run(11), run(8), run(9), run(12), run(40)];
   // The failed run and the re-run are left out; the first five that passed count, newest first.
-  const main = baseline(runs, graph);
+  const main = baseline(runs);
   assert.deepEqual(main.values.map((value) => value / 60), [10, 11, 8, 9, 12]);
   assert.equal(main.seconds, 10 * 60);
-  assert.deepEqual(baseline([run(5, { conclusion: "failure" })], graph), { seconds: null, values: [] });
+  // A run with no ci-timings record is left out.
+  assert.deepEqual(baseline([{ attempt: 1, record: null }, run(5, { conclusion: "failure" })]), { seconds: null, values: [] });
   assert.equal(budget.baselineRuns, 5);
   assert.equal(budget.regressionMinutes, 2);
 });
+
+test("an artifact's one file comes out of its zip, stored or deflated, sizes read from the central directory", () => {
+  const zip = (name, content, method) => {
+    const data = method === 8 ? deflateRawSync(content) : content;
+    const nameBytes = Buffer.from(name);
+    // A streamed local header: sizes 0, given after the data and in the central directory.
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(8, 6);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt16LE(nameBytes.length, 26);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(method, 10);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt32LE(content.length, 24);
+    central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt32LE(0, 42);
+    const descriptor = Buffer.alloc(16);
+    const centralAt = local.length + nameBytes.length + data.length + descriptor.length;
+    const end = Buffer.alloc(22);
+    end.writeUInt32LE(0x06054b50, 0);
+    end.writeUInt16LE(1, 8);
+    end.writeUInt16LE(1, 10);
+    end.writeUInt32LE(central.length + nameBytes.length, 12);
+    end.writeUInt32LE(centralAt, 16);
+    return Buffer.concat([local, nameBytes, data, descriptor, central, nameBytes, end]);
+  };
+  const record = Buffer.from(JSON.stringify({ full: true, criticalPathSeconds: 600 }));
+  assert.deepEqual(JSON.parse(unzipOne(zip("ci-timings.json", record, 8)).toString()), { full: true, criticalPathSeconds: 600 });
+  assert.equal(unzipOne(zip("ci-timings.json", record, 0)).toString(), record.toString());
+  assert.throws(() => unzipOne(Buffer.from("not a zip")), /not a zip archive/);
+});
+
 
 test("the runner time adds every job's run time but this one's and a skipped job's", () => {
   const jobs = [job("plan", 0, 0, 1), job("browser (1/2)", 1, 6, 9), job("browser (2/2)", 1, 1, 5), job("lint", 0, 0, 6, "skipped"), job("ci-budget", 10, 10, 11)];
