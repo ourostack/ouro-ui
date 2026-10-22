@@ -20,7 +20,18 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - timeout-minutes: 12
         run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm site:build
-      - run: |
+      - name: Unit, before the fix
+        run: pnpm exec vitest run --project site site/src/voyage/clear-of-toasts.test.ts 2>&1 | grep -E "✓|×|FAIL|Tests|passed|failed" | sed "s/^/U-before /" || true
+      - name: Bell, before the fix
+        run: |
+          pnpm site:build >/dev/null 2>&1
           (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
-          node .github/diag/shadow.mjs http://127.0.0.1:4179/ouro-ui/
+          pnpm exec playwright test -c .github/diag/pw-site.config.ts --project=site-webkit --workers=2 --repeat-each=12 site/e2e/stage.spec.ts -g "bell's toast never covers" 2>&1 | grep -E "passed|failed|flaky" | sed "s/^/B-before /" || true
+      - name: Unit and bell, after the fix
+        run: |
+          git apply .github/diag/toast-fix.patch
+          pnpm exec vitest run --project site site/src/voyage/clear-of-toasts.test.ts 2>&1 | grep -E "✓|×|FAIL|Tests|passed|failed" | sed "s/^/U-after /" || true
+          pkill -f "vite preview" || true
+          pnpm site:build >/dev/null 2>&1
+          (pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort &) ; sleep 5
+          pnpm exec playwright test -c .github/diag/pw-site.config.ts --project=site-webkit --workers=2 --repeat-each=12 site/e2e/stage.spec.ts -g "bell's toast never covers" 2>&1 | grep -E "passed|failed|flaky" | sed "s/^/B-after /" || true
