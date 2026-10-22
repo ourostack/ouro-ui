@@ -332,7 +332,7 @@ function useAxisLabels(host: RefObject<HTMLElement | null>): AxisLabel[] {
       const origin = element.getBoundingClientRect();
       const svg = element.querySelector("svg.recharts-surface");
       const surface = svg?.getBoundingClientRect();
-      const next = [...element.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick-value")].map((text) => ({
+      const next = [...element.querySelectorAll(".recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value")].map((text) => ({
         x: surface!.left - origin.left + Number(text.getAttribute("x")),
         y: surface!.top - origin.top + Number(text.getAttribute("y")),
         text: text.textContent ?? "",
