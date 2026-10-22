@@ -47,16 +47,21 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fil
   <title>The chart room's map of the voyage</title>
   <!-- Original drawing for Ouro HX (manifest.json): an engraved chart of the seas the Nautilus
        crosses in Verne's book, from the North Pacific to the South Pole. The coasts are drawn
-       freehand from a few points each (no survey data), on a plain grid: x = (longitude + 180) × 3,
+       freehand from a few points each (no survey data), on a plain grid inside the chart's neat line (the coasts stop at it): x = (longitude + 180) × 3,
        y = (65 − latitude) × 2.2, so the chart runs from 180° W to 60° E and from 65° N down to the
        pole. The chart room draws the route and the ports on top of it (chapter-two.tsx). Colour
        comes from the theme. -->
+  <defs>
+    <clipPath id="ch-neat">
+      <rect x="5" y="5" width="${W - 10}" height="${H - 10}" />
+    </clipPath>
+  </defs>
   <rect class="ch-sea" x="0" y="0" width="${W}" height="${H}" stroke="none" />
-  <g class="ch-grid" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45">
+  <g class="ch-grid" clip-path="url(#ch-neat)" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45">
     <path d="${graticule.join(" ")}" />
   </g>
-  <path class="ch-line" d="M0 ${Y(0)} H${W}" stroke-width="0.9" stroke-dasharray="6 4" opacity="0.55" />
-  <g class="ch-land" stroke-width="1.1">
+  <path class="ch-line" clip-path="url(#ch-neat)" d="M0 ${Y(0)} H${W}" stroke-width="0.9" stroke-dasharray="6 4" opacity="0.55" />
+  <g class="ch-land" clip-path="url(#ch-neat)" stroke-width="1.1">
 ${Object.entries(land)
   .map(([name, points]) => `    <path data-land="${name}" d="${path(points)}" />`)
   .join("\n")}

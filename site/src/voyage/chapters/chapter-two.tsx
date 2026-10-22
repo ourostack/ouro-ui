@@ -198,7 +198,7 @@ const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] })
 function PortRow({ id, day, first }: { id: PortId; day: string; first: boolean }): JSX.Element {
   return (
     <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-      <span className="truncate">{portNamed(id).name}</span>
+      <span className="min-w-0">{portNamed(id).name}</span>
       <span className="shrink-0 text-sm text-muted-foreground" data-chapter-day="">
         {first ? CHART_ROOM.sail(writeDay(day)) : CHART_ROOM.arrive(writeDay(day))}
       </span>

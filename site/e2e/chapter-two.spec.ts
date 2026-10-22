@@ -251,8 +251,8 @@ test("on a phone, the chart room and the catalogue work by touch, and nothing ov
   await expect(marker.getByRole("img")).toHaveAccessibleName("1 of 3 done");
   await catalogue(page).scrollIntoViewIfNeeded();
   await expect.poll(async () => (await marker.boundingBox())!.y).toBeLessThan(80);
-  // On a phone the Combobox is a button that opens a sheet of the classes.
-  await catalogue(page).getByRole("button", { name: CATALOGUE.classify }).tap();
+  // With a coarse pointer on a narrow screen the Combobox is a button that opens a sheet of the classes.
+  await catalogue(page).getByRole("button", { name: CATALOGUE.classify }).or(classify(page)).tap();
   // The same in desktop WebKit: its emulated tap on an option closes the list before it picks.
   const option = page.getByRole("option", { name: "Crustacean", exact: true });
   await (browserName === "webkit" ? option.click() : option.tap());

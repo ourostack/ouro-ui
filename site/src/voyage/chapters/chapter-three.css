@@ -1,6 +1,6 @@
 /*
  * Chapter III once it answers (chapter-three.tsx puts this in the page as the island hydrates):
- * the squid's arm stirs at the glass a few times, then it swims off behind its ink when the fight
+ * the squid's arm stirs at the glass a few times, then it sinks back into the deep behind its ink when the fight
  * is won; the sky comes up when you surface, the floodlights fade on, and the organ's notes rise
  * when Nemo plays (a few times, then they rest). Under reduced motion nothing moves: the squid and
  * the ink fade, the notes appear in place.
@@ -34,15 +34,19 @@
     transform-origin: 90% 10%;
     animation: sq-stir 2.6s ease-in-out 3;
   }
+  /* Beaten, it sinks back to the deep it came from: small and faint, far below the glass. */
   .site-porthole .ph-squid {
+    transform-box: view-box;
+    transform-origin: 200px 200px;
     transition:
       opacity 1.4s ease 0.3s,
       translate 1.6s var(--ouro-ease-in-out),
       scale 1.6s var(--ouro-ease-in-out);
   }
   .site-porthole[data-squid="gone"] .ph-squid {
-    translate: 180px -220px;
-    scale: 0.6;
+    translate: -100px 130px;
+    scale: 0.35;
+    opacity: 0.3;
   }
   .site-organ[data-played] .or-note {
     transform-box: fill-box;
@@ -125,6 +129,10 @@
 .site-porthole .sq-ink {
   fill: oklch(0.16 0.02 250);
   opacity: 0;
+}
+/* The sun, once the ship is up. */
+.site-porthole .ph-sun {
+  fill: color-mix(in oklab, var(--chart-3) 55%, white);
 }
 /* Under the floodlights the squid's skin shows paler: a colour, not a filter, which is slow to paint in WebKit. */
 .site-porthole[data-lights] {

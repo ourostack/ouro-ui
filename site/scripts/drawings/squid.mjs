@@ -76,7 +76,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill=
        and one laid against the glass with its suckers turned to us. Drawn by
        site/scripts/drawings/squid.mjs; its colours come from the theme (chapters.css), but for the
        pupil, the glint and the beak, which keep their own; and
-       the page moves its parts as the fight goes (sq-glass-arm lets go, the whole squid swims off
+       the page moves its parts as the fight goes (sq-glass-arm lets go, the whole squid sinks back
        behind its ink). -->
   <g class="sq-ink" stroke="none">
     <path d="M300 120 C250 90 200 120 210 170 C170 190 180 250 230 250 C250 290 320 280 330 240 C380 240 390 170 350 160 C360 120 330 100 300 120 Z" />

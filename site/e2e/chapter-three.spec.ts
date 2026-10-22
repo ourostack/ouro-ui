@@ -267,12 +267,12 @@ test("under reduced motion, the fight and the organ change only colour and opaci
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("opacity", "1");
 });
 
-test("without reduced motion, the squid swims off behind its ink and the notes rise", async ({ page }) => {
+test("without reduced motion, the squid sinks back into the deep behind its ink and the notes rise", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   await win(page);
-  await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "180px -220px");
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "-100px 130px");
   await expect(scene(page).locator(".sq-ink")).toHaveCSS("animation-name", "sq-ink");
   await playButton(page).click();
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("animation-name", "or-rise");

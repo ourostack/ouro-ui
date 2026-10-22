@@ -212,6 +212,7 @@ function Porthole(): JSX.Element {
         <rect className="ph-sea" width="400" height="400" />
         <g className="ph-sky">
           <rect width="400" height="150" />
+          <circle className="ph-sun" cx="292" cy="84" r="20" />
           <path className="ph-wave" d={WAVE} />
         </g>
         <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" />

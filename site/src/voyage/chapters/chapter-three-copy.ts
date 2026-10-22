@@ -61,7 +61,7 @@ export const ENCOUNTER = {
 
 /** The scene in words, for screen readers. */
 export function describeEncounter(state: { surfaced: boolean; lights: boolean; won: boolean }): string {
-  const squid = state.won ? "The squid swims away in a cloud of ink." : "A giant squid holds the glass with one long arm. Its great green eye looks in.";
+  const squid = state.won ? "The squid sinks back into the deep in a cloud of ink." : "A giant squid holds the glass with one long arm. Its great green eye looks in.";
   const sea = state.surfaced ? "We are at the top of the sea." : "We are deep down.";
   const lights = state.lights ? "The floodlights are on." : "";
   return [squid, sea, lights].filter(Boolean).join(" ");
