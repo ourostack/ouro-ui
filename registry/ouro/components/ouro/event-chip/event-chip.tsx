@@ -50,7 +50,6 @@ export interface EventChipProps {
   soon?: { 'Use state="soon"': never };
 }
 
-const states: readonly string[] = ["upcoming", "soon", "now"];
 const tones = ["primary", "secondary", "destructive", "success", "warning"] as const;
 type Tone = (typeof tones)[number];
 const dots: Record<Tone, string> = {
@@ -103,14 +102,15 @@ export function EventChip(props: EventChipProps): JSX.Element {
     onOpen,
     soon,
   } = props;
-  const state = states.includes(stateProp) ? (stateProp as EventChipState) : "upcoming";
+  const state: EventChipState = stateProp === "soon" || stateProp === "now" ? (stateProp as EventChipState) : "upcoming";
   const tone: Tone = (tones as readonly string[]).includes(toneProp) ? (toneProp as Tone) : "secondary";
   useAppearanceClassNameCheck(
     "EventChip",
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; EventChip takes its colors from its state and statusTone`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "EventChip",

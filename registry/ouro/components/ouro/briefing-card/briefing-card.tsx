@@ -112,13 +112,15 @@ export function BriefingCard(props: BriefingCardProps): JSX.Element {
   } = props;
   const tone: Tone = (tones as readonly string[]).includes(toneProp) ? (toneProp as Tone) : "secondary";
   const id = useId();
+  // Stryker disable next-line ArrayDeclaration: a stand-in item has no content, so it is left out like none.
   const rows = (items ?? []).filter((item) => item.content !== null && item.content !== undefined && item.content !== false && item.content !== "");
   useAppearanceClassNameCheck(
     "BriefingCard",
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; BriefingCard takes its colors from the theme and its statusTone`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "BriefingCard",

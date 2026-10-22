@@ -32,6 +32,8 @@ const items: BriefingCardItem[] = [
   { id: "last", label: "Last time", content: null },
   { id: "files", label: "Files", content: <a href="#notes">Notes from last week</a> },
   { id: "empty", label: "Empty", content: "" },
+  { id: "later", label: "Later", content: undefined },
+  { id: "none", label: "None", content: false },
 ];
 
 let warn: ReturnType<typeof vi.spyOn>;
@@ -66,6 +68,13 @@ describe("BriefingCard", () => {
     expect(details.left).toBeGreaterThan(term.right);
     await rerender(<BriefingCard title="Weekly sync" items={[{ id: "none", label: "None", content: false }]} />);
     expect(card.querySelector("dl")).toBeNull();
+  });
+
+  it("sets the detail and the terms in a quieter color than the title", async () => {
+    const { card } = await render(<BriefingCard title="Weekly sync" detail="In 25 min" items={items} />);
+    const title = getComputedStyle(card.querySelector("h3")!).color;
+    expect(getComputedStyle(card.querySelector("p")!).color).not.toBe(title);
+    expect(getComputedStyle(card.querySelector("dt")!).color).not.toBe(title);
   });
 
   it("shows the status in a badge of its tone, before the title", async () => {
@@ -142,10 +151,18 @@ describe("BriefingCard development messages", () => {
     expect(card.hasAttribute("sections")).toBe(false);
   });
 
+  it("warns of nothing when the props are right", async () => {
+    await render(<BriefingCard title="Weekly sync" items={items} status="Up to date" />);
+    await render(<BriefingCard title="Weekly sync" items={[]} status="Needs you" statusTone="warning" detail="In 25 min" />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("renders an unknown tone as secondary, and missing items as none", async () => {
     const props = { title: "Weekly sync", status: "Late", statusTone: "pink" } as unknown as BriefingCardProps;
     const { card } = await render(<BriefingCard {...props} />);
     expect(card.querySelector('[data-ouro="badge"]')!.className).toContain("bg-muted");
+    // The card passes the badge a tone it knows, so only the card's own message is shown.
+    expect(warn.mock.calls.flat().join("\n")).not.toContain("Badge:");
     expect(card.querySelector("dl")).toBeNull();
   });
 

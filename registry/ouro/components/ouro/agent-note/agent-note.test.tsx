@@ -201,7 +201,7 @@ describe("AgentNote", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("textbox", { name: "Modifier" })).toHaveValue(base.text);
     // Another key leaves the editor open.
-    await userEvent.keyboard("{Tab}");
+    await userEvent.keyboard("{ArrowLeft}");
     await act(async () => page.getByRole("textbox", { name: "Modifier" }).element().focus());
     // Escape is the editor's, so a dialog around the note stays open.
     const seen = vi.fn((event: KeyboardEvent) => event.defaultPrevented);
