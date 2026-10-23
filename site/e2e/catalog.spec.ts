@@ -44,7 +44,7 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
 const CEILINGS = { landing: 157_250 + 1024, voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
-const CSS_CEILING = 40 * 1024;
+const CSS_CEILINGS = { landing: 40 * 1024, voyage: 36 * 1024, docs: 40 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
@@ -271,17 +271,16 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
-    report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILING };
+    report[kind] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILINGS[kind] };
     expect(gzip, `${kind} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
     expect(styles.length, `${kind} loads its stylesheets`).toBeGreaterThan(0);
     sheets[kind] = [...new Set(styles)];
-    expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILING);
+    expect(css, `${kind} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILINGS[kind]);
   }
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets.
   expect(sheets["voyage"]!.filter((sheet) => sheets["docs"]!.includes(sheet) || sheets["landing"]!.includes(sheet)), "voyage shares a stylesheet with the docs or the landing page").toEqual([]);
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
-  expect(JSON.stringify(report), "MEASURE (temporary)").toBe("");
   expect(errors).toEqual([]);
 });
 
