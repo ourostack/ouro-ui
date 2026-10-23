@@ -451,9 +451,13 @@ export function timerBoundReads(path, text) {
   let regions = new Set();
   // A read that may be a toast's: a text or dialog on the whole page, or a dialog or text in the toasts' region.
   // The toasts' region: a name it is kept under, or a `getByRole("region", { name: "Notifications" })` call.
-  const isRegion = (expression) =>
-    (ts.isIdentifier(expression) && regions.has(expression.text)) ||
+  const isRegion = (start) => {
+    // A narrowing of the region (first, last, nth, filter, locator) is still in it.
+    let expression = start;
+    while (ts.isCallExpression(expression) && ts.isPropertyAccessExpression(expression.expression) && /^(first|last|nth|filter|locator)$/.test(expression.expression.name.text)) expression = expression.expression.expression;
+    return (ts.isIdentifier(expression) && regions.has(expression.text)) ||
     (ts.isCallExpression(expression) && /(^|\.)getByRole$/.test(callee(expression)) && /^getByRole\(\s*["']region["'][^)]*["']Notifications["']/.test(expression.getText(source).slice(expression.expression.getText(source).lastIndexOf("getByRole"))));
+  };
   const toastRead = (call) => {
     const name = callee(call);
     const dialog = call.arguments[0] && ts.isStringLiteralLike(call.arguments[0]) && /^(alert)?dialog$/.test(call.arguments[0].text);
@@ -488,7 +492,7 @@ export function timerBoundReads(path, text) {
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
         const initializer = node.initializer.getText(source);
         if (/data-ouro="toast"/.test(initializer)) toastNames.add(node.name.text);
-        if (/getByRole\(\s*["']region["'][^)]*["']Notifications["']/.test(initializer)) regionNames.add(node.name.text);
+        if (isRegion(node.initializer)) regionNames.add(node.name.text);
         else if (hasToasts && calls(node.initializer).some(toastRead)) readNames.add(node.name.text);
       }
       ts.forEachChild(node, declare);
