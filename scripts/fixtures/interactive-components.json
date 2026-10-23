@@ -69,5 +69,8 @@
   "install-prompt",
   "conversation-list",
   "attention-card",
-  "reaction-bar"
+  "reaction-bar",
+  "preset-picker",
+  "layout-proposal",
+  "copy-prompt"
 ]

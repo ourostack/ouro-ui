@@ -17,17 +17,17 @@ export interface DocsItem {
   title: string;
   /** Catalog group, as in the README catalog; App setup's components come last. */
   group: SiteGroup;
-  /** The registry source file, from the repo root. */
-  source: string;
-  /** The first sentence of its page, for the catalog (`summary`, written by `pnpm run docs`). */
-  summary: string;
   /** The family in docs/parts.md whose nesting this page shows, if it has parts. */
   parts?: string;
   /** Functions documented on this page too, after the component: `toast` on the Toaster page. */
   functions?: string[];
 }
 
-/** Every component's page, from site/src/docs/catalog.json, which `pnpm run docs` writes from the registry. */
+/**
+ * Every component's page, from site/src/docs/catalog.json, which `pnpm run docs` writes from the
+ * registry. Every page's navigation loads it, so it holds no more than the navigation needs; the
+ * docs read each item's source file and summary from `itemDetails` (site/src/docs/item-details.ts).
+ */
 export const docsItems: DocsItem[] = catalog as DocsItem[];
 
 /** The Markdown files an item's page shows: its own, its functions' (docs/toast.md) and, with parts, docs/parts.md. */

@@ -37,11 +37,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "v
 
 /**
  * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The landing page and the docs
- * may not grow: each is what it loaded at 7c13bd6a (#141 on main at bf855de4, after the docs
- * stopped loading every page's Markdown first and after #138's claims), 157,250 and 167,396 bytes,
- * plus 1 KiB. The voyage preview gets 270 KB.
+ * may not grow: each is what it loaded when last measured, plus 1 KiB. The landing page, 152,460
+ * bytes, at c8561011 (#162, once site/src/docs/catalog.json stopped carrying every summary); the
+ * docs, 167,396 bytes, at 7c13bd6a (#141 on main at bf855de4, after the docs stopped loading every
+ * page's Markdown first and after #138's claims). The voyage preview gets 270 KB.
  */
-const CEILINGS = { landing: 157_250 + 1024, voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { landing: 152_460 + 1024, voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILING = 40 * 1024;

@@ -1,7 +1,7 @@
 /**
  * The first sentence of a docs page's purpose paragraph, for the catalog: links become their text,
  * and a claim's footnote references (docs/guides/claims.md) are dropped.
- * `pnpm run docs` (scripts/gen-docs.mts) writes it into site/src/docs/catalog.json and pages.json,
+ * `pnpm run docs` (scripts/gen-docs.mts) writes it into site/src/docs/item-details.json and pages.json,
  * so the docs index lists every page without loading each page's Markdown.
  */
 export function summary(markdown: string): string {

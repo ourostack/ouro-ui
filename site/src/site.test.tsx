@@ -3,7 +3,8 @@ import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
-import { docsItems, itemMarkdown, summary } from "./docs/items";
+import { loadMarkdown, markdown } from "./docs/content";
+import { docsItems, GITHUB, itemMarkdown, summary } from "./docs/items";
 import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
@@ -134,6 +135,15 @@ describe("docs", () => {
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
   });
 
+  it("shows each item's own summary on its docs index card", async () => {
+    const host = await renderPage("/docs/");
+    await loadMarkdown(docsItems.map((item) => `docs/${item.title}.md`));
+    for (const item of docsItems) {
+      const card = host.querySelector<HTMLAnchorElement>(`section[aria-labelledby^="group-"] a[href$="/docs/${item.name}/"]`)!;
+      expect(card.lastElementChild!.textContent, item.name).toBe(summary(markdown(`docs/${item.title}.md`)).replace(/`/g, ""));
+    }
+  });
+
   it("has a page for every registry item at docs/<name>", () => {
     const names = registry.items.filter((item) => item.type === "registry:ui").map((item) => item.name);
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
@@ -154,6 +164,11 @@ describe("docs", () => {
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
+    // Its source link is its own component's file, one the registry item installs.
+    const source = page.getByRole("link", { name: "Source on GitHub" }).element().getAttribute("href")!;
+    const files = registry.items.find((item) => item.name === name)!.files!.map((file) => `${GITHUB}/blob/main/${file.path}`);
+    expect(files).toContain(source);
+    expect(source.endsWith(`/${name}.tsx`)).toBe(true);
   });
 
   it("shows the parts nesting on the Sheet and Dialog pages", async () => {
