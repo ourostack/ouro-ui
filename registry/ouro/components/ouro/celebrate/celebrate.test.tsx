@@ -128,13 +128,15 @@ describe("Celebrate", () => {
   });
 
   it("says nothing when the page opens with it already shown", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const announced = watchAnnouncements();
     try {
       await render(<Celebrate show message="Already done" />);
-      await act(async () => new Promise((resolve) => setTimeout(resolve, 150)));
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
       expect(announced.count("Already done")).toBe(0);
     } finally {
       announced.stop();
+      vi.useRealTimers();
     }
   });
 
