@@ -327,11 +327,30 @@ test("Scheduled install reports any failure in one issue, with issues: write on 
   assert.match(scheduled, /^permissions:\n {2}contents: read\njobs:/m);
 });
 
+test("Required checks compares the file with main's live rules hourly, on a change to it, and by hand, and reports only a drift, in one issue, at most daily", () => {
+  const text = workflow("required-checks.yml");
+  assert.match(text, /^ {2}schedule:\n {4}- cron: "\d+ \* \* \* \*"$/m);
+  assert.match(text, /^ {2}workflow_dispatch:$/m);
+  for (const event of ["push", "pull_request"]) {
+    const block = text.split(new RegExp(`^ {2}${event}:\n`, "m"))[1].split(/\n {2}\S/)[0];
+    for (const path of [".github/required-checks.json", "scripts/required-checks.mjs", ".github/workflows/required-checks.yml"]) assert.ok(block.includes(`- ${path}`), `${event} ${path}`);
+  }
+  assert.match(text, /^permissions:\n {2}contents: read\njobs:/m);
+  assert.match(text, /^ {8}id: compare\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/required-checks\.mjs$/m);
+  assert.match(text, /^ {4}outputs:\n {6}drift: \$\{\{ steps\.compare\.outputs\.drift \}\}$/m);
+  const report = text.slice(text.indexOf("\n  report:\n"));
+  // An API error is no drift: the report waits on the drift output, not on any failure.
+  assert.match(report, /needs: \[compare\]\n\s+if: always\(\) && needs\.compare\.outputs\.drift == 'true' && github\.event_name != 'pull_request'/);
+  assert.match(report, /QUIET_HOURS: 24/);
+  assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
+  assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Required checks drifted" /);
+});
+
 test("scheduled-failure.sh opens the issue once, then comments on it", () => {
   const bin = scratchDir("ouro-gh-");
   const log = join(bin, "calls.log");
-  // A stand-in gh: logs its arguments, and answers `issue list` with $OPEN (the jq result).
-  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\nall="$*"\nprintf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' "$OPEN"; fi\n`);
+  // A stand-in gh: logs its arguments, and answers `issue list` with $OPEN and `issue view` with $LAST (the jq results).
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\nall="$*"\nprintf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' "$OPEN"; fi\nif [ "$1 $2" = "issue view" ]; then printf '%s' "$LAST"; fi\n`);
   chmodSync(join(bin, "gh"), 0o755);
   const run = (open) =>
     spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/1"], {
@@ -340,12 +359,26 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
     });
   assert.equal(run("").status, 0);
   assert.equal(run("42").status, 0);
+  // Another workflow names its own issue and says what failed.
+  assert.equal(spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/2", "Required checks drifted", "The required checks drifted from main's rules"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: "" } }).status, 0);
+  // With QUIET_HOURS, an issue commented on (or opened) within that many hours gets no comment.
+  const quiet = (last) => spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/3", "Required checks drifted", "Drifted"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: "7", LAST: String(last), QUIET_HOURS: "24" } });
+  const now = Math.floor(Date.now() / 1000);
+  assert.equal(quiet(now - 3600).status, 0);
+  assert.equal(quiet(now - 25 * 3600).status, 0);
   const calls = readFileSync(log, "utf8").trim().split("\n");
+  assert.match(calls[6], /^issue list /);
+  assert.match(calls[7], /^issue view 7 --json createdAt,comments --jq /);
+  assert.match(calls[8], /^issue list /);
+  assert.match(calls[9], /^issue view 7 /);
+  assert.equal(calls[10], "issue comment 7 --body Failed again: https://github.com/o/r/actions/runs/3");
+  assert.equal(calls.length, 11);
   assert.match(calls[0], /^issue list --state open --search in:title "Scheduled install failed"/);
   assert.match(calls[1], /^issue create --title Scheduled install failed --body The weekly install of main and the newest release failed: https:\/\/github\.com\/o\/r\/actions\/runs\/1/);
   assert.match(calls[2], /^issue list /);
   assert.equal(calls[3], "issue comment 42 --body Failed again: https://github.com/o/r/actions/runs/1");
-  assert.equal(calls.length, 4);
+  assert.match(calls[4], /^issue list --state open --search in:title "Required checks drifted"/);
+  assert.match(calls[5], /^issue create --title Required checks drifted --body The required checks drifted from main's rules: https:\/\/github\.com\/o\/r\/actions\/runs\/2/);
 });
 
 // v0.7.0 was out for two hours while the site's llms.txt and main's README still gave install
@@ -936,6 +969,8 @@ test("every required check is still a job that reports, under the name the rules
   }
   // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
+  // ruleset 24881709 requires these; required-checks.yml holds the file to the live rules.
+  for (const check of ["ci-budget", "conformance", "conformance exemptions", "mutation"]) assert.ok(requiredChecks.includes(check), check);
   const installShards = shardCount(jobs["install-shard"]);
   const installs = ["shadcn, nova", "shadcn, vega", "ouro, nova"].flatMap((app) => Array.from({ length: installShards }, (_, index) => `install (${app}, ${index + 1}/${installShards})`));
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), installs);

@@ -463,6 +463,11 @@ test("a registry spec that opens a Toaster story has toasts: a dialog read in th
   assert.equal(playground('const toast = page.getByRole("dialog", { name: "Saved" });\nawait expect(toast).toBeVisible();').length, 1);
   assert.equal(playground('const saved = page.getByText("Saved");\nawait expect(saved).toBeVisible();').length, 1);
   assert.equal(playground('await expect(page.getByRole("region", { name: "Notifications" }).getByRole("dialog", { name: "Saved" })).toBeVisible();').length, 1);
+  // Narrowing the region (first, last, nth, filter, locator) keeps a read in it a toast's.
+  for (const step of ["first()", "last()", "nth(0)", 'filter({ hasText: "Saved" })', 'locator("li")']) {
+    assert.equal(playground(`await expect(page.getByRole("region", { name: "Notifications" }).${step}.getByText("Saved")).toBeVisible();`).length, 1, step);
+    assert.equal(playground(`const region = page.getByRole("region", { name: "Notifications" }).${step};\nawait expect(region.getByText("Saved")).toBeVisible();`).length, 1, step);
+  }
   // A spec with no Toaster story reads its own dialogs.
   assert.deepEqual(spec('await openStory(page, "overlays-dialog--playground");\nawait expect(page.getByRole("dialog")).toBeVisible();'), []);
 });

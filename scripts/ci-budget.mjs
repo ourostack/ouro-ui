@@ -140,9 +140,10 @@ export function runWalls(runs) {
 }
 
 /**
- * The budget's verdict on a run: `{ fail, reason, warning }`. A run with a job that no ci.yml job
- * name matches (`unmatched`) fails, whatever its event: its critical path would leave that job out.
- * Otherwise only a pull request is held to it, and not a full-suite fallback run (`fallback`),
+ * The budget's verdict on a run: `{ fail, reason, warning }`. A job that no ci.yml job name
+ * matches (`unmatched`) fails a pull request, since its critical path would leave that job out; a
+ * merge group or a push only warns, so the required check never bounces a queue entry (the pull
+ * request's own run, from the same ci.yml, fails first). Otherwise only a pull request is held to it, and not a full-suite fallback run (`fallback`),
  * whose time is the whole suite's, not the change's. Under the limit (the target and its margin)
  * its critical path passes. Over it, its work time (the critical path with setup steps left out,
  * `workSeconds`) is judged: past the ceiling (`ceilingSeconds`), or more than `regressionMinutes`
@@ -153,7 +154,7 @@ export function runWalls(runs) {
  */
 export function judge({ event, fallback = false, criticalSeconds, workSeconds: work = null, baselineWorkSeconds = null, earlierWorkSeconds = null, unmatched = [] }, { targetMinutes, margin, ceilingMinutes, ceilingFactor, regressionMinutes } = budget) {
   const limit = targetMinutes * 60 * (1 + margin);
-  if (unmatched.length > 0) return { fail: true, reason: "unmatched", warning: null };
+  if (unmatched.length > 0) return event === "pull_request" ? { fail: true, reason: "unmatched", warning: null } : { fail: false, warning: "unmatched" };
   if (event !== "pull_request") return { fail: false, warning: null };
   if (fallback) return { fail: false, warning: "fallback" };
   if (criticalSeconds <= limit || typeof work !== "number") return { fail: false, warning: null };
@@ -417,7 +418,8 @@ async function main(argv) {
     "no-baseline": "with no work time from a passing merge queue run on main to compare it with",
     fallback: "on a full-suite fallback run, which is not judged",
   }[verdict.warning];
-  if (verdict.warning) console.log(`::warning::The critical path took ${minutes(path.seconds)}, ${over}, ${because}: ${chain}.`);
+  if (verdict.warning === "unmatched") console.log(`::warning::No ci.yml job name matches these jobs, so this run's critical path leaves them out: ${path.unmatched.join(", ")}. A pull request run fails on this; give each job a name the job graph reads (jobGraph).`);
+  else if (verdict.warning) console.log(`::warning::The critical path took ${minutes(path.seconds)}, ${over}, ${because}: ${chain}.`);
   if (verdict.fail) {
     if (verdict.reason === "unmatched") {
       console.log(`::error::No ci.yml job name matches these jobs, so the critical path would leave them out: ${path.unmatched.join(", ")}. Give each job a name the job graph reads (jobGraph), with every matrix value it uses listed in its matrix.`);

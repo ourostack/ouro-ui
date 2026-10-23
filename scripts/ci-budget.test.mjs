@@ -91,9 +91,11 @@ test("a skipped job adds nothing, and a job no name matches is reported", () => 
   assert.deepEqual(path.unmatched, ["mystery"]);
 });
 
-test("a run with a job that no ci.yml job matches fails, whatever its event, so the critical path never leaves a job out", () => {
-  for (const event of ["pull_request", "merge_group", "push"]) {
-    assert.deepEqual(judge({ event, criticalSeconds: 60, workSeconds: 60, baselineWorkSeconds: 60, unmatched: ["install (shadcn, nova, 3/3)"] }), { fail: true, reason: "unmatched", warning: null });
+test("a pull request with a job that no ci.yml job matches fails, so the critical path never leaves a job out, and a merge group or a push only warns, so the required check never bounces a queue entry", () => {
+  const unmatched = ["install (shadcn, nova, 3/3)"];
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 60, workSeconds: 60, baselineWorkSeconds: 60, unmatched }), { fail: true, reason: "unmatched", warning: null });
+  for (const event of ["merge_group", "push", "workflow_dispatch"]) {
+    assert.deepEqual(judge({ event, criticalSeconds: 60, workSeconds: 60, baselineWorkSeconds: 60, unmatched }), { fail: false, warning: "unmatched" });
   }
   assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 60, workSeconds: 60, baselineWorkSeconds: 60, unmatched: [] }), { fail: false, warning: null });
 });
