@@ -128,7 +128,9 @@ const views = new Map<string, number>();
 /**
  * Counts a view of a timer while it is mounted. The function it returns uncounts it, and stops
  * the timer's repeating alert once no view of the timer is left, so nothing rings with no
- * Dismiss on screen.
+ * Dismiss on screen. A route change that swaps a timer's last view for another in one commit
+ * (its Timer for a TimerTray row) stops it too, as intended: the new view starts quiet, showing
+ * Time's up and Dismiss.
  *
  * @claim "stops the timer's repeating alert once" registry/ouro/components/ouro/timer/timer.test.tsx verify:testExists(registry/ouro/components/ouro/timer/timer.test.tsx::Timer > stops a repeating alert when the last view of its timer goes)
  */
