@@ -1,0 +1,1 @@
+- Fix: `ImageField` restores the translucent backing behind its drop label ([image-field.tsx](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/components/ouro/image-field/image-field.tsx "verify:fileLine(registry/ouro/components/ouro/image-field/image-field.tsx, /bg-background\/85/)")).
