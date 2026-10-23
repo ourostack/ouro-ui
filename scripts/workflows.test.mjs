@@ -387,6 +387,58 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
 
 const workflow = (file) => workflows.find((entry) => entry.file === file).text;
 
+test("published-release verification validates its tag, reads protected main and runs the existing public proofs without write permission", () => {
+  assert.ok(existsSync(join(dir, "verify-published.yml")), "A published release needs a read-only hosted verification entry.");
+  const text = workflow("verify-published.yml");
+  assert.match(text, /^ {2}workflow_dispatch:\n/m);
+  assert.doesNotMatch(text, /^ {2}(push|pull_request|schedule):/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n/m);
+  assert.doesNotMatch(text, /^\s+(contents|actions|pages|id-token|pull-requests): write$/m);
+  assert.match(text, /ref: main\n\s+persist-credentials: false/);
+  assert.match(text, /node scripts\/published-release\.mjs "\$TAG" --wait 900/);
+  assert.match(text, /node scripts\/public-registry\.mjs verify-live "\$TAG" --wait 900/);
+  const block = /- name: Validate the release tag\n[\s\S]*?run: \|\n((?: {10}[^\n]*\n)+)/.exec(text)?.[1];
+  assert.ok(block, "The tag validator must run before repository setup.");
+  const script = block.replace(/^ {10}/gm, "");
+  for (const tag of ["v1.2.1", "v0.0.1", "v12.34.56"]) {
+    const result = spawnSync("bash", ["-c", script], { encoding: "utf8", env: { ...process.env, TAG: tag } });
+    assert.equal(result.status, 0, `${tag}: ${result.stderr}${result.stdout}`);
+  }
+  for (const tag of ["", "main", "1.2.1", "v1.2.1-beta", "v1.2.1; false", "../v1.2.1"]) {
+    const result = spawnSync("bash", ["-c", script], { encoding: "utf8", env: { ...process.env, TAG: tag } });
+    assert.equal(result.status, 1, tag);
+    assert.match(result.stdout + result.stderr, /::error::/);
+  }
+});
+
+test("published-release verification refuses unfinished main, drafts, prereleases and a missing release", () => {
+  const text = workflow("verify-published.yml");
+  const block = /- name: Check the published release and current main\n[\s\S]*?run: \|\n((?: {10}[^\n]*\n)+)/.exec(text)?.[1];
+  assert.ok(block);
+  const script = block.replace(/^ {10}/gm, "");
+  const bin = scratchDir("ouro-verify-release-");
+  writeFileSync(join(bin, "node"), '#!/usr/bin/env bash\nprintf "%s\\n" "$RECORDED_TAG"\n');
+  writeFileSync(join(bin, "gh"), '#!/usr/bin/env bash\nif [ "${GH_EXIT:-0}" != 0 ]; then echo "release not found" >&2; exit "$GH_EXIT"; fi\nprintf "%s\\n" "$RELEASE_JSON"\n');
+  chmodSync(join(bin, "node"), 0o755);
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (extra = {}) => spawnSync("bash", ["-e", "-c", script], {
+    encoding: "utf8",
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TAG: "v1.2.1", RECORDED_TAG: "v1.2.1", RELEASE_JSON: '{"isDraft":false,"isPrerelease":false}', GH_EXIT: "0", ...extra },
+  });
+  assert.equal(run().status, 0);
+  const unfinished = run({ RECORDED_TAG: "v1.2.0" });
+  assert.equal(unfinished.status, 1);
+  assert.match(unfinished.stdout, /Merge the release preparation PR/);
+  for (const metadata of ['{"isDraft":true,"isPrerelease":false}', '{"isDraft":false,"isPrerelease":true}', "{}"]) {
+    const result = run({ RELEASE_JSON: metadata });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /must be a published stable release/);
+  }
+  const missing = run({ GH_EXIT: "1" });
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /release not found/);
+});
+
 test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
   const pages = workflow("pages.yml");
   const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
