@@ -509,7 +509,6 @@ jobs:
     # minutes: 35, and 1.5 times that 53 (scripts/workflows.test.mjs).
     timeout-minutes: 55
     env:
-      GH_TOKEN: ${{ github.token }}
       TAG: v${{ inputs.version }}
       NEXT_BRANCH: prepare/after-v${{ inputs.version }}
     steps:
@@ -517,14 +516,22 @@ jobs:
         with:
           ref: main
           persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+          cache: pnpm
+      - name: Install dependencies for the public proofs
+        run: |
+          pnpm i --frozen-lockfile
       - name: Delete the branch that prepared main
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$NEXT_BRANCH" >/dev/null || echo "::notice::Could not delete $NEXT_BRANCH; delete it by hand."
       - name: Deploy Pages and check what is published
         env:
+          GH_TOKEN: ${{ github.token }}
           VERIFIED_MAIN_SHA: ${{ needs.queue.outputs.main_sha }}
         run: |
           # Pages follows CI on a push to main, and no push happened here, so deploy it now: its
@@ -543,6 +550,7 @@ jobs:
           done
           [ "$run" != "$before" ] || { echo "::error::Pages did not start. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
           gh run watch "$run" --exit-status --interval 30
+          unset GH_TOKEN
           node scripts/published-release.mjs "$TAG" --wait 900
           # And the @ouro namespace Pages now serves is this release, every item byte for byte
           # as built from the tag.
