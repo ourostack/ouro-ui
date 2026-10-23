@@ -3,7 +3,6 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { App, loadPage } from "./app";
 import { pathFromLocation } from "./paths";
 import { followSystemScheme } from "./themes/prepaint";
-import "./styles.css";
 
 // Follow the OS setting while the page is open, as the head script does before paint, unless the
 // reader chose Surfaced or Submerged.

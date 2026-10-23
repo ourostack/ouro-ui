@@ -1,3 +1,5 @@
+// First, so the page's own rules below come after Tailwind's and win.
+import "../voyage/voyage-tailwind.css";
 import { Suspense, useEffect, useState, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
