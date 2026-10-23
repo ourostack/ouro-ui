@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fix: `Celebrate` delays its message about 1.5 s to leave time for the triggering control's announcement; this fixed delay does not detect when a screen reader finishes speaking ([celebrate.tsx](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/components/ouro/celebrate/celebrate.tsx "verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > says the message once after a delay when the moment starts, and again for the next one)")).
+- Fix: `ImageField` restores the translucent backing behind its drop label ([image-field.tsx](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/components/ouro/image-field/image-field.tsx "verify:fileLine(registry/ouro/components/ouro/image-field/image-field.tsx, /bg-background\/85/)")).
