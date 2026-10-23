@@ -695,6 +695,9 @@ for (const scenario of scenarios) {
     const queue = releaseStep("Pass the merge queue and CI on main");
     const remove = releaseStep("Delete the branch that prepared main");
     const deploy = releaseStep("Deploy Pages and check what is published");
+    const install = workflow("release.yml").includes("name: Install dependencies for the public proofs")
+      ? releaseStep("Install dependencies for the public proofs")
+      : "";
     const fixture = scratchDir("ouro-release-main-gate-");
     const output = join(fixture, "output.txt");
     const summary = join(fixture, "summary.md");
@@ -758,7 +761,21 @@ for (const scenario of scenarios) {
       seq() { printf '%s\\n' 1 2 3 4 5; }
       sleep() { :; }
       export -f gh seq sleep
-      node() { printf 'PUBLISHED %s\\n' "$*"; }
+      pnpm() {
+        [ "$*" = "i --frozen-lockfile" ] || return 99
+        touch "$DEPENDENCIES_READY"
+      }
+      node() {
+        if [ -n "\${GH_TOKEN:-}" ]; then
+          echo "Public proof inherited the publishing token" >&2
+          return 98
+        fi
+        if [ "$1" = scripts/public-registry.mjs ] && [ ! -f "$DEPENDENCIES_READY" ]; then
+          echo "Cannot find package postcss: publish dependencies were not installed" >&2
+          return 1
+        fi
+        printf 'PUBLISHED %s\\n' "$*"
+      }
       git() { echo headsha; }
       pages=0
       ${gate}
@@ -766,11 +783,13 @@ for (const scenario of scenarios) {
       ${queue}
       VERIFIED_MAIN_SHA=$(sed -n 's/^main_sha=//p' "$GITHUB_OUTPUT")
       if [ "$SCENARIO" = tip-advanced ]; then VERIFIED_MAIN_SHA=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; fi
+      ${install}
       ${remove}
+      GH_TOKEN=publishing-token
       ${deploy}
     `], {
       cwd: root, encoding: "utf8",
-      env: { ...process.env, SCENARIO: scenario, PRODUCERS: "ci.yml", NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks },
+      env: { ...process.env, GH_TOKEN: "", SCENARIO: scenario, PRODUCERS: "ci.yml", NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks, DEPENDENCIES_READY: join(fixture, "dependencies-ready") },
     });
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     // Queued by the API only while gh left the pull request open and out of the queue, a few times.
@@ -812,6 +831,22 @@ for (const scenario of scenarios) {
     }
   });
 }
+
+test("public proof dependencies are installed without the publishing token, and an install failure stops the job", () => {
+  const publish = workflow("release.yml").split("\n  publish:\n")[1].split("\n  finish:\n")[0];
+  const manager = publish.indexOf("uses: pnpm/action-setup@");
+  assert.ok(manager >= 0 && manager < publish.indexOf("uses: actions/setup-node@"));
+  assert.ok(publish.indexOf("name: Install dependencies for the public proofs") > manager);
+  assert.doesNotMatch(publish.split("\n    steps:\n")[0], /^\s+GH_TOKEN:/m);
+  for (const step of publish.split(/\n(?= {6}- )/).filter((step) => step.includes("GH_TOKEN:"))) {
+    assert.match(step, /name: (Delete the branch that prepared main|Deploy Pages and check what is published)\n/);
+  }
+  const install = releaseStep("Install dependencies for the public proofs");
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c",
+    `pnpm() { return 37; }\n${install}\nprintf 'PROOF RAN\\n'`], { encoding: "utf8" });
+  assert.equal(result.status, 37, result.stdout + result.stderr);
+  assert.doesNotMatch(result.stdout, /PROOF RAN/);
+});
 
 test("a release builds the @ouro namespace from its commit and checks it byte for byte before CI, the screen-reader lane and the tag", () => {
   const release = workflow("release.yml");
