@@ -85,10 +85,13 @@ describe("timer state transfer", () => {
     });
     expect(state.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
     expect(localStorage.getItem("ouro-timer:restore-blocked")).toBeNull();
+    const joined = await renderTimer({ duration: 90, timerId: "restore-blocked" });
+    expect(joined.state.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
     await act(async () => {
       expect(restoreTimer("restore-blocked", { status: "done", duration: 10, endedAt: Date.now() })).toBe(false);
     });
     expect(state.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
+    expect(joined.state.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
   });
 
   it("finishes an imported running timer at its original deadline", async () => {
