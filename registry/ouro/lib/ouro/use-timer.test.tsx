@@ -111,6 +111,24 @@ describe("timer state transfer", () => {
     expect(replacement.current).toMatchObject({ status: "idle", remaining: 90 });
   });
 
+  it("keeps replacement controls working through rapid last-reader changes", async () => {
+    const options = { duration: 90, timerId: "restore-reentry" };
+    expect(restoreTimer("restore-reentry", { status: "paused", duration: 60, remainingMs: 25_000 })).toBe(true);
+    const first = await renderTimer(options);
+    const replacement = { current: first.state.current };
+    await act(async () => {
+      flushSync(() => first.root.render(null));
+      queueMicrotask(() => flushSync(() => first.root.render(
+        <Probe key="replacement" options={options} report={(timer) => { replacement.current = timer; }} />,
+      )));
+      flushSync(() => first.root.render(<Probe key="temporary" options={options} report={() => {}} />));
+      flushSync(() => first.root.render(null));
+    });
+    expect(replacement.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
+    await act(async () => replacement.current.reset());
+    expect(replacement.current).toMatchObject({ status: "idle", remaining: 90 });
+  });
+
   it("finishes an imported running timer at its original deadline", async () => {
     const onDone = vi.fn();
     const { state } = await renderTimer({ duration: 90, timerId: "restore-deadline", onDone });

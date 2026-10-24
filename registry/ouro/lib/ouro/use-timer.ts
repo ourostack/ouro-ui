@@ -353,12 +353,14 @@ export function useTimer({ duration, timerId, onDone, fallback }: TimerOptions):
       return () => {
         entry.listeners.delete(onChange);
         entry.done.delete(done);
-        if (entry.listeners.size === 0) {
-          clearTimeout(entry.timeout);
-          entry.timeout = undefined;
-          // A timer kept in storage is read again next time; one without a timerId ends with its component.
-          entries.delete(key);
-        }
+        queueMicrotask(() => {
+          if (entry.listeners.size === 0 && entries.get(key) === entry) {
+            clearTimeout(entry.timeout);
+            entry.timeout = undefined;
+            // A later mount reads storage again; a same-commit replacement keeps this entry.
+            entries.delete(key);
+          }
+        });
       };
     },
     [key, timerId],
