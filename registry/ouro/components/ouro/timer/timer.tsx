@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, type HTMLAttributes, type JSX, type Ref } fro
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { formatDuration, useTimer, type TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
+import { formatDuration, timerIsDone, useTimer, type TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   alertDone,
@@ -207,8 +207,8 @@ export function Timer(props: TimerProps): JSX.Element {
   const done = status === "done";
   // Dismiss, Restart or Cancel, here or in another view, stops a repeating alert.
   useEffect(() => {
-    if (!done) stopAlert(key);
-  }, [done, key]);
+    if (!done && (timerId === undefined || !timerIsDone(timerId))) stopAlert(key);
+  }, [done, key, timerId]);
   // The alert stops once no view of the timer is left (without a timerId, this is its only view).
   useEffect(() => registerView(key), [key]);
 

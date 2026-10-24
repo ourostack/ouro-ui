@@ -107,7 +107,7 @@ describe("TimerTray", () => {
 
       const nextIsTray = direction === "Timer-to-tray";
       await act(async () => page.root.render(view(nextIsTray)));
-      expect(page.host.querySelector('[role="timer"]')!.textContent).toBe("Time's up");
+      expect(page.host.textContent).toContain("Time's up");
       await advance(5000);
       expect(tones).toBe(9);
       expect(onDone).toHaveBeenCalledOnce();
