@@ -1,6 +1,6 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { docsItems } from "./docs/items";
-import { docsPages } from "./docs/pages";
+import pageIndex from "./docs/page-index.json";
 import { HERO_COPY, VOYAGE_HERO } from "./copy";
 import { latestRelease } from "./latest-release";
 import { normalizePath } from "./paths";
@@ -36,7 +36,7 @@ export const routes: Route[] = [
     title: `${item.title} · Ouro HX`,
     description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}.`,
   })),
-  ...docsPages.map((page) => ({
+  ...pageIndex.map((page) => ({
     path: `/docs/${page.name}/`,
     title: `${page.title} · Ouro HX`,
     description: page.summary.replace(/`/g, ""),

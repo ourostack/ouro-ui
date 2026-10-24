@@ -256,6 +256,22 @@
     "summary": "Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up."
   },
   {
+    "name": "reset-timer",
+    "title": "resetTimer",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/resetTimer.md",
+    "summary": "Cancels or dismisses a timer by its timerId, including when its screen is not mounted."
+  },
+  {
+    "name": "restore-timer",
+    "title": "restoreTimer",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/restoreTimer.md",
+    "summary": "Imports a saved countdown, leaving an existing native timer intact."
+  },
+  {
     "name": "toast",
     "title": "toast",
     "kind": "export",

@@ -325,6 +325,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **formatDuration** — Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up. [Docs](docs/formatDuration.md)
 - **InstallPrompt** — A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. [Docs](docs/InstallPrompt.md)
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)
+- **resetTimer** — Cancels or dismisses a timer by its timerId, including when its screen is not mounted. [Docs](docs/resetTimer.md)
+- **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)
 - **RouteProgress** — The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. [Docs](docs/RouteProgress.md)
 - **Spinner** — A spinning ring that says something is loading. [Docs](docs/Spinner.md)
 - **SyncStatus** — One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem. [Docs](docs/SyncStatus.md)
