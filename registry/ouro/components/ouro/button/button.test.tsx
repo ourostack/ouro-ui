@@ -318,6 +318,28 @@ describe("link branch", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the document for reloadDocument and downloads, retaining router navigation otherwise", async () => {
+    const RouterLink: OuroLinkComponent = (props) => <a data-router="" {...props} />;
+    const { host } = await render(
+      <OuroProvider linkComponent={RouterLink}>
+        <Button href="/recipes">Recipes</Button>
+        <Button href="/auth/start" reloadDocument>Sign in</Button>
+        <Button href="/export.csv" download>Export</Button>
+        <Button href="/export.csv" download="recipes.csv">Named export</Button>
+        <Button href="/export.csv" download="">Unnamed export</Button>
+        <Button href="/recipes" download={false}>Not a download</Button>
+        <Button href="/recipes" reloadDocument={false}>Router navigation</Button>
+      </OuroProvider>,
+    );
+    const links = [...host.querySelectorAll<HTMLAnchorElement>('[data-ouro="button"]')];
+    expect(links.map((link) => link.hasAttribute("data-router"))).toEqual([true, false, false, false, false, true, true]);
+    expect(links.map((link) => link.getAttribute("download"))).toEqual([null, null, "", "recipes.csv", "", null, null]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/recipes", "/auth/start", "/export.csv", "/export.csv", "/export.csv", "/recipes", "/recipes",
+    ]);
+    expect(new Set(links.map((link) => link.className)).size).toBe(1);
+  });
+
   it.each(["https://ouro.bot", "http://ouro.bot", "mailto:hi@ouro.bot", "//cdn.ouro.bot/x"])(
     "renders %s as a plain <a>, bypassing linkComponent",
     async (href) => {

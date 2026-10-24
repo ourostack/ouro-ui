@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, server } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -42,6 +42,9 @@ function Scene() {
         New recipe
       </Button>
       <Button disabled data-probe="disabled solid button">
+        Save
+      </Button>
+      <Button disabled variant="soft" data-probe="disabled soft button">
         Save
       </Button>
       <Button variant="soft" data-probe="soft button">
@@ -165,6 +168,41 @@ describe("the action token", () => {
     const disabled = getComputedStyle(probe(themed, "disabled solid button"));
     expect(disabled.backgroundColor).toBe(action);
     expect(Number(disabled.opacity)).toBe(0.5);
+  });
+
+  it("uses optional disabled action colours and opacity without changing other button looks or selections", async () => {
+    const themed = await render(true);
+    const before = colours(themed);
+    themed.style.setProperty("--ouro-action-disabled", "rgb(60, 50, 40)");
+    themed.style.setProperty("--ouro-action-disabled-foreground", "rgb(230, 240, 250)");
+    themed.style.setProperty("--ouro-action-disabled-opacity", "1");
+    const disabled = probe(themed, "disabled solid button");
+    await expect.poll(() => {
+      const style = getComputedStyle(disabled);
+      return [style.backgroundColor, style.color, style.opacity];
+    }).toEqual(["rgb(60, 50, 40)", "rgb(230, 240, 250)", "1"]);
+    expect(Number(getComputedStyle(probe(themed, "disabled soft button")).opacity)).toBe(0.5);
+    expect(colours(themed)).toEqual(before);
+  });
+
+  it("uses optional hover and active action fills for a button and a link, keeping the original state layers", async () => {
+    const themed = await render(true);
+    themed.style.setProperty("--ouro-action-hover", "rgb(30, 40, 50)");
+    themed.style.setProperty("--ouro-action-active", "rgb(50, 40, 30)");
+    for (const name of ["solid button", "solid link button"]) {
+      const button = probe(themed, name);
+      button.addEventListener("click", (event) => event.preventDefault());
+      await userEvent.hover(button);
+      await expect.poll(() => getComputedStyle(button).backgroundColor).toBe("rgb(30, 40, 50)");
+      await expect.poll(() => getComputedStyle(button, "::before").opacity).toBe("0.08");
+      await commands.pointerPress({ selector: `[data-probe="${name}"]`, action: "down" });
+      try {
+        await expect.poll(() => getComputedStyle(button).backgroundColor).toBe("rgb(50, 40, 30)");
+        await expect.poll(() => getComputedStyle(button, "::before").opacity).toBe("0.14");
+      } finally {
+        await commands.pointerPress({ action: "up" });
+      }
+    }
   });
 
   it("follows a theme scoped to part of the page and its dark values", async () => {
