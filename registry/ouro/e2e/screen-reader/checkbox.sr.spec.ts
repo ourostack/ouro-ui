@@ -9,6 +9,9 @@ test("Checkbox is announced with its name, role and state, and its change when c
   await startReading(sr, page);
   const box = page.getByRole("checkbox", { name: "Email me new recipes" });
   await heard(sr, () => box.focus(), (phrase) => inOneSentence(phrase, /\bemail me new recipes\b/i, CHECKBOX, UNCHECKED), '"Email me new recipes", checkbox, unchecked');
-  await heard(sr, () => page.keyboard.press("Space"), (phrase) => inOneSentence(phrase, CHECKED), "checked, after Space");
-  await expect(box).toBeChecked();
+  const check = async () => {
+    await page.keyboard.press("Space");
+    await expect(box).toBeChecked();
+  };
+  await heard(sr, check, (phrase) => inOneSentence(phrase, CHECKED), "checked, after Space");
 });
