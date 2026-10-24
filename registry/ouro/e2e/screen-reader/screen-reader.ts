@@ -142,6 +142,7 @@ interface VoiceOverWatch {
   next(deadline: number): Promise<void>;
   /** How the watcher ended, or null while it runs. */
   ended(): WatchEnd | null;
+  observations(): { records: readonly string[]; stamps: readonly number[]; ended: WatchEnd | null };
   stop(): Promise<void>;
 }
 
@@ -214,6 +215,7 @@ end repeat`;
     phrases: () => spokenAfter(records),
     next,
     ended: () => ended,
+    observations: () => ({ records: [...records], stamps: [...stamps], ended }),
     stop: async () => {
       if (ended === null) child.kill();
       await exited;
@@ -316,12 +318,17 @@ export async function describesContainer(sr: VoiceOverPlaywright, matches: (phra
 async function heardFromVoiceOver(action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout: number): Promise<string> {
   const watch = await watchVoiceOver();
   try {
+    const actionStartedAt = Date.now();
     await action();
+    const actionCompletedAt = Date.now();
     const deadline = Date.now() + timeout;
     for (;;) {
       const verdict = speechVerdict(watch.phrases(), matches, what, { now: Date.now(), deadline, ended: watch.ended() });
       if (verdict === "wait") await watch.next(deadline);
-      else if ("fail" in verdict) throw new Error(verdict.fail);
+      else if ("fail" in verdict) {
+        console.log(`[sr] missed-speech observations: ${JSON.stringify({ what, actionStartedAt, actionCompletedAt, ...watch.observations() })}`);
+        throw new Error(verdict.fail);
+      }
       else {
         console.log(`[sr] heard ${what}: "${verdict.found}" (VoiceOver said: ${verdict.heard})`);
         return verdict.found;
