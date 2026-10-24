@@ -689,6 +689,15 @@ describe("runtime guards", () => {
     );
   });
 
+  it.each([false, true])("drops reloadDocument=%s without href and explains the missing link", async (reloadDocument) => {
+    const { button } = await render(<Untyped reloadDocument={reloadDocument}>Go</Untyped>);
+    expect(button.tagName).toBe("BUTTON");
+    expect(button.hasAttribute("reloaddocument")).toBe(false);
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      '[ouro-ui] Button: reloadDocument needs href. Fix: <Button href="/path" reloadDocument>.',
+    ]);
+  });
+
   it.each([
     ["tone", "danger", 'tone="danger" is not a tone. Fix: <Button tone="destructive">.'],
     ["tone", "accent", 'tone="accent" is not a tone. Fix: <Button tone="primary">.'],
