@@ -4,6 +4,8 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 import { fillPlaceholder, latestRelease, PLACEHOLDER } from "./latest-release.mjs";
 import { localCommand, noteBody, rawHint, steps } from "./upgrade-note.mjs";
 import { scratchDir } from "./scratch.mjs";
@@ -43,10 +45,46 @@ test("the README section is the note, between its markers, with the newest relea
   assert.equal(section[1], fillPlaceholder(noteBody(note), latestRelease()));
 });
 
-test("the site's Updating page renders the note itself", () => {
+test("the site's Updating page renders the note itself", async () => {
   const docs = read("site/src/pages/docs.tsx");
-  assert.match(docs, /import \{ latestRelease, upgrading \} from "\.\.\/release";/);
   assert.match(read("site/src/release.ts"), /import upgradingNote from "\.\.\/\.\.\/UPGRADING\.md\?raw";/);
+  // Supply Vite's module-loading boundary; run the real page-content cache unchanged.
+  const compiled = ts.transpileModule(read("site/src/docs/content.ts"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    transformers: {
+      before: [(context) => {
+        const visit = (node) => {
+          if (ts.isCallExpression(node)) {
+            if (ts.isPropertyAccessExpression(node.expression) &&
+              ts.isMetaProperty(node.expression.expression) &&
+              node.expression.name.text === "glob") return ts.factory.createObjectLiteralExpression();
+            if (node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+              node.arguments[0]?.text === "../release") {
+              return ts.factory.createCallExpression(ts.factory.createIdentifier("loadRelease"), undefined, []);
+            }
+          }
+          return ts.visitEachChild(node, visit, context);
+        };
+        return (node) => ts.visitNode(node, visit);
+      }],
+    },
+  }).outputText;
+  const rendered = fillPlaceholder(noteBody(note), latestRelease());
+  let loads = 0;
+  const scope = {
+    exports: {},
+    loadRelease: async () => {
+      loads += 1;
+      return { latestRelease: latestRelease(), upgrading: rendered };
+    },
+  };
+  runInNewContext(compiled, scope);
+  assert.equal(loads, 0, "The upgrade note must not load with the docs index.");
+  assert.throws(() => scope.exports.markdown("UPGRADING.md"), /is not loaded/);
+  await scope.exports.loadMarkdown(["UPGRADING.md"]);
+  assert.equal(scope.exports.markdown("UPGRADING.md"), rendered);
+  await scope.exports.loadMarkdown(["UPGRADING.md"]);
+  assert.equal(loads, 1, "Reopening Updating reuses the loaded note.");
   for (const command of commands) assert.ok(!docs.includes(command), `docs.tsx copies ${command}`);
 });
 

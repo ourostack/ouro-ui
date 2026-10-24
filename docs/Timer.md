@@ -81,6 +81,7 @@ interface TimerDoneEvent {
    * Whether this `useTimer` is the one on the page that should sound the alert: the first with
    * the timer's `timerId` to hear it, not counting `fallback` ones unless only those are mounted. When
    * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
+   * A hook without `onDone` reads the timer without taking the alert.
    */
   first: boolean;
 }

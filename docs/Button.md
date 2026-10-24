@@ -38,7 +38,7 @@ The props the modes share. Type: `ButtonProps`.
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear, politely, when `loading` turns on. It is spoken through a shared live region, so the button's name stays its label. Use the action in progress: `loadingLabel="Saving recipe"`. |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | Control size. Each size is taller on phones and steps down to desktop density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other string is a type error whose message names the fix. |
 | `startIcon` | `ButtonIcon` |  | Icon before the label. Pass the component, not an element: `startIcon={PlusIcon}`. |
-| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Color role from the theme, named after its token: `primary` reads `--primary`. A solid primary button, the page's main action, reads `--ouro-action` and `--ouro-action-foreground` instead when the theme sets them, with `href` too, so a theme can give its actions their own colour. Only the solid look reads them: soft, outline and plain primary buttons keep `--primary`, as do `Link`, checkboxes, switches and the current tab. shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`. |
+| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Color role from the theme, named after its token: `primary` reads `--primary`. A solid primary button, the page's main action, reads `--ouro-action` and `--ouro-action-foreground` instead when the theme sets them, with `href` too, so a theme can give its actions their own colour. Only the solid look reads them: soft, outline and plain primary buttons keep `--primary`, as do `Link`, checkboxes, switches and the current tab. Optional `--ouro-action-hover` and `--ouro-action-active` set its state fills without changing the state layers. `--ouro-action-disabled`, `--ouro-action-disabled-foreground` and `--ouro-action-disabled-opacity` set its disabled look; opacity defaults to 0.5. shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`. |
 | `variant` | `"solid" \| "soft" \| "outline" \| "plain"` | `"solid"` | Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone="destructive"`. Any other string is a type error whose message names the fix. Variant is visual only. For a toggle, pass `aria-pressed`; for the current nav item, `aria-current="page"`. |
 
 ## Modes
@@ -59,6 +59,7 @@ Also accepts the attributes in React's `ButtonHTMLAttributes` and `HTMLAttribute
 Not in this mode (typed `never`):
 
 - `href`: Not set: this is a `<button>`. Pass `href` to render a link instead.
+- `reloadDocument`: Document navigation needs a link: pass `href` with `reloadDocument`.
 
 ### Link: `ButtonLinkProps`
 
@@ -68,6 +69,7 @@ A Button with `href`: renders a link that looks like a button.
 | --- | --- | --- | --- |
 | `href` (required) | `string` |  | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link); `http(s)://`, `mailto:` and other absolute URLs render as a plain `<a>`. An absolute URL with `target="_blank"` always gets `rel="noopener noreferrer"`, merged with any `rel` you pass. |
 | `ref` | `Ref<HTMLAnchorElement>` |  | Reaches the rendered element. |
+| `reloadDocument` | `boolean` |  | Loads the document instead of using the provider's router link, for a server sign-in or a resource route. A present `download` attribute does the same. |
 
 Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 

@@ -9,12 +9,12 @@ import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/layout";
 import { LiveDemo } from "../components/live-demo";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
-import { loadMarkdown } from "../docs/content";
+import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
-import { latestRelease, upgrading } from "../release";
+import { latestRelease } from "../latest-release";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -370,7 +370,7 @@ export function Updating(): JSX.Element {
             {claim("Upgrading from v0.1.0", { source: { file: "UPGRADING.md" }, verify: [{ fileLine: "UPGRADING.md", line: 1, pattern: "^# Upgrading from v0\\.1\\.0\\[\\^upgrade-v0\\.1\\.0\\]$" }, { ciJob: "install-upgrade" }] })}
           </Heading>
           {/* UPGRADING.md, the same note as README.md and the release notes; CI runs its commands. */}
-          <Markdown blocks={parse(upgrading).slice(1)} />
+          <Markdown blocks={parse(markdown("UPGRADING.md")).slice(1)} />
         </li>
         <li className="grid gap-3">
           <Heading level={2} size="lg">
@@ -414,6 +414,7 @@ function docFor(path: string): { item: DocsItem } | { page: DocsPage } | undefin
 
 /** Loads the Markdown a path's page shows, before it renders or hydrates (`loadPage` calls it). */
 export async function prepare(path: string): Promise<void> {
+  if (routeFor(path)?.path === "/docs/updating/") return loadMarkdown(["UPGRADING.md"]);
   const doc = docFor(path);
   if (doc) await loadMarkdown("item" in doc ? itemFiles(doc.item) : [doc.page.file]);
 }

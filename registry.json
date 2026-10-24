@@ -9483,6 +9483,7 @@
         "ourostack/ouro-ui/lib-feedback-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-timer",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/timer",

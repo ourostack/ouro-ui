@@ -59,6 +59,26 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
+### `TimerDoneEvent`
+
+What a timer's `onDone` hears when it reaches zero.
+
+```ts
+interface TimerDoneEvent {
+  /**
+   * When it reached zero, in milliseconds since the epoch: in the past when the page was closed at the time.
+   */
+  endedAt: number;
+  /**
+   * Whether this `useTimer` is the one on the page that should sound the alert: the first with
+   * the timer's `timerId` to hear it, not counting `fallback` ones unless only those are mounted. When
+   * a `Timer` and a `TimerTray` both show one timer, the `Timer` alerts, whichever mounted first.
+   * A hook without `onDone` reads the timer without taking the alert.
+   */
+  first: boolean;
+}
+```
+
 ### `TimerLabels`
 
 The words a timer shows and says, for apps in other languages.
@@ -104,6 +124,11 @@ interface TimerTrayItem {
   duration: number;
   /** Where the timer's own screen is, for a "Go to" link. */
   href?: string | undefined;
+  /**
+   * Called once when this timer finishes. `event.first` says whether this view owns the alert;
+   * when a Timer shares it, that Timer owns it instead.
+   */
+  onDone?: ((event: TimerDoneEvent) => void) | undefined;
 }
 ```
 
