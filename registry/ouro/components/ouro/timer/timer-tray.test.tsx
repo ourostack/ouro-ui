@@ -6,7 +6,7 @@ import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 import { TimerTray, type TimerTrayItem } from "@/registry/ouro/components/ouro/timer/timer-tray";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import type { TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
+import { useTimer, type TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -56,6 +56,11 @@ async function render(node: ReactNode) {
 const store = (id: string, value: unknown) => localStorage.setItem(`ouro-timer:${id}`, JSON.stringify(value));
 const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
 
+function PassiveHandoffReader() {
+  useTimer({ duration: 1, timerId: "handoff" });
+  return null;
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   localStorage.clear();
@@ -73,6 +78,50 @@ afterEach(async () => {
 });
 
 describe("TimerTray", () => {
+  it.each([
+    ["Timer-to-tray", false],
+    ["Timer-to-tray", true],
+    ["tray-to-Timer", false],
+    ["tray-to-Timer", true],
+  ] as const)("keeps a finished alert sounding through a %s handoff (passive reader=%s)", async (direction, passive) => {
+    const announced = watchAnnouncements();
+    const onDone = vi.fn();
+    const item = { timerId: "handoff", label: "Pasta", duration: 1, onDone };
+    const view = (tray: boolean) => (
+      <>
+        {passive ? <PassiveHandoffReader /> : null}
+        {tray
+          ? <TimerTray timers={[item]} alert="repeat" />
+          : <Timer label="Pasta" duration={1} timerId="handoff" alert="repeat" onDone={onDone} />}
+      </>
+    );
+    try {
+      const page = await render(view(false));
+      await act(async () => page.host.querySelector<HTMLButtonElement>('[data-ouro-part="primary"]')!.click());
+      if (direction === "tray-to-Timer") {
+        await act(async () => page.root.render(view(true)));
+      }
+      await advance(1200);
+      expect(tones).toBe(3);
+      expect(onDone).toHaveBeenCalledOnce();
+
+      const nextIsTray = direction === "Timer-to-tray";
+      await act(async () => page.root.render(view(nextIsTray)));
+      expect(page.host.querySelector('[role="timer"]')!.textContent).toBe("Time's up");
+      await advance(5000);
+      expect(tones).toBe(9);
+      expect(onDone).toHaveBeenCalledOnce();
+      expect(announced.count("Pasta: Time's up")).toBe(1);
+
+      const dismiss = nextIsTray ? '[data-ouro-part="stop"]' : '[data-ouro-part="primary"]';
+      await act(async () => page.host.querySelector<HTMLButtonElement>(dismiss)!.click());
+      await advance(5000);
+      expect(tones).toBe(9);
+    } finally {
+      announced.stop();
+    }
+  });
+
   it("hides itself while no timer is running", async () => {
     const { tray, rows } = await render(<TimerTray timers={timers} />);
     expect(rows()).toHaveLength(0);
