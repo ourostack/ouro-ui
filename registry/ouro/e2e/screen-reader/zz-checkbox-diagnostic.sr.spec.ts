@@ -6,8 +6,8 @@ import { storyIds } from "./stories";
 // Causal probes run after the unchanged release specs, preserving their original order.
 test.use({ storyId: storyIds.checkbox });
 
-for (const mode of ["ouro", "ouro-without-motion", "native"] as const) {
-  for (let trial = 1; trial <= 3; trial++) {
+for (let trial = 1; trial <= 12; trial++) {
+  for (const mode of ["ouro", "ouro-without-motion", "native"] as const) {
     test(`diagnostic ${mode} ${trial}: speaks both checked and unchecked after Space`, async ({ page, sr }) => {
       if (mode === "ouro-without-motion") {
         await page.addStyleTag({ content: "*, *::before, *::after { transition: none !important; animation: none !important; }" });

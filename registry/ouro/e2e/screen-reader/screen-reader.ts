@@ -330,6 +330,7 @@ async function heardFromVoiceOver(action: () => Promise<unknown>, matches: (phra
         throw new Error(verdict.fail);
       }
       else {
+        console.log(`[sr] matched-speech observations: ${JSON.stringify({ what, actionStartedAt, actionCompletedAt, ...watch.observations() })}`);
         console.log(`[sr] heard ${what}: "${verdict.found}" (VoiceOver said: ${verdict.heard})`);
         return verdict.found;
       }
