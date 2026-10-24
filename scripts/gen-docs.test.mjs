@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -64,9 +64,24 @@ test("generating is deterministic and matches the committed files", () => {
   for (const file of files) {
     assert.equal(readFileSync(join(out, "docs", file), "utf8"), doc(file), file);
   }
-  for (const file of ["README.md", "site/src/docs/catalog.json", "site/src/docs/pages.json"]) {
+  for (const file of ["README.md", "site/src/docs/catalog.json", "site/src/docs/pages.json", "site/src/docs/page-index.json"]) {
     assert.equal(readFileSync(join(out, file), "utf8"), readFileSync(join(root, file), "utf8"), file);
   }
+});
+
+test("the eager page index retains routing text without Markdown-only metadata", () => {
+  const out = scratchDir("ouro-docs-index-");
+  const result = run("--out", out);
+  assert.equal(result.status, 0, result.stderr);
+  const file = join(out, "site/src/docs/page-index.json");
+  assert.ok(existsSync(file), "Generate the small initial routing/navigation index.");
+  const index = JSON.parse(readFileSync(file, "utf8"));
+  const pages = JSON.parse(readFileSync(join(out, "site/src/docs/pages.json"), "utf8"));
+  assert.ok(index.length > 0);
+  assert.deepEqual(index, pages.map(({ name, title, kind, summary }) => ({ name, title, kind, summary })));
+  for (const page of index) assert.deepEqual(Object.keys(page).sort(), ["kind", "name", "summary", "title"]);
+  assert.ok(index.some((page) => page.kind === "guide"));
+  assert.ok(index.some((page) => page.kind === "export"));
 });
 
 test("each mode of a union gets its own heading, so a reader can tell the modes apart", () => {

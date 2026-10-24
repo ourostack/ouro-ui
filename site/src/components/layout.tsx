@@ -3,7 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { docsItems, GITHUB } from "../docs/items";
-import { guidePages } from "../docs/pages";
+import pageIndex from "../docs/page-index.json";
 import { href } from "../routes";
 import { HxLogo } from "./brand";
 import { MenuIcon } from "./icons";
@@ -89,7 +89,7 @@ export function SiteFooter(): JSX.Element {
 }
 
 const guides = [
-  ...guidePages.map((page) => ({ path: `/docs/${page.name}/`, label: page.title })),
+  ...pageIndex.filter((page) => page.kind === "guide").map((page) => ({ path: `/docs/${page.name}/`, label: page.title })),
   { path: "/docs/switching-from-shadcn/", label: "Switching from shadcn" },
   { path: "/docs/updating/", label: "Updating installed components" },
 ];
