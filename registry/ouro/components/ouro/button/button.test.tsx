@@ -13,7 +13,7 @@ import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
-const actionThemes = ["inherited", "action overrides"] as const;
+const actionThemes = ["inherited", "action overrides", "constant action"] as const;
 function applyActionTheme(theme: (typeof actionThemes)[number]) {
   if (theme === "inherited") return;
   const style = document.createElement("style");
@@ -24,8 +24,8 @@ function applyActionTheme(theme: (typeof actionThemes)[number]) {
       --ouro-action-disabled-opacity: 0.75;
     }
     .dark {
-      --ouro-action: rgb(50, 60, 70);
-      --ouro-action-foreground: rgb(230, 240, 250);
+      --ouro-action: ${theme === "constant action" ? "rgb(10, 20, 30)" : "rgb(50, 60, 70)"};
+      --ouro-action-foreground: ${theme === "constant action" ? "rgb(250, 240, 230)" : "rgb(230, 240, 250)"};
       --ouro-action-disabled-opacity: 0.8;
     }
   `;
@@ -142,7 +142,7 @@ describe("button branch", () => {
     );
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(getComputedStyle(button).opacity).toBe(disabledOpacity(button));
-    if (theme === "action overrides") expect(getComputedStyle(button).opacity).toBe("0.75");
+    if (theme !== "inherited") expect(getComputedStyle(button).opacity).toBe("0.75");
     button.click();
     expect(onClick).not.toHaveBeenCalled();
   });
@@ -271,7 +271,7 @@ describe("loading", () => {
     );
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(getComputedStyle(button).opacity).toBe(disabledOpacity(button));
-    if (theme === "action overrides") expect(getComputedStyle(button).opacity).toBe("0.75");
+    if (theme !== "inherited") expect(getComputedStyle(button).opacity).toBe("0.75");
   });
 
   it("keeps the accessible name exactly the label while loading", async () => {
@@ -805,7 +805,6 @@ describe("theme", () => {
     const { host } = await render(
       <>
         <Button>Plain</Button>
-        <Button variant="soft">Plain soft</Button>
         <div style={{ "--primary": "rgb(255, 0, 0)", "--ouro-action": "initial" } as React.CSSProperties}>
           <Button>Scoped</Button>
           <Button variant="soft">Scoped soft</Button>
@@ -816,12 +815,11 @@ describe("theme", () => {
         </div>
       </>,
     );
-    const [plain, plainSoft, scoped, scopedSoft, action, actionSoft] = [...host.querySelectorAll("button")].map(
+    const [plain, scoped, scopedSoft, action, actionSoft] = [...host.querySelectorAll("button")].map(
       (el) => getComputedStyle(el).backgroundColor,
     );
+    expect(plain).toBe(themeColor("--ouro-action, var(--primary)"));
     expect(scoped).toBe("rgb(255, 0, 0)");
-    expect(scoped).not.toBe(plain);
-    expect(scopedSoft).not.toBe(plainSoft);
     expect(scopedSoft).toMatch(/^(color\(srgb 1 0 0 \/ 0\.1\)|rgba\(255, 0, 0, 0\.1\)|oklab\(.*\/ 0\.1\))/);
     expect(action).toBe("rgb(0, 0, 255)");
     expect(actionSoft).toBe(scopedSoft);
@@ -840,7 +838,10 @@ describe("theme", () => {
     const [light, dark] = [...host.querySelectorAll("button")].map((el) => getComputedStyle(el).backgroundColor);
     expect(light).toBe(themeColor("--ouro-action, var(--primary)"));
     expect(dark).toBe(themeColor("--ouro-action, var(--primary)", "dark"));
-    expect(dark).not.toBe(light);
+    if (theme !== "inherited") {
+      expect(light).toBe("rgb(10, 20, 30)");
+      expect(dark).toBe(theme === "constant action" ? "rgb(10, 20, 30)" : "rgb(50, 60, 70)");
+    }
   });
 
   it.each(actionThemes)("follows the .dark class on the root with optional action colours (%s)", async (theme) => {

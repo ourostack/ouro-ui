@@ -1,4 +1,4 @@
-Packaged Button tests now cover inherited and explicit action themes, including disabled opacity and dark mode.[^themes] They distinguish a scoped primary fallback from an action override rather than assuming that the action and selection palettes are the same.[^scope]
+Packaged Button tests now cover inherited and explicit action themes, including disabled opacity and palettes that stay the same across dark mode.[^themes] They distinguish a scoped primary fallback from an action override rather than assuming that the action and selection palettes are the same.[^scope]
 
 [^themes]: registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > disables natively with the theme's disabled opacity (%s)) verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::theme > switches to the dark action values under a .dark ancestor (%s))
 [^scope]: registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::theme > follows scoped primary fallback and action overrides without repainting soft buttons (%s))
