@@ -338,6 +338,7 @@ describe("link branch", () => {
       "/recipes", "/auth/start", "/export.csv", "/export.csv", "/export.csv", "/recipes", "/recipes",
     ]);
     expect(new Set(links.map((link) => link.className)).size).toBe(1);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it.each(["https://ouro.bot", "http://ouro.bot", "mailto:hi@ouro.bot", "//cdn.ouro.bot/x"])(

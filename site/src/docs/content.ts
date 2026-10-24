@@ -4,7 +4,11 @@
  * index to its ceiling). The docs route loads a page's files before it renders or hydrates
  * (`prepare` in site/src/pages/docs.tsx, called by `loadPage`); `markdown` then reads them.
  */
-const files = import.meta.glob<string>(["../../../docs/*.md", "../../../docs/guides/*.md"], { query: "?raw", import: "default" });
+const files: Record<string, () => Promise<string>> = {
+  ...import.meta.glob<string>(["../../../docs/*.md", "../../../docs/guides/*.md"], { query: "?raw", import: "default" }),
+  // Keep the shared release-note formatting, but load it only for the Updating page.
+  "../../../UPGRADING.md": async () => (await import("../release")).upgrading,
+};
 
 const loaded = new Map<string, string>();
 
