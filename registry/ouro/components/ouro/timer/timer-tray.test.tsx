@@ -79,11 +79,13 @@ afterEach(async () => {
 
 describe("TimerTray", () => {
   it.each([
-    ["Timer-to-tray", false],
-    ["Timer-to-tray", true],
-    ["tray-to-Timer", false],
-    ["tray-to-Timer", true],
-  ] as const)("keeps a finished alert sounding through a %s handoff (passive reader=%s)", async (direction, passive) => {
+    ["Timer-to-tray", false, false],
+    ["Timer-to-tray", true, false],
+    ["tray-to-Timer", false, false],
+    ["tray-to-Timer", true, false],
+    ["Timer-to-tray", false, true],
+    ["tray-to-Timer", false, true],
+  ] as const)("keeps a finished alert sounding through a %s handoff (passive reader=%s, completion write blocked=%s)", async (direction, passive, blockedCompletion) => {
     const announced = watchAnnouncements();
     const onDone = vi.fn();
     const item = { timerId: "handoff", label: "Pasta", duration: 1, onDone };
@@ -100,6 +102,9 @@ describe("TimerTray", () => {
       await act(async () => page.host.querySelector<HTMLButtonElement>('[data-ouro-part="primary"]')!.click());
       if (direction === "tray-to-Timer") {
         await act(async () => page.root.render(view(true)));
+      }
+      if (blockedCompletion) {
+        vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Full", "QuotaExceededError"); });
       }
       await advance(1200);
       expect(tones).toBe(3);

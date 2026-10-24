@@ -94,6 +94,23 @@ describe("timer state transfer", () => {
     expect(joined.state.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
   });
 
+  it("retains an unpersisted import when its only reader is replaced in one commit", async () => {
+    const options = { duration: 90, timerId: "restore-replacement" };
+    const first = await renderTimer(options);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Full", "QuotaExceededError"); });
+    await act(async () => {
+      expect(restoreTimer("restore-replacement", { status: "paused", duration: 60, remainingMs: 25_000 })).toBe(false);
+    });
+    expect(first.state.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
+    const replacement = { current: first.state.current };
+    await act(async () => first.root.render(
+      <Probe key="replacement" options={options} report={(timer) => { replacement.current = timer; }} />,
+    ));
+    expect(replacement.current).toMatchObject({ status: "paused", duration: 60, remaining: 25 });
+    await act(async () => replacement.current.reset());
+    expect(replacement.current).toMatchObject({ status: "idle", remaining: 90 });
+  });
+
   it("finishes an imported running timer at its original deadline", async () => {
     const onDone = vi.fn();
     const { state } = await renderTimer({ duration: 90, timerId: "restore-deadline", onDone });
