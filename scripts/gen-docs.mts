@@ -8,7 +8,8 @@
 // - site/src/docs/catalog.json, the site's page per registry item, and site/src/docs/pages.json,
 //   its page per other documented export (Radio, OuroProvider) and per guide (docs/guides/*.md,
 //   written by hand), so every docs page has an address: docs/<kebab-case name>; each with its
-//   summary, so the docs index lists the pages without loading their Markdown;
+//   summary, so the docs index lists the pages without loading their Markdown; page-index.json
+//   keeps only the routing and navigation fields for the initial client bundle;
 // - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
 //   copied from UPGRADING.md with its {{latestRelease}} placeholder filled in;
 // - the release tag in the install commands of README.md, site/public/llms.txt and
@@ -661,6 +662,7 @@ for (const page of sitePages) {
   taken.set(page.name, page.markdown);
 }
 outputs.set("site/src/docs/pages.json", `${JSON.stringify(sitePages, null, 2)}\n`);
+outputs.set("site/src/docs/page-index.json", `${JSON.stringify(sitePages.map(({ name, title, kind, summary }) => ({ name, title, kind, summary })), null, 2)}\n`);
 
 const catalogLines = () =>
   catalogGroups

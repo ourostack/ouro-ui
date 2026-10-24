@@ -4,7 +4,7 @@ import { useEffect, type HTMLAttributes, type JSX, type MouseEvent, type Ref, ty
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { formatDuration, timerIsDone, useTimer, type TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
+import { formatDuration, useTimer, type TimerDoneEvent } from "@/registry/ouro/lib/ouro/use-timer";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   alertDone,
@@ -116,7 +116,7 @@ function TrayRow({ item, words, silent, repeat, repeatFor, finalFocus }: TrayRow
   const done = timer.status === "done";
   // Dismiss or Cancel, here or in the timer's own view, stops a repeating alert.
   useEffect(() => {
-    if (!done && !timerIsDone(item.timerId)) stopAlert(item.timerId);
+    if (!done) stopAlert(item.timerId);
   }, [done, item.timerId]);
   // The alert stops once no view of the timer is left: the row goes with the tray, or leaves timers.
   // Stryker disable next-line ArrayDeclaration: rows are keyed by timerId, so a row's timerId never changes while it is mounted.

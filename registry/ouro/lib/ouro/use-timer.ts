@@ -228,12 +228,6 @@ function update(key: string, entry: Entry, stored: TimerState | null): boolean {
   return persisted;
 }
 
-/** Current state while a native view attaches, before its first subscribed render. @internal */
-export function timerIsDone(timerId: string): boolean {
-  const entry = entries.get(timerId);
-  return (entry?.loaded ? entry.stored : read(timerId))?.status === "done";
-}
-
 /**
  * Imports a saved countdown, leaving an existing native timer intact.
  * A false return means storage is unavailable: keep the original saved data. When a write fails,
