@@ -1,4 +1,3 @@
-import axe from "axe-core";
 import { useState, type ReactElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -8,7 +7,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/components/ouro/command/command";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
-import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
+import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 
 /** The colour behind an element: the nearest background around it that is not transparent. */
 function behind(element: Element): string {
@@ -27,10 +26,10 @@ const FIX = "Pass trigger={<Button>…</Button>} for an uncontrolled command pal
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
-async function render(node: ReactNode) {
+async function render(node: ReactNode, parent: Element = document.body) {
   const host = document.createElement("div");
   host.style.padding = "40px";
-  document.body.append(host);
+  parent.append(host);
   mounted.push(host);
   const root = createRoot(host);
   roots.push(root);
@@ -226,15 +225,18 @@ describe("Command", () => {
     expect(document.querySelector("[data-ouro-command-group-label]")).toBeNull();
   });
 
-  it("has no axe violations open, in light and dark", async () => {
-    await openPalette();
+  it("passes the accessibility gate open, in light and dark, from the page's main landmark", async () => {
+    // As an app places it: its trigger in the page's main, under the page's heading.
+    const main = document.createElement("main");
+    main.innerHTML = "<h1>Recipes</h1>";
+    document.body.append(main);
+    mounted.push(main);
+    await render(<Command title="Go to" trigger={<Button>Go</Button>} items={[{ label: "Home", onSelect: () => {} }]} />, main);
+    await userEvent.click(trigger());
+    await settled();
     for (const scheme of ["light", "dark"]) {
       document.documentElement.classList.toggle("dark", scheme === "dark");
-      const result = await axe.run(
-        { include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) },
-        { resultTypes: ["violations"], rules: { region: { enabled: false }, "landmark-one-main": { enabled: false }, "page-has-heading-one": { enabled: false } } },
-      );
-      expect(result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target).join(", ")}`)).toEqual([]);
+      expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
     }
     document.documentElement.classList.remove("dark");
   });

@@ -186,6 +186,38 @@ export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
   return host;
 }
 
+/**
+ * Renders a story as an app's page shows it, for the accessibility gate: inside the page's
+ * `<main>`, under the page's `<h1>`, so the page-structure rules (every piece of content in a
+ * landmark, one main, a level-one heading) judge the component as an app places it. A story that
+ * renders the page's `<main>` itself (a page layout) renders on its own.
+ */
+export async function renderStoryPage(Story: ComponentType): Promise<HTMLElement> {
+  const main = document.createElement("main");
+  main.dataset["storyPage"] = "";
+  const heading = document.createElement("h1");
+  heading.textContent = "Story";
+  heading.setAttribute("style", "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0");
+  main.append(heading);
+  document.body.append(main);
+  mounted.push(main);
+  const host = document.createElement("div");
+  host.dataset["storyHost"] = "";
+  main.append(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(<Story />));
+  if (host.querySelector('main, [role="main"]')) {
+    // A page layout renders the page's own main: render it on its own, as an app's page would.
+    await act(async () => root.unmount());
+    roots.splice(roots.indexOf(root), 1);
+    main.remove();
+    return renderStory(Story);
+  }
+  await (Story as ComposedStory).play?.({ canvasElement: host });
+  return host;
+}
+
 /** Unmounts every rendered story and switches back to light. */
 export async function cleanupStories(): Promise<void> {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));

@@ -232,6 +232,7 @@
       "devDependencies": [
         "@playwright/test",
         "@vitest/browser-playwright",
+        "axe-core",
         "playwright",
         "vitest"
       ],
@@ -255,6 +256,11 @@
           "path": "registry/ouro/lib/ouro/testing/announcements.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/announcements.ts"
+        },
+        {
+          "path": "registry/ouro/lib/ouro/testing/axe.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/axe.test.ts"
         },
         {
           "path": "registry/ouro/lib/ouro/testing/axe.ts",
@@ -361,6 +367,7 @@
         "requires": {
           "@playwright/test": ">=1.58.1",
           "@vitest/browser-playwright": ">=4.1.11",
+          "axe-core": ">=4.13.0",
           "playwright": ">=1.58.1",
           "vitest": ">=4.1.11"
         }
@@ -6307,7 +6314,6 @@
       "docs": "menu's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
       "devDependencies": [
         "@storybook/react-vite",
-        "axe-core",
         "storybook",
         "vitest"
       ],
@@ -6363,7 +6369,6 @@
       "meta": {
         "requires": {
           "@storybook/react-vite": ">=10.2.10",
-          "axe-core": ">=4.13.0",
           "storybook": ">=10.2.10",
           "vitest": ">=4.1.11"
         }
@@ -6377,7 +6382,6 @@
       "docs": "command's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ourostack.github.io/ouro-ui/docs/testing.md",
       "devDependencies": [
         "@storybook/react-vite",
-        "axe-core",
         "storybook",
         "vitest"
       ],
@@ -6438,7 +6442,6 @@
       "meta": {
         "requires": {
           "@storybook/react-vite": ">=10.2.10",
-          "axe-core": ">=4.13.0",
           "storybook": ">=10.2.10",
           "vitest": ">=4.1.11"
         }

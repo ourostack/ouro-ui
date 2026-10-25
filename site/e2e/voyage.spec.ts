@@ -81,10 +81,14 @@ test.describe("every preset, light and dark", () => {
         await open(page);
         await page.evaluate(() => document.fonts.ready);
         await page.addScriptTag({ content: axeSource });
+        // Every violation fails whatever its impact, and so does every check axe could not decide:
+        // this page has no measurement to settle one, so the gate fails closed.
         const violations = await page.evaluate(async () => {
-          const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: Array<{ id: string; nodes: Array<{ target: string[] }> }> }> } }).axe;
-          const result = await axe.run({ exclude: [["[data-base-ui-focus-guard]"]] }, { resultTypes: ["violations"] });
-          return result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+          type Rule = { id: string; nodes: Array<{ target: string[] }> };
+          const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: Rule[]; incomplete: Rule[] }> } }).axe;
+          const result = await axe.run({ exclude: [["[data-base-ui-focus-guard]"]] }, { resultTypes: ["violations", "incomplete"] });
+          const lines = (prefix: string, rules: Rule[]) => rules.map((rule) => `${prefix}${rule.id}: ${rule.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+          return [...lines("", result.violations), ...lines("undecided ", result.incomplete)];
         });
         expect(violations).toEqual([]);
         expect(errors).toEqual([]);

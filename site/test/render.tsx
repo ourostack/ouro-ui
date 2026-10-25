@@ -1,11 +1,10 @@
-import axe from "axe-core";
 import { createRoot, type Root, type RootOptions } from "react-dom/client";
 import type { ReactNode } from "react";
 import { expect } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { App, loadPage } from "../src/app";
 import { docsItems } from "../src/docs/items";
-import { axeExclude } from "@/registry/ouro/lib/ouro/testing/axe";
+import { audit, axeExclude, describeFindings, type GateFinding } from "@/registry/ouro/lib/ouro/testing/axe";
 
 let mounted: { root: Root; host: HTMLElement } | undefined;
 
@@ -69,23 +68,15 @@ export async function settle(): Promise<void> {
   throw new Error("animations did not settle");
 }
 
-/** axe's violations as readable lines. */
-export function describeViolations(violations: axe.Result[]): string {
-  return violations
-    .map(
-      (violation) =>
-        `${violation.id} (${violation.impact}): ${violation.help}\n` +
-        violation.nodes.map((node) => `  ${node.target.join(" ")}: ${node.failureSummary}`).join("\n"),
-    )
-    .join("\n");
-}
+/** The gate's findings as readable lines. */
+export const describeViolations = describeFindings;
 
-/** Runs axe over the whole document: a site page is a full page, so every rule applies. */
-export async function scan(): Promise<axe.Result[]> {
-  // Base UI's focus guards are excluded for the reason given in test/stories.test.tsx.
-  const result = await axe.run(
-    { include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) },
-    { resultTypes: ["violations"] },
-  );
-  return result.violations;
+/**
+ * Runs the accessibility gate over the whole document (`audit` in the test kit): a site page is a
+ * full page, so every rule applies, every violation fails whatever its impact, and every check axe
+ * could not decide fails unless a measurement passes it.
+ */
+export async function scan(): Promise<GateFinding[]> {
+  // Base UI's focus guards are excluded for the reason given in test/story-axe.ts.
+  return audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
 }

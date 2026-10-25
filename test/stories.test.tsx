@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
-import { describeViolations, scan, scanStory, storyScanTimeout } from "./story-axe.ts";
+import { describeFindings, scan, scanStory, storyScanTimeout } from "./story-axe.ts";
 import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, storyFiles } from "./stories.tsx";
 import { sliced } from "./slice.ts";
 
@@ -44,7 +44,7 @@ it("does not scan a sheet before its deferred starting style leaves", async () =
   requestAnimationFrame(enter);
   await settle();
   const violations = await scan(popup);
-  expect(describeViolations(violations)).toBe("");
+  expect(describeFindings(violations)).toBe("");
   expect(popup.hasAttribute("data-starting-style")).toBe(false);
 });
 
@@ -52,7 +52,7 @@ it("still reports a genuine offscreen skip link with no target", async () => {
   const host = await renderStory(() => (
     <a href="#missing-content" style={{ position: "fixed", top: "100vh" }}>Skip to content</a>
   ));
-  expect((await scan(host)).map((violation) => violation.id)).toContain("skip-link");
+  expect((await scan(host)).map((finding) => finding.rule)).toContain("skip-link");
 });
 
 describe.each([
