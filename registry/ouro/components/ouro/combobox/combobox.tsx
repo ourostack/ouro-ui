@@ -522,18 +522,20 @@ const openDialogs = () => document.querySelectorAll('[role="dialog"], [role="ale
 
 /**
  * Keeps the page exposed to assistive technology while the list is open. Base UI hides the
- * page around the input and the list with aria-hidden on the elements it marks with
- * data-base-ui-inert, which leaves the page's links and fields focusable yet hidden and takes
- * its heading away. A combobox list leaves the page as it is, so a marked element that gains
- * aria-hidden while the list is open loses it at once, unless a dialog has opened since, which
- * hides the page itself. It renders in the portal, which holds the list only while it is open.
+ * page around the input and the list with aria-hidden on the children of their ancestors,
+ * which leaves the page's links and fields focusable yet hidden and takes its heading away. A
+ * combobox list leaves the page as it is, so such a child that gains aria-hidden while the list
+ * is open loses it at once, unless a dialog has opened since, which hides the page itself.
+ * What the app hid before, and what it hides deeper in the page, stays hidden. It renders in
+ * the portal, which holds the list only while it is open.
  */
 function KeepPageExposed(): null {
   useLayoutEffect(() => {
     const dialogs = openDialogs();
     const observer = new MutationObserver((records) => {
       if (openDialogs() > dialogs) return;
-      for (const { target } of records) if ((target as Element).hasAttribute("data-base-ui-inert")) (target as Element).removeAttribute("aria-hidden");
+      const kept = [...document.querySelectorAll('[role="combobox"][aria-expanded="true"], [data-ouro="combobox-portal"]')];
+      for (const { target } of records) if (kept.some((element) => target.parentNode!.contains(element))) (target as Element).removeAttribute("aria-hidden");
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ["aria-hidden"], subtree: true });
     return () => observer.disconnect();

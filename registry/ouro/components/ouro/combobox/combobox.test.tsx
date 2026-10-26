@@ -113,7 +113,7 @@ describe("Combobox", () => {
 
   it("leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark", async () => {
     const main = document.createElement("main");
-    main.innerHTML = '<h1>Recipes</h1><a href="#notes">Notes</a>';
+    main.innerHTML = '<h1>Recipes</h1><a href="#notes">Notes</a><span aria-hidden="true" data-ornament="">~</span>';
     document.body.append(main);
     mounted.push(main);
     const host = document.createElement("div");
@@ -123,13 +123,19 @@ describe("Combobox", () => {
     await act(async () =>
       root.render(
         <OuroProvider portalContainer={main}>
-          <Combobox label="Herb" name="herb" items={herbs} />
+          <div className="grid gap-4">
+            <Combobox label="Herb" name="herb" items={herbs} />
+            <Combobox label="Garnish" name="garnish" items={herbs} />
+          </div>
         </OuroProvider>,
       ),
     );
+    // What the page hides outside the list is what it hid before the list opened.
+    const hidden = () => [...main.querySelectorAll('[aria-hidden="true"]')].filter((element) => !element.closest('[data-ouro="combobox-portal"]'));
+    const before = hidden();
     await userEvent.click(host.querySelector<HTMLInputElement>('input[role="combobox"]')!);
     await expect.poll(popup).not.toBeNull();
-    await expect.poll(() => document.querySelector('main [aria-hidden="true"]:is(a, h1, div:has(input))')).toBeNull();
+    await expect.poll(hidden).toEqual(before);
     expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
     // What the list hides itself, what the page hides inside what Base UI marked, what a dialog
     // opened over the list hides, and what anything hides once the list is closed, stays hidden.
