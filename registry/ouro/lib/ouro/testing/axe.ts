@@ -74,8 +74,8 @@ function describeFindings(findings: GateFinding[]): string {
  * axe could not decide unless a measurement passes it:
  *
  * - text contrast, only when the worst pixel behind the text meets WCAG 1.4.3 ({@link measureTextContrast});
- * - a link in a block of text, only when, measured from a screenshot, its text or its background
- *   stands out 3:1 from the text around it, or neither differs at all, as axe itself allows;
+ * - a link in a block of text, only when, measured from a screenshot, its text color or its
+ *   background stands out 3:1 from its block's, or neither differs at all, as axe itself allows;
  * - a popup trigger's `aria-controls`, only when every element it names is on the page or the trigger is collapsed;
  * - focusable content hidden from assistive technology, only when Tab never focuses it while it is still hidden;
  * - an ARIA toggle inside a `<label>`, only when its name and description hold every word of the label;
@@ -542,51 +542,64 @@ async function measureTexts(root: Element, items: { element: Element; required: 
   return items.map((item) => verdicts.get(item)!);
 }
 
-/** Whether an element lays out as a block, not inline in a line of text. */
+// Whether an element lays out as a block, as axe counts one: an inline-block is one too.
 const isBlock = (element: Element) => {
   const { display } = getComputedStyle(element);
-  return !display.startsWith("inline") && display !== "contents";
+  return ["block", "list-item", "table", "flex", "grid", "inline-block"].includes(display) || display.startsWith("table-");
 };
 
-// The text in `container` as items to measure, one per element that holds text directly: the
-// element, its text color as painted, and its lines' boxes on the screen.
-function textItems(container: Element, keep: (element: Element) => boolean): { element: Element; color: Rgba; boxes: DOMRect[] }[] {
-  const items = new Map<Element, DOMRect[]>();
+// An element's text color as painted: its own, times its opacity and every ancestor's.
+function paintedColor(element: Element): Rgba {
+  const color = toRgba(getComputedStyle(element).color);
+  return { ...color, a: color.a * paintedOpacity(element) };
+}
+
+// The boxes of the lines of text in `container` on the screen, of the elements `keep` lets in.
+function lineBoxes(container: Element, keep: (element: Element) => boolean): { element: Element; box: DOMRect }[] {
+  const lines: { element: Element; box: DOMRect }[] = [];
   const range = document.createRange();
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const element = node.parentElement!;
     if (!node.textContent!.trim() || !keep(element) || !element.checkVisibility({ visibilityProperty: true, opacityProperty: true })) continue;
     range.selectNodeContents(node);
-    const boxes = [...range.getClientRects()].filter((box) => box.width > 0 && box.height > 0 && box.right > 0 && box.bottom > 0 && box.left < innerWidth && box.top < innerHeight);
-    if (boxes.length > 0) items.set(element, [...(items.get(element) ?? []), ...boxes]);
+    for (const box of range.getClientRects()) {
+      if (box.width > 0 && box.height > 0 && box.right > 0 && box.bottom > 0 && box.left < innerWidth && box.top < innerHeight) lines.push({ element, box });
+    }
   }
-  return [...items].map(([element, boxes]) => {
-    const color = toRgba(getComputedStyle(element).color);
-    return { element, color: { ...color, a: color.a * paintedOpacity(element) }, boxes };
-  });
+  return lines;
 }
 
 // A contrast ratio as axe states it: cut to two decimals.
 const cut = (ratio: number) => Math.floor(ratio * 100) / 100;
 
-// Settles axe's link-in-text-block check where axe could not read the colors, by axe's own rule
-// and options (3:1, the same color allowed) on what a screenshot shows: the link's text and
-// background against those of the text around it in its block, outside other links and inner
-// blocks. A background is the mean of the pixels behind an element's lines, its glyphs hidden.
+// Settles axe's link-in-text-block check where axe could not read the colors, by axe's rule for
+// it with its options (3:1, the same color allowed), on what a screenshot shows: the link's color
+// against its block's, each painted over what is behind it, and, where something between the link
+// and the block paints a background of its own, the background behind the link's text against the
+// one behind the block's text around it (outside other links and inner blocks). A background is
+// the mean of the pixels behind those lines, glyphs hidden, that nothing else covers.
 async function measureLinkInText(link: Element, block: Element): Promise<Verdict> {
   link.scrollIntoView({ block: "center", inline: "nearest" });
   await settleTransitions();
-  const linkText = textItems(link, () => true);
-  // Text in the same block as the link: no block between it and `block`, and in no link.
-  const around = textItems(block, (element) => {
-    if (link.contains(element) || element.closest('a[href], [role="link"]')) return false;
-    for (let parent: Element | null = element; parent && parent !== block; parent = parent.parentElement) if (isBlock(parent)) return false;
-    return true;
-  });
-  if (linkText.length === 0 || around.length === 0) return { pass: false, reason: "axe could not judge whether it stands out from the text around it, and no text of it and around it shows to measure" };
-  // A still, transparent box over all of that text: its screenshot is the page there.
-  const boxes = [...linkText, ...around].flatMap((item) => item.boxes);
+  const own = lineBoxes(link, () => true);
+  let painted = false;
+  for (let element: Element | null = link; element && element !== block; element = element.parentElement) {
+    const style = getComputedStyle(element);
+    if (toRgba(style.backgroundColor).a > 0 || style.backgroundImage !== "none") painted = true;
+  }
+  // Without a background of its own, the link's text and the block's are on one surface.
+  const around = painted
+    ? lineBoxes(block, (element) => {
+        if (element.closest('a[href], [role="link"]')) return false;
+        for (let parent: Element | null = element; parent && parent !== block; parent = parent.parentElement) if (isBlock(parent)) return false;
+        return true;
+      })
+    : [];
+  const unseen = "axe could not judge whether it stands out from the text around it, and no text of it and around it shows to measure";
+  if (own.length === 0 || (painted && around.length === 0)) return { pass: false, reason: unseen };
+  // A still, transparent box over those lines: its screenshot is the page there.
+  const boxes = [...own, ...around].map(({ box }) => box);
   const left = Math.max(0, Math.floor(Math.min(...boxes.map((box) => box.left))));
   const top = Math.max(0, Math.floor(Math.min(...boxes.map((box) => box.top))));
   const right = Math.min(innerWidth, Math.ceil(Math.max(...boxes.map((box) => box.right))));
@@ -600,6 +613,9 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
   document.body.append(probe);
   let context: CanvasRenderingContext2D;
   try {
+    // A transformed or filtered page places a fixed box by itself, not by the screen.
+    const placed = probe.getBoundingClientRect();
+    if (Math.abs(placed.left - left) > 0.5 || Math.abs(placed.top - top) > 0.5) throw new Error("the page moves a fixed box away from where it is placed");
     context = await screenshot(probe);
   } catch (error) {
     return { pass: false, reason: `axe could not judge whether it stands out from the text around it, and it could not be screenshotted: ${(error as Error).message.split("\n")[0]}` };
@@ -608,40 +624,48 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
     hide.remove();
   }
   const scale = context.canvas.width / (right - left);
-  // Each item's background, the mean of the pixels behind its lines, and its text painted over it.
-  const painted = (items: typeof around) =>
-    items.map(({ color, boxes: lines }) => {
-      const sum = { r: 0, g: 0, b: 0, count: 0 };
-      for (const box of lines) {
-        const x = Math.max(0, Math.floor((box.left - left) * scale));
-        const y = Math.max(0, Math.floor((box.top - top) * scale));
-        const width = Math.min(context.canvas.width, Math.ceil((box.right - left) * scale)) - x;
-        const height = Math.min(context.canvas.height, Math.ceil((box.bottom - top) * scale)) - y;
-        if (width <= 0 || height <= 0) continue;
-        const pixels = context.getImageData(x, y, width, height).data;
-        for (let index = 0; index < pixels.length; index += 4) {
-          sum.r += pixels[index]!;
-          sum.g += pixels[index + 1]!;
-          sum.b += pixels[index + 2]!;
-          sum.count++;
+  // The mean of the pixels behind the lines where the line's own element, or what holds it, is on top.
+  const behind = (lines: { element: Element; box: DOMRect }[]): Rgba | null => {
+    const sum = { r: 0, g: 0, b: 0, count: 0 };
+    for (const { element, box } of lines) {
+      const x = Math.max(0, Math.floor((box.left - left) * scale));
+      const y = Math.max(0, Math.floor((box.top - top) * scale));
+      const width = Math.min(context.canvas.width, Math.ceil((box.right - left) * scale)) - x;
+      const height = Math.min(context.canvas.height, Math.ceil((box.bottom - top) * scale)) - y;
+      if (width <= 0 || height <= 0) continue;
+      const pixels = context.getImageData(x, y, width, height).data;
+      // Hit-tested once a screen pixel, at its centre.
+      const seen = new Map<string, boolean>();
+      for (let index = 0; index < pixels.length; index += 4) {
+        const pixel = index / 4;
+        const pointX = Math.floor(left + (x + (pixel % width) + 0.5) / scale) + 0.5;
+        const pointY = Math.floor(top + (y + Math.floor(pixel / width) + 0.5) / scale) + 0.5;
+        const key = `${pointX},${pointY}`;
+        if (!seen.has(key)) {
+          const hit = document.elementFromPoint(pointX, pointY);
+          seen.set(key, hit !== null && (hit.contains(element) || element.contains(hit)));
         }
+        if (!seen.get(key)) continue;
+        sum.r += pixels[index]!;
+        sum.g += pixels[index + 1]!;
+        sum.b += pixels[index + 2]!;
+        sum.count++;
       }
-      const background = { r: sum.r / sum.count, g: sum.g / sum.count, b: sum.b / sum.count, a: 1 };
-      return { background, text: over(color, background) };
-    });
-  const [linkPainted, aroundPainted] = [painted(linkText), painted(around)];
-  for (const own of linkPainted) {
-    for (const other of aroundPainted) {
-      const text = cut(contrast(own.text, other.text));
-      const background = cut(contrast(own.background, other.background));
-      if (text >= 3 || background >= 3 || (text === 1 && background === 1)) continue;
-      return {
-        pass: false,
-        reason: `measured ${text.toFixed(2)}:1 between its text and the text around it, and ${background.toFixed(2)}:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline`,
-      };
     }
-  }
-  return { pass: true };
+    return sum.count > 0 ? { r: sum.r / sum.count, g: sum.g / sum.count, b: sum.b / sum.count, a: 1 } : null;
+  };
+  const linkBackground = behind(own);
+  // Covered wholly, as by an open popup, the link shows nothing to tell apart.
+  if (!linkBackground) return { pass: true };
+  const blockBackground = painted ? behind(around) : linkBackground;
+  if (!blockBackground) return { pass: false, reason: unseen };
+  const text = cut(contrast(over(paintedColor(link), linkBackground), over(paintedColor(block), blockBackground)));
+  const background = cut(contrast(linkBackground, blockBackground));
+  if (text >= 3 || background >= 3 || (text === 1 && background === 1)) return { pass: true };
+  return {
+    pass: false,
+    reason: `measured ${text.toFixed(2)}:1 between its text and the text around it, and ${background.toFixed(2)}:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline`,
+  };
 }
 
 /** What hides an element from assistive technology. */
