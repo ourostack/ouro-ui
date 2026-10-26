@@ -22,14 +22,14 @@ import { MenuCheckboxItem } from "@/registry/ouro/components/ouro/menu/menu";
 
 Type: `MenuCheckboxItemProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `checked` | `boolean` |  | Whether it is on, to control it; pass `onCheckedChange` with it. |
-| `children` (required) | `ReactNode` |  | The setting's text. |
-| `defaultChecked` | `boolean` |  | Whether it starts on, uncontrolled. |
-| `disabled` | `boolean` |  | Shown, but cannot be toggled. |
-| `onCheckedChange` | `((checked: boolean) => void)` |  | Called with the new state when it is toggled. |
-| `shortcut` | `MenuShortcut` |  | The keys of its shortcut, shown at its end: `["mod", "b"]`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `checked` | `boolean` | Whether it is on, to control it; pass `onCheckedChange` with it. |
+| `children` (required) | `ReactNode` | The setting's text. |
+| `defaultChecked` | `boolean` | Whether it starts on, uncontrolled. |
+| `disabled` | `boolean` | Shown, but cannot be toggled. |
+| `onCheckedChange` | `((checked: boolean) => void)` | Called with the new state when it is toggled. |
+| `shortcut` | `MenuShortcut` | The keys of its shortcut, shown at its end: `["mod", "b"]`. |
 
 ## Types
 

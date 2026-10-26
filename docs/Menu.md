@@ -34,14 +34,14 @@ It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from our
 
 The props the modes share. Type: `MenuProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` | `ReactNode` |  | The entries as `MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`, `MenuGroup`, `MenuSub` and `MenuSeparator`. |
-| `className` | `string` |  | Layout only, applied to the menu panel: width (`w-64`; at least 12rem by default) and margins. The phone sheet keeps its full width. Appearance classes warn in development. |
-| `closeLabel` | `string` |  | The text of the item that ends the phone sheet and closes it, for screen-reader and switch users, who cannot swipe or tap the backdrop. Default "Close". |
-| `items` | `readonly MenuEntry[]` |  | The entries as data, in place of children: `items={[{ label: "Edit", onClick: edit }, { type: "separator" }]}`. |
-| `onOpenChange` | `((open: boolean) => void)` |  | Called when the menu opens or closes. |
-| `open` | `boolean` |  | Whether the menu is open, to control it; pass `onOpenChange` with it. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode` | The entries as `MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`, `MenuGroup`, `MenuSub` and `MenuSeparator`. |
+| `className` | `string` | Layout only, applied to the menu panel: width (`w-64`; at least 12rem by default) and margins. The phone sheet keeps its full width. Appearance classes warn in development. |
+| `closeLabel` | `string` | The text of the item that ends the phone sheet and closes it, for screen-reader and switch users, who cannot swipe or tap the backdrop. Default "Close". |
+| `items` | `readonly MenuEntry[]` | The entries as data, in place of children: `items={[{ label: "Edit", onClick: edit }, { type: "separator" }]}`. |
+| `onOpenChange` | `((open: boolean) => void)` | Called when the menu opens or closes. |
+| `open` | `boolean` | Whether the menu is open, to control it; pass `onOpenChange` with it. |
 
 ## Modes
 
@@ -67,9 +67,9 @@ Not in this mode (typed `never`):
 
 A context menu: right-click or long-press on `contextTrigger` opens it at the pointer.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `contextTrigger` (required) | `ReactElement` |  | The area that opens the menu on right-click, or on a long press on touch screens: `contextTrigger={<div>…</div>}`. Its text stays selectable; only while a finger is down does it turn off text selection and the iOS callout, so a long press opens the menu. Give the same actions a visible control too: a context menu is hard to discover. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `contextTrigger` (required) | `ReactElement` | The area that opens the menu on right-click, or on a long press on touch screens: `contextTrigger={<div>…</div>}`. Its text stays selectable; only while a finger is down does it turn off text selection and the iOS callout, so a long press opens the menu. Give the same actions a visible control too: a context menu is hard to discover. |
 
 Not in this mode (typed `never`):
 

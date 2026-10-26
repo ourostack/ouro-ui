@@ -90,9 +90,9 @@ interface PassingOpener {
 
 /**
  * The overlays a story shows that no `aria-haspopup` trigger opens, so the shared openers leave
- * them out: each Tooltip (its trigger hovered) and each NavigationMenu panel (its trigger
- * pressed). The scan opens them too, so a popup of theirs outside every landmark fails like a
- * menu's would.
+ * them out: each Tooltip (its trigger hovered), each NavigationMenu panel (its trigger pressed)
+ * and each HoverCard (its link focused from the keyboard). The scan opens them too, so a popup of
+ * theirs outside every landmark fails like a menu's would.
  */
 function passingOpeners(host: HTMLElement): PassingOpener[] {
   const usable = (element: HTMLElement) => isVisible(element) && !element.matches(':disabled, [aria-disabled="true"], [data-disabled]');
@@ -111,7 +111,20 @@ function passingOpeners(host: HTMLElement): PassingOpener[] {
     close: () => userEvent.keyboard("{Escape}"),
     popup: () => document.querySelector('[data-ouro="navigation-menu-popup"][data-open]'),
   }));
-  return [...tooltips, ...panels];
+  const cards = [...host.querySelectorAll<HTMLElement>("[data-ouro-hover-card-trigger]")].filter(usable).map((element) => ({
+    name: `the hover card of "${accessibleName(element)}"`,
+    open: async () => {
+      // Focus from the keyboard, as a hover card opens for it; WebKit's Tab skips links by default.
+      await userEvent.keyboard("{Shift}");
+      element.focus();
+    },
+    close: async () => {
+      element.blur();
+      await userEvent.keyboard("{Escape}");
+    },
+    popup: () => document.querySelector('[data-ouro="hover-card"][data-open]'),
+  }));
+  return [...tooltips, ...panels, ...cards];
 }
 
 /** Renders a story and scans it closed and with each of its overlays open: the findings as text, empty when there are none. */

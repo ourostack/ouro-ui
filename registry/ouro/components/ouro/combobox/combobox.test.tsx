@@ -131,12 +131,25 @@ describe("Combobox", () => {
     await expect.poll(popup).not.toBeNull();
     await expect.poll(() => document.querySelector('main [aria-hidden="true"]:is(a, h1, div:has(input))')).toBeNull();
     expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
-    // What the list hides itself, and what anything hides once the list is closed, stays hidden.
+    // What the list hides itself, what the page hides inside what Base UI marked, what a dialog
+    // opened over the list hides, and what anything hides once the list is closed, stays hidden.
     const option = popup()!.querySelector('[role="option"]')!;
     option.setAttribute("aria-hidden", "true");
+    const note = main.querySelector("h1")!.appendChild(document.createElement("span"));
+    note.setAttribute("aria-hidden", "true");
     await new Promise((resolve) => setTimeout(resolve));
     expect(option.getAttribute("aria-hidden")).toBe("true");
+    expect(note.getAttribute("aria-hidden")).toBe("true");
     option.removeAttribute("aria-hidden");
+    const heading = main.querySelector("h1")!;
+    expect(heading.hasAttribute("data-base-ui-inert")).toBe(true);
+    const dialog = document.body.appendChild(document.createElement("div"));
+    dialog.setAttribute("role", "dialog");
+    heading.setAttribute("aria-hidden", "true");
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(heading.getAttribute("aria-hidden")).toBe("true");
+    dialog.remove();
+    heading.removeAttribute("aria-hidden");
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     const link = main.querySelector("a")!;

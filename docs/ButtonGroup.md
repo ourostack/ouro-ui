@@ -25,13 +25,13 @@ import { ButtonGroup } from "@/registry/ouro/components/ouro/button-group/button
 
 Type: `ButtonGroupProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The buttons, in order: `Button`s or `Toggle`s, each with its own `variant`, `tone` and `size`. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. |
-| `fullWidth` | `boolean` |  | Stretches the group to the width of its container, with the buttons sharing it equally. |
-| `label` (required) | `string` |  | Names the group for screen readers ("Pagination", "Text alignment"). It is not shown. |
-| `ref` | `Ref<HTMLDivElement>` |  | The group element (`role="group"`). |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The buttons, in order: `Button`s or `Toggle`s, each with its own `variant`, `tone` and `size`. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. |
+| `fullWidth` | `boolean` | Stretches the group to the width of its container, with the buttons sharing it equally. |
+| `label` (required) | `string` | Names the group for screen readers ("Pagination", "Text alignment"). It is not shown. |
+| `ref` | `Ref<HTMLDivElement>` | The group element (`role="group"`). |
 
 ## Don't use
 

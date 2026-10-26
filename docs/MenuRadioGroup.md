@@ -25,10 +25,10 @@ import { MenuRadioGroup } from "@/registry/ouro/components/ouro/menu/menu";
 
 Type: `MenuRadioGroupProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The `MenuRadioItem`s. |
-| `defaultValue` | `string` |  | The value chosen at first, uncontrolled. |
-| `label` | `string` |  | Names the group, shown above it: "Sort by". |
-| `onValueChange` | `((value: string) => void)` |  | Called with the value of the item chosen. |
-| `value` | `string` |  | The chosen value, to control it; pass `onValueChange` with it. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The `MenuRadioItem`s. |
+| `defaultValue` | `string` | The value chosen at first, uncontrolled. |
+| `label` | `string` | Names the group, shown above it: "Sort by". |
+| `onValueChange` | `((value: string) => void)` | Called with the value of the item chosen. |
+| `value` | `string` | The chosen value, to control it; pass `onValueChange` with it. |

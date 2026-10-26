@@ -27,11 +27,11 @@ The server can't know the platform, so server HTML shows the key names (Ctrl+K) 
 
 Type: `KbdProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: margins (`ms-2`). Appearance classes warn in development; Kbd sizes itself to the surrounding text. |
-| `keys` (required) | `readonly string[] \| (string & { 'Use an array: keys={["mod", "k"]}': never })` |  | The keys to press together, by name: `["mod", "k"]`. `mod` is ⌘ on Apple platforms and Ctrl elsewhere, the portable choice for an app shortcut. Modifier names: `mod`, `cmd` (`meta`: ⌘ on Apple, Win on Windows, Ctrl on Linux and ChromeOS), `ctrl`, `alt` (`option`), `shift`. Modifiers show in the platform's order (⌃⌥⇧⌘ on Apple, Win+Ctrl+Alt+Shift elsewhere), then the other keys as given. Other names: `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `up`, `down`, `left`, `right`. Any other string shows as written, a single letter in capitals. |
-| `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `className` | `string` | Layout only: margins (`ms-2`). Appearance classes warn in development; Kbd sizes itself to the surrounding text. |
+| `keys` (required) | `readonly string[] \| (string & { 'Use an array: keys={["mod", "k"]}': never })` | The keys to press together, by name: `["mod", "k"]`. `mod` is ⌘ on Apple platforms and Ctrl elsewhere, the portable choice for an app shortcut. Modifier names: `mod`, `cmd` (`meta`: ⌘ on Apple, Win on Windows, Ctrl on Linux and ChromeOS), `ctrl`, `alt` (`option`), `shift`. Modifiers show in the platform's order (⌃⌥⇧⌘ on Apple, Win+Ctrl+Alt+Shift elsewhere), then the other keys as given. Other names: `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `up`, `down`, `left`, `right`. Any other string shows as written, a single letter in capitals. |
+| `ref` | `Ref<HTMLElement>` | Reaches the rendered element. |
 
 ## Native attributes
 

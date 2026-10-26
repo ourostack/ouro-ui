@@ -25,15 +25,15 @@ import { Radio } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 
 Type: `RadioProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: margins, width, grid placement. Appearance classes warn in development. |
-| `description` | `ReactNode` |  | Supporting text under the label, read after it through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables this one radio; the arrow keys skip it. |
-| `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the radio's name. |
-| `label` (required) | `string` |  | The choice's name, shown to the right of the radio. Required: every control needs a name. |
-| `ref` | `Ref<HTMLElement>` |  | The radio element, a `<span role="radio">`. |
-| `value` (required) | `string` |  | What the group submits when this radio is picked, and the group's `value` then. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `className` | `string` | Layout only: margins, width, grid placement. Appearance classes warn in development. |
+| `description` | `ReactNode` | Supporting text under the label, read after it through `aria-describedby`. |
+| `disabled` | `boolean` | Disables this one radio; the arrow keys skip it. |
+| `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the radio's name. |
+| `label` (required) | `string` | The choice's name, shown to the right of the radio. Required: every control needs a name. |
+| `ref` | `Ref<HTMLElement>` | The radio element, a `<span role="radio">`. |
+| `value` (required) | `string` | What the group submits when this radio is picked, and the group's `value` then. |
 
 ## Don't use
 

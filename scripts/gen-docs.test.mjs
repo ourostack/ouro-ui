@@ -220,3 +220,11 @@ test("a function whose @see is a component's page is documented on that page", (
   assert.deepEqual(pages, { "color-scheme-toggle": ["colorSchemeScript", "useColorScheme"], "install-prompt": ["useInstallPrompt"], "share-button": ["canShare", "copyText", "share"], timer: ["buzz", "chime", "createChimeContext", "formatDuration", "useTimer"], toaster: ["toast"] });
   assert.match(doc("toast.md"), /^# toast$/m);
 });
+
+test("a parameter or prop table has only the columns it fills, and there is no table without rows", () => {
+  // A table column with no cell under its header, or a header row with no rows, is a table screen readers cannot read (axe's th-has-data-cells).
+  assert.doesNotMatch(doc("buzz.md"), /## Parameters/);
+  assert.match(doc("copyText.md"), /\| Parameter \| Type \|\n\| --- \| --- \|\n\| `text` \| `string` \|\n/);
+  assert.match(doc("ChartLegend.md"), /Type: `ChartLegendProps`\.\n\n## Don't use/);
+  assert.match(doc("toast.md"), /\| Parameter \| Type \| Default \|\n\| --- \| --- \| --- \|\n\| `message` \| `string` \| {2}\|\n\| `options` \| `ToastOptions` \| `\{\}` \|\n/);
+});

@@ -25,7 +25,7 @@ import { MenuGroup } from "@/registry/ouro/components/ouro/menu/menu";
 
 Type: `MenuGroupProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The group's items. |
-| `label` (required) | `string` |  | Names the group, shown above its items. It is always required. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The group's items. |
+| `label` (required) | `string` | Names the group, shown above its items. It is always required. |

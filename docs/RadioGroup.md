@@ -52,9 +52,9 @@ The props the modes share. Type: `RadioGroupProps`.
 
 ### With `children`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The choices as `Radio` elements, for a layout `options` cannot express. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The choices as `Radio` elements, for a layout `options` cannot express. |
 
 Not in this mode (typed `never`):
 
@@ -62,9 +62,9 @@ Not in this mode (typed `never`):
 
 ### With `options`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `options` (required) | `RadioGroupOption[]` |  | The choices, one radio each, in order. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `options` (required) | `RadioGroupOption[]` | The choices, one radio each, in order. |
 
 Not in this mode (typed `never`):
 

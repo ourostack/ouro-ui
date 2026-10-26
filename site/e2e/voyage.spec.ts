@@ -72,7 +72,7 @@ test("a stored preset paints from the server HTML, before the client entry runs"
 test.describe("every preset, light and dark", () => {
   for (const preset of PRESET_NAMES) {
     for (const mode of ["light", "dark"] as const) {
-      test(`${preset} ${mode} has zero axe violations on the built page`, async ({ page, browserName }) => {
+      test(`${preset} ${mode} passes the strict audit on the built page`, async ({ page, browserName }) => {
         const errors = diagnostics(page);
         await page.setViewportSize({ width: 1440, height: 900 });
         await store(page, { preset, mode });

@@ -108,6 +108,45 @@ describe("audit", () => {
     shots.mockRestore();
   });
 
+  it("fails text that other text is drawn over, as a tag without a background over a line", async () => {
+    mountPage(
+      '<div style="position:relative"><p id="under" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee);font-size:16px;line-height:24px">Text under a tag</p>' +
+        '<span id="tag" aria-hidden="true" style="position:absolute;left:8px;top:8px;color:#111;font-size:16px;line-height:24px">WWWWWWWWWW</span></div>',
+    );
+    expect(await measureTextContrast(document.querySelector("#under")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured 1\.\d\d:1/) });
+  });
+
+  it("fails what axe could not decide and the kit does not measure, with axe's own message", async () => {
+    // A table with a header row and no rows, as the docs' parameter tables once were.
+    mountPage('<table><thead><tr><th scope="col">Parameter</th><th scope="col">Type</th></tr></thead><tbody></tbody></table>');
+    const findings = await scanPage();
+    expect(findings.find((finding) => finding.rule === "th-has-data-cells")).toMatchObject({ undecided: true, summary: expect.stringMatching(/data cells/i) });
+  });
+
+  it("scans the page again when a node it found leaves the page while it is measured, as a Searching… line does", async () => {
+    mountPage('<p id="searching" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Searching…</p>');
+    const take = page.screenshot.bind(page);
+    const shots = vi.spyOn(page, "screenshot").mockImplementationOnce((options) => {
+      document.querySelector("#searching")?.remove();
+      return take(options);
+    });
+    expect(await scanPage()).toEqual([]);
+    shots.mockRestore();
+  });
+
+  it("fails a node that leaves the page each time it is measured, three scans running", async () => {
+    mountPage('<p id="searching" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Searching…</p>');
+    const take = page.screenshot.bind(page);
+    const shots = vi.spyOn(page, "screenshot").mockImplementation((options) => {
+      const line = document.querySelector("#searching")!;
+      line.replaceWith(line.cloneNode(true));
+      return take(options);
+    });
+    const findings = await scanPage();
+    shots.mockRestore();
+    expect(findings).toEqual([expect.objectContaining({ rule: "color-contrast", undecided: true, summary: expect.stringMatching(/the page never held still/) })]);
+  });
+
   it("measures text once its color transitions finish, as after a switch to dark", async () => {
     mountPage('<p id="switching" style="margin:0;padding:8px;color:#111;background:#fff;transition:color 400ms linear,background-color 400ms linear">Switching scheme</p>');
     const text = document.querySelector<HTMLElement>("#switching")!;
@@ -193,6 +232,16 @@ describe("audit", () => {
     expect(describeFindings(await scanPage())).toBe("");
     document.querySelector("input")!.removeAttribute("aria-labelledby");
     expect(rules(await scanPage())).toEqual(["undecided form-field-multiple-labels"]);
+  });
+
+  it("passes a modal whose focus trap sends focus back a frame after it reaches the trap's edge, as Base UI's does in WebKit", async () => {
+    document.body.innerHTML =
+      '<main aria-hidden="true"><h1>Page</h1><a href="#page">Behind the dialog</a></main>' +
+      '<div role="dialog" aria-modal="true" aria-label="Edit"><span tabindex="0" data-guard></span><button type="button">Save</button><span tabindex="0" data-guard></span></div>';
+    const save = document.querySelector<HTMLElement>('[role="dialog"] button')!;
+    for (const guard of document.querySelectorAll("[data-guard]")) guard.addEventListener("focus", () => requestAnimationFrame(() => save.focus()));
+    save.focus();
+    expect(rules(await scanPage())).not.toContain("undecided aria-hidden-focus");
   });
 
   it("passes a control hidden at rest that shows itself in the event that focuses it, as a toast's dismiss button does", async () => {

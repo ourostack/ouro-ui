@@ -39,17 +39,17 @@ A field's error is the control's description, not an alert, so screen readers re
 
 Type: `FieldProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The control: `<FieldControl />`, or `<FieldControl render={<textarea />} />` for another element. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
-| `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables the control and fades the field. |
-| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. A message (or several, as an array, each shown once as a list item) shows under the control, which gets `aria-invalid` and points at the message with `aria-describedby`. A message is text or a React node, so it can carry a link: `error={<>Already imported. <Link href="/recipes/soup">Open it</Link></>}`. An empty string or array means valid. It only shows: it never blocks the next submit of the form around it. |
-| `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the control's name. |
-| `label` (required) | `string` |  | What the control is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
-| `name` | `string` |  | The form field name the control submits under. A `Form`'s `errors` for this name show here when there is no `error` prop, and go away once the user changes the control. |
-| `required` | `boolean` |  | The control must be filled: it gets `required` and `aria-required`, and the label a marker. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The control: `<FieldControl />`, or `<FieldControl render={<textarea />} />` for another element. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
+| `description` | `ReactNode` | Supporting text under the label, read after the label through `aria-describedby`. |
+| `disabled` | `boolean` | Disables the control and fades the field. |
+| `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check. A message (or several, as an array, each shown once as a list item) shows under the control, which gets `aria-invalid` and points at the message with `aria-describedby`. A message is text or a React node, so it can carry a link: `error={<>Already imported. <Link href="/recipes/soup">Open it</Link></>}`. An empty string or array means valid. It only shows: it never blocks the next submit of the form around it. |
+| `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the control's name. |
+| `label` (required) | `string` | What the control is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
+| `name` | `string` | The form field name the control submits under. A `Form`'s `errors` for this name show here when there is no `error` prop, and go away once the user changes the control. |
+| `required` | `boolean` | The control must be filled: it gets `required` and `aria-required`, and the label a marker. |
 
 ## Don't use
 

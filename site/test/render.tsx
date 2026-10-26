@@ -72,6 +72,12 @@ export async function settle(): Promise<void> {
 export const describeViolations = describeFindings;
 
 /**
+ * How long one page's scan may take, as long as a story's (test/story-axe.ts): text axe could not
+ * judge is measured from screenshots, and a page of wide tables takes several, slower in CI.
+ */
+export const pageScanTimeout = 30_000;
+
+/**
  * Runs the accessibility gate over the whole document (`audit` in the test kit): a site page is a
  * full page, so every rule applies, every violation fails whatever its impact, and every check axe
  * could not decide fails unless a measurement passes it.

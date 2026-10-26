@@ -332,12 +332,16 @@ function propsDoc(component: string, parameter: ts.ParameterDeclaration): PropsD
 const cell = (text: string) => text.replace(/\|/g, "\\|").replace(/\n/g, " ");
 const code = (text: string) => (text.includes("`") ? `\`\` ${text} \`\`` : `\`${text}\``);
 
+// Only the columns some prop fills, and no table without props: an empty column or a header row
+// with no rows is a table screen readers cannot read (axe's th-has-data-cells).
 function propTable(props: Prop[]): string {
+  if (props.length === 0) return "";
+  const defaults = props.some((prop) => prop.default);
   const rows = props.map(
     (prop) =>
-      `| \`${prop.name}\`${prop.required ? " (required)" : ""} | ${cell(code(prop.type))} | ${prop.default ? cell(defaultText(prop.default)) : ""} | ${cell(prop.description)} |`,
+      `| \`${prop.name}\`${prop.required ? " (required)" : ""} | ${cell(code(prop.type))} |${defaults ? ` ${prop.default ? cell(defaultText(prop.default)) : ""} |` : ""} ${cell(prop.description)} |`,
   );
-  return ["| Prop | Type | Default | Description |", "| --- | --- | --- | --- |", ...rows].join("\n");
+  return [`| Prop | Type |${defaults ? " Default |" : ""} Description |`, `| --- | --- |${defaults ? " --- |" : ""} --- |`, ...rows].join("\n");
 }
 
 /** `@default "accent"` reads as code, `@default derived from …` stays prose, and a value with a note keeps both. */
@@ -484,7 +488,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
     const doc = propsDoc(page.name, parameter);
     const all = [...doc.common, ...doc.modes.flatMap((mode) => mode.props)];
     texts.push(...all.map((prop) => prop.type));
-    sections.push(`## Props\n\n${doc.modes.length > 0 ? "The props the modes share. " : ""}Type: \`${doc.typeName}\`.\n\n${propTable(doc.common)}`);
+    sections.push(`## Props\n\n${doc.modes.length > 0 ? "The props the modes share. " : ""}Type: \`${doc.typeName}\`.${doc.common.length > 0 ? `\n\n${propTable(doc.common)}` : ""}`);
     if (doc.modes.length > 0) {
       const modes = doc.modes.map((mode) =>
         [
@@ -533,10 +537,13 @@ function functionPage(page: Page, symbol: ts.Symbol): string {
     type: parameter.type?.getText() ?? "",
     initializer: parameter.initializer?.getText(),
   }));
+  // Only the columns some parameter fills, and no table without parameters: an empty column or a
+  // header row with no rows is a table screen readers cannot read (axe's th-has-data-cells).
+  const defaults = parameters.some((parameter) => parameter.initializer);
   const rows = parameters.map(
-    (parameter) => `| \`${parameter.name}\` | ${cell(code(parameter.type))} | ${parameter.initializer ? cell(code(parameter.initializer)) : ""} |`,
+    (parameter) => `| \`${parameter.name}\` | ${cell(code(parameter.type))} |${defaults ? ` ${parameter.initializer ? cell(code(parameter.initializer)) : ""} |` : ""}`,
   );
-  sections.push(`## Parameters\n\n| Parameter | Type | Default |\n| --- | --- | --- |\n${rows.join("\n")}`);
+  if (rows.length > 0) sections.push(`## Parameters\n\n| Parameter | Type |${defaults ? " Default |" : ""}\n| --- | --- |${defaults ? " --- |" : ""}\n${rows.join("\n")}`);
   const returns = declaration.type?.getText();
   if (returns) sections.push(`## Returns\n\n\`${returns}\``);
   sections.push(typesSection([...parameters.map((parameter) => parameter.type), returns ?? ""], new Set()));

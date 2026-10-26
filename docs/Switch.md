@@ -27,22 +27,22 @@ Use it for a setting that takes effect at once.
 
 Type: `SwitchProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `checked` | `boolean` |  | Whether it is on, for a controlled switch; pair it with `onCheckedChange`. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style switches in your theme. |
-| `defaultChecked` | `boolean` |  | Whether it starts on, for an uncontrolled switch. |
-| `description` | `ReactNode` |  | Supporting text under the label, read after it through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables the switch and fades it. |
-| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check, shown under the label; the switch gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
-| `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the switch's name. |
-| `label` (required) | `string` |  | The setting it turns on, shown to the right of the switch and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
-| `name` | `string` |  | The form field name it submits under when on. |
-| `onCheckedChange` | `((checked: boolean) => void)` |  | Called with the new state when it turns on or off. |
-| `readOnly` | `boolean` |  | Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. |
-| `ref` | `Ref<HTMLElement>` |  | The track element, a `<span role="switch">`. |
-| `required` | `boolean` |  | The switch must be on to submit the form: it gets `required` and `aria-required`, and the label a marker. |
-| `value` | `string` |  | What it submits when on (`on` without one). |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `checked` | `boolean` | Whether it is on, for a controlled switch; pair it with `onCheckedChange`. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style switches in your theme. |
+| `defaultChecked` | `boolean` | Whether it starts on, for an uncontrolled switch. |
+| `description` | `ReactNode` | Supporting text under the label, read after it through `aria-describedby`. |
+| `disabled` | `boolean` | Disables the switch and fades it. |
+| `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check, shown under the label; the switch gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the switch's name. |
+| `label` (required) | `string` | The setting it turns on, shown to the right of the switch and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
+| `name` | `string` | The form field name it submits under when on. |
+| `onCheckedChange` | `((checked: boolean) => void)` | Called with the new state when it turns on or off. |
+| `readOnly` | `boolean` | Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. |
+| `ref` | `Ref<HTMLElement>` | The track element, a `<span role="switch">`. |
+| `required` | `boolean` | The switch must be on to submit the form: it gets `required` and `aria-required`, and the label a marker. |
+| `value` | `string` | What it submits when on (`on` without one). |
 
 ## Don't use
 

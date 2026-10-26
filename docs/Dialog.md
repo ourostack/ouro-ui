@@ -60,10 +60,10 @@ The props the modes share. Type: `DialogProps`.
 
 A controlled Dialog: you own `open` and update it in `onOpenChange`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). |
-| `open` (required) | `boolean` |  | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). |
+| `open` (required) | `boolean` | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 
 Not in this mode (typed `never`):
 
@@ -73,9 +73,9 @@ Not in this mode (typed `never`):
 
 An uncontrolled Dialog: `trigger` opens it.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `trigger` (required) | `ReactElement` |  | The element that opens the dialog, usually a Button: `trigger={<Button>Edit</Button>}`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `trigger` (required) | `ReactElement` | The element that opens the dialog, usually a Button: `trigger={<Button>Edit</Button>}`. |
 
 Not in this mode (typed `never`):
 

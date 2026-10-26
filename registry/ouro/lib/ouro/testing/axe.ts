@@ -79,7 +79,9 @@ function describeFindings(findings: GateFinding[]): string {
  * - an ARIA toggle inside a `<label>`, only when its name and description hold every word of the label;
  * - a field with two labels, only when `aria-labelledby` names it.
  *
- * Anything else axe could not decide fails with axe's own message.
+ * Anything else axe could not decide fails with axe's own message. A node that leaves the page
+ * while it is measured means the page changed under the scan, so it scans the page again, and on
+ * the third scan such a node fails.
  *
  * @example
  * const findings = await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
@@ -91,9 +93,30 @@ function describeFindings(findings: GateFinding[]): string {
  * @claim "focusable content hidden from assistive technology," registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a control hidden from assistive technology under a modal when Tab still reaches it, and passes it when the page is inert)
  * @claim "focusable content hidden from assistive technology," registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a control hidden at rest that shows itself in the event that focuses it, as a toast's dismiss button does)
  * @claim "an ARIA toggle inside a `<label>`, only" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a toggle inside a <label> whose text is its name and description, and fails one whose label says more)
+ * @claim "Anything else axe could not decide" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails what axe could not decide and the kit does not measure, with axe's own message)
+ * @claim "A node that leaves the page" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > scans the page again when a node it found leaves the page while it is measured, as a Searching… line does)
+ * @claim "A node that leaves the page" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a node that leaves the page each time it is measured, three scans running)
  * @claim "a field with two labels, only when" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a field with two labels when aria-labelledby names it, and fails it when nothing settles which label names it)
  */
 async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
+  // A node that leaves the page while it is measured (a "Searching…" line once results come) means
+  // the page changed under the scan: scan the page as it is now, and fail once it never holds still.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await auditOnce(context, attempt === 3);
+    } catch (error) {
+      if (!(error instanceof PageChanged)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+    }
+  }
+}
+
+/** Thrown when a node the scan found has left the page by the time it is measured. */
+class PageChanged extends Error {}
+
+const keptChanging = "it left the page while it was measured, three scans running: the page never held still";
+
+async function auditOnce(context: axe.ElementContext, last: boolean): Promise<GateFinding[]> {
   await settleTransitions();
   const result = await axe.run(context, gateRunOptions);
   const findings: GateFinding[] = [];
@@ -102,31 +125,53 @@ async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
       findings.push({ rule: rule.id, impact: rule.impact ?? null, help: rule.help, target: node.target.join(" "), summary: node.failureSummary ?? "", undecided: false });
     }
   }
-  // Tab walks move focus, which can show a tooltip, so they run after every other measurement.
   const undecided = result.incomplete.flatMap((rule) => rule.nodes.map((node) => ({ rule, node })));
-  const walksLast = undecided.sort((a, b) => Number(walks(a.node)) - Number(walks(b.node)));
+  const measured = new Map<axe.NodeResult, Verdict>();
+  const gone = (): Verdict => {
+    if (!last) throw new PageChanged();
+    return { pass: false, reason: keptChanging };
+  };
   // Text is measured in groups, one screenshot each: the largest box around it that fits the
   // screen, so a card's or a chart's text shares one picture.
-  const measured = new Map<axe.NodeResult, Verdict>();
   const byRoot = new Map<Element, { node: axe.NodeResult; element: Element; required: number }[]>();
-  for (const { rule, node } of walksLast) {
-    const element = rule.id === "color-contrast" ? elementOf(node) : null;
-    if (!element) continue;
+  for (const { rule, node } of undecided) {
+    if (rule.id !== "color-contrast") continue;
+    const element = elementOf(node);
+    if (!element) {
+      measured.set(node, gone());
+      continue;
+    }
     const data = node.any[0]?.data as { expectedContrastRatio?: string } | undefined;
     const root = screenRoot(element);
     byRoot.set(root, [...(byRoot.get(root) ?? []), { node, element, required: requiredRatio(element, data?.expectedContrastRatio) }]);
   }
   for (const [root, items] of byRoot) {
-    const verdicts = await measureTexts(root, items);
+    const verdicts = await measureTexts(root, items, last);
     for (const [index, item] of items.entries()) {
       // Scrolled for the group, a sticky part of the page can sit over the text: measured alone,
       // centered on the screen, it shows as a reader scrolls to it.
-      const verdict = verdicts[index]!.pass || root === item.element ? verdicts[index]! : await measureTextContrast(item.element, item.required);
+      const verdict = verdicts[index]!.pass || root === item.element ? verdicts[index]! : (await measureTexts(item.element, [item], last))[0]!;
       measured.set(item.node, verdict);
     }
   }
-  for (const { rule, node } of walksLast) {
-    const verdict = measured.get(node) ?? (await decide(rule.id, node));
+  // Focusable content hidden from assistive technology: one Tab walk around the page for all of it.
+  // Walks move focus, which can show a tooltip, so they run after every other measurement.
+  const hiding = undecided.filter(({ node }) => walks(node));
+  if (hiding.length > 0) {
+    const targets = new Map<axe.NodeResult, HTMLElement[]>();
+    for (const { node } of hiding) {
+      const hidden = checksOf(node).flatMap((check) => check.relatedNodes ?? []).map((related) => elementOf(related));
+      if (hidden.some((entry) => entry === null)) measured.set(node, gone());
+      else targets.set(node, hidden as HTMLElement[]);
+    }
+    const reached = await tabReaches([...targets.values()].flat());
+    for (const [node, hidden] of targets) {
+      const first = reached.find((element) => hidden.some((target) => target.contains(element)));
+      measured.set(node, first ? { pass: false, reason: `Tab reaches ${describe(first)}, which is hidden from assistive technology` } : { pass: true });
+    }
+  }
+  for (const { rule, node } of undecided) {
+    const verdict = measured.get(node) ?? decide(rule.id, node, gone);
     if (verdict.pass) continue;
     findings.push({ rule: rule.id, impact: rule.impact ?? null, help: rule.help, target: node.target.join(" "), summary: verdict.reason, undecided: true });
   }
@@ -136,19 +181,15 @@ async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
 /** The checks a node did not pass: in axe's results, an undecided node lists only those. */
 const checksOf = (node: axe.NodeResult) => [...node.any, ...node.all, ...node.none];
 
-/** Whether settling a node takes a Tab walk. */
-const walks = (node: axe.NodeResult) => checksOf(node).some((check) => check.id === "focusable-modal-open");
+/** Whether settling a node takes a Tab walk: when the checks it did not pass are about focus under a modal. */
+const walks = (node: axe.NodeResult) => checksOf(node).length > 0 && checksOf(node).every((check) => check.id === "focusable-modal-open");
 
-/** Settles one node axe could not decide by measuring it, where the gate knows how; anything else fails with axe's message. */
-async function decide(rule: string, node: axe.NodeResult): Promise<Verdict> {
+/** Settles one node axe could not decide by what the page holds, where the gate knows how; anything else fails with axe's message. */
+function decide(rule: string, node: axe.NodeResult, gone: () => Verdict): Verdict {
   const open = checksOf(node);
   const message = open.map((check) => check.message).join("; ");
   const element = elementOf(node);
-  if (!element) return { pass: false, reason: `${message} (the node is gone, so it cannot be measured)` };
-  if (rule === "color-contrast") {
-    const data = node.any[0]?.data as { expectedContrastRatio?: string } | undefined;
-    return measureTextContrast(element, requiredRatio(element, data?.expectedContrastRatio));
-  }
+  if (!element) return gone();
   if (open.length > 0 && open.every((check) => check.id === "aria-valid-attr-value" && (check.data as { messageKey?: string } | null)?.messageKey === "controlsWithinPopup")) {
     return popupControlsExist(element) ? { pass: true } : { pass: false, reason: message };
   }
@@ -158,12 +199,6 @@ async function decide(rule: string, node: axe.NodeResult): Promise<Verdict> {
   if (rule === "form-field-multiple-labels") {
     // Which label names the field is settled when aria-labelledby names it, as it outranks every <label>.
     return named(element, "aria-labelledby").length > 0 ? { pass: true } : { pass: false, reason: message };
-  }
-  if (open.length > 0 && open.every((check) => check.id === "focusable-modal-open")) {
-    const hidden = open.flatMap((check) => check.relatedNodes ?? []).map((related) => elementOf(related));
-    if (hidden.some((entry) => entry === null)) return { pass: false, reason: `${message} (a focusable element is gone, so the walk cannot check it)` };
-    const reached = await tabReaches(hidden as HTMLElement[]);
-    return reached ? { pass: false, reason: `Tab reaches ${describe(reached)}, which is hidden from assistive technology` } : { pass: true };
   }
   return { pass: false, reason: message };
 }
@@ -212,26 +247,31 @@ function labelSaysNoMore(element: Element): boolean {
   return wordsIn(element.closest("label")).every((word) => conveyed.has(word));
 }
 
-// Presses Tab around the page from where focus is, and returns the first element inside one of
-// `targets` that Tab focuses while it is still hidden from assistive technology when the focus
-// event reaches the document (after the page's own handlers, which may show it), or null when
-// it never does. Focus goes back where it was.
-async function tabReaches(targets: HTMLElement[]): Promise<HTMLElement | null> {
+// Presses Tab once around the page from where focus is, two frames apart, and returns each element
+// inside one of `targets` that Tab focuses while it is still hidden from assistive technology when
+// the focus event reaches the document (after the page's own handlers, which may show it). Focus
+// goes back where it was.
+async function tabReaches(targets: HTMLElement[]): Promise<HTMLElement[]> {
   const start = document.activeElement;
   const stops = document.querySelectorAll("a[href], button, input, select, textarea, [tabindex], [contenteditable]").length;
-  let reached: HTMLElement | null = null;
+  const reached = new Set<HTMLElement>();
   const watch = (event: FocusEvent) => {
     const focused = event.target as HTMLElement;
-    if (!reached && focused.closest('[aria-hidden="true"]') && targets.some((target) => target.contains(focused))) reached = focused;
+    if (focused.closest('[aria-hidden="true"]') && targets.some((target) => target.contains(focused))) reached.add(focused);
   };
   document.addEventListener("focusin", watch);
   try {
-    for (let press = 0; press < stops + 2 && !reached; press++) await pressTab();
+    for (let press = 0; press < stops + 2; press++) {
+      await pressTab();
+      // A person's next press comes frames later, and a focus trap may send focus back on the next
+      // frame (Base UI's does in WebKit): pressing sooner would tab past the trap and out of the page.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
   } finally {
     document.removeEventListener("focusin", watch);
   }
   if (start instanceof HTMLElement && start.isConnected) start.focus();
-  return reached;
+  return [...reached];
 }
 
 // The contrast WCAG 1.4.3 asks of the element's text: axe's own figure when it gave one, else 3:1
@@ -334,12 +374,15 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
 
 /**
  * The rule that hides glyphs while the page behind them is screenshotted: the element's, and all
- * other text on the page too, as a tall heading's descenders reach into the line below.
+ * other text on the page too, as a tall heading's descenders reach into the line below, except
+ * other text drawn over the element's, which is what it is seen against.
  *
  * @claim "and all other text on the page too" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures a heading's second line against the page, not the descenders of the line above)
+ * @claim "except other text drawn over the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails text that other text is drawn over, as a tag without a background over a line)
  */
 const hideGlyphs =
   "body * { -webkit-text-fill-color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; } " +
+  "[data-ouro-measure-keep] { -webkit-text-fill-color: currentcolor !important; } " +
   "svg text, svg tspan { fill: transparent !important; stroke: transparent !important; } " +
   "[data-ouro-measure], [data-ouro-measure] * { color: transparent !important; -webkit-text-fill-color: transparent !important; " +
   "fill: transparent !important; stroke: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; caret-color: transparent !important; transition: none !important; } " +
@@ -366,7 +409,26 @@ const hideGlyphs =
  * @claim "Where an open popup covers the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > counts a popup's shadow on the text as the popup's, as it is drawn by the open popup)
  */
 async function measureTextContrast(element: Element, required: number): Promise<Verdict> {
-  return (await measureTexts(element, [{ element, required }]))[0]!;
+  return (await measureTexts(element, [{ element, required }], true))[0]!;
+}
+
+// The elements whose own text is drawn over the text of `measured` (a quarter of a line's height or
+// more, so a line's descenders reaching into the next do not count), outside those elements.
+function overlappingText(measured: Element[]): Set<Element> {
+  const lines = measured.flatMap((element) => textBoxes(element));
+  const kept = new Set<Element>();
+  const range = document.createRange();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const parent = node.parentElement;
+    if (!parent || kept.has(parent) || !node.textContent?.trim() || measured.some((element) => element.contains(parent))) continue;
+    range.selectNodeContents(node);
+    const over = [...range.getClientRects()].some((box) =>
+      lines.some((line) => Math.min(box.right, line.right) - Math.max(box.left, line.left) > 0 && Math.min(box.bottom, line.bottom) - Math.max(box.top, line.top) >= line.height / 4),
+    );
+    if (over) kept.add(parent);
+  }
+  return kept;
 }
 
 // The element's largest ancestor (or itself) that fits on the screen, below <body> and within the
@@ -381,12 +443,47 @@ function screenRoot(element: Element): Element {
   return root;
 }
 
-// Measures each element's text against one screenshot of `root`, which holds them all, as a
-// chart's many axis labels share one picture.
-async function measureTexts(root: Element, items: { element: Element; required: number }[]): Promise<Verdict[]> {
+// Whether all of an element's text shows: inside every box that clips it up to `root`, and the screen.
+function inView(element: Element, root: Element): boolean {
+  let clip = new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+  for (let parent = element.parentElement; parent; parent = parent === root ? null : parent.parentElement) {
+    const style = getComputedStyle(parent);
+    if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+    const box = parent.getBoundingClientRect();
+    const left = Math.max(clip.left, box.left);
+    const top = Math.max(clip.top, box.top);
+    clip = new DOMRect(left, top, Math.min(clip.right, box.right) - left, Math.min(clip.bottom, box.bottom) - top);
+  }
+  return textBoxes(element).every((box) => box.left >= clip.left - 1 && box.right <= clip.right + 1 && box.top >= clip.top - 1 && box.bottom <= clip.bottom + 1);
+}
+
+// Measures each element's text against screenshots of `root`, which holds them all: one, as a
+// chart's many axis labels share one picture, unless some text is scrolled out of a box inside it
+// (a wide table's last columns), which is scrolled to and taken with the text that then shows.
+// Unless this is the `last` try, a node gone from the page throws PageChanged, so the scan runs again.
+async function measureTexts(root: Element, items: { element: Element; required: number }[], last: boolean): Promise<Verdict[]> {
   // Centered, so a sticky header does not sit over text that scrolled to the top edge.
   root.scrollIntoView({ block: "center", inline: "nearest" });
   await settleTransitions();
+  const verdicts = new Map<{ element: Element; required: number }, Verdict>();
+  let pending = [...items];
+  while (pending.length > 0) {
+    const first = pending[0]!;
+    if (first.element.isConnected && !inView(first.element, root)) first.element.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const batch = [first, ...pending.slice(1).filter(({ element }) => element.isConnected && inView(element, root))];
+    const results = await shoot(root, batch, last);
+    for (const [index, item] of batch.entries()) verdicts.set(item, results[index]!);
+    pending = pending.filter((item) => !batch.includes(item));
+  }
+  return items.map((item) => verdicts.get(item)!);
+}
+
+// Measures each element's text against one screenshot of `root` as it is scrolled now.
+async function shoot(root: Element, items: { element: Element; required: number }[], last: boolean): Promise<Verdict[]> {
+  if (!root.isConnected || items.some(({ element }) => !element.isConnected)) {
+    if (!last) throw new PageChanged();
+    return items.map(() => ({ pass: false, reason: keptChanging }));
+  }
   // The boxes within the root, not on the screen: taking the screenshot can scroll the page.
   const start = root.getBoundingClientRect();
   const texts = items.map(({ element, required }) => {
@@ -399,10 +496,19 @@ async function measureTexts(root: Element, items: { element: Element; required: 
   });
   // The open popups' layers (Base UI portals) the text is not in: whatever they paint over the text,
   // shadows included, is theirs. A second screenshot without them shows which pixels those are.
-  const layers = [...document.querySelectorAll("[data-base-ui-portal]")].filter((layer) => !layer.contains(root) && !layer.closest('[aria-hidden="true"], [inert]'));
+  // Only a layer that paints near the root (its shadow too) needs the second screenshot.
+  const near = (element: Element) => {
+    const box = element.getBoundingClientRect();
+    return box.width > 0 && box.height > 0 && box.right > start.left - 64 && box.left < start.right + 64 && box.bottom > start.top - 64 && box.top < start.bottom + 64;
+  };
+  const layers = [...document.querySelectorAll("[data-base-ui-portal]")].filter(
+    (layer) => !layer.contains(root) && !layer.closest('[aria-hidden="true"], [inert]') && [layer, ...layer.querySelectorAll("*")].some(near),
+  );
+  const kept = overlappingText(items.map(({ element }) => element));
   const hide = document.createElement("style");
   hide.textContent = hideGlyphs;
   for (const { element } of items) element.setAttribute("data-ouro-measure", "");
+  for (const element of kept) element.setAttribute("data-ouro-measure-keep", "");
   document.head.append(hide);
   let context: CanvasRenderingContext2D;
   let bare: CanvasRenderingContext2D | null = null;
@@ -414,12 +520,22 @@ async function measureTexts(root: Element, items: { element: Element; required: 
     }
   } catch (error) {
     // The browser takes a picture only of a box that stays still and shows.
+    if (!root.isConnected || items.some(({ element }) => !element.isConnected)) {
+      if (!last) throw new PageChanged();
+      return items.map(() => ({ pass: false, reason: keptChanging }));
+    }
     const reason = `axe could not judge its contrast, and it could not be screenshotted: ${(error as Error).message.split("\n")[0]}`;
     return items.map(() => ({ pass: false, reason }));
   } finally {
     for (const { element } of items) element.removeAttribute("data-ouro-measure");
+    for (const element of kept) element.removeAttribute("data-ouro-measure-keep");
     for (const layer of layers) layer.removeAttribute("data-ouro-measure-layer");
     hide.remove();
+  }
+  // A screenshot taken by selector can find a new element in the place of one that left the page.
+  if (!root.isConnected || items.some(({ element }) => !element.isConnected)) {
+    if (!last) throw new PageChanged();
+    return items.map(() => ({ pass: false, reason: keptChanging }));
   }
   const origin = root.getBoundingClientRect();
   const scale = context.canvas.width / origin.width;

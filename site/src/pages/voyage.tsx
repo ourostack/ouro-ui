@@ -3,6 +3,7 @@ import "../voyage/voyage-tailwind.css";
 import { Suspense, useEffect, useState, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Popups, PopupsProvider } from "../components/popups";
 import { href } from "../paths";
 import { ChapterOneIsland } from "../voyage/chapters/island";
@@ -46,26 +47,28 @@ export default function VoyagePage(): JSX.Element {
   // Leaving the page turns X-ray off, so the next page starts without it.
   useEffect(() => () => setXray(false), []);
   return (
-    <PopupsProvider>
-      {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
-      <div className="voyage min-h-dvh bg-background text-foreground">
-        <Suspense>
-          <VoyageHeader />
-        </Suspense>
-        <main>
-          <Hero onXray={openXray} />
+    <OuroProvider>
+      <PopupsProvider>
+        {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
+        <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <Repaint />
+            <VoyageHeader />
           </Suspense>
-          <ChapterOneIsland />
-          <Popups />
-        </main>
-        <Suspense>
-          <VoyageFooter />
-        </Suspense>
-      </div>
-      <Xray />
-      <Toaster />
-    </PopupsProvider>
+          <main>
+            <Hero onXray={openXray} />
+            <Suspense>
+              <Repaint />
+            </Suspense>
+            <ChapterOneIsland />
+            <Popups />
+          </main>
+          <Suspense>
+            <VoyageFooter />
+          </Suspense>
+        </div>
+        <Xray />
+        <Toaster />
+      </PopupsProvider>
+    </OuroProvider>
   );
 }

@@ -143,7 +143,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
         if (next && (!canHover || lastInput() === "touch")) details.cancel();
       }}
     >
-      <PreviewCard.Trigger render={trigger} ref={triggerRef} />
+      <PreviewCard.Trigger render={trigger} ref={triggerRef} data-ouro-hover-card-trigger="" />
       <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
         <PortalScope>
           <PreviewCard.Positioner side={side} align={align} sideOffset={8} collisionPadding={8} data-ouro="hover-card-positioner">

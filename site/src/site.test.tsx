@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
-import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../test/render";
+import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
@@ -204,7 +204,7 @@ describe.each([
       await settle();
       const violations = await scan();
       expect(violations, describeViolations(violations)).toEqual([]);
-    });
+    }, pageScanTimeout);
   });
 
   it.each(sliced(routes))("$path does not overflow horizontally", async ({ path }) => {

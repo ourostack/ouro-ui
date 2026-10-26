@@ -53,11 +53,11 @@ The props the modes share. Type: `PopoverProps`.
 
 A controlled Popover: you own `open`, update it in `onOpenChange`, and say what it points at with `anchor`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `anchor` (required) | `RefObject<HTMLElement \| null>` |  | The element the popover points at, usually the button that toggles it: `anchor={buttonRef}`. A press on it never counts as an outside press, so its own `onClick` can toggle `open`. |
-| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user dismisses the popover (Escape, outside press, the close button). |
-| `open` (required) | `boolean` |  | Whether the popover is open. After a touch or pen tap the popover focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `anchor` (required) | `RefObject<HTMLElement \| null>` | The element the popover points at, usually the button that toggles it: `anchor={buttonRef}`. A press on it never counts as an outside press, so its own `onClick` can toggle `open`. |
+| `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the popover (Escape, outside press, the close button). |
+| `open` (required) | `boolean` | Whether the popover is open. After a touch or pen tap the popover focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 
 Not in this mode (typed `never`):
 
@@ -67,9 +67,9 @@ Not in this mode (typed `never`):
 
 An uncontrolled Popover: `trigger` opens and closes it, and it sits beside the trigger.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `trigger` (required) | `ReactElement` |  | The element that opens and closes the popover, usually a Button: `trigger={<Button>Share</Button>}`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `trigger` (required) | `ReactElement` | The element that opens and closes the popover, usually a Button: `trigger={<Button>Share</Button>}`. |
 
 Not in this mode (typed `never`):
 

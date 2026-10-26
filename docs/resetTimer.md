@@ -16,9 +16,9 @@ resetTimer("pasta");
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `timerId` | `string` |  |
+| Parameter | Type |
+| --- | --- |
+| `timerId` | `string` |
 
 ## Returns
 

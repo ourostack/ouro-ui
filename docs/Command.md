@@ -58,10 +58,10 @@ The props the modes share. Type: `CommandProps`.
 
 A controlled Command palette, usually opened by `useCommandShortcut`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user closes the palette (Escape, outside press, swipe), and when a command runs. |
-| `open` (required) | `boolean` |  | Whether the palette is open. After a key press it focuses the search input; after a touch or pen tap it focuses itself, so no software keyboard pops up. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user closes the palette (Escape, outside press, swipe), and when a command runs. |
+| `open` (required) | `boolean` | Whether the palette is open. After a key press it focuses the search input; after a touch or pen tap it focuses itself, so no software keyboard pops up. |
 
 Not in this mode (typed `never`):
 
@@ -71,9 +71,9 @@ Not in this mode (typed `never`):
 
 An uncontrolled Command palette: `trigger` opens it.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `trigger` (required) | `ReactElement` |  | The element that opens the palette, usually a Button: `trigger={<Button>Search</Button>}`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `trigger` (required) | `ReactElement` | The element that opens the palette, usually a Button: `trigger={<Button>Search</Button>}`. |
 
 Not in this mode (typed `never`):
 

@@ -180,6 +180,17 @@ describe("HoverCard dev messages", () => {
     ]);
   });
 
+  it("warns when its open card renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    await renderCard();
+    await userEvent.hover(link());
+    await shown();
+    expect(warnings()).toEqual([
+      "[ouro-ui] HoverCard: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
+  });
+
   it("warns about an appearance class", async () => {
     await renderCard({ className: "mt-2 bg-white" });
     expect(warnings()).toEqual([

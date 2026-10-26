@@ -13,7 +13,7 @@ export type OuroLinkComponent = ComponentType<
 export interface OuroContextValue {
   /** Renders internal links. Defaults to a plain `<a>`. */
   linkComponent: OuroLinkComponent;
-  /** Where floating popups render. Unset, they render at the end of `<body>`. */
+  /** Where floating popups render. Unset, they render where Base UI puts them: the end of `<body>`, or the portal they open from. */
   portalContainer?: HTMLElement | RefObject<HTMLElement | null> | undefined;
 }
 

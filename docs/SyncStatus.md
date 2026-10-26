@@ -22,13 +22,13 @@ import { SyncStatus } from "@/registry/ouro/components/ouro/sync-status/sync-sta
 
 Type: `SyncStatusProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: margins, placement (`mt-3`). Appearance classes warn in development. |
-| `labels` | `SyncStatusLabels` |  | The words for each state. |
-| `onRetry` | `(() => void)` |  | Shows Retry while `offline` or `error`, and is called when it is pressed. |
-| `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `status` (required) | `"error" \| "saved" \| "saving" \| "offline"` |  | `saved` once changes reached the server, `saving` while they travel, `offline` while they wait on this device, `error` when the server refused them. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `className` | `string` | Layout only: margins, placement (`mt-3`). Appearance classes warn in development. |
+| `labels` | `SyncStatusLabels` | The words for each state. |
+| `onRetry` | `(() => void)` | Shows Retry while `offline` or `error`, and is called when it is pressed. |
+| `ref` | `Ref<HTMLDivElement>` | Reaches the rendered element. |
+| `status` (required) | `"error" \| "saved" \| "saving" \| "offline"` | `saved` once changes reached the server, `saving` while they travel, `offline` while they wait on this device, `error` when the server refused them. |
 
 ## Native attributes
 

@@ -87,13 +87,13 @@ Not in this mode (typed `never`):
 
 A Combobox that picks one item: its value, or `null` when nothing is picked.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `allowCustomValue` | `false` |  | Accept any text, not only an item. |
-| `defaultValue` | `string \| null` |  | The item picked at first, when the field keeps its own. |
-| `multiple` | `false` |  | Pick several items, shown as chips. |
-| `onValueChange` | `((value: string \| null) => void)` |  | Called with the picked item's value, or `null` when cleared. |
-| `value` | `string \| null` |  | The picked item's value, when you control it; `null` is nothing picked. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `allowCustomValue` | `false` | Accept any text, not only an item. |
+| `defaultValue` | `string \| null` | The item picked at first, when the field keeps its own. |
+| `multiple` | `false` | Pick several items, shown as chips. |
+| `onValueChange` | `((value: string \| null) => void)` | Called with the picked item's value, or `null` when cleared. |
+| `value` | `string \| null` | The picked item's value, when you control it; `null` is nothing picked. |
 
 Not in this mode (typed `never`):
 

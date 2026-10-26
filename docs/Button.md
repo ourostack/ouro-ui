@@ -65,11 +65,11 @@ Not in this mode (typed `never`):
 
 A Button with `href`: renders a link that looks like a button.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `href` (required) | `string` |  | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link); `http(s)://`, `mailto:` and other absolute URLs render as a plain `<a>`. An absolute URL with `target="_blank"` always gets `rel="noopener noreferrer"`, merged with any `rel` you pass. |
-| `ref` | `Ref<HTMLAnchorElement>` |  | Reaches the rendered element. |
-| `reloadDocument` | `boolean` |  | Loads the document instead of using the provider's router link, for a server sign-in or a resource route. A present `download` attribute does the same. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `href` (required) | `string` | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link); `http(s)://`, `mailto:` and other absolute URLs render as a plain `<a>`. An absolute URL with `target="_blank"` always gets `rel="noopener noreferrer"`, merged with any `rel` you pass. |
+| `ref` | `Ref<HTMLAnchorElement>` | Reaches the rendered element. |
+| `reloadDocument` | `boolean` | Loads the document instead of using the provider's router link, for a server sign-in or a resource route. A present `download` attribute does the same. |
 
 Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 

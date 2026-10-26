@@ -4,7 +4,8 @@
 //   - "TypeScript": every one of their files is .ts or .tsx;
 //   - "Chromium + WebKit + touch tested": the browsers ouroTestProjects runs (vitest.ts) and its
 //     touch project, a Chromium phone profile;
-//   - "axe-clean in <n> themes": the presets site/e2e/voyage.spec.ts scans in light and dark;
+//   - "axe-clean in <n> themes": the presets site/e2e/voyage.spec.ts scans in light and dark, each
+//     expected to pass the audit kit's strict audit (site/e2e/audit.ts);
 //   - "every line covered": the coverage thresholds vitest.config.ts holds over registry/, all 100;
 //   - "This stage is built with HX": the porthole stage's source imports its controls from registry/.
 // Each links to its evidence (EVIDENCE): the component inventory, CI's runs on main (the browser
@@ -78,7 +79,7 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
   if (!include || !thresholds) throw new Error("vitest.config.ts no longer holds coverage thresholds over registry/");
   const coverage = Math.min(...thresholds.slice(1).map(Number));
   const presets = (JSON.parse(files.themes) as unknown[]).length;
-  const scanned = /for \(const preset of PRESET_NAMES\)[\s\S]*?for \(const mode of \["light", "dark"\]/.test(files.voyageSpec) && /axe\.run/.test(files.voyageSpec);
+  const scanned = /for \(const preset of PRESET_NAMES\)[\s\S]*?for \(const mode of \["light", "dark"\]/.test(files.voyageSpec) && /expect\(await auditPage\(page, browserName\)\)\.toBe\(""\)/.test(files.voyageSpec);
   const themes = scanned ? presets : 0;
   const stage = /from "@\/registry\/ouro\/components\/ouro\//.test(files.stage);
   const themesLine = lineOf(files.voyageSpec, /test\.describe\("every preset, light and dark"/);

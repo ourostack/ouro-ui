@@ -55,10 +55,10 @@ The props the modes share. Type: `ConfirmDialogProps`.
 
 A controlled ConfirmDialog: you own `open` and update it in `onOpenChange`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user cancels (Cancel or Escape) and when `onConfirm` finishes. |
-| `open` (required) | `boolean` |  | Whether the confirmation is open. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user cancels (Cancel or Escape) and when `onConfirm` finishes. |
+| `open` (required) | `boolean` | Whether the confirmation is open. |
 
 Not in this mode (typed `never`):
 
@@ -68,9 +68,9 @@ Not in this mode (typed `never`):
 
 An uncontrolled ConfirmDialog: `trigger` opens it.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `trigger` (required) | `ReactElement` |  | The element that opens the confirmation, usually a Button: `trigger={<Button tone="destructive">Delete</Button>}`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `trigger` (required) | `ReactElement` | The element that opens the confirmation, usually a Button: `trigger={<Button tone="destructive">Delete</Button>}`. |
 
 Not in this mode (typed `never`):
 

@@ -16,9 +16,9 @@ formatDuration(545); // "9:05"
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `seconds` | `number` |  |
+| Parameter | Type |
+| --- | --- |
+| `seconds` | `number` |
 
 ## Returns
 

@@ -54,10 +54,10 @@ The props the modes share. Type: `EditSheetProps`.
 
 A controlled EditSheet: you own `open` and update it in `onOpenChange`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user cancels or dismisses the sheet (after confirming, with edits), and when a save succeeds. |
-| `open` (required) | `boolean` |  | Whether the sheet is open. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user cancels or dismisses the sheet (after confirming, with edits), and when a save succeeds. |
+| `open` (required) | `boolean` | Whether the sheet is open. |
 
 Not in this mode (typed `never`):
 
@@ -67,9 +67,9 @@ Not in this mode (typed `never`):
 
 An uncontrolled EditSheet: `trigger` opens it.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `trigger` (required) | `ReactElement` |  | The element that opens the sheet, usually a Button: `trigger={<Button>Edit</Button>}`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `trigger` (required) | `ReactElement` | The element that opens the sheet, usually a Button: `trigger={<Button>Edit</Button>}`. |
 
 Not in this mode (typed `never`):
 

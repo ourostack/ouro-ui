@@ -45,9 +45,9 @@ The props the modes share. Type: `TextProps`.
 
 ### With `lines`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `lines` | `number` |  | Clamps the text to this many lines with an ellipsis. Use `truncate` for one line. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `lines` | `number` | Clamps the text to this many lines with an ellipsis. Use `truncate` for one line. |
 
 Not in this mode (typed `never`):
 
@@ -55,9 +55,9 @@ Not in this mode (typed `never`):
 
 ### With `truncate`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `truncate` | `boolean` |  | Cuts the text to one line with an ellipsis. Use `lines` for more than one line. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `truncate` | `boolean` | Cuts the text to one line with an ellipsis. Use `lines` for more than one line. |
 
 Not in this mode (typed `never`):
 

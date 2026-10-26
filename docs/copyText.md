@@ -16,9 +16,9 @@ if (await copyText(url)) toast("Link copied");
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `text` | `string` |  |
+| Parameter | Type |
+| --- | --- |
+| `text` | `string` |
 
 ## Returns
 

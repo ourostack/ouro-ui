@@ -168,6 +168,15 @@ test("browsers overridden in vitest.config.ts are refused rather than miscounted
   assert.throws(() => deriveProof({ ...files, vitestConfig }), /overrides the browsers/);
 });
 
+test("the theme claim needs each scan to pass the audit kit's strict audit", () => {
+  const files = sources();
+  const voyageSpec = files.voyageSpec.replace('expect(await auditPage(page, browserName)).toBe("")', "await auditPage(page, browserName)");
+  assert.notEqual(voyageSpec, files.voyageSpec);
+  const proof = deriveProof({ ...files, voyageSpec });
+  assert.equal(proof.themes, 0);
+  assert.doesNotMatch(proof.line, /axe-clean/);
+});
+
 test("the theme claim needs the axe loop over every preset in light and dark", () => {
   const files = sources();
   const voyageSpec = files.voyageSpec.replace('for (const mode of ["light", "dark"]', 'for (const mode of ["light"]');

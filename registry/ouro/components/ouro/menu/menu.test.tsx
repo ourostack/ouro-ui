@@ -587,6 +587,21 @@ describe("Menu items", () => {
     }
     document.documentElement.classList.remove("dark");
   });
+
+  it("warns when its open menu renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    expect(warnings()).toEqual([
+      "[ouro-ui] Menu: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
+  });
 });
 
 describe("Menu presentation", () => {
@@ -613,6 +628,8 @@ describe("Menu presentation", () => {
     const sub = menus()[1]!;
     expect(sub.getAttribute("data-ouro-presentation")).toBe("sheet");
     await expect.poll(() => Math.round(sub.getBoundingClientRect().bottom)).toBe(innerHeight);
+    // The submenu's sheet goes back with Back; only the menu's own sheet ends with Close.
+    expect(sub.querySelector("[data-ouro-menu-close]")).toBeNull();
     await userEvent.click(item("Return"));
     await expect.poll(() => menus().length).toBe(1);
     expect(menu()).not.toBeNull();
