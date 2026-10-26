@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -223,12 +223,17 @@ describe("Link", () => {
       return { outline: `${style.outlineStyle} ${style.outlineColor}`, underline: `${style.textDecorationThickness} ${style.textDecorationColor}` };
     };
     const ring = getComputedStyle(host.querySelector('a[href="/alone"]')!).outlineColor;
+    // The pointer rests where an earlier test left it, here over the first link.
+    await userEvent.hover(host.querySelector('a[href="/alone"]')!);
     const alone = focused("/alone");
     expect(alone.outline).toBe(`solid ${ring}`);
     // A transparent outline draws nothing, and forced colours show it, as they drop the underline's colour.
     expect(focused("/ari")).toEqual({ outline: "solid rgba(0, 0, 0, 0)", underline: `2px ${ring}` });
     expect(focused("/inline")).toEqual({ outline: "solid rgba(0, 0, 0, 0)", underline: `2px ${ring}` });
-    expect(focused("/own")).toEqual(alone);
+    // A link on its own keeps the outline and the resting underline, whose colour hover darkens.
+    const own = focused("/own");
+    expect(own.outline).toBe(alone.outline);
+    expect(own.underline).toMatch(/^1px /);
   });
 
   it("lets app layout classes win", async () => {
