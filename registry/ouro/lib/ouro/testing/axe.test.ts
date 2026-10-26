@@ -33,7 +33,7 @@ describe("audit", () => {
     expect(describeFindings(await scanPage())).toBe("");
   });
 
-  it("refuses an axe-core older than 4.13.0, naming the version it needs and the version it found", async () => {
+  it("refuses an axe-core older than the kit's minimum, naming the version it needs and the version it found", async () => {
     mountPage("<p>Text</p>");
     const installed = axe.version;
     const scans = vi.spyOn(axe, "run");
