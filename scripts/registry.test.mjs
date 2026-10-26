@@ -5,7 +5,8 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readComponents } from "./components.mts";
-import { buildRegistry, cssToItem, itemForFile, rewriteDependencies, testingSetup } from "./registry.mts";
+import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
+import { buildRegistry, censusAxeVersion, cssToItem, itemForFile, rewriteDependencies, testingSetup, toolingMinimum } from "./registry.mts";
 import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -550,10 +551,24 @@ test("devDependencies are named without a version, so the CLI installs it only w
 });
 
 test("the ouro-testing message names axe-core's minimum, the one audit checks when it runs", () => {
-  const minimum = /^const axeMinimum = "(\d+\.\d+\.\d+)";$/m.exec(readFileSync(join(root, "registry/ouro/lib/ouro/testing/axe.ts"), "utf8"))?.[1];
-  assert.ok(minimum, "axe.ts states the axe-core it needs");
-  assert.ok(item("ouro-testing").docs.startsWith("Needs ") && item("ouro-testing").docs.split(". ")[0].includes(`axe-core ${minimum} or later`), item("ouro-testing").docs.split(". ")[0]);
-  for (const name of ["ouro-testing", "ouro-census"]) assert.equal(item(name).meta.requires["axe-core"], `>=${minimum}`, `${name} meta.requires`);
+  assert.match(axeMinimum, /^\d+\.\d+\.\d+$/);
+  assert.ok(item("ouro-testing").docs.startsWith("Needs ") && item("ouro-testing").docs.split(". ")[0].includes(`axe-core ${axeMinimum} or later`), item("ouro-testing").docs.split(". ")[0]);
+  for (const name of ["ouro-testing", "ouro-census"]) assert.equal(item(name).meta.requires["axe-core"], `>=${axeMinimum}`, `${name} meta.requires`);
+});
+
+test("audit and the census check axe-core with one minimum and one comparison: the census's copy is generated from the test kit's", () => {
+  const read = (path) => readFileSync(join(root, path), "utf8");
+  // The census installs in e2e/ouro-census/ and the test kit in the app's lib folder, so neither can import the other.
+  assert.equal(read("registry/ouro/census/census-axe-version.mjs"), censusAxeVersion(root), "run node scripts/registry.mts");
+  assert.match(read("registry/ouro/lib/ouro/testing/axe.ts"), /^import \{ requireAxe \} from "\.\/axe-version";$/m);
+  assert.match(read("registry/ouro/census/census-page.mjs"), /^import \{ requireAxe \} from "\.\/census-axe-version\.mjs";$/m);
+  assert.equal(toolingMinimum["axe-core"], axeMinimum);
+  assert.match(read("scripts/registry.mts"), /^\s+"axe-core": axeMinimum,$/m);
+  for (const path of ["registry/ouro/lib/ouro/testing/axe.ts", "registry/ouro/census/census-page.mjs"]) {
+    assert.doesNotMatch(read(path), /4\.13\.0|^\s*(export )?const axeMinimum =/m, `${path} states its own minimum`);
+  }
+  assert.equal(itemForFile("registry/ouro/lib/ouro/testing/axe-version.ts"), "ouro-testing");
+  assert.equal(itemForFile("registry/ouro/census/census-axe-version.mjs"), "ouro-census");
 });
 
 test("each lib helper is its own item, so an item installs only the helpers it imports", () => {

@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import axe from "axe-core";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 import { expect, vi } from "./expect.mjs";
@@ -42,6 +43,24 @@ describe("collectCensus", () => {
     expect(page.evaluate).toHaveBeenCalledWith(expect.stringContaining("axe"));
     expect(page.waitForTimeout).toHaveBeenCalledWith(5);
     expect(page.waitForFunction).toHaveBeenCalledTimes(3);
+  });
+
+  it("refuses an axe-core older than the kit's minimum before it loads axe into the page, naming the version it found", async () => {
+    const installed = axe.version;
+    try {
+      for (const old of ["4.11.1", "4.9.0", "4.13.0-canary.1", "canary"]) {
+        axe.version = old;
+        const page = fakePage([[SAVE]]);
+        await expect(collectCensus(page, { intervalMs: 0 })).rejects.toThrow(`Ouro census needs axe-core 4.13.0 or later, and found ${old}.`);
+        expect(page.evaluate).not.toHaveBeenCalled();
+      }
+      for (const recent of ["4.13.0", "4.100.0", "10.0.0"]) {
+        axe.version = recent;
+        expect(await collectCensus(fakePage([[SAVE]]), { intervalMs: 0 })).toEqual([{ identity: 'button "Save" [button/root] in main', count: 1 }]);
+      }
+    } finally {
+      axe.version = installed;
+    }
   });
 
   it("fails when the controls never settle", async () => {

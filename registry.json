@@ -259,6 +259,11 @@
           "target": "@lib/ouro/testing/announcements.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/axe-version.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/axe-version.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/axe.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/axe.test.ts"
@@ -10539,6 +10544,11 @@
         "axe-core"
       ],
       "files": [
+        {
+          "path": "registry/ouro/census/census-axe-version.mjs",
+          "type": "registry:file",
+          "target": "~/e2e/ouro-census/census-axe-version.mjs"
+        },
         {
           "path": "registry/ouro/census/census-collect.d.mts",
           "type": "registry:file",
