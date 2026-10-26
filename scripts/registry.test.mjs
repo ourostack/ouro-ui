@@ -549,6 +549,13 @@ test("devDependencies are named without a version, so the CLI installs it only w
   assert.match(item("ouro-testing").docs, /Needs Vitest \d[\d.]* or later in browser mode .*Playwright \d[\d.]* or later/);
 });
 
+test("the ouro-testing message names axe-core's minimum, the one audit checks when it runs", () => {
+  const minimum = /^const axeMinimum = "(\d+\.\d+\.\d+)";$/m.exec(readFileSync(join(root, "registry/ouro/lib/ouro/testing/axe.ts"), "utf8"))?.[1];
+  assert.ok(minimum, "axe.ts states the axe-core it needs");
+  assert.ok(item("ouro-testing").docs.startsWith("Needs ") && item("ouro-testing").docs.split(". ")[0].includes(`axe-core ${minimum} or later`), item("ouro-testing").docs.split(". ")[0]);
+  for (const name of ["ouro-testing", "ouro-census"]) assert.equal(item(name).meta.requires["axe-core"], `>=${minimum}`, `${name} meta.requires`);
+});
+
 test("each lib helper is its own item, so an item installs only the helpers it imports", () => {
   const button = closure("button");
   for (const helper of ["lib-cn", "lib-dev", "lib-announce"]) assert.ok(button.has(helper), `button installs ${helper}`);
