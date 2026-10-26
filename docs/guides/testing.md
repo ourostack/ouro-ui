@@ -126,10 +126,10 @@ announcements.stop();
 
 `changes` lists every announcement in order, each with its `region` and `text`; `matching(text)` and `count(text)` find those whose text includes `text`.[^announcements] Toast's tests use it.
 
-[^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(scripts/registry.mts, /"axe-core": "4\.13\.0"/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
+[^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
 [^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.63.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
 [^ci-axe]: pnpm-lock.yaml verify:fileLine(pnpm-lock.yaml, /^  axe-core@4\.13\.0:$/)
-[^axe-minimum]: registry/ouro/lib/ouro/testing/axe.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > refuses an axe-core older than 4.13.0, naming the version it needs and the version it found) verify:testExists(scripts/registry.test.mjs::the ouro-testing message names axe-core's minimum, the one audit checks when it runs)
+[^axe-minimum]: registry/ouro/lib/ouro/testing/axe.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > refuses an axe-core older than the kit's minimum, naming the version it needs and the version it found) verify:testExists(scripts/registry.test.mjs::the ouro-testing message names axe-core's minimum, the one audit checks when it runs)
 [^vitest-4-section]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /^## .*Vitest 4/)
 [^v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)
 [^v0.8.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0)

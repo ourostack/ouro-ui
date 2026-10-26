@@ -452,7 +452,7 @@ MIT
 [^tests-closure]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests)
 [^subsets]: scripts/subset-coverage.mjs verify:testExists(scripts/subset-coverage.test.mjs::CI checks the button, the dialog, the sheet and the forms set, each alone and together) verify:fileLine(.github/workflows/ci.yml, /node scripts\/subset-coverage\.mjs/)
 [^ouro-tests]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command)
-[^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(scripts/registry.mts, /"axe-core": "4\.13\.0"/)
+[^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/)
 [^vitest-5]: package.json verify:fileLine(package.json, /"vitest": "5\./) verify:fileLine(.github/workflows/ci.yml, /pnpm test/)
 [^testing-guide]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /Vitest 4/)
 [^docs-pages]: scripts/gen-docs.mts verify:testExists(scripts/gen-docs.test.mjs::a component doc has purpose, import, example, props, and use-instead guidance) verify:testExists(scripts/gen-docs.test.mjs::there is one doc per component, plus parts)
