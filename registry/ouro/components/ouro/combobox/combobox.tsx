@@ -14,6 +14,7 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   chipClass,
   chipRemoveClass,
@@ -517,15 +518,41 @@ function ListBody({
   );
 }
 
+/**
+ * Keeps the page exposed to assistive technology while the list is open. Base UI hides the
+ * page around the input and the list (aria-hidden on what Base UI marks with
+ * data-base-ui-inert), which leaves the page's links and fields focusable yet hidden and takes
+ * its heading away. A combobox list leaves the page as it is, so what gains aria-hidden that
+ * way while the list is open loses it at once. It renders in the portal, which holds the list
+ * only while it is open.
+ */
+function KeepPageExposed(): null {
+  useLayoutEffect(() => {
+    const observer = new MutationObserver((records) => {
+      for (const { target } of records) {
+        const element = target as Element;
+        if (element.getAttribute("aria-hidden") === "true" && element.closest("[data-base-ui-inert]")) element.removeAttribute("aria-hidden");
+      }
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ["aria-hidden"], subtree: true });
+    return () => observer.disconnect();
+  }, []);
+  return null;
+}
+
 /** The popup under (or over) the input, on wider screens and with a mouse. */
 function Popup({ loading, children }: { loading: boolean | undefined; children: ReactNode }): JSX.Element {
+  const portal = usePortalContainer("Combobox");
   return (
-    <BaseCombobox.Portal data-ouro="combobox-portal" className="relative isolate z-(--ouro-layer)">
-      <BaseCombobox.Positioner ref={markPopupDismiss} sideOffset={4} className="outline-none">
-        <BaseCombobox.Popup data-ouro="combobox-popup" aria-busy={loading || undefined} className={popupClass}>
-          {children}
-        </BaseCombobox.Popup>
-      </BaseCombobox.Positioner>
+    <BaseCombobox.Portal {...portal} data-ouro="combobox-portal" className="relative isolate z-(--ouro-layer)">
+      <PortalScope>
+        <KeepPageExposed />
+        <BaseCombobox.Positioner ref={markPopupDismiss} sideOffset={4} className="outline-none">
+          <BaseCombobox.Popup data-ouro="combobox-popup" aria-busy={loading || undefined} className={popupClass}>
+            {children}
+          </BaseCombobox.Popup>
+        </BaseCombobox.Positioner>
+      </PortalScope>
     </BaseCombobox.Portal>
   );
 }

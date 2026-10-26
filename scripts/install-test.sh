@@ -466,8 +466,8 @@ fi
 
 # The app's own setup, made after the first install: a rule of its own in the stylesheet (the
 # README's way to raise --ouro-layer: a :root rule after the Ouro tokens, outside any @layer)
-# and its test tools pinned to exact versions in package.json, here the versions this
-# repository runs. Then two more items: a component again with --overwrite (how an app
+# and its test tools pinned to exact versions in package.json (axe-core among them, for the
+# testing kit's audit), here the versions this repository runs. Then two more items: a component again with --overwrite (how an app
 # updates one) and a tests item. Neither file may change by a byte: no item but ouro-base
 # carries CSS, and a tests item names its tools without a version, so the CLI leaves a tool
 # the app already has alone. The shipped tests below then run with this setup.
@@ -477,7 +477,7 @@ node -e '
   const fs = require("node:fs");
   const ours = require(process.argv[1]).devDependencies;
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  for (const name of ["@playwright/test", "@storybook/react-vite", "@vitest/browser-playwright", "playwright", "storybook", "vitest"]) {
+  for (const name of ["@playwright/test", "@storybook/react-vite", "@vitest/browser-playwright", "axe-core", "playwright", "storybook", "vitest"]) {
     pkg.devDependencies[name] = ours[name].replace(/^[\^~]/, "");
   }
   pkg.devDependencies = Object.fromEntries(Object.entries(pkg.devDependencies).sort(([a], [b]) => a.localeCompare(b)));

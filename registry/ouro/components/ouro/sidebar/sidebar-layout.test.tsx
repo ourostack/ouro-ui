@@ -84,6 +84,18 @@ describe("SidebarLayout", () => {
     expect(head.bottom).toBeLessThanOrEqual(main.getBoundingClientRect().top);
   });
 
+  it("puts the header in the page's banner landmark, and draws no empty landmark without one", async () => {
+    await render(
+      <SidebarLayout sidebar={sidebar} header={<span>Search</span>}>
+        Page content
+      </SidebarLayout>,
+    );
+    expect(page.getByRole("banner").element().textContent).toBe("Search");
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    await render(<SidebarLayout sidebar={sidebar}>Page content</SidebarLayout>);
+    expect(document.querySelector("header")).toBeNull();
+  });
+
   it("starts with a skip link that moves focus to the main landmark", async () => {
     const { main } = await render(<SidebarLayout sidebar={sidebar}>Page content</SidebarLayout>);
     await pressTab();

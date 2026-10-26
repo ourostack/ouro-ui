@@ -77,6 +77,7 @@ Type: `OuroProviderProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | Your app, or the part of it that uses Ouro UI. |
 | `linkComponent` | `OuroLinkComponent` |  | Renders internal `href`s, for example an adapter around a router's `Link`. |
+| `portalContainer` | `HTMLElement \| RefObject<HTMLElement \| null>` |  | The element floating popups render into: the lists of `Select` and `Combobox`, and `Menu`, `Popover`, `DatePicker`, `Tooltip`, `HoverCard` and `NavigationMenu`. Unset, they render at the end of `<body>`, outside every landmark, where screen reader users who move by landmark miss them. Pass an element, or a ref to one, inside `<main>` that does not clip what it holds (no `overflow` other than `visible`). A provider inside another keeps the outer one's container when it sets none. Dialogs, sheets and toasts stay at the end of `<body>`: a dialog is announced when it opens, and the toasts are a landmark of their own. |
 
 ## Types
 

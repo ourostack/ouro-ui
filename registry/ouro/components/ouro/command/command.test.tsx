@@ -134,6 +134,17 @@ describe("Command", () => {
     await expect.element(page.getByText("Nothing found")).toBeVisible();
   });
 
+  it("hides the empty list from assistive technology while nothing matches, so the gate passes with only the empty state", async () => {
+    await openPalette({ emptyLabel: "Nothing found" });
+    await userEvent.type(input(), "zzz");
+    await expect.element(page.getByText("Nothing found")).toBeVisible();
+    const list = document.querySelector('[role="listbox"]')!;
+    expect(list.hasAttribute("hidden")).toBe(true);
+    expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
+    await userEvent.clear(input());
+    await expect.poll(() => list.hasAttribute("hidden")).toBe(false);
+  });
+
   it("runs the highlighted command on Enter, closes, and returns focus to the trigger", async () => {
     await openPalette();
     await userEvent.type(input(), "import");

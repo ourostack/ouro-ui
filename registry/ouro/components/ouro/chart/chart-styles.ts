@@ -126,10 +126,11 @@ function defaultSummary({ type, series, category, count }: ChartSummaryInfo): st
  * @internal
  * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the tooltip from the keyboard: Tab to the plot, then the arrow keys)
  * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > takes a recharts chart as children, giving it the data, the name and the theme)
+ * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > writes the axis labels in the theme's muted text color, not recharts' gray, in light and dark)
  */
 const plotClass =
   "relative aspect-video min-h-0 w-full flex-1 text-xs " +
-  "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground " +
+  "[&_.recharts-cartesian-axis-tick-value]:fill-muted-foreground " +
   "[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border " +
   "[&_.recharts-curve.recharts-tooltip-cursor]:stroke-border " +
   "[&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted " +

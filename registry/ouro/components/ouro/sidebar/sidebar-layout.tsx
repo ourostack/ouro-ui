@@ -18,6 +18,8 @@ export interface SidebarLayoutProps {
   /**
    * A bar above the page: a search field, the page's actions. From 640px up it runs across
    * the top of the page, beside the sidebar; below, it shares the top bar with the menu button.
+   * It renders in a `<header>`, the page's banner landmark.
+   * @claim "It renders in a `<header>`, the" registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the header in the page's banner landmark, and draws no empty landmark without one)
    * @claim "From 640px up it runs across" registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar-layout.test.tsx::SidebarLayout > puts the sidebar's menu button in a bar across the top of a phone, with the header beside it)
    * @claim "From 640px up it runs across" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > becomes a menu button that opens a drawer below 640px)
    */
@@ -121,6 +123,8 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
   );
   const mainId = useId();
   const Page = as === "div" ? "div" : "main";
+  // The header is the page's banner landmark; without one, the cell only draws the phone's bar.
+  const Header = header !== undefined ? "header" : "div";
   // The link's address moves focus by itself in most browsers; the handler makes it certain.
   const main = useRef<HTMLDivElement>(null);
   return (
@@ -136,9 +140,9 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
         {sidebar}
       </div>
       {/* Without a header the cell still draws the rest of the phone's top bar. */}
-      <div data-ouro-sidebar-layout-header="" className={cn(headerCell, header !== undefined ? "min-h-14" : "sm:hidden")}>
+      <Header data-ouro-sidebar-layout-header="" className={cn(headerCell, header !== undefined ? "min-h-14" : "sm:hidden")}>
         {header}
-      </div>
+      </Header>
       <Page
         ref={main}
         id={mainId}

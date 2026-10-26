@@ -422,7 +422,7 @@ export function Command(props: CommandProps): JSX.Element {
         </div>
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
           <Autocomplete.Empty>{!loading && <div className={commandEmptyClass}>{emptyLabel}</div>}</Autocomplete.Empty>
-          <Autocomplete.List className="outline-none">
+          <CommandList>
             {(group: Group, index: number) => (
               <Autocomplete.Group key={group.label ?? `loose-${index}`} items={group.items} data-ouro-command-group="">
                 {group.label !== undefined && (
@@ -452,7 +452,7 @@ export function Command(props: CommandProps): JSX.Element {
                 </Autocomplete.Collection>
               </Autocomplete.Group>
             )}
-          </Autocomplete.List>
+          </CommandList>
         </div>
       </div>
     </Autocomplete.Root>
@@ -503,5 +503,18 @@ export function Command(props: CommandProps): JSX.Element {
         </DialogRoot>
       )}
     </>
+  );
+}
+
+/**
+ * The list of results, hidden while nothing matches: an empty listbox says nothing, and the
+ * empty state beside it says why.
+ */
+function CommandList({ children }: { children: Autocomplete.List.Props["children"] }): JSX.Element {
+  const empty = Autocomplete.useFilteredItems().length === 0;
+  return (
+    <Autocomplete.List hidden={empty} className="outline-none">
+      {children}
+    </Autocomplete.List>
   );
 }

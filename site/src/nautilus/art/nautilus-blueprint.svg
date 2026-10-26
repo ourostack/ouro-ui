@@ -30,13 +30,16 @@
   <g class="bp-dims" stroke-width="1">
     <path d="M90 194 H600 M90 188 V200 M600 188 V200 M90 128 V200 M600 128 V200" />
     <path d="M640 88 V108 M640 132 V152 M634 88 H646 M634 152 H646 M612 88 H650 M612 152 H650" />
+    <rect class="bp-paper" x="306" y="179" width="78" height="14" stroke="none" />
+    <rect class="bp-paper" x="651" y="85" width="49" height="15" stroke="none" />
+    <rect class="bp-paper" x="18" y="12" width="184" height="36" stroke="none" />
     <g fill="currentColor" stroke="none" font-size="10" letter-spacing="1.5">
       <text x="345" y="190" text-anchor="middle">232 FEET</text>
       <text x="652" y="96">26 FT</text>
       <text x="24" y="28" font-size="12" letter-spacing="3">NAUTILUS</text>
       <text x="24" y="43" font-size="9">SIDE PLAN · SHEET 1 OF 1</text>
     </g>
-    <path d="M488 206 H700 V232 H488 Z M488 219 H700 M600 206 V232" />
+    <rect class="bp-paper" x="488" y="206" width="212" height="26" stroke="none" />
     <g fill="currentColor" stroke="none" font-size="8" letter-spacing="1">
       <text x="494" y="215.5">MOBILIS IN MOBILI</text>
       <text x="606" y="215.5">C. NEMO, MASTER</text>

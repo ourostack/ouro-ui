@@ -1508,7 +1508,7 @@
   align-items: center;
   gap: 0.25rem;
   margin-inline: -0.25rem;
-  color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  color: var(--muted-foreground);
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -20,6 +20,13 @@
 .site-blueprint[data-built~="organ"] [data-part="organ"] {
   opacity: 1;
 }
+.site-blueprint[data-built~="hull"] [data-part="hull"] .bp-note,
+.site-blueprint[data-built~="windows"] [data-part="windows"] .bp-note,
+.site-blueprint[data-built~="engine"] [data-part="engine"] .bp-note,
+.site-blueprint[data-built~="lantern"] [data-part="lantern"] .bp-note,
+.site-blueprint[data-built~="organ"] [data-part="organ"] .bp-note {
+  visibility: visible;
+}
 .site-blueprint[data-built~="lantern"] .bp-light {
   fill: var(--chart-3);
 }

@@ -1,18 +1,16 @@
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 import { LOG, TANKS } from "../src/voyage/stage/copy";
+import { auditPage } from "./audit";
 import { diagnostics } from "./diagnostics";
 
 // The voyage preview against the production build (site-design.md, "Verification in CI"): the
 // stored theme paints before any JavaScript, every preset passes axe in light and dark, the page
 // reflows at 320px, keeps control boundaries under forced colours, moves nothing under reduced
 // motion, loads only the fonts it shows, and the header works from the keyboard.
-
-const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
 async function store(page: Page, value: { preset?: string; mode?: string }): Promise<void> {
   await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify(value)] as const);
@@ -74,23 +72,15 @@ test("a stored preset paints from the server HTML, before the client entry runs"
 test.describe("every preset, light and dark", () => {
   for (const preset of PRESET_NAMES) {
     for (const mode of ["light", "dark"] as const) {
-      test(`${preset} ${mode} has zero axe violations on the built page`, async ({ page }) => {
+      test(`${preset} ${mode} has zero axe violations on the built page`, async ({ page, browserName }) => {
         const errors = diagnostics(page);
         await page.setViewportSize({ width: 1440, height: 900 });
         await store(page, { preset, mode });
         await open(page);
         await page.evaluate(() => document.fonts.ready);
-        await page.addScriptTag({ content: axeSource });
-        // Every violation fails whatever its impact, and so does every check axe could not decide:
-        // this page has no measurement to settle one, so the gate fails closed.
-        const violations = await page.evaluate(async () => {
-          type Rule = { id: string; nodes: Array<{ target: string[] }> };
-          const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: Rule[]; incomplete: Rule[] }> } }).axe;
-          const result = await axe.run({ exclude: [["[data-base-ui-focus-guard]"]] }, { resultTypes: ["violations", "incomplete"] });
-          const lines = (prefix: string, rules: Rule[]) => rules.map((rule) => `${prefix}${rule.id}: ${rule.nodes.map((node) => node.target.join(" ")).join(", ")}`);
-          return [...lines("", result.violations), ...lines("undecided ", result.incomplete)];
-        });
-        expect(violations).toEqual([]);
+        // Every violation fails whatever its impact, and so does every check axe could not decide
+        // unless the kit measures it.
+        expect(await auditPage(page, browserName)).toBe("");
         expect(errors).toEqual([]);
       });
     }

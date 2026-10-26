@@ -7,6 +7,7 @@ import pageIndex from "../docs/page-index.json";
 import { href } from "../routes";
 import { HxLogo } from "./brand";
 import { MenuIcon } from "./icons";
+import { Popups, PopupsProvider } from "./popups";
 
 export const STORYBOOK = "https://ourostack.github.io/ouro-ui/storybook/";
 
@@ -136,7 +137,7 @@ function DocsNav({ current }: { current: string }): JSX.Element {
 /** Docs pages: a sidebar from 1024px up; on smaller screens the same list opens in a Sheet. */
 export function DocsShell({ current, children }: { current: string; children: ReactNode }): JSX.Element {
   return (
-    <>
+    <PopupsProvider>
       <SiteHeader />
       <Container className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-14">
         <aside className="hidden lg:block">
@@ -160,10 +161,13 @@ export function DocsShell({ current, children }: { current: string; children: Re
               </nav>
             </Sheet>
           </div>
-          <main className="max-w-3xl pt-8 lg:pt-10">{children}</main>
+          <main className="max-w-3xl pt-8 lg:pt-10">
+            {children}
+            <Popups />
+          </main>
         </div>
       </Container>
       <SiteFooter />
-    </>
+    </PopupsProvider>
   );
 }

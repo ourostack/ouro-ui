@@ -22,11 +22,16 @@ import { pressTab } from "./tab";
  */
 const axeExclude: string[] = ["[data-base-ui-focus-guard]"];
 
-/** One node {@link audit} fails: a violation, or a check axe could not decide that no measurement passed. */
+/**
+ * One node {@link audit} fails: a violation, or a check axe could not decide that no measurement passed.
+ *
+ * @claim "One node audit fails" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a violation whatever its impact: content outside every landmark is only moderate)
+ * @claim "One node audit fails" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails text a tag covers, which axe cannot judge)
+ */
 interface GateFinding {
   /** The axe rule. */
   rule: string;
-  /** axe's impact, or null when it gave none. */
+  /** axe's impact, if it gave one, else null. */
   impact: string | null;
   /** axe's one-line help for the rule. */
   help: string;
@@ -34,7 +39,7 @@ interface GateFinding {
   target: string;
   /** Why it fails: axe's own summary, or what the measurement found. */
   summary: string;
-  /** Whether axe could not decide it (`incomplete`) and no measurement passed it. */
+  /** True when axe left it undecided (`incomplete`) and a measurement failed it. */
   undecided: boolean;
 }
 
@@ -44,10 +49,16 @@ type Verdict = { pass: true } | { pass: false; reason: string };
 /**
  * axe's options for {@link audit}: every rule as axe ships it, with every node of the violations
  * and of the undecided checks (axe keeps one node of a result type `resultTypes` leaves out).
+ *
+ * @claim "axe's options for audit" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails text a tag covers, which axe cannot judge)
  */
-const gateRunOptions: axe.RunOptions = { resultTypes: ["violations", "incomplete"] };
+const gateRunOptions: axe.RunOptions = { resultTypes: ["violations", "incomplete"], elementRef: true };
 
-/** {@link audit}'s findings as readable lines: the rule, its impact and help, and each node with why it fails. */
+/**
+ * {@link audit}'s findings as readable lines: the rule, its impact and help, and each node with why it fails.
+ *
+ * @claim "audit 's findings as readable lines" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > describes findings as one line per rule, with its impact and help, and one per node with why it fails)
+ */
 function describeFindings(findings: GateFinding[]): string {
   const byRule = new Map<string, GateFinding[]>();
   for (const finding of findings) {
@@ -58,19 +69,32 @@ function describeFindings(findings: GateFinding[]): string {
 }
 
 /**
- * An accessibility scan that fails closed: runs axe over `context` with every rule, and returns
- * every violation whatever its impact, and every check axe could not decide unless a
- * measurement passes it. Text axe cannot judge passes only when its worst pixel meets WCAG 1.4.3
- * ({@link measureTextContrast}); a popup trigger's `aria-controls` only when every element it
- * names is on the page or the trigger is collapsed; focusable content hidden from assistive
- * technology under an open modal only when Tab never reaches it. Anything else axe could not
- * decide fails with axe's own message.
+ * An accessibility scan that fails closed: once running transitions finish, runs axe over
+ * `context` with every rule, and returns every violation whatever its impact, and every check
+ * axe could not decide unless a measurement passes it:
+ *
+ * - text contrast, only when the worst pixel behind the text meets WCAG 1.4.3 ({@link measureTextContrast});
+ * - a popup trigger's `aria-controls`, only when every element it names is on the page or the trigger is collapsed;
+ * - focusable content hidden from assistive technology, only when Tab never focuses it while it is still hidden;
+ * - an ARIA toggle inside a `<label>`, only when its name and description hold every word of the label;
+ * - a field with two labels, only when `aria-labelledby` names it.
+ *
+ * Anything else axe could not decide fails with axe's own message.
  *
  * @example
  * const findings = await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
  * expect(describeFindings(findings)).toBe("");
+ * @claim "An accessibility scan that fails closed" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a violation whatever its impact: content outside every landmark is only moderate)
+ * @claim "An accessibility scan that fails closed" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures text once its color transitions finish, as after a switch to dark)
+ * @claim "text contrast, only when the worst" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes text over a gradient when every pixel behind it meets 4.5:1, and fails faint text over the same gradient)
+ * @claim "a popup trigger's `aria-controls`, only when" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a popup trigger whose expanded popup is missing, and passes it once the popup is there)
+ * @claim "focusable content hidden from assistive technology," registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a control hidden from assistive technology under a modal when Tab still reaches it, and passes it when the page is inert)
+ * @claim "focusable content hidden from assistive technology," registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a control hidden at rest that shows itself in the event that focuses it, as a toast's dismiss button does)
+ * @claim "an ARIA toggle inside a `<label>`, only" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a toggle inside a <label> whose text is its name and description, and fails one whose label says more)
+ * @claim "a field with two labels, only when" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a field with two labels when aria-labelledby names it, and fails it when nothing settles which label names it)
  */
 async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
+  await settleTransitions();
   const result = await axe.run(context, gateRunOptions);
   const findings: GateFinding[] = [];
   for (const rule of result.violations) {
@@ -81,8 +105,28 @@ async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
   // Tab walks move focus, which can show a tooltip, so they run after every other measurement.
   const undecided = result.incomplete.flatMap((rule) => rule.nodes.map((node) => ({ rule, node })));
   const walksLast = undecided.sort((a, b) => Number(walks(a.node)) - Number(walks(b.node)));
+  // Text is measured in groups, one screenshot each: the largest box around it that fits the
+  // screen, so a card's or a chart's text shares one picture.
+  const measured = new Map<axe.NodeResult, Verdict>();
+  const byRoot = new Map<Element, { node: axe.NodeResult; element: Element; required: number }[]>();
   for (const { rule, node } of walksLast) {
-    const verdict = await decide(rule.id, node);
+    const element = rule.id === "color-contrast" ? elementOf(node) : null;
+    if (!element) continue;
+    const data = node.any[0]?.data as { expectedContrastRatio?: string } | undefined;
+    const root = screenRoot(element);
+    byRoot.set(root, [...(byRoot.get(root) ?? []), { node, element, required: requiredRatio(element, data?.expectedContrastRatio) }]);
+  }
+  for (const [root, items] of byRoot) {
+    const verdicts = await measureTexts(root, items);
+    for (const [index, item] of items.entries()) {
+      // Scrolled for the group, a sticky part of the page can sit over the text: measured alone,
+      // centered on the screen, it shows as a reader scrolls to it.
+      const verdict = verdicts[index]!.pass || root === item.element ? verdicts[index]! : await measureTextContrast(item.element, item.required);
+      measured.set(item.node, verdict);
+    }
+  }
+  for (const { rule, node } of walksLast) {
+    const verdict = measured.get(node) ?? (await decide(rule.id, node));
     if (verdict.pass) continue;
     findings.push({ rule: rule.id, impact: rule.impact ?? null, help: rule.help, target: node.target.join(" "), summary: verdict.reason, undecided: true });
   }
@@ -99,7 +143,7 @@ const walks = (node: axe.NodeResult) => checksOf(node).some((check) => check.id 
 async function decide(rule: string, node: axe.NodeResult): Promise<Verdict> {
   const open = checksOf(node);
   const message = open.map((check) => check.message).join("; ");
-  const element = elementOf(node.target);
+  const element = elementOf(node);
   if (!element) return { pass: false, reason: `${message} (the node is gone, so it cannot be measured)` };
   if (rule === "color-contrast") {
     const data = node.any[0]?.data as { expectedContrastRatio?: string } | undefined;
@@ -108,8 +152,15 @@ async function decide(rule: string, node: axe.NodeResult): Promise<Verdict> {
   if (open.length > 0 && open.every((check) => check.id === "aria-valid-attr-value" && (check.data as { messageKey?: string } | null)?.messageKey === "controlsWithinPopup")) {
     return popupControlsExist(element) ? { pass: true } : { pass: false, reason: message };
   }
+  if (open.length > 0 && open.every((check) => check.id === "no-implicit-explicit-label")) {
+    return labelSaysNoMore(element) ? { pass: true } : { pass: false, reason: message };
+  }
+  if (rule === "form-field-multiple-labels") {
+    // Which label names the field is settled when aria-labelledby names it, as it outranks every <label>.
+    return named(element, "aria-labelledby").length > 0 ? { pass: true } : { pass: false, reason: message };
+  }
   if (open.length > 0 && open.every((check) => check.id === "focusable-modal-open")) {
-    const hidden = open.flatMap((check) => check.relatedNodes ?? []).map((related) => elementOf(related.target));
+    const hidden = open.flatMap((check) => check.relatedNodes ?? []).map((related) => elementOf(related));
     if (hidden.some((entry) => entry === null)) return { pass: false, reason: `${message} (a focusable element is gone, so the walk cannot check it)` };
     const reached = await tabReaches(hidden as HTMLElement[]);
     return reached ? { pass: false, reason: `Tab reaches ${describe(reached)}, which is hidden from assistive technology` } : { pass: true };
@@ -118,7 +169,10 @@ async function decide(rule: string, node: axe.NodeResult): Promise<Verdict> {
 }
 
 /** The element an axe selector names, when it still finds exactly one in the page. */
-function elementOf(target: axe.UnlabelledFrameSelector | string[]): HTMLElement | null {
+// The element axe found, while it is still on the page; else the one its selector names.
+function elementOf(node: { target: axe.UnlabelledFrameSelector | string[]; element?: HTMLElement }): HTMLElement | null {
+  if (node.element?.isConnected) return node.element;
+  const { target } = node;
   const selector = target.at(-1);
   if (typeof selector !== "string" || target.length !== 1) return null;
   const found = document.querySelectorAll<HTMLElement>(selector);
@@ -128,34 +182,60 @@ function elementOf(target: axe.UnlabelledFrameSelector | string[]): HTMLElement 
 /** An element as a person would find it in a failure: its tag, its id or its text. */
 const describe = (element: Element) => `<${element.localName}${element.id ? `#${element.id}` : ""}> "${(element.textContent ?? "").trim().slice(0, 40) || element.getAttribute("aria-label") || ""}"`;
 
-/** Whether every element a popup trigger's `aria-controls` names is on the page, or the trigger is collapsed (its popup need not exist yet). */
+// Whether every element a popup trigger's `aria-controls` names is on the page, or the trigger is
+// collapsed (its popup need not exist yet).
 function popupControlsExist(element: Element): boolean {
   if (element.getAttribute("aria-expanded") === "false") return true;
   const ids = (element.getAttribute("aria-controls") ?? "").split(/\s+/).filter(Boolean);
   return ids.length > 0 && ids.every((id) => element.ownerDocument.getElementById(id) !== null);
 }
 
-/**
- * Presses Tab around the page from where focus is, and returns the first of `targets` (or an
- * element inside one) it lands on, or null when it never does. Focus goes back where it was.
- */
+// Text as lowercase words.
+const words = (text: string | null | undefined) => (text ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+
+// The words of an element's text, each text node apart, as adjacent nodes ("oats" and "1 cup") read as separate words.
+function wordsIn(element: Element | null): string[] {
+  if (!element) return [];
+  const found: string[] = [];
+  const walker = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) found.push(...words(node.textContent));
+  return found;
+}
+
+// The words of the elements an ID-list attribute (`aria-labelledby`, `aria-describedby`) points at.
+const named = (element: Element, attribute: string) => (element.getAttribute(attribute) ?? "").split(/\s+/).flatMap((id) => (id ? wordsIn(element.ownerDocument.getElementById(id)) : []));
+
+// Whether the <label> around an ARIA toggle says nothing its name and description leave out: a
+// <label> does not name an ARIA widget, so the words it holds must reach assistive technology another way.
+function labelSaysNoMore(element: Element): boolean {
+  const conveyed = new Set([...named(element, "aria-labelledby"), ...words(element.getAttribute("aria-label")), ...wordsIn(element), ...named(element, "aria-describedby")]);
+  return wordsIn(element.closest("label")).every((word) => conveyed.has(word));
+}
+
+// Presses Tab around the page from where focus is, and returns the first element inside one of
+// `targets` that Tab focuses while it is still hidden from assistive technology when the focus
+// event reaches the document (after the page's own handlers, which may show it), or null when
+// it never does. Focus goes back where it was.
 async function tabReaches(targets: HTMLElement[]): Promise<HTMLElement | null> {
   const start = document.activeElement;
   const stops = document.querySelectorAll("a[href], button, input, select, textarea, [tabindex], [contenteditable]").length;
   let reached: HTMLElement | null = null;
-  for (let press = 0; press < stops + 2 && !reached; press++) {
-    await pressTab();
-    const active = document.activeElement;
-    reached = targets.find((target) => active !== null && target.contains(active)) ?? null;
+  const watch = (event: FocusEvent) => {
+    const focused = event.target as HTMLElement;
+    if (!reached && focused.closest('[aria-hidden="true"]') && targets.some((target) => target.contains(focused))) reached = focused;
+  };
+  document.addEventListener("focusin", watch);
+  try {
+    for (let press = 0; press < stops + 2 && !reached; press++) await pressTab();
+  } finally {
+    document.removeEventListener("focusin", watch);
   }
   if (start instanceof HTMLElement && start.isConnected) start.focus();
   return reached;
 }
 
-/**
- * The contrast WCAG 1.4.3 asks of the element's text: axe's own figure when it gave one, else 3:1
- * for large text (24px, or 18.66px bold) and 4.5:1 for the rest.
- */
+// The contrast WCAG 1.4.3 asks of the element's text: axe's own figure when it gave one, else 3:1
+// for large text (24px, or 18.66px bold) and 4.5:1 for the rest.
 function requiredRatio(element: Element, expected: string | undefined): number {
   const stated = expected ? Number.parseFloat(expected) : Number.NaN;
   if (Number.isFinite(stated)) return stated;
@@ -165,7 +245,7 @@ function requiredRatio(element: Element, expected: string | undefined): number {
   return size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
 }
 
-/** A color as sRGB channels from 0 to 255 and alpha from 0 to 1. */
+// A color as sRGB channels from 0 to 255 and alpha from 0 to 1.
 interface Rgba {
   r: number;
   g: number;
@@ -190,7 +270,7 @@ const linear = (value: number) => {
 };
 const luminance = ({ r, g, b }: Rgba) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 
-/** WCAG's contrast ratio between two opaque colors. */
+// WCAG's contrast ratio between two opaque colors.
 function contrast(a: Rgba, b: Rgba): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
   return (light + 0.05) / (dark + 0.05);
@@ -222,90 +302,166 @@ function textBoxes(element: Element): DOMRect[] {
   return boxes;
 }
 
-/** The opacity the element's text is painted with: its own and every ancestor's, multiplied. */
+// The opacity the element's text is painted with: its own and every ancestor's, multiplied.
 function paintedOpacity(element: Element): number {
   let opacity = 1;
   for (let node: Element | null = element; node; node = node.parentElement) opacity *= Number.parseFloat(getComputedStyle(node).opacity);
   return opacity;
 }
 
-/** The rule that hides glyphs while the page behind them is screenshotted. */
-const hideGlyphs =
-  "[data-ouro-measure], [data-ouro-measure] * { color: transparent !important; -webkit-text-fill-color: transparent !important; " +
-  "text-shadow: none !important; text-decoration-color: transparent !important; caret-color: transparent !important; transition: none !important; }";
+// Waits for the page's running CSS transitions, such as the colors easing after a switch to dark,
+// so text is measured as it rests. Gives up after 3 seconds.
+async function settleTransitions(): Promise<void> {
+  const running = document.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.playState === "running");
+  const finished = Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+  await Promise.race([finished, new Promise((resolve) => setTimeout(resolve, 3000))]);
+}
 
-/**
- * Measures text contrast that axe could not judge: hides the element's glyphs, screenshots the
- * page and finds the worst pixel behind each line of its text. Anything drawn over the text
- * (an outline, a tag, a veil) counts as behind it, since it is what the text is seen against.
- * Passes when the text color, as painted over that pixel, meets `required` (4.5 or 3). Where an open
- * popup has shut the text off from assistive technology and covers it, the covered part is inactive
- * and only what still shows is measured.
- *
- * @example
- * const verdict = await measureTextContrast(label, 4.5);
- * expect(verdict).toEqual({ pass: true });
- */
-async function measureTextContrast(element: HTMLElement, required: number): Promise<Verdict> {
-  element.scrollIntoView({ block: "nearest", inline: "nearest" });
-  const boxes = textBoxes(element);
-  if (boxes.length === 0) return { pass: false, reason: "axe could not judge its contrast, and it has no text of its own to measure" };
-  const color = toRgba(getComputedStyle(element).color);
-  const text = { ...color, a: color.a * paintedOpacity(element) };
-  const style = document.createElement("style");
-  style.textContent = hideGlyphs;
-  element.setAttribute("data-ouro-measure", "");
-  document.head.append(style);
-  let shot: string;
-  try {
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    shot = await page.screenshot({ save: false });
-  } finally {
-    element.removeAttribute("data-ouro-measure");
-    style.remove();
-  }
+// The element's box as a canvas, two frames after a change to what it shows. Only the element is
+// taken: the browser paints a whole long page's screenshot wrongly away from where it is scrolled.
+async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const image = new Image();
-  image.src = `data:image/png;base64,${shot}`;
+  image.src = `data:image/png;base64,${await page.screenshot({ save: false, element, animations: "disabled", timeout: 5000 })}`;
   await image.decode();
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
   const context = canvas.getContext("2d", { willReadFrequently: true })!;
   context.drawImage(image, 0, 0);
-  const origin = document.body.getBoundingClientRect();
-  const scale = image.naturalWidth / origin.width;
-  // Text an open popup shuts off from assistive technology is inactive where an exposed layer (the
-  // popup) covers it: those pixels are the popup's, measured as its own text. What still shows is
-  // measured. A layer hidden with the text (an overlay's outlines and tags) covers nothing.
-  const shutOff = element.closest('[aria-hidden="true"], [inert]') !== null;
-  const coveredAt = (x: number, y: number) => {
-    const top = document.elementFromPoint(x, y);
-    return top !== null && !element.contains(top) && !top.closest('[aria-hidden="true"], [inert]');
-  };
-  let worst = Number.POSITIVE_INFINITY;
-  let measured = 0;
-  let covered = 0;
-  for (const box of boxes) {
-    const left = Math.max(0, Math.floor((box.left - origin.left) * scale));
-    const top = Math.max(0, Math.floor((box.top - origin.top) * scale));
-    const right = Math.min(canvas.width, Math.ceil((box.right - origin.left) * scale));
-    const bottom = Math.min(canvas.height, Math.ceil((box.bottom - origin.top) * scale));
-    if (right <= left || bottom <= top) continue;
-    const width = right - left;
-    const pixels = context.getImageData(left, top, width, bottom - top).data;
-    for (let index = 0; index < pixels.length; index += 4) {
-      const pixel = index / 4;
-      if (shutOff && coveredAt(origin.left + (left + (pixel % width) + 0.5) / scale, origin.top + (top + Math.floor(pixel / width) + 0.5) / scale)) {
-        covered++;
-        continue;
-      }
-      measured++;
-      const behind = { r: pixels[index]!, g: pixels[index + 1]!, b: pixels[index + 2]!, a: 1 };
-      worst = Math.min(worst, contrast(over(text, behind), behind));
-    }
+  return context;
+}
+
+/**
+ * The rule that hides glyphs while the page behind them is screenshotted: the element's, and all
+ * other text on the page too, as a tall heading's descenders reach into the line below.
+ *
+ * @claim "and all other text on the page too" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures a heading's second line against the page, not the descenders of the line above)
+ */
+const hideGlyphs =
+  "body * { -webkit-text-fill-color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; } " +
+  "svg text, svg tspan { fill: transparent !important; stroke: transparent !important; } " +
+  "[data-ouro-measure], [data-ouro-measure] * { color: transparent !important; -webkit-text-fill-color: transparent !important; " +
+  "fill: transparent !important; stroke: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; caret-color: transparent !important; transition: none !important; } " +
+  "[data-ouro-measure-layer] { opacity: 0 !important; transition: none !important; }";
+
+/**
+ * Measures text contrast that axe could not judge: waits for running transitions, hides the
+ * element's glyphs, screenshots the page and finds the worst pixel behind each line of its
+ * text. Anything drawn over the text (an outline, a tag, a veil) counts as behind it, since it
+ * is what the text is seen against.
+ * Passes when the text color, as painted over that pixel, meets `required` (4.5 or 3). Where an open
+ * popup covers the text (its shadow too), the covered part is hidden while it is open, and only what
+ * still shows is measured.
+ *
+ * @example
+ * const verdict = await measureTextContrast(label, 4.5);
+ * expect(verdict).toEqual({ pass: true });
+ * @claim "Measures text contrast that axe could" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes text over a gradient when every pixel behind it meets 4.5:1, and fails faint text over the same gradient)
+ * @claim "Measures text contrast that axe could" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures a line drawn over text as what the text is seen against, though axe never sees it)
+ * @claim "Measures text contrast that axe could" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures text once its color transitions finish, as after a switch to dark)
+ * @claim "Passes when the text color, as" registry/ouro/lib/ouro/testing/axe.ts verify:fileLine(registry/ouro/lib/ouro/testing/axe.ts, /\? 3 : 4\.5;/)
+ * @claim "Where an open popup covers the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes text an open popup covers once the popup shuts it off from assistive technology, and measures what still shows)
+ * @claim "Where an open popup covers the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes page text a popup's layer covers, which hides it while the popup is open, and measures what still shows)
+ * @claim "Where an open popup covers the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > counts a popup's shadow on the text as the popup's, as it is drawn by the open popup)
+ */
+async function measureTextContrast(element: Element, required: number): Promise<Verdict> {
+  return (await measureTexts(element, [{ element, required }]))[0]!;
+}
+
+// The element's largest ancestor (or itself) that fits on the screen, below <body> and within the
+// popup layer it is in, if any, since the measuring tells a layer's pixels by hiding it.
+function screenRoot(element: Element): Element {
+  let root = element;
+  for (let parent = element.parentElement; parent && parent !== document.body && !root.hasAttribute("data-base-ui-portal"); parent = parent.parentElement) {
+    const box = parent.getBoundingClientRect();
+    if (box.width > window.innerWidth || box.height > window.innerHeight) break;
+    root = parent;
   }
-  if (measured === 0 && covered > 0) return { pass: true };
-  if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe could not judge its contrast, and its text is off the screen" };
-  if (worst >= required) return { pass: true };
-  return { pass: false, reason: `measured ${worst.toFixed(2)}:1 against the worst pixel behind its text, needs ${required}:1` };
+  return root;
+}
+
+// Measures each element's text against one screenshot of `root`, which holds them all, as a
+// chart's many axis labels share one picture.
+async function measureTexts(root: Element, items: { element: Element; required: number }[]): Promise<Verdict[]> {
+  // Centered, so a sticky header does not sit over text that scrolled to the top edge.
+  root.scrollIntoView({ block: "center", inline: "nearest" });
+  await settleTransitions();
+  // The boxes within the root, not on the screen: taking the screenshot can scroll the page.
+  const start = root.getBoundingClientRect();
+  const texts = items.map(({ element, required }) => {
+    const boxes = textBoxes(element).map((box) => new DOMRect(box.left - start.left, box.top - start.top, box.width, box.height));
+    // SVG text, such as a chart's axis labels, is painted with its fill.
+    const style = getComputedStyle(element);
+    const color = toRgba(element instanceof SVGElement ? style.fill : style.color);
+    const fillOpacity = element instanceof SVGElement ? Number.parseFloat(style.fillOpacity) : 1;
+    return { element, required, boxes, text: { ...color, a: color.a * fillOpacity * paintedOpacity(element) } };
+  });
+  // The open popups' layers (Base UI portals) the text is not in: whatever they paint over the text,
+  // shadows included, is theirs. A second screenshot without them shows which pixels those are.
+  const layers = [...document.querySelectorAll("[data-base-ui-portal]")].filter((layer) => !layer.contains(root) && !layer.closest('[aria-hidden="true"], [inert]'));
+  const hide = document.createElement("style");
+  hide.textContent = hideGlyphs;
+  for (const { element } of items) element.setAttribute("data-ouro-measure", "");
+  document.head.append(hide);
+  let context: CanvasRenderingContext2D;
+  let bare: CanvasRenderingContext2D | null = null;
+  try {
+    context = await screenshot(root);
+    if (layers.length > 0) {
+      for (const layer of layers) layer.setAttribute("data-ouro-measure-layer", "");
+      bare = await screenshot(root);
+    }
+  } catch (error) {
+    // The browser takes a picture only of a box that stays still and shows.
+    const reason = `axe could not judge its contrast, and it could not be screenshotted: ${(error as Error).message.split("\n")[0]}`;
+    return items.map(() => ({ pass: false, reason }));
+  } finally {
+    for (const { element } of items) element.removeAttribute("data-ouro-measure");
+    for (const layer of layers) layer.removeAttribute("data-ouro-measure-layer");
+    hide.remove();
+  }
+  const origin = root.getBoundingClientRect();
+  const scale = context.canvas.width / origin.width;
+  return texts.map(({ element, required, boxes, text }) => {
+    if (boxes.length === 0) return { pass: false, reason: "axe could not judge its contrast, and it has no text of its own to measure" };
+    // Where an open popup covers the text, those pixels are the popup's, measured as its own text:
+    // what a popup's layer paints, or any exposed layer over text the popup shuts off from assistive
+    // technology. What still shows is measured. A layer hidden from assistive technology (an
+    // overlay's outlines and tags) covers nothing.
+    const shutOff = element.closest('[aria-hidden="true"], [inert]') !== null;
+    const coveredAt = (x: number, y: number) => {
+      if (!shutOff) return false;
+      const top = document.elementFromPoint(x, y);
+      return top !== null && !element.contains(top) && !top.closest('[aria-hidden="true"], [inert]');
+    };
+    let worst = Number.POSITIVE_INFINITY;
+    let measured = 0;
+    let covered = 0;
+    for (const box of boxes) {
+      const left = Math.max(0, Math.floor(box.left * scale));
+      const top = Math.max(0, Math.floor(box.top * scale));
+      const right = Math.min(context.canvas.width, Math.ceil(box.right * scale));
+      const bottom = Math.min(context.canvas.height, Math.ceil(box.bottom * scale));
+      if (right <= left || bottom <= top) continue;
+      const width = right - left;
+      const pixels = context.getImageData(left, top, width, bottom - top).data;
+      const under = bare?.getImageData(left, top, width, bottom - top).data;
+      for (let index = 0; index < pixels.length; index += 4) {
+        const pixel = index / 4;
+        const painted = under !== undefined && [0, 1, 2].some((channel) => Math.abs(pixels[index + channel]! - under[index + channel]!) > 2);
+        if (painted || coveredAt(origin.left + (left + (pixel % width) + 0.5) / scale, origin.top + (top + Math.floor(pixel / width) + 0.5) / scale)) {
+          covered++;
+          continue;
+        }
+        measured++;
+        const behind = { r: pixels[index]!, g: pixels[index + 1]!, b: pixels[index + 2]!, a: 1 };
+        worst = Math.min(worst, contrast(over(text, behind), behind));
+      }
+    }
+    if (measured === 0 && covered > 0) return { pass: true };
+    if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe could not judge its contrast, and its text is off the screen" };
+    if (worst >= required) return { pass: true };
+    return { pass: false, reason: `measured ${worst.toFixed(2)}:1 against the worst pixel behind its text, needs ${required}:1` };
+  });
 }

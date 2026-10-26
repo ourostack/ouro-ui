@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { SkipLink } from "@/registry/ouro/components/ouro/skip-link/skip-link";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
@@ -25,6 +26,7 @@ const meta = {
         </Link>
       </header>
       <main id={args.target} style={{ padding: 24 }}>
+        <Heading level={1}>Braised short ribs</Heading>
         <Text>Press Tab once: the skip link shows at the top corner. Press Enter to jump here, past the links.</Text>
       </main>
     </div>

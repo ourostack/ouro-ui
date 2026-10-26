@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { inject, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { storyFileSelected } from "./story-selection.ts";
 
@@ -172,6 +173,23 @@ export function setScheme(scheme: "light" | "dark"): void {
   void getComputedStyle(document.documentElement).color;
 }
 
+/**
+ * Where popups render, as an app sets it: inside the page's `<main>`, whether the harness's or
+ * a page layout's own, and at the end of `<body>` on a page without one.
+ */
+const pageMain = {
+  get current(): HTMLElement | null {
+    return document.querySelector("main");
+  },
+};
+
+/** A story inside the OuroProvider an app wraps its pages in. */
+const inPage = (Story: ComponentType) => (
+  <OuroProvider portalContainer={pageMain}>
+    <Story />
+  </OuroProvider>
+);
+
 /** Renders a story into the page. */
 export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
   const host = document.createElement("div");
@@ -180,7 +198,7 @@ export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
   mounted.push(host);
   const root = createRoot(host);
   roots.push(root);
-  await act(async () => root.render(<Story />));
+  await act(async () => root.render(inPage(Story)));
   // A play function brings the story to the state it shows, as Storybook runs it after rendering.
   await (Story as ComposedStory).play?.({ canvasElement: host });
   return host;
@@ -188,17 +206,20 @@ export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
 
 /**
  * Renders a story as an app's page shows it, for the accessibility gate: inside the page's
- * `<main>`, under the page's `<h1>`, so the page-structure rules (every piece of content in a
+ * `<main>`, under the page's `<h1>` and a section's `<h2>`, so the page-structure rules (every piece of content in a
  * landmark, one main, a level-one heading) judge the component as an app places it. A story that
  * renders the page's `<main>` itself (a page layout) renders on its own.
  */
 export async function renderStoryPage(Story: ComponentType): Promise<HTMLElement> {
   const main = document.createElement("main");
   main.dataset["storyPage"] = "";
-  const heading = document.createElement("h1");
-  heading.textContent = "Story";
-  heading.setAttribute("style", "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0");
-  main.append(heading);
+  // The page's heading and a section's: components' headings default to level 3, one below a section's.
+  for (const [level, text] of [["h1", "Story"], ["h2", "Section"]] as const) {
+    const heading = document.createElement(level);
+    heading.textContent = text;
+    heading.setAttribute("style", "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0");
+    main.append(heading);
+  }
   document.body.append(main);
   mounted.push(main);
   const host = document.createElement("div");
@@ -206,7 +227,7 @@ export async function renderStoryPage(Story: ComponentType): Promise<HTMLElement
   main.append(host);
   const root = createRoot(host);
   roots.push(root);
-  await act(async () => root.render(<Story />));
+  await act(async () => root.render(inPage(Story)));
   if (host.querySelector('main, [role="main"]')) {
     // A page layout renders the page's own main: render it on its own, as an app's page would.
     await act(async () => root.unmount());

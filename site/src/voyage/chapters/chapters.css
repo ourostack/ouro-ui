@@ -18,8 +18,9 @@
 .bp-grid {
   opacity: 0.22;
 }
+/* The lines are a little faint; the dimensions' lettering is not, so it stays readable. */
 .bp-frame,
-.bp-dims {
+.bp-dims > path {
   opacity: 0.8;
 }
 .bp-sea,
@@ -28,6 +29,10 @@
 }
 .bp-part {
   opacity: 0.14;
+}
+/* A ghosted part is a shape only: its lettering would be too faint to read, so it comes with the part. */
+.bp-part .bp-note {
+  visibility: hidden;
 }
 /* Each part hangs just above its place until its job is ticked (chapter-one.css lowers it in). */
 @media (prefers-reduced-motion: no-preference) {

@@ -1,8 +1,8 @@
 "use client";
 
 import { Tooltip } from "@base-ui/react/tooltip";
-import { useMemo, type JSX, type ReactNode } from "react";
-import { DefaultLink, OuroContext, type OuroContextValue, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useMemo, type JSX, type ReactNode, type RefObject } from "react";
+import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
 
 export type { OuroContextValue, OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
 
@@ -12,6 +12,21 @@ export interface OuroProviderProps {
   children: ReactNode;
   /** Renders internal `href`s, for example an adapter around a router's `Link`. */
   linkComponent?: OuroLinkComponent;
+  /**
+   * The element floating popups render into: the lists of `Select` and `Combobox`, and
+   * `Menu`, `Popover`, `DatePicker`, `Tooltip`, `HoverCard` and `NavigationMenu`. Unset,
+   * they render at the end of `<body>`, outside every landmark, where screen reader users
+   * who move by landmark miss them. Pass an element, or a ref to one, inside `<main>` that
+   * does not clip what it holds (no `overflow` other than `visible`). A provider inside
+   * another keeps the outer one's container when it sets none. Dialogs, sheets and toasts
+   * stay at the end of `<body>`: a dialog is announced when it opens, and the toasts are a
+   * landmark of their own.
+   * @claim "Unset, they render at the end of" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > leaves a popup at the end of <body>, Base UI's default, without a portalContainer)
+   * @claim "Pass an element, or a ref to" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup into OuroProvider's portalContainer, given as an element)
+   * @claim "Pass an element, or a ref to" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup into OuroProvider's portalContainer, given as a ref)
+   * @claim "A provider inside another keeps the" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > keeps the portalContainer of an outer OuroProvider inside one that does not set it)
+   */
+  portalContainer?: HTMLElement | RefObject<HTMLElement | null> | undefined;
 }
 
 /**
@@ -100,10 +115,12 @@ export interface OuroProviderProps {
  * @claim "Ouro UI components work without it" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
  * @claim "It installs with every component that" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses)
  */
-export function OuroProvider({ children, linkComponent }: OuroProviderProps): JSX.Element {
+export function OuroProvider({ children, linkComponent, portalContainer }: OuroProviderProps): JSX.Element {
+  const outer = useOuro();
+  const container = portalContainer ?? outer.portalContainer;
   const value = useMemo<OuroContextValue>(
-    () => ({ linkComponent: linkComponent ?? DefaultLink }),
-    [linkComponent],
+    () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}) }),
+    [linkComponent, container],
   );
   return (
     <OuroContext.Provider value={value}>

@@ -15,6 +15,10 @@ import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
+import { Heading } from "@/registry/ouro/components/ouro/text/heading";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -130,6 +134,50 @@ describe("Inspector", () => {
     expect(tags().map((tag) => tag.getAttribute("href"))).toEqual(["button", "badge", "checkbox"].map(docsHref));
     outlines().forEach((outline, index) => expect(onTarget(outline, components[index]!), `outline ${index}`).toBe(true));
   });
+
+  it("puts its bar in a landmark named by its label", async () => {
+    await render(<Page inspector={{ label: "Röntgen" }} />);
+    await drawn(3);
+    const bar = page.getByRole("region", { name: "Röntgen" });
+    await expect.element(bar.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
+
+  it("leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other", async () => {
+    // A dense page: text right against the edges of the components above and below it, where a
+    // tag above a component's corner would land on the line before.
+    const { host } = await render(
+      <Page>
+        <div style={{ display: "grid", gap: 2 }}>
+          <Heading level={2}>Braised short ribs</Heading>
+          <Text>Brown the ribs, then braise them low for three hours.</Text>
+          <Badge>Make ahead</Badge>
+          <Text>Serves six, with polenta or mash.</Text>
+          <Link href="/recipes/polenta">Soft polenta</Link>
+          <Text size="sm">Keeps for four days in the fridge.</Text>
+        </div>
+      </Page>,
+    );
+    const texts = [...host.querySelectorAll<HTMLElement>("*")].filter((element) => [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim()) && element.checkVisibility());
+    const required = (element: Element) => {
+      const style = getComputedStyle(element);
+      const size = Number.parseFloat(style.fontSize);
+      return size >= 24 || (Number.parseInt(style.fontWeight, 10) >= 700 && size >= 18.66) ? 3 : 4.5;
+    };
+    for (const scheme of ["light", "dark"]) {
+      document.documentElement.classList.toggle("dark", scheme === "dark");
+      await act(() => setOpen(false));
+      for (const text of texts) expect(await measureTextContrast(text, required(text)), `${scheme}, before X-ray: ${text.textContent}`).toEqual({ pass: true });
+      await act(() => setOpen(true));
+      await drawn(pageRoots(host).length);
+      await settled();
+      for (const text of texts) expect(await measureTextContrast(text, required(text)), `${scheme}, under X-ray: ${text.textContent}`).toEqual({ pass: true });
+      const shown = tags().filter(live).map((tag) => tag.getBoundingClientRect());
+      for (const [index, a] of shown.entries()) {
+        for (const b of shown.slice(index + 1)) expect(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top, `${scheme}: two tags overlap`).toBe(true);
+      }
+    }
+    document.documentElement.classList.remove("dark");
+  }, 30_000);
 
   it("does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component", async () => {
     const { host } = await render(
@@ -289,7 +337,7 @@ describe("Inspector", () => {
         return copy.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
       })
       .toBe(true);
-    expect(getComputedStyle(layer()!.querySelector('[role="group"]')!).visibility).toBe("hidden");
+    expect(getComputedStyle(layer()!.querySelector('section')!).visibility).toBe("hidden");
     await userEvent.click(page.getByRole("button", { name: "Copy link" }));
     expect(onCopy).toHaveBeenCalledOnce();
   }, 15_000);
@@ -423,11 +471,11 @@ describe("Inspector", () => {
     await userEvent.keyboard("{ArrowDown}");
     await expect.element(page.getByRole("listbox")).toBeVisible();
     await settled();
-    // The open list hides the page from assistive technology, X-ray included, but no modal dialog shuts it off.
-    expect(layer()!.closest('[aria-hidden="true"], [inert]')).not.toBeNull();
+    // The open list leaves the page, X-ray included, to assistive technology, and no modal dialog shuts it off.
+    expect(layer()!.closest('[aria-hidden="true"], [inert]')).toBeNull();
     await frame();
     expect(layer()!.hasAttribute("data-modal")).toBe(false);
-    expect(getComputedStyle(layer()!.querySelector('[role="group"]')!).visibility).toBe("visible");
+    expect(getComputedStyle(layer()!.querySelector('section')!).visibility).toBe("visible");
     expect(tags().slice(0, 4).map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox", "button"]);
   }, 15_000);
 
@@ -446,11 +494,11 @@ describe("Inspector", () => {
     await settled();
     await frame();
     expect(layer()!.hasAttribute("data-modal")).toBe(false);
-    const bar = layer()!.querySelector<HTMLElement>('[role="group"]')!;
+    const bar = layer()!.querySelector<HTMLElement>('section')!;
     expect(getComputedStyle(bar).visibility).toBe("visible");
     // The page's own components keep their tags.
     expect(tags().slice(0, 4).map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox", "button"]);
-    await userEvent.click(page.getByRole("group", { name: "X-ray" }).getByRole("button", { name: "Close" }));
+    await userEvent.click(page.getByRole("region", { name: "X-ray" }).getByRole("button", { name: "Close" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   }, 15_000);
 

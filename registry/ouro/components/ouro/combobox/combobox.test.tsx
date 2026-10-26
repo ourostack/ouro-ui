@@ -7,6 +7,8 @@ import { Combobox, type ComboboxProps } from "@/registry/ouro/components/ouro/co
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 
 /** The colour behind an element: the nearest background around it that is not transparent. */
 function behind(element: Element): string {
@@ -107,6 +109,41 @@ describe("Combobox", () => {
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
+  });
+
+  it("leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark", async () => {
+    const main = document.createElement("main");
+    main.innerHTML = '<h1>Recipes</h1><a href="#notes">Notes</a>';
+    document.body.append(main);
+    mounted.push(main);
+    const host = document.createElement("div");
+    main.append(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () =>
+      root.render(
+        <OuroProvider portalContainer={main}>
+          <Combobox label="Herb" name="herb" items={herbs} />
+        </OuroProvider>,
+      ),
+    );
+    await userEvent.click(host.querySelector<HTMLInputElement>('input[role="combobox"]')!);
+    await expect.poll(popup).not.toBeNull();
+    await expect.poll(() => document.querySelector('main [aria-hidden="true"]:is(a, h1, div:has(input))')).toBeNull();
+    expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
+    // What the list hides itself, and what anything hides once the list is closed, stays hidden.
+    const option = popup()!.querySelector('[role="option"]')!;
+    option.setAttribute("aria-hidden", "true");
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(option.getAttribute("aria-hidden")).toBe("true");
+    option.removeAttribute("aria-hidden");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    const link = main.querySelector("a")!;
+    link.setAttribute("data-base-ui-inert", "");
+    link.setAttribute("aria-hidden", "true");
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(link.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("filters the items as you type and picks one", async () => {

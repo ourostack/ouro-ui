@@ -293,7 +293,7 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.equal(item("ouro-lib").dependencies, undefined);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");
   assert.equal(item("button").devDependencies, undefined);
-  assert.deepEqual(item("ouro-testing").devDependencies, ["@playwright/test", "@vitest/browser-playwright", "playwright", "vitest"]);
+  assert.deepEqual(item("ouro-testing").devDependencies, ["@playwright/test", "@vitest/browser-playwright", "axe-core", "playwright", "vitest"]);
   for (const entry of registry.items) {
     for (const dependency of entry.dependencies ?? []) {
       assert.doesNotMatch(dependency, /^react(-dom)?@/);

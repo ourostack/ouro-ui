@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { page } from "vitest/browser";
 import { audit, axeExclude, describeFindings, measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 
 // The gate fails closed: these pages are each wrong in a way axe alone reports at a low impact or
@@ -29,6 +30,13 @@ describe("audit", () => {
   it("passes a page that is right", async () => {
     mountPage('<p style="color:#111;background:#fff">Readable text</p>');
     expect(describeFindings(await scanPage())).toBe("");
+  });
+
+  it("describes findings as one line per rule, with its impact and help, and one per node with why it fails", () => {
+    const finding = { rule: "region", impact: "moderate", help: "All page content should be contained by landmarks", target: "div", summary: "Fix any of the following", undecided: false };
+    expect(describeFindings([finding, { ...finding, target: "p" }, { ...finding, rule: "color-contrast", impact: "serious", help: "Contrast", target: "span", summary: "measured 2.00:1", undecided: true }])).toBe(
+      "region (moderate): All page content should be contained by landmarks\n  div: Fix any of the following\n  p: Fix any of the following\nundecided color-contrast (serious): Contrast\n  span: measured 2.00:1",
+    );
   });
 
   it("fails a violation whatever its impact: content outside every landmark is only moderate", async () => {
@@ -70,6 +78,46 @@ describe("audit", () => {
     expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint"]);
   });
 
+  it("measures a heading's second line against the page, not the descenders of the line above", async () => {
+    mountPage(
+      '<h1 style="margin:0;font-size:64px;line-height:0.95;color:#111"><span style="display:block">Gyppy quip</span>' +
+        '<span id="second" style="display:block;color:#666">Second line</span></h1>',
+    );
+    expect(await measureTextContrast(document.querySelector("#second")!, 3)).toEqual({ pass: true });
+  });
+
+  it("measures text far down a long page under a sticky header as it shows once scrolled to", async () => {
+    mountPage(
+      '<header style="position:sticky;top:0;height:120px;background:#111;color:#fff">Header</header>' +
+        '<div style="height:4000px"></div><p id="far" style="margin:0;color:#555">Far down the page</p><div style="height:4000px"></div>',
+    );
+    window.scrollTo(0, 0);
+    expect(await measureTextContrast(document.querySelector("#far")!, 4.5)).toEqual({ pass: true });
+  });
+
+  it("measures every label in one SVG from one screenshot of it, and fails the faint one once it is measured alone too", async () => {
+    mountPage(
+      '<svg role="img" aria-label="Plan" width="300" height="80"><defs><linearGradient id="paper"><stop offset="0" stop-color="#fff" /><stop offset="1" stop-color="#eee" /></linearGradient></defs>' +
+        '<rect width="300" height="80" fill="url(#paper)" /><text id="dark-label" x="10" y="30" fill="#111">232 FEET</text><text id="faint-label" x="10" y="60" fill="#aaa">26 FT</text></svg>',
+    );
+    const shots = vi.spyOn(page, "screenshot");
+    const findings = await scanPage();
+    expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint-label"]);
+    // One picture of the SVG, and one of the faint label alone, as a sticky bar could have covered it.
+    expect(shots).toHaveBeenCalledTimes(2);
+    shots.mockRestore();
+  });
+
+  it("measures text once its color transitions finish, as after a switch to dark", async () => {
+    mountPage('<p id="switching" style="margin:0;padding:8px;color:#111;background:#fff;transition:color 400ms linear,background-color 400ms linear">Switching scheme</p>');
+    const text = document.querySelector<HTMLElement>("#switching")!;
+    // Reading the color starts the transition from it.
+    void getComputedStyle(text).color;
+    Object.assign(text.style, { color: "#fff", backgroundColor: "#111" });
+    // Halfway, both are grey: measured then, the text would fail.
+    expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
+  });
+
   it("fails a popup trigger whose expanded popup is missing, and passes it once the popup is there", async () => {
     mountPage('<button type="button" aria-haspopup="menu" aria-expanded="true" aria-controls="actions-menu">Actions</button>');
     expect(rules(await scanPage())).toEqual(["undecided aria-valid-attr-value"]);
@@ -109,5 +157,60 @@ describe("audit", () => {
     Object.assign(list.style, { width: `${box.width / 2}px` });
     text.style.color = "#ccc";
     expect(await measureTextContrast(text, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured/) });
+  });
+
+  it("passes page text a popup's layer covers, which hides it while the popup is open, and measures what still shows", async () => {
+    mountPage('<p id="under" style="margin:0;color:#ccc;background:#fff;font-size:16px;line-height:24px">Under the panel</p>');
+    document.body.insertAdjacentHTML("beforeend", '<div data-base-ui-portal=""><div role="group" aria-label="Recipes" style="position:fixed;background:#222;color:#ccc"><p>Panel</p></div></div>');
+    const text = document.querySelector<HTMLElement>("#under")!;
+    const box = textBox(text);
+    const panel = document.querySelector<HTMLElement>('[role="group"]')!;
+    Object.assign(panel.style, { left: `${box.left - 4}px`, top: `${box.top - 4}px`, width: `${box.width + 8}px`, height: `${box.height + 8}px` });
+    expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
+    Object.assign(panel.style, { width: `${box.width / 2}px` });
+    expect(await measureTextContrast(text, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured/) });
+  });
+
+  it("measures SVG text by its fill, as a chart's axis labels are painted", async () => {
+    mountPage(
+      '<svg width="200" height="60" style="background:#fff"><text id="dark" x="10" y="20" font-size="12" fill="#595959">Mon</text><text id="faint" x="10" y="50" font-size="12" fill="#999">Tue</text></svg>',
+    );
+    expect(await measureTextContrast(document.querySelector<HTMLElement>("#dark")!, 4.5)).toEqual({ pass: true });
+    expect(await measureTextContrast(document.querySelector<HTMLElement>("#faint")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured 2\.\d\d:1/) });
+  });
+
+  it("passes a toggle inside a <label> whose text is its name and description, and fails one whose label says more", async () => {
+    mountPage(
+      '<label><span role="checkbox" aria-checked="false" tabindex="0" aria-labelledby="pan-label" aria-describedby="pan-hint"></span><span id="pan-label">Heat the pan</span><span id="pan-hint">Medium-high</span></label>',
+    );
+    expect(describeFindings(await scanPage())).toBe("");
+    document.querySelector("label")!.insertAdjacentHTML("beforeend", "<span>Ten minutes</span>");
+    expect(rules(await scanPage())).toEqual(["undecided aria-toggle-field-name"]);
+  });
+
+  it("passes a field with two labels when aria-labelledby names it, and fails it when nothing settles which label names it", async () => {
+    mountPage('<label id="photo-label" for="photo">Recipe photo</label><label>Drop a photo here<input id="photo" type="file" aria-labelledby="photo-label"></label>');
+    expect(describeFindings(await scanPage())).toBe("");
+    document.querySelector("input")!.removeAttribute("aria-labelledby");
+    expect(rules(await scanPage())).toEqual(["undecided form-field-multiple-labels"]);
+  });
+
+  it("passes a control hidden at rest that shows itself in the event that focuses it, as a toast's dismiss button does", async () => {
+    mountPage('<div id="stack" aria-hidden="true"><button type="button">Dismiss</button></div><div role="dialog" aria-modal="true" aria-label="Edit"><button type="button">Save</button></div>');
+    const stack = document.querySelector<HTMLElement>("#stack")!;
+    stack.addEventListener("focusin", () => stack.removeAttribute("aria-hidden"));
+    stack.addEventListener("focusout", () => stack.setAttribute("aria-hidden", "true"));
+    document.querySelector<HTMLElement>('[role="dialog"] button')!.focus();
+    expect(rules(await scanPage())).not.toContain("undecided aria-hidden-focus");
+  });
+
+  it("counts a popup's shadow on the text as the popup's, as it is drawn by the open popup", async () => {
+    mountPage('<p id="beside" style="margin:0;color:#555;background:#fff;font-size:16px;line-height:24px">Beside the calendar</p>');
+    document.body.insertAdjacentHTML("beforeend", '<div data-base-ui-portal=""><div role="dialog" aria-label="Calendar" style="position:fixed;width:120px;height:120px;background:#fff;box-shadow:0 0 16px 16px rgba(0,0,0,0.6)"></div></div>');
+    const text = document.querySelector<HTMLElement>("#beside")!;
+    const box = textBox(text);
+    // The popup sits just past the end of the line, so only its shadow falls on the text.
+    Object.assign(document.querySelector<HTMLElement>('[role="dialog"]')!.style, { left: `${box.right + 2}px`, top: `${box.top}px` });
+    expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
   });
 });

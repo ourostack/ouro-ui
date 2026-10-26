@@ -65,7 +65,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       <PageTitle eyebrow={item.group} title={item.title} lead={inline(purpose)} />
       <section
         aria-label="Live demo"
-        className="flex min-h-48 items-center justify-center rounded-2xl border border-border bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] px-5 py-10 sm:px-10"
+        className="flex min-h-48 items-center justify-center rounded-2xl border border-border px-5 py-10 sm:px-10"
       >
         <LiveDemo name={item.name} title={item.title} />
       </section>
