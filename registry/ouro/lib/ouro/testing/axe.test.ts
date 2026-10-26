@@ -284,6 +284,18 @@ describe("audit", () => {
     expect(rules(await scanPage())).not.toContain("undecided aria-hidden-focus");
   });
 
+  it("settles a link in running text whose block's background axe cannot read, as under an open list, by measuring the link against the text around it", async () => {
+    // Each paragraph's text is all in elements, so axe reads its background at its middle, below
+    // its line, where a box lies over it.
+    const paragraph = (id: string, link: string) =>
+      `<p style="position:relative;margin:0 0 8px;padding-bottom:48px;color:#111;background:#fff;font-size:16px;line-height:24px"><span>Read </span><a id="${id}" href="#${id}" style="text-decoration:none;${link}">the notes</a><span> before you cook.</span>` +
+      '<span style="position:absolute;left:calc(50% - 12px);top:24px;width:24px;height:24px;background:#333"></span></p>';
+    mountPage(paragraph("same", "color:inherit") + paragraph("blue", "color:#2563eb") + paragraph("faint", "color:#333"));
+    const findings = await scanPage();
+    expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided link-in-text-block #faint"]);
+    expect(findings[0]!.summary).toMatch(/^measured 1\.\d\d:1 between its text and the text around it, and 1\.00:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline$/);
+  });
+
   it("counts a popup's shadow on the text as the popup's, as it is drawn by the open popup", async () => {
     mountPage('<p id="beside" style="margin:0;color:#555;background:#fff;font-size:16px;line-height:24px">Beside the calendar</p>');
     document.body.insertAdjacentHTML("beforeend", '<div data-base-ui-portal=""><div role="dialog" aria-label="Calendar" style="position:fixed;width:120px;height:120px;background:#fff;box-shadow:0 0 16px 16px rgba(0,0,0,0.6)"></div></div>');
