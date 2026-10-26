@@ -67,6 +67,11 @@ describe("audit", () => {
     expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
   });
 
+  it("measures text the page hides from assistive technology that lets the pointer through, as decorative lettering does", async () => {
+    mountPage('<p aria-hidden="true" style="margin:0;color:#bbb;background:#fff;font-size:16px;line-height:24px;pointer-events:none"><span id="decor">Decorative text</span></p>');
+    expect(await measureTextContrast(document.querySelector("#decor")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured \d+\.\d\d:1/) });
+  });
+
   it("passes text over a gradient when every pixel behind it meets 4.5:1, and fails faint text over the same gradient", async () => {
     mountPage(
       '<p id="dark" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#ddd)">Dark text on a gradient</p>' +
@@ -84,6 +89,15 @@ describe("audit", () => {
         '<span id="second" style="display:block;color:#666">Second line</span></h1>',
     );
     expect(await measureTextContrast(document.querySelector("#second")!, 3)).toEqual({ pass: true });
+    // In a face with tall lines, as Geist's are, the descenders reach further and still do not count.
+    document.head.insertAdjacentHTML(
+      "beforeend",
+      '<style id="tall-face">@font-face { font-family: Tall; src: local("Helvetica"), local("Arial"), local("Liberation Sans"), local("DejaVu Sans"); ascent-override: 110%; descent-override: 32%; }</style>',
+    );
+    document.querySelector<HTMLElement>("#second")!.parentElement!.style.fontFamily = "Tall";
+    await document.fonts.load('64px "Tall"');
+    expect(await measureTextContrast(document.querySelector("#second")!, 3)).toEqual({ pass: true });
+    document.querySelector("#tall-face")!.remove();
   });
 
   it("measures text far down a long page under a sticky header as it shows once scrolled to", async () => {
@@ -208,6 +222,23 @@ describe("audit", () => {
     expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
     Object.assign(panel.style, { width: `${box.width / 2}px` });
     expect(await measureTextContrast(text, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured/) });
+  });
+
+  it("measures letters set on a curve against what is behind each turned letter, not the box around it", async () => {
+    // A light ring with a dark band along its middle, and the motto in the band: each letter turns
+    // with the curve, so the box around it reaches the light ring the letter itself never touches.
+    const band = (id: string, fill: string) =>
+      `<text font-size="14" font-family="sans-serif" font-weight="600" letter-spacing="3" dy="5"><textPath id="${id}" href="#arc" startOffset="50%" text-anchor="middle" fill="${fill}">MOBILIS IN MOBILI</textPath></text>`;
+    mountPage(
+      '<svg aria-hidden="true" width="260" height="150" style="background:#fff"><path id="arc" d="M 30 140 a 100 100 0 0 1 200 0" fill="none" />' +
+        '<path d="M 30 140 a 100 100 0 0 1 200 0" fill="none" stroke="#ddd" stroke-width="40" />' +
+        '<path d="M 30 140 a 100 100 0 0 1 200 0" fill="none" stroke="#111" stroke-width="22" />' +
+        band("light-motto", "#eee") +
+        "</svg>",
+    );
+    expect(await measureTextContrast(document.querySelector("#light-motto")!, 4.5)).toEqual({ pass: true });
+    document.querySelector("#light-motto")!.setAttribute("fill", "#555");
+    expect(await measureTextContrast(document.querySelector("#light-motto")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/^measured \d+\.\d\d:1/) });
   });
 
   it("measures SVG text by its fill, as a chart's axis labels are painted", async () => {

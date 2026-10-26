@@ -165,6 +165,17 @@ describe("Combobox", () => {
     expect(link.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("warns when its open list renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    const { input } = await render(<Combobox label="Herb" name="herb" items={herbs} />);
+    await userEvent.click(input);
+    await expect.poll(popup).not.toBeNull();
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      "[ouro-ui] Combobox: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
+  });
+
   it("filters the items as you type and picks one", async () => {
     const onValueChange = vi.fn();
     const { input, host } = await render(<Combobox label="Herb" name="herb" items={herbs} onValueChange={onValueChange} />);

@@ -189,12 +189,14 @@ function covered(root: Element, part: Edges, rtl: boolean, tag: [number, number]
   const start = (offset: number) => (rtl ? part.right - offset : part.left + offset);
   const corner = topAt(start(Math.min(4, (part.right - part.left) / 2)), part.top + Math.min(4, (part.bottom - part.top) / 2), own);
   if (corner && !root.contains(corner) && !corner.contains(root) && !ownerOf(corner)?.contains(root)) return true;
-  const overlay = topAt(tag[0], tag[1], own)?.closest('[data-ouro$="-portal"]');
+  // The tag's centre is on the screen, where the root element at least lies.
+  const overlay = topAt(tag[0], tag[1], own)!.closest('[data-ouro$="-portal"]');
   return !!overlay && !overlay.contains(root);
 }
 
 // Every line of text a person can see on the screen, but X-ray's own.
 function textLines(own: Element): Edges[] {
+  // Stryker disable next-line ArrayDeclaration: a string in the list has no edges, so it crosses no edge and lies over no place.
   const lines: Edges[] = [];
   const range = document.createRange();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -241,13 +243,13 @@ function framePath(box: DOMRect, lines: Edges[]): string {
 // Where a tag goes: the first place by its component's visible part, in this order, that is on the
 // screen and clear of text, of the tags placed before it and of X-ray's bar: above the start
 // corner, inside it, above the end corner, inside it, inside the bottom start corner, below it.
-// Above is only where there is room (not at the top of the screen, nor where a scrolling box cuts
-// the top edge). `null` when nowhere is clear, and the tag hides.
+// Above and below are only where a scrolling box does not cut that edge. `null` when nowhere is
+// clear, and the tag hides.
 function tagPlace(box: DOMRect, part: Edges, rtl: boolean, size: [number, number], clear: Edges[]): { x: number; y: number; inside: boolean } | null {
   const [width, height] = size;
   const start = rtl ? part.right - width : part.left;
   const end = rtl ? part.left : part.right - width;
-  const above = part.top >= 16 && part.top <= box.top;
+  const above = part.top <= box.top;
   const below = part.bottom >= box.bottom;
   const places = [
     above && { x: start, y: part.top - height, inside: false },
@@ -258,6 +260,7 @@ function tagPlace(box: DOMRect, part: Edges, rtl: boolean, size: [number, number
     below && { x: start, y: part.bottom, inside: false },
   ];
   for (const place of places) {
+    // Stryker disable next-line ConditionalExpression: a place left out is false, whose edges are undefined, and no check below passes them.
     if (!place) continue;
     const at = { top: place.y, right: place.x + width, bottom: place.y + height, left: place.x };
     if (at.left >= 0 && at.right <= innerWidth && at.top >= 0 && at.bottom <= innerHeight && !clear.some((other) => overlap(at, other))) return place;
@@ -359,24 +362,23 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
    * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides the outline and tag of a component scrolled out of view inside a box, and clips one partly out)
    * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.tsx verify:fileLine(registry/ouro/components/ouro/inspector/inspector.tsx, /const\sboxes\s=\scomponents\.map\(\(component\)\s=>\scomponent\.element\.getBoundingClientRect\(\)\)/)
    */
-  const place = (components: Found[]) => {
+  const place = (all: Found[]) => {
     const own = layer.current!;
+    // An outline React has yet to render is placed once it has, from the layout effect below.
+    const components = all.filter((component) => outlines.has(component.key));
     const ancestors = new Map<Element, Ancestor>();
     const boxes = components.map((component) => component.element.getBoundingClientRect());
     const parts = components.map((component, index) => visiblePart(component.element, boxes[index]!, ancestors));
+    const shown = parts.map((part) => part.right > part.left && part.bottom > part.top);
     const lines = textLines(own);
-    const tagOf = (component: Found) => outlines.get(component.key)?.lastElementChild as HTMLElement | undefined;
-    const sizes = components.map((component): [number, number] => {
-      const tag = tagOf(component);
-      return tag ? [tag.offsetWidth, tag.offsetHeight] : [0, 0];
-    });
+    const tags = components.map((component) => outlines.get(component.key)!.lastElementChild as HTMLElement);
+    const sizes = tags.map((tag): [number, number] => [tag.offsetWidth, tag.offsetHeight]);
     // Each tag keeps clear of the page's text, of the tags placed before it, and of the bar.
     const bar = own.querySelector("section")!.getBoundingClientRect();
     const clear: Edges[] = [...lines, { top: bar.top, right: bar.right, bottom: bar.bottom, left: bar.left }];
     const places = components.map((component, index) => {
-      const part = parts[index]!;
-      if (part.right <= part.left || part.bottom <= part.top) return null;
-      const spot = tagPlace(boxes[index]!, part, ancestors.get(component.element)!.rtl, sizes[index]!, clear);
+      if (!shown[index]) return null;
+      const spot = tagPlace(boxes[index]!, parts[index]!, ancestors.get(component.element)!.rtl, sizes[index]!, clear);
       if (spot) clear.push({ top: spot.y, right: spot.x + sizes[index]![0], bottom: spot.y + sizes[index]![1], left: spot.x });
       return spot;
     });
@@ -386,19 +388,18 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
     });
     const paths = components.map((_, index) => framePath(boxes[index]!, lines));
     components.forEach((component, index) => {
-      const outline = outlines.get(component.key);
-      if (!outline) return;
+      const outline = outlines.get(component.key)!;
       const box = boxes[index]!;
       const part = parts[index]!;
       outline.style.transform = `translate(${box.left}px, ${box.top}px)`;
       outline.style.width = `${box.width}px`;
       outline.style.height = `${box.height}px`;
-      outline.toggleAttribute("data-clipped", part.right <= part.left || part.bottom <= part.top);
+      outline.toggleAttribute("data-clipped", !shown[index]);
       const cut = [part.top - box.top, box.right - part.right, box.bottom - part.bottom, part.left - box.left];
       const frame = outline.firstElementChild as HTMLElement;
       frame.style.clipPath = cut.some(Boolean) ? `inset(${cut.join("px ")}px)` : "";
       frame.querySelector("path")!.setAttribute("d", paths[index]!);
-      const tag = outline.lastElementChild as HTMLElement;
+      const tag = tags[index]!;
       const spot = places[index];
       tag.toggleAttribute("data-crowded", !spot);
       tag.toggleAttribute("data-inside", !!spot?.inside);

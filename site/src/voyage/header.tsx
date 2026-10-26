@@ -1,7 +1,6 @@
-import { useCallback, useRef, type JSX } from "react";
+import { lazy, Suspense, useCallback, useRef, useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
-import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 import {
@@ -107,11 +106,16 @@ export function ThemePicker(): JSX.Element {
   );
 }
 
+// The palette's code loads the first time it opens, so the page's first load does not carry it.
+const Command = lazy(() => import("@/registry/ouro/components/ouro/command/command").then((module) => ({ default: module.Command })));
+
 /** ⌘K: the pages, the presets, light and dark, and X-ray. */
 function SiteCommand(): JSX.Element {
   const [open, setOpen] = useCommandShortcut("mod+k");
   const { setPreset, setMode } = useSiteTheme();
   const go = useCallback((url: string) => () => window.location.assign(url), []);
+  const [wanted, setWanted] = useState(false);
+  if (open && !wanted) setWanted(true);
   return (
     <>
       <Button
@@ -126,31 +130,35 @@ function SiteCommand(): JSX.Element {
         Search
         <Kbd keys={["mod", "k"]} className="ms-1" />
       </Button>
-      <Command
-        title="Command palette"
-        open={open}
-        onOpenChange={setOpen}
-        placeholder="Dive, repaint, or find a page…"
-        items={[
-          {
-            label: "Pages",
-            items: [
-              { label: "Docs", onSelect: go(href("/docs/installing/")), keywords: ["install", "guide"] },
-              { label: "Components", onSelect: go(href("/docs/")), keywords: ["catalog"] },
-              { label: "GitHub", onSelect: go(GITHUB), keywords: ["source", "repository"] },
-            ],
-          },
-          {
-            label: "Repaint",
-            items: [
-              ...presetList.map((item) => ({ label: `${item.label} theme`, onSelect: () => setPreset(item.name), keywords: [item.mood] })),
-              { label: "Surface (light)", onSelect: () => setMode("light"), keywords: ["light mode", "surfaced"] },
-              { label: "Submerge (dark)", onSelect: () => setMode("dark"), keywords: ["dark mode", "submerged"] },
-            ],
-          },
-          { label: "Tools", items: [{ label: "X-ray", onSelect: openXray, keywords: ["inspector", "outline", "components"] }] },
-        ]}
-      />
+      <Suspense>
+        {wanted && (
+          <Command
+            title="Command palette"
+            open={open}
+            onOpenChange={setOpen}
+            placeholder="Dive, repaint, or find a page…"
+            items={[
+              {
+                label: "Pages",
+                items: [
+                  { label: "Docs", onSelect: go(href("/docs/installing/")), keywords: ["install", "guide"] },
+                  { label: "Components", onSelect: go(href("/docs/")), keywords: ["catalog"] },
+                  { label: "GitHub", onSelect: go(GITHUB), keywords: ["source", "repository"] },
+                ],
+              },
+              {
+                label: "Repaint",
+                items: [
+                  ...presetList.map((item) => ({ label: `${item.label} theme`, onSelect: () => setPreset(item.name), keywords: [item.mood] })),
+                  { label: "Surface (light)", onSelect: () => setMode("light"), keywords: ["light mode", "surfaced"] },
+                  { label: "Submerge (dark)", onSelect: () => setMode("dark"), keywords: ["dark mode", "submerged"] },
+                ],
+              },
+              { label: "Tools", items: [{ label: "X-ray", onSelect: openXray, keywords: ["inspector", "outline", "components"] }] },
+            ]}
+          />
+        )}
+      </Suspense>
     </>
   );
 }

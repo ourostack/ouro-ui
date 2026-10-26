@@ -913,6 +913,14 @@
   stroke-width: 0.6;
   opacity: 0.6;
 }
+.stage-motto-band {
+  fill: none;
+  stroke: var(--background);
+  stroke-width: 30px;
+  stroke-linecap: round;
+  /* The middle of the arc, where the motto sits: a dash from 25 to 75 of the path's 100. */
+  stroke-dasharray: 0 25 50 25;
+}
 .stage-motto {
   font-family: var(--font-sans);
   font-size: 14px;

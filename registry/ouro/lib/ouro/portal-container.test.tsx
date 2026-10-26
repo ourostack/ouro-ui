@@ -1,6 +1,7 @@
 import { Popover } from "@base-ui/react/popover";
 import { createRef, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
@@ -110,6 +111,17 @@ describe("usePortalContainer", () => {
       </OuroProvider>,
     );
     expect(portalOf("Tags").parentElement).toBe(document.body);
+  });
+
+  it("renders on the server, where a portal renders nothing and a ref holds no element yet", () => {
+    const ref = createRef<HTMLDivElement>();
+    const html = renderToString(
+      <OuroProvider portalContainer={ref}>
+        <Layer name="Tags" component="Served" />
+      </OuroProvider>,
+    );
+    expect(html).toContain("Open Tags");
+    expect(html).not.toContain('data-layer="Tags"');
   });
 
   it("keeps the portalContainer of an outer OuroProvider inside one that does not set it", async () => {

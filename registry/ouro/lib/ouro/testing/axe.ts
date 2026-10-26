@@ -342,6 +342,57 @@ function textBoxes(element: Element): DOMRect[] {
   return boxes;
 }
 
+/** A letter's cell on the screen: its corners, in order, and the box around them. */
+interface Cell {
+  box: DOMRect;
+  corners: DOMPoint[];
+}
+
+// The cells of SVG text's letters, each turned as it is drawn (text set on a curve turns each
+// letter), so a letter is measured against what is behind it and not the box around it. Null for
+// other text, and for SVG text with markup inside, which textBoxes measures by its lines.
+function letterCells(element: Element): Cell[] | null {
+  if (!(element instanceof SVGTextContentElement) || [...element.childNodes].some((child) => child.nodeType !== Node.TEXT_NODE)) return null;
+  const matrix = element.getScreenCTM();
+  if (!matrix) return null;
+  const text = element.textContent ?? "";
+  const cells: Cell[] = [];
+  for (let index = 0; index < element.getNumberOfChars(); index++) {
+    if (!text[index]?.trim()) continue;
+    const extent = element.getExtentOfChar(index);
+    const start = element.getStartPositionOfChar(index);
+    const end = element.getEndPositionOfChar(index);
+    const angle = (element.getRotationOfChar(index) * Math.PI) / 180;
+    const [cos, sin] = [Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))];
+    const advance = Math.hypot(end.x - start.x, end.y - start.y);
+    // The extent is the box around the turned cell, so the cell's height comes from it.
+    const height = cos >= sin ? (extent.height - advance * sin) / cos : (extent.width - advance * cos) / sin;
+    const center = { x: extent.x + extent.width / 2, y: extent.y + extent.height / 2 };
+    const along = { x: Math.cos(angle), y: Math.sin(angle) };
+    const across = { x: -along.y, y: along.x };
+    const corners = [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ].map(([a, b]) => new DOMPoint(center.x + (a! * advance * along.x + b! * height * across.x) / 2, center.y + (a! * advance * along.y + b! * height * across.y) / 2).matrixTransform(matrix));
+    const xs = corners.map((corner) => corner.x);
+    const ys = corners.map((corner) => corner.y);
+    const box = new DOMRect(Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    if (box.width > 0 && box.height > 0) cells.push({ box, corners });
+  }
+  return cells;
+}
+
+// Whether a point is inside a cell's corners, which go round it in order.
+function insideCell(corners: { x: number; y: number }[], x: number, y: number): boolean {
+  const sides = corners.map((corner, index) => {
+    const next = corners[(index + 1) % corners.length]!;
+    return Math.sign((next.x - corner.x) * (y - corner.y) - (next.y - corner.y) * (x - corner.x));
+  });
+  return sides.every((side) => side >= 0) || sides.every((side) => side <= 0);
+}
+
 // The opacity the element's text is painted with: its own and every ancestor's, multiplied.
 function paintedOpacity(element: Element): number {
   let opacity = 1;
@@ -412,8 +463,9 @@ async function measureTextContrast(element: Element, required: number): Promise<
   return (await measureTexts(element, [{ element, required }], true))[0]!;
 }
 
-// The elements whose own text is drawn over the text of `measured` (a quarter of a line's height or
-// more, so a line's descenders reaching into the next do not count), outside those elements.
+// The elements whose own text is drawn over the text of `measured` (half a line's height or more,
+// so a line's descenders reaching into the next do not count, even in a face with tall lines),
+// outside those elements.
 function overlappingText(measured: Element[]): Set<Element> {
   const lines = measured.flatMap((element) => textBoxes(element));
   const kept = new Set<Element>();
@@ -424,7 +476,7 @@ function overlappingText(measured: Element[]): Set<Element> {
     if (!parent || kept.has(parent) || !node.textContent?.trim() || measured.some((element) => element.contains(parent))) continue;
     range.selectNodeContents(node);
     const over = [...range.getClientRects()].some((box) =>
-      lines.some((line) => Math.min(box.right, line.right) - Math.max(box.left, line.left) > 0 && Math.min(box.bottom, line.bottom) - Math.max(box.top, line.top) >= line.height / 4),
+      lines.some((line) => Math.min(box.right, line.right) - Math.max(box.left, line.left) > 0 && Math.min(box.bottom, line.bottom) - Math.max(box.top, line.top) >= line.height / 2),
     );
     if (over) kept.add(parent);
   }
@@ -478,6 +530,9 @@ async function measureTexts(root: Element, items: { element: Element; required: 
   return items.map((item) => verdicts.get(item)!);
 }
 
+/** What hides an element from assistive technology. */
+const hiddenFromAt = '[aria-hidden="true"], [inert]';
+
 // Measures each element's text against one screenshot of `root` as it is scrolled now.
 async function shoot(root: Element, items: { element: Element; required: number }[], last: boolean): Promise<Verdict[]> {
   if (!root.isConnected || items.some(({ element }) => !element.isConnected)) {
@@ -487,12 +542,16 @@ async function shoot(root: Element, items: { element: Element; required: number 
   // The boxes within the root, not on the screen: taking the screenshot can scroll the page.
   const start = root.getBoundingClientRect();
   const texts = items.map(({ element, required }) => {
-    const boxes = textBoxes(element).map((box) => new DOMRect(box.left - start.left, box.top - start.top, box.width, box.height));
+    // Within the root: each line's box, or each letter's cell for SVG text.
+    const cells = (letterCells(element) ?? textBoxes(element).map((box) => ({ box, corners: null }))).map(({ box, corners }) => ({
+      box: new DOMRect(box.left - start.left, box.top - start.top, box.width, box.height),
+      corners: corners?.map((corner) => ({ x: corner.x - start.left, y: corner.y - start.top })) ?? null,
+    }));
     // SVG text, such as a chart's axis labels, is painted with its fill.
     const style = getComputedStyle(element);
     const color = toRgba(element instanceof SVGElement ? style.fill : style.color);
     const fillOpacity = element instanceof SVGElement ? Number.parseFloat(style.fillOpacity) : 1;
-    return { element, required, boxes, text: { ...color, a: color.a * fillOpacity * paintedOpacity(element) } };
+    return { element, required, cells, text: { ...color, a: color.a * fillOpacity * paintedOpacity(element) } };
   });
   // The open popups' layers (Base UI portals) the text is not in: whatever they paint over the text,
   // shadows included, is theirs. A second screenshot without them shows which pixels those are.
@@ -502,7 +561,7 @@ async function shoot(root: Element, items: { element: Element; required: number 
     return box.width > 0 && box.height > 0 && box.right > start.left - 64 && box.left < start.right + 64 && box.bottom > start.top - 64 && box.top < start.bottom + 64;
   };
   const layers = [...document.querySelectorAll("[data-base-ui-portal]")].filter(
-    (layer) => !layer.contains(root) && !layer.closest('[aria-hidden="true"], [inert]') && [layer, ...layer.querySelectorAll("*")].some(near),
+    (layer) => !layer.contains(root) && !layer.closest(hiddenFromAt) && [layer, ...layer.querySelectorAll("*")].some(near),
   );
   const kept = overlappingText(items.map(({ element }) => element));
   const hide = document.createElement("style");
@@ -539,22 +598,27 @@ async function shoot(root: Element, items: { element: Element; required: number 
   }
   const origin = root.getBoundingClientRect();
   const scale = context.canvas.width / origin.width;
-  return texts.map(({ element, required, boxes, text }) => {
-    if (boxes.length === 0) return { pass: false, reason: "axe could not judge its contrast, and it has no text of its own to measure" };
+  // The page's elements exposed to assistive technology, with their boxes as the page is scrolled now.
+  let exposed: { other: Element; box: DOMRect }[] | undefined;
+  const exposedBoxes = () =>
+    (exposed ??= [...document.body.querySelectorAll("*")].filter((other) => !other.closest(hiddenFromAt)).map((other) => ({ other, box: other.getBoundingClientRect() })));
+  return texts.map(({ element, required, cells, text }) => {
+    if (cells.length === 0) return { pass: false, reason: "axe could not judge its contrast, and it has no text of its own to measure" };
     // Where an open popup covers the text, those pixels are the popup's, measured as its own text:
     // what a popup's layer paints, or any exposed layer over text the popup shuts off from assistive
     // technology. What still shows is measured. A layer hidden from assistive technology (an
-    // overlay's outlines and tags) covers nothing.
-    const shutOff = element.closest('[aria-hidden="true"], [inert]') !== null;
+    // overlay's outlines and tags) covers nothing, and neither does what holds the text. Only a
+    // pixel inside an exposed element's box is hit-tested.
+    const layered = element.closest(hiddenFromAt) === null ? [] : exposedBoxes().filter(({ other }) => !other.contains(element));
     const coveredAt = (x: number, y: number) => {
-      if (!shutOff) return false;
+      if (!layered.some(({ box }) => x >= box.left && x < box.right && y >= box.top && y < box.bottom)) return false;
       const top = document.elementFromPoint(x, y);
-      return top !== null && !element.contains(top) && !top.closest('[aria-hidden="true"], [inert]');
+      return top !== null && !element.contains(top) && !top.contains(element) && !top.closest(hiddenFromAt);
     };
     let worst = Number.POSITIVE_INFINITY;
     let measured = 0;
     let covered = 0;
-    for (const box of boxes) {
+    for (const { box, corners } of cells) {
       const left = Math.max(0, Math.floor(box.left * scale));
       const top = Math.max(0, Math.floor(box.top * scale));
       const right = Math.min(context.canvas.width, Math.ceil(box.right * scale));
@@ -565,6 +629,7 @@ async function shoot(root: Element, items: { element: Element; required: number 
       const under = bare?.getImageData(left, top, width, bottom - top).data;
       for (let index = 0; index < pixels.length; index += 4) {
         const pixel = index / 4;
+        if (corners && !insideCell(corners, (left + (pixel % width) + 0.5) / scale, (top + Math.floor(pixel / width) + 0.5) / scale)) continue;
         const painted = under !== undefined && [0, 1, 2].some((channel) => Math.abs(pixels[index + channel]! - under[index + channel]!) > 2);
         if (painted || coveredAt(origin.left + (left + (pixel % width) + 0.5) / scale, origin.top + (top + Math.floor(pixel / width) + 0.5) / scale)) {
           covered++;

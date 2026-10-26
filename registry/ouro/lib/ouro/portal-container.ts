@@ -84,6 +84,6 @@ function usePortalContainer(component: string): PortalContainerProps {
   if (nested) return {};
   return {
     ...(container ? { container } : {}),
-    ...(process.env.NODE_ENV !== "production" ? { ref: check } : {}),
+    ...(process.env.NODE_ENV !== "production" ? { ref: check } : /* istanbul ignore next @preserve -- production only */ {}),
   };
 }

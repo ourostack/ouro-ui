@@ -530,17 +530,21 @@ const openDialogs = () => document.querySelectorAll('[role="dialog"], [role="ale
  * the portal, which holds the list only while it is open.
  */
 function KeepPageExposed(): null {
-  useLayoutEffect(() => {
-    const dialogs = openDialogs();
-    const observer = new MutationObserver((records) => {
-      if (openDialogs() > dialogs) return;
-      const kept = [...document.querySelectorAll('[role="combobox"][aria-expanded="true"], [data-ouro="combobox-portal"]')];
-      for (const { target } of records) if (kept.some((element) => target.parentNode!.contains(element))) (target as Element).removeAttribute("aria-hidden");
-    });
-    observer.observe(document.body, { attributes: true, attributeFilter: ["aria-hidden"], subtree: true });
-    return () => observer.disconnect();
+  useLayoutEffect(
+    () => {
+      const dialogs = openDialogs();
+      const observer = new MutationObserver((records) => {
+        if (openDialogs() > dialogs) return;
+        const kept = [...document.querySelectorAll('[role="combobox"][aria-expanded="true"], [data-ouro="combobox-portal"]')];
+        for (const { target } of records) if (kept.some((element) => target.parentNode!.contains(element))) (target as Element).removeAttribute("aria-hidden");
+      });
+      observer.observe(document.body, { attributes: true, attributeFilter: ["aria-hidden"], subtree: true });
+      // Stryker disable next-line ArrowFunction: once the list closes nothing is around it to unhide, so an observer left connected changes nothing.
+      return () => observer.disconnect();
+    },
     // Stryker disable next-line ArrayDeclaration: the effect reads nothing from render, so it runs once whatever its dependencies.
-  }, []);
+    [],
+  );
   return null;
 }
 
