@@ -154,7 +154,7 @@ const needs = claim(
 function testingDocs(): string {
   for (const [name, label] of [["vitest", "Vitest"], ["playwright", "Playwright"], ["axe-core", "axe-core"], ["storybook", "Storybook"]] as const) {
     if (!needs.includes(`${label} ${toolingMinimum[name]} or later`)) {
-      throw new Error(`The ouro-testing docs name another ${name} minimum than toolingMinimum (${toolingMinimum[name]}). Update both in scripts/registry.mts.`);
+      throw new Error(`The ouro-testing docs name another ${name} minimum than toolingMinimum (${toolingMinimum[name]}). Update the needs sentence in scripts/registry.mts${name === "axe-core" ? " to match axeMinimum in registry/ouro/lib/ouro/testing/axe-version.ts" : " and toolingMinimum together"}.`);
     }
   }
   const file = (path: string) => `--- ${path}\n${testingSetup[path]}`;

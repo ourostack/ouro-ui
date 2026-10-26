@@ -60,7 +60,7 @@ async function identitiesOnPage(page) {
  */
 export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, intervalMs = SETTLE_INTERVAL_MS } = {}) {
   // The registry names axe-core without a version, so an app keeps the one it has; the census reads
-  // names with axe's own computation, so it runs on the axe-core audit is tested on.
+  // names with axe's own computation, so it needs the axe-core that audit needs.
   requireAxe(axe.version, "Ouro census");
   await page.evaluate(axe.source);
   let previous = JSON.stringify(toMultiset(await identitiesOnPage(page)));
