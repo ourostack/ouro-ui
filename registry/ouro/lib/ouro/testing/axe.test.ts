@@ -36,16 +36,19 @@ describe("audit", () => {
   it("refuses an axe-core older than 4.13.0, naming the version it needs and the version it found", async () => {
     mountPage("<p>Text</p>");
     const installed = axe.version;
+    const scans = vi.spyOn(axe, "run");
     try {
-      for (const old of ["4.11.1", "4.12.9", "3.99.99", "canary"]) {
+      for (const old of ["4.11.1", "4.12.9", "4.9.0", "3.99.99", "4.13.0-canary.1", "canary"]) {
         axe.version = old;
         await expect(scanPage()).rejects.toThrow(`audit needs axe-core 4.13.0 or later, and found ${old}.`);
       }
-      for (const recent of ["4.13.0", "4.13.2", "5.0.0"]) {
+      expect(scans).not.toHaveBeenCalled();
+      for (const recent of ["4.13.0", "4.13.2", "4.100.0", "10.0.0"]) {
         axe.version = recent;
         expect(await scanPage()).toEqual([]);
       }
     } finally {
+      scans.mockRestore();
       axe.version = installed;
     }
   });

@@ -9,7 +9,7 @@ Ouro UI's tests install beside each component and run in your app, in real brows
 | `vitest`, `@vitest/browser-playwright` | 4.1.11 or later, in browser mode[^minimums] | 5.0.3[^ci-versions] |
 | `playwright`, `@playwright/test` | 1.58.1 or later, with Chromium and WebKit installed (`npx playwright install chromium webkit`)[^minimums] | 1.63.0[^ci-versions] |
 | `storybook`, `@storybook/react-vite` | 10.2.10 or later, only for the stories and the specs in `e2e/ouro`[^minimums] | 10.6.1[^ci-versions] |
-| `axe-core` | 4.13.0 or later: `audit` throws on an older one, naming the version it found[^axe-minimum] | 4.13.0[^ci-versions] |
+| `axe-core` | 4.13.0 or later: `audit` throws on an older one, naming the version it found[^axe-minimum] | 4.13.0[^ci-axe] |
 
 The `-tests` items list these as devDependencies without a version. The shadcn CLI installs a package only when your `package.json` has no entry for it, so an add never upgrades or downgrades a tool you already have.[^test-versions] v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] Each item's `meta.requires` in the registry holds the same minimums for tools that read it.[^test-versions] The CLI does not check them, so an older tool your app already has stays; `audit` is why axe-core's minimum matters, and it checks it each time it runs.[^axe-minimum]
 
@@ -127,7 +127,8 @@ announcements.stop();
 `changes` lists every announcement in order, each with its `region` and `text`; `matching(text)` and `count(text)` find those whose text includes `text`.[^announcements] Toast's tests use it.
 
 [^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(scripts/registry.mts, /"axe-core": "4\.13\.0"/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
-[^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.63.0 verify:equals(package.json#devDependencies.storybook)=10.6.1 verify:equals(package.json#devDependencies.axe-core)=^4.13.0
+[^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.63.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
+[^ci-axe]: pnpm-lock.yaml verify:fileLine(pnpm-lock.yaml, /^  axe-core@4\.13\.0:$/)
 [^axe-minimum]: registry/ouro/lib/ouro/testing/axe.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > refuses an axe-core older than 4.13.0, naming the version it needs and the version it found) verify:testExists(scripts/registry.test.mjs::the ouro-testing message names axe-core's minimum, the one audit checks when it runs)
 [^vitest-4-section]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /^## .*Vitest 4/)
 [^v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)

@@ -108,7 +108,8 @@ export const testingSetup: Record<string, string> = {
 
 /**
  * The oldest test tooling the shipped tests are known to run on: the stack of the first app
- * that ran them on Vitest 4 (Spoonjoy, with the two changes docs/guides/testing.md gives).
+ * that ran them on Vitest 4 (Spoonjoy, with the two changes docs/guides/testing.md gives), and
+ * the axe-core audit checks for when it runs.
  * This repository's CI runs the versions in package.json. A -tests item names each package
  * without a version (see the header), and states these as ranges in meta.requires.
  */
@@ -648,7 +649,7 @@ export function buildRegistry(root: string): Registry {
     if (!item.devDependencies) continue;
     const requires: Record<string, string> = {};
     for (const name of item.devDependencies.map(packageOf)) {
-      // Test tooling has a known oldest stack; any other package (axe-core) is as tested here.
+      // Test tooling and axe-core have a known minimum; any other package is as tested here.
       requires[name] = `>=${toolingMinimum[name] ?? pin(name).slice(name.length + 2)}`;
     }
     item.meta = { requires };

@@ -107,7 +107,7 @@ async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
   // The registry names axe-core without a version, so an app keeps the one it has; an older one
   // decides some checks differently (link-in-text-block among them), so it must not pass quietly.
   if (!atLeast(axe.version, axeMinimum)) {
-    throw new Error(`audit needs axe-core ${axeMinimum} or later, and found ${axe.version}. Upgrade it in your app's devDependencies, for example npm install -D axe-core@^${axeMinimum}.`);
+    throw new Error(`audit needs axe-core ${axeMinimum} or later, and found ${axe.version}. Upgrade axe-core to ^${axeMinimum} where your package.json lists it.`);
   }
   // A node that leaves the page while it is measured (a "Searching…" line once results come) means
   // the page changed under the scan: scan the page as it is now, and fail once it never holds still.
@@ -124,14 +124,14 @@ async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
 /** The oldest axe-core audit runs on; the ouro-testing item states the same minimum (scripts/registry.mts). */
 const axeMinimum = "4.13.0";
 
-/** Whether `version` is `minimum` or later, by major, minor and patch. */
+/** Whether `version` is `minimum` or later, by major, minor and patch; a prerelease comes before its release. */
 function atLeast(version: string, minimum: string): boolean {
-  const parts = (text: string) => /^(\d+)\.(\d+)\.(\d+)/.exec(text)?.slice(1).map(Number);
+  const parts = (text: string) => /^(\d+)\.(\d+)\.(\d+)(-)?/.exec(text);
   const have = parts(version);
   const need = parts(minimum)!;
   if (!have) return false;
-  const differs = have.findIndex((part, index) => part !== need[index]);
-  return differs === -1 || have[differs]! > need[differs]!;
+  const differs = [1, 2, 3].find((index) => Number(have[index]) !== Number(need[index]));
+  return differs === undefined ? !have[4] : Number(have[differs]) > Number(need[differs]);
 }
 
 /** Thrown when a node the scan found has left the page by the time it is measured. */
