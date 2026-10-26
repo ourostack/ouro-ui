@@ -23,23 +23,23 @@ import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 
 Type: `CheckboxProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `checked` | `boolean` |  | Whether it is checked, for a controlled checkbox; pair it with `onCheckedChange`. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style checkboxes in your theme. |
-| `defaultChecked` | `boolean` |  | Whether it starts checked, for an uncontrolled checkbox. |
-| `description` | `ReactNode` |  | Supporting text under the label, read after it through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables the checkbox and fades it. |
-| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
-| `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the checkbox's name. |
-| `indeterminate` | `boolean` |  | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. It is controlled: a click does not clear it, so clear it in `onCheckedChange`, as in `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box submits only while `checked`. |
-| `label` (required) | `string` |  | What checking it means, shown to the right of the box and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
-| `name` | `string` |  | The form field name it submits under when checked. In a `CheckboxGroup`, the group's `name` applies. |
-| `onCheckedChange` | `((checked: boolean) => void)` |  | Called with the new state when it is checked or unchecked. |
-| `readOnly` | `boolean` |  | Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. |
-| `ref` | `Ref<HTMLElement>` |  | The box element, a `<span role="checkbox">`. |
-| `required` | `boolean` |  | The box must be checked to submit the form (accepting terms): it gets `required` and `aria-required`, and the label a marker. In a `CheckboxGroup`, pass it to the group. |
-| `value` | `string` |  | What a checked box submits (`on` without one). In a `CheckboxGroup`, it identifies the box in the group's `value`, so it is required there. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `checked` | `boolean` | Whether it is checked, for a controlled checkbox; pair it with `onCheckedChange`. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style checkboxes in your theme. |
+| `defaultChecked` | `boolean` | Whether it starts checked, for an uncontrolled checkbox. |
+| `description` | `ReactNode` | Supporting text under the label, read after it through `aria-describedby`. |
+| `disabled` | `boolean` | Disables the checkbox and fades it. |
+| `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
+| `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the checkbox's name. |
+| `indeterminate` | `boolean` | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. It is controlled: a click does not clear it, so clear it in `onCheckedChange`, as in `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box submits only while `checked`. |
+| `label` (required) | `string` | What checking it means, shown to the right of the box and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
+| `name` | `string` | The form field name it submits under when checked. In a `CheckboxGroup`, the group's `name` applies. |
+| `onCheckedChange` | `((checked: boolean) => void)` | Called with the new state when it is checked or unchecked. |
+| `readOnly` | `boolean` | Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. |
+| `ref` | `Ref<HTMLElement>` | The box element, a `<span role="checkbox">`. |
+| `required` | `boolean` | The box must be checked to submit the form (accepting terms): it gets `required` and `aria-required`, and the label a marker. In a `CheckboxGroup`, pass it to the group. |
+| `value` | `string` | What a checked box submits (`on` without one). In a `CheckboxGroup`, it identifies the box in the group's `value`, so it is required there. |
 
 ## Don't use
 

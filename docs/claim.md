@@ -23,10 +23,10 @@ const tagline = claim("Checkout passes axe in every theme.", {
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `text` | `Text` |  |
-| `evidence` | `ClaimEvidence` |  |
+| Parameter | Type |
+| --- | --- |
+| `text` | `Text` |
+| `evidence` | `ClaimEvidence` |
 
 ## Returns
 

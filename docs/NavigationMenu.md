@@ -39,13 +39,13 @@ Use `Menu` for actions rather than pages, and `Sidebar` for a column of links.
 
 Type: `NavigationMenuProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: margins, grid placement (`ms-4`). Appearance classes warn in development. |
-| `currentPath` | `string` |  | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path, or else the longest link above it, gets `aria-current="page"`, in the row or in a panel. |
-| `items` (required) | `readonly NavigationMenuItem[]` |  | The row's items, in order: links, and buttons that open a panel of links. |
-| `label` (required) | `string` |  | Names the navigation for screen readers ("Main"). It is not shown. |
-| `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `className` | `string` | Layout only: margins, grid placement (`ms-4`). Appearance classes warn in development. |
+| `currentPath` | `string` | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path, or else the longest link above it, gets `aria-current="page"`, in the row or in a panel. |
+| `items` (required) | `readonly NavigationMenuItem[]` | The row's items, in order: links, and buttons that open a panel of links. |
+| `label` (required) | `string` | Names the navigation for screen readers ("Main"). It is not shown. |
+| `ref` | `Ref<HTMLElement>` | Reaches the rendered element. |
 
 ## Don't use
 

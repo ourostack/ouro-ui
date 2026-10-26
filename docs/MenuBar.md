@@ -29,10 +29,10 @@ import { MenuBar } from "@/registry/ouro/components/ouro/menu/menu";
 
 Type: `MenuBarProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The menus, each `<Menu label="File">…</Menu>`. |
-| `className` | `string` |  | Layout only: margins and width. Appearance classes warn in development. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The menus, each `<Menu label="File">…</Menu>`. |
+| `className` | `string` | Layout only: margins and width. Appearance classes warn in development. |
 
 ## Native attributes
 

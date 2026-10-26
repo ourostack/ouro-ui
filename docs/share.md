@@ -21,9 +21,9 @@ if (result === "copied") toast("Link copied");
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `data` | `ShareContent` |  |
+| Parameter | Type |
+| --- | --- |
+| `data` | `ShareContent` |
 
 ## Returns
 

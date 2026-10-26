@@ -40,10 +40,10 @@ The props the modes share. Type: `BadgeProps`.
 
 ### With `href`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `href` (required) | `string` |  | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link); absolute URLs render as a plain `<a>`, and with `target="_blank"` always get `rel="noopener noreferrer"`. |
-| `ref` | `Ref<HTMLAnchorElement>` |  | Reaches the rendered element. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `href` (required) | `string` | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link); absolute URLs render as a plain `<a>`, and with `target="_blank"` always get `rel="noopener noreferrer"`. |
+| `ref` | `Ref<HTMLAnchorElement>` | Reaches the rendered element. |
 
 Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 

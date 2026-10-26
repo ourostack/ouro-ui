@@ -72,6 +72,12 @@ test("testFilesFor runs a component file's folder's tests, and a lib file's own 
   assert.ok(!handoff.wider.some((file) => file.startsWith("registry/ouro/components/ouro/button/")));
 });
 
+test("testFilesFor counts the lib tests that import a lib file as its own, as ouro-provider's tests do use-ouro's hook", () => {
+  const useOuro = testFilesFor(["registry/ouro/lib/ouro/use-ouro.ts"]);
+  assert.ok(useOuro.own.includes("registry/ouro/lib/ouro/ouro-provider.test.tsx"));
+  assert.ok(useOuro.own.every((file) => file.startsWith("registry/ouro/lib/ouro/") && /\.test\.tsx?$/.test(file)));
+});
+
 test("survivors are the mutants that survived or that no test reached, described by place, mutator and replacement", () => {
   const results = [
     { status: "Killed", fileName: "a.ts", mutatorName: "BooleanLiteral", replacement: "false", location: { start: { line: 1, column: 0 } } },

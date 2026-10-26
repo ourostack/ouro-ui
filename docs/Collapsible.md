@@ -26,16 +26,16 @@ import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collaps
 
 Type: `CollapsibleProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | What shows while it is open. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. |
-| `defaultOpen` | `boolean` |  | Opens it first, when the component keeps its own state. |
-| `disabled` | `boolean` |  | Keeps it from opening or closing. |
-| `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the person opens or closes it. |
-| `open` | `boolean` |  | Whether it is open, when you control it. Pair it with `onOpenChange`. |
-| `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `title` (required) | `ReactNode` |  | The title, in view whether open or closed. It is the button that opens and closes the content. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | What shows while it is open. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. |
+| `defaultOpen` | `boolean` | Opens it first, when the component keeps its own state. |
+| `disabled` | `boolean` | Keeps it from opening or closing. |
+| `onOpenChange` | `((open: boolean) => void)` | Called with the new state when the person opens or closes it. |
+| `open` | `boolean` | Whether it is open, when you control it. Pair it with `onOpenChange`. |
+| `ref` | `Ref<HTMLDivElement>` | Reaches the rendered element. |
+| `title` (required) | `ReactNode` | The title, in view whether open or closed. It is the button that opens and closes the content. |
 
 ## Don't use
 

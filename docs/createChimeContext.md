@@ -18,12 +18,6 @@ const start = () => {
 };
 ```
 
-## Parameters
-
-| Parameter | Type | Default |
-| --- | --- | --- |
-
-
 ## Returns
 
 `AudioContext | null`

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
@@ -546,6 +546,40 @@ test("the lint command reads a pull request's title and body from the environmen
   const failed = run("Fix the dialog's focus", "Every test passes now.");
   assert.equal(failed.status, 1);
   assert.match(failed.stderr, /pull request body:1: "Every test passes now\." makes a universal claim/);
+});
+
+test("the lint command fetches a link that only a pull request's text cites, and leaves the URL cache alone", async () => {
+  // The full check fails a cache entry no file cites, so a link cited only in the title, the
+  // body or a draft is fetched when it is linted, and never written to the cache.
+  const server = createServer((request, response) => {
+    response.statusCode = request.url === "/ok" ? 200 : 404;
+    response.end();
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const at = (path) => `http://127.0.0.1:${server.address().port}${path}`;
+  const root = fixture({ "claims-urls.json": "{}\n" });
+  const run = (args, env = {}, input = "") =>
+    new Promise((done) => {
+      const child = spawn(process.execPath, [script, "lint", ...args, "--root", root], { env: { ...process.env, ...env } });
+      let stderr = "";
+      child.stderr.on("data", (chunk) => (stderr += chunk));
+      child.on("close", (status) => done({ status, stderr }));
+      child.stdin.end(input);
+    });
+  const cited = (path) => `Base UI [hides the button](${at(path)} "verify:urlOk(${at(path)})").`;
+  try {
+    const passed = await run(["--pr"], { PR_TITLE: "Fix the toast", PR_BODY: cited("/ok") });
+    assert.equal(passed.status, 0, passed.stderr);
+    const gone = await run(["--pr"], { PR_TITLE: "Fix the toast", PR_BODY: cited("/gone") });
+    assert.equal(gone.status, 1);
+    assert.match(gone.stderr, /answered 404/);
+    assert.doesNotMatch(gone.stderr, /commit/);
+    const draft = await run(["--stdin", "--name", "pull request body"], {}, cited("/ok"));
+    assert.equal(draft.status, 0, draft.stderr);
+    assert.equal(readFileSync(join(root, "claims-urls.json"), "utf8"), "{}\n");
+  } finally {
+    server.close();
+  }
 });
 
 test("the lint command reads a draft from stdin under the name it is given", () => {

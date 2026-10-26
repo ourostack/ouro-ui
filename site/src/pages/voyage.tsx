@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
+import { Popups, PopupsProvider } from "../components/popups";
 import { href } from "../paths";
 import { ChapterOneIsland } from "../voyage/chapters/island";
 import { VoyageHeader } from "../voyage/header";
@@ -47,24 +48,27 @@ export default function VoyagePage(): JSX.Element {
   useEffect(() => () => setXray(false), []);
   return (
     <OuroProvider>
-      {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
-      <div className="voyage min-h-dvh bg-background text-foreground">
-        <Suspense>
-          <VoyageHeader />
-        </Suspense>
-        <main>
-          <Hero onXray={openXray} />
+      <PopupsProvider>
+        {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
+        <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <Repaint />
+            <VoyageHeader />
           </Suspense>
-          <ChapterOneIsland />
-        </main>
-        <Suspense>
-          <VoyageFooter />
-        </Suspense>
-      </div>
-      <Xray />
-      <Toaster />
+          <main>
+            <Hero onXray={openXray} />
+            <Suspense>
+              <Repaint />
+            </Suspense>
+            <ChapterOneIsland />
+            <Popups />
+          </main>
+          <Suspense>
+            <VoyageFooter />
+          </Suspense>
+        </div>
+        <Xray />
+        <Toaster />
+      </PopupsProvider>
     </OuroProvider>
   );
 }

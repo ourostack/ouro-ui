@@ -39,16 +39,16 @@ import { Table } from "@/registry/ouro/components/ouro/table/table";
 
 The props the modes share. Type: `TableProps<Row>`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `caption` (required) | `string` |  | What the table shows: "Recipes", "Order history". It names the table and its scrolling region for screen readers, and shows above it unless `hideCaption`. |
-| `className` | `string` |  | Layout: margins, width, and the height the table scrolls inside (`max-h-96`). Appearance classes warn in development; put the Table inside a `Card` for a frame. |
-| `dense` | `boolean` |  | Tighter cells, for many rows. A row is still 44px tall on a touch screen when it is a link. |
-| `hideCaption` | `boolean` |  | Hides the caption visually and keeps it as the table's name, when a heading already shows it. |
-| `ref` | `Ref<HTMLTableElement>` |  | A ref to the `<table>` element. |
-| `stickyHeader` | `boolean` |  | Keeps the header row at the top while the rows scroll under it. The table scrolls inside its own height, so give it one: `className="max-h-96"`. It keeps working while the table also scrolls sideways. |
-| `striped` | `boolean` |  | Shades every other body row, for long rows that are hard to follow across. |
-| `style` | `CSSProperties` |  |  |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `caption` (required) | `string` | What the table shows: "Recipes", "Order history". It names the table and its scrolling region for screen readers, and shows above it unless `hideCaption`. |
+| `className` | `string` | Layout: margins, width, and the height the table scrolls inside (`max-h-96`). Appearance classes warn in development; put the Table inside a `Card` for a frame. |
+| `dense` | `boolean` | Tighter cells, for many rows. A row is still 44px tall on a touch screen when it is a link. |
+| `hideCaption` | `boolean` | Hides the caption visually and keeps it as the table's name, when a heading already shows it. |
+| `ref` | `Ref<HTMLTableElement>` | A ref to the `<table>` element. |
+| `stickyHeader` | `boolean` | Keeps the header row at the top while the rows scroll under it. The table scrolls inside its own height, so give it one: `className="max-h-96"`. It keeps working while the table also scrolls sideways. |
+| `striped` | `boolean` | Shades every other body row, for long rows that are hard to follow across. |
+| `style` | `CSSProperties` |  |
 
 ## Modes
 
@@ -56,9 +56,9 @@ The props the modes share. Type: `TableProps<Row>`.
 
 ### With `children`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The parts: `TableHeader`, `TableBody` and `TableFooter`, with `TableRow`, `TableHead` and `TableCell` in them. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The parts: `TableHeader`, `TableBody` and `TableFooter`, with `TableRow`, `TableHead` and `TableCell` in them. |
 
 Not in this mode (typed `never`):
 

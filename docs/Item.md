@@ -58,11 +58,11 @@ Not in this mode (typed `never`):
 
 ### With `href` and `external` and `linkRef`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `external` | `boolean` |  | Opens the link in a new tab, safely, and tells screen readers so. |
-| `href` (required) | `string` |  | Makes the whole row one link, with one tab stop, named by its title. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls anywhere in the row (a link in the description, a button in the media or the actions) stay their own tab stops and take their own clicks and taps. On a touch screen the row is at least 44px tall. |
-| `linkRef` | `Ref<HTMLAnchorElement>` |  | A ref to the link's `<a>`, to move focus to it. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `external` | `boolean` | Opens the link in a new tab, safely, and tells screen readers so. |
+| `href` (required) | `string` | Makes the whole row one link, with one tab stop, named by its title. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls anywhere in the row (a link in the description, a button in the media or the actions) stay their own tab stops and take their own clicks and taps. On a touch screen the row is at least 44px tall. |
+| `linkRef` | `Ref<HTMLAnchorElement>` | A ref to the link's `<a>`, to move focus to it. |
 
 ## Native attributes
 

@@ -19,6 +19,7 @@ import {
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 
 export type { FloatingAlign as HoverCardAlign, FloatingSide as HoverCardSide } from "@/registry/ouro/lib/ouro/floating";
 
@@ -135,27 +136,30 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
     }
   });
 
+  const portal = usePortalContainer("HoverCard");
   return (
     <PreviewCard.Root
       onOpenChange={(next, details) => {
         if (next && (!canHover || lastInput() === "touch")) details.cancel();
       }}
     >
-      <PreviewCard.Trigger render={trigger} ref={triggerRef} />
-      <PreviewCard.Portal data-ouro="hover-card-portal" className={floatingPortalClass}>
-        <PreviewCard.Positioner side={side} align={align} sideOffset={8} collisionPadding={8} data-ouro="hover-card-positioner">
-          <PreviewCard.Popup
-            data-ouro="hover-card"
-            className={cn(
-              floatingSurfaceClass,
-              floatingMotionClass,
-              "w-72 max-w-(--available-width) p-4 text-sm leading-5",
-              className,
-            )}
-          >
-            {children}
-          </PreviewCard.Popup>
-        </PreviewCard.Positioner>
+      <PreviewCard.Trigger render={trigger} ref={triggerRef} data-ouro-hover-card-trigger="" />
+      <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
+        <PortalScope>
+          <PreviewCard.Positioner side={side} align={align} sideOffset={8} collisionPadding={8} data-ouro="hover-card-positioner">
+            <PreviewCard.Popup
+              data-ouro="hover-card"
+              className={cn(
+                floatingSurfaceClass,
+                floatingMotionClass,
+                "w-72 max-w-(--available-width) p-4 text-sm leading-5",
+                className,
+              )}
+            >
+              {children}
+            </PreviewCard.Popup>
+          </PreviewCard.Positioner>
+        </PortalScope>
       </PreviewCard.Portal>
     </PreviewCard.Root>
   );

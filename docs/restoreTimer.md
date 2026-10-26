@@ -16,10 +16,10 @@ restoreTimer("pasta", { status: "paused", duration: 600, remainingMs: 120000 });
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `timerId` | `string` |  |
-| `state` | `TimerState` |  |
+| Parameter | Type |
+| --- | --- |
+| `timerId` | `string` |
+| `state` | `TimerState` |
 
 ## Returns
 

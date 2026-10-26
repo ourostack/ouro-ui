@@ -179,6 +179,9 @@ export function testFilesFor(paths, rootDir = root) {
     } else {
       const stem = path.replace(/\.tsx?$/, "");
       for (const extension of [".test.ts", ".test.tsx"]) if (existsSync(join(rootDir, `${stem}${extension}`))) own.add(`${stem}${extension}`);
+      // A file split out of another (use-ouro.ts, OuroProvider's hook) is tested where it is used.
+      const pattern = new RegExp(`from "@/registry/ouro/lib/ouro/${path.slice(libDir.length).replace(/\.tsx?$/, "")}"`);
+      for (const file of testsIn(libDir, rootDir)) if (pattern.test(readFileSync(join(rootDir, file), "utf8"))) own.add(file);
       for (const folder of importersOf(path, rootDir)) for (const file of testsIn(`${componentsDir}${folder}/`, rootDir)) wider.add(file);
     }
   }

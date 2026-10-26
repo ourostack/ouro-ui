@@ -23,9 +23,9 @@ import { ResizableHandle } from "@/registry/ouro/components/ouro/resizable/resiz
 
 Type: `ResizableHandleProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `aria-label` | `string` |  | This handle's accessible name, in place of the group's `handleLabel` ("Resize Files"). |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `aria-label` | `string` | This handle's accessible name, in place of the group's `handleLabel` ("Resize Files"). |
 
 ## Don't use
 

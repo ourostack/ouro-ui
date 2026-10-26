@@ -19,12 +19,6 @@ const { resolved, setScheme } = useColorScheme();
 
 It works with or without `ColorSchemeProvider`, with the provider's options when there is one. Before hydration it reports the default scheme, as the server did.
 
-## Parameters
-
-| Parameter | Type | Default |
-| --- | --- | --- |
-
-
 ## Returns
 
 `ColorSchemeValue`

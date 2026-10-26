@@ -2,7 +2,7 @@ import { lazy, StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { cleanupPage, describeViolations, renderFixture, renderPage, rerenderFixture, scan, setScheme, settle } from "../test/render";
+import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, rerenderFixture, scan, setScheme, settle } from "../test/render";
 import { demos } from "./docs/demos";
 import { LiveDemo } from "./components/live-demo";
 
@@ -266,5 +266,6 @@ describe.each([390, 1280])("expanded gallery at %i px", (width) => {
     await settle();
     const modalViolations = await scan();
     expect(modalViolations, describeViolations(modalViolations)).toEqual([]);
-  });
+    // Two scans of the page, closed and with the dialog open.
+  }, 2 * pageScanTimeout);
 });

@@ -39,7 +39,7 @@ Type: `SidebarLayoutProps`.
 | `bleed` | `boolean` |  | Removes the padding around the page, for content that runs edge to edge (a map, a cover photo). |
 | `children` (required) | `ReactNode` |  | The page. It renders inside the page's `<main>`. |
 | `className` | `string` |  | Layout only: height and margins (`min-h-96`). Appearance classes warn in development. |
-| `header` | `ReactNode` |  | A bar above the page: a search field, the page's actions. From 640px up it runs across the top of the page, beside the sidebar; below, it shares the top bar with the menu button. |
+| `header` | `ReactNode` |  | A bar above the page: a search field, the page's actions. From 640px up it runs across the top of the page, beside the sidebar; below, it shares the top bar with the menu button. It renders in a `<header>`, the page's banner landmark. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `sidebar` (required) | `ReactNode` |  | The app's `Sidebar`. It sits beside the page from 640px up, and is a menu button in the top bar below. |
 | `skipLabel` | `string` | `"Skip to content"` | The text of the link that skips the sidebar, shown when it has keyboard focus. |

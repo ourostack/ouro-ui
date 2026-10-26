@@ -17,7 +17,8 @@
 // `claim(text, { source, verify })` from lib/ouro/claims.ts, which also parses the syntax.
 // The lint fails a factual-sounding sentence that is not a claim, unless it is an
 // instruction. The checks read only the repository, so they are deterministic; `urlOk`
-// reads the URL cache, which `--network` refreshes. claims.config.json at the root sets the
+// reads the URL cache, which `--network` refreshes; a link only a pull request or a draft cites
+// is fetched each time instead. claims.config.json at the root sets the
 // surfaces, the exemptions and the required jobs and checks (docs: claim, in Ouro UI's docs).
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
@@ -948,6 +949,13 @@ export async function verify(checks, context, sources = []) {
         fail(`${check.urlOk} follows a branch or tag, so it answers after the file changes and backs nothing in it. Pin it to a commit: https://github.com/<owner>/<repo>/blob/<40-character commit hash>/<path>#L<line>.`);
         continue;
       }
+      // Text outside the repository (a pull request's title and body, a draft) cannot commit a
+      // cache entry, as the full check fails one no file cites, so its links are fetched now.
+      if (context.outside) {
+        const status = await fetchStatus(check.urlOk);
+        if (status < 200 || status >= 400) fail(`${check.urlOk} answered ${status || "nothing"}.`);
+        continue;
+      }
       const before = cache[check.urlOk];
       if (network === true || (network === "changed" && context.refresh?.has(check.urlOk))) {
         const status = await fetchStatus(check.urlOk);
@@ -1290,8 +1298,7 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
       claims.push(...result.claims);
       failures.push(...result.findings);
     }
-    failures.push(...(await verifyClaims(claims, context)));
-    saveUrlCache(context);
+    failures.push(...(await verifyClaims(claims, { ...context, outside: true })));
     const files = [];
     for (const file of positional) {
       const entry = classify(file, config);

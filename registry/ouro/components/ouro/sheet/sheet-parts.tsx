@@ -9,6 +9,7 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
+import { PortalScope } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   iosBackdrop,
   registerSheetProperties,
@@ -232,7 +233,9 @@ export function SheetPortal(props: Omit<Drawer.Portal.Props, "className">): JSX.
   useSheetPart("SheetPortal", "…");
   return (
     <Drawer.VirtualKeyboardProvider>
-      <Drawer.Portal {...props} data-ouro="sheet-portal" className="relative isolate z-(--ouro-layer)" />
+      <Drawer.Portal {...props} data-ouro="sheet-portal" className="relative isolate z-(--ouro-layer)">
+        <PortalScope>{props.children}</PortalScope>
+      </Drawer.Portal>
     </Drawer.VirtualKeyboardProvider>
   );
 }

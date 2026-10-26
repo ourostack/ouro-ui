@@ -29,21 +29,21 @@ import { NativeSelect } from "@/registry/ouro/components/ouro/select/native-sele
 
 Type: `NativeSelectProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` | `ReactNode` |  | `<option>` and `<optgroup>` elements, when you do not pass `options`. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
-| `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables the select and fades it. |
-| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
-| `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the select's name. |
-| `label` (required) | `string` |  | What the select is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
-| `name` | `string` |  | The form field name the value submits under. |
-| `onChange` | `SelectHTMLAttributes<HTMLSelectElement>["onChange"]` |  | Called with the change event when the user picks an option. `onValueChange` gets the value. |
-| `options` | `ReadonlyArray<NativeSelectOption \| NativeSelectOptionGroup>` |  | The choices: `[{ value: "nz", label: "New Zealand" }]`, and groups as `{ label: "Oceania", options: [...] }`. Or pass `<option>` children. |
-| `placeholder` | `string` |  | An empty first option shown, muted, while nothing is chosen: `"Choose a country"`. With `required` it cannot be chosen back, so the browser asks for a real choice. |
-| `ref` | `Ref<HTMLSelectElement>` |  | The select element. |
-| `required` | `boolean` |  | A choice is required: the form will not submit without one, and the label gets a marker. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode` | `<option>` and `<optgroup>` elements, when you do not pass `options`. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
+| `description` | `ReactNode` | Supporting text under the label, read after the label through `aria-describedby`. |
+| `disabled` | `boolean` | Disables the select and fades it. |
+| `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the select's name. |
+| `label` (required) | `string` | What the select is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |
+| `name` | `string` | The form field name the value submits under. |
+| `onChange` | `SelectHTMLAttributes<HTMLSelectElement>["onChange"]` | Called with the change event when the user picks an option. `onValueChange` gets the value. |
+| `options` | `ReadonlyArray<NativeSelectOption \| NativeSelectOptionGroup>` | The choices: `[{ value: "nz", label: "New Zealand" }]`, and groups as `{ label: "Oceania", options: [...] }`. Or pass `<option>` children. |
+| `placeholder` | `string` | An empty first option shown, muted, while nothing is chosen: `"Choose a country"`. With `required` it cannot be chosen back, so the browser asks for a real choice. |
+| `ref` | `Ref<HTMLSelectElement>` | The select element. |
+| `required` | `boolean` | A choice is required: the form will not submit without one, and the label gets a marker. |
 
 ## Native attributes
 

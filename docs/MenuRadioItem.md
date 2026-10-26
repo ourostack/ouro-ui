@@ -22,12 +22,12 @@ import { MenuRadioItem } from "@/registry/ouro/components/ouro/menu/menu";
 
 Type: `MenuRadioItemProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The choice's text. |
-| `disabled` | `boolean` |  | Shown, but cannot be chosen. |
-| `shortcut` | `MenuShortcut` |  | The keys of its shortcut, shown at its end. |
-| `value` (required) | `string` |  | The value the group reports when this item is chosen. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The choice's text. |
+| `disabled` | `boolean` | Shown, but cannot be chosen. |
+| `shortcut` | `MenuShortcut` | The keys of its shortcut, shown at its end. |
+| `value` (required) | `string` | The value the group reports when this item is chosen. |
 
 ## Types
 

@@ -16,9 +16,9 @@ const label = canShare({ url }) ? "Share" : "Copy link";
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `data` | `ShareContent` |  |
+| Parameter | Type |
+| --- | --- |
+| `data` | `ShareContent` |
 
 ## Returns
 

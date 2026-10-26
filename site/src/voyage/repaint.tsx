@@ -68,7 +68,8 @@ function DiveWindow(): JSX.Element {
           />
         </div>
         <div className="grid content-between gap-6">
-          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+          {/* On the card's own colour: muted text over the grid's hairlines would not read. */}
+          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 bg-card text-sm">
             <dt className="text-muted-foreground">Headings</dt>
             <dd className="m-0 truncate font-[family-name:var(--font-heading)] font-semibold">
               <ByPreset>{(item) => item.heading}</ByPreset>
@@ -86,7 +87,7 @@ function DiveWindow(): JSX.Element {
             </dd>
           </dl>
           <div className="grid gap-3">
-            <p className="m-0 text-sm text-muted-foreground">
+            <p className="m-0 bg-card text-sm text-muted-foreground">
               {checked.size === DIVE_CHECKS.length ? "All set. Down we go." : `${DIVE_CHECKS.length - checked.size} left before we dive.`}
             </p>
             <Dialog

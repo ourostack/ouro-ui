@@ -497,6 +497,8 @@ const Rim = memo(function Rim({ motto }: { motto: string }): JSX.Element {
       <circle className="stage-rim-outer" cx="280" cy="280" r="272" />
       <circle className="stage-rim-rule" cx="280" cy="280" r="267" />
       <circle className="stage-rim-rule" cx="280" cy="280" r="245" />
+      {/* The motto sits on a band of the page's color, so every letter reads against it, not the metal's highlights. */}
+      <path className="stage-motto-band" d="M 280 280 m -256 0 a 256 256 0 0 1 512 0" pathLength={100} />
       <text className="stage-motto" dy="4.5">
         <textPath href="#stage-motto-path" startOffset="50%" textAnchor="middle">
           {motto.toUpperCase()}

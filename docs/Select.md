@@ -33,23 +33,23 @@ A `multiple` Select posts one entry per chosen value, all under `name`, in the o
 
 The props the modes share. Type: `SelectProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `autoComplete` | `string` |  | Autofill hint for the hidden input that submits the value, such as `"country"`. |
-| `children` | `ReactNode` |  | `SelectItem`s and `SelectGroup`s, when you do not pass `options`. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
-| `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
-| `disabled` | `boolean` |  | Disables the select and fades it. |
-| `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
-| `form` | `string` |  | The id of a form outside which the select sits, so its value submits with that form. |
-| `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the select's name. |
-| `label` (required) | `string` |  | What the select is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. On phones it also heads the list. |
-| `name` | `string` |  | The form field name the value submits under. With `multiple`, each value submits under it. |
-| `options` | `SelectOptions` |  | The choices: `[{ value: "main", label: "Main" }]`, and groups as `{ label: "Fruit", options: [...] }`. Pass `SelectItem` children instead when an option needs more than text. |
-| `placeholder` | `string` |  | Shown in the trigger while nothing is chosen: `"Choose a course"`. It is not a label. |
-| `readOnly` | `boolean` |  | The value can be seen but not changed. |
-| `ref` | `Ref<HTMLButtonElement>` |  | The trigger button. |
-| `required` | `boolean` |  | A choice is required: the form will not submit without one, and the label gets a marker. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `autoComplete` | `string` | Autofill hint for the hidden input that submits the value, such as `"country"`. |
+| `children` | `ReactNode` | `SelectItem`s and `SelectGroup`s, when you do not pass `options`. |
+| `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
+| `description` | `ReactNode` | Supporting text under the label, read after the label through `aria-describedby`. |
+| `disabled` | `boolean` | Disables the select and fades it. |
+| `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
+| `form` | `string` | The id of a form outside which the select sits, so its value submits with that form. |
+| `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the select's name. |
+| `label` (required) | `string` | What the select is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. On phones it also heads the list. |
+| `name` | `string` | The form field name the value submits under. With `multiple`, each value submits under it. |
+| `options` | `SelectOptions` | The choices: `[{ value: "main", label: "Main" }]`, and groups as `{ label: "Fruit", options: [...] }`. Pass `SelectItem` children instead when an option needs more than text. |
+| `placeholder` | `string` | Shown in the trigger while nothing is chosen: `"Choose a course"`. It is not a label. |
+| `readOnly` | `boolean` | The value can be seen but not changed. |
+| `ref` | `Ref<HTMLButtonElement>` | The trigger button. |
+| `required` | `boolean` | A choice is required: the form will not submit without one, and the label gets a marker. |
 
 ## Modes
 
@@ -59,23 +59,23 @@ The props the modes share. Type: `SelectProps`.
 
 A Select that picks several values, as a `string[]`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `defaultValue` | `string[]` |  | The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. |
-| `multiple` (required) | `true` |  | Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string \| null`. |
-| `onValueChange` | `((value: string[]) => void)` |  | Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`. |
-| `value` | `string[]` |  | The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `defaultValue` | `string[]` | The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. |
+| `multiple` (required) | `true` | Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string \| null`. |
+| `onValueChange` | `((value: string[]) => void)` | Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`. |
+| `value` | `string[]` | The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. |
 
 ### Single: `SelectSingleProps`
 
 A Select that picks one value: a `string`, or `null` while nothing is chosen.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `defaultValue` | `string \| null` |  | The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. |
-| `multiple` | `false` |  | Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string \| null`. |
-| `onValueChange` | `((value: string \| null) => void)` |  | Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`. |
-| `value` | `string \| null` |  | The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `defaultValue` | `string \| null` | The value chosen at first, when the select keeps its own state: a `string` or `null`; with `multiple`, a `string[]`. |
+| `multiple` | `false` | Pick several values: the list stays open while the user chooses, and the value is a `string[]` instead of `string \| null`. |
+| `onValueChange` | `((value: string \| null) => void)` | Called with the new value when the user chooses an option: a `string` or `null`; with `multiple`, every chosen value as a `string[]`. |
+| `value` | `string \| null` | The chosen value, when you control it: a `string`, or `null` for none; with `multiple`, a `string[]`. |
 
 ## Don't use
 

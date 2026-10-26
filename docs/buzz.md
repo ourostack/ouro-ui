@@ -14,12 +14,6 @@ import { buzz } from "@/registry/ouro/lib/ouro/feedback";
 buzz();
 ```
 
-## Parameters
-
-| Parameter | Type | Default |
-| --- | --- | --- |
-
-
 ## Returns
 
 `boolean`

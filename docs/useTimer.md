@@ -22,9 +22,9 @@ const timer = useTimer({ duration: 600, timerId: "pasta", onDone: () => chime() 
 
 ## Parameters
 
-| Parameter | Type | Default |
-| --- | --- | --- |
-| `{ duration, timerId, onDone, fallback }` | `TimerOptions` |  |
+| Parameter | Type |
+| --- | --- |
+| `{ duration, timerId, onDone, fallback }` | `TimerOptions` |
 
 ## Returns
 

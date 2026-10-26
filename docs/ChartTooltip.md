@@ -31,9 +31,6 @@ Use it only inside a recharts chart passed to `Chart` as children.
 
 Type: `ChartTooltipProps`.
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-
 ## Don't use
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.

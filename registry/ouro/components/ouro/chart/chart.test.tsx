@@ -169,6 +169,17 @@ describe("Chart", () => {
     expect(fillOf("cooked")).toBe("rgb(1, 2, 3)");
   });
 
+  it("writes the axis labels in the theme's muted text color, not recharts' gray, in light and dark", async () => {
+    const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    await drawn(chart);
+    const labels = [...chart.querySelectorAll(".recharts-cartesian-axis-tick-value")];
+    expect(labels.length).toBeGreaterThan(0);
+    const fills = () => new Set(labels.map((label) => getComputedStyle(label).fill));
+    expect(fills()).toEqual(new Set([resolved("var(--muted-foreground)")]));
+    document.documentElement.classList.add("dark");
+    expect(fills()).toEqual(new Set([resolved("var(--muted-foreground)")]));
+  });
+
   it("maps tones to theme tokens and gives series without one the chart tokens in order", async () => {
     const { chart } = await render(
       <Chart

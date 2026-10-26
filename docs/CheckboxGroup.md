@@ -53,9 +53,9 @@ The props the modes share. Type: `CheckboxGroupProps`.
 
 ### With `children`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The choices as `Checkbox` elements, each with a `value`, for a layout `options` cannot express. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` (required) | `ReactNode` | The choices as `Checkbox` elements, each with a `value`, for a layout `options` cannot express. |
 
 Not in this mode (typed `never`):
 
@@ -63,9 +63,9 @@ Not in this mode (typed `never`):
 
 ### With `options`
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `options` (required) | `CheckboxGroupOption[]` |  | The choices, one box each, in order. |
+| Prop | Type | Description |
+| --- | --- | --- |
+| `options` (required) | `CheckboxGroupOption[]` | The choices, one box each, in order. |
 
 Not in this mode (typed `never`):
 
