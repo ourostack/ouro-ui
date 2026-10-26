@@ -301,13 +301,15 @@ describe("audit", () => {
         // A background that does not, though a dark box covers the text after it.
         paragraph("tinted", "color:inherit;background:#eee"),
     );
+    // An open modal list's invisible backdrop over the whole screen, which paints nothing.
+    document.body.insertAdjacentHTML("beforeend", '<div data-base-ui-portal=""><div role="presentation" data-base-ui-inert="" style="position:fixed;inset:0"></div></div>');
     const after = textBox(document.querySelector("#tinted-after")!);
     document.querySelector("#tinted-after")!.insertAdjacentHTML("afterend", '<span id="cover" style="position:fixed;background:#000"></span>');
     Object.assign(document.querySelector<HTMLElement>("#cover")!.style, { left: `${after.left + 8}px`, top: `${after.top}px`, width: `${after.width - 8}px`, height: `${after.height}px` });
     const findings = (await scanPage()).filter((finding) => finding.rule === "link-in-text-block");
     expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}: ${finding.summary}`)).toEqual([
-      expect.stringMatching(/^undecided link-in-text-block #faint: measured 1\.\d\d:1 between its text and the text around it, and 1\.00:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline$/),
-      expect.stringMatching(/^undecided link-in-text-block #tinted: measured 1\.00:1 between its text and the text around it, and 1\.\d\d:1 between their backgrounds; needs 3:1/),
+      expect.stringMatching(/^undecided link-in-text-block #faint: measured 1\.\d\d:1 between its text and its block's text, and 1\.00:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline$/),
+      expect.stringMatching(/^undecided link-in-text-block #tinted: measured 1\.00:1 between its text and its block's text, and 1\.\d\d:1 between their backgrounds; needs 3:1/),
     ]);
   });
 

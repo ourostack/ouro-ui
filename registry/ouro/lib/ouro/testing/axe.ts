@@ -624,7 +624,30 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
     hide.remove();
   }
   const scale = context.canvas.width / (right - left);
-  // The mean of the pixels behind the lines where the line's own element, or what holds it, is on top.
+  // Whether an element paints nothing of its own, as Base UI's invisible backdrop under a modal
+  // menu or list, which lies over the whole screen: no background, border, shadow or own text.
+  const bare = new Map<Element, boolean>();
+  const paintsNothing = (element: Element) => {
+    let known = bare.get(element);
+    if (known === undefined) {
+      const style = getComputedStyle(element);
+      const borders = ["top", "right", "bottom", "left"].some((side) => Number.parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0);
+      const text = [...element.childNodes].some((child) => child.nodeType === Node.TEXT_NODE && child.textContent!.trim());
+      const replaced = /^(img|svg|canvas|video|iframe|input|textarea|select|object|embed)$/.test(element.localName);
+      known = toRgba(style.backgroundColor).a === 0 && style.backgroundImage === "none" && !borders && style.boxShadow === "none" && !text && !replaced;
+      bare.set(element, known);
+    }
+    return known;
+  };
+  // Whether the line's own element, or what holds it, is the first thing that paints at a point.
+  const showsAt = (element: Element, x: number, y: number) => {
+    for (const hit of document.elementsFromPoint(x, y)) {
+      if (hit.contains(element) || element.contains(hit)) return true;
+      if (!paintsNothing(hit)) return false;
+    }
+    return false;
+  };
+  // The mean of the pixels behind the lines where the line's own element, or what holds it, shows.
   const behind = (lines: { element: Element; box: DOMRect }[]): Rgba | null => {
     const sum = { r: 0, g: 0, b: 0, count: 0 };
     for (const { element, box } of lines) {
@@ -642,8 +665,7 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
         const pointY = Math.floor(top + (y + Math.floor(pixel / width) + 0.5) / scale) + 0.5;
         const key = `${pointX},${pointY}`;
         if (!seen.has(key)) {
-          const hit = document.elementFromPoint(pointX, pointY);
-          seen.set(key, hit !== null && (hit.contains(element) || element.contains(hit)));
+          seen.set(key, showsAt(element, pointX, pointY));
         }
         if (!seen.get(key)) continue;
         sum.r += pixels[index]!;
@@ -664,7 +686,7 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
   if (text >= 3 || background >= 3 || (text === 1 && background === 1)) return { pass: true };
   return {
     pass: false,
-    reason: `measured ${text.toFixed(2)}:1 between its text and the text around it, and ${background.toFixed(2)}:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline`,
+    reason: `measured ${text.toFixed(2)}:1 between its text and its block's text, and ${background.toFixed(2)}:1 between their backgrounds; needs 3:1 for either, or a style that does not rely on color, such as an underline`,
   };
 }
 
