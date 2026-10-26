@@ -119,6 +119,8 @@ export const toolingMinimum: Record<string, string> = {
   "@playwright/test": "1.58.1",
   storybook: "10.2.10",
   "@storybook/react-vite": "10.2.10",
+  // audit checks it when it runs (axeMinimum in registry/ouro/lib/ouro/testing/axe.ts).
+  "axe-core": "4.13.0",
 };
 
 /** What a -tests item does to an app's package.json. */
@@ -132,19 +134,20 @@ const INSTALLING_URL = `${DOCS_URL}/installing.md`;
 
 /** The oldest tooling, as the ouro-testing docs state it; buildRegistry checks it against toolingMinimum. */
 const needs = claim(
-  "Needs Vitest 4.1.11 or later in browser mode (@vitest/browser-playwright), Playwright 1.58.1 or later and, for the stories and specs, Storybook 10.2.10 or later.",
+  "Needs Vitest 4.1.11 or later in browser mode (@vitest/browser-playwright), Playwright 1.58.1 or later, axe-core 4.13.0 or later and, for the stories and specs, Storybook 10.2.10 or later.",
   {
     source: { file: "scripts/registry.mts" },
     verify: [
       { fileLine: "scripts/registry.mts", pattern: '^\\s+vitest: "4\\.1\\.11",$' },
       { fileLine: "scripts/registry.mts", pattern: '^\\s+playwright: "1\\.58\\.1",$' },
       { fileLine: "scripts/registry.mts", pattern: '^\\s+storybook: "10\\.2\\.10",$' },
+      { fileLine: "scripts/registry.mts", pattern: '^\\s+"axe-core": "4\\.13\\.0",$' },
     ],
   },
 );
 
 function testingDocs(): string {
-  for (const [name, label] of [["vitest", "Vitest"], ["playwright", "Playwright"], ["storybook", "Storybook"]] as const) {
+  for (const [name, label] of [["vitest", "Vitest"], ["playwright", "Playwright"], ["axe-core", "axe-core"], ["storybook", "Storybook"]] as const) {
     if (!needs.includes(`${label} ${toolingMinimum[name]} or later`)) {
       throw new Error(`The ouro-testing docs name another ${name} minimum than toolingMinimum (${toolingMinimum[name]}). Update both in scripts/registry.mts.`);
     }
