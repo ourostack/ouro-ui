@@ -202,6 +202,7 @@ describe("Link", () => {
   it("marks keyboard focus in running text with a thick underline in the ring's colour, not an outline drawn over the next character", async () => {
     const { host } = await render(
       <>
+        <span data-rest="">Rest</span>
         <Link href="/alone">Alone</Link>
         <p>
           From <Link href="/ari">Ari</Link>, with lemon.
@@ -223,17 +224,15 @@ describe("Link", () => {
       return { outline: `${style.outlineStyle} ${style.outlineColor}`, underline: `${style.textDecorationThickness} ${style.textDecorationColor}` };
     };
     const ring = getComputedStyle(host.querySelector('a[href="/alone"]')!).outlineColor;
-    // The pointer rests where an earlier test left it, here over the first link.
-    await userEvent.hover(host.querySelector('a[href="/alone"]')!);
+    // Hover darkens a resting underline, and the pointer rests where an earlier test left it, which
+    // can be over a link here: it rests on text that is no link instead.
+    await userEvent.hover(host.querySelector("[data-rest]")!);
     const alone = focused("/alone");
     expect(alone.outline).toBe(`solid ${ring}`);
     // A transparent outline draws nothing, and forced colours show it, as they drop the underline's colour.
     expect(focused("/ari")).toEqual({ outline: "solid rgba(0, 0, 0, 0)", underline: `2px ${ring}` });
     expect(focused("/inline")).toEqual({ outline: "solid rgba(0, 0, 0, 0)", underline: `2px ${ring}` });
-    // A link on its own keeps the outline and the resting underline, whose colour hover darkens.
-    const own = focused("/own");
-    expect(own.outline).toBe(alone.outline);
-    expect(own.underline).toMatch(/^1px /);
+    expect(focused("/own")).toEqual(alone);
   });
 
   it("lets app layout classes win", async () => {
