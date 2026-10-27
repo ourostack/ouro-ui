@@ -11,7 +11,9 @@ test("a press shows a toast that is announced politely and can be dismissed", as
   const toast = region.getByRole("dialog", { name: "Recipe saved" });
   await expect(toast).toBeVisible();
   await expect(toast).toContainText("Find it in your cookbook.");
-  // A polite live region in the Notifications landmark says the message and description, not the buttons.
+  // A polite live region in the Notifications landmark says the message and description, not the
+  // buttons, once it has been on the page 100ms (Safari drops words given to a newer one).
+  await page.clock.runFor(150);
   await expect(region.locator('[aria-live="polite"]')).toHaveText("Recipe savedFind it in your cookbook.");
   await toast.hover();
   // The pointer over the toasts pauses its countdown, and Base UI removes a closed toast on the clock.
