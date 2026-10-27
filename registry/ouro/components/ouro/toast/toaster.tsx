@@ -329,7 +329,7 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
  */
 function onViewportFocus(event: FocusEvent<HTMLElement>): void {
   rememberEntry(event);
-  hover(event.currentTarget, "in");
+  hover(event.currentTarget, true);
 }
 
 /**
@@ -341,11 +341,10 @@ function onViewportFocus(event: FocusEvent<HTMLElement>): void {
  * @claim "and no component around the Toaster" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > tells nothing outside the toasts that a pointer came or went when focus fans the stack out and folds it)
  * @claim "The page sees only that `mouseout`" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > tells nothing outside the toasts that a pointer came or went when focus fans the stack out and folds it)
  */
-function hover(region: HTMLElement, way: "in" | "out"): void {
-  const parent = region.parentElement;
-  /* istanbul ignore if @preserve -- Base UI always renders the region in its portal node */
-  if (!parent) return;
-  const [from, to] = way === "in" ? [parent, region] : [region, parent];
+function hover(region: HTMLElement, entering: boolean): void {
+  // Base UI always renders the region in its portal node.
+  const parent = region.parentElement!;
+  const [from, to] = entering ? [parent, region] : [region, parent];
   from.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: to }));
 }
 
@@ -368,7 +367,7 @@ function onViewportMouseLeave(event: BaseUIEvent<ReactMouseEvent<HTMLElement>>):
  */
 function onViewportBlur(event: FocusEvent<HTMLElement>): void {
   const region = event.currentTarget;
-  if (!region.matches(":hover")) hover(region, "out");
+  if (!region.matches(":hover")) hover(region, false);
 }
 
 /** How long a live region is on the page before it is given text: Safari drops text added to a newer one (see `announce`). */
@@ -425,6 +424,7 @@ function ToastAnnouncer(): JSX.Element {
   const { toasts } = Toast.useToastManager();
   const anchor = useRef<HTMLDivElement>(null);
   const settled = useSettled();
+  // Stryker disable next-line ArrayDeclaration: an entry with no time is never shown, and the first reading of the toasts replaces the list.
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   // Read after the toasts are on the page and before it paints, so each toast's words arrive whole.
   useLayoutEffect(() => {
@@ -448,38 +448,41 @@ function ToastAnnouncer(): JSX.Element {
 /** Whether the live regions have been on the page LIVE_REGION_SETTLE_MS, so text given to them is read. */
 function useSettled(): boolean {
   const [settled, setSettled] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(true), LIVE_REGION_SETTLE_MS);
-    // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so clearing only tidies.
-    return () => clearTimeout(timer);
+  useEffect(
+    () => {
+      const timer = setTimeout(() => setSettled(true), LIVE_REGION_SETTLE_MS);
+      // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so clearing only tidies.
+      return () => clearTimeout(timer);
+    },
     // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
-  }, []);
+    [],
+  );
   return settled;
 }
 
 /**
- * The toasts' words as `region` shows them. A toast whose words are unchanged keeps its entry from
- * `before`, and when no toast changed `before` itself comes back, so React does not render again.
+ * The toasts' words as `region` shows them, leaving out a toast with none. A toast whose words are
+ * unchanged keeps its entry from `before`, so they are not said again.
  *
- * @claim "A toast whose words are unchanged" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > announces a toast again when it is replaced with new text, and not when it leaves)
+ * @claim "leaving out a toast with none" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > says nothing for a toast with no words, and only the description of one with no message)
+ * @claim "A toast whose words are unchanged" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > says a toast's words once while other toasts come and go)
  */
 function wordsOf(region: Element, toasts: ToastObject[], before: Spoken[], at: number): Spoken[] {
-  const next = toasts.flatMap((item) => toastWords(item, shownLines(region, item.id), before, at));
-  return next.length === before.length && next.every((entry, index) => entry === before[index]) ? before : next;
+  return toasts
+    .map((item) => ({ item, lines: shownLines(region, item.id) }))
+    .filter(({ lines }) => lines.length > 0)
+    .map(({ item, lines }) => {
+      const was = before.find((entry) => entry.id === item.id);
+      if (was && JSON.stringify(was.lines) === JSON.stringify(lines)) return was;
+      return { id: item.id, key: `${item.id} ${at}`, destructive: item.type === "destructive", lines, at };
+    });
 }
 
 /** The message and description the toast with this id shows in `region`, leaving out an empty one. */
 function shownLines(region: Element, id: string): string[] {
-  const shown = [...region.querySelectorAll("[data-ouro-toast-id]")].find((element) => element.getAttribute("data-ouro-toast-id") === id);
-  return [shown?.querySelector("[data-ouro-toast-title]")?.textContent ?? "", shown?.querySelector("[data-ouro-toast-description]")?.textContent ?? ""].filter(Boolean);
-}
-
-/** What the live regions say for one toast showing `lines`: nothing, its words from `before` when unchanged, or new words said now. */
-function toastWords(item: ToastObject, lines: string[], before: Spoken[], at: number): Spoken[] {
-  if (lines.length === 0) return [];
-  const was = before.find((entry) => entry.id === item.id);
-  if (was && was.lines.join("\n") === lines.join("\n")) return [was];
-  return [{ id: item.id, key: `${item.id} ${at}`, destructive: item.type === "destructive", lines, at }];
+  // ToastList renders every toast the manager lists, so each is on the page by now.
+  const shown = [...region.querySelectorAll("[data-ouro-toast-id]")].find((element) => element.getAttribute("data-ouro-toast-id") === id)!;
+  return [shown.querySelector("[data-ouro-toast-title]")?.textContent ?? "", shown.querySelector("[data-ouro-toast-description]")?.textContent ?? ""].filter(Boolean);
 }
 
 /** The words not yet said for SPOKEN_FOR_MS, rendering again when the oldest of them is due to go. */
@@ -489,7 +492,8 @@ function useUnexpired(spoken: Spoken[]): Spoken[] {
   const first = Math.min(...current.map((entry) => entry.at));
   useEffect(() => {
     if (first === Infinity) return;
-    const timer = setTimeout(() => setNow(Math.max(Date.now(), first + SPOKEN_FOR_MS)), first + SPOKEN_FOR_MS - Date.now());
+    const timer = setTimeout(() => setNow(first + SPOKEN_FOR_MS), first + SPOKEN_FOR_MS - Date.now());
+    // Stryker disable next-line ArrowFunction: a timer left from an earlier first sets the time it was due, already past, so it hides nothing early.
     return () => clearTimeout(timer);
   }, [first]);
   return current;

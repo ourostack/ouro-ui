@@ -1038,6 +1038,41 @@ describe("toast()", () => {
     expect(texts.findIndex((text) => text.includes("Recipe saved"))).toBeLessThan(texts.findIndex((text) => text.includes("Photo added")));
   });
 
+  it("says a toast's words once while other toasts come and go", async () => {
+    await render(<Toaster />);
+    await show("Recipe saved", { id: "saved", duration: 0 });
+    await show("Photo uploaded", { id: "photo", duration: 0 });
+    await until(() => viewport()!.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]')!.children.length, 2);
+    const announced = watchAnnouncements();
+    await show("Step added", { id: "step", duration: 0 });
+    await act(async () => toast.dismiss("saved"));
+    await gone("Recipe saved");
+    announced.stop();
+    expect(announced.changes.map((change) => change.text)).toEqual(["Step added"]);
+  });
+
+  it("lets each toast's words go seven seconds after they were said, the earliest first", async () => {
+    await render(<Toaster />);
+    fakeClock();
+    await act(async () => {
+      toast("Recipe saved", { duration: Infinity });
+    });
+    await until(() => showing("Recipe saved"), true);
+    await advance(3000);
+    await act(async () => {
+      toast("Photo uploaded", { duration: Infinity });
+    });
+    await until(() => showing("Photo uploaded"), true);
+    const polite = () => viewport()!.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]')!.textContent;
+    expect(polite()).toBe("Photo uploadedRecipe saved");
+    await advance(4000);
+    expect(polite()).toBe("Photo uploaded");
+    await advance(2900);
+    expect(polite()).toBe("Photo uploaded");
+    await advance(100);
+    expect(polite()).toBe("");
+  });
+
   it("announces a toast again when it is replaced with new text, and not when it leaves", async () => {
     await render(<Toaster />);
     await show("Uploading", { id: "upload", duration: 0 });
