@@ -389,7 +389,7 @@ test("pruneChangedFiles also drops a changed file's kept results when a changed 
   assert.deepEqual(mergeReports([found, { files: {}, testFiles: {}, ouroSources: { "x.tsx": "1" } }]).ouroSources, { ...found.ouroSources, "x.tsx": "1" });
 });
 
-test("splitRange cuts a long range into parts of about the given mutants, only where no mutable node runs past the cut", () => {
+test("splitRange cuts a long range into parts of about the given mutants, only where no node runs past the cut", () => {
   const text = [
     "export function one(a) {", // 1
     "  return a > 1 && a < 9;", // 2
@@ -409,6 +409,9 @@ test("splitRange cuts a long range into parts of about the given mutants, only w
   assert.deepEqual(splitRange(text, "f.tsx", [1, 10], 5), [[1, 9], [10, 10]]);
   // A node that runs past the range's own end is not mutated, so it does not hold a cut back.
   assert.deepEqual(splitRange(text, "f.tsx", [1, 6], 1), [[1, 3], [4, 6]]);
+  // Stryker deletes a whole call, and a call over several lines holds no mutable node of its own.
+  const call = ["function f(a) {", "  warn(", '    "first",', '    "second",', "  );", '  return a && "x";', "}"].join("\n");
+  assert.deepEqual(splitRange(call, "f.tsx", [2, 6], 1), [[2, 5], [6, 6]]);
 });
 
 test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {

@@ -92,18 +92,18 @@ export const UNIT_MUTANTS = 8;
 /**
  * A changed range (1-based, inclusive) cut into parts of about `most` estimated mutants each, so
  * one long range of slow mutants spreads across shards. Stryker mutates a node only when one range
- * holds all of its lines, so the range is cut only after a line that no mutable node in it runs
- * past: a cut inside a node (a function's body) would leave that node's mutants untested.
+ * holds all of its lines, so the range is cut only after a line that no node in it runs past: not
+ * a mutable one, nor a statement or call (a call's mutants span all of it), nor a function's body.
  */
 export function splitRange(text, path, range, most = UNIT_MUTANTS) {
   const ast = parse(text, { sourceType: "module", sourceFilename: path, errorRecovery: true, plugins: ["typescript", "jsx"] });
-  const spans = [];
+  const nodes = [];
   (traverse.default ?? traverse)(ast, {
     enter(node) {
       const { start, end } = node.node.loc;
-      if (!mutable.has(node.type) || start.line < range[0] || end.line > range[1]) return;
-      if ((node.isStringLiteral() || node.isTemplateLiteral()) && ignoreReason(node)?.startsWith("Tailwind")) return;
-      spans.push([start.line, end.line]);
+      if (node.isProgram() || start.line < range[0] || end.line > range[1]) return;
+      const counts = mutable.has(node.type) && !((node.isStringLiteral() || node.isTemplateLiteral()) && ignoreReason(node)?.startsWith("Tailwind"));
+      nodes.push({ start: start.line, end: end.line, counts });
     },
   });
   const parts = [];
@@ -111,10 +111,10 @@ export function splitRange(text, path, range, most = UNIT_MUTANTS) {
   let count = 0;
   let reach = 0;
   for (let line = range[0]; line < range[1]; line += 1) {
-    for (const [start, end] of spans) {
-      if (start !== line) continue;
-      count += 1;
-      reach = Math.max(reach, end);
+    for (const node of nodes) {
+      if (node.start !== line) continue;
+      if (node.counts) count += 1;
+      reach = Math.max(reach, node.end);
     }
     if (count >= most && reach <= line) {
       parts.push([from, line]);
