@@ -78,7 +78,7 @@ export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, interval
   return census;
 }
 
-/** Reads the page until a reading matches the one before it, or throws once `attempts` more readings have all differed. */
+/** Reads the page until a reading matches the one before it, or throws when `attempts` more readings differ. */
 async function settledIdentities(page, attempts, intervalMs) {
   let previous = JSON.stringify(toMultiset(await identitiesOnPage(page)));
   for (let attempt = 0; attempt < attempts; attempt += 1) {
