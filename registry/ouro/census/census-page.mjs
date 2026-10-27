@@ -65,26 +65,35 @@ export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, interval
   // The registry names axe-core without a version, so an app keeps the one it has; the census reads
   // names with axe's own computation, so it needs the axe-core that audit needs.
   requireAxe(axe.version, "Ouro census");
-  let failed = false;
+  let census;
   try {
     await page.evaluate(`window.${PAGE_AXE} = { had: Object.prototype.hasOwnProperty.call(window, "axe"), axe: window.axe };\n${axe.source}`);
-    let previous = JSON.stringify(toMultiset(await identitiesOnPage(page)));
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      await page.waitForTimeout(intervalMs);
-      const current = JSON.stringify(toMultiset(await identitiesOnPage(page)));
-      if (current === previous) return JSON.parse(current);
-      previous = current;
-    }
-    throw new Error(`Ouro census: the page's controls never settled (${attempts} readings ${intervalMs} ms apart all differed).`);
+    census = await settledIdentities(page, attempts, intervalMs);
   } catch (error) {
-    failed = true;
+    // A page that closed or moved on after a failure has nothing to put back, and the failure is the news.
+    await putBackAxe(page).catch(() => {});
     throw error;
-  } finally {
-    // Its axe-core stops listening for frame messages, and the page gets its own axe back. A page
-    // that closed or moved on after a failure has nothing to put back, and the failure is the news.
-    await page
-      .evaluate(
-        `(() => {
+  }
+  await putBackAxe(page);
+  return census;
+}
+
+/** Reads the page until a reading matches the one before it, or throws once `attempts` more readings have all differed. */
+async function settledIdentities(page, attempts, intervalMs) {
+  let previous = JSON.stringify(toMultiset(await identitiesOnPage(page)));
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    await page.waitForTimeout(intervalMs);
+    const current = JSON.stringify(toMultiset(await identitiesOnPage(page)));
+    if (current === previous) return JSON.parse(current);
+    previous = current;
+  }
+  throw new Error(`Ouro census: the page's controls never settled (${attempts} readings ${intervalMs} ms apart all differed).`);
+}
+
+/** Stops the census's axe-core listening for frame messages, and gives the page its own axe back. */
+function putBackAxe(page) {
+  return page.evaluate(
+    `(() => {
       const saved = window.${PAGE_AXE};
       if (!saved) return;
       window.axe?.frameMessenger?.({ open: () => undefined, post: () => false });
@@ -92,11 +101,7 @@ export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, interval
       if (saved.had) window.axe = saved.axe;
       else delete window.axe;
     })()`,
-      )
-      .catch((error) => {
-        if (!failed) throw error;
-      });
-  }
+  );
 }
 
 /** Where the census keeps the page's own `window.axe` while its axe-core takes that name. */
