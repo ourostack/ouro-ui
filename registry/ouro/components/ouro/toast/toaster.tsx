@@ -76,8 +76,10 @@ export interface ToasterProps {
  * turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to
  * them, newest first, and a swipe down or sideways dismisses one: a toast follows the
  * finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to
- * screen readers once: politely through this region, and a `destructive` toast
- * assertively, so it interrupts.
+ * screen readers once, its message and description: politely, and a `destructive` toast
+ * assertively, so it interrupts. Every toast and its buttons stay reachable by screen readers, a
+ * touch screen reader too, while the stack is collapsed, and focus in a toast fans the stack out
+ * and pauses it, however it got there.
  *
  * Render one Toaster. A second one warns in development and shows nothing until the
  * first unmounts, then takes over.
@@ -108,6 +110,9 @@ export interface ToasterProps {
  * @claim "Up to three show, and later" registry/ouro/components/ouro/toast/toaster.tsx verify:fileLine(registry/ouro/components/ouro/toast/toaster.tsx, /^import\s\{\sconnectToaster,\stype\sToastRecord\s\}\sfrom\s"@\/registry\/ouro\/lib\/ouro\/toast";/)
  * @claim "They pause while the pointer is" registry/ouro/components/ouro/toast/toaster.tsx verify:fileLine(registry/ouro/components/ouro/toast/toaster.tsx, /^import\s\{\sconnectToaster,\stype\sToastRecord\s\}\sfrom\s"@\/registry\/ouro\/lib\/ouro\/toast";/)
  * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.tsx verify:fileLine(registry/ouro/components/ouro/toast/toaster.tsx, /^import\s\{\sconnectToaster,\stype\sToastRecord\s\}\sfrom\s"@\/registry\/ouro\/lib\/ouro\/toast";/)
+ * @claim "Every toast and its buttons stay" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
+ * @claim "and focus in a toast fans" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves)
+ * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5))
  * @claim "They pause while the pointer is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
  * @claim "They pause while the pointer is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while a toast has keyboard focus; F6 moves focus to the toasts)
  * @claim "Toasts stack at the bottom of" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
@@ -145,8 +150,20 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
       {active && (
         <Toast.Portal className={portalClass}>
           <PortalScope>
-            <Toast.Viewport aria-label={label} data-ouro="toaster" className={cn(viewportClass, className)} onFocus={rememberEntry}>
+            <Toast.Viewport
+              aria-label={label}
+              // Not a live region: the announcer inside speaks each toast, so the buttons in the
+              // toasts are never read out as they arrive and need not be hidden to stay quiet.
+              aria-live={undefined}
+              aria-atomic={undefined}
+              aria-relevant={undefined}
+              data-ouro="toaster"
+              className={cn(viewportClass, className)}
+              onFocus={onViewportFocus}
+              onBlur={onViewportBlur}
+            >
               <ToastList closeLabel={closeLabel} />
+              <ToastAnnouncer />
             </Toast.Viewport>
           </PortalScope>
         </Toast.Portal>
@@ -193,8 +210,10 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
         description: record.description,
         type: record.tone,
         timeout: record.timeout,
-        // A destructive toast interrupts: Base UI speaks it through an alert and hides it from the polite region.
-        priority: record.tone === "destructive" ? "high" : "low",
+        // Never Base UI's "high": it hides such a toast, buttons and all, from screen readers until
+        // focused, and speaks it from an alert of its own. ToastAnnouncer speaks a destructive toast
+        // assertively instead, and the toast stays reachable.
+        priority: "low",
         onRemove: () => {
           shown.delete(record.id);
           // Base UI removes the toast by its index after this call returns, so adding the
@@ -272,7 +291,7 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
  * newest and goes on to each older one. Each is announced as it arrives.
  * @claim "The toasts, newest first in the" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  * @claim "The toasts, newest first in the" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard > reaches and runs the oldest toast's action with F6, then Tab)
- * @claim "Each is announced as it arrives" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > is announced once: politely through the Notifications region, and a destructive toast assertively (Review Focus 5))
+ * @claim "Each is announced as it arrives" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5))
  * @claim "Each is announced as it arrives" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > starts a waiting toast's countdown only when it shows, so it shows for its full duration and is announced once)
  */
 function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
@@ -296,6 +315,91 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
   if (from instanceof HTMLElement && !event.currentTarget.contains(from)) cameFrom.set(event.currentTarget, from);
 }
 
+/** The toast regions this Toaster fanned out because focus came in without a key, until focus leaves. */
+const heldForFocus = new WeakSet<Element>();
+
+/**
+ * Focus in the toasts fans the stack out and pauses it, however it came. Base UI does so only for
+ * keyboard focus (`:focus-visible`), so a screen reader that moves focus to a toast behind the
+ * front one, or a script, would leave it covered and fading out while it is read. A hover says the
+ * same to Base UI, so the region gets one, as a finger's press does in `useSwipeAway`.
+ *
+ * @claim "Focus in the toasts fans the stack out" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves)
+ */
+function onViewportFocus(event: FocusEvent<HTMLElement>): void {
+  rememberEntry(event);
+  const region = event.currentTarget;
+  if (region.hasAttribute("data-expanded") || (event.target as Element).matches(":focus-visible")) return;
+  heldForFocus.add(region);
+  region.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+}
+
+/** Focus that leaves the toasts folds a stack it fanned out, unless the pointer is over it. */
+function onViewportBlur(event: FocusEvent<HTMLElement>): void {
+  const region = event.currentTarget;
+  if (!heldForFocus.has(region) || (event.relatedTarget instanceof Node && region.contains(event.relatedTarget))) return;
+  heldForFocus.delete(region);
+  if (!region.matches(":hover")) region.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: null }));
+}
+
+/** How long a live region is on the page before it is given text: Safari drops text added to a newer one (see `announce`). */
+const LIVE_REGION_SETTLE_MS = 100;
+
+/** Visually hidden, but read. Inline, so it works without the stylesheet. */
+const visuallyHidden = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  margin: "-1px",
+  padding: "0",
+  border: "0",
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
+} as const;
+
+/**
+ * What screen readers hear as a toast shows: its message and description, once, from a polite
+ * live region, or an assertive one for a destructive toast, so it interrupts. A toast replaced in
+ * place is heard again with its new text, and one that leaves says nothing. The toasts themselves
+ * are not a live region, so their action and dismiss buttons are never read out as they arrive,
+ * and nothing in them needs hiding: a touch screen reader reaches every toast and button. The
+ * regions sit last in the Notifications landmark, after the toasts they speak for.
+ *
+ * @claim "What screen readers hear as a" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5))
+ * @claim "A toast replaced in place is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > announces a toast again when it is replaced with new text, and not when it leaves)
+ * @claim "a touch screen reader reaches every" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
+ */
+function ToastAnnouncer(): JSX.Element {
+  const { toasts } = Toast.useToastManager();
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), LIVE_REGION_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  const spoken = settled ? toasts.filter((item) => item.transitionStatus !== "ending") : [];
+  const entries = (destructive: boolean) =>
+    spoken
+      .filter((item) => (item.type === "destructive") === destructive)
+      .map((item) => (
+        <div key={item.id}>
+          <div>{item.title}</div>
+          {item.description ? <div>{item.description}</div> : null}
+        </div>
+      ));
+  return (
+    <div data-ouro-toast-announcer="" style={visuallyHidden}>
+      <div aria-live="polite" aria-relevant="additions text">
+        {entries(false)}
+      </div>
+      <div aria-live="assertive" aria-relevant="additions text">
+        {entries(true)}
+      </div>
+    </div>
+  );
+}
+
 /**
  * A toast hands focus to the next toast, and never past its region to some other control of the
  * page (a footer link): when it was the last, focus goes back where it was before it entered the
@@ -311,6 +415,7 @@ function toastHandoff(element: HTMLDivElement): FocusHandoffOptions {
 /** One toast. The swipe is Ouro's own, so Base UI's is off. */
 function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
   const { close } = Toast.useToastManager();
+  const destructive = item.type === "destructive";
   const swipe = useSwipeAway(() => close(item.id), item.transitionStatus === "ending");
   // A toast its dismiss button or action closes hands focus to the next toast, or back to the page.
   const ref = useMergedRef(swipe.ref, useFocusHandoff<HTMLDivElement>(toastHandoff));
@@ -322,9 +427,10 @@ function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string
       ref={ref}
       data-ouro="toast"
       data-tone={item.type}
-      // A high-priority toast is an alertdialog, an urgent part of its own.
+      // A destructive toast is an alertdialog, an urgent part of its own.
+      role={destructive ? "alertdialog" : "dialog"}
       data-ouro-control="toaster"
-      data-ouro-part={item.priority === "high" ? "alert" : "toast"}
+      data-ouro-part={destructive ? "alert" : "toast"}
       className={rootClass}
     >
       <Toast.Content className={contentClass}>
@@ -334,9 +440,9 @@ function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string
           <Toast.Description render={<div />} data-ouro-toast-description="" className="m-0 text-sm text-muted-foreground" />
         </div>
         <Toast.Action data-ouro-control="toaster" data-ouro-part="action" className={actionClass} />
-        {/* Base UI hides this from assistive technology while the stack is closed, and shows it
-            within the event that focuses it (Tab, F6), so keyboard focus never lands on it hidden. */}
-        <Toast.Close aria-label={closeLabel} data-ouro-control="toaster" data-ouro-part="close" className={closeClass}>
+        {/* Base UI hides this from assistive technology while the stack is collapsed. A touch
+            screen reader could then never reach it, since it cannot focus or hover the stack first. */}
+        <Toast.Close aria-label={closeLabel} aria-hidden={undefined} data-ouro-control="toaster" data-ouro-part="close" className={closeClass}>
           <TouchTarget />
           <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
             <path d="M4 4l8 8M12 4l-8 8" />
