@@ -86,10 +86,51 @@ export function estimateMutants(text, path, ranges) {
   return count;
 }
 
+/** The mutants a unit of a long changed range gathers before the range may be cut after it (`splitRange`). */
+export const UNIT_MUTANTS = 8;
+
 /**
- * The units the CI shards share out: each changed range of runtime source, with its estimated
- * mutants and its file's tests (`own`, `wider`), keyed as Stryker names it (`path:start-end`). A
- * range, not a file, so one file with many slow mutants (Sheet's parts) spreads across shards.
+ * A changed range (1-based, inclusive) cut into parts of about `most` estimated mutants each, so
+ * one long range of slow mutants spreads across shards. Stryker mutates a node only when one range
+ * holds all of its lines, so the range is cut only after a line that no node in it runs past: not
+ * a mutable one, nor a statement or call (a call's mutants span all of it), nor a function's body.
+ */
+export function splitRange(text, path, range, most = UNIT_MUTANTS) {
+  const ast = parse(text, { sourceType: "module", sourceFilename: path, errorRecovery: true, plugins: ["typescript", "jsx"] });
+  const nodes = [];
+  (traverse.default ?? traverse)(ast, {
+    enter(node) {
+      const { start, end } = node.node.loc;
+      if (node.isProgram() || start.line < range[0] || end.line > range[1]) return;
+      const counts = mutable.has(node.type) && !((node.isStringLiteral() || node.isTemplateLiteral()) && ignoreReason(node)?.startsWith("Tailwind"));
+      nodes.push({ start: start.line, end: end.line, counts });
+    },
+  });
+  const parts = [];
+  let from = range[0];
+  let count = 0;
+  let reach = 0;
+  for (let line = range[0]; line < range[1]; line += 1) {
+    for (const node of nodes) {
+      if (node.start !== line) continue;
+      if (node.counts) count += 1;
+      reach = Math.max(reach, node.end);
+    }
+    if (count >= most && reach <= line) {
+      parts.push([from, line]);
+      from = line + 1;
+      count = 0;
+    }
+  }
+  parts.push([from, range[1]]);
+  return parts;
+}
+
+/**
+ * The units the CI shards share out: each changed range of runtime source, a long one cut into
+ * parts (`splitRange`), with its estimated mutants and its file's tests (`own`, `wider`), keyed as
+ * Stryker names it (`path:start-end`). A range, not a file, so one file with many slow mutants
+ * (Sheet's parts, the Toaster's announcer) spreads across shards.
  */
 export function shardUnits(changed, { read = (path) => readFileSync(join(root, path), "utf8"), testsFor = (path) => testFilesFor([path]) } = {}) {
   const units = {};
@@ -97,7 +138,9 @@ export function shardUnits(changed, { read = (path) => readFileSync(join(root, p
     if (!runtimeSource(path)) continue;
     const text = read(path);
     const tests = testsFor(path);
-    for (const range of ranges) units[`${path}:${range[0]}-${range[1]}`] = { path, range, mutants: estimateMutants(text, path, [range]), ...tests };
+    for (const range of ranges) {
+      for (const part of splitRange(text, path, range)) units[`${path}:${part[0]}-${part[1]}`] = { path, range: part, mutants: estimateMutants(text, path, [part]), ...tests };
+    }
   }
   return units;
 }

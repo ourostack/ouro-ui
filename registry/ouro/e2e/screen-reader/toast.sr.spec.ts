@@ -10,5 +10,5 @@ test("Toast is announced from its live region when it appears", async ({ page, s
   const save = page.getByRole("button", { name: "Save recipe" });
   await heard(sr, () => save.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Save recipe", "button")), '"Save recipe", button');
   await heard(sr, () => page.keyboard.press("Enter"), (phrase) => inOneSentence(phrase, /\brecipe saved\b/i), '"Recipe saved", the toast', 20_000);
-  await expect(page.getByText("Recipe saved")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Recipe saved" })).toBeVisible();
 });
