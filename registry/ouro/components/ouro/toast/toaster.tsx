@@ -440,7 +440,7 @@ function ToastAnnouncer(): JSX.Element {
     setSpoken((before) => {
       const at = Date.now();
       const next = toasts.flatMap((item): Spoken[] => {
-        const shown = region.querySelector(`[data-ouro-toast-id="${CSS.escape(item.id)}"]`);
+        const shown = [...region.querySelectorAll("[data-ouro-toast-id]")].find((element) => element.getAttribute("data-ouro-toast-id") === item.id);
         const lines = [shown?.querySelector("[data-ouro-toast-title]")?.textContent ?? "", shown?.querySelector("[data-ouro-toast-description]")?.textContent ?? ""].filter(Boolean);
         if (lines.length === 0) return [];
         const was = before.find((entry) => entry.id === item.id);
