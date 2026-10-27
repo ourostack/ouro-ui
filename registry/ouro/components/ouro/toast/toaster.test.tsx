@@ -23,6 +23,8 @@ async function render(node: ReactNode) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
+  // A Toaster's live regions take their first text 100ms after they appear (Safari drops it sooner).
+  if (viewport()) await elapse(150);
   return { host, root, unmount: () => act(async () => root.unmount()) };
 }
 
@@ -294,14 +296,17 @@ describe("Toaster", () => {
     expect(warnings()).toHaveLength(1);
   });
 
-  it("renders an empty, polite Notifications region in a portal", async () => {
+  it("renders an empty Notifications landmark in a portal, which holds its own live regions", async () => {
     const { host } = await render(<Toaster />);
     const region = viewport()!;
     expect(region).not.toBeNull();
     expect(host.contains(region)).toBe(false);
     expect(region.getAttribute("role")).toBe("region");
     expect(region.getAttribute("aria-label")).toBe("Notifications");
-    expect(region.getAttribute("aria-live")).toBe("polite");
+    // The toasts are not read out from the region they sit in; two live regions inside it speak for them.
+    expect(region.hasAttribute("aria-live")).toBe(false);
+    expect([...region.querySelectorAll("[aria-live]")].map((live) => live.getAttribute("aria-live"))).toEqual(["polite", "assertive"]);
+    expect(region.textContent).toBe("");
     expect(toasts()).toEqual([]);
   });
 
@@ -796,38 +801,55 @@ describe("toast()", () => {
     expect(Number(getComputedStyle(toastNamed("Third")!).zIndex)).toBeGreaterThan(Number(getComputedStyle(toastNamed("First")!).zIndex));
   });
 
-  it("hides the dismiss buttons and a destructive toast from assistive technology only while no key has focus in the toasts, and shows them in the same event that focuses one", async () => {
+  it("keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed", async () => {
     await render(<Toaster />);
-    // No countdown, so both stay while Tab walks through them.
     await show("Recipe saved", { tone: "success", duration: Infinity });
     await show("Couldn't sync", { tone: "destructive", action: { label: "Retry", onClick: () => {} } });
-    const close = (message: string) => toastNamed(message)!.querySelector<HTMLButtonElement>('[data-ouro-part="close"]')!;
-    // At rest the alert announces the destructive toast, and the region announces no dismiss button.
-    expect(close("Recipe saved").getAttribute("aria-hidden")).toBe("true");
-    expect(toastNamed("Couldn't sync")!.getAttribute("aria-hidden")).toBe("true");
-    // Tab shows each one within the event that focuses it: by the time the focus event reaches the
-    // document, the last listener, nothing focused is hidden.
-    const hiddenOnFocus: boolean[] = [];
-    const record = (event: FocusEvent) => hiddenOnFocus.push((event.target as Element).closest('[aria-hidden="true"]') !== null);
-    document.addEventListener("focusin", record);
-    const button = document.createElement("button");
-    button.textContent = "Before";
-    document.body.prepend(button);
-    mounted.push(button);
-    button.focus();
-    const reached = new Set<Element>();
-    for (let press = 0; press < 8; press++) {
-      await pressTab();
-      if (viewport()!.contains(document.activeElement)) reached.add(document.activeElement!);
-    }
-    document.removeEventListener("focusin", record);
-    expect(reached).toContain(close("Recipe saved"));
-    expect(reached).toContain(toastNamed("Couldn't sync"));
-    expect(hiddenOnFocus.length).toBeGreaterThanOrEqual(reached.size);
-    expect(hiddenOnFocus).not.toContain(true);
+    // At rest: nothing has focus in the toasts and no pointer is over them, so the stack is collapsed.
+    expect(viewport()!.hasAttribute("data-expanded")).toBe(false);
+    // A touch screen reader (VoiceOver on iPhone) moves only through what is exposed, and a
+    // collapsed stack cannot be focused or hovered first: every toast and button must be exposed now.
+    const hidden = (element: Element) => element.closest('[aria-hidden="true"], [inert]') !== null;
+    for (const item of toasts()) expect(hidden(item), item.textContent ?? "").toBe(false);
+    const buttons = [...viewport()!.querySelectorAll("button")];
+    expect(buttons.map((button) => button.textContent || button.getAttribute("aria-label"))).toEqual(["Retry", "Dismiss", "Dismiss"]);
+    for (const button of buttons) expect(hidden(button), button.outerHTML).toBe(false);
+    // The destructive toast is still told apart: an alertdialog, named by its message.
+    expect(toastNamed("Couldn't sync")!.getAttribute("role")).toBe("alertdialog");
+    expect(toastNamed("Recipe saved")!.getAttribute("role")).toBe("dialog");
   });
 
-  it("is announced once: politely through the Notifications region, and a destructive toast assertively (Review Focus 5)", async () => {
+  it("fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Toaster />
+      </>,
+    );
+    // A pointer press puts focus on the page without a focus ring, so later moves by script show none either.
+    await userEvent.click(page.getByRole("button", { name: "Before" }));
+    await moveMouseAway();
+    await show("Older", { duration: Infinity });
+    fakeClock();
+    await act(async () => {
+      toast("Newer", { duration: 3000 });
+    });
+    await until(() => showing("Newer"), true);
+    const behind = toastNamed("Older")!.querySelector<HTMLButtonElement>('[data-ouro-part="close"]')!;
+    await act(async () => behind.focus());
+    expect(behind.matches(":focus-visible")).toBe(false);
+    await until(() => viewport()!.hasAttribute("data-expanded"), true);
+    // The toast it reached shows in full, where its focus outline can be seen, and the newer one waits.
+    await advance(6000);
+    expect(showing("Newer")).toBe(true);
+    await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+    await until(() => viewport()!.hasAttribute("data-expanded"), false);
+    // Its countdown goes on with the time it had left.
+    await advance(3000);
+    await gone("Newer");
+  });
+
+  it("is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5)", async () => {
     await render(<Toaster />);
     const announced = watchAnnouncements();
     fakeClock();
@@ -846,17 +868,41 @@ describe("toast()", () => {
     await advance(1000);
     announced.stop();
     expect(announced.count("Recipe saved")).toBe(1);
+    expect(announced.count("In your cookbook.")).toBe(1);
     expect(announced.count("Photo added")).toBe(1);
-    expect(announced.matching("Recipe saved")[0]!.region).toBe(viewport());
-    expect(announced.matching("Photo added")[0]!.region).toBe(viewport());
-    // The destructive toast is spoken once, through an alert, and hidden from the polite region.
     expect(announced.count("Couldn't sync")).toBe(1);
-    expect(announced.matching("Couldn't sync")[0]!.region.getAttribute("role")).toBe("alert");
-    expect(toastNamed("Couldn't sync")!.getAttribute("aria-hidden")).toBe("true");
+    expect(announced.count("Check your connection.")).toBe(1);
+    // The toasts' buttons are reachable, but nobody hears them read out as a toast arrives.
+    expect(announced.count("Dismiss")).toBe(0);
+    expect(announced.count("Retry")).toBe(0);
+    const politely = announced.matching("Recipe saved")[0]!.region;
+    const assertively = announced.matching("Couldn't sync")[0]!.region;
+    expect(politely.getAttribute("aria-live")).toBe("polite");
+    expect(announced.matching("Photo added")[0]!.region).toBe(politely);
+    expect(assertively.getAttribute("aria-live")).toBe("assertive");
+    // Both speak from inside the Notifications landmark, which is not itself a live region.
+    expect(viewport()!.contains(politely) && viewport()!.contains(assertively)).toBe(true);
+    expect(viewport()!.hasAttribute("aria-live")).toBe(false);
     expect(document.querySelector("[data-ouro-announcer]")?.textContent ?? "").toBe("");
     // Polite toasts are spoken in the order they were added.
     const texts = announced.changes.map((change) => change.text);
     expect(texts.findIndex((text) => text.includes("Recipe saved"))).toBeLessThan(texts.findIndex((text) => text.includes("Photo added")));
+  });
+
+  it("announces a toast again when it is replaced with new text, and not when it leaves", async () => {
+    await render(<Toaster />);
+    await show("Uploading", { id: "upload", duration: 0 });
+    // Spoken already: the watch starts after.
+    await until(() => viewport()!.textContent!.includes("UploadingUploading"), true);
+    const announced = watchAnnouncements();
+    await act(async () => {
+      toast("Uploaded", { id: "upload", tone: "success", duration: 0 });
+    });
+    await until(() => showing("Uploaded"), true);
+    await act(async () => toast.dismiss("upload"));
+    await gone("Uploaded");
+    announced.stop();
+    expect(announced.changes.map((change) => change.text)).toEqual(["Uploaded"]);
   });
 
   it("waits for the Toaster when called before it mounts", async () => {
