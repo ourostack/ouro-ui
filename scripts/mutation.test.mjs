@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, inScope, shardUnits, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, inScope, shardUnits, splitRange, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -387,6 +387,28 @@ test("pruneChangedFiles also drops a changed file's kept results when a changed 
   assert.deepEqual(Object.keys(pruneChangedFiles(found, reverted).files), ["registry/ouro/components/ouro/other/other.tsx"]);
   // The digests survive a merge.
   assert.deepEqual(mergeReports([found, { files: {}, testFiles: {}, ouroSources: { "x.tsx": "1" } }]).ouroSources, { ...found.ouroSources, "x.tsx": "1" });
+});
+
+test("splitRange cuts a long range into parts of about the given mutants, only where no mutable node runs past the cut", () => {
+  const text = [
+    "export function one(a) {", // 1
+    "  return a > 1 && a < 9;", // 2
+    "}", // 3
+    "export function two(b) {", // 4
+    "  if (b) {", // 5
+    '    return b === "x" || !b;', // 6
+    "  }", // 7
+    "  return [b, { b }];", // 8
+    "}", // 9
+    'const rootClass = "m-0 flex gap-2 p-4 text-sm";', // 10
+  ].join("\n");
+  // Each function's body is a block that spans it, so no cut falls inside a function.
+  assert.deepEqual(splitRange(text, "f.tsx", [1, 10], 1), [[1, 3], [4, 9], [10, 10]]);
+  // Nothing is cut before a part holds that many mutants.
+  assert.deepEqual(splitRange(text, "f.tsx", [1, 10], 100), [[1, 10]]);
+  assert.deepEqual(splitRange(text, "f.tsx", [1, 10], 5), [[1, 9], [10, 10]]);
+  // A node that runs past the range's own end is not mutated, so it does not hold a cut back.
+  assert.deepEqual(splitRange(text, "f.tsx", [1, 6], 1), [[1, 3], [4, 6]]);
 });
 
 test("shardUnits makes each changed range of runtime source a unit of its own, with its file's tests, so one large file's mutants can spread across shards", () => {

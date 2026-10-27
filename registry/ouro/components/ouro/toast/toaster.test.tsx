@@ -901,6 +901,20 @@ describe("toast()", () => {
     expect(polite()!.textContent).toBe("Early");
   });
 
+  it("says nothing for a toast with no words, and only the description of one with no message", async () => {
+    await render(<Toaster />);
+    fakeClock();
+    await act(async () => {
+      toast("", { duration: Infinity });
+      toast("", { duration: Infinity, description: "Only the description" });
+    });
+    await until(() => toasts().length, 2);
+    await advance(100);
+    const polite = viewport()!.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]')!;
+    expect(polite.textContent).toBe("Only the description");
+    expect(polite.children).toHaveLength(1);
+  });
+
   it("says a description's words without copying its link, and lets the words go a few seconds after they are said", async () => {
     await render(<Toaster />);
     fakeClock();

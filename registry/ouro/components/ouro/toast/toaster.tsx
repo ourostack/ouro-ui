@@ -424,33 +424,67 @@ interface Spoken {
 function ToastAnnouncer(): JSX.Element {
   const { toasts } = Toast.useToastManager();
   const anchor = useRef<HTMLDivElement>(null);
-  const [settled, setSettled] = useState(false);
+  const settled = useSettled();
   const [spoken, setSpoken] = useState<Spoken[]>([]);
-  const [now, setNow] = useState(0);
+  // Read after the toasts are on the page and before it paints, so each toast's words arrive whole.
+  useLayoutEffect(() => {
+    if (!settled) return;
+    const region = anchor.current!.closest('[data-ouro="toaster"]')!;
+    setSpoken((before) => wordsOf(region, toasts, before, Date.now()));
+  }, [settled, toasts]);
+  const current = useUnexpired(spoken);
+  return (
+    <div ref={anchor} data-ouro-toast-announcer="" style={visuallyHidden}>
+      <div aria-live="polite" aria-relevant="additions text">
+        <SpokenWords entries={current.filter((entry) => !entry.destructive)} />
+      </div>
+      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions text">
+        <SpokenWords entries={current.filter((entry) => entry.destructive)} />
+      </div>
+    </div>
+  );
+}
+
+/** Whether the live regions have been on the page LIVE_REGION_SETTLE_MS, so text given to them is read. */
+function useSettled(): boolean {
+  const [settled, setSettled] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setSettled(true), LIVE_REGION_SETTLE_MS);
     // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so clearing only tidies.
     return () => clearTimeout(timer);
     // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   }, []);
-  // Read after the toasts are on the page and before it paints, so each toast's words arrive whole.
-  useLayoutEffect(() => {
-    if (!settled) return;
-    const region = anchor.current!.closest('[data-ouro="toaster"]')!;
-    setSpoken((before) => {
-      const at = Date.now();
-      const next = toasts.flatMap((item): Spoken[] => {
-        const shown = [...region.querySelectorAll("[data-ouro-toast-id]")].find((element) => element.getAttribute("data-ouro-toast-id") === item.id);
-        const lines = [shown?.querySelector("[data-ouro-toast-title]")?.textContent ?? "", shown?.querySelector("[data-ouro-toast-description]")?.textContent ?? ""].filter(Boolean);
-        if (lines.length === 0) return [];
-        const was = before.find((entry) => entry.id === item.id);
-        if (was && was.lines.join("\n") === lines.join("\n")) return [was];
-        return [{ id: item.id, key: `${item.id} ${at}`, destructive: item.type === "destructive", lines, at }];
-      });
-      return next.length === before.length && next.every((entry, index) => entry === before[index]) ? before : next;
-    });
-  }, [settled, toasts]);
-  // Lets each toast's words go once they have been there SPOKEN_FOR_MS.
+  return settled;
+}
+
+/**
+ * The toasts' words as `region` shows them. A toast whose words are unchanged keeps its entry from
+ * `before`, and when no toast changed `before` itself comes back, so React does not render again.
+ *
+ * @claim "A toast whose words are unchanged" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > announces a toast again when it is replaced with new text, and not when it leaves)
+ */
+function wordsOf(region: Element, toasts: ToastObject[], before: Spoken[], at: number): Spoken[] {
+  const next = toasts.flatMap((item) => toastWords(item, shownLines(region, item.id), before, at));
+  return next.length === before.length && next.every((entry, index) => entry === before[index]) ? before : next;
+}
+
+/** The message and description the toast with this id shows in `region`, leaving out an empty one. */
+function shownLines(region: Element, id: string): string[] {
+  const shown = [...region.querySelectorAll("[data-ouro-toast-id]")].find((element) => element.getAttribute("data-ouro-toast-id") === id);
+  return [shown?.querySelector("[data-ouro-toast-title]")?.textContent ?? "", shown?.querySelector("[data-ouro-toast-description]")?.textContent ?? ""].filter(Boolean);
+}
+
+/** What the live regions say for one toast showing `lines`: nothing, its words from `before` when unchanged, or new words said now. */
+function toastWords(item: ToastObject, lines: string[], before: Spoken[], at: number): Spoken[] {
+  if (lines.length === 0) return [];
+  const was = before.find((entry) => entry.id === item.id);
+  if (was && was.lines.join("\n") === lines.join("\n")) return [was];
+  return [{ id: item.id, key: `${item.id} ${at}`, destructive: item.type === "destructive", lines, at }];
+}
+
+/** The words not yet said for SPOKEN_FOR_MS, rendering again when the oldest of them is due to go. */
+function useUnexpired(spoken: Spoken[]): Spoken[] {
+  const [now, setNow] = useState(0);
   const current = spoken.filter((entry) => now - entry.at < SPOKEN_FOR_MS);
   const first = Math.min(...current.map((entry) => entry.at));
   useEffect(() => {
@@ -458,26 +492,18 @@ function ToastAnnouncer(): JSX.Element {
     const timer = setTimeout(() => setNow(Math.max(Date.now(), first + SPOKEN_FOR_MS)), first + SPOKEN_FOR_MS - Date.now());
     return () => clearTimeout(timer);
   }, [first]);
-  const entries = (destructive: boolean) =>
-    current
-      .filter((entry) => entry.destructive === destructive)
-      .map((entry) => (
-        <div key={entry.key}>
-          {entry.lines.map((line, index) => (
-            <div key={index}>{line}</div>
-          ))}
-        </div>
-      ));
-  return (
-    <div ref={anchor} data-ouro-toast-announcer="" style={visuallyHidden}>
-      <div aria-live="polite" aria-relevant="additions text">
-        {entries(false)}
-      </div>
-      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions text">
-        {entries(true)}
-      </div>
+  return current;
+}
+
+/** The toasts' words in one live region, a line to a message or description. */
+function SpokenWords({ entries }: { entries: Spoken[] }): JSX.Element[] {
+  return entries.map((entry) => (
+    <div key={entry.key}>
+      {entry.lines.map((line, index) => (
+        <div key={index}>{line}</div>
+      ))}
     </div>
-  );
+  ));
 }
 
 /**
