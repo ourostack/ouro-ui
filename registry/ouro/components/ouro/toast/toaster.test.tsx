@@ -888,16 +888,102 @@ describe("toast()", () => {
     mounted.push(host);
     const root = createRoot(host);
     roots.push(root);
-    const mountedAt = performance.now();
+    // When the polite region is first on the page, and when it first holds words.
+    let shownAt = 0;
     let spokenAt = 0;
     const watch = new MutationObserver(() => {
-      if (!spokenAt && document.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]')?.textContent) spokenAt = performance.now();
+      const region = document.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]');
+      if (region && !shownAt) shownAt = performance.now();
+      if (region?.textContent && !spokenAt) spokenAt = performance.now();
     });
     watch.observe(document.body, { subtree: true, childList: true, characterData: true });
     await act(async () => root.render(<Toaster />));
     await until(() => spokenAt > 0, true);
     watch.disconnect();
-    expect(spokenAt - mountedAt).toBeGreaterThanOrEqual(95);
+    expect(shownAt).toBeGreaterThan(0);
+    expect(spokenAt - shownAt).toBeGreaterThanOrEqual(95);
+  });
+
+  it("says a description's words without copying its link, and lets the words go a few seconds after they are said", async () => {
+    await render(<Toaster />);
+    fakeClock();
+    await act(async () => {
+      toast("Recipe saved", { duration: Infinity, description: <a href="#cookbook">Open your cookbook</a> });
+    });
+    await until(() => showing("Recipe saved"), true);
+    const polite = () => viewport()!.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]')!;
+    expect(polite().textContent).toBe("Recipe savedOpen your cookbook");
+    expect(viewport()!.querySelectorAll("a")).toHaveLength(1);
+    expect(polite().querySelector("a, button, [tabindex]")).toBeNull();
+    const announced = watchAnnouncements();
+    await advance(6900);
+    expect(polite().textContent).toBe("Recipe savedOpen your cookbook");
+    // Gone from the region, so a screen reader moving through the landmark meets the toast once.
+    await advance(200);
+    expect(polite().textContent).toBe("");
+    expect(showing("Recipe saved")).toBe(true);
+    announced.stop();
+    expect(announced.changes).toEqual([]);
+  });
+
+  it("tells nothing outside the toasts that a pointer came or went when focus fans the stack out and folds it", async () => {
+    const outside = { enter: 0, leave: 0, page: [] as string[] };
+    // What the page hears: the event, and whether it went from one node of the toasts to another.
+    const count = (event: Event) => {
+      const { target, relatedTarget } = event as MouseEvent;
+      const toasts = viewport()!.parentElement!;
+      outside.page.push(`${event.type} ${toasts.contains(target as Node) && toasts.contains(relatedTarget as Node) ? "within the toasts" : "outside"}`);
+    };
+    for (const type of ["mouseover", "mouseout", "mousemove"]) document.addEventListener(type, count);
+    try {
+      await render(
+        <div onMouseEnter={() => outside.enter++} onMouseLeave={() => outside.leave++}>
+          <button type="button">Before</button>
+          <Toaster />
+        </div>,
+      );
+      await userEvent.click(page.getByRole("button", { name: "Before" }));
+      await moveMouseAway();
+      await show("Older", { duration: Infinity });
+      await show("Newer", { duration: Infinity });
+      Object.assign(outside, { enter: 0, leave: 0, page: [] });
+      await act(async () => toastNamed("Older")!.querySelector<HTMLElement>('[data-ouro-part="close"]')!.focus());
+      await until(() => viewport()!.hasAttribute("data-expanded"), true);
+      await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+      await until(() => viewport()!.hasAttribute("data-expanded"), false);
+      expect(outside).toEqual({ enter: 0, leave: 0, page: ["mouseout within the toasts", "mouseout within the toasts"] });
+    } finally {
+      for (const type of ["mouseover", "mouseout", "mousemove"]) document.removeEventListener(type, count);
+    }
+  });
+
+  it("keeps the stack fanned out and waiting while focus is in a toast and a pointer passes over and away", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Toaster />
+      </>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Before" }));
+    await moveMouseAway();
+    await show("Older", { duration: Infinity });
+    fakeClock();
+    await act(async () => {
+      toast("Newer", { duration: 3000 });
+    });
+    await until(() => showing("Newer"), true);
+    await act(async () => toastNamed("Older")!.querySelector<HTMLElement>('[data-ouro-part="close"]')!.focus());
+    await until(() => viewport()!.hasAttribute("data-expanded"), true);
+    await userEvent.hover(toastNamed("Newer")!);
+    await moveMouseAway();
+    await elapse(200);
+    expect(viewport()!.hasAttribute("data-expanded")).toBe(true);
+    await advance(6000);
+    expect(showing("Newer")).toBe(true);
+    await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+    await until(() => viewport()!.hasAttribute("data-expanded"), false);
+    await advance(3000);
+    await gone("Newer");
   });
 
   it("is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5)", async () => {
@@ -931,6 +1017,7 @@ describe("toast()", () => {
     expect(politely.getAttribute("aria-live")).toBe("polite");
     expect(announced.matching("Photo added")[0]!.region).toBe(politely);
     expect(assertively.getAttribute("aria-live")).toBe("assertive");
+    expect(assertively.getAttribute("role")).toBe("alert");
     // Both speak from inside the Notifications landmark, which is not itself a live region.
     expect(viewport()!.contains(politely) && viewport()!.contains(assertively)).toBe(true);
     expect(viewport()!.hasAttribute("aria-live")).toBe(false);

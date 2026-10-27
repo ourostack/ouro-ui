@@ -1,7 +1,8 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type PointerEvent as ReactPointerEvent } from "react";
+import type { BaseUIEvent } from "@base-ui/react/types";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
@@ -79,7 +80,7 @@ export interface ToasterProps {
  * screen readers once, its message and description: politely, and a `destructive` toast
  * assertively, so it interrupts. Every toast and its buttons stay reachable by screen readers, a
  * touch screen reader too, while the stack is collapsed, and focus in a toast fans the stack out
- * and pauses it, however it got there.
+ * and pauses it, however it got there, even while a pointer passes over and away.
  *
  * Render one Toaster. A second one warns in development and shows nothing until the
  * first unmounts, then takes over.
@@ -112,6 +113,7 @@ export interface ToasterProps {
  * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.tsx verify:fileLine(registry/ouro/components/ouro/toast/toaster.tsx, /^import\s\{\sconnectToaster,\stype\sToastRecord\s\}\sfrom\s"@\/registry\/ouro\/lib\/ouro\/toast";/)
  * @claim "Every toast and its buttons stay" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
  * @claim "and focus in a toast fans" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves)
+ * @claim "and focus in a toast fans" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps the stack fanned out and waiting while focus is in a toast and a pointer passes over and away)
  * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5))
  * @claim "They pause while the pointer is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
  * @claim "They pause while the pointer is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while a toast has keyboard focus; F6 moves focus to the toasts)
@@ -161,6 +163,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
               className={cn(viewportClass, className)}
               onFocus={onViewportFocus}
               onBlur={onViewportBlur}
+              onMouseLeave={onViewportMouseLeave}
             >
               <ToastList closeLabel={closeLabel} />
               <ToastAnnouncer />
@@ -326,7 +329,34 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
  */
 function onViewportFocus(event: FocusEvent<HTMLElement>): void {
   rememberEntry(event);
-  event.currentTarget.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+  hover(event.currentTarget, "in");
+}
+
+/**
+ * Tells Base UI's region that a pointer came in or left (its onMouseEnter and onMouseLeave), and
+ * no component around the Toaster. React makes both from `mouseout`: one from the region's
+ * parent, Base UI's portal node, to the region enters the region alone, and one back leaves it
+ * alone. The page sees only that `mouseout`, between two nodes of the toasts, and no move.
+ *
+ * @claim "and no component around the Toaster" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > tells nothing outside the toasts that a pointer came or went when focus fans the stack out and folds it)
+ * @claim "The page sees only that `mouseout`" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > tells nothing outside the toasts that a pointer came or went when focus fans the stack out and folds it)
+ */
+function hover(region: HTMLElement, way: "in" | "out"): void {
+  const parent = region.parentElement;
+  /* istanbul ignore if @preserve -- Base UI always renders the region in its portal node */
+  if (!parent) return;
+  const [from, to] = way === "in" ? [parent, region] : [region, parent];
+  from.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: to }));
+}
+
+/**
+ * A pointer leaving the toasts leaves the stack fanned out while focus is in one, as Base UI
+ * does for keyboard focus; focus leaving folds it then.
+ *
+ * @claim "A pointer leaving the toasts leaves" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps the stack fanned out and waiting while focus is in a toast and a pointer passes over and away)
+ */
+function onViewportMouseLeave(event: BaseUIEvent<ReactMouseEvent<HTMLElement>>): void {
+  if (event.currentTarget.contains(document.activeElement)) event.preventBaseUIHandler();
 }
 
 /**
@@ -338,11 +368,19 @@ function onViewportFocus(event: FocusEvent<HTMLElement>): void {
  */
 function onViewportBlur(event: FocusEvent<HTMLElement>): void {
   const region = event.currentTarget;
-  if (!region.matches(":hover")) region.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: null }));
+  if (!region.matches(":hover")) hover(region, "out");
 }
 
 /** How long a live region is on the page before it is given text: Safari drops text added to a newer one (see `announce`). */
 const LIVE_REGION_SETTLE_MS = 100;
+
+/**
+ * How long a toast's words stay in the live regions once said: long enough to be read out, then
+ * they leave, so a screen reader moving through the Notifications landmark meets each toast once.
+ *
+ * @claim "How long a toast's words stay" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > says a description's words without copying its link, and lets the words go a few seconds after they are said)
+ */
+const SPOKEN_FOR_MS = 7000;
 
 /** Visually hidden, but read. Inline, so it works without the stylesheet. */
 const visuallyHidden = {
@@ -358,43 +396,84 @@ const visuallyHidden = {
   whiteSpace: "nowrap",
 } as const;
 
+/** What the live regions say for one toast: its words as shown, and when they were first said. */
+interface Spoken {
+  id: string;
+  /** Changes when the toast is replaced with new words, so the new ones are an addition. */
+  key: string;
+  destructive: boolean;
+  lines: string[];
+  at: number;
+}
+
 /**
  * What screen readers hear as a toast shows: its message and description, once, from a polite
- * live region, or an assertive one for a destructive toast, so it interrupts. A toast replaced in
- * place is heard again with its new text, and one that leaves says nothing. The toasts themselves
- * are not a live region, so their action and dismiss buttons are never read out as they arrive,
- * and nothing in them needs hiding: a touch screen reader reaches every toast and button. The
- * regions sit last in the Notifications landmark, after the toasts they speak for.
+ * live region, or an assertive one (`role="alert"`) for a destructive toast, so it interrupts. A
+ * toast replaced in place is heard again with its new words, and one that leaves says nothing.
+ * The regions hold only the words, read from the toast as shown, so a link or button in a
+ * description is never there twice, and the words leave after a few seconds. The toasts
+ * themselves are not a live region, so their action and dismiss buttons are never read out as
+ * they arrive, and nothing in them needs hiding: a touch screen reader reaches every toast and
+ * button. The regions sit last in the Notifications landmark, after the toasts they speak for.
  *
  * @claim "What screen readers hear as a" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5))
  * @claim "A toast replaced in place is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > announces a toast again when it is replaced with new text, and not when it leaves)
+ * @claim "The regions hold only the words" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > says a description's words without copying its link, and lets the words go a few seconds after they are said)
  * @claim "a touch screen reader reaches every" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
  */
 function ToastAnnouncer(): JSX.Element {
   const { toasts } = Toast.useToastManager();
+  const anchor = useRef<HTMLDivElement>(null);
   const [settled, setSettled] = useState(false);
+  const [spoken, setSpoken] = useState<Spoken[]>([]);
+  const [now, setNow] = useState(0);
   useEffect(() => {
     const timer = setTimeout(() => setSettled(true), LIVE_REGION_SETTLE_MS);
     // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so clearing only tidies.
     return () => clearTimeout(timer);
     // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   }, []);
-  const spoken = settled ? toasts : [];
+  // Read after the toasts are on the page and before it paints, so each toast's words arrive whole.
+  useLayoutEffect(() => {
+    if (!settled) return;
+    const region = anchor.current!.closest('[data-ouro="toaster"]')!;
+    setSpoken((before) => {
+      const at = Date.now();
+      const next = toasts.flatMap((item): Spoken[] => {
+        const shown = region.querySelector(`[data-ouro-toast-id="${CSS.escape(item.id)}"]`);
+        const lines = [shown?.querySelector("[data-ouro-toast-title]")?.textContent ?? "", shown?.querySelector("[data-ouro-toast-description]")?.textContent ?? ""].filter(Boolean);
+        if (lines.length === 0) return [];
+        const was = before.find((entry) => entry.id === item.id);
+        if (was && was.lines.join("\n") === lines.join("\n")) return [was];
+        return [{ id: item.id, key: `${item.id} ${at}`, destructive: item.type === "destructive", lines, at }];
+      });
+      return next.length === before.length && next.every((entry, index) => entry === before[index]) ? before : next;
+    });
+  }, [settled, toasts]);
+  // Lets each toast's words go once they have been there SPOKEN_FOR_MS.
+  const current = spoken.filter((entry) => now - entry.at < SPOKEN_FOR_MS);
+  const first = Math.min(...current.map((entry) => entry.at));
+  useEffect(() => {
+    if (first === Infinity) return;
+    const timer = setTimeout(() => setNow(Math.max(Date.now(), first + SPOKEN_FOR_MS)), first + SPOKEN_FOR_MS - Date.now());
+    return () => clearTimeout(timer);
+  }, [first]);
   const entries = (destructive: boolean) =>
-    spoken
-      .filter((item) => (item.type === "destructive") === destructive)
-      .map((item) => (
-        <div key={item.id}>
-          <div>{item.title}</div>
-          {item.description ? <div>{item.description}</div> : null}
+    current
+      .filter((entry) => entry.destructive === destructive)
+      .map((entry) => (
+        <div key={entry.key}>
+          {entry.lines.map((line, index) => (
+            <div key={index}>{line}</div>
+          ))}
         </div>
       ));
   return (
-    <div data-ouro-toast-announcer="" style={visuallyHidden}>
+    <div ref={anchor} data-ouro-toast-announcer="" style={visuallyHidden}>
       <div aria-live="polite" aria-relevant="additions text">
         {entries(false)}
       </div>
-      <div aria-live="assertive" aria-relevant="additions text">
+      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions text">
         {entries(true)}
       </div>
     </div>
@@ -427,6 +506,7 @@ function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string
       {...swipe}
       ref={ref}
       data-ouro="toast"
+      data-ouro-toast-id={item.id}
       data-tone={item.type}
       // A destructive toast is an alertdialog, an urgent part of its own.
       role={destructive ? "alertdialog" : "dialog"}
