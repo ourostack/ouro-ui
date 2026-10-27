@@ -882,26 +882,22 @@ describe("toast()", () => {
   });
 
   it("gives its live regions text only once they have been on the page a moment, as Safari needs", async () => {
+    fakeClock();
     toast("Early", { duration: 0 });
     const host = document.createElement("div");
     document.body.append(host);
     mounted.push(host);
     const root = createRoot(host);
     roots.push(root);
-    // When the polite region is first on the page, and when it first holds words.
-    let shownAt = 0;
-    let spokenAt = 0;
-    const watch = new MutationObserver(() => {
-      const region = document.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]');
-      if (region && !shownAt) shownAt = performance.now();
-      if (region?.textContent && !spokenAt) spokenAt = performance.now();
-    });
-    watch.observe(document.body, { subtree: true, childList: true, characterData: true });
     await act(async () => root.render(<Toaster />));
-    await until(() => spokenAt > 0, true);
-    watch.disconnect();
-    expect(shownAt).toBeGreaterThan(0);
-    expect(spokenAt - shownAt).toBeGreaterThanOrEqual(95);
+    await until(() => showing("Early"), true);
+    const polite = () => document.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]');
+    expect(polite()).not.toBeNull();
+    expect(polite()!.textContent).toBe("");
+    await advance(99);
+    expect(polite()!.textContent).toBe("");
+    await advance(1);
+    expect(polite()!.textContent).toBe("Early");
   });
 
   it("says a description's words without copying its link, and lets the words go a few seconds after they are said", async () => {
