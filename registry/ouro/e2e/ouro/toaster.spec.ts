@@ -35,7 +35,10 @@ test("the Undo action runs and dismisses its toast", async ({ page }) => {
 });
 
 test("a screen reader finds every toast and its buttons in the collapsed stack, before anything is focused or hovered", async ({ page }) => {
+  await page.clock.install();
   await openStory(page, "feedback-toast--stack");
+  // The timed toasts wait for the clock, which stands still from here.
+  await holdClock(page);
   const region = page.getByRole("region", { name: "Notifications" });
   // Roles as assistive technology gets them: nothing hidden from it counts.
   await expect(region.getByRole("alertdialog", { name: "Couldn't sync" })).toBeVisible();
