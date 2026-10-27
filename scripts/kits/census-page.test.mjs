@@ -63,6 +63,34 @@ describe("collectCensus", () => {
     }
   });
 
+  it("puts back the page's own window.axe, or none, once it has read the page, even when the controls never settle", async () => {
+    const installed = axe.source;
+    const pageAxe = { version: "the page's own" };
+    try {
+      axe.source = "window.axe = { census: true };";
+      for (const [own, settles] of [[pageAxe, true], [undefined, true], [pageAxe, false]]) {
+        globalThis.window = own ? { axe: own } : {};
+        const page = fakePage(settles ? [[SAVE]] : [[SAVE], [LINK]]);
+        const read = [];
+        page.evaluate.mockImplementation(async (fn) => {
+          if (fn === collectInPage) {
+            read.push(globalThis.window.axe);
+            return [settles || read.length % 2 ? SAVE : LINK];
+          }
+          return new Function(fn)();
+        });
+        const census = collectCensus(page, { attempts: 2, intervalMs: 0 });
+        await (settles ? census : expect(census).rejects.toThrow("never settled"));
+        expect(read[0]).toEqual({ census: true });
+        expect(globalThis.window).toEqual(own ? { axe: own } : {});
+        if (own) expect(globalThis.window.axe).toBe(own);
+      }
+    } finally {
+      axe.source = installed;
+      delete globalThis.window;
+    }
+  });
+
   it("fails when the controls never settle", async () => {
     const page = fakePage([[SAVE], [LINK], [SAVE], [LINK]]);
     await expect(collectCensus(page, { attempts: 2, intervalMs: 0 })).rejects.toThrow("Ouro census: the page's controls never settled (2 readings 0 ms apart all differed).");
