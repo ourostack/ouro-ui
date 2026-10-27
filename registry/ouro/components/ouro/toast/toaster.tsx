@@ -213,6 +213,7 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
         // Never Base UI's "high": it hides such a toast, buttons and all, from screen readers until
         // focused, and speaks it from an alert of its own. ToastAnnouncer speaks a destructive toast
         // assertively instead, and the toast stays reachable.
+        // Stryker disable next-line StringLiteral: Base UI treats every priority but "high" as "low".
         priority: "low",
         onRemove: () => {
           shown.delete(record.id);
@@ -315,9 +316,6 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
   if (from instanceof HTMLElement && !event.currentTarget.contains(from)) cameFrom.set(event.currentTarget, from);
 }
 
-/** The toast regions this Toaster fanned out because focus came in without a key, until focus leaves. */
-const heldForFocus = new WeakSet<Element>();
-
 /**
  * Focus in the toasts fans the stack out and pauses it, however it came. Base UI does so only for
  * keyboard focus (`:focus-visible`), so a screen reader that moves focus to a toast behind the
@@ -328,17 +326,18 @@ const heldForFocus = new WeakSet<Element>();
  */
 function onViewportFocus(event: FocusEvent<HTMLElement>): void {
   rememberEntry(event);
-  const region = event.currentTarget;
-  if (region.hasAttribute("data-expanded") || (event.target as Element).matches(":focus-visible")) return;
-  heldForFocus.add(region);
-  region.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+  event.currentTarget.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
 }
 
-/** Focus that leaves the toasts folds a stack it fanned out, unless the pointer is over it. */
+/**
+ * Focus that leaves a toast folds the stack, unless the pointer is over it. Focus moving on to
+ * another toast fans it out again in the same task, so React renders no fold between.
+ *
+ * @claim "Focus that leaves a toast folds the stack" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps the stack fanned out while focus moves from toast to toast, and while the pointer is over it after focus leaves)
+ * @claim "Focus moving on to another toast" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps the stack fanned out while focus moves from toast to toast, and while the pointer is over it after focus leaves)
+ */
 function onViewportBlur(event: FocusEvent<HTMLElement>): void {
   const region = event.currentTarget;
-  if (!heldForFocus.has(region) || (event.relatedTarget instanceof Node && region.contains(event.relatedTarget))) return;
-  heldForFocus.delete(region);
   if (!region.matches(":hover")) region.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: null }));
 }
 
@@ -376,9 +375,11 @@ function ToastAnnouncer(): JSX.Element {
   const [settled, setSettled] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setSettled(true), LIVE_REGION_SETTLE_MS);
+    // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so clearing only tidies.
     return () => clearTimeout(timer);
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   }, []);
-  const spoken = settled ? toasts.filter((item) => item.transitionStatus !== "ending") : [];
+  const spoken = settled ? toasts : [];
   const entries = (destructive: boolean) =>
     spoken
       .filter((item) => (item.type === "destructive") === destructive)

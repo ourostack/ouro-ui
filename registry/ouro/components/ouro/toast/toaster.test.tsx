@@ -817,6 +817,7 @@ describe("toast()", () => {
     // The destructive toast is still told apart: an alertdialog, named by its message.
     expect(toastNamed("Couldn't sync")!.getAttribute("role")).toBe("alertdialog");
     expect(toastNamed("Recipe saved")!.getAttribute("role")).toBe("dialog");
+    expect(toasts().map((item) => item.getAttribute("data-ouro-part"))).toEqual(["alert", "toast"]);
   });
 
   it("fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves", async () => {
@@ -847,6 +848,56 @@ describe("toast()", () => {
     // Its countdown goes on with the time it had left.
     await advance(3000);
     await gone("Newer");
+  });
+
+  it("keeps the stack fanned out while focus moves from toast to toast, and while the pointer is over it after focus leaves", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Toaster />
+      </>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Before" }));
+    await moveMouseAway();
+    await show("Older", { duration: Infinity });
+    await show("Newer", { duration: Infinity });
+    const dismiss = (message: string) => toastNamed(message)!.querySelector<HTMLButtonElement>('[data-ouro-part="close"]')!;
+    await act(async () => dismiss("Older").focus());
+    await until(() => viewport()!.hasAttribute("data-expanded"), true);
+    const folds: string[] = [];
+    const watch = new MutationObserver(() => {
+      if (!viewport()!.hasAttribute("data-expanded")) folds.push("folded");
+    });
+    watch.observe(viewport()!, { attributes: true, attributeFilter: ["data-expanded"] });
+    await act(async () => dismiss("Newer").focus());
+    await elapse(200);
+    watch.disconnect();
+    expect(folds).toEqual([]);
+    await userEvent.hover(toastNamed("Newer")!);
+    await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+    await elapse(200);
+    expect(viewport()!.hasAttribute("data-expanded")).toBe(true);
+    await moveMouseAway();
+    await until(() => viewport()!.hasAttribute("data-expanded"), false);
+  });
+
+  it("gives its live regions text only once they have been on the page a moment, as Safari needs", async () => {
+    toast("Early", { duration: 0 });
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const mountedAt = performance.now();
+    let spokenAt = 0;
+    const watch = new MutationObserver(() => {
+      if (!spokenAt && document.querySelector('[data-ouro-toast-announcer] [aria-live="polite"]')?.textContent) spokenAt = performance.now();
+    });
+    watch.observe(document.body, { subtree: true, childList: true, characterData: true });
+    await act(async () => root.render(<Toaster />));
+    await until(() => spokenAt > 0, true);
+    watch.disconnect();
+    expect(spokenAt - mountedAt).toBeGreaterThanOrEqual(95);
   });
 
   it("is announced once, its message and description only: politely, and a destructive toast assertively (Review Focus 5)", async () => {
