@@ -882,8 +882,9 @@ describe("toast()", () => {
   });
 
   it("gives its live regions text only once they have been on the page a moment, as Safari needs", async () => {
-    fakeClock();
+    // Before the fake clock, so the check for a missing Toaster runs on the real one and is done.
     toast("Early", { duration: 0 });
+    fakeClock();
     const host = document.createElement("div");
     document.body.append(host);
     mounted.push(host);
