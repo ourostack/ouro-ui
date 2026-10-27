@@ -51,7 +51,8 @@ async function identitiesOnPage(page) {
  * The state's multiset of visible control identities, once two readings a moment apart agree (late
  * data and lazy sections can still add controls after hydration and animations). It throws on an
  * axe-core older than the kits' minimum, naming the version it found, before it loads axe into the page.
- * It leaves the page's own `window.axe`, or none, as it found it.
+ * It leaves the page's own `window.axe`, or none, as it found it, and its own axe-core no longer
+ * listening for frame messages.
  * @param {Page} page
  * @param {{ attempts?: number, intervalMs?: number }} [options]
  * @returns {Promise<Multiset>}
@@ -64,8 +65,9 @@ export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, interval
   // The registry names axe-core without a version, so an app keeps the one it has; the census reads
   // names with axe's own computation, so it needs the axe-core that audit needs.
   requireAxe(axe.version, "Ouro census");
-  await page.evaluate(`window.${PAGE_AXE} = { had: Object.prototype.hasOwnProperty.call(window, "axe"), axe: window.axe };\n${axe.source}`);
+  let failed = false;
   try {
+    await page.evaluate(`window.${PAGE_AXE} = { had: Object.prototype.hasOwnProperty.call(window, "axe"), axe: window.axe };\n${axe.source}`);
     let previous = JSON.stringify(toMultiset(await identitiesOnPage(page)));
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       await page.waitForTimeout(intervalMs);
@@ -74,14 +76,26 @@ export async function collectCensus(page, { attempts = SETTLE_ATTEMPTS, interval
       previous = current;
     }
     throw new Error(`Ouro census: the page's controls never settled (${attempts} readings ${intervalMs} ms apart all differed).`);
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    await page.evaluate(`(() => {
+    // Its axe-core stops listening for frame messages, and the page gets its own axe back. A page
+    // that closed or moved on after a failure has nothing to put back, and the failure is the news.
+    await page
+      .evaluate(
+        `(() => {
       const saved = window.${PAGE_AXE};
       if (!saved) return;
+      window.axe?.frameMessenger?.({ open: () => undefined, post: () => false });
       delete window.${PAGE_AXE};
       if (saved.had) window.axe = saved.axe;
       else delete window.axe;
-    })()`);
+    })()`,
+      )
+      .catch((error) => {
+        if (!failed) throw error;
+      });
   }
 }
 

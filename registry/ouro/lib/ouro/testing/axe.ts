@@ -87,9 +87,10 @@ function describeFindings(findings: GateFinding[]): string {
  * the third scan such a node fails. It throws on an axe-core older than the kit's minimum
  * (axe-version.ts), naming the version it found.
  *
- * It leaves the page as it found it: focus where it was, with a focus ring only if it had one, and
- * every scroll position. It throws, naming the change, when its Tab walk changes what is open on
- * the page (an `aria-expanded`, a <dialog>, <details> or popover), which it cannot change back.
+ * It leaves the page as it found it: focus where it was, with a focus ring only if it had one, the
+ * selection, and every scroll position. It throws, naming the change, when its Tab walk changes
+ * what is open on the page (an `aria-expanded`, a <dialog>, <details> or popover) and it does not
+ * change back within a second, as it cannot change it back itself.
  *
  * @example
  * const findings = await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
@@ -108,6 +109,8 @@ function describeFindings(findings: GateFinding[]): string {
  * @claim "A node that leaves the page" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a node that leaves the page each time it is measured, three scans running)
  * @claim "a field with two labels, only when" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a field with two labels when aria-labelledby names it, and fails it when nothing settles which label names it)
  * @claim "It leaves the page as it found it: focus" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > leaves focus where its Tab walk found it: nothing focused stays so, and a focus ring shows after only if it showed before)
+ * @claim "It leaves the page as it found it: focus" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > puts back a field's caret and selected text, which Tab into a field selects whole, and the page's selection)
+ * @claim "It throws, naming the change, when its Tab walk" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a page whose content arrives during its Tab walk, as that is no change the walk made)
  * @claim "and every scroll position" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > puts back every scroll position it moves to measure text, the page's and a scrolled box's)
  * @claim "It throws, naming the change, when its Tab walk" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again)
  */
@@ -292,11 +295,13 @@ function labelSaysNoMore(element: Element): boolean {
 // Presses Tab once around the page from where focus is, two frames apart, and returns each element
 // inside one of `targets` that Tab focuses while it is still hidden from assistive technology when
 // the focus event reaches the document (after the page's own handlers, which may show it). Focus
-// goes back where it was, with a focus ring only if it had one, and nothing focused if nothing was.
-// It throws when the walk changed what is open on the page, which it cannot change back.
+// goes back where it was, with a focus ring only if it had one, and nothing focused if nothing was,
+// and so does the selection or a field's caret. It throws when the walk changed what is open on
+// the page, which it cannot change back.
 async function tabReaches(targets: HTMLElement[]): Promise<HTMLElement[]> {
   const start = document.activeElement;
   const ring = start?.matches(":focus-visible") ?? false;
+  const selection = selectionOf(start);
   const opened = openState();
   const stops = document.querySelectorAll("a[href], button, input, select, textarea, [tabindex], [contenteditable]").length;
   const reached = new Set<HTMLElement>();
@@ -322,10 +327,14 @@ async function tabReaches(targets: HTMLElement[]): Promise<HTMLElement[]> {
     if (active !== back || active.matches(":focus-visible") !== ring) active.blur();
   }
   if (back && document.activeElement !== back) back.focus({ preventScroll: true, focusVisible: ring });
-  // What the walk's focus showed (a tooltip, a fanned stack) eases back before the page is compared.
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  selection();
+  // What the walk's focus showed (a tooltip, a fanned stack) eases back before the page is compared,
+  // and what closes or opens on a timer once focus moves gets a second to settle.
   await settleTransitions();
-  const changed = changedState(opened, openState());
+  let changed = changedState(opened, openState());
+  for (const deadline = performance.now() + 1000; changed && performance.now() < deadline; changed = changedState(opened, openState())) {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
   if (changed) {
     throw new Error(
       `audit: its Tab walk changed what is open on the page and cannot change it back: ${changed}. ` +
@@ -345,15 +354,33 @@ function openState(): Map<Element, string> {
   return state;
 }
 
-// The first difference between two `openState`s, in words, or null when there is none.
+// The first difference between two `openState`s, in words, or null when there is none. Only what
+// was on the page both times counts: content that arrived or left on its own is no change the walk made.
 function changedState(before: Map<Element, string>, after: Map<Element, string>): string | null {
   for (const [element, was] of before) {
     const now = after.get(element);
-    if (now === undefined) return `${describe(element)}, ${was}, left the page`;
-    if (now !== was) return `${describe(element)} went from ${was} to ${now}`;
+    if (now !== undefined && now !== was) return `${describe(element)} went from ${was} to ${now}`;
   }
-  for (const [element, now] of after) if (!before.has(element)) return `${describe(element)} appeared, ${now}`;
   return null;
+}
+
+// Puts back, when called, the selection as it is now: a text field's caret or selected text when
+// one has focus (Tab into a field selects all of it), else the page's selection.
+function selectionOf(focused: Element | null): () => void {
+  if (focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement) {
+    const { selectionStart, selectionEnd, selectionDirection } = focused;
+    // A field that has no caret (a checkbox, a number field) reports null.
+    if (selectionStart === null || selectionEnd === null) return () => undefined;
+    return () => focused.setSelectionRange(selectionStart, selectionEnd, selectionDirection ?? undefined);
+  }
+  const page = document.getSelection();
+  /* istanbul ignore if @preserve -- a document in a page always has a selection */
+  if (!page) return () => undefined;
+  const ranges = Array.from({ length: page.rangeCount }, (_, index) => page.getRangeAt(index).cloneRange());
+  return () => {
+    page.removeAllRanges();
+    for (const range of ranges) page.addRange(range);
+  };
 }
 
 // The contrast WCAG 1.4.3 asks of the element's text: axe's own figure when it gave one, else 3:1

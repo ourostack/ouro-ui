@@ -67,7 +67,7 @@ describe("collectCensus", () => {
     const installed = axe.source;
     const pageAxe = { version: "the page's own" };
     try {
-      axe.source = "window.axe = { census: true };";
+      axe.source = "window.axe = { census: true, frameMessenger: (messenger) => { window.closed = messenger.post(); } };";
       for (const [own, settles] of [[pageAxe, true], [undefined, true], [pageAxe, false]]) {
         globalThis.window = own ? { axe: own } : {};
         const page = fakePage(settles ? [[SAVE]] : [[SAVE], [LINK]]);
@@ -81,7 +81,10 @@ describe("collectCensus", () => {
         });
         const census = collectCensus(page, { attempts: 2, intervalMs: 0 });
         await (settles ? census : expect(census).rejects.toThrow("never settled"));
-        expect(read[0]).toEqual({ census: true });
+        expect(read[0].census).toBe(true);
+        // Its axe-core was told to stop listening for frame messages before it let go.
+        expect(globalThis.window.closed).toBe(false);
+        delete globalThis.window.closed;
         expect(globalThis.window).toEqual(own ? { axe: own } : {});
         if (own) expect(globalThis.window.axe).toBe(own);
       }
@@ -89,6 +92,24 @@ describe("collectCensus", () => {
       axe.source = installed;
       delete globalThis.window;
     }
+  });
+
+  it("reports the census's own failure, not the page's closing, when it cannot put the page's axe back", async () => {
+    const page = fakePage([[SAVE], [LINK]]);
+    let reading = 0;
+    page.evaluate.mockImplementation(async (fn) => {
+      if (fn === collectInPage) return [reading++ % 2 ? SAVE : LINK];
+      if (String(fn).includes("delete window.axe")) throw new Error("Target page, context or browser has been closed");
+      return undefined;
+    });
+    await expect(collectCensus(page, { attempts: 2, intervalMs: 0 })).rejects.toThrow("never settled");
+    const settled = fakePage([[SAVE]]);
+    settled.evaluate.mockImplementation(async (fn) => {
+      if (fn === collectInPage) return [SAVE];
+      if (String(fn).includes("delete window.axe")) throw new Error("Target page, context or browser has been closed");
+      return undefined;
+    });
+    await expect(collectCensus(settled, { intervalMs: 0 })).rejects.toThrow("has been closed");
   });
 
   it("fails when the controls never settle", async () => {

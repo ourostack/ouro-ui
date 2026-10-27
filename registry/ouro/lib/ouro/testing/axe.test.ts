@@ -324,6 +324,32 @@ describe("audit", () => {
     }
   });
 
+  it("puts back a field's caret and selected text, which Tab into a field selects whole, and the page's selection", async () => {
+    behindModal('<input aria-label="Title" value="Short ribs braised"><textarea aria-label="Notes">Low and slow</textarea><p id="words">Some words</p>');
+    const title = document.querySelector("input")!;
+    title.focus();
+    title.setSelectionRange(3, 3);
+    await scanPage();
+    expect([document.activeElement === title, title.selectionStart, title.selectionEnd]).toEqual([true, 3, 3]);
+    const notes = document.querySelector("textarea")!;
+    notes.focus();
+    notes.setSelectionRange(1, 4, "backward");
+    await scanPage();
+    expect([notes.selectionStart, notes.selectionEnd, notes.selectionDirection]).toEqual([1, 4, "backward"]);
+    notes.blur();
+    const words = document.querySelector("#words")!.firstChild!;
+    document.getSelection()!.setBaseAndExtent(words, 2, words, 7);
+    await scanPage();
+    expect(document.getSelection()!.toString()).toBe("me wo");
+  });
+
+  it("passes a page whose content arrives during its Tab walk, as that is no change the walk made", async () => {
+    behindModal('<button type="button">Save</button>');
+    const dialog = document.querySelector('[role="dialog"]')!;
+    setTimeout(() => dialog.insertAdjacentHTML("beforeend", '<button type="button" aria-expanded="false">More</button>'), 30);
+    expect(rules(await scanPage())).toContain("undecided aria-hidden-focus");
+  });
+
   it("fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again", async () => {
     behindModal('<button type="button" aria-expanded="true" aria-controls="herbs">Herbs</button><div id="herbs" role="group" aria-label="Herbs list"><button type="button">Basil</button></div>');
     const herbs = document.querySelector<HTMLElement>("[aria-expanded]")!;
@@ -343,11 +369,12 @@ describe("audit", () => {
         `<div id="box" role="region" aria-label="Notes" tabindex="0" style="height:100px;overflow:auto"><div style="height:600px"></div><p style="${gradient}">Far down the box</p></div><div style="height:3000px"></div>`,
     );
     const box = document.querySelector<HTMLElement>("#box")!;
-    window.scrollTo(0, 0);
+    window.scrollTo(0, 100);
+    box.scrollTop = 50;
     expect(describeFindings(await scanPage())).toBe("");
-    expect([window.scrollY, box.scrollTop]).toEqual([0, 0]);
+    expect([window.scrollY, box.scrollTop]).toEqual([100, 50]);
     expect(await measureTextContrast(box.querySelector("p")!, 4.5)).toEqual({ pass: true });
-    expect([window.scrollY, box.scrollTop]).toEqual([0, 0]);
+    expect([window.scrollY, box.scrollTop]).toEqual([100, 50]);
   });
 
   it("leaves no trace on the focused field when it screenshots the page", async () => {
