@@ -5,6 +5,7 @@ import { inject, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { openPopupSelector, popupTriggerSelector } from "@/registry/ouro/lib/ouro/testing/popups";
 import { storyFileSelected } from "./story-selection.ts";
 
 // Shared by the story accessibility test, the control marker test and the visual test. Stories render
@@ -319,7 +320,7 @@ export function overlayOpeners(
   top = true,
 ): Opener[] {
   const roots = [...(Array.isArray(scope) ? scope : [scope]), ...(top ? [...document.querySelectorAll<HTMLElement>('body > [data-ouro]:not([data-ouro$="-portal"])')] : [])];
-  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>('[aria-haspopup]:not([aria-haspopup="false"]):not([aria-expanded="true"])')]))]
+  const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>(popupTriggerSelector)]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) =>
       clipped(element) ? { name: accessibleName(element), open: () => openFromKeyboard(element) } : { name: accessibleName(element), open: () => userEvent.click(element), element },
@@ -357,9 +358,7 @@ const waitOptions = { timeout: 10_000, interval: 20 };
 
 /** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, a list's popup, or a NavigationMenu panel). */
 export function openPopup(): HTMLElement | null {
-  return document.querySelector<HTMLElement>(
-    '[role="dialog"][data-open], [role="alertdialog"][data-open], [role="menu"][data-open], [data-ouro="select-popup"][data-open], [data-open]:has([role="listbox"]), [data-ouro="navigation-menu-popup"][data-open]',
-  );
+  return document.querySelector<HTMLElement>(openPopupSelector);
 }
 
 /** Uses an opener and waits for its overlay to finish opening. */

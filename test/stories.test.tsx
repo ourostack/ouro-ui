@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
-import { describeFindings, scan, scanStory, storyScanTimeout } from "./story-axe.ts";
-import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, storyFiles } from "./stories.tsx";
+import { describeFindings, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
+import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
 import { sliced } from "./slice.ts";
 
 // Every Storybook story renders and passes axe with zero violations (spec §8:
@@ -47,6 +47,16 @@ it("does not scan a sheet before its deferred starting style leaves", async () =
   expect(describeFindings(violations)).toBe("");
   expect(popup.hasAttribute("data-starting-style")).toBe(false);
 });
+
+it.each([
+  { id: "Tooltip/Playground", phase: /^with the tooltip of ".+" open$/ },
+  { id: "NavigationMenu/Playground", phase: /^with the navigation panel of ".+" open$/ },
+  { id: "HoverCard/Playground", phase: /^with the hover card of ".+" open$/ },
+])("opens each popup of $id that no aria-haspopup names, and scans the page with it open", async ({ id, phase }) => {
+  const { phases } = await scanStoryViolations(id, story(id));
+  expect(phases[0]).toBe("closed");
+  expect(phases.slice(1)).toEqual(expect.arrayContaining([expect.stringMatching(phase)]));
+}, storyScanTimeout);
 
 it("still reports a genuine offscreen skip link with no target", async () => {
   const host = await renderStory(() => (
