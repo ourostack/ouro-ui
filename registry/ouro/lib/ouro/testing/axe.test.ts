@@ -483,6 +483,17 @@ describe("audit", () => {
     expect(document.activeElement).toBe(field);
   });
 
+  it("leaves no transition running when it is done, its own text's or a link's elsewhere on the page", async () => {
+    // Hiding glyphs turns colors transparent and putting them back turns them back, which would
+    // ease over each element's transition and leave the next measurement waiting for it.
+    mountPage(
+      '<p id="text" style="margin:0;padding:8px;color:#111;background:#fff;transition:color 400ms linear">Text whose color eases</p>' +
+        '<p style="margin:0;padding:8px;color:#111;background:#fff"><a href="#notes" style="color:#1d4ed8;transition:color 400ms linear,text-decoration-color 400ms linear">A link whose colors ease</a></p>',
+    );
+    expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
+    expect(document.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty)).toEqual([]);
+  });
+
   it("settles a link in running text whose block's background axe cannot read, as under an open list, by measuring the link against the text around it", async () => {
     // Each paragraph's text is all in elements, so axe reads its background at its middle, below
     // its line, where a box lies over it.
