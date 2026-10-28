@@ -104,6 +104,21 @@ describe("audit", () => {
     expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint"]);
   });
 
+  it("fails a faint placeholder, as Tailwind's base styles draw one at half the text color, and passes one that meets 4.5:1", async () => {
+    // Tailwind's preflight rule for placeholders, which the Sheet story's field once had.
+    const field = 'style="margin:4px;padding:4px 8px;font-size:16px;color:#111;background:#fff;border:1px solid #767676"';
+    mountPage(
+      "<style>#faint::placeholder { opacity: 1; color: color-mix(in oklab, currentcolor 50%, transparent); } #clear::placeholder { opacity: 1; color: #595959; }</style>" +
+        `<label>Name <input id="faint" placeholder="Your name" ${field}></label><label>Email <input id="clear" placeholder="you@example.com" ${field}></label>`,
+    );
+    const findings = await scanPage();
+    expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint"]);
+    expect(findings[0]!.summary).toMatch(/^its placeholder measured 3\.\d\d:1 against the worst pixel behind it, needs 4\.5:1$/);
+    // Once the field holds a value, the placeholder no longer shows.
+    document.querySelector<HTMLInputElement>("#faint")!.value = "Ari";
+    expect(describeFindings(await scanPage())).toBe("");
+  });
+
   it("measures a heading's second line against the page, not the descenders of the line above", async () => {
     mountPage(
       '<h1 style="margin:0;font-size:64px;line-height:0.95;color:#111"><span style="display:block">Gyppy quip</span>' +
