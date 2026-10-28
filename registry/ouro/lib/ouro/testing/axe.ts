@@ -34,13 +34,13 @@ interface GateFinding {
   rule: string;
   /** axe's impact, if it gave one, else null. */
   impact: string | null;
-  /** axe's one-line help for the rule. */
+  /** axe's one-line help for the rule, or the kit's for a placeholder, which axe does not check. */
   help: string;
   /** The node's selector. */
   target: string;
   /** Why it fails: axe's own summary, or what the measurement found. */
   summary: string;
-  /** True when axe left it undecided (`incomplete`) and a measurement failed it. */
+  /** True when a measurement failed it: one axe left undecided (`incomplete`), or a placeholder, which axe does not check. */
   undecided: boolean;
 }
 
@@ -82,8 +82,9 @@ function describeFindings(findings: GateFinding[]): string {
  * - an ARIA toggle inside a `<label>`, only when its name and description hold every word of the label;
  * - a field with two labels, only when `aria-labelledby` names it.
  *
- * It also measures the placeholder of each enabled field that shows one, which axe leaves out,
- * as it measures text, and fails one below WCAG 1.4.3 as `color-contrast`.
+ * It also measures the placeholder of each field that shows one, which axe leaves out, as it
+ * measures text, and fails one below WCAG 1.4.3 as `color-contrast`. Like axe's contrast rule, it
+ * leaves out a disabled or inert field and one that does not show.
  *
  * Anything else axe could not decide fails with axe's own message. A node that leaves the page
  * while it is measured means the page changed under the scan, so it scans the page again, and on
@@ -106,6 +107,7 @@ function describeFindings(findings: GateFinding[]): string {
  * @claim "focusable content hidden from assistive technology," registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a control hidden from assistive technology under a modal when Tab still reaches it, and passes it when the page is inert)
  * @claim "focusable content hidden from assistive technology," registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a control hidden at rest that shows itself in the event that focuses it, as a toast's dismiss button does)
  * @claim "an ARIA toggle inside a `<label>`, only" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes a toggle inside a <label> whose text is its name and description, and fails one whose label says more)
+ * @claim "Like axe's contrast rule, it" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > leaves out a placeholder axe leaves out: aria-disabled, inert under a modal dialog, off the page or clipped away)
  * @claim "It also measures the placeholder of" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails a faint placeholder, as Tailwind's base styles draw one at half the text color, and passes one that meets 4.5:1)
  * @claim "Anything else axe could not decide" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails what axe could not decide and the kit does not measure, with axe's own message)
  * @claim "It throws on an axe-core older than the kit's minimum" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > refuses an axe-core older than the kit's minimum, naming the version it needs and the version it found)
@@ -195,7 +197,7 @@ async function auditOnce(context: axe.ElementContext, last: boolean): Promise<Ga
   // axe does not measure a placeholder, so the kit measures each one that shows.
   for (const field of placeholderFields(context)) {
     const root = screenRoot(field);
-    byRoot.set(root, [...(byRoot.get(root) ?? []), { node: null, element: field, required: requiredRatio(field, undefined), placeholder: true }]);
+    byRoot.set(root, [...(byRoot.get(root) ?? []), { node: null, element: field, required: requiredRatio(field, undefined, "::placeholder"), placeholder: true }]);
   }
   const placeholderFindings: GateFinding[] = [];
   for (const [root, items] of byRoot) {
@@ -261,43 +263,86 @@ function placeholderBoxes(field: HTMLInputElement | HTMLTextAreaElement): DOMRec
   const line = Number.parseFloat(style.lineHeight) || size * 1.2;
   const measure = document.createElement("canvas").getContext("2d")!;
   measure.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-  const wide = measure.measureText(field.placeholder).width;
-  const lines = field instanceof HTMLTextAreaElement ? Math.max(1, Math.ceil(wide / content!.width)) : 1;
+  const cased = style.textTransform === "uppercase" ? field.placeholder.toUpperCase() : style.textTransform === "lowercase" ? field.placeholder.toLowerCase() : field.placeholder;
+  const spacing = Number.parseFloat(style.letterSpacing) || 0;
+  // A textarea shows each line of its placeholder, wrapped to its width; an input shows one line.
+  const widths = (field instanceof HTMLTextAreaElement ? cased.split("\n") : [cased.replace(/\n/g, "")]).map((text) => measure.measureText(text).width + spacing * text.length);
+  const wide = Math.max(...widths);
+  const lines = field instanceof HTMLTextAreaElement ? widths.reduce((sum, width) => sum + Math.max(1, Math.ceil(width / content!.width)), 0) : 1;
   const height = Math.min(content!.height, line * lines);
   const width = Math.min(content!.width, wide);
   const top = field instanceof HTMLTextAreaElement ? content!.top : content!.top + (content!.height - height) / 2;
-  const align = getComputedStyle(field).textAlign;
-  const end = align === "right" || (align === "end" && getComputedStyle(field).direction !== "rtl") || (align === "start" && getComputedStyle(field).direction === "rtl");
-  const left = align === "center" ? content!.left + (content!.width - width) / 2 : end ? content!.right - width : content!.left;
+  const align = style.textAlign;
+  const end = align === "right" || align === "-webkit-right" || (align === "end" && style.direction !== "rtl") || (align === "start" && style.direction === "rtl");
+  const left = align === "center" || align === "-webkit-center" ? content!.left + (content!.width - width) / 2 : end ? content!.right - width : content!.left;
   return [new DOMRect(left, top, width, height)];
 }
 
-// The text fields within `context` that show a placeholder and take input. A disabled field's
-// text need not meet WCAG 1.4.3, as axe's color-contrast rule also holds.
+// The text fields within `context` that show a placeholder, leaving out those axe's color-contrast
+// rule leaves out: a disabled field (`disabled` or `aria-disabled`), whose text need not meet
+// WCAG 1.4.3, an inert one (under `inert`, or outside an open modal <dialog>), and one that does
+// not show (hidden, off the page, or clipped away).
 function placeholderFields(context: axe.ElementContext): HTMLElement[] {
   const spec = context as { include?: unknown; exclude?: unknown };
-  const object = typeof spec === "object" && spec !== null && !(spec instanceof Node) && !(spec instanceof NodeList) && !Array.isArray(spec) && ("include" in spec || "exclude" in spec);
-  const include = object ? (spec.include === undefined ? [document.documentElement] : contextElements(spec.include)) : contextElements(context);
+  const object = typeof spec === "object" && spec !== null && !(spec instanceof Node) && !isList(spec) && ("include" in spec || "exclude" in spec);
+  // axe scans the whole page for a missing or empty include.
+  const whole = object && (spec.include === undefined || (isList(spec.include) && Array.from(spec.include).length === 0));
+  const include = whole ? [document.documentElement] : contextElements(object ? spec.include : context);
   const exclude = object && spec.exclude !== undefined ? contextElements(spec.exclude) : [];
+  const modal = document.querySelector("dialog:modal");
   return elementsWithin(document).filter(
     (element): element is HTMLElement =>
       (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
       element.matches(":placeholder-shown:enabled") &&
       element.placeholder.trim() !== "" &&
-      element.checkVisibility({ visibilityProperty: true, opacityProperty: true }) &&
+      !closestAcross(element, '[aria-disabled="true"], [inert]') &&
+      (!modal || holds(modal, element)) &&
+      shows(element) &&
       include.some((root) => holds(root, element)) &&
       !exclude.some((root) => holds(root, element)),
   );
+}
+
+/** Whether a value is a list of nodes or selectors: an array, a NodeList, an HTMLCollection. */
+const isList = (value: unknown): value is ArrayLike<unknown> =>
+  Array.isArray(value) || value instanceof NodeList || value instanceof HTMLCollection;
+
+// The element or its nearest ancestor matching `selector`, across the shadow roots between them.
+function closestAcross(element: Element, selector: string): Element | null {
+  for (let node: Element | null = element; node; node = node.parentElement ?? (node.getRootNode() instanceof ShadowRoot ? (node.getRootNode() as ShadowRoot).host : null)) {
+    if (node.matches(selector)) return node;
+  }
+  return null;
+}
+
+// Whether an element shows: visible, with a size, on the page and not clipped away by a box around it.
+function shows(element: Element): boolean {
+  if (!element.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
+  const box = element.getBoundingClientRect();
+  if (box.width <= 1 || box.height <= 1 || box.right + window.scrollX <= 0 || box.bottom + window.scrollY <= 0) return false;
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const style = getComputedStyle(parent);
+    if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+    const clip = parent.getBoundingClientRect();
+    if (Math.min(box.right, clip.right) - Math.max(box.left, clip.left) <= 1 || Math.min(box.bottom, clip.bottom) - Math.max(box.top, clip.top) <= 1) return false;
+  }
+  return true;
 }
 
 // The elements an axe context names: nodes, selectors, and paths into open shadow roots. A
 // selector into a frame names nothing here, as the kit measures only the page itself.
 function contextElements(part: unknown): Element[] {
   if (part instanceof Document) return [part.documentElement];
+  if (part instanceof ShadowRoot) return [...part.children];
   if (part instanceof Element) return [part];
   if (typeof part === "string") return [...document.querySelectorAll(part)];
-  if (part instanceof NodeList) return [...part].flatMap((node) => contextElements(node));
+  if (part instanceof NodeList || part instanceof HTMLCollection) return [...part].flatMap((node) => contextElements(node));
   if (typeof part === "object" && part !== null && "fromShadowDom" in part) return throughShadow((part as { fromShadowDom: string[] }).fromShadowDom);
+  // A path through frames of one step stays on the page.
+  if (typeof part === "object" && part !== null && "fromFrames" in part) {
+    const steps = (part as { fromFrames: unknown[] }).fromFrames;
+    return steps.length === 1 ? (Array.isArray(steps[0]) ? throughShadow(steps[0] as string[]) : contextElements(steps[0])) : [];
+  }
   if (!Array.isArray(part)) return [];
   // In a list, an entry that is an array is a path through frames: one step stays on the page.
   return part.flatMap((entry) => (!Array.isArray(entry) ? contextElements(entry) : entry.length !== 1 ? [] : Array.isArray(entry[0]) ? throughShadow(entry[0]) : contextElements(entry[0])));
@@ -322,14 +367,22 @@ function holds(root: Element, element: Element): boolean {
 }
 
 // A selector for an element, for a finding: its id, or its place under the nearest ancestor with one.
+// Inside a shadow root, the host's selector comes first, then the path within the root, as
+// Playwright's CSS selectors reach into open shadow roots.
 function selectorOf(element: Element): string {
+  const root = element.getRootNode() as Document | ShadowRoot;
   const steps: string[] = [];
   for (let node: Element | null = element; node; node = node.parentElement) {
-    if (node.id && node.ownerDocument.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) return [`#${CSS.escape(node.id)}`, ...steps].join(" > ");
-    const kin = [...(node.parentElement?.children ?? [])].filter((sibling) => sibling.localName === node!.localName);
+    if (node.id && root.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
+      steps.unshift(`#${CSS.escape(node.id)}`);
+      break;
+    }
+    const siblings = node.parentElement ? [...node.parentElement.children] : [...root.children];
+    const kin = siblings.filter((sibling) => sibling.localName === node!.localName);
     steps.unshift(kin.length > 1 ? `${node.localName}:nth-of-type(${kin.indexOf(node) + 1})` : node.localName);
   }
-  return steps.join(" > ");
+  const path = steps.join(" > ");
+  return root instanceof ShadowRoot ? `${selectorOf(root.host)} ${path}` : path;
 }
 
 /** The checks a node did not pass: in axe's results, an undecided node lists only those. */
@@ -496,10 +549,10 @@ function selectionOf(focused: Element | null): () => void {
 
 // The contrast WCAG 1.4.3 asks of the element's text: axe's own figure when it gave one, else 3:1
 // for large text (24px, or 18.66px bold) and 4.5:1 for the rest.
-function requiredRatio(element: Element, expected: string | undefined): number {
+function requiredRatio(element: Element, expected: string | undefined, pseudo: string | null = null): number {
   const stated = expected ? Number.parseFloat(expected) : Number.NaN;
   if (Number.isFinite(stated)) return stated;
-  const style = getComputedStyle(element);
+  const style = getComputedStyle(element, pseudo);
   const size = Number.parseFloat(style.fontSize);
   const bold = Number.parseInt(style.fontWeight, 10) >= 700;
   return size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
@@ -716,7 +769,8 @@ function screenRoot(element: Element): Element {
   let root = element;
   for (let parent = element.parentElement; parent && parent !== document.body && !root.hasAttribute("data-base-ui-portal"); parent = parent.parentElement) {
     const box = parent.getBoundingClientRect();
-    if (box.width > window.innerWidth || box.height > window.innerHeight) break;
+    // A box with no size, such as a popup's container around its fixed popup, cannot be screenshotted.
+    if (box.width > window.innerWidth || box.height > window.innerHeight || box.width === 0 || box.height === 0) break;
     root = parent;
   }
   return root;
@@ -980,7 +1034,7 @@ async function shoot(root: Element, items: Measured[], last: boolean): Promise<V
   const exposedBoxes = () =>
     (exposed ??= [...document.body.querySelectorAll("*")].filter((other) => !other.closest(hiddenFromAt)).map((other) => ({ other, box: other.getBoundingClientRect() })));
   return texts.map(({ element, required, placeholder, cells, text }) => {
-    if (cells.length === 0) return { pass: false, reason: "axe could not judge its contrast, and it has no text of its own to measure" };
+    if (cells.length === 0) return { pass: false, reason: placeholder ? "its placeholder has no box on the screen to measure" : "axe could not judge its contrast, and it has no text of its own to measure" };
     // Where an open popup covers the text, those pixels are the popup's, measured as its own text:
     // what a popup's layer paints, or any exposed layer over text the popup shuts off from assistive
     // technology. What still shows is measured. A layer hidden from assistive technology (an
