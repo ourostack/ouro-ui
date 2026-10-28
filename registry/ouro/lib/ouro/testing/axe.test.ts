@@ -378,6 +378,19 @@ describe("audit", () => {
     expect([window.scrollY, box.scrollTop]).toEqual([100, 50]);
   });
 
+  it("puts back the scroll position of a scrolled box inside a shadow root", async () => {
+    const gradient = "margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)";
+    mountPage('<div id="host"></div>');
+    const shadow = document.querySelector("#host")!.attachShadow({ mode: "open" });
+    shadow.innerHTML = `<div id="box" role="region" aria-label="Notes" tabindex="0" style="height:100px;overflow:auto"><div style="height:600px"></div><p style="${gradient}">Far down the box</p></div>`;
+    const box = shadow.querySelector<HTMLElement>("#box")!;
+    box.scrollTop = 50;
+    expect(describeFindings(await scanPage())).toBe("");
+    expect(box.scrollTop).toBe(50);
+    expect(await measureTextContrast(box.querySelector("p")!, 4.5)).toEqual({ pass: true });
+    expect(box.scrollTop).toBe(50);
+  });
+
   it("leaves no trace on the focused field when it screenshots the page", async () => {
     mountPage('<input aria-label="Title"><p id="text" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Text on a gradient</p>');
     const field = document.querySelector("input")!;
