@@ -1,0 +1,1 @@
+- Fix: the Sheet "With Form" story draws its placeholder in the muted text color, as Ouro's own fields do; before, it was half the text color, below 4.5:1 in the light theme.
