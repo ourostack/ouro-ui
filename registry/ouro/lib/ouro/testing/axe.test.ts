@@ -104,6 +104,83 @@ describe("audit", () => {
     expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint"]);
   });
 
+  it("fails a faint placeholder, as Tailwind's base styles draw one at half the text color, and passes one that meets 4.5:1", async () => {
+    // Tailwind's preflight rule for placeholders, which the Sheet story's field once had.
+    const field = 'style="margin:4px;padding:4px 8px;font-size:16px;color:#111;background:#fff;border:1px solid #767676"';
+    mountPage(
+      "<style>#faint::placeholder { opacity: 1; color: color-mix(in oklab, currentcolor 50%, transparent); } #clear::placeholder { opacity: 1; color: #595959; }</style>" +
+        `<label>Name <input id="faint" placeholder="Your name" ${field}></label><label>Email <input id="clear" placeholder="you@example.com" ${field}></label>`,
+    );
+    const findings = await scanPage();
+    expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint"]);
+    expect(findings[0]!.summary).toMatch(/^its placeholder measured 3\.\d\d:1 against the worst pixel behind it, needs 4\.5:1$/);
+    // Once the field holds a value, the placeholder no longer shows.
+    document.querySelector<HTMLInputElement>("#faint")!.value = "Ari";
+    expect(describeFindings(await scanPage())).toBe("");
+  });
+
+  it("measures a placeholder against what is behind its text, not the border its field's box touches", async () => {
+    // A borderless input that fills its row, as Command's search input does, flush with a grey rule.
+    mountPage(
+      '<div style="display:flex;width:320px;margin-top:0.5px;border-top:1px solid #999;border-bottom:1px solid #999;background:#fff">' +
+        '<input aria-label="Search" placeholder="Type a command" style="flex:1;margin:0;padding:0;height:48px;border:0;outline:none;background:transparent;font-size:14px;color:#111"></div>' +
+        "<style>input::placeholder { opacity: 1; color: #595959; }</style>",
+    );
+    expect(describeFindings(await scanPage())).toBe("");
+  });
+
+  it("leaves out a placeholder axe leaves out: aria-disabled, inert under a modal dialog, off the page or clipped away", async () => {
+    const faint = 'style="padding:4px 8px;font-size:16px;color:#111;background:#fff;border:1px solid #767676"';
+    mountPage(
+      "<style>input::placeholder { opacity: 1; color: #bbb; }</style>" +
+        `<input aria-label="Shown" id="shown" placeholder="Shown" ${faint}>` +
+        `<input aria-label="Disabled" aria-disabled="true" placeholder="Disabled" ${faint}>` +
+        `<input aria-label="Off the page" placeholder="Off the page" ${faint.replace('style="', 'style="position:absolute;left:-9999px;')}>` +
+        `<div style="width:120px;height:0;overflow:hidden"><input aria-label="Clipped" placeholder="Clipped" ${faint}></div>`,
+    );
+    expect((await scanPage()).map((finding) => finding.target)).toEqual(["#shown"]);
+    // A field scrolled out of a scrolling box still shows once scrolled to, as axe holds.
+    document.querySelector("main")!.insertAdjacentHTML("beforeend", `<div style="height:120px;overflow:auto"><div style="height:400px"></div><input aria-label="Below" id="below" placeholder="Below" ${faint}></div>`);
+    expect((await scanPage()).map((finding) => finding.target)).toEqual(["#shown", "#below"]);
+    document.querySelector("#below")!.parentElement!.remove();
+    // Under a modal <dialog>, the page is inert; the dialog's own field is measured.
+    document.querySelector("main")!.insertAdjacentHTML("beforeend", `<dialog aria-label="Edit"><input aria-label="In the dialog" id="inside" placeholder="In the dialog" ${faint}></dialog>`);
+    document.querySelector("dialog")!.showModal();
+    expect((await scanPage()).filter((finding) => finding.summary.startsWith("its placeholder")).map((finding) => finding.target)).toEqual(["#inside"]);
+    document.querySelector("dialog")!.close();
+  });
+
+  it("screenshots a placeholder in a popup without its container, which has no size around the fixed popup", async () => {
+    mountPage("<p>Page</p>");
+    document.querySelector("main")!.insertAdjacentHTML(
+      "beforeend",
+      '<div data-base-ui-portal=""><div role="dialog" aria-label="Search" style="position:fixed;top:40px;left:40px;width:300px;padding:8px;background:#fff">' +
+        '<input aria-label="Search" id="search" placeholder="Search" style="font-size:16px;border:0;color:#111;background:#fff"></div></div>' +
+        "<style>#search::placeholder { opacity: 1; color: #bbb; }</style>",
+    );
+    const take = page.screenshot.bind(page);
+    const shots: { width: number; height: number }[] = [];
+    const spy = vi.spyOn(page, "screenshot").mockImplementation((options) => {
+      const box = (options as { element: Element }).element.getBoundingClientRect();
+      shots.push({ width: box.width, height: box.height });
+      return take(options);
+    });
+    try {
+      expect((await scanPage()).map((finding) => finding.target)).toEqual(["#search"]);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(shots.length).toBeGreaterThan(0);
+    expect(shots.filter(({ width, height }) => width === 0 || height === 0)).toEqual([]);
+  });
+
+  it("names a field in a shadow root by its host, then its place in the root", async () => {
+    mountPage('<div id="host"></div>');
+    const root = document.querySelector("#host")!.attachShadow({ mode: "open" });
+    root.innerHTML = '<style>input::placeholder { opacity: 1; color: #bbb; }</style><label>Name <input placeholder="Your name" style="font-size:16px;color:#111;background:#fff"></label>';
+    expect((await scanPage()).map((finding) => finding.target)).toEqual(["#host label > input"]);
+  });
+
   it("measures a heading's second line against the page, not the descenders of the line above", async () => {
     mountPage(
       '<h1 style="margin:0;font-size:64px;line-height:0.95;color:#111"><span style="display:block">Gyppy quip</span>' +
