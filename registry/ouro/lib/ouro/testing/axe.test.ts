@@ -494,11 +494,20 @@ describe("audit", () => {
     expect(document.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty)).toEqual([]);
   });
 
-  it("gives each screenshot the rest of the test's time, not a fixed limit that a stall in Vitest's own process can use up", async () => {
+  it("tries a screenshot once more when it ran out of time on a box that shows and holds still, as when Vitest's own process stalled", async () => {
     mountPage('<p id="text" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Text on a gradient</p>');
-    const shots = vi.spyOn(page, "screenshot");
+    const take = page.screenshot.bind(page);
+    const shots = vi.spyOn(page, "screenshot").mockRejectedValueOnce(new Error("locator.screenshot: Timeout 555ms exceeded.")).mockImplementation((options) => take(options));
     expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
-    expect(shots.mock.calls.map(([options]) => options && "timeout" in options)).toEqual([false]);
+    expect(shots).toHaveBeenCalledTimes(2);
+    shots.mockRestore();
+  });
+
+  it("does not try a screenshot again on a box with no area, which never shows", async () => {
+    mountPage('<p id="flat" style="margin:0;height:0;color:#111;background:#fff">Text over a box with no height</p>');
+    const shots = vi.spyOn(page, "screenshot").mockRejectedValue(new Error("locator.screenshot: Timeout 5000ms exceeded."));
+    expect(await measureTextContrast(document.querySelector("#flat")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/could not be screenshotted: locator\.screenshot: Timeout 5000ms exceeded\.$/) });
+    expect(shots).toHaveBeenCalledTimes(1);
     shots.mockRestore();
   });
 

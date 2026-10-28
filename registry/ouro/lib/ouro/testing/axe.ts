@@ -704,6 +704,15 @@ async function settleTransitions(): Promise<void> {
   await Promise.race([finished, new Promise((resolve) => setTimeout(resolve, 3000))]);
 }
 
+// Whether an element shows, with an area, and its box stays where it is over a frame.
+async function showsAndHoldsStill(element: Element): Promise<boolean> {
+  const before = element.getBoundingClientRect();
+  if (!element.isConnected || !element.checkVisibility() || before.width === 0 || before.height === 0) return false;
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  const after = element.getBoundingClientRect();
+  return element.isConnected && after.x === before.x && after.y === before.y && after.width === before.width && after.height === before.height;
+}
+
 // The element's box as a canvas, two frames after a change to what it shows. Only the element is
 // taken: the browser paints a whole long page's screenshot wrongly away from where it is scrolled.
 async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
@@ -711,10 +720,18 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
   const image = new Image();
   // `caret: "initial"`: hiding the caret, Playwright leaves an empty style attribute on the focused
   // field. The measuring rules hide the caret themselves.
-  // No timeout of its own: Vitest gives the screenshot the rest of the test's time. Vitest's Node
-  // process, which runs Playwright, can stall for seconds on other work while the page holds still,
-  // and a fixed limit counted that stall against the screenshot.
-  image.src = `data:image/png;base64,${await page.screenshot({ save: false, element, animations: "disabled", caret: "initial" })}`;
+  const take = () => page.screenshot({ save: false, element, animations: "disabled", caret: "initial", timeout: 5000 });
+  let data: string;
+  try {
+    data = await take();
+  } catch (error) {
+    // Vitest's Node process, which runs Playwright, can stall for seconds on other work while the
+    // page holds still, and the stall counts against the limit. A box that shows and holds still
+    // did not hold the screenshot up, so it gets one more try; a box with no area never shows.
+    if (!/Timeout/.test((error as Error).message) || !(await showsAndHoldsStill(element))) throw error;
+    data = await take();
+  }
+  image.src = `data:image/png;base64,${data}`;
   await image.decode();
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
