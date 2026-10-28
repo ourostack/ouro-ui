@@ -498,17 +498,34 @@ describe("audit", () => {
     mountPage('<p id="text" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Text on a gradient</p>');
     const take = page.screenshot.bind(page);
     const shots = vi.spyOn(page, "screenshot").mockRejectedValueOnce(new Error("locator.screenshot: Timeout 555ms exceeded.")).mockImplementation((options) => take(options));
-    expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
-    expect(shots).toHaveBeenCalledTimes(2);
-    shots.mockRestore();
+    try {
+      expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
+      expect(shots).toHaveBeenCalledTimes(2);
+    } finally {
+      shots.mockRestore();
+    }
   });
 
   it("does not try a screenshot again on a box with no area, which never shows", async () => {
     mountPage('<p id="flat" style="margin:0;height:0;color:#111;background:#fff">Text over a box with no height</p>');
     const shots = vi.spyOn(page, "screenshot").mockRejectedValue(new Error("locator.screenshot: Timeout 5000ms exceeded."));
-    expect(await measureTextContrast(document.querySelector("#flat")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/could not be screenshotted: locator\.screenshot: Timeout 5000ms exceeded\.$/) });
-    expect(shots).toHaveBeenCalledTimes(1);
-    shots.mockRestore();
+    try {
+      expect(await measureTextContrast(document.querySelector("#flat")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/could not be screenshotted: locator\.screenshot: Timeout 5000ms exceeded\.$/) });
+      expect(shots).toHaveBeenCalledTimes(1);
+    } finally {
+      shots.mockRestore();
+    }
+  });
+
+  it("does not try a screenshot again on a box hidden with visibility, which Playwright never takes", async () => {
+    mountPage('<p id="hidden" style="margin:0;padding:8px;visibility:hidden;color:#111;background:#fff">Text in a hidden box</p>');
+    const shots = vi.spyOn(page, "screenshot").mockRejectedValue(new Error("locator.screenshot: Timeout 5000ms exceeded."));
+    try {
+      await measureTextContrast(document.querySelector("#hidden")!, 4.5);
+      expect(shots).toHaveBeenCalledTimes(1);
+    } finally {
+      shots.mockRestore();
+    }
   });
 
   it("settles a link in running text whose block's background axe cannot read, as under an open list, by measuring the link against the text around it", async () => {

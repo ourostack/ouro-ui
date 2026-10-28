@@ -704,10 +704,11 @@ async function settleTransitions(): Promise<void> {
   await Promise.race([finished, new Promise((resolve) => setTimeout(resolve, 3000))]);
 }
 
-// Whether an element shows, with an area, and its box stays where it is over a frame.
+// Whether an element shows, with an area, and its box stays where it is over a frame. As Playwright
+// does, a box hidden with `visibility` does not show.
 async function showsAndHoldsStill(element: Element): Promise<boolean> {
   const before = element.getBoundingClientRect();
-  if (!element.isConnected || !element.checkVisibility() || before.width === 0 || before.height === 0) return false;
+  if (!element.isConnected || !element.checkVisibility({ visibilityProperty: true }) || before.width === 0 || before.height === 0) return false;
   await new Promise((resolve) => requestAnimationFrame(resolve));
   const after = element.getBoundingClientRect();
   return element.isConnected && after.x === before.x && after.y === before.y && after.width === before.width && after.height === before.height;
@@ -743,7 +744,8 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
 
 /**
  * What keeps the page still while a measuring rule goes on and comes off: no color it changes
- * eases there or back, as a link's underline does over its transition.
+ * eases there or back, as a link's underline does over its transition. A document's style sheet
+ * does not reach into shadow roots, so an element there can still ease.
  *
  * @claim "no color it changes eases there or back" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > leaves no transition running when it is done, its own text's or a link's elsewhere on the page)
  */
@@ -783,7 +785,7 @@ function lift(rule: HTMLStyleElement): void {
  * Passes when the text color, as painted over that pixel, meets `required` (4.5 or 3). Where an open
  * popup covers the text (its shadow too), the covered part is hidden while it is open, and only what
  * still shows is measured. It puts back every scroll position it moves, leaves nothing on the
- * focused field, and leaves no color easing.
+ * focused field, and leaves no color easing outside shadow roots.
  *
  * @example
  * const verdict = await measureTextContrast(label, 4.5);
