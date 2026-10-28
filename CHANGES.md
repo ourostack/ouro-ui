@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fix: `audit()` and `measureTextContrast()` put back the scroll position of a scrolled box inside an open shadow root too; before, they left it where they had scrolled it to measure text ([test](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/lib/ouro/testing/axe.test.ts "verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > puts back the scroll position of a scrolled box inside a shadow root)")).
+- Fix: the Sheet "With Form" story [draws its placeholder in the muted text color](registry/ouro/components/ouro/sheet/sheet.stories.tsx "verify:fileLine(registry/ouro/components/ouro/sheet/sheet.stories.tsx, /className=\"placeholder:text-muted-foreground\"/)"), as Ouro's own fields do; before, it was half the text color, too faint against the light theme.
