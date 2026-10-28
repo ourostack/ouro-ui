@@ -1,1 +1,1 @@
-- Fix: the Sheet "With Form" story draws its placeholder in the muted text color, as Ouro's own fields do; before, it was half the text color, below 4.5:1 in the light theme.
+- Fix: the Sheet "With Form" story [draws its placeholder in the muted text color](registry/ouro/components/ouro/sheet/sheet.stories.tsx "verify:fileLine(registry/ouro/components/ouro/sheet/sheet.stories.tsx, /className=\"placeholder:text-muted-foreground\"/)"), as Ouro's own fields do; before, it was half the text color, too faint against the light theme.
