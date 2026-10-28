@@ -711,7 +711,10 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
   const image = new Image();
   // `caret: "initial"`: hiding the caret, Playwright leaves an empty style attribute on the focused
   // field. The measuring rules hide the caret themselves.
-  image.src = `data:image/png;base64,${await page.screenshot({ save: false, element, animations: "disabled", caret: "initial", timeout: 5000 })}`;
+  // No timeout of its own: Vitest gives the screenshot the rest of the test's time. Vitest's Node
+  // process, which runs Playwright, can stall for seconds on other work while the page holds still,
+  // and a fixed limit counted that stall against the screenshot.
+  image.src = `data:image/png;base64,${await page.screenshot({ save: false, element, animations: "disabled", caret: "initial" })}`;
   await image.decode();
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
