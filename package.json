@@ -31,6 +31,7 @@
     "conformance": "OURO_CONFORMANCE=1 vitest run --project conformance",
     "mutation": "node scripts/mutation.mjs",
     "typecheck": "tsc --noEmit && tsc -p scripts/fixtures/no-node-types",
+    "typecheck:oldest": "npx --yes --package=typescript@5.9.3 -- tsc -p tsconfig.registry.json",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

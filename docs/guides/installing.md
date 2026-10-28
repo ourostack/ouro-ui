@@ -1,6 +1,6 @@
 # Installing
 
-Add `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag]
+Add `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` and `ouro-source-rules` need 6.0.3.[^typescript]
 
 ## Once per app
 
@@ -80,6 +80,7 @@ build: {
 ```
 
 [^release-tag]: scripts/latest-release.mjs verify:testExists(scripts/latest-release.test.mjs::every #vX.Y.Z or @vX.Y.Z literal in the docs names package.json's ouro.latestRelease) verify:fileLine(scripts/latest-release.mjs, /docs\/guides\/installing\.md/)
+[^typescript]: package.json verify:fileLine(package.json, /typescript@5\.9\.3 -- tsc -p tsconfig\.registry\.json/) verify:fileLine(.github/workflows/ci.yml, /pnpm typecheck:oldest/)
 [^action-token]: test:test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary; test:test/action-token.test.tsx::the action token > follows a theme scoped to part of the page and its dark values verify:testExists(test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary) verify:testExists(test/action-token.test.tsx::the action token > follows a theme scoped to part of the page and its dark values)
 [^stock-contrast]: test/stock-theme.test.tsx; test/shadcn-stock.css verify:fileLine(test/stock-theme.test.tsx, /4\.5/) verify:ciJob(ci)
 [^field-tokens]: registry/ouro/theme/ouro-base.css verify:testExists(scripts/install-check.test.mjs::an install whose stylesheet lacks the field border color or the radius scale fails) verify:fileLine(registry/ouro/theme/ouro-base.css, /--radius-4xl/)

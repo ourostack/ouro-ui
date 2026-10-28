@@ -115,6 +115,9 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: pnpm run docs --check
       - run: pnpm typecheck
+      # Apps still build with TypeScript 5.9, whose DOM types lack some of 6.0's (focusVisible), so
+      # the code items ship must compile with it too (docs/guides/installing.md).
+      - run: pnpm typecheck:oldest
       - run: pnpm lint
       # Every factual sentence on every surface is a claim with a primary source and a check,
       # and every check holds (scripts/claims.mjs, docs/guides/claims.md). The checks read only
