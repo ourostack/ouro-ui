@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { audit, axeExclude, describeFindings, type GateFinding } from "@/registry/ouro/lib/ouro/testing/axe";
+import { otherPopups } from "@/registry/ouro/lib/ouro/testing/popups";
 import { accessibleName, closeOverlay, isVisible, openOverlay, overlayOpeners, renderStoryPage, settle } from "./stories.tsx";
 
 // The axe scan every story gets: test/stories.test.tsx under the Ouro theme at two widths, and
@@ -42,14 +43,16 @@ export interface StoryViolation {
 
 /**
  * Renders a story as a page shows it and scans it closed and with each of its overlays open.
- * Returns each flagged node, and the scan as text (empty when there are none).
+ * Returns each flagged node, the scan as text (empty when there are none) and the phases scanned.
  */
-export async function scanStoryViolations(id: string, Story: ComponentType): Promise<{ violations: StoryViolation[]; text: string }> {
+export async function scanStoryViolations(id: string, Story: ComponentType): Promise<{ violations: StoryViolation[]; text: string; phases: string[] }> {
   const host = await renderStoryPage(Story);
   await settle();
   const violations: StoryViolation[] = [];
   const found: string[] = [];
+  const phases: string[] = [];
   const record = (phase: string, findings: GateFinding[]) => {
+    phases.push(phase);
     if (findings.length === 0) return;
     found.push(`${phase}:\n${describeFindings(findings)}`);
     for (const finding of findings) violations.push({ phase, rule: finding.undecided ? `undecided ${finding.rule}` : finding.rule, target: finding.target });
@@ -74,7 +77,7 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
     }, waitOptions);
     await settle();
   }
-  return { violations, text: found.join("\n\n") };
+  return { violations, text: found.join("\n\n"), phases };
 }
 
 /** How long a popup may take to open or close on a loaded CI runner. */
@@ -90,41 +93,31 @@ interface PassingOpener {
 
 /**
  * The overlays a story shows that no `aria-haspopup` trigger opens, so the shared openers leave
- * them out: each Tooltip (its trigger hovered), each NavigationMenu panel (its trigger pressed)
- * and each HoverCard (its link focused from the keyboard). The scan opens them too, so a popup of
- * theirs outside every landmark fails like a menu's would.
+ * them out: each of `otherPopups` in the test kit, which apps' story checks open the same way. The
+ * scan opens them too, so a popup of theirs outside every landmark fails like a menu's would.
  */
 function passingOpeners(host: HTMLElement): PassingOpener[] {
   const usable = (element: HTMLElement) => isVisible(element) && !element.matches(':disabled, [aria-disabled="true"], [data-disabled]');
-  const tooltips = [...host.querySelectorAll<HTMLElement>("[data-base-ui-tooltip-trigger]")].filter(usable).map((element) => ({
-    name: `the tooltip of "${accessibleName(element)}"`,
-    open: () => userEvent.hover(element),
-    close: async () => {
-      await userEvent.unhover(element);
-      await userEvent.keyboard("{Escape}");
-    },
-    popup: () => document.querySelector('[data-ouro="tooltip"][data-open]'),
-  }));
-  const panels = [...host.querySelectorAll<HTMLElement>('[data-ouro-control="navigation-menu"][data-ouro-part="trigger"]')].filter(usable).map((element) => ({
-    name: `the "${accessibleName(element)}" panel`,
-    open: () => userEvent.click(element),
-    close: () => userEvent.keyboard("{Escape}"),
-    popup: () => document.querySelector('[data-ouro="navigation-menu-popup"][data-open]'),
-  }));
-  const cards = [...host.querySelectorAll<HTMLElement>("[data-ouro-hover-card-trigger]")].filter(usable).map((element) => ({
-    name: `the hover card of "${accessibleName(element)}"`,
-    open: async () => {
-      // Focus from the keyboard, as a hover card opens for it; WebKit's Tab skips links by default.
-      await userEvent.keyboard("{Shift}");
-      element.focus();
-    },
-    close: async () => {
-      element.blur();
-      await userEvent.keyboard("{Escape}");
-    },
-    popup: () => document.querySelector('[data-ouro="hover-card"][data-open]'),
-  }));
-  return [...tooltips, ...panels, ...cards];
+  return otherPopups.flatMap(({ kind, trigger, opensOn, popup }) =>
+    [...host.querySelectorAll<HTMLElement>(trigger)].filter(usable).map((element) => ({
+      name: `the ${kind} of "${accessibleName(element)}"`,
+      open: async () => {
+        if (opensOn === "hover") await userEvent.hover(element);
+        else if (opensOn === "press") await userEvent.click(element);
+        else {
+          // Focus from the keyboard, as a hover card opens for it; WebKit's Tab skips links by default.
+          await userEvent.keyboard("{Shift}");
+          element.focus();
+        }
+      },
+      close: async () => {
+        if (opensOn === "hover") await userEvent.unhover(element);
+        if (opensOn === "keyboard focus") element.blur();
+        await userEvent.keyboard("{Escape}");
+      },
+      popup: () => document.querySelector(popup),
+    })),
+  );
 }
 
 /** Renders a story and scans it closed and with each of its overlays open: the findings as text, empty when there are none. */
