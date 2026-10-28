@@ -52,7 +52,7 @@ it.each([
   { id: "Tooltip/Playground", phase: /^with the tooltip of ".+" open$/ },
   { id: "NavigationMenu/Playground", phase: /^with the navigation panel of ".+" open$/ },
   { id: "HoverCard/Playground", phase: /^with the hover card of ".+" open$/ },
-])("opens each popup of $id that no aria-haspopup names, and scans the page with it open", async ({ id, phase }) => {
+])("opens the popups of $id that no aria-haspopup names, and scans the page with one open", async ({ id, phase }) => {
   const { phases } = await scanStoryViolations(id, story(id));
   expect(phases[0]).toBe("closed");
   expect(phases.slice(1)).toEqual(expect.arrayContaining([expect.stringMatching(phase)]));

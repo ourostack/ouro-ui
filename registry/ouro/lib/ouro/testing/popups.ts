@@ -18,7 +18,8 @@ const openPopupSelector =
 
 /**
  * What opens a popup, as Ouro UI's story check finds one: a Base UI trigger, which names its popup
- * in `aria-haspopup`, unless it is open already.
+ * in `aria-haspopup`, unless it is open already. The check also leaves out a disabled or hidden
+ * trigger, which opens nothing.
  *
  * @example
  * const triggers = await page.locator(`main ${popupTriggerSelector}`).elementHandles();
@@ -33,7 +34,10 @@ interface OtherPopup {
   trigger: string;
   /** How a trigger opens it: hovered, pressed, or focused from the keyboard. */
   opensOn: "hover" | "press" | "keyboard focus";
-  /** The popup, while it is open. Escape closes it. */
+  /**
+   * The popup, while it is open. To close it, move the pointer off a tooltip's trigger and focus off a
+   * hover card's, then press Escape, and wait for it to close before opening the next.
+   */
   popup: string;
 }
 
@@ -42,10 +46,10 @@ interface OtherPopup {
  * Tooltip (its trigger hovered), each NavigationMenu panel (its trigger pressed) and each HoverCard
  * (its trigger focused after a key press, as a hover card opens on focus only from the keyboard).
  *
- * @claim "The popups Ouro UI's story check opens" test/stories.test.tsx verify:testExists(test/stories.test.tsx::opens each popup of $id that no aria-haspopup names, and scans the page with it open)
+ * @claim "The popups Ouro UI's story check opens" test/stories.test.tsx verify:testExists(test/stories.test.tsx::opens the popups of $id that no aria-haspopup names, and scans the page with one open)
  * @example
  * for (const { trigger, opensOn, popup } of otherPopups) {
- *   // open each trigger as opensOn says, wait for popup, check the page, then press Escape
+ *   // open each trigger as opensOn says, wait for popup, check the page, then close it as `popup` says
  * }
  */
 const otherPopups: readonly OtherPopup[] = [
