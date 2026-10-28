@@ -494,6 +494,14 @@ describe("audit", () => {
     expect(document.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty)).toEqual([]);
   });
 
+  it("gives each screenshot the rest of the test's time, not a fixed limit that a stall in Vitest's own process can use up", async () => {
+    mountPage('<p id="text" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Text on a gradient</p>');
+    const shots = vi.spyOn(page, "screenshot");
+    expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
+    expect(shots.mock.calls.map(([options]) => options && "timeout" in options)).toEqual([false]);
+    shots.mockRestore();
+  });
+
   it("settles a link in running text whose block's background axe cannot read, as under an open list, by measuring the link against the text around it", async () => {
     // Each paragraph's text is all in elements, so axe reads its background at its middle, below
     // its line, where a box lies over it.
