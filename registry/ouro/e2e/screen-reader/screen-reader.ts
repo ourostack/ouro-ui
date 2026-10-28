@@ -3,7 +3,7 @@ import { test as base, expect, type BrowserContext, type BrowserContextOptions, 
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, missedPhrase, readRecords, RECORD_END, RECORD_START, readyForAction, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -262,9 +262,11 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
  * asked to describe what the step changed, and that description must pass `described`, one phrase
  * under the same strict rule; the miss is logged as `[sr] finding:` with `finding`, the issue that
  * tracks it. `from: "focus"` describes the focused element (`describesFocus`); `from: "container"`
- * describes the element around it (`describesContainer`). Only for a step VoiceOver is known to
- * skip at times: the Checklist toggle (ourostack/ouro-ui#118) and the Dialog's opening
- * (ourostack/ouro-ui#119). On NVDA it is `heard`.
+ * describes the element around it (`describesContainer`). A miss in which VoiceOver said something
+ * `contradicts` accepts (the old state, say) fails as it is: the fallback is for silence, not for a
+ * wrong announcement. Only for a step VoiceOver is known to skip at times: the Checkbox and
+ * Checklist toggles (ourostack/ouro-ui#118) and the Dialog's opening (ourostack/ouro-ui#119). On NVDA
+ * it is `heard`.
  */
 export async function heardOrDescribed(
   sr: ScreenReader,
@@ -272,13 +274,14 @@ export async function heardOrDescribed(
   matches: (phrase: string) => boolean,
   described: (phrase: string) => boolean,
   what: string,
-  { finding, from = "focus" }: { finding: string; from?: "focus" | "container" },
+  { finding, from = "focus", contradicts }: { finding: string; from?: "focus" | "container"; contradicts?: (phrase: string) => boolean },
 ): Promise<string> {
   if (!isVoiceOver(sr)) return heard(sr, action, matches, what);
   try {
     return await heard(sr, action, matches, what);
   } catch (error) {
     if (!(error instanceof Error) || !missedPhrase(error.message)) throw error;
+    if (contradicts && saidInMiss(error.message).some(contradicts)) throw error;
     const description = from === "container" ? await describesContainer(sr, described, `${what}, described`) : await describesFocus(sr, described, `${what}, described`);
     const spoke = error.message.slice(error.message.indexOf("; heard: ") + "; heard: ".length);
     console.log(`[sr] finding: ${finding}: VoiceOver did not announce ${what} (it said: ${spoke}); described, the ${from === "container" ? "focus's container" : "focus"} is "${description}"`);

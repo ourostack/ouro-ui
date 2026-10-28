@@ -233,10 +233,16 @@ export async function readyForAction(watch: WatchState, say: () => Promise<void>
 
 /**
  * Whether a check's error says the expected phrase never came (`[sr] no utterance matched`), the
- * only failure after which the Checklist step may ask VoiceOver to describe the focus
+ * only failure after which the Checkbox and Checklist steps may ask VoiceOver to describe the focus
  * (screen-reader.ts, `heardOrDescribed`; ourostack/ouro-ui#118). The runner's failures and any
  * other error stay what they are.
  */
 export function missedPhrase(message: string): boolean {
   return /^\[sr\] no utterance matched /.test(message);
+}
+
+/** The phrases a missed phrase's error lists as heard (`heard: "…" | "…"`), none for `heard: nothing`. */
+export function saidInMiss(message: string): string[] {
+  const heard = message.slice(message.indexOf("; heard: ") + "; heard: ".length);
+  return heard === "nothing" ? [] : heard.slice(1, -1).split('" | "');
 }
