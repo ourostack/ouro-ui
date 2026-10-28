@@ -10,22 +10,22 @@ In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest search 'ourostack/ouro-ui#v1.2.9'      # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.2.9'  # read one item
+npx shadcn@latest search 'ourostack/ouro-ui#v1.2.10'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.2.10'  # read one item
 # Once per app, before the first component: the tokens every component needs.
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.2.9
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.9     # install a component
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.2.10
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.10     # install a component
 ```
 
 - Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it, overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.[^theme-check]
 
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
-- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.2.9, github: and /tree/ URLs do not work.
-- A release tag (#v1.2.9) installs the item and every Ouro dependency at that tag.[^release-pins] Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.2.10, github: and /tree/ URLs do not work.
+- A release tag (#v1.2.10) installs the item and every Ouro dependency at that tag.[^release-pins] Without a ref, items come from main, which is for contributors and can hold unreleased changes; use a release tag or @ouro.
 - Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each.[^lands] Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.[^not-ui]
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.9 ourostack/ouro-ui/dialog-tests#v1.2.9), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
-- The @ouro namespace serves the newest release (the same code as #v1.2.9)[^namespace]: add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.10 ourostack/ouro-ui/dialog-tests#v1.2.10), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
+- The @ouro namespace serves the newest release (the same code as #v1.2.10)[^namespace]: add "registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
 
 ## Items
 
