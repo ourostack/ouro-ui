@@ -286,10 +286,11 @@ function placeholderFields(context: axe.ElementContext): HTMLElement[] {
   const spec = context as { include?: unknown; exclude?: unknown };
   const object = typeof spec === "object" && spec !== null && !(spec instanceof Node) && !isList(spec) && ("include" in spec || "exclude" in spec);
   // axe scans the whole page for a missing or empty include.
-  const whole = object && (spec.include === undefined || (isList(spec.include) && Array.from(spec.include).length === 0));
+  const empty = (part: unknown) => isList(part) && Array.from(part).length === 0;
+  const whole = object ? spec.include === undefined || empty(spec.include) : empty(context);
   const include = whole ? [document.documentElement] : contextElements(object ? spec.include : context);
   const exclude = object && spec.exclude !== undefined ? contextElements(spec.exclude) : [];
-  const modal = document.querySelector("dialog:modal");
+  const modal = topModal();
   return elementsWithin(document).filter(
     (element): element is HTMLElement =>
       (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
@@ -315,14 +316,36 @@ function closestAcross(element: Element, selector: string): Element | null {
   return null;
 }
 
-// Whether an element shows: visible, with a size, on the page and not clipped away by a box around it.
+// The open modal <dialog> on top, which leaves the rest of the page inert, or null. The top layer
+// keeps the order dialogs opened in, which the page cannot read, so the one at its own center is it.
+function topModal(): Element | null {
+  const modals = [...document.querySelectorAll("dialog:modal")];
+  const onTop = modals.find((dialog) => {
+    const box = dialog.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return hit !== null && dialog.contains(hit);
+  });
+  return onTop ?? modals.at(-1) ?? null;
+}
+
+// Whether an element shows: visible, with a size, on the page and not clipped away by a box around
+// it that hides what overflows it. A box that scrolls does not count: the field is scrolled to before
+// it is measured. Nor does a box that the element is positioned outside of.
 function shows(element: Element): boolean {
   if (!element.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
   const box = element.getBoundingClientRect();
   if (box.width <= 1 || box.height <= 1 || box.right + window.scrollX <= 0 || box.bottom + window.scrollY <= 0) return false;
+  const { position } = getComputedStyle(element);
+  if (position === "fixed") return true;
+  // An absolutely positioned element escapes the boxes between it and the one it is positioned in.
+  const container = position === "absolute" ? (element as HTMLElement).offsetParent : null;
+  let escaped = container !== null;
   for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    if (parent === container) escaped = false;
+    if (escaped) continue;
     const style = getComputedStyle(parent);
-    if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+    const clips = (value: string) => value === "hidden" || value === "clip";
+    if (!clips(style.overflowX) && !clips(style.overflowY)) continue;
     const clip = parent.getBoundingClientRect();
     if (Math.min(box.right, clip.right) - Math.max(box.left, clip.left) <= 1 || Math.min(box.bottom, clip.bottom) - Math.max(box.top, clip.top) <= 1) return false;
   }

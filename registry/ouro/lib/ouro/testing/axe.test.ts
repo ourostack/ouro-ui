@@ -139,6 +139,10 @@ describe("audit", () => {
         `<div style="width:120px;height:0;overflow:hidden"><input aria-label="Clipped" placeholder="Clipped" ${faint}></div>`,
     );
     expect((await scanPage()).map((finding) => finding.target)).toEqual(["#shown"]);
+    // A field scrolled out of a scrolling box still shows once scrolled to, as axe holds.
+    document.querySelector("main")!.insertAdjacentHTML("beforeend", `<div style="height:120px;overflow:auto"><div style="height:400px"></div><input aria-label="Below" id="below" placeholder="Below" ${faint}></div>`);
+    expect((await scanPage()).map((finding) => finding.target)).toEqual(["#shown", "#below"]);
+    document.querySelector("#below")!.parentElement!.remove();
     // Under a modal <dialog>, the page is inert; the dialog's own field is measured.
     document.querySelector("main")!.insertAdjacentHTML("beforeend", `<dialog aria-label="Edit"><input aria-label="In the dialog" id="inside" placeholder="In the dialog" ${faint}></dialog>`);
     document.querySelector("dialog")!.showModal();
