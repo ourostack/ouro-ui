@@ -88,9 +88,9 @@ function describeFindings(findings: GateFinding[]): string {
  * (axe-version.ts), naming the version it found.
  *
  * It leaves the page as it found it: focus where it was, with a focus ring only if it had one, the
- * selection, and every scroll position, in an open shadow root too. It throws, naming the change, when its Tab walk changes
- * what is open on the page (an `aria-expanded`, a <dialog>, <details> or popover) and it does not
- * change back within a second, as it cannot change it back itself.
+ * selection, and every scroll position, in an open shadow root too. It throws, naming the change,
+ * when its Tab walk changes what is open on the page (an `aria-expanded`, a <dialog>, <details> or
+ * popover) and it does not change back within a second, as it cannot change it back itself.
  *
  * @example
  * const findings = await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
@@ -135,12 +135,8 @@ async function audit(context: axe.ElementContext): Promise<GateFinding[]> {
 
 // Every element in `root` and in the open shadow roots within it. A closed shadow root cannot be
 // reached from the page.
-function elementsWithin(root: Document | ShadowRoot, found: Element[] = []): Element[] {
-  for (const element of root.querySelectorAll("*")) {
-    found.push(element);
-    if (element.shadowRoot) elementsWithin(element.shadowRoot, found);
-  }
-  return found;
+function elementsWithin(root: Document | ShadowRoot): Element[] {
+  return [...root.querySelectorAll("*")].flatMap((element) => (element.shadowRoot ? [element, ...elementsWithin(element.shadowRoot)] : [element]));
 }
 
 // Runs `work`, which scrolls the page to measure it, and puts every scroll position back after:
