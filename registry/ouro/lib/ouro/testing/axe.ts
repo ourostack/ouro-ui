@@ -326,7 +326,9 @@ async function tabReaches(targets: HTMLElement[]): Promise<HTMLElement[]> {
   if (active instanceof HTMLElement || active instanceof SVGElement) {
     if (active !== back || active.matches(":focus-visible") !== ring) active.blur();
   }
-  if (back && document.activeElement !== back) back.focus({ preventScroll: true, focusVisible: ring });
+  // A typed variable, not a literal: TypeScript 5.9's DOM types, which apps still build with, lack focusVisible.
+  const again: FocusOptions & { focusVisible?: boolean } = { preventScroll: true, focusVisible: ring };
+  if (back && document.activeElement !== back) back.focus(again);
   selection();
   // What the walk's focus showed (a tooltip, a fanned stack) eases back before the page is compared,
   // and what closes or opens on a timer once focus moves gets a second to settle.
