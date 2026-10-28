@@ -704,6 +704,16 @@ async function settleTransitions(): Promise<void> {
   await Promise.race([finished, new Promise((resolve) => setTimeout(resolve, 3000))]);
 }
 
+// Whether an element shows, with an area, and its box stays where it is over a frame. As Playwright
+// does, a box hidden with `visibility` does not show.
+async function showsAndHoldsStill(element: Element): Promise<boolean> {
+  const before = element.getBoundingClientRect();
+  if (!element.isConnected || !element.checkVisibility({ visibilityProperty: true }) || before.width === 0 || before.height === 0) return false;
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  const after = element.getBoundingClientRect();
+  return element.isConnected && after.x === before.x && after.y === before.y && after.width === before.width && after.height === before.height;
+}
+
 // The element's box as a canvas, two frames after a change to what it shows. Only the element is
 // taken: the browser paints a whole long page's screenshot wrongly away from where it is scrolled.
 async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
@@ -711,7 +721,18 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
   const image = new Image();
   // `caret: "initial"`: hiding the caret, Playwright leaves an empty style attribute on the focused
   // field. The measuring rules hide the caret themselves.
-  image.src = `data:image/png;base64,${await page.screenshot({ save: false, element, animations: "disabled", caret: "initial", timeout: 5000 })}`;
+  const take = () => page.screenshot({ save: false, element, animations: "disabled", caret: "initial", timeout: 5000 });
+  let data: string;
+  try {
+    data = await take();
+  } catch (error) {
+    // Vitest's Node process, which runs Playwright, can stall for seconds on other work while the
+    // page holds still, and the stall counts against the limit. A box that shows and holds still
+    // did not hold the screenshot up, so it gets one more try; a box with no area never shows.
+    if (!/Timeout/.test((error as Error).message) || !(await showsAndHoldsStill(element))) throw error;
+    data = await take();
+  }
+  image.src = `data:image/png;base64,${data}`;
   await image.decode();
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
@@ -722,6 +743,15 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
 }
 
 /**
+ * What keeps the page still while a measuring rule goes on and comes off: no color it changes
+ * eases there or back, as a link's underline does over its transition. A document's style sheet
+ * does not reach into shadow roots, so an element there can still ease.
+ *
+ * @claim "no color it changes eases there or back" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > leaves no transition running when it is done, its own text's or a link's elsewhere on the page)
+ */
+const still = "body *, body *::before, body *::after { transition: none !important; } ";
+
+/**
  * The rule that hides glyphs while the page behind them is screenshotted: the element's, and all
  * other text on the page too, as a tall heading's descenders reach into the line below, except
  * other text drawn over the element's, which is what it is seen against.
@@ -730,6 +760,7 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
  * @claim "except other text drawn over the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails text that other text is drawn over, as a tag without a background over a line)
  */
 const hideGlyphs =
+  still +
   "body * { -webkit-text-fill-color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; caret-color: transparent !important; } " +
   "[data-ouro-measure-keep] { -webkit-text-fill-color: currentcolor !important; } " +
   "svg text, svg tspan { fill: transparent !important; stroke: transparent !important; } " +
@@ -738,6 +769,14 @@ const hideGlyphs =
   "[data-ouro-measure-layer] { opacity: 0 !important; transition: none !important; } " +
   "::placeholder { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; }";
 
+// Takes a measuring rule off the page without easing back what it changed: the page takes its own
+// colors again while nothing eases, so nothing is left in motion for the next measurement to wait for.
+function lift(rule: HTMLStyleElement): void {
+  rule.textContent = still;
+  document.documentElement.getBoundingClientRect();
+  rule.remove();
+}
+
 /**
  * Measures text contrast that axe could not judge: waits for running transitions, hides the
  * element's glyphs, screenshots the page and finds the worst pixel behind each line of its
@@ -745,8 +784,8 @@ const hideGlyphs =
  * is what the text is seen against.
  * Passes when the text color, as painted over that pixel, meets `required` (4.5 or 3). Where an open
  * popup covers the text (its shadow too), the covered part is hidden while it is open, and only what
- * still shows is measured. It puts back every scroll position it moves, and leaves nothing on the
- * focused field.
+ * still shows is measured. It puts back every scroll position it moves, leaves nothing on the
+ * focused field, and leaves no color easing outside shadow roots.
  *
  * @example
  * const verdict = await measureTextContrast(label, 4.5);
@@ -761,6 +800,7 @@ const hideGlyphs =
  * @claim "It puts back every scroll position it moves" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > puts back every scroll position it moves to measure text, the page's and a scrolled box's)
  * @claim "It puts back every scroll position it moves" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > puts back the scroll position of a scrolled box inside a shadow root)
  * @claim "leaves nothing on the focused field" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > leaves no trace on the focused field when it screenshots the page)
+ * @claim "and leaves no color easing" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > leaves no transition running when it is done, its own text's or a link's elsewhere on the page)
  */
 async function measureTextContrast(element: Element, required: number): Promise<Verdict> {
   return keepingScroll(async () => (await measureTexts(element, [{ element, required }], true))[0]!);
@@ -913,7 +953,7 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
     return { pass: false, reason: `axe could not judge whether it stands out from the text around it, and it could not be screenshotted: ${(error as Error).message.split("\n")[0]}` };
   } finally {
     probe.remove();
-    hide.remove();
+    lift(hide);
   }
   const scale = context.canvas.width / (right - left);
   // Whether an element paints nothing of its own, as Base UI's invisible backdrop under a modal
@@ -1043,7 +1083,7 @@ async function shoot(root: Element, items: Measured[], last: boolean): Promise<V
     for (const { element } of items) element.removeAttribute("data-ouro-measure");
     for (const element of kept) element.removeAttribute("data-ouro-measure-keep");
     for (const layer of layers) layer.removeAttribute("data-ouro-measure-layer");
-    hide.remove();
+    lift(hide);
   }
   // A screenshot taken by selector can find a new element in the place of one that left the page.
   if (!root.isConnected || items.some(({ element }) => !element.isConnected)) {

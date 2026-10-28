@@ -483,6 +483,51 @@ describe("audit", () => {
     expect(document.activeElement).toBe(field);
   });
 
+  it("leaves no transition running when it is done, its own text's or a link's elsewhere on the page", async () => {
+    // Hiding glyphs turns colors transparent and putting them back turns them back, which would
+    // ease over each element's transition and leave the next measurement waiting for it.
+    mountPage(
+      '<p id="text" style="margin:0;padding:8px;color:#111;background:#fff;transition:color 400ms linear">Text whose color eases</p>' +
+        '<p style="margin:0;padding:8px;color:#111;background:#fff"><a href="#notes" style="color:#1d4ed8;transition:color 400ms linear,text-decoration-color 400ms linear">A link whose colors ease</a></p>',
+    );
+    expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
+    expect(document.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty)).toEqual([]);
+  });
+
+  it("tries a screenshot once more when it ran out of time on a box that shows and holds still, as when Vitest's own process stalled", async () => {
+    mountPage('<p id="text" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Text on a gradient</p>');
+    const take = page.screenshot.bind(page);
+    const shots = vi.spyOn(page, "screenshot").mockRejectedValueOnce(new Error("locator.screenshot: Timeout 555ms exceeded.")).mockImplementation((options) => take(options));
+    try {
+      expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
+      expect(shots).toHaveBeenCalledTimes(2);
+    } finally {
+      shots.mockRestore();
+    }
+  });
+
+  it("does not try a screenshot again on a box with no area, which never shows", async () => {
+    mountPage('<p id="flat" style="margin:0;height:0;color:#111;background:#fff">Text over a box with no height</p>');
+    const shots = vi.spyOn(page, "screenshot").mockRejectedValue(new Error("locator.screenshot: Timeout 5000ms exceeded."));
+    try {
+      expect(await measureTextContrast(document.querySelector("#flat")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/could not be screenshotted: locator\.screenshot: Timeout 5000ms exceeded\.$/) });
+      expect(shots).toHaveBeenCalledTimes(1);
+    } finally {
+      shots.mockRestore();
+    }
+  });
+
+  it("does not try a screenshot again on a box hidden with visibility, which Playwright never takes", async () => {
+    mountPage('<p id="hidden" style="margin:0;padding:8px;visibility:hidden;color:#111;background:#fff">Text in a hidden box</p>');
+    const shots = vi.spyOn(page, "screenshot").mockRejectedValue(new Error("locator.screenshot: Timeout 5000ms exceeded."));
+    try {
+      await measureTextContrast(document.querySelector("#hidden")!, 4.5);
+      expect(shots).toHaveBeenCalledTimes(1);
+    } finally {
+      shots.mockRestore();
+    }
+  });
+
   it("settles a link in running text whose block's background axe cannot read, as under an open list, by measuring the link against the text around it", async () => {
     // Each paragraph's text is all in elements, so axe reads its background at its middle, below
     // its line, where a box lies over it.
