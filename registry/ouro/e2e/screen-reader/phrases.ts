@@ -233,7 +233,7 @@ export async function readyForAction(watch: WatchState, say: () => Promise<void>
 
 /**
  * Whether a check's error says the expected phrase never came (`[sr] no utterance matched`), the
- * only failure after which the Checklist step may ask VoiceOver to describe the focus
+ * only failure after which the Checkbox and Checklist steps may ask VoiceOver to describe the focus
  * (screen-reader.ts, `heardOrDescribed`; ourostack/ouro-ui#118). The runner's failures and any
  * other error stay what they are.
  */

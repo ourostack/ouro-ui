@@ -263,7 +263,7 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
  * under the same strict rule; the miss is logged as `[sr] finding:` with `finding`, the issue that
  * tracks it. `from: "focus"` describes the focused element (`describesFocus`); `from: "container"`
  * describes the element around it (`describesContainer`). Only for a step VoiceOver is known to
- * skip at times: the Checklist toggle (ourostack/ouro-ui#118) and the Dialog's opening
+ * skip at times: the Checkbox and Checklist toggles (ourostack/ouro-ui#118) and the Dialog's opening
  * (ourostack/ouro-ui#119). On NVDA it is `heard`.
  */
 export async function heardOrDescribed(

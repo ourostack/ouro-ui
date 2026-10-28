@@ -277,7 +277,15 @@ test("only a phrase that never came lets the Checklist step ask VoiceOver to des
   assert.equal(described("You are currently on a checkbox. rolled oats unchecked."), false);
 });
 
-test("the describe fallback is the Checklist toggle's (#118) and the Dialog opening's (#119) alone, once each", () => {
+test("the Checkbox step's description must give the box's name, the role and the new state in one sentence (#118)", () => {
+  // Runs 40638827936 and 40638834441: a native checkbox and a plain role="checkbox" got the same silence after Space.
+  const described = (phrase) => inOneSentence(phrase, /\bemail me new recipes\b/i, CHECKBOX, CHECKED);
+  assert.equal(described("Email me new recipes checked checkbox has keyboard focus"), true);
+  assert.equal(described("Email me new recipes unchecked checkbox has keyboard focus"), false);
+  assert.equal(described("You are currently on a checkbox, inside of web content. Email me new recipes checked."), false);
+});
+
+test("the describe fallback is the Checkbox and Checklist toggles' (#118) and the Dialog opening's (#119) alone, once each", () => {
   const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
   const uses = Object.fromEntries(
     readdirSync(dir)
@@ -285,7 +293,10 @@ test("the describe fallback is the Checklist toggle's (#118) and the Dialog open
       .map((file) => [file, (readFileSync(join(dir, file), "utf8").match(/heardOrDescribed\(/g) ?? []).length])
       .filter(([, count]) => count > 0),
   );
-  assert.deepEqual(uses, { "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
+  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
+  const checkbox = readFileSync(join(dir, "checkbox.sr.spec.ts"), "utf8");
+  assert.match(checkbox, /ourostack\/ouro-ui#118/);
+  assert.doesNotMatch(checkbox, /from: "container"/);
   const checklist = readFileSync(join(dir, "checklist.sr.spec.ts"), "utf8");
   const dialog = readFileSync(join(dir, "dialog.sr.spec.ts"), "utf8");
   assert.match(checklist, /ourostack\/ouro-ui#118/);
