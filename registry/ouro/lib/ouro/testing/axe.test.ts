@@ -317,7 +317,8 @@ describe("audit", () => {
     expect(document.activeElement).toBe(document.body);
     for (const focusVisible of [false, true]) {
       save.blur();
-      save.focus({ focusVisible });
+      const options: FocusOptions & { focusVisible?: boolean } = { focusVisible };
+      save.focus(options);
       expect(save.matches(":focus-visible")).toBe(focusVisible);
       await scanPage();
       expect([document.activeElement === save, save.matches(":focus-visible")]).toEqual([true, focusVisible]);
