@@ -240,3 +240,9 @@ export async function readyForAction(watch: WatchState, say: () => Promise<void>
 export function missedPhrase(message: string): boolean {
   return /^\[sr\] no utterance matched /.test(message);
 }
+
+/** The phrases a missed phrase's error lists as heard (`heard: "…" | "…"`), none for `heard: nothing`. */
+export function saidInMiss(message: string): string[] {
+  const heard = message.slice(message.indexOf("; heard: ") + "; heard: ".length);
+  return heard === "nothing" ? [] : heard.slice(1, -1).split('" | "');
+}

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -262,7 +262,7 @@ test("a watch that cannot get VoiceOver ready says why, and not that it was stop
   assert.equal(await readyForAction(refused.state, async () => { throw new Error("Not authorized"); }), `VoiceOver did not say "${MARK}": Not authorized`);
 });
 
-test("only a phrase that never came lets the Checklist step ask VoiceOver to describe the focus (#118)", () => {
+test("only a phrase that never came lets the Checkbox and Checklist steps ask VoiceOver to describe the focus (#118)", () => {
   // Runs 39273820587 and 39278342203: after Space, VoiceOver said only the checkbox's hint.
   assert.equal(missedPhrase('[sr] no utterance matched unchecked, after Space; heard: "You are currently on a checkbox. To select or deselect this checkbox, press Control-Option-Space."'), true);
   // The runner's failures, and any other error, stay what they are.
@@ -283,6 +283,16 @@ test("the Checkbox step's description must give the box's name, the role and the
   assert.equal(described("Email me new recipes checked checkbox has keyboard focus"), true);
   assert.equal(described("Email me new recipes unchecked checkbox has keyboard focus"), false);
   assert.equal(described("You are currently on a checkbox, inside of web content. Email me new recipes checked."), false);
+});
+
+test("a miss lists what VoiceOver said, so a wrong state it said fails instead of being described (#118)", () => {
+  assert.deepEqual(saidInMiss("[sr] no utterance matched checked, after Space; heard: nothing"), []);
+  const said = saidInMiss('[sr] no utterance matched checked, after Space; heard: "unchecked Email me new recipes checkbox" | "You are currently on a checkbox"');
+  assert.deepEqual(said, ["unchecked Email me new recipes checkbox", "You are currently on a checkbox"]);
+  assert.equal(said.some((phrase) => UNCHECKED.test(phrase)), true);
+  // The hint alone, which VoiceOver says after Space on a Checklist row, contradicts neither state.
+  const hint = saidInMiss('[sr] no utterance matched unchecked, after Space; heard: "You are currently on a checkbox. To select or deselect this checkbox, press Control-Option-Space."');
+  assert.equal(hint.some((phrase) => inOneSentence(phrase, CHECKED) || UNCHECKED.test(phrase)), false);
 });
 
 test("the describe fallback is the Checkbox and Checklist toggles' (#118) and the Dialog opening's (#119) alone, once each", () => {
