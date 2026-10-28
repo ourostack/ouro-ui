@@ -119,6 +119,16 @@ describe("audit", () => {
     expect(describeFindings(await scanPage())).toBe("");
   });
 
+  it("measures a placeholder against what is behind its text, not the border its field's box touches", async () => {
+    // A borderless input that fills its row, as Command's search input does, flush with a grey rule.
+    mountPage(
+      '<div style="display:flex;width:320px;margin-top:0.5px;border-top:1px solid #999;border-bottom:1px solid #999;background:#fff">' +
+        '<input aria-label="Search" placeholder="Type a command" style="flex:1;margin:0;padding:0;height:48px;border:0;outline:none;background:transparent;font-size:14px;color:#111"></div>' +
+        "<style>input::placeholder { opacity: 1; color: #595959; }</style>",
+    );
+    expect(describeFindings(await scanPage())).toBe("");
+  });
+
   it("measures a heading's second line against the page, not the descenders of the line above", async () => {
     mountPage(
       '<h1 style="margin:0;font-size:64px;line-height:0.95;color:#111"><span style="display:block">Gyppy quip</span>' +

@@ -251,6 +251,27 @@ interface Measured {
 
 const placeholderHelp = "Placeholder text must have sufficient color contrast with the field behind it";
 
+// Where a field's placeholder is drawn: its lines, as wide as the text, in the field's content box
+// (centered in an input, from the top in a textarea). Not the whole content box, whose edge can
+// touch the field's border.
+function placeholderBoxes(field: HTMLInputElement | HTMLTextAreaElement): DOMRect[] {
+  const [content] = textBoxes(field);
+  const style = getComputedStyle(field, "::placeholder");
+  const size = Number.parseFloat(style.fontSize);
+  const line = Number.parseFloat(style.lineHeight) || size * 1.2;
+  const measure = document.createElement("canvas").getContext("2d")!;
+  measure.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const wide = measure.measureText(field.placeholder).width;
+  const lines = field instanceof HTMLTextAreaElement ? Math.max(1, Math.ceil(wide / content!.width)) : 1;
+  const height = Math.min(content!.height, line * lines);
+  const width = Math.min(content!.width, wide);
+  const top = field instanceof HTMLTextAreaElement ? content!.top : content!.top + (content!.height - height) / 2;
+  const align = getComputedStyle(field).textAlign;
+  const end = align === "right" || (align === "end" && getComputedStyle(field).direction !== "rtl") || (align === "start" && getComputedStyle(field).direction === "rtl");
+  const left = align === "center" ? content!.left + (content!.width - width) / 2 : end ? content!.right - width : content!.left;
+  return [new DOMRect(left, top, width, height)];
+}
+
 // The text fields within `context` that show a placeholder and take input. A disabled field's
 // text need not meet WCAG 1.4.3, as axe's color-contrast rule also holds.
 function placeholderFields(context: axe.ElementContext): HTMLElement[] {
@@ -305,8 +326,8 @@ function selectorOf(element: Element): string {
   const steps: string[] = [];
   for (let node: Element | null = element; node; node = node.parentElement) {
     if (node.id && node.ownerDocument.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) return [`#${CSS.escape(node.id)}`, ...steps].join(" > ");
-    const index = [...(node.parentElement?.children ?? [])].filter((sibling) => sibling.localName === node!.localName).indexOf(node) + 1;
-    steps.unshift(node.parentElement ? `${node.localName}:nth-of-type(${index})` : node.localName);
+    const kin = [...(node.parentElement?.children ?? [])].filter((sibling) => sibling.localName === node!.localName);
+    steps.unshift(kin.length > 1 ? `${node.localName}:nth-of-type(${kin.indexOf(node) + 1})` : node.localName);
   }
   return steps.join(" > ");
 }
@@ -897,7 +918,8 @@ async function shoot(root: Element, items: Measured[], last: boolean): Promise<V
   const start = root.getBoundingClientRect();
   const texts = items.map(({ element, required, placeholder }) => {
     // Within the root: each line's box, or each letter's cell for SVG text.
-    const cells = (letterCells(element) ?? textBoxes(element).map((box) => ({ box, corners: null }))).map(({ box, corners }) => ({
+    const boxes = placeholder ? placeholderBoxes(element as HTMLInputElement | HTMLTextAreaElement) : textBoxes(element);
+    const cells = (letterCells(element) ?? boxes.map((box) => ({ box, corners: null }))).map(({ box, corners }) => ({
       box: new DOMRect(box.left - start.left, box.top - start.top, box.width, box.height),
       corners: corners?.map((corner) => ({ x: corner.x - start.left, y: corner.y - start.top })) ?? null,
     }));
