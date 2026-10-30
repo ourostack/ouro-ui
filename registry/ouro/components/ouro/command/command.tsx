@@ -65,8 +65,10 @@ export interface CommandItem {
   avatar?: string | ReactElement | undefined;
   /**
    * A small icon before the label, in the muted color: a gear for settings, a page for a document.
+   * It takes an extra-small avatar's width, so labels line up in a palette that mixes the two.
    * Screen readers skip it; the label names the command. With `avatar`, the avatar shows instead.
    *
+   * @claim "It takes an extra-small avatar's width" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
    * @claim "Screen readers skip it; the label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
    */
   icon?: ReactNode;
@@ -531,7 +533,7 @@ export function Command(props: CommandProps): JSX.Element {
                         </span>
                       ) : (
                         shown(item.icon) && (
-                          <span data-ouro-command-icon="" aria-hidden="true" className={cn("flex size-4 shrink-0 items-center justify-center [&_svg]:size-4", quiet)}>
+                          <span data-ouro-command-icon="" aria-hidden="true" className={cn("flex w-6 shrink-0 items-center justify-center [&_svg]:size-4", quiet)}>
                             {item.icon}
                           </span>
                         )

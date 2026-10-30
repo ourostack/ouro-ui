@@ -616,6 +616,8 @@ describe("Command media", () => {
     expect(icon.querySelector("svg")!.getBoundingClientRect().width).toBe(16);
     expect(before(icon, label(settings!))).toBe(true);
     expect(getComputedStyle(icon).color).not.toBe(getComputedStyle(label(settings!)).color);
+    // The icon takes the avatar's width, so the labels line up.
+    expect(label(settings!).getBoundingClientRect().left).toBe(label(grace!).getBoundingClientRect().left);
     expect(signOut!.querySelector("[data-ouro-command-avatar], [data-ouro-command-icon]")).toBeNull();
     // An avatar keeps the row the height of the others.
     expect(grace!.getBoundingClientRect().height).toBe(signOut!.getBoundingClientRect().height);

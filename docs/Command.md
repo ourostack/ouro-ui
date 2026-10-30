@@ -160,6 +160,7 @@ interface CommandItem {
   avatar?: string | ReactElement | undefined;
   /**
    * A small icon before the label, in the muted color: a gear for settings, a page for a document.
+   * It takes an extra-small avatar's width, so labels line up in a palette that mixes the two.
    * Screen readers skip it; the label names the command. With `avatar`, the avatar shows instead.
    */
   icon?: ReactNode;
