@@ -5,6 +5,8 @@
     "lightbox": [
       {"part": "thumbnail", "role": "button", "portal": false},
       {"part": "original", "role": "link", "portal": true},
+      {"part": "zoom", "role": "button", "portal": true},
+      {"part": "zoom-view", "role": "group", "portal": true},
       {"part": "close", "role": "button", "portal": true}
     ]
   }
