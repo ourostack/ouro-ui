@@ -1088,6 +1088,29 @@ describe("Inspector", () => {
     expect(first!.getBoundingClientRect().top).toBeGreaterThan(innerHeight);
   });
 
+  it("prefers the first spotlit item in the page's main content to one in its header", async () => {
+    const { host } = await render(
+      <div>
+        <header>
+          <Badge>Header</Badge>
+        </header>
+        <main>
+          <Badge>Content</Badge>
+          <Badge>Later</Badge>
+        </main>
+        <Inspector open onOpenChange={() => {}} docsHref={docsHref} spotlight="badge" />
+      </div>,
+    );
+    await drawn(3);
+    const [, content] = pageRoots(host);
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, content!), { timeout: 5000 }).toBe(true);
+    // With nothing of the item in a main, the first anywhere.
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    const { host: bare } = await render(<Far spotlight="button" />);
+    await drawn(3);
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, pageRoots(bare)[0]!), { timeout: 5000 }).toBe(true);
+  });
+
   it("scrolls to the spotlit item at once with reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const into = vi.spyOn(Element.prototype, "scrollIntoView");

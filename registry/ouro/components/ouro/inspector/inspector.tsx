@@ -28,10 +28,11 @@ export interface InspectorProps {
   /** What X-ray is called, on its bar and as its list's title. Translate it here. @default "X-ray" */
   label?: string | undefined;
   /**
-   * A registry item to point out, such as `"button"`: X-ray scrolls the first one on the page to the middle of the screen (at once with reduced motion) and draws its outline stronger, with its tag placed first. Its bar says which item it shows, or that the page has none, and points one out when it appears.
+   * A registry item to point out, such as `"button"`: X-ray scrolls the first one in the page's `main` (or else the first anywhere) to the middle of the screen (at once with reduced motion) and draws its outline stronger, with its tag placed first. Its bar says which item it shows, or that the page has none, and points one out when it appears.
    *
    * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > points out the spotlit item: scrolls the first one into view, draws its outline stronger and names it on the bar)
    * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > scrolls to the spotlit item at once with reduced motion)
+   * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > prefers the first spotlit item in the page's main content to one in its header)
    * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector geometry > places the spotlit component's tag first, so it takes the best place)
    * @claim "Its bar says which item it" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > says when the page has no spotlit item, and points one out when it appears)
    */
@@ -128,6 +129,15 @@ function findComponents(own: Element, modal: boolean): Found[] {
     found.push({ key: keyOf(element), item, element });
   }
   return found;
+}
+
+/**
+ * The component X-ray points out: the first of the item in the page's main content, so a page's
+ * own Switch comes before the one in its header, or else the first anywhere.
+ */
+function spotlitOf(components: Found[], spotlight: string | undefined): Found | undefined {
+  const all = components.filter((component) => component.item === spotlight);
+  return all.find((component) => component.element.closest("main")) ?? all[0];
 }
 
 /** A box's edges on the screen. */
@@ -438,7 +448,8 @@ function InspectorLayer({
     const bar = own.querySelector("section")!.getBoundingClientRect();
     const clear: Edges[] = [...lines, { top: bar.top, right: bar.right, bottom: bar.bottom, left: bar.left }];
     // The spotlit component's tag is placed first, so it takes the best place.
-    const first = components.findIndex((component) => component.item === spotlightRef.current);
+    const chosen = spotlitOf(components, spotlightRef.current);
+    const first = components.findIndex((component) => component === chosen);
     const order = components.map((_, index) => index);
     // Stryker disable next-line EqualityOperator: moving the first component to the front leaves the order as it was.
     if (first > 0) order.unshift(...order.splice(first, 1));
@@ -526,7 +537,7 @@ function InspectorLayer({
   useLayoutEffect(() => place(found));
 
   // The first spotlit component comes to the middle of the screen once per item, when X-ray first finds it.
-  const spotlit = found.find((component) => component.item === spotlight);
+  const spotlit = spotlitOf(found, spotlight);
   const pointedAt = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!spotlit || pointedAt.current === spotlit.item) return;
