@@ -14,10 +14,23 @@ export const agentCases: AgentCase[] = [
   {
     id: "lightbox02",
     habit: "a lightbox with no name",
-    tsc: [`error TS2741: Property 'label' is missing in type '{ images: { src: string; alt: string; }[]; }' but required in type 'LightboxProps'.`],
+    tsc: [
+      "error TS2322: Type '{ images: { src: string; alt: string; }[]; }' is not assignable to type 'IntrinsicAttributes & LightboxProps'.\n" +
+        "  Property 'label' is missing in type '{ images: { src: string; alt: string; }[]; }' but required in type 'LightboxBaseProps'.",
+    ],
     names: ["tsc"],
+  },
+  {
+    id: "lightbox03",
+    habit: "a controlled viewer that nothing can close",
+    tsc: [
+      "error TS2322: Type '{ label: string; images: { src: string; alt: string; }[]; open: true; index: number; }' is not assignable to type 'IntrinsicAttributes & LightboxProps'.\n" +
+        "  Property 'onOpenChange' is missing in type '{ label: string; images: { src: string; alt: string; }[]; open: true; index: number; }' but required in type '{ open: boolean; index?: number | undefined; onOpenChange: (open: boolean) => void; className?: never; }'.",
+    ],
+    dev: '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
+    names: ["tsc", "dev"],
   },
 ];
 
 /** Valid lightbox snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["lightboxOk01"];
+export const validSnippets: string[] = ["lightboxOk01", "lightboxOk02"];

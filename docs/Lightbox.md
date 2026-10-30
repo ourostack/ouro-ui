@@ -18,7 +18,19 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
     { src: "/photos/after.jpg", alt: "The new kitchen, with white cabinets", title: "After", caption: "Six weeks later" },
   ]}
 />
+<Lightbox
+  label="Kitchen photos"
+  images={photos}
+  open={open}
+  index={index}
+  onOpenChange={setOpen}
+  onIndexChange={setIndex}
+/>
 ```
+
+## Usage
+
+To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it.
 
 ## Use instead when
 
@@ -26,19 +38,51 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 ## Props
 
-Type: `LightboxProps`.
+The props the modes share. Type: `LightboxProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The close button's accessible name. |
-| `images` (required) | `readonly LightboxImage[]` |  | The images, in order. The thumbnails show them in a grid, and the viewer steps through them. |
-| `label` (required) | `string` |  | Names the thumbnails and the viewer for screen readers, and shows at the viewer's top, such as "Kitchen photos". It is always required. |
+| `images` (required) | `readonly LightboxImage[]` |  | The images, in order. The viewer steps through them, and the thumbnails show them in a grid. |
+| `label` (required) | `string` |  | Names the viewer for screen readers, with the position ("Kitchen photos, 2 of 4"), and shows at its top, such as "Kitchen photos". With thumbnails it names their list too. It is always required. |
 | `loop` | `boolean` |  | Next on the last image goes back to the first, and Previous on the first goes to the last. |
 | `nextLabel` | `string` | `"Next image"` | The Next button's accessible name. |
+| `onIndexChange` | `((index: number) => void)` |  | Called with the image's index when the user moves to another image in the viewer, once per change. |
 | `originalLabel` | `string` | `"Open original"` | The text of the link to an image's `href`. |
 | `positionLabel` | `string` | `"{n} of {total}"` | The position the viewer shows and announces when it changes: `{n}` is the image's number and `{total}` the number of images. |
 | `previousLabel` | `string` | `"Previous image"` | The Previous button's accessible name. |
+
+## Modes
+
+`LightboxProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
+
+### Controlled: `LightboxControlledProps`
+
+A controlled Lightbox: the viewer alone, which you open from thumbnails you lay out yourself.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `index` | `number` | `0` | The image the viewer shows, by its place in `images`. It opens on it, and moves to it when you change it while open; update it in `onIndexChange` to follow the user. |
+| `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user closes the viewer (Close, Escape, a press outside). |
+| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the viewer grows from that element. |
+
+Not in this mode (typed `never`):
+
+- `className`: Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone.
+
+### With thumbnails: `LightboxWithThumbnailsProps`
+
+A Lightbox that draws its own thumbnails, which open the viewer.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `className` | `string` | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
+
+Not in this mode (typed `never`):
+
+- `index`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
+- `onOpenChange`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
+- `open`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
 
 ## Don't use
 

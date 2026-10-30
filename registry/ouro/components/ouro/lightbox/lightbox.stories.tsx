@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Lightbox, type LightboxImage } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names). The photos are
@@ -92,4 +92,45 @@ export const LoopWithOriginals: Story = {
     loop: true,
     images: coast.slice(0, 3).map((image, position) => ({ ...image, href: `https://example.com/photos/coast-${position + 1}.jpg` })),
   },
+};
+
+/** The viewer alone, opened from a before-and-after pair the app lays out itself, with an arrow between. */
+function BeforeAndAfterPair() {
+  const pair = coast.slice(0, 2).map((image, position) => ({ ...image, title: position === 0 ? "Before" : "After", href: `https://example.com/photos/coast-${position + 1}.jpg` }));
+  const [open, setOpen] = useState(false);
+  const [index, setIndex] = useState(0);
+  return (
+    <Surface>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {pair.map((image, position) => (
+          <div key={position} style={{ display: "contents" }}>
+            {position === 1 && (
+              <span aria-hidden="true" style={{ fontSize: 24, color: "var(--muted-foreground)" }}>
+                →
+              </span>
+            )}
+            <button
+              data-test-harness=""
+              type="button"
+              aria-label={`See ${image.title.toLowerCase()}`}
+              onClick={() => {
+                setIndex(position);
+                setOpen(true);
+              }}
+              style={{ padding: 0, border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", width: 160, height: 120, background: "var(--muted)" }}
+            >
+              <img src={image.src} alt={image.alt} style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <Lightbox label="Coast, before and after" images={pair} open={open} index={index} onOpenChange={setOpen} onIndexChange={setIndex} />
+    </Surface>
+  );
+}
+
+/** Controlled: `open`, `index`, `onOpenChange` and `onIndexChange`, with thumbnails the app draws. */
+export const BeforeAndAfter: Story = {
+  parameters: { plainOpeners: ["See before", "See after"] },
+  render: () => <BeforeAndAfterPair />,
 };

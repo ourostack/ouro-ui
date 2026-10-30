@@ -22,6 +22,22 @@ expectTypeOf<{
 expectTypeOf<{ src: "/a.jpg"; alt: "A"; thumbnail: "/a-small.jpg"; title: "Before"; caption: "Dark cabinets"; href: "/a.jpg" }>().toExtend<LightboxImage>();
 expectTypeOf<ComponentProps<typeof Lightbox>>().toEqualTypeOf<LightboxProps>();
 
+// Controlled: the viewer alone.
+expectTypeOf<{
+  label: "Kitchen photos";
+  images: typeof images;
+  open: boolean;
+  index: 1;
+  onOpenChange: (open: boolean) => void;
+  onIndexChange: (index: number) => void;
+}>().toExtend<LightboxProps>();
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void }>().toExtend<LightboxProps>();
+// open needs onOpenChange; index and onOpenChange need open; a controlled Lightbox takes no className.
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true }>().not.toExtend<LightboxProps>();
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; index: 1 }>().not.toExtend<LightboxProps>();
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; onOpenChange: (open: boolean) => void }>().not.toExtend<LightboxProps>();
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void; className: "mt-4" }>().not.toExtend<LightboxProps>();
+
 // The label is required.
 expectTypeOf<{ images: typeof images }>().not.toExtend<LightboxProps>();
 // Every image needs its alt.

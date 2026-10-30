@@ -2361,7 +2361,8 @@
     "stories": [
       "Lightbox/Playground",
       "Lightbox/Photos",
-      "Lightbox/LoopWithOriginals"
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter"
     ]
   },
   {
@@ -2375,7 +2376,8 @@
     "stories": [
       "Lightbox/Playground",
       "Lightbox/Photos",
-      "Lightbox/LoopWithOriginals"
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter"
     ]
   },
   {
@@ -2389,7 +2391,8 @@
     "stories": [
       "Lightbox/Playground",
       "Lightbox/Photos",
-      "Lightbox/LoopWithOriginals"
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter"
     ]
   }
 ]

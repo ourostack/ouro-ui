@@ -32,3 +32,19 @@ test("closes from the button beside the position and goes round with loop", asyn
   await viewer.getByRole("button", { name: "Close" }).click();
   await expect(viewer).toBeHidden();
 });
+
+test("opens the viewer alone from the app's own thumbnails and gives focus back to the one used", async ({ page }) => {
+  await openStory(page, "display-lightbox--before-and-after");
+  const after = page.getByRole("button", { name: "See after" });
+  await after.focus();
+  await page.keyboard.press("Enter");
+  const viewer = page.getByRole("dialog", { name: "Coast, before and after, 2 of 2" });
+  await expect(viewer).toBeVisible();
+  await expect(viewer.getByText("After", { exact: true })).toBeVisible();
+  await expect(viewer.getByRole("region", { name: "Coast, before and after" }).locator("[data-ouro-carousel-viewport]")).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByRole("dialog", { name: "Coast, before and after, 1 of 2" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(viewer).toBeHidden();
+  await expect(after).toBeFocused();
+});

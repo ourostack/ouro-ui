@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type JSX, type KeyboardEvent, type ReactNode, type SVGProps } from "react";
+import { useId, useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent, type ReactNode, type SVGProps } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -51,19 +51,23 @@ export interface LightboxImage {
   href?: string | undefined;
 }
 
-/** Props for {@link Lightbox}. */
-export interface LightboxProps {
+/** Props shared by both ways of using a {@link Lightbox}. */
+export interface LightboxBaseProps {
   /**
-   * Names the thumbnails and the viewer for screen readers, and shows at the viewer's top,
-   * such as "Kitchen photos". It is always required.
+   * Names the viewer for screen readers, with the position ("Kitchen photos, 2 of 4"), and shows
+   * at its top, such as "Kitchen photos". With thumbnails it names their list too. It is always
+   * required.
    *
    * @claim "It is always required" registry/ouro/components/ouro/lightbox/lightbox.test-d.ts verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.test-d.ts, /expectTypeOf<\{\simages:\stypeof\simages\s\}>\(\)\.not\.toExtend<LightboxProps>/)
+   * @claim "Names the viewer for screen readers" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox opening and closing > opens on the image pressed, named by the label and the position)
    */
   label: string;
-  /** The images, in order. The thumbnails show them in a grid, and the viewer steps through them. */
+  /** The images, in order. The viewer steps through them, and the thumbnails show them in a grid. */
   images: readonly LightboxImage[];
   /** Next on the last image goes back to the first, and Previous on the first goes to the last. */
   loop?: boolean | undefined;
+  /** Called with the image's index when the user moves to another image in the viewer, once per change. */
+  onIndexChange?: ((index: number) => void) | undefined;
   /** The close button's accessible name. @default "Close" */
   closeLabel?: string | undefined;
   /** The Previous button's accessible name. @default "Previous image" */
@@ -79,12 +83,47 @@ export interface LightboxProps {
   positionLabel?: string | undefined;
   /** The text of the link to an image's `href`. @default "Open original" */
   originalLabel?: string | undefined;
-  /** Layout only: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. */
-  className?: string | undefined;
 
   /** Not a prop. Pass the images as `images`: `<Lightbox images={[{ src, alt }]}>`. */
   slides?: { 'Use images={[{ src, alt }]}': never };
 }
+
+/** A Lightbox that draws its own thumbnails, which open the viewer. */
+export type LightboxWithThumbnailsProps = LightboxBaseProps & {
+  /** Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. */
+  className?: string | undefined;
+  /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
+  open?: never;
+  /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
+  index?: never;
+  /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
+  onOpenChange?: never;
+};
+
+/** A controlled Lightbox: the viewer alone, which you open from thumbnails you lay out yourself. */
+export type LightboxControlledProps = LightboxBaseProps & {
+  /**
+   * Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the
+   * viewer grows from that element.
+   *
+   * @claim "Focus goes back to whatever had" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus back to what had it when the viewer opened, and grows from it)
+   */
+  open: boolean;
+  /**
+   * The image the viewer shows, by its place in `images`. It opens on it, and moves to it when you change it
+   * while open; update it in `onIndexChange` to follow the user. @default 0
+   *
+   * @claim "moves to it when you change" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > moves to an index the app sets while the viewer is open)
+   */
+  index?: number | undefined;
+  /** Called with `false` when the user closes the viewer (Close, Escape, a press outside). */
+  onOpenChange: (open: boolean) => void;
+  /** Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone. */
+  className?: never;
+};
+
+/** Props for {@link Lightbox}: thumbnails of its own, or `open` with `onOpenChange` for the viewer alone. */
+export type LightboxProps = LightboxWithThumbnailsProps | LightboxControlledProps;
 
 function ExternalIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
@@ -106,7 +145,9 @@ interface ViewerProps {
   label: string;
   images: readonly LightboxImage[];
   loop: boolean;
-  start: number;
+  index: number;
+  onIndexChange: ((index: number) => void) | undefined;
+  nameId: string;
   closeLabel: string;
   previousLabel: string;
   nextLabel: string;
@@ -129,28 +170,56 @@ function stepWithArrowKeys(event: KeyboardEvent<HTMLElement>): void {
   event.currentTarget.querySelector<HTMLButtonElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.click();
 }
 
-/** The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen. */
+/**
+ * The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen; an
+ * index the app changes while it is open starts the carousel again on that image.
+ */
 function LightboxViewer({
   label,
   images,
   loop,
-  start,
+  index,
+  onIndexChange,
+  nameId,
   closeLabel,
   previousLabel,
   nextLabel,
   positionLabel,
   originalLabel,
 }: ViewerProps): JSX.Element {
-  const [index, setIndex] = useState(start);
+  const [start, setStart] = useState(index);
+  const [current, setCurrent] = useState(index);
+  const [requested, setRequested] = useState(index);
+  const [run, setRun] = useState(0);
+  // Only a change to `index` moves the viewer, so an app that does not follow onIndexChange
+  // leaves the user where they went.
+  if (index !== requested) {
+    setRequested(index);
+    if (index !== current) {
+      setStart(index);
+      setCurrent(index);
+      setRun(run + 1);
+    }
+  }
+  const header = useRef<HTMLDivElement>(null);
+  // Starting the carousel again takes away the scroller that had focus: give it to the new one.
+  useLayoutEffect(() => {
+    const viewer = header.current!.parentElement!;
+    if (run > 0 && !viewer.contains(document.activeElement)) viewer.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!.focus();
+  }, [run]);
   const total = images.length;
   // The app may remove images while the viewer is open.
-  const shown = Math.min(index, total - 1);
+  const shown = Math.min(current, total - 1);
   const href = images[shown]?.href;
   return (
     <>
-      <div data-ouro-lightbox-header="" className={headerClass}>
+      <div ref={header} data-ouro-lightbox-header="" className={headerClass}>
         <div className={titleClass}>
           <DialogTitle>{label}</DialogTitle>
+          {/* The viewer's name: the label and the position, which the header shows apart. */}
+          <span id={nameId} hidden>
+            {`${label}, ${fillTemplate(positionLabel, shown + 1, total)}`}
+          </span>
         </div>
         <span data-ouro-lightbox-position="" className={counterClass}>
           {fillTemplate(positionLabel, shown + 1, total)}
@@ -187,10 +256,14 @@ function LightboxViewer({
         />
       </div>
       <Carousel
+        key={run}
         label={label}
         loop={loop}
         defaultIndex={start}
-        onIndexChange={setIndex}
+        onIndexChange={(next) => {
+          setCurrent(next);
+          onIndexChange?.(next);
+        }}
         previousLabel={previousLabel}
         nextLabel={nextLabel}
         slideLabel={positionLabel}
@@ -222,6 +295,10 @@ function LightboxViewer({
  * opened it. The viewer grows from that thumbnail and slides between images; with reduced
  * motion it fades and jumps instead.
  *
+ * To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a
+ * map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with
+ * `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it.
+ *
  * Use `Carousel` instead to show the images in the page one at a time, and `Dialog`
  * when the viewer holds more than images.
  *
@@ -236,10 +313,20 @@ function LightboxViewer({
  *     { src: "/photos/after.jpg", alt: "The new kitchen, with white cabinets", title: "After", caption: "Six weeks later" },
  *   ]}
  * />
+ * <Lightbox
+ *   label="Kitchen photos"
+ *   images={photos}
+ *   open={open}
+ *   index={index}
+ *   onOpenChange={setOpen}
+ *   onIndexChange={setIndex}
+ * />
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > steps with the arrow keys from anywhere in the viewer, in reading order)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox on a touch screen > moves to the next image with a swipe)
  * @claim "the new position is announced politely" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position and announces it once when it changes)
  * @claim "focus goes back to the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox opening and closing > closes with Escape and gives focus back to the thumbnail that opened it)
+ * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > draws no thumbnails, and opens on index when open)
+ * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus back to what had it when the viewer opened, and grows from it)
  * @claim "The viewer grows from that thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
  */
 export function Lightbox(props: LightboxProps): JSX.Element {
@@ -252,10 +339,20 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     nextLabel = "Next image",
     positionLabel = "{n} of {total}",
     originalLabel = "Open original",
+    onIndexChange,
     className,
+    open: openProp,
+    index: indexProp,
+    onOpenChange,
     // A guard prop (hint type), dropped here so it never reaches the DOM.
     slides,
-  } = props;
+  } = props as LightboxBaseProps & {
+    className?: string;
+    open?: boolean;
+    index?: number;
+    onOpenChange?: (open: boolean) => void;
+  };
+  const controlled = openProp !== undefined;
 
   useAppearanceClassNameCheck(
     "Lightbox",
@@ -282,15 +379,83 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               ],
           ),
           slides !== undefined && ["slides is not a prop", '<Lightbox label="Kitchen photos" images={[{ src, alt }]}>'],
+          controlled &&
+            typeof onOpenChange !== "function" && [
+              "open needs onOpenChange, which closes the viewer",
+              '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
+            ],
+          !controlled &&
+            (indexProp !== undefined || onOpenChange !== undefined) && [
+              "index and onOpenChange need open; without it Lightbox draws its own thumbnails",
+              '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
+            ],
+          controlled &&
+            className !== undefined && [
+              "className lays out the thumbnails, and a Lightbox with open draws none",
+              '<div className="…"><Lightbox open={open} … /></div>',
+            ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
   const [start, setStart] = useState(0);
+  const open = controlled ? openProp : ownOpen;
+  const setOpen = controlled ? (onOpenChange ?? (() => {})) : setOwnOpen;
+  // What had focus as the app opened the viewer, read before Base UI makes the page inert.
+  const [wasOpen, setWasOpen] = useState(open);
+  const [opener, setOpener] = useState<Element | null>(null);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setOpener(document.activeElement);
+  }
+  const nameId = useId();
   // Stryker disable next-line ArrayDeclaration: each thumbnail's ref writes its own place before the viewer can read it.
   const thumbnails = useRef<(HTMLButtonElement | null)[]>([]);
   const popup = useRef<HTMLDivElement | null>(null);
+
+  const viewer = (
+    <DialogRoot open={open} onOpenChange={(next) => setOpen(next)}>
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogViewport>
+          <DialogPopupUnchecked
+            ref={(node: HTMLDivElement | null) => {
+              popup.current = node;
+              // Once per opening: the viewer grows from its opener, the thumbnail pressed or, when
+              // controlled, what had focus (nothing when the page had none).
+              if (!node || node.style.transformOrigin) return;
+              const from = controlled ? opener : thumbnails.current[start]!;
+              if (from && from !== document.body) node.style.transformOrigin = zoomOrigin(from, node);
+            }}
+            size="lg"
+            className={popupClass}
+            aria-labelledby={nameId}
+            initialFocus={() => popup.current!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")}
+            // Controlled, Base UI gives focus back to what had it when the viewer opened. A pressed
+            // thumbnail need not have had focus (Safari does not focus a pressed button).
+            finalFocus={controlled ? true : () => thumbnails.current[start]}
+            onKeyDown={stepWithArrowKeys}
+          >
+            <LightboxViewer
+              label={label}
+              images={images}
+              loop={loop}
+              index={controlled ? (indexProp ?? 0) : start}
+              onIndexChange={onIndexChange}
+              nameId={nameId}
+              closeLabel={closeLabel}
+              previousLabel={previousLabel}
+              nextLabel={nextLabel}
+              positionLabel={positionLabel}
+              originalLabel={originalLabel}
+            />
+          </DialogPopupUnchecked>
+        </DialogViewport>
+      </DialogPortal>
+    </DialogRoot>
+  );
+  if (controlled) return viewer;
 
   return (
     <div data-ouro="lightbox" className={cn("min-w-0", className)}>
@@ -308,7 +473,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               className={thumbnailClass}
               onClick={() => {
                 setStart(position);
-                setOpen(true);
+                setOwnOpen(true);
               }}
             >
               <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
@@ -316,38 +481,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
           </li>
         ))}
       </ul>
-      <DialogRoot open={open} onOpenChange={setOpen}>
-        <DialogPortal>
-          <DialogBackdrop />
-          <DialogViewport>
-            <DialogPopupUnchecked
-              ref={(node: HTMLDivElement | null) => {
-                popup.current = node;
-                // The thumbnail is gone when the app removed its image while the viewer was open.
-                const from = thumbnails.current[start];
-                if (node && from) node.style.transformOrigin = zoomOrigin(from, node);
-              }}
-              size="lg"
-              className={popupClass}
-              initialFocus={() => popup.current!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")}
-              finalFocus={() => thumbnails.current[start]}
-              onKeyDown={stepWithArrowKeys}
-            >
-              <LightboxViewer
-                label={label}
-                images={images}
-                loop={loop}
-                start={start}
-                closeLabel={closeLabel}
-                previousLabel={previousLabel}
-                nextLabel={nextLabel}
-                positionLabel={positionLabel}
-                originalLabel={originalLabel}
-              />
-            </DialogPopupUnchecked>
-          </DialogViewport>
-        </DialogPortal>
-      </DialogRoot>
+      {viewer}
     </div>
   );
 }

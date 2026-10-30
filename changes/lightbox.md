@@ -1,1 +1,1 @@
-- New: Lightbox, a grid of image thumbnails that opens a full-screen viewer on the one pressed, steps through the images with the arrow keys, buttons, a trackpad or a swipe, and announces the position once per change.
+- New: Lightbox, a grid of image thumbnails that opens a full-screen viewer on the one pressed, steps through the images with the arrow keys, buttons, a trackpad or a swipe, and announces the position once per change; with `open`, `index`, `onOpenChange` and `onIndexChange` it is the viewer alone, opened from thumbnails the app lays out.

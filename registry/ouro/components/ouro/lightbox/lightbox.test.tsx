@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -164,14 +164,13 @@ describe("Lightbox thumbnails", () => {
 });
 
 describe("Lightbox opening and closing", () => {
-  it("opens on the image pressed, named by the label, with the position at its top", async () => {
+  it("opens on the image pressed, named by the label and the position", async () => {
     const { host } = await render(lightbox());
     await openAt(host, 2);
     const dialog = popup()!;
     expect(dialog.getAttribute("role")).toBe("dialog");
-    const title = dialog.querySelector("h2")!;
-    expect(title.textContent).toBe("Kitchen photos");
-    expect(dialog.getAttribute("aria-labelledby")).toBe(title.id);
+    expect(page.getByRole("dialog", { name: "Kitchen photos, 3 of 4", exact: true }).element()).toBe(dialog);
+    expect(dialog.querySelector("h2")!.textContent).toBe("Kitchen photos");
     expect(position()).toBe("3 of 4");
     expect(slideInView()).toBe(2);
     expect(slides()[2]!.querySelector("img")!.alt).toBe("The new pantry shelves");
@@ -188,6 +187,22 @@ describe("Lightbox opening and closing", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     expect(document.activeElement).toBe(thumbnails(host)[1]);
+  });
+
+  it("gives focus to the thumbnail pressed even when focus was elsewhere as it opened", async () => {
+    const { host } = await render(
+      <>
+        <button type="button">Elsewhere</button>
+        {lightbox()}
+      </>,
+    );
+    host.querySelector<HTMLButtonElement>("button")!.focus();
+    // As Safari presses a button: without focusing it.
+    await act(async () => thumbnails(host)[2]!.click());
+    await settled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(thumbnails(host)[2]);
   });
 
   it("closes with the close button, which sits in the viewer's frame beside the position", async () => {
@@ -273,9 +288,13 @@ describe("Lightbox navigation", () => {
     // On the second image, so a key taken for either arrow would move.
     await openAt(host, 1);
     const before = viewport().scrollLeft;
-    for (const key of ["{ArrowUp}", "{Shift>}{ArrowRight}{/Shift}", "{Alt>}{ArrowRight}{/Alt}", "{Control>}{ArrowRight}{/Control}", "{Meta>}{ArrowRight}{/Meta}"]) {
-      button("Close").focus();
-      await userEvent.keyboard(key);
+    button("Close").focus();
+    await userEvent.keyboard("{ArrowUp}");
+    // Dispatched rather than typed: Alt or Command with an arrow is the browser's Back and Forward.
+    for (const modifier of ["shiftKey", "altKey", "ctrlKey", "metaKey"]) {
+      const event = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true, [modifier]: true });
+      button("Close").dispatchEvent(event);
+      expect(event.defaultPrevented, modifier).toBe(false);
     }
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(position()).toBe("2 of 4");
@@ -330,12 +349,22 @@ describe("Lightbox viewer", () => {
     expect(slides()[0]!.querySelector("figure")!.contains(caption(0))).toBe(true);
   });
 
+  it("reports each move with onIndexChange", async () => {
+    const onIndexChange = vi.fn();
+    const { host } = await render(lightbox({ onIndexChange }));
+    await openAt(host, 1);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+  });
+
   it("shows the position and announces it once when it changes", async () => {
     const { host } = await render(lightbox());
     await openAt(host, 0);
     const announcements = watchAnnouncements();
     await userEvent.click(button("Next image"));
     await expect.poll(position).toBe("2 of 4");
+    expect(page.getByRole("dialog", { name: "Kitchen photos, 2 of 4", exact: true }).element()).toBe(popup());
     await expect.poll(() => announcements.count("2 of 4")).toBe(1);
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(announcements.count("2 of 4")).toBe(1);
@@ -405,6 +434,139 @@ describe("Lightbox viewer", () => {
         await expect.poll(popup).toBeNull();
       }
     }
+  });
+});
+
+/** An app that lays out its own thumbnails and opens the viewer from them. */
+function Controlled({ onIndexChange, initial = 0, follow = true }: { onIndexChange?: (index: number) => void; initial?: number; follow?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [index, setIndex] = useState(initial);
+  return (
+    <>
+      {kitchen.slice(0, 2).map((image, position) => (
+        <button
+          key={position}
+          type="button"
+          onClick={() => {
+            setIndex(position);
+            setOpen(true);
+          }}
+        >
+          {image.alt}
+        </button>
+      ))}
+      <button type="button" data-testid="first" onClick={() => setIndex(0)}>
+        First
+      </button>
+      <Lightbox
+        label="Kitchen photos"
+        images={kitchen}
+        open={open}
+        index={index}
+        onOpenChange={setOpen}
+        onIndexChange={(next) => {
+          onIndexChange?.(next);
+          if (follow) setIndex(next);
+        }}
+      />
+    </>
+  );
+}
+
+describe("Lightbox controlled", () => {
+  it("draws no thumbnails, and opens on index when open", async () => {
+    const onOpenChange = vi.fn();
+    const { host, rerender } = await render(<Lightbox label="Kitchen photos" images={kitchen} open={false} index={2} onOpenChange={onOpenChange} />);
+    expect(host.children).toHaveLength(0);
+    expect(popup()).toBeNull();
+    await rerender(<Lightbox label="Kitchen photos" images={kitchen} open index={2} onOpenChange={onOpenChange} />);
+    await settled();
+    expect(position()).toBe("3 of 4");
+    expect(slideInView()).toBe(2);
+    expect(page.getByRole("dialog", { name: "Kitchen photos, 3 of 4", exact: true }).element()).toBe(popup());
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    // The app owns open: the viewer stays until it changes.
+    expect(popup()).not.toBeNull();
+  });
+
+  it("opens on the first image without index", async () => {
+    await render(<Lightbox label="Kitchen photos" images={kitchen} open onOpenChange={() => {}} />);
+    await settled();
+    expect(position()).toBe("1 of 4");
+  });
+
+  it("gives focus back to what had it when the viewer opened, and grows from it", async () => {
+    const onIndexChange = vi.fn();
+    const { host } = await render(<Controlled onIndexChange={onIndexChange} />);
+    const opener = host.querySelectorAll("button")[1]!;
+    opener.focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    expect(position()).toBe("2 of 4");
+    const dialog = popup()!;
+    const rect = opener.getBoundingClientRect();
+    const [x, y] = dialog.style.transformOrigin.split(" ").map(parseFloat);
+    expect(x).toBeCloseTo(rect.left + rect.width / 2 - dialog.offsetLeft, -1);
+    expect(y).toBeCloseTo(rect.top + rect.height / 2 - dialog.offsetTop, -1);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("3 of 4");
+    expect(onIndexChange).toHaveBeenLastCalledWith(2);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("grows from the middle when nothing had focus as it opened", async () => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    await render(<Lightbox label="Kitchen photos" images={kitchen} open index={1} onOpenChange={() => {}} />);
+    await settled();
+    expect(popup()!.style.transformOrigin).toBe("");
+  });
+
+  it("moves to an index the app sets while the viewer is open", async () => {
+    const { host } = await render(<Controlled initial={1} />);
+    await userEvent.click(host.querySelectorAll("button")[1]!);
+    await settled();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("3 of 4");
+    // The app moves it back to the first image, as a list beside the viewer might.
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="first"]')!.click());
+    await expect.poll(position).toBe("1 of 4");
+    expect(slideInView()).toBe(0);
+    // Focus stays in the viewer, on the images, and the keys go on stepping.
+    expect(document.activeElement).toBe(viewport());
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("2 of 4");
+  });
+
+  it("stays where the user went when the app does not follow onIndexChange", async () => {
+    const { host } = await render(<Controlled follow={false} />);
+    await userEvent.click(host.querySelectorAll("button")[0]!);
+    await settled();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("2 of 4");
+    // A render of the app with the old index changes nothing.
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="first"]')!.click());
+    expect(position()).toBe("2 of 4");
+    expect(slideInView()).toBe(1);
+  });
+
+  it("names open without onOpenChange, index without open and className with open, each with the fix", async () => {
+    const fix = '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>';
+    const untyped = (props: object) => <Lightbox {...({ label: "Photos", images: kitchen, ...props } as unknown as LightboxProps)} />;
+    await render(untyped({ index: 1, onOpenChange: () => {} }));
+    await render(untyped({ open: false, className: "mt-4", onOpenChange: () => {} }));
+    await render(untyped({ open: true }));
+    await settled();
+    // Without onOpenChange, Escape closes nothing and throws nothing.
+    await userEvent.keyboard("{Escape}");
+    expect(popup()).not.toBeNull();
+    const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(messages).toContain(`[ouro-ui] Lightbox: open needs onOpenChange, which closes the viewer. Fix: ${fix}.`);
+    expect(messages).toContain(`[ouro-ui] Lightbox: index and onOpenChange need open; without it Lightbox draws its own thumbnails. Fix: ${fix}.`);
+    expect(messages).toContain('[ouro-ui] Lightbox: className lays out the thumbnails, and a Lightbox with open draws none. Fix: <div className="…"><Lightbox open={open} … /></div>.');
+    expect(messages.filter((message) => message.includes("need"))).toHaveLength(2);
   });
 });
 
