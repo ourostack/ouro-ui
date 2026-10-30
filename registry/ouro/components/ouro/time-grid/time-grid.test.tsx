@@ -397,6 +397,9 @@ describe("TimeGrid", () => {
     expect(plain(document.querySelectorAll("[data-ouro-time-grid-now-label]")[1]!.textContent)).toBe("10:41");
     await render({ locale: "ja-JP", view: "day" });
     expect(document.querySelectorAll('[data-ouro="time-grid"]')[2]!.querySelector("[data-ouro-time-grid-head] span span")!.textContent).toBe("12");
+    // British dates write "09/03/2026"; the header's day number is still "9".
+    await render({ locale: "en-GB", view: "day", date: "2026-03-09" });
+    expect(document.querySelectorAll('[data-ouro="time-grid"]')[3]!.querySelector("[data-ouro-time-grid-head] span span")!.textContent).toBe("9");
   });
 
   it("places each event by its times on the grid's clock, and moves it with the time zone", async () => {
