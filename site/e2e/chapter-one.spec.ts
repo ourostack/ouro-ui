@@ -12,7 +12,7 @@ import { watchToasts } from "./toasts";
 
 /** Opens the voyage and scrolls to Chapter I, waiting for it to hydrate. */
 async function open(page: Page): Promise<void> {
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.locator("#chapter-one").scrollIntoViewIfNeeded();
   await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
@@ -329,23 +329,33 @@ test("every operable element in Chapter I is one of its listed controls, in page
   expect(found.order).toEqual([...CHAPTER_ONE_CONTROLS]);
 });
 
-test("Chapter I is in the server HTML, and its code loads only as it nears the screen", async ({ page }) => {
+test("Chapter I is in the server HTML, readable before its own chunk arrives, which loads after the page has hydrated", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const chunks: string[] = [];
-  page.on("request", (request) => {
-    if (/\/assets\/chapter-one-[\w-]+\.js$/.test(request.url())) chunks.push(request.url());
+  let release!: () => void;
+  const gate = new Promise<void>((done) => {
+    release = done;
   });
-  await page.goto("voyage/");
-  await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await page.waitForLoadState("networkidle");
-  // Readable already: the heading, the plan and the form are the server's.
-  await expect(page.getByRole("heading", { name: CHAPTER_ONE.title })).toBeAttached();
-  await expect(page.locator(".site-blueprint [data-part='hull']")).toBeAttached();
-  await expect(page.locator("#chapter-one")).not.toHaveAttribute("data-chapter-ready", "");
-  expect(chunks).toEqual([]);
-  await page.locator("#chapter-one").scrollIntoViewIfNeeded();
-  await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
-  expect(chunks).toHaveLength(1);
+  await page.route(/\/assets\/chapter-one-[\w-]+\.js$/, async (route) => {
+    chunks.push(route.request().url());
+    await gate;
+    await route.continue();
+  });
+  try {
+    await page.goto("nautilus/");
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    // Readable already: the heading, the plan and the form are the server's.
+    await expect(page.getByRole("heading", { name: CHAPTER_ONE.title })).toBeAttached();
+    await expect(page.locator(".site-blueprint [data-part='hull']")).toBeAttached();
+    await expect(page.locator("#chapter-one")).not.toHaveAttribute("data-chapter-ready", "");
+    // On the Nautilus's page the chapter is near the top, so its chunk is asked for once the page is live.
+    await expect.poll(() => chunks.length).toBe(1);
+    release();
+    await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+    expect(chunks).toHaveLength(1);
+  } finally {
+    release();
+  }
 });
 
 test("X-ray outlines Chapter I's HX components", async ({ page }) => {

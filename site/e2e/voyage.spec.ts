@@ -16,8 +16,11 @@ async function store(page: Page, value: { preset?: string; mode?: string }): Pro
   await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify(value)] as const);
 }
 
-async function open(page: Page): Promise<void> {
-  await page.goto("voyage/");
+/** The two voyage pages: the home page (the stage, the ships, the themes) and the Nautilus's own (the story and Chapter I). */
+const PAGES = ["./", "nautilus/"] as const;
+
+async function open(page: Page, path: (typeof PAGES)[number] = "./"): Promise<void> {
+  await page.goto(path);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
 }
 
@@ -51,7 +54,7 @@ test("a stored preset paints from the server HTML, before the client entry runs"
     return route.abort();
   });
   await store(bare, { preset: "abyss", mode: "dark" });
-  await bare.goto("voyage/");
+  await bare.goto("./");
   await bare.waitForLoadState("load");
   expect(refused).toBe(1);
   await expect(bare.locator("html")).toHaveAttribute("data-theme", "abyss");
@@ -70,32 +73,36 @@ test("a stored preset paints from the server HTML, before the client entry runs"
 });
 
 test.describe("every preset, light and dark", () => {
-  for (const preset of PRESET_NAMES) {
-    for (const mode of ["light", "dark"] as const) {
-      test(`${preset} ${mode} passes the strict audit on the built page`, async ({ page, browserName }) => {
-        // The strict audit of the whole page takes WebKit 10 to 30 seconds on CI runners, by how busy they are.
-        test.slow(browserName === "webkit");
-        const errors = diagnostics(page);
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await store(page, { preset, mode });
-        await open(page);
-        await page.evaluate(() => document.fonts.ready);
-        // Every violation fails whatever its impact, and so does every check axe could not decide
-        // unless the kit measures it.
-        expect(await auditPage(page, browserName)).toBe("");
-        expect(errors).toEqual([]);
-      });
+  for (const path of PAGES) {
+    for (const preset of PRESET_NAMES) {
+      for (const mode of ["light", "dark"] as const) {
+        test(`${preset} ${mode} passes the strict audit on the built page${path === "./" ? "" : ` ${path}`}`, async ({ page, browserName }) => {
+          // The strict audit of the whole page takes WebKit 10 to 30 seconds on CI runners, by how busy they are.
+          test.slow(browserName === "webkit");
+          const errors = diagnostics(page);
+          await page.setViewportSize({ width: 1440, height: 900 });
+          await store(page, { preset, mode });
+          await open(page, path);
+          await page.evaluate(() => document.fonts.ready);
+          // Every violation fails whatever its impact, and so does every check axe could not decide
+          // unless the kit measures it.
+          expect(await auditPage(page, browserName)).toBe("");
+          expect(errors).toEqual([]);
+        });
+      }
     }
   }
 });
 
 test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling sideways", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const preset of PRESET_NAMES) {
-    await store(page, { preset });
-    await open(page);
-    const overflow = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
-    expect(overflow.scroll, preset).toBeLessThanOrEqual(overflow.client);
+  for (const path of PAGES) {
+    for (const preset of PRESET_NAMES) {
+      await store(page, { preset });
+      await open(page, path);
+      const overflow = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
+      expect(overflow.scroll, `${path} ${preset}`).toBeLessThanOrEqual(overflow.client);
+    }
   }
 });
 
@@ -106,15 +113,20 @@ test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling si
  */
 const FORCED_COLOURS_GAPS: string[] = [];
 
-test("keeps every control's boundary under forced colours", async ({ page }) => {
+for (const path of PAGES) test(`keeps every control's boundary under forced colours${path === "./" ? "" : ` on ${path}`}`, async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page);
-  // The ship's log fold holds lines only once something happens, so make something happen. The
-  // stage writes the line in a transition, after the switch's own paint, so the click returns
-  // before it; scan once the crew's newest line says it (and the fold has it).
-  await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
-  await expect(page.locator("[data-stage-crew]")).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
+  await open(page, path);
+  if (path === "./") {
+    // The ship's log fold holds lines only once something happens, so make something happen. The
+    // stage writes the line in a transition, after the switch's own paint, so the click returns
+    // before it; scan once the crew's newest line says it (and the fold has it).
+    await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
+    await expect(page.locator("[data-stage-crew]")).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
+  } else {
+    await page.locator("#chapter-one").scrollIntoViewIfNeeded();
+    await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+  }
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
       .filter((element) => element.checkVisibility() && element.getBoundingClientRect().width > 1)
@@ -197,6 +209,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await page.locator("body").focus();
   for (const [role, name] of [
     ["link", "Ouro HX"],
+    ["link", "The Nautilus"],
     ["link", "Docs"],
     ["link", "Components"],
     ["link", "GitHub"],
@@ -239,4 +252,32 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await page.keyboard.press("Escape");
   await expect(search).toBeFocused();
   expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), THEME_KEY))!)).toEqual({ preset: "abyss", mode: "dark" });
+});
+
+test("the old /voyage/ address sends the reader to the home page", async ({ page }) => {
+  await page.goto("voyage/");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  expect(new URL(page.url()).pathname).toBe("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
+for (const path of PAGES) {
+  test(`?xray turns X-ray on at load${path === "./" ? "" : ` on ${path}`}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${path}?xray`);
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
+    await expect(page.locator("[data-ouro-inspector-outline]").first()).toBeAttached();
+  });
+}
+
+test("the home page's Nautilus card leads to the Nautilus's page, with X-ray on from its X-ray link", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const card = page.locator("[data-site-ship='ship-nautilus']");
+  await card.getByRole("link", { name: "X-ray it" }).click();
+  await expect(page).toHaveURL(/\/nautilus\/\?xray$/);
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
 });

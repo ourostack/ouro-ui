@@ -13,7 +13,7 @@ set -euo pipefail
 app=${1:?usage: theme-install-test.sh <app-dir>}
 root=$(cd "$(dirname "$0")/../.." && pwd)
 shadcn=(npx --yes shadcn@4.21.1)
-[ -f "$root/site/dist/voyage/index.html" ] || { echo "site/dist has no voyage page: run pnpm site:build first"; exit 1; }
+[ -f "$root/site/dist/nautilus/index.html" ] || { echo "site/dist has no Nautilus page: run pnpm site:build first"; exit 1; }
 
 mkdir -p "$app"
 app=$(cd "$app" && pwd)

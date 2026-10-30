@@ -81,7 +81,7 @@ for (const preset of themes) {
       const site = await browser.newContext({ viewport: { width: 1280, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
       const page = await site.newPage();
       await page.addInitScript((value) => localStorage.setItem("ouro-site-theme", value), JSON.stringify({ preset: preset.name, mode }));
-      await page.goto("voyage/");
+      await page.goto("./");
       await expect(page.locator("html[data-site-ready]")).toBeAttached();
       // What the button copies is what the app was built with.
       await page.getByRole("button", { name: "Copy theme", exact: true }).click();
