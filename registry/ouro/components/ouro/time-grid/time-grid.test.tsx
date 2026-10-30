@@ -1084,9 +1084,9 @@ describe("TimeGrid background events", () => {
   it("draws background events in a lane at each day's start, beside the person's own", async () => {
     const { rerender } = await render({ events: [forum, standup], backgroundEvents: [hands, review, early] });
     expect(lanes().map((lane) => lane.getAttribute("aria-label"))).toEqual(["Tuesday, March 10, Other calendars", "Thursday, March 12, Other calendars"]);
-    expect(lanes().map((lane) => [lane.offsetWidth, getComputedStyle(lane).borderInlineEndStyle])).toEqual([
-      [12, "none"],
-      [12, "none"],
+    expect(lanes().map((lane) => [lane.offsetWidth, getComputedStyle(lane).borderInlineEndWidth])).toEqual([
+      [12, "0px"],
+      [12, "0px"],
     ]);
     expect(events().map((element) => plain(element.getAttribute("aria-label")))).toEqual([
       "Tuesday, 9:00 – 9:30 AM, Other calendars: Early sync",
@@ -1142,7 +1142,7 @@ describe("TimeGrid background events", () => {
     const fill = getComputedStyle(spokenAs("All hands")).backgroundColor;
     expect([fill === getComputedStyle(titled("Architecture forum")).backgroundColor, fill === "rgba(0, 0, 0, 0)"]).toEqual([false, false]);
     expect(getComputedStyle(spokenAs("All hands")).borderInlineStartWidth).toBe("3px");
-    expect(getComputedStyle(lanes()[0]!).borderInlineEndStyle).toBe("dashed");
+    expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["dashed", "1px"]);
     const lane = lanes()[0]!;
     // 40% of the day's column, from 7rem to 32rem.
     expect(Math.abs(lane.getBoundingClientRect().width - lane.parentElement!.clientWidth * 0.4)).toBeLessThan(1);
