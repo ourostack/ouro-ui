@@ -210,8 +210,8 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
 const presentations: readonly string[] = ["auto", "popover", "sheet"];
 
 /**
- * An emoji picker for reactions and for putting emoji into text: a search field, a bar of
- * categories, an optional row of quick reactions, a skin tone choice and a grid of the
+ * An emoji picker for reactions and for putting emoji into text. It has a search field, a bar
+ * of categories, an optional row of quick reactions, a skin tone choice and a grid of the
  * platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the
  * emoji by category, with names and keywords in its own language, and the person's
  * frequently used ones.
@@ -544,9 +544,9 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
     toneReturn.current = false;
   }, [choosingTone]);
 
-  const focusCell = (index: number, preventScroll = false) => {
+  const focusCell = (index: number) => {
     setActive(index);
-    scrollerRef.current!.querySelector<HTMLElement>(`[data-cell="${index}"]`)!.focus({ preventScroll });
+    scrollerRef.current!.querySelector<HTMLElement>(`[data-cell="${index}"]`)!.focus();
   };
 
   const target = (event: { target: EventTarget }) => (event.target as Element).closest<HTMLElement>("[data-cell]");
@@ -598,8 +598,8 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
     if (scrollerRef.current!.scrollTop === jumpedTo.current) return;
     jumpedTo.current = -1;
     const top = scrollerRef.current!.scrollTop + 1;
-    const index = sectionRefs.current.findLastIndex((section) => section !== null && section.offsetTop <= top);
-    setInView(Math.max(index, 0));
+    // The first section starts at the top, so one always qualifies.
+    setInView(sectionRefs.current.findLastIndex((section) => section !== null && section.offsetTop <= top));
   };
 
   const jumpTo = (index: number) => {
@@ -607,7 +607,8 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
     setInView(index);
     scrollerRef.current!.scrollTop = sectionRefs.current[index]!.offsetTop;
     jumpedTo.current = scrollerRef.current!.scrollTop;
-    focusCell(sections[index]!.start, true);
+    // The cell sits just under its sticky heading, which its scroll margin clears, so focus does not scroll.
+    focusCell(sections[index]!.start);
   };
 
   const preview = hovered ?? (total ? itemAt(Math.min(active, total - 1)) : undefined);
@@ -685,7 +686,6 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
               onChange={(event) => {
                 setQuery(event.currentTarget.value);
                 setActive(0);
-                setInView(0);
                 setHovered(undefined);
                 scrollerRef.current!.scrollTop = 0;
               }}

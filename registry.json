@@ -3594,8 +3594,8 @@
       "name": "emoji-picker",
       "type": "registry:ui",
       "title": "EmojiPicker",
-      "description": "An emoji picker for reactions and for putting emoji into text: a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones.",
-      "docs": "An emoji picker for reactions and for putting emoji into text: a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. Import: import { EmojiPicker } from \"@/components/ouro/emoji-picker/emoji-picker\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, popover, sheet, text-field, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/emoji-picker.md",
+      "description": "An emoji picker for reactions and for putting emoji into text.",
+      "docs": "An emoji picker for reactions and for putting emoji into text. Import: import { EmojiPicker } from \"@/components/ouro/emoji-picker/emoji-picker\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, popover, sheet, text-field, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/emoji-picker.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/lib-announce",

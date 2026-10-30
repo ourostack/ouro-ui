@@ -417,7 +417,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Attachment** — A file attached to a chat message, or waiting to be sent with one: its icon, name and size. [Docs](docs/Attachment.md)
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **ConversationList** — A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. [Docs](docs/ConversationList.md)
-- **EmojiPicker** — An emoji picker for reactions and for putting emoji into text: a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. [Docs](docs/EmojiPicker.md)
+- **EmojiPicker** — An emoji picker for reactions and for putting emoji into text. [Docs](docs/EmojiPicker.md)
 - **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)

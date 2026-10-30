@@ -2,7 +2,7 @@
 
 # EmojiPicker
 
-An emoji picker for reactions and for putting emoji into text: a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the emoji by category, with names and keywords in its own language, and the person's frequently used ones.
+An emoji picker for reactions and for putting emoji into text. It has a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the emoji by category, with names and keywords in its own language, and the person's frequently used ones.
 
 ```tsx
 import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";

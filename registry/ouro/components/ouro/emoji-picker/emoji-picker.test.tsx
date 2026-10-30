@@ -42,7 +42,7 @@ const people = [
   e("🧑‍🤝‍🧑", "people holding hands", ["couple"], ["🧑🏻‍🤝‍🧑🏻", "🧑🏼‍🤝‍🧑🏼", "🧑🏽‍🤝‍🧑🏽", "🧑🏾‍🤝‍🧑🏾", "🧑🏿‍🤝‍🧑🏿"]),
   e("👀", "eyes"),
 ];
-const food = [e("☕", "hot beverage", ["coffee"]), e("🥐", "croissant", ["café"]), e("🍕", "pizza")];
+const food = [e("☕", "hot beverage", ["coffee"]), e("🥐", "croissant", ["café"]), e("🍕", "pizza", [":slice_of_cheese:"])];
 const categories: EmojiPickerCategory[] = [
   { label: "Smileys", emoji: smileys },
   { label: "People", emoji: people },
@@ -57,7 +57,7 @@ const many: EmojiPickerCategory[] = [
   ["Sports", 0x1f3c0],
 ].map(([label, first]) => ({
   label: label as string,
-  emoji: Array.from({ length: 24 }, (_, index) => e(String.fromCodePoint((first as number) + index), `${label as string} ${index + 1}`)),
+  emoji: Array.from({ length: 24 }, (_, index) => e(String.fromCodePoint((first as number) + index), `${label as string} ${index + 1}`, ["sample"])),
 }));
 const quick = [people[0]!, smileys[2]!, smileys[7]!];
 
@@ -314,6 +314,13 @@ describe("EmojiPicker opening and closing", () => {
     await settled();
     await userEvent.keyboard("{Escape}");
     expect(changes).toEqual([false, false]);
+    await expect.poll(panel).toBeNull();
+    // A press on the anchor is the app's own toggle, not an outside press.
+    await userEvent.click(host.querySelector("button")!);
+    await settled();
+    await userEvent.click(host.querySelector("button")!);
+    await expect.poll(panel).toBeNull();
+    expect(changes).toEqual([false, false]);
   });
 });
 
@@ -348,6 +355,17 @@ describe("EmojiPicker content", () => {
     expect(quickCells()).toEqual([]);
     expect(toneButton()).toBeNull();
     expect(panel()!.querySelector('[role="toolbar"]')).toBeNull();
+  });
+
+  it("shows no frequently used section or quick row when the app has none yet", async () => {
+    await open({ frequent: [], quick: [] });
+    expect(headings()).toEqual(["Smileys", "People", "Food"]);
+    expect(panel()!.querySelector('[role="toolbar"][aria-label="Quick reactions"]')).toBeNull();
+  });
+
+  it("shows a magnifier in the search field", async () => {
+    await open();
+    expect(search().closest("[data-ouro-input-group]")!.querySelector("svg")).not.toBeNull();
   });
 
   it("shows an empty grid with no emoji at all", async () => {
@@ -417,6 +435,35 @@ describe("EmojiPicker keyboard", () => {
     search().focus();
     await userEvent.keyboard("{ArrowDown}{ArrowRight}{ArrowRight}");
     expect(tabbable()).toEqual([cells()[2]]);
+    expect(cells().filter((element) => element.tabIndex !== 0).every((element) => element.tabIndex === -1)).toBe(true);
+    await act(async () => cells()[5]!.focus());
+    expect(tabbable()).toEqual([cells()[5]]);
+  });
+
+  it("keeps its Tab stop on the last emoji when the app takes emoji away while it is open", async () => {
+    const { rerender } = await open();
+    await act(async () => cells()[15]!.focus());
+    await rerender(picker({ categories: [{ label: "Smileys", emoji: smileys }] }));
+    expect(cells().filter((element) => element.tabIndex === 0)).toEqual([cells()[9]]);
+    await userEvent.click(search());
+    await userEvent.keyboard("{ArrowDown}");
+    expect(focused()).toBe(cells()[9]);
+  });
+
+  it("claims the keys it handles, so the page does not scroll as well", async () => {
+    await open({ quick });
+    const press = (element: Element, key: string) => {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    let claimed = false;
+    await act(async () => void (claimed = press(cells()[0]!, "ArrowUp")));
+    expect(claimed).toBe(true);
+    await act(async () => void (claimed = press(search(), "ArrowDown")));
+    expect(claimed).toBe(true);
+    await act(async () => void (claimed = press(quickCells()[0]!, "ArrowRight")));
+    expect(claimed).toBe(true);
   });
 
   it("steps with Left and Right across rows and stops at the ends", async () => {
@@ -530,6 +577,34 @@ describe("EmojiPicker keyboard", () => {
     expect(preview()).toBe("🍕pizza");
   });
 
+  it("keeps the column through Page Up and Page Down, and goes to the last row with Page Down in the last category", async () => {
+    await open({ frequent });
+    cells()[9]!.focus();
+    await userEvent.keyboard("{PageUp}");
+    expect(focused()).toBe(cells()[2]);
+    await userEvent.keyboard("{PageDown}");
+    expect(focused()).toBe(cells()[9]);
+    await userEvent.keyboard("{PageDown}");
+    expect(focused()).toBe(cells()[18]);
+    await userEvent.keyboard("{PageUp}");
+    expect(focused()).toBe(cells()[9]);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    await open({ categories: many });
+    // Sports, the last category, has three rows: 72 to 79, 80 to 87 and 88 to 95.
+    cells()[74]!.focus();
+    await userEvent.keyboard("{PageDown}");
+    expect(focused()).toBe(cells()[90]);
+  });
+
+  it("scrolls the emoji it moves to into view", async () => {
+    await open({ categories: many });
+    const scroller = panel()!.querySelector<HTMLElement>('[role="grid"]')!.parentElement!.parentElement!;
+    cells()[0]!.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}");
+    expect(focused()).toBe(cells().at(-1));
+    await expect.poll(() => scroller.scrollTop).toBeGreaterThan(0);
+  });
+
   it("chooses the emoji in focus with Enter, and leaves other keys alone", async () => {
     const onSelect = vi.fn();
     await open({ onSelect });
@@ -584,6 +659,31 @@ describe("EmojiPicker categories", () => {
     expect(focused()).toBe(cells()[75]);
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(categoryButtons()[4]!.getAttribute("aria-current")).toBe("true");
+    const bottom = scroller.scrollTop;
+    scroller.scrollTop = 0;
+    await expect.poll(() => categoryButtons()[0]!.getAttribute("aria-current")).toBe("true");
+    scroller.scrollTop = bottom;
+    await expect.poll(() => categoryButtons()[3]!.getAttribute("aria-current")).toBe("true");
+    expect(categoryButtons().filter((button) => button.tabIndex !== 0).every((button) => button.tabIndex === -1)).toBe(true);
+  });
+
+  it("scrolls the search results without marking a category", async () => {
+    await open({ categories: many });
+    await type("sample");
+    const scroller = panel()!.querySelector<HTMLElement>('[role="grid"]')!.parentElement!.parentElement!;
+    scroller.scrollTop = 200;
+    await expect.poll(() => scroller.scrollTop).toBe(200);
+    await userEvent.clear(search());
+    await expect.poll(() => categoryButtons()[0]?.getAttribute("aria-current")).toBe("true");
+  });
+
+  it("starts the search from the top of the grid", async () => {
+    await open({ categories: many });
+    const scroller = panel()!.querySelector<HTMLElement>('[role="grid"]')!.parentElement!.parentElement!;
+    await userEvent.click(categoryButtons()[2]!);
+    expect(scroller.scrollTop).toBeGreaterThan(0);
+    await type("sample");
+    expect(scroller.scrollTop).toBe(0);
   });
 
   it("marks the category in view as the grid scrolls", async () => {
@@ -628,6 +728,29 @@ describe("EmojiPicker search", () => {
     expect(names(cells())).toEqual(["smiling face with heart-eyes"]);
   });
 
+  it("splits names and keywords at hyphens, underscores and colons, and treats spaces alone as no search", async () => {
+    await open();
+    await type("slice");
+    expect(names(cells())).toEqual(["pizza"]);
+    await userEvent.clear(search());
+    await type("chee");
+    expect(names(cells())).toEqual(["pizza"]);
+    await userEvent.clear(search());
+    await type("   ");
+    expect(headings()).toEqual(["Smileys", "People", "Food"]);
+  });
+
+  it("shows the first result's name, not the emoji the mouse was on, once the search changes", async () => {
+    await open();
+    await userEvent.hover(cell("pizza"));
+    expect(preview()).toBe("🍕pizza");
+    await act(async () => {
+      search().focus();
+    });
+    await userEvent.keyboard("thumb");
+    expect(preview()).toBe("👍thumbs up");
+  });
+
   it("finds an emoji pasted into the search, and lists one found twice only once", async () => {
     await open({ frequent });
     await userEvent.fill(search(), "☕");
@@ -650,6 +773,8 @@ describe("EmojiPicker search", () => {
     await expect.poll(() => announcements.count("No emoji found")).toBe(1);
     expect(panel()!.querySelector("p")!.textContent).toBe("No emoji found");
     await userEvent.clear(search());
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(document.querySelector("[data-ouro-announcer]")!.textContent).toBe("No emoji found");
     await type("f");
     await expect.poll(() => announcements.count("10 emoji")).toBe(2);
     announcements.stop();
@@ -754,6 +879,26 @@ describe("EmojiPicker skin tones", () => {
     expect(focused()).toBe(toneButton());
   });
 
+  it("claims the keys and presses it handles among the tones", async () => {
+    await open();
+    await userEvent.click(toneButton()!);
+    const send = (event: Event) => {
+      focused().dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    let claimed: boolean[] = [];
+    await act(async () => {
+      claimed = [
+        send(new MouseEvent("mousedown", { bubbles: true, cancelable: true })),
+        send(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true })),
+      ];
+    });
+    expect(claimed).toEqual([true, true]);
+    let escape = false;
+    await act(async () => void (escape = send(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))));
+    expect(escape).toBe(true);
+  });
+
   it("closes the tones, not the picker, with Escape, and leaves other keys alone", async () => {
     await open();
     await userEvent.click(toneButton()!);
@@ -768,6 +913,8 @@ describe("EmojiPicker skin tones", () => {
 
   it("closes the tones without taking focus when focus leaves them", async () => {
     await open({ quick });
+    await userEvent.click(toneButton()!);
+    await userEvent.keyboard("{Enter}");
     await userEvent.click(toneButton()!);
     quickCells()[0]!.focus();
     await expect.poll(toneOptions).toEqual([]);
