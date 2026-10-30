@@ -17,7 +17,15 @@
           "success": "#157d3c",
           "success-foreground": "#ffffff",
           "warning": "#b05109",
-          "warning-foreground": "#ffffff"
+          "warning-foreground": "#ffffff",
+          "avatar-1": "#c4314b",
+          "avatar-2": "#ca5010",
+          "avatar-3": "#986f0b",
+          "avatar-4": "#498205",
+          "avatar-5": "#038387",
+          "avatar-6": "#0f6cbd",
+          "avatar-7": "#8764b8",
+          "avatar-8": "#c239b3"
         },
         "dark": {
           "input": "oklch(1 0 0 / 15%)",
@@ -25,7 +33,15 @@
           "success": "#4ade80",
           "success-foreground": "#000000",
           "warning": "#fbbf24",
-          "warning-foreground": "#000000"
+          "warning-foreground": "#000000",
+          "avatar-1": "#ee8a99",
+          "avatar-2": "#f4a46c",
+          "avatar-3": "#f2c661",
+          "avatar-4": "#8bd17b",
+          "avatar-5": "#4bc4c8",
+          "avatar-6": "#6cb8f6",
+          "avatar-7": "#c3a6ec",
+          "avatar-8": "#ef85e2"
         },
         "theme": {
           "color-input": "var(--input)",
@@ -1731,8 +1747,8 @@
       "name": "avatar",
       "type": "registry:ui",
       "title": "Avatar",
-      "description": "A person's picture, or their initials until it loads or when it fails.",
-      "docs": "A person's picture, or their initials until it loads or when it fails. Import: import { Avatar } from \"@/components/ouro/avatar/avatar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/avatar.md",
+      "description": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name.",
+      "docs": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name. Import: import { Avatar } from \"@/components/ouro/avatar/avatar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/avatar.md",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],

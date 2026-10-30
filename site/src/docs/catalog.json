@@ -409,7 +409,7 @@
     "title": "Avatar",
     "group": "Display",
     "source": "registry/ouro/components/ouro/avatar/avatar.tsx",
-    "summary": "A person's picture, or their initials until it loads or when it fails."
+    "summary": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name."
   },
   {
     "name": "badge",

@@ -15,3 +15,9 @@ test("a group shows max avatars and says how many more", async ({ page }) => {
   await expect(cooks.getByRole("img")).toHaveCount(3);
   await expect(cooks).toContainText("2 more");
 });
+
+test("a presence dot is read after the name", async ({ page }) => {
+  await openStory(page, "display-avatar--presence");
+  await expect(page.getByRole("img", { name: "Grace Hopper, In a meeting" }).first()).toBeVisible();
+  await expect(page.getByRole("img", { name: "Available", exact: true })).toBeVisible();
+});

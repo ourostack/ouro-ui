@@ -2,7 +2,7 @@
 
 # Avatar
 
-A person's picture, or their initials until it loads or when it fails. `name` is required: screen readers hear it, and the initials come from it. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in once it loads.
+A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in once it loads.
 
 ```tsx
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -11,8 +11,9 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 ## Example
 
 ```tsx
-<Avatar name="Ada Lovelace" src={user.photoUrl} />
-<Avatar name="Grace Hopper" size="lg" />
+<Avatar name="Ada Lovelace" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
+<Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
+<Avatar name="Design reviews" shape="square" />
 <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
 ```
 
@@ -22,17 +23,42 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 
 ## Props
 
-Type: `AvatarProps`.
+The props the modes share. Type: `AvatarProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `alt` | `string` |  | What screen readers hear, when it should differ from `name`. Pass `alt=""` when the name is already written next to the avatar, so it isn't read twice. |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `size`. |
+| `color` | `"colorful" \| "brand" \| "neutral"` | `"colorful"` | How the initials are colored. `"colorful"` picks one of eight hues from `idForColor` (else `name`), so the same person always gets the same one, and the initials keep at least 4.5:1 against it in light and dark. `"brand"` tints with the theme's primary; `"neutral"` is the plain secondary surface. The hues are the theme tokens `--avatar-1` to `--avatar-8` (`ouro-base`). |
+| `icon` | `ReactNode` |  | An icon to show in place of the initials, such as a calendar for a meeting or a note for notes to self. It is decorative: the avatar's label stays `name`. |
+| `idForColor` | `string` |  | What `color="colorful"` picks the hue from, when it should not be `name`: a stable id, so people who share a name can differ and a rename keeps the color. |
 | `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AdL". |
 | `name` (required) | `string` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
-| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "xs" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials grow with it. Avatar is always a circle. Inside an `AvatarGroup`, the group's size applies. |
+| `shape` | `"circle" \| "square"` | `"circle"` | `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a channel, an app or a bot. |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "xs" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials and the presence dot grow with it. Inside an `AvatarGroup`, the group's size applies. |
 | `src` | `string` |  | The image URL. Until it loads, and if it fails, the initials show. |
+
+## Modes
+
+`AvatarProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
+
+### With `presence` and `presenceLabel`
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The person's presence, as a dot on the lower end corner. Each state has its own shape and a named tone (available: success; busy and do not disturb: destructive; away: warning; offline: muted; out of office: primary). The dot's ring takes the surface's color, `--ouro-avatar-ring` (default `--background`): set it on a card, `[--ouro-avatar-ring:var(--card)]`. |
+| `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the name ("Ada Lovelace, Busy"). Required with `presence`, so no dot is silent. |
+
+### With `presenceLabel`
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `presenceLabel` | `string` | Read only with `presence`. |
+
+Not in this mode (typed `never`):
+
+- `presence`: Leave it out for no dot; pass it with `presenceLabel` to show one.
 
 ## Native attributes
 

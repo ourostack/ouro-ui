@@ -59,7 +59,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.14     # install a component
 - `spinner`: A spinning ring that says something is loading. Docs: https://ui.ouro.bot/docs/spinner.md
 - `progress`: A bar that shows how far along a task is, or that it is under way when you can't tell. Docs: https://ui.ouro.bot/docs/progress.md
 - `skeleton`: A shimmering placeholder in the shape of content that is still loading. Docs: https://ui.ouro.bot/docs/skeleton.md
-- `avatar`: A person's picture, or their initials until it loads or when it fails. Docs: https://ui.ouro.bot/docs/avatar.md
+- `avatar`: A person's picture, or their initials until it loads or when it fails, in a color picked from the name. Docs: https://ui.ouro.bot/docs/avatar.md
 - `badge`: A short label for a status, category or count: "Draft", "Vegan", "3". Docs: https://ui.ouro.bot/docs/badge.md
 - `alert`: An inline message in the page: something saved, something failed, something to know before going on. Docs: https://ui.ouro.bot/docs/alert.md
 - `separator`: A thin line in the theme's border color between groups of content, horizontal or vertical. Docs: https://ui.ouro.bot/docs/separator.md

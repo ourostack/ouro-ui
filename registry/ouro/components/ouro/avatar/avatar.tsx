@@ -16,6 +16,20 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
  */
 export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 
+/**
+ * A person's presence, drawn as a dot with its own shape: a check (available), a solid
+ * dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a
+ * ring with an arrow (out of office), so it never relies on color alone.
+ * @claim "A person's presence, drawn as a dot" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > draws each state in its own shape and tone)
+ */
+export type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office";
+
+/** Avatar's shapes: a circle for a person, a rounded square for a team, a channel, an app or a bot. */
+export type AvatarShape = "circle" | "square";
+
+/** Where the initials' colors come from: a hue picked from the name, the theme's primary, or the neutral surface. */
+export type AvatarColor = "colorful" | "brand" | "neutral";
+
 /** The props Avatar adds to the `<span>` attributes it passes through. */
 export interface AvatarOwnProps {
   /**
@@ -35,11 +49,38 @@ export interface AvatarOwnProps {
   /** The letters to show instead of the ones taken from `name`, such as "AdL". */
   initials?: string | undefined;
   /**
-   * 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials
-   * grow with it. Avatar is always a circle. Inside an `AvatarGroup`, the group's size applies.
+   * An icon to show in place of the initials, such as a calendar for a meeting or a note for
+   * notes to self. It is decorative: the avatar's label stays `name`.
+   */
+  icon?: ReactNode | undefined;
+  /**
+   * `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a
+   * channel, an app or a bot. @default "circle"
+   */
+  shape?: AvatarShape | (string & { 'Use "circle" or "square"; rounded is "square"': never }) | undefined;
+  /**
+   * How the initials are colored. `"colorful"` picks one of eight hues from `idForColor`
+   * (else `name`), so the same person always gets the same one, and the initials keep at
+   * least 4.5:1 against it in light and dark. `"brand"` tints with the theme's primary;
+   * `"neutral"` is the plain secondary surface. The hues are the theme tokens `--avatar-1`
+   * to `--avatar-8` (`ouro-base`). @default "colorful"
+   * @claim "picks one of eight hues from" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--avatar-8:/)
+   * @claim "picks one of eight hues from" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
+   * @claim "picks one of eight hues from" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > keeps the initials at least 4.5:1 on every hue and on brand (%s))
+   */
+  color?: AvatarColor | (string & { 'Use "colorful", "brand" or "neutral"': never }) | undefined;
+  /**
+   * What `color="colorful"` picks the hue from, when it should not be `name`: a stable id,
+   * so people who share a name can differ and a rename keeps the color.
+   * @claim "so people who share a name" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the hue from idForColor when given, so one name can take two colors)
+   */
+  idForColor?: string | undefined;
+  /**
+   * 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials and
+   * the presence dot grow with it. Inside an `AvatarGroup`, the group's size applies.
    * @default "md"
    * @claim "24, 32, 40, 48, 64, 72" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
-   * @claim "Avatar is always a circle" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
+   * @claim "the presence dot grow with it" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > sits on the lower end corner at every size, with a ring in the surface's color)
    * @claim "24, 32, 40, 48, 64, 72" registry/ouro/components/ouro/avatar/avatar.tsx verify:fileLine(registry/ouro/components/ouro/avatar/avatar.tsx, /"3xl": "size-28/)
    */
   size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
@@ -53,8 +94,40 @@ export interface AvatarOwnProps {
   fallback?: { 'Use <Avatar name="Ada Lovelace" initials="AL" />': never };
 }
 
-/** Props for {@link Avatar}: its own props and the `<span>` attributes it passes through. */
-export type AvatarProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof AvatarOwnProps | "role"> & AvatarOwnProps;
+/** An Avatar with a presence dot and the words it says. */
+export interface AvatarPresenceProps {
+  /**
+   * The person's presence, as a dot on the lower end corner. Each state has its own shape
+   * and a named tone (available: success; busy and do not disturb: destructive; away:
+   * warning; offline: muted; out of office: primary). The dot's ring takes the surface's
+   * color, `--ouro-avatar-ring` (default `--background`): set it on a card,
+   * `[--ouro-avatar-ring:var(--card)]`.
+   * @claim "Each state has its own shape" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > draws each state in its own shape and tone)
+   */
+  presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
+  /**
+   * What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the
+   * name ("Ada Lovelace, Busy"). Required with `presence`, so no dot is silent.
+   * @claim "Required with `presence`, so no dot" registry/ouro/components/ouro/avatar/avatar.test-d.ts verify:fileLine(registry/ouro/components/ouro/avatar/avatar.test-d.ts, /presence:\s"busy"\s\}>\(\)\.not\.toExtend<AvatarProps>/)
+   */
+  presenceLabel: string;
+}
+
+/** An Avatar without a presence dot. */
+export interface AvatarNoPresenceProps {
+  /** Leave it out for no dot; pass it with `presenceLabel` to show one. */
+  presence?: undefined;
+  /** Read only with `presence`. */
+  presenceLabel?: string | undefined;
+}
+
+/**
+ * Props for {@link Avatar}: its own props, `presence` with `presenceLabel` or neither, and
+ * the `<span>` attributes it passes through.
+ */
+export type AvatarProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof AvatarOwnProps | "presence" | "presenceLabel" | "role"> &
+  AvatarOwnProps &
+  (AvatarPresenceProps | AvatarNoPresenceProps);
 
 /** The props AvatarGroup adds to the `<div>` attributes it passes through. */
 export interface AvatarGroupOwnProps {
@@ -99,6 +172,48 @@ const sizes = {
 
 const sizeNames = Object.keys(sizes).map((name) => `"${name}"`).join(", ");
 
+// A square's corners follow the theme's radius, rounder as the avatar grows.
+const squareRadii = {
+  xs: "rounded-sm",
+  sm: "rounded-sm",
+  md: "rounded-md",
+  lg: "rounded-md",
+  xl: "rounded-lg",
+  "2xl": "rounded-lg",
+  "3xl": "rounded-xl",
+} as const;
+
+// The presence dot: its whole size, the ring (padding in the surface's color) and where its
+// center falls, near the circle's edge at the lower end corner.
+const presenceSizes = {
+  xs: "size-2.5 p-px -end-0.5 -bottom-0.5",
+  sm: "size-3 p-px -end-px -bottom-px",
+  md: "size-3.5 p-0.5 -end-px -bottom-px",
+  lg: "size-4 p-0.5 -end-px -bottom-px",
+  xl: "size-5 p-0.5 end-0 bottom-0",
+  "2xl": "size-5.5 p-0.5 end-0 bottom-0",
+  "3xl": "size-7 p-0.75 end-0.5 bottom-0.5",
+} as const;
+
+// Each hue tints the surface and colors the initials, mixed toward the theme's background and
+// foreground so the pair keeps at least 4.5:1 in light and dark.
+const hues = [
+  "bg-[color-mix(in_oklab,var(--avatar-1)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-2)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-3)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-4)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-5)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-6)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-7)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-8)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground))]",
+] as const;
+const brand = "bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))]";
+const neutral = "bg-secondary text-secondary-foreground";
+
+const shapes = ["circle", "square"] as const;
+const colors = ["colorful", "brand", "neutral"] as const;
+const presences = ["available", "busy", "away", "do-not-disturb", "offline", "out-of-office"] as const;
+
 /** The group's size, which its avatars take. */
 const GroupSize = createContext<AvatarSize | undefined>(undefined);
 
@@ -109,8 +224,22 @@ function initialsOf(name: string): string {
   return first(words[0]) + (words.length > 1 ? first(words.at(-1)) : "");
 }
 
+/** One of the hues for a key, the same on the server and in the browser (an FNV hash). */
+function hueOf(key: string): string {
+  let hash = 0x811c9dc5;
+  for (const char of key.trim().toLowerCase()) {
+    hash ^= char.codePointAt(0)!;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hues[hash % hues.length]!;
+}
+
 function checkSize(size: unknown): AvatarSize | undefined {
   return typeof size === "string" && Object.hasOwn(sizes, size) ? (size as AvatarSize) : undefined;
+}
+
+function oneOf<T extends string>(values: readonly T[], value: unknown): T | undefined {
+  return (values as readonly unknown[]).includes(value) ? (value as T) : undefined;
 }
 
 /** The dev message for a size that is not one of Ouro UI's. */
@@ -121,16 +250,58 @@ function sizeWarning(component: string, size: unknown): readonly [string, string
 }
 
 function avatarHint(token: string): string {
-  if (token.startsWith("rounded")) return `remove "${token}"; Avatar is always a circle`;
+  if (token.startsWith("rounded")) return 'shape="square"';
   const size = sizeFor(token, ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"]);
   if (size) return `size="${size}"`;
-  return `remove "${token}"; Avatar colors its initials from the theme`;
+  return `remove "${token}"; Avatar colors its initials from the name, or pass color="neutral"`;
+}
+
+/** The presence dot's glyph: a shape per state, so color is not the only cue. */
+function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element {
+  const line = { fill: "none", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-full">
+      {presence === "available" && (
+        <>
+          <circle cx="8" cy="8" r="8" className="fill-success" />
+          <path d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className="stroke-success-foreground" />
+        </>
+      )}
+      {presence === "busy" && <circle cx="8" cy="8" r="8" className="fill-destructive" />}
+      {presence === "do-not-disturb" && (
+        <>
+          <circle cx="8" cy="8" r="8" className="fill-destructive" />
+          <path d="M4.5 8h7" {...line} className="stroke-destructive-foreground" />
+        </>
+      )}
+      {presence === "away" && (
+        <>
+          <circle cx="8" cy="8" r="8" className="fill-warning" />
+          <path d="M8 4.5v3.75l2.5 1.5" {...line} className="stroke-warning-foreground" />
+        </>
+      )}
+      {presence === "offline" && (
+        <>
+          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-muted-foreground" />
+          <path d="m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5" {...line} className="stroke-muted-foreground" />
+        </>
+      )}
+      {presence === "out-of-office" && (
+        <>
+          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-primary" />
+          <path d="M11 8H5.25M7.5 5.5 5 8l2.5 2.5" {...line} className="stroke-primary" />
+        </>
+      )}
+    </svg>
+  );
 }
 
 /**
- * A person's picture, or their initials until it loads or when it fails. `name` is
- * required: screen readers hear it, and the initials come from it. Built on Base UI's
- * Avatar, so server HTML holds the initials and the picture fades in once it loads.
+ * A person's picture, or their initials until it loads or when it fails, in a color picked
+ * from the name. `name` is required: screen readers hear it, and the initials come from it.
+ * `presence` adds a status dot that says what it shows (`presenceLabel`), and
+ * `shape="square"` marks a team, a channel, an app or a bot. Built on Base UI's Avatar, so
+ * server HTML holds the initials and the picture fades in once it loads.
  *
  * Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
  *
@@ -138,9 +309,11 @@ function avatarHint(token: string): string {
  * @see https://ui.ouro.bot/docs/avatar
  *
  * @example
- * <Avatar name="Ada Lovelace" src={user.photoUrl} />
- * <Avatar name="Grace Hopper" size="lg" />
+ * <Avatar name="Ada Lovelace" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
+ * <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
+ * <Avatar name="Design reviews" shape="square" />
  * <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
+ * @claim "in a color picked from the name" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
  */
 export function Avatar(props: AvatarProps): JSX.Element {
   const {
@@ -148,6 +321,12 @@ export function Avatar(props: AvatarProps): JSX.Element {
     src,
     alt,
     initials,
+    icon,
+    shape: shapeProp,
+    color: colorProp,
+    idForColor,
+    presence: presenceProp,
+    presenceLabel,
     size: sizeProp,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -157,8 +336,11 @@ export function Avatar(props: AvatarProps): JSX.Element {
   } = props;
   const name = nameProp ?? "";
   const groupSize = useContext(GroupSize);
-  // A size that is not one of Ouro UI's (a type error) warns and renders md.
+  // A size, shape, color or presence that is not one of Ouro UI's (a type error) warns and renders the default.
   const size = groupSize ?? checkSize(sizeProp) ?? "md";
+  const shape = oneOf(shapes, shapeProp) ?? "circle";
+  const color = oneOf(colors, colorProp) ?? "colorful";
+  const presence = oneOf(presences, presenceProp);
   const [image, setImage] = useState<string>("idle");
   useAppearanceClassNameCheck(
     "Avatar",
@@ -171,21 +353,42 @@ export function Avatar(props: AvatarProps): JSX.Element {
       ? () => [
           nameProp === undefined && ["name is missing, so screen readers hear nothing", '<Avatar name="Ada Lovelace" src={url} />'],
           !groupSize && sizeProp !== undefined && !checkSize(sizeProp) && sizeWarning("Avatar", sizeProp),
+          shapeProp !== undefined && !oneOf(shapes, shapeProp) && [`shape="${String(shapeProp)}" is not a shape; use "circle", "square"`, '<Avatar shape="square">'],
+          colorProp !== undefined &&
+            !oneOf(colors, colorProp) && [`color="${String(colorProp)}" is not a color; use "colorful", "brand", "neutral"`, '<Avatar color="colorful">'],
+          presenceProp !== undefined &&
+            !presence && [
+              `presence="${String(presenceProp)}" is not a presence; use ${presences.map((value) => `"${value}"`).join(", ")}`,
+              '<Avatar presence="do-not-disturb" presenceLabel="Do not disturb">',
+            ],
+          presence &&
+            !presenceLabel && [
+              "presenceLabel is missing, so screen readers hear no presence",
+              `<Avatar presence="${presence}" presenceLabel="${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}">`,
+            ],
           children !== undefined && ["Avatar takes name and initials, not children", '<Avatar name="Ada Lovelace" initials="AL" />'],
           fallback !== undefined && ["fallback is not a prop", '<Avatar name="Ada Lovelace" initials="AL" />'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const label = alt ?? name;
+  // A presence's words follow the name, so a screen reader hears "Ada Lovelace, Busy"; with
+  // alt="" (the name written beside it) only the presence is read.
+  const spoken = presence ? presenceLabel || presence.replaceAll("-", " ") : "";
+  const label = [alt ?? name, spoken].filter(Boolean).join(", ");
+  const tint = color === "neutral" ? neutral : color === "brand" ? brand : hueOf(idForColor ?? name);
   return (
     <BaseAvatar.Root
       {...rest}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
       data-ouro="avatar"
       data-image={image}
+      data-shape={shape}
+      data-presence={presence}
       className={cn(
-        "relative box-border inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full align-middle",
-        "bg-secondary font-medium leading-none text-secondary-foreground select-none",
+        "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
+        "font-medium leading-none select-none",
+        shape === "square" ? squareRadii[size] : "rounded-full",
+        tint,
         sizes[size],
         className,
       )}
@@ -195,10 +398,20 @@ export function Avatar(props: AvatarProps): JSX.Element {
           src={src}
           alt=""
           onLoadingStatusChange={setImage}
-          className="size-full object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
+          className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
         />
       )}
-      <BaseAvatar.Fallback>{initials ?? initialsOf(name)}</BaseAvatar.Fallback>
+      <BaseAvatar.Fallback className="flex size-full items-center justify-center *:size-[55%]">
+        {icon ?? initials ?? initialsOf(name)}
+      </BaseAvatar.Fallback>
+      {presence && (
+        <span
+          data-ouro-avatar-presence=""
+          className={cn("pointer-events-none absolute box-border flex rounded-full bg-(--ouro-avatar-ring,var(--background))", presenceSizes[size])}
+        >
+          <PresenceGlyph presence={presence} />
+        </span>
+      )}
     </BaseAvatar.Root>
   );
 }
@@ -249,15 +462,15 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  // Each avatar after the first overlaps the one before; a ring in the page's background
-  // keeps them apart.
+  // Each avatar after the first overlaps the one before; a ring in the surface's color
+  // (--ouro-avatar-ring, else the page's background) keeps them apart.
   return (
     <div
       {...rest}
       role="group"
       aria-label={label}
       data-ouro="avatar-group"
-      className={cn("flex items-center *:shadow-[0_0_0_2px_var(--background)] *:not-first:-ms-2", className)}
+      className={cn("flex items-center *:shadow-[0_0_0_2px_var(--ouro-avatar-ring,var(--background))] *:not-first:-ms-2", className)}
     >
       <GroupSize value={size}>{shown}</GroupSize>
       {more > 0 && (
