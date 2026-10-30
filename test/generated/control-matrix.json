@@ -1106,6 +1106,18 @@
     ]
   },
   {
+    "item": "show-more",
+    "stem": "show-more",
+    "mode": "height",
+    "part": "toggle",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ShowMore/LongPost"
+    ]
+  },
+  {
     "item": "card",
     "stem": "card",
     "mode": "link",
