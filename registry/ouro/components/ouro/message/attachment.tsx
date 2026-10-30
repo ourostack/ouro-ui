@@ -83,7 +83,7 @@ const focusRing = "outline-ring outline-offset-2 focus-visible:outline-2 focus-v
  * Use `Link` instead for a link that is not a file, and `Avatar` for a person's picture.
  *
  * @group Chat
- * @see https://ourostack.github.io/ouro-ui/docs/attachment
+ * @see https://ui.ouro.bot/docs/attachment
  *
  * @example
  * <Attachment name="menu.pdf" size={file.size} contentType={file.type} href={file.url} />

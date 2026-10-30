@@ -32,7 +32,7 @@ const DIALOG: Array<[string, (page: Page) => ReturnType<Page["locator"]>]> = [
 
 async function serveFonts(context: BrowserContext): Promise<void> {
   // The copied CSS names the fonts on Pages; this build's files stand in for them, with Pages' CORS header.
-  await context.route("https://ourostack.github.io/ouro-ui/fonts/*", (route) =>
+  await context.route("https://ui.ouro.bot/fonts/*", (route) =>
     route.fulfill({
       body: readFileSync(join(fontsDir, new URL(route.request().url()).pathname.split("/").pop()!)),
       headers: { "content-type": "font/woff2", "access-control-allow-origin": "*" },

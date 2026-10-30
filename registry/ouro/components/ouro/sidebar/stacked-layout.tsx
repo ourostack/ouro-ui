@@ -60,7 +60,7 @@ const skip =
  * sign-in pages.
  *
  * @group Navigation
- * @see https://ourostack.github.io/ouro-ui/docs/stacked-layout
+ * @see https://ui.ouro.bot/docs/stacked-layout
  *
  * @example
  * <StackedLayout navbar={<Navbar label="Main" items={items} currentPath={pathname} />}>

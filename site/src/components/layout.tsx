@@ -9,7 +9,7 @@ import { HxLogo } from "./brand";
 import { MenuIcon } from "./icons";
 import { Popups, PopupsProvider } from "./popups";
 
-export const STORYBOOK = "https://ourostack.github.io/ouro-ui/storybook/";
+export const STORYBOOK = "https://ui.ouro.bot/storybook/";
 
 /** Page width and side gutters: 16px on phones, as the house layout rule says. */
 export function Container({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
@@ -60,7 +60,7 @@ export function SiteFooter(): JSX.Element {
     { label: "GitHub", url: GITHUB },
     { label: "Storybook", url: STORYBOOK },
     { label: "Docs", url: href("/docs/") },
-    { label: "llms.txt", url: "https://ourostack.github.io/ouro-ui/llms.txt" },
+    { label: "llms.txt", url: "https://ui.ouro.bot/llms.txt" },
     { label: "Ouro", url: "https://ouro.bot" },
   ];
   return (

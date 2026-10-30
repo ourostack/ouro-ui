@@ -173,7 +173,7 @@ function Chevron({ children }: { children: ReactNode }): JSX.Element {
  * calendar on desktops and the phone's own picker on touch screens.
  *
  * @group Forms
- * @see https://ourostack.github.io/ouro-ui/docs/calendar
+ * @see https://ui.ouro.bot/docs/calendar
  *
  * @example
  * <Calendar label="Delivery date" value={date} onValueChange={setDate} min="2026-10-11" />

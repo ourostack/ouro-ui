@@ -55,7 +55,7 @@ describe("landing page", () => {
       "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.",
     );
     expect(document.body.innerText).not.toContain("compliant");
-    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("https://ourostack.github.io/ouro-ui/llms.txt");
+    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("https://ui.ouro.bot/llms.txt");
   });
 
   it("has no phone mockup", async () => {
@@ -226,12 +226,12 @@ describe("head tags", () => {
     for (const tag of [
       '<meta property="og:title" content="Sheet · Ouro HX" />',
       '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
-      '<meta property="og:url" content="https://ourostack.github.io/ouro-ui/docs/sheet/" />',
-      '<meta property="og:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+      '<meta property="og:url" content="https://ui.ouro.bot/docs/sheet/" />',
+      '<meta property="og:image" content="https://ui.ouro.bot/og.png" />',
       '<meta property="og:image:width" content="1200" />',
       '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
-      '<meta name="twitter:image" content="https://ourostack.github.io/ouro-ui/og.png" />',
+      '<meta name="twitter:image" content="https://ui.ouro.bot/og.png" />',
       '<meta property="og:site_name" content="Ouro HX" />',
       '<meta property="og:image:alt" content="Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop." />',
       '<meta name="twitter:image:alt" content="Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop." />',

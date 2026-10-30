@@ -162,7 +162,7 @@ function Chevron(): JSX.Element {
  * when exactly one section always shows and the titles fit in a row.
  *
  * @group Lists
- * @see https://ourostack.github.io/ouro-ui/docs/accordion
+ * @see https://ui.ouro.bot/docs/accordion
  *
  * @example
  * <Accordion

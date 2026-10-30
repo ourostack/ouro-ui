@@ -24,7 +24,7 @@ export const themesDir = join(repo, "site/src/themes");
 const fontsDir = join(repo, "site/public/fonts");
 
 /** Where Pages serves the site; "Copy theme" CSS points at the fonts there. */
-export const SITE = "https://ourostack.github.io/ouro-ui";
+export const SITE = "https://ui.ouro.bot";
 
 export interface Font {
   family: string;

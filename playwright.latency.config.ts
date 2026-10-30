@@ -14,10 +14,10 @@ export default defineConfig({
   retries: 0,
   forbidOnly: !!process.env["CI"],
   reporter: process.env["CI"] ? [["list"], ["html", { open: "never", outputFolder: "playwright-report/latency" }]] : "list",
-  projects: [{ name: "site-latency", use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4179/ouro-ui/" } }],
+  projects: [{ name: "site-latency", use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4179/" } }],
   webServer: {
     command: "pnpm site:build && pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort",
-    url: "http://127.0.0.1:4179/ouro-ui/",
+    url: "http://127.0.0.1:4179/",
     reuseExistingServer: !process.env["CI"],
     timeout: 180_000,
   },

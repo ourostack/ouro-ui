@@ -1,5 +1,5 @@
 // What people and agents read after a release must name it: the site's llms.txt
-// (https://ourostack.github.io/ouro-ui/llms.txt, which Pages builds) and the README on main.
+// (https://ui.ouro.bot/llms.txt, which Pages builds) and the README on main.
 // v0.7.0 was out for two hours while both still gave install commands for v0.6.0.
 //
 //   node scripts/published-release.mjs <tag> [--wait <seconds>]
@@ -14,9 +14,8 @@ import { releaseMismatches } from "./latest-release.mjs";
 
 /** Where each published page is read from: the site's llms.txt, and main's README through the API (no cache). */
 export function sources(repo) {
-  const [owner, name] = repo.split("/");
   return {
-    "llms.txt": `https://${owner}.github.io/${name}/llms.txt`,
+    "llms.txt": "https://ui.ouro.bot/llms.txt",
     "README.md": `https://api.github.com/repos/${repo}/contents/README.md?ref=main`,
   };
 }

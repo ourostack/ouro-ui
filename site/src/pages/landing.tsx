@@ -223,7 +223,7 @@ function Principles(): JSX.Element {
 
 const namespace = `{
   "registries": {
-    "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json"
+    "@ouro": "https://ui.ouro.bot/r/{name}.json"
   }
 }`;
 

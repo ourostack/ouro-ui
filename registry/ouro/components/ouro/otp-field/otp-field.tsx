@@ -206,7 +206,7 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
  * `TextField type="password"` for a password.
  *
  * @group Forms
- * @see https://ourostack.github.io/ouro-ui/docs/otp-field
+ * @see https://ui.ouro.bot/docs/otp-field
  *
  * @example
  * <OtpField label="Verification code" name="code" length={6} autoSubmit error={errors?.code} />

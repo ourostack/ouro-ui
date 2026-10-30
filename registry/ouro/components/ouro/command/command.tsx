@@ -247,7 +247,7 @@ function SearchIcon(): JSX.Element {
  * Use `Menu` instead for the few actions on one thing, and `Combobox` to pick a value for a form.
  *
  * @group Menus
- * @see https://ourostack.github.io/ouro-ui/docs/command
+ * @see https://ui.ouro.bot/docs/command
  *
  * @example
  * const [open, setOpen] = useCommandShortcut("mod+k");

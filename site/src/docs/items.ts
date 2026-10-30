@@ -6,7 +6,7 @@ export { summary } from "../../../scripts/docs-summary.mts";
 
 /**
  * One docs page per registry item. `name` is the registry item name, so the page lives at
- * https://ourostack.github.io/ouro-ui/docs/<name>, the URL each item's install message
+ * https://ui.ouro.bot/docs/<name>, the URL each item's install message
  * points to. The page body is the Markdown scripts/gen-docs.mts generates from the JSDoc
  * (`itemMarkdown`, once the docs route has loaded `itemFiles`).
  */

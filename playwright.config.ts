@@ -25,8 +25,8 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
     // The stage's latency spec runs alone (playwright.latency.config.ts).
-    { name: "site-chromium", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4179/ouro-ui/" } },
-    { name: "site-webkit", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Safari"], baseURL: "http://127.0.0.1:4179/ouro-ui/" } },
+    { name: "site-chromium", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4179/" } },
+    { name: "site-webkit", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Safari"], baseURL: "http://127.0.0.1:4179/" } },
   ],
   webServer: [
     {
@@ -37,7 +37,7 @@ export default defineConfig({
     },
     {
       command: "pnpm site:build && pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort",
-      url: "http://127.0.0.1:4179/ouro-ui/",
+      url: "http://127.0.0.1:4179/",
       reuseExistingServer: false,
       timeout: 180_000,
     },

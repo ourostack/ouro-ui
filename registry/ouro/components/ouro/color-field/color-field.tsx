@@ -202,7 +202,7 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
  * Use `RadioGroup` instead when the colors come from a short fixed list, such as tag colors.
  *
  * @group Forms
- * @see https://ourostack.github.io/ouro-ui/docs/color-field
+ * @see https://ui.ouro.bot/docs/color-field
  *
  * @example
  * <ColorField label="Accent color" name="accent" defaultValue="#3366ff" error={errors?.accent} />

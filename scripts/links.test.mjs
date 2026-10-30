@@ -24,7 +24,7 @@ const repoFiles = (extra) =>
   tree({
     "site/src/docs/catalog.json": JSON.stringify([{ name: "text-field", title: "TextField" }]),
     "site/src/docs/pages.json": JSON.stringify([{ name: "ouro-provider", title: "OuroProvider", kind: "export", markdown: "docs/OuroProvider.md" }]),
-    "registry.json": JSON.stringify({ items: [{ name: "text-field", type: "registry:ui", docs: "Docs: https://ourostack.github.io/ouro-ui/docs/text-field.md" }] }),
+    "registry.json": JSON.stringify({ items: [{ name: "text-field", type: "registry:ui", docs: "Docs: https://ui.ouro.bot/docs/text-field.md" }] }),
     "docs/TextField.md": "# TextField\n\n## Props\n",
     "docs/OuroProvider.md": "# OuroProvider\n",
     "README.md": "# Ouro UI\n",
@@ -44,20 +44,20 @@ test("anchors follow GitHub's heading ids and skip code blocks", () => {
 });
 
 test("links finds Markdown targets and bare site URLs, and leaves code alone", () => {
-  const text = "See [Form](../Form.md#props) and https://ourostack.github.io/ouro-ui/docs/form.md.\n`[x](y.md)`\n```\n[z](z.md)\n```\n";
+  const text = "See [Form](../Form.md#props) and https://ui.ouro.bot/docs/form.md.\n`[x](y.md)`\n```\n[z](z.md)\n```\n";
   assert.deepEqual(links(text), [
     { target: "../Form.md#props", line: 1 },
-    { target: "https://ourostack.github.io/ouro-ui/docs/form.md", line: 1 },
+    { target: "https://ui.ouro.bot/docs/form.md", line: 1 },
   ]);
 });
 
 test("a site URL must name a published page, in its exact letter case", () => {
   const published = publishedPaths(repoFiles({}));
-  assert.equal(siteUrlProblem("https://ourostack.github.io/ouro-ui/docs/ouro-provider/", published), null);
-  assert.equal(siteUrlProblem("https://ourostack.github.io/ouro-ui/docs/text-field.md#props", published), null);
-  assert.equal(siteUrlProblem("https://ourostack.github.io/ouro-ui/docs/<item>.md", published), null);
-  assert.match(siteUrlProblem("https://ourostack.github.io/ouro-ui/docs/OuroProvider.md", published), /is not a page the site publishes/);
-  assert.match(siteUrlProblem("https://ourostack.github.io/ouro-ui/docs/Text-Field.md", published), /differs in letter case from the published .*docs\/text-field\.md/);
+  assert.equal(siteUrlProblem("https://ui.ouro.bot/docs/ouro-provider/", published), null);
+  assert.equal(siteUrlProblem("https://ui.ouro.bot/docs/text-field.md#props", published), null);
+  assert.equal(siteUrlProblem("https://ui.ouro.bot/docs/<item>.md", published), null);
+  assert.match(siteUrlProblem("https://ui.ouro.bot/docs/OuroProvider.md", published), /is not a page the site publishes/);
+  assert.match(siteUrlProblem("https://ui.ouro.bot/docs/Text-Field.md", published), /differs in letter case from the published .*docs\/text-field\.md/);
 });
 
 test("the source check fails on a dead relative link, a wrong letter case, a missing heading and a dead site URL", () => {
@@ -67,7 +67,7 @@ test("the source check fails on a dead relative link, a wrong letter case, a mis
       "[case](docs/textfield.md)",
       "[gone](docs/Gone.md)",
       "[heading](docs/TextField.md#nope)",
-      "https://ourostack.github.io/ouro-ui/docs/radio.md",
+      "https://ui.ouro.bot/docs/radio.md",
     ].join("\n"),
   });
   const problems = sourceProblems(dir);
@@ -80,7 +80,7 @@ test("the source check fails on a dead relative link, a wrong letter case, a mis
 
 test("the source check reads every item's install message", () => {
   const dir = repoFiles({
-    "registry.json": JSON.stringify({ items: [{ name: "radio-group", type: "registry:ui", docs: "Docs: https://ourostack.github.io/ouro-ui/docs/radio-group.md" }] }),
+    "registry.json": JSON.stringify({ items: [{ name: "radio-group", type: "registry:ui", docs: "Docs: https://ui.ouro.bot/docs/radio-group.md" }] }),
   });
   assert.match(sourceProblems(dir).join("\n"), /registry\.json: radio-group's install message: .*is not a page the site publishes/);
   assert.match(coverageProblems(dir).join("\n"), /The radio-group item has no docs page/);
@@ -93,14 +93,14 @@ test("a docs file that no page publishes fails", () => {
 
 test("the built-site check fails on a link to a missing file or another letter case", () => {
   const dist = tree({
-    "index.html": '<a href="/ouro-ui/docs/button/">ok</a> <a href="/ouro-ui/docs/Button/">case</a> <a href="/ouro-ui/docs/gone/">gone</a> <a href="https://example.com/">out</a> <a href="/ouro-ui/storybook/">storybook</a>',
-    "docs/button/index.html": '<a href="/ouro-ui/docs/button.md">md</a><pre><a href="/ouro-ui/nope">in code</a></pre>',
+    "index.html": '<a href="/docs/button/">ok</a> <a href="/docs/Button/">case</a> <a href="/docs/gone/">gone</a> <a href="https://example.com/">out</a> <a href="/storybook/">storybook</a>',
+    "docs/button/index.html": '<a href="/docs/button.md">md</a><pre><a href="/nope">in code</a></pre>',
     "docs/button.md": "[Form](form.md) [Button](button.md)",
   });
   const problems = builtProblems(dist);
   assert.equal(problems.length, 3, problems.join("\n"));
-  assert.match(problems.join("\n"), /index\.html: \/ouro-ui\/docs\/Button\/ names no file in the built site/);
-  assert.match(problems.join("\n"), /index\.html: \/ouro-ui\/docs\/gone\/ names no file/);
+  assert.match(problems.join("\n"), /index\.html: \/docs\/Button\/ names no file in the built site/);
+  assert.match(problems.join("\n"), /index\.html: \/docs\/gone\/ names no file/);
   assert.match(problems.join("\n"), /docs\/button\.md: form\.md names no file/);
 });
 

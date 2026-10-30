@@ -90,7 +90,7 @@ const alignClasses = { start: "items-start", center: "items-center", end: "items
  * `ItemGroup` for a list of rows with media, titles and actions.
  *
  * @group Layout
- * @see https://ourostack.github.io/ouro-ui/docs/stack
+ * @see https://ui.ouro.bot/docs/stack
  *
  * @example
  * <Stack gap="sm">

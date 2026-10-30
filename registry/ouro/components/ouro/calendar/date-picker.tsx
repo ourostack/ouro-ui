@@ -168,7 +168,7 @@ const owner = { name: "DatePicker", data: "date-picker" };
  * `TextField type="time"` for a time.
  *
  * @group Forms
- * @see https://ourostack.github.io/ouro-ui/docs/date-picker
+ * @see https://ui.ouro.bot/docs/date-picker
  *
  * @example
  * <DatePicker label="Delivery date" name="delivery" min="2026-10-11" required error={errors?.delivery} />

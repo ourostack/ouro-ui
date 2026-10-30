@@ -79,7 +79,7 @@ test("a component folder without a valid component.json fails with the fix", () 
 
 test("the registry is named ouro and lists every item", () => {
   assert.equal(registry.name, "ouro");
-  assert.equal(registry.homepage, "https://ourostack.github.io/ouro-ui/");
+  assert.equal(registry.homepage, "https://ui.ouro.bot/");
   assert.deepEqual(registry.items.map((entry) => entry.name), [
     "ouro-base",
     "ouro-theme",
@@ -317,11 +317,11 @@ test("each item has a one-line description and a docs message with its docs URL"
   assert.equal(sheet.description, "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.");
   assert.equal(
     sheet.docs,
-    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/sheet.md`,
+    `${sheet.description} Import: import { Sheet } from "@/components/ouro/sheet/sheet", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/sheet.md`,
   );
   assert.equal(
     item("confirm-dialog").docs,
-    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ourostack.github.io/ouro-ui/docs/confirm-dialog.md`,
+    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/confirm-dialog.md`,
   );
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   // ouro-base is the one item an app adds by hand, once; the helpers come with what imports them.
@@ -333,9 +333,9 @@ test("each item has a one-line description and a docs message with its docs URL"
   // claim() is for an app's own copy, and no component imports it.
   assert.match(item("lib-claims").description, /^claim\(\), .* No component imports it; add it by name\. /);
   assert.match(item("ouro-testing").description, /^Installed with every -tests item; you don't need to add it\. /);
-  assert.match(item("sheet-tests").docs, /https:\/\/ourostack\.github\.io\/ouro-ui\/docs\/testing\.md$/);
+  assert.match(item("sheet-tests").docs, /https:\/\/ui\.ouro\.bot\/docs\/testing\.md$/);
   for (const name of components) {
-    assert.ok(item(name).docs.endsWith(`Docs: https://ourostack.github.io/ouro-ui/docs/${name}.md`), name);
+    assert.ok(item(name).docs.endsWith(`Docs: https://ui.ouro.bot/docs/${name}.md`), name);
   }
   assert.match(item("ouro-testing").docs, /ouroTestProjects/);
   assert.match(item("ouro-testing").docs, /OURO_E2E_URL/);
@@ -447,14 +447,14 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   for (const entry of registry.items.filter((each) => !each.name.startsWith("lib-"))) {
     // A component's line ends with its page's full Markdown URL, so an agent never composes one.
     const line = components.includes(entry.name)
-      ? `- \`${entry.name}\`: ${entry.description} Docs: https://ourostack.github.io/ouro-ui/docs/${entry.name}.md\n`
+      ? `- \`${entry.name}\`: ${entry.description} Docs: https://ui.ouro.bot/docs/${entry.name}.md\n`
       : `- \`${entry.name}\`: ${entry.description}\n`;
     assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; run pnpm registry`);
   }
   // The helpers are one line: no app adds one by name.
   const helpers = llms.split("\n").find((line) => line.startsWith("- Helpers, one item per file in lib/ouro"));
   for (const name of libs) assert.ok(helpers.includes(`\`${name}\``), `llms.txt names ${name}`);
-  assert.ok(llms.includes("https://ourostack.github.io/ouro-ui/docs/parts.md"), "llms.txt links parts.md");
+  assert.ok(llms.includes("https://ui.ouro.bot/docs/parts.md"), "llms.txt links parts.md");
 });
 
 test("--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag)", () => {
@@ -600,7 +600,7 @@ test("each lib helper is its own item, so an item installs only the helpers it i
 test("every item's docs message names a docs page the site publishes", () => {
   const catalog = JSON.parse(readFileSync(join(root, "site/src/docs/catalog.json"), "utf8")).map((entry) => entry.name);
   const pages = JSON.parse(readFileSync(join(root, "site/src/docs/pages.json"), "utf8")).map((entry) => entry.name);
-  const published = new Set([...catalog, ...pages].map((name) => `https://ourostack.github.io/ouro-ui/docs/${name}.md`));
+  const published = new Set([...catalog, ...pages].map((name) => `https://ui.ouro.bot/docs/${name}.md`));
   for (const entry of registry.items) {
     // A helper prints nothing, so an add prints one message per component, not one per helper.
     if (entry.name.startsWith("lib-")) {

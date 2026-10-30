@@ -1,11 +1,11 @@
-// Serves the built site at /ouro-ui/ and the install proof's per-preset builds at /app/<preset>/,
+// Serves the built site at / and the install proof's per-preset builds at /app/<preset>/,
 // for site/theme-install (its playwright.config.ts starts it).
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { URL } from "node:url";
 
-const roots = { "/ouro-ui/": join(import.meta.dirname, "../dist"), "/app/": process.env.THEME_APP };
+const roots = { "/": join(import.meta.dirname, "../dist"), "/app/": process.env.THEME_APP };
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".woff2": "font/woff2", ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".webp": "image/webp", ".txt": "text/plain" };
 
 createServer((request, response) => {

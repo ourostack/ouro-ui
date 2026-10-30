@@ -91,7 +91,7 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
  * views that switch in place.
  *
  * @group Chat
- * @see https://ourostack.github.io/ouro-ui/docs/conversation-list
+ * @see https://ui.ouro.bot/docs/conversation-list
  *
  * @example
  * <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />

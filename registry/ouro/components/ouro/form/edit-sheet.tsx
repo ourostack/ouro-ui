@@ -143,7 +143,7 @@ const hasErrors = (result: EditSheetResult): result is ReadonlyFormErrors => Boo
  * `ConfirmDialog` to confirm one action.
  *
  * @group Overlays
- * @see https://ourostack.github.io/ouro-ui/docs/edit-sheet
+ * @see https://ui.ouro.bot/docs/edit-sheet
  *
  * @example
  * <EditSheet

@@ -14,7 +14,7 @@ const REPO = "ourostack/ouro-ui";
 const registry = {
   $schema: "https://ui.shadcn.com/schema/registry.json",
   name: "ouro",
-  homepage: "https://ourostack.github.io/ouro-ui/",
+  homepage: "https://ui.ouro.bot/",
   version: "9.9.9",
   items: [
     { name: "ouro-theme", type: "registry:theme", cssVars: { light: { accent: "#fff" } }, docs: "Theme. Ouro UI v9.9.9." },

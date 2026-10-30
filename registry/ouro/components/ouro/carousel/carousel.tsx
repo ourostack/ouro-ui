@@ -107,7 +107,7 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * panels have names the user picks from.
  *
  * @group Display
- * @see https://ourostack.github.io/ouro-ui/docs/carousel
+ * @see https://ui.ouro.bot/docs/carousel
  *
  * @example
  * <Carousel label="Recipe photos">

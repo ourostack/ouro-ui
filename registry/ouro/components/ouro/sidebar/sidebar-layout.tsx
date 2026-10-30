@@ -75,7 +75,7 @@ const headerCell =
  * `AuthLayout` for the sign-in pages.
  *
  * @group Navigation
- * @see https://ourostack.github.io/ouro-ui/docs/sidebar-layout
+ * @see https://ui.ouro.bot/docs/sidebar-layout
  *
  * @example
  * <SidebarLayout
