@@ -63,26 +63,26 @@ function photo(sky: string, sun: string, land: string, water: string): string {
 }
 
 const places = [
-  ["Harbor", photo("#8ec5e8", "#ffd166", "#3d7a5a", "#2f6f8f")],
-  ["Orchard", photo("#f4a261", "#ffe8a3", "#6b4f3a", "#4a6c8c")],
-  ["Lighthouse", photo("#e76f51", "#f4d35e", "#2a3d45", "#264653")],
-  ["Night ferry", photo("#1d3557", "#f1faee", "#16262e", "#1b4965")],
-  ["Salt flats", photo("#bde0fe", "#fefae0", "#a98467", "#8ecae6")],
-  ["Pine ridge", photo("#90be6d", "#f9c74f", "#283618", "#43aa8b")],
-  ["Old mill", photo("#cdb4db", "#ffc8dd", "#5e548e", "#7b8cde")],
-  ["Tide pools", photo("#48cae4", "#ffb703", "#023047", "#0077b6")],
-  ["Vineyard", photo("#ffafcc", "#ffe5b4", "#6a4c93", "#8093f1")],
-  ["Boathouse", photo("#a8dadc", "#f1faee", "#457b9d", "#1d3557")],
+  ["Harbor", "Green hills above a calm bay at noon", photo("#8ec5e8", "#ffd166", "#3d7a5a", "#2f6f8f")],
+  ["Orchard", "Brown hills under an orange evening sky", photo("#f4a261", "#ffe8a3", "#6b4f3a", "#4a6c8c")],
+  ["Lighthouse", "Dark hills against a red sunset", photo("#e76f51", "#f4d35e", "#2a3d45", "#264653")],
+  ["Night ferry", "A pale moon over a dark sea", photo("#1d3557", "#f1faee", "#16262e", "#1b4965")],
+  ["Salt flats", "Tan hills beside pale water", photo("#bde0fe", "#fefae0", "#a98467", "#8ecae6")],
+  ["Pine ridge", "Dark ridges over a green lake", photo("#90be6d", "#f9c74f", "#283618", "#43aa8b")],
+  ["Old mill", "Purple hills under a pink sky", photo("#cdb4db", "#ffc8dd", "#5e548e", "#7b8cde")],
+  ["Tide pools", "An orange sun over bright blue water", photo("#48cae4", "#ffb703", "#023047", "#0077b6")],
+  ["Vineyard", "Purple slopes under a peach sky", photo("#ffafcc", "#ffe5b4", "#6a4c93", "#8093f1")],
+  ["Boathouse", "Blue hills over deep water at dawn", photo("#a8dadc", "#f1faee", "#457b9d", "#1d3557")],
 ] as const;
 
 /** Ten 160px photos in a row that wraps: 1708px wide when there is room, so the dialog grows to its cap and wraps them. */
 function Gallery() {
   return (
     <ul style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: 0, padding: 0, listStyle: "none" }}>
-      {places.map(([place, src]) => (
+      {places.map(([place, scene, src]) => (
         <li key={place}>
           <figure style={{ ...stack, gap: 6, margin: 0 }}>
-            <img src={src} alt={place} width={160} height={120} style={{ display: "block", borderRadius: "var(--radius)" }} />
+            <img src={src} alt={scene} width={160} height={120} style={{ display: "block", borderRadius: "var(--radius)" }} />
             <figcaption style={caption}>{place}</figcaption>
           </figure>
         </li>
