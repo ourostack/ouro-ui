@@ -47,10 +47,10 @@ test("the committed Spoonjoy data names only registry components, Spoonjoy's own
   }
 });
 
-test("the home page's Spoonjoy card counts the components spoonjoy.json lists, without importing that file", () => {
+test("the home page's Spoonjoy showcase counts no components, and does not import spoonjoy.json", () => {
+  // The home page says what Spoonjoy is, not how many parts it uses (Ari, 2026-10-30).
   const home = readFileSync(new URL("../src/voyage/home.tsx", import.meta.url), "utf8");
-  const count = Object.keys(data.items).length;
-  assert.ok(home.includes(`claim("${count} Ouro HX components"`), "the card's count matches spoonjoy.json");
-  assert.ok(home.includes(`is: ${count} }`), "the count's check matches spoonjoy.json");
+  const copy = readFileSync(new URL("../src/voyage/copy.ts", import.meta.url), "utf8");
+  for (const source of [home, copy]) assert.doesNotMatch(source, /\d+ Ouro HX components/);
   assert.doesNotMatch(home, /docs\/spoonjoy\.json"/);
 });

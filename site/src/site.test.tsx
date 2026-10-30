@@ -257,6 +257,18 @@ describe("docs", () => {
     expect(toaster).not.toMatch(/^# toast$/m);
   });
 
+  it("keeps the header out of the way of the sidebar, which stays put as the page scrolls", async () => {
+    // The docs sidebar sticks to the top of the window, so a header that stuck there too would cover its filter.
+    await page.viewport(1280, 800);
+    await renderPage("/docs/composer/");
+    window.scrollTo({ top: 600, behavior: "instant" });
+    const field = document.querySelector<HTMLInputElement>('input[placeholder="Filter components"]')!;
+    await expect.poll(() => field.getBoundingClientRect().top).toBeLessThan(60);
+    const box = field.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + 20, box.top + box.height / 2)).toBe(field);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
   it("has the Switching from shadcn and Updating pages", async () => {
     await renderPage("/docs/switching-from-shadcn/");
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Switching from shadcn");

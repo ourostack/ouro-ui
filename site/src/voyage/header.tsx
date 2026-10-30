@@ -184,7 +184,8 @@ export function VoyageHeader({ path, gutters = "voyage" }: { path: string; gutte
   return (
     <Navbar
       label="Site"
-      className={`sticky top-0 z-40 ${GUTTERS[gutters]}`}
+      // Sticky on the voyage pages only: the docs sidebar sticks to the top itself, and would sit under it.
+      className={`${gutters === "voyage" ? "sticky top-0 z-40" : "relative z-40"} ${GUTTERS[gutters]}`}
       brand={
         <a
           href={href("/")}
