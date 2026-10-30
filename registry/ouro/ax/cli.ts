@@ -1,0 +1,82 @@
+/**
+ * The whole front door for a tool built on the kit: parse, help, run, print the result as text or `--json`, and turn
+ * every failure into the one error line and its exit code.
+ */
+import { flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue } from "./command.ts";
+import { AxError, errorJson, errorLine, isAxError } from "./errors.ts";
+import { commandManifest, helpJson, renderCommand, renderOverview, type OverviewOptions } from "./help.ts";
+import { render } from "./output.ts";
+
+export interface CliIo {
+  stdout: { write(s: string): unknown };
+  stderr: { write(s: string): unknown };
+  stdin?: AsyncIterable<string | Uint8Array> | Iterable<string | Uint8Array>;
+}
+
+export interface RunOptions {
+  overview?: OverviewOptions;
+  /** Help topics that are not commands, as finished text. */
+  topics?: Readonly<Record<string, string>>;
+}
+
+async function readAll(stream: AsyncIterable<string | Uint8Array> | Iterable<string | Uint8Array> | undefined): Promise<string> {
+  if (!stream) return "";
+  let text = "";
+  const decoder = new TextDecoder();
+  for await (const chunk of stream) text += typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true });
+  return text + decoder.decode();
+}
+
+/** Replaces the one "-" value with stdin's text; a second "-" is a usage error. */
+async function withStdin(cli: Cli, cmd: CommandDef, input: Input, stdin: () => Promise<string>): Promise<Input> {
+  const out: Record<string, InputValue> = { ...input };
+  const stdinNames = [...(cmd.args ?? []).filter((a: ArgSpec) => a.stdin).map((a) => a.name), ...Object.entries(flagsOf(cli, cmd)).filter(([, s]) => s.stdin).map(([n]) => n)];
+  const dashes = stdinNames.filter((n) => out[n] === "-");
+  if (dashes.length > 1) throw new AxError({ code: "two-stdin", exit: cli.exits.code("usage"), thing: cmd.name, problem: `only one "-" (stdin) per command, and ${dashes.map((n) => n).join(" and ")} both ask for it`, fix: `${cli.name} ${cmd.name} ... with the shorter text on the command line` });
+  for (const n of dashes) out[n] = (await stdin()).replace(/\r?\n$/, "");
+  return out;
+}
+
+export async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: RunOptions = {}): Promise<number> {
+  let json = argv.includes("--json");
+  try {
+    const parsed = parse(cli, argv);
+    json = parsed.json;
+    if (parsed.kind === "help") {
+      const topic = parsed.topic;
+      if (topic === undefined) {
+        io.stdout.write(parsed.json ? `${JSON.stringify(helpJson(cli), null, 2)}\n` : renderOverview(cli, options.overview));
+        return 0;
+      }
+      const found = findCommand(cli, topic.split(" "));
+      if (found) {
+        io.stdout.write(parsed.json ? `${JSON.stringify(commandManifest(cli, found.command), null, 2)}\n` : renderCommand(cli, found.command));
+        return 0;
+      }
+      const text = options.topics && Object.hasOwn(options.topics, topic) ? options.topics[topic] : undefined;
+      if (text !== undefined) {
+        io.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
+        return 0;
+      }
+      throw new AxError({ code: "unknown-topic", exit: cli.exits.code("usage"), thing: "help", problem: `there is no help for "${topic}"`, fix: `${cli.name} --help` });
+    }
+    const cmd = parsed.command;
+    if (!cmd.run) throw new AxError({ code: "not-runnable", exit: cli.exits.code("error"), thing: cmd.name, problem: "this command has no run() in its definition", fix: null });
+    let taken = false;
+    const stdin = async () => {
+      if (taken) throw new AxError({ code: "two-stdin", exit: cli.exits.code("usage"), thing: cmd.name, problem: 'stdin was already read; only one "-" per command', fix: null });
+      taken = true;
+      return readAll(io.stdin);
+    };
+    const input = await withStdin(cli, cmd, parsed.input, stdin);
+    const result = await cmd.run(input, { stdin, json });
+    const text = cmd.text;
+    io.stdout.write(text ? render(result, { json, text: (r) => text.call(cmd, r, input) }) : render(result, { json }));
+    return 0;
+  } catch (e) {
+    const shape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: cli.name, problem: e instanceof Error ? e.message : String(e), fix: null };
+    io.stderr.write(`${errorLine(cli.name, shape)}\n`);
+    if (json) io.stdout.write(`${JSON.stringify(errorJson(shape), null, 2)}\n`);
+    return shape.exit;
+  }
+}

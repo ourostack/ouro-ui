@@ -1,0 +1,1 @@
+- New: Ouro AX, the agent-experience kit (`ouro-ax`, Node, no dependencies): one definition of a command gives its parser with one-line errors that name the exact fix, help and `help --json`, `--json` output, a stable exit-code table, effect classes (only you, or other people) with `--why` and audience preview, and the same commands as an MCP server over stdio.

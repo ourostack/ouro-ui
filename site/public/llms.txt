@@ -237,6 +237,25 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.14     # install a component
 - `ouro-tests`: Optional: every Ouro UI component with its tests, type tests, stories and Playwright spec, and the test kit. The whole suite in one command. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.
 - `ouro-census`: Optional: the census journey kit. A Playwright spec of yours lists the pages your app renders and the states a person can open on them; the census records the exact multiset of visible controls in each (role, name, Ouro marker, context) and fails on any change from the committed baseline, and on any unmarked control in a journey you enrol. Unmarked controls may only fall, state by state. It installs e2e/ouro-census/ (the spec helper, the merge, the baseline update and a comparison of two runs).
 - `ouro-source-rules`: Optional: the hand-rolled-control source rule. It reads your app's source with the TypeScript compiler and its stylesheets with PostCSS, and finds the controls still built by hand (a raw <button>, <a>, <input>, a click handler on a <div>, another UI library's control, control-state styling) and every component that wraps one, as fingerprints held to a committed baseline that may only shrink. It installs scripts/ouro-source-rules.mjs.
+- `ax-cli`: Ouro AX: The whole front door for a tool built on the kit: parse, help, run, print the result as text or `--json`, and turn every failure into the one error line and its exit code.
+- `ax-command`: Ouro AX: One definition of a command: its words, effect, arguments and flags, examples and output.
+- `ax-effects`: Ouro AX: Effect classes: every command either touches only the person's own space ("private") or reaches other people ("others").
+- `ax-errors`: Ouro AX: One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop.
+- `ax-example`: Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it.
+- `ax-exit-codes`: Ouro AX: A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift.
+- `ax-help`: Ouro AX: Help from the definitions: a one-screen overview under the two effect headings, each command's details, and the same as JSON (`help --json`), which an agent parses instead of scraping text.
+- `ax-mcp`: Ouro AX: The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold.
+- `ax-output`: Ouro AX: One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data.
+- `ax-cli-tests`: Optional: the node:test tests for ax-cli; run them with node --test.
+- `ax-command-tests`: Optional: the node:test tests for ax-command; run them with node --test.
+- `ax-effects-tests`: Optional: the node:test tests for ax-effects; run them with node --test.
+- `ax-errors-tests`: Optional: the node:test tests for ax-errors; run them with node --test.
+- `ax-exit-codes-tests`: Optional: the node:test tests for ax-exit-codes; run them with node --test.
+- `ax-help-tests`: Optional: the node:test tests for ax-help; run them with node --test.
+- `ax-mcp-tests`: Optional: the node:test tests for ax-mcp; run them with node --test.
+- `ax-output-tests`: Optional: the node:test tests for ax-output; run them with node --test.
+- `ouro-ax`: Ouro AX in one item: every ax-* primitive, so one definition of a command gives its parser, help, --json, errors, exit codes, effects and MCP tool.
+- `ouro-ax-tests`: Optional: Ouro AX with every ax-* test and the example tool.
 - Helpers, one item per file in lib/ouro, each installed with the components that import it (and `<name>-tests` for a helper with tests): `lib-announce`, `lib-appearance-hints`, `lib-claims`, `lib-class-name-check`, `lib-cn`, `lib-color-scheme`, `lib-color-scheme-script`, `lib-control-ref`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-feedback`, `lib-floating`, `lib-focus-handoff`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-portal-container`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-share`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-install-prompt`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-ouro`, `lib-use-sheet-presentation`, `lib-use-timer`. No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 
 ## Docs

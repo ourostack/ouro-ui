@@ -10838,6 +10838,319 @@
           "typescript": ">=6.0.3"
         }
       }
+    },
+    {
+      "name": "ax-cli",
+      "type": "registry:lib",
+      "title": "ax-cli",
+      "description": "Ouro AX: The whole front door for a tool built on the kit: parse, help, run, print the result as text or `--json`, and turn every failure into the one error line and its exit code.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-errors",
+        "ourostack/ouro-ui/ax-help",
+        "ourostack/ouro-ui/ax-output"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/cli.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/cli.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-command",
+      "type": "registry:lib",
+      "title": "ax-command",
+      "description": "Ouro AX: One definition of a command: its words, effect, arguments and flags, examples and output.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-effects",
+        "ourostack/ouro-ui/ax-errors",
+        "ourostack/ouro-ui/ax-exit-codes"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/command.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/command.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-effects",
+      "type": "registry:lib",
+      "title": "ax-effects",
+      "description": "Ouro AX: Effect classes: every command either touches only the person's own space (\"private\") or reaches other people (\"others\").",
+      "files": [
+        {
+          "path": "registry/ouro/ax/effects.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/effects.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-errors",
+      "type": "registry:lib",
+      "title": "ax-errors",
+      "description": "Ouro AX: One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop.",
+      "files": [
+        {
+          "path": "registry/ouro/ax/errors.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/errors.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-example",
+      "type": "registry:lib",
+      "title": "ax-example",
+      "description": "Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-effects",
+        "ourostack/ouro-ui/ax-errors",
+        "ourostack/ouro-ui/ax-exit-codes"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/example-cli.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/example-cli.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-exit-codes",
+      "type": "registry:lib",
+      "title": "ax-exit-codes",
+      "description": "Ouro AX: A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift.",
+      "files": [
+        {
+          "path": "registry/ouro/ax/exit-codes.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/exit-codes.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-help",
+      "type": "registry:lib",
+      "title": "ax-help",
+      "description": "Ouro AX: Help from the definitions: a one-screen overview under the two effect headings, each command's details, and the same as JSON (`help --json`), which an agent parses instead of scraping text.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-effects"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/help.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/help.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-mcp",
+      "type": "registry:lib",
+      "title": "ax-mcp",
+      "description": "Ouro AX: The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-effects",
+        "ourostack/ouro-ui/ax-errors",
+        "ourostack/ouro-ui/ax-help",
+        "ourostack/ouro-ui/ax-output"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/mcp.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/mcp.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-output",
+      "type": "registry:lib",
+      "title": "ax-output",
+      "description": "Ouro AX: One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data.",
+      "files": [
+        {
+          "path": "registry/ouro/ax/output.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/output.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-cli-tests",
+      "type": "registry:item",
+      "title": "ax-cli tests",
+      "description": "Optional: the node:test tests for ax-cli; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-cli",
+        "ourostack/ouro-ui/ax-example"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/cli.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/cli.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-command-tests",
+      "type": "registry:item",
+      "title": "ax-command tests",
+      "description": "Optional: the node:test tests for ax-command; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-errors",
+        "ourostack/ouro-ui/ax-example"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/command.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/command.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-effects-tests",
+      "type": "registry:item",
+      "title": "ax-effects tests",
+      "description": "Optional: the node:test tests for ax-effects; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-effects"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/effects.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/effects.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-errors-tests",
+      "type": "registry:item",
+      "title": "ax-errors tests",
+      "description": "Optional: the node:test tests for ax-errors; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-errors"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/errors.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/errors.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-exit-codes-tests",
+      "type": "registry:item",
+      "title": "ax-exit-codes tests",
+      "description": "Optional: the node:test tests for ax-exit-codes; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-exit-codes"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/exit-codes.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/exit-codes.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-help-tests",
+      "type": "registry:item",
+      "title": "ax-help tests",
+      "description": "Optional: the node:test tests for ax-help; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-example",
+        "ourostack/ouro-ui/ax-help"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/help.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/help.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-mcp-tests",
+      "type": "registry:item",
+      "title": "ax-mcp tests",
+      "description": "Optional: the node:test tests for ax-mcp; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-example",
+        "ourostack/ouro-ui/ax-mcp"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/mcp.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/mcp.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-output-tests",
+      "type": "registry:item",
+      "title": "ax-output tests",
+      "description": "Optional: the node:test tests for ax-output; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-output"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/output.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/output.test.ts"
+        }
+      ]
+    },
+    {
+      "name": "ouro-ax",
+      "type": "registry:item",
+      "title": "Ouro AX",
+      "description": "Ouro AX in one item: every ax-* primitive, so one definition of a command gives its parser, help, --json, errors, exit codes, effects and MCP tool.",
+      "docs": "Ouro AX is in lib/ouro/ax. Run it on Node 22.18 or later (type stripping); it has no dependencies.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-cli",
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-effects",
+        "ourostack/ouro-ui/ax-errors",
+        "ourostack/ouro-ui/ax-exit-codes",
+        "ourostack/ouro-ui/ax-help",
+        "ourostack/ouro-ui/ax-mcp",
+        "ourostack/ouro-ui/ax-output"
+      ]
+    },
+    {
+      "name": "ouro-ax-tests",
+      "type": "registry:item",
+      "title": "Ouro AX tests",
+      "description": "Optional: Ouro AX with every ax-* test and the example tool.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-cli-tests",
+        "ourostack/ouro-ui/ax-command-tests",
+        "ourostack/ouro-ui/ax-effects-tests",
+        "ourostack/ouro-ui/ax-errors-tests",
+        "ourostack/ouro-ui/ax-exit-codes-tests",
+        "ourostack/ouro-ui/ax-help-tests",
+        "ourostack/ouro-ui/ax-mcp-tests",
+        "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ouro-ax"
+      ]
     }
   ]
 }
