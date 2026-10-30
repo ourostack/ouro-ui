@@ -599,6 +599,8 @@ describe("Message post", () => {
     const footer = card.querySelector<HTMLElement>("[data-ouro-message-footer]")!;
     expect(footer.textContent).toBe("4 likes");
     expect(footer.getAttribute("data-ouro-message-footer")).toBe("");
+    // Reactions start at the card's start, under the text.
+    expect(footer.firstElementChild!.getBoundingClientRect().left).toBeCloseTo(subject.getBoundingClientRect().left, 0);
     // Inside the card, the footer keeps 8px from the text.
     expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     // Reactions are not part of what MessageList reads out as the message.
