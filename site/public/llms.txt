@@ -107,7 +107,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.14     # install a component
 - `chart`: A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`). Docs: https://ui.ouro.bot/docs/chart.md
 - `message`: One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. Docs: https://ui.ouro.bot/docs/message.md
 - `message-list`: A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. Docs: https://ui.ouro.bot/docs/message-list.md
-- `attachment`: A file attached to a chat message, or waiting to be sent with one: its icon, name and size. Docs: https://ui.ouro.bot/docs/attachment.md
+- `attachment`: A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. Docs: https://ui.ouro.bot/docs/attachment.md
 - `checklist`: A list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action. Docs: https://ui.ouro.bot/docs/checklist.md
 - `inspector`: X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users. Docs: https://ui.ouro.bot/docs/inspector.md
 - `skip-link`: The "Skip to main content" link a keyboard or screen-reader user meets first on every page, so one Tab and Enter jump past the header and navigation. Docs: https://ui.ouro.bot/docs/skip-link.md

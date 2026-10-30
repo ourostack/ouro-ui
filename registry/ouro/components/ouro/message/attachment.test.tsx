@@ -85,7 +85,7 @@ describe("Attachment", () => {
     expect(link.element().hasAttribute("download")).toBe(true);
   });
 
-  it("shows an image icon for images and a file icon otherwise", async () => {
+  it("shows an image icon for images and a document's for text", async () => {
     const { host } = await render(
       <>
         <Attachment name="photo.jpg" contentType="image/jpeg" />
@@ -93,8 +93,190 @@ describe("Attachment", () => {
       </>,
     );
     const icons = [...host.querySelectorAll("[data-ouro-attachment-icon]")].map((icon) => icon.getAttribute("data-ouro-attachment-icon"));
-    expect(icons).toEqual(["image", "file"]);
+    expect(icons).toEqual(["image", "doc"]);
     for (const icon of host.querySelectorAll("svg")) expect(icon.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  const types: [string, string][] = [
+    ["pdf", "application/pdf"],
+    ["doc", "application/msword"],
+    ["doc", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ["doc", "application/vnd.oasis.opendocument.text"],
+    ["doc", "application/rtf"],
+    ["doc", "text/plain"],
+    ["doc", "text/markdown"],
+    ["sheet", "application/vnd.ms-excel"],
+    ["sheet", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    ["sheet", "application/vnd.oasis.opendocument.spreadsheet"],
+    ["sheet", "text/csv"],
+    ["slides", "application/vnd.ms-powerpoint"],
+    ["slides", "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+    ["slides", "application/vnd.oasis.opendocument.presentation"],
+    ["zip", "application/zip"],
+    ["zip", "application/x-7z-compressed"],
+    ["zip", "application/vnd.rar"],
+    ["zip", "application/gzip"],
+    ["zip", "application/x-tar"],
+    ["code", "application/json"],
+    ["code", "text/javascript"],
+    ["code", "text/html"],
+    ["code", "text/css"],
+    ["code", "application/xml"],
+    ["code", "text/xml"],
+    ["image", "image/png"],
+    ["image", "image/svg+xml"],
+    ["video", "video/mp4"],
+    ["audio", "audio/mpeg"],
+    ["doc", "Text/Plain; charset=utf-8"],
+    ["pdf", " application/pdf ; name=menu"],
+  ];
+  const extensions: [string, string][] = [
+    ["pdf", "pdf"],
+    ...["doc", "docx", "odt", "rtf", "txt", "md", "pages"].map((extension): [string, string] => ["doc", extension]),
+    ...["xls", "xlsx", "ods", "csv", "tsv", "numbers"].map((extension): [string, string] => ["sheet", extension]),
+    ...["ppt", "pptx", "odp", "key"].map((extension): [string, string] => ["slides", extension]),
+    ...["png", "jpg", "jpeg", "gif", "webp", "svg", "heic", "avif", "bmp", "tif", "tiff"].map((extension): [string, string] => ["image", extension]),
+    ...["mp4", "mov", "webm", "mkv", "avi", "m4v"].map((extension): [string, string] => ["video", extension]),
+    ...["mp3", "wav", "m4a", "ogg", "flac", "aac"].map((extension): [string, string] => ["audio", extension]),
+    ...["zip", "7z", "rar", "gz", "tgz", "tar", "bz2", "xz"].map((extension): [string, string] => ["zip", extension]),
+    ...["js", "jsx", "ts", "tsx", "json", "py", "rb", "go", "rs", "java", "c", "cpp", "h", "cs", "swift", "kt", "sh", "yml", "yaml", "toml", "html", "css", "xml", "sql", "php"].map(
+      (extension): [string, string] => ["code", extension],
+    ),
+    ["pdf", "PDF"],
+  ];
+
+  it("picks the icon from the MIME type, then the name's extension", async () => {
+    const { host } = await render(
+      <>
+        {types.map(([, type], index) => (
+          <Attachment key={`t${index}`} name="file" contentType={type} />
+        ))}
+        {extensions.map(([, extension], index) => (
+          <Attachment key={`e${index}`} name={`menu.${extension}`} />
+        ))}
+        {/* The type wins over the name; a type it does not know leaves the name to decide. A name with no extension, or a hidden file's, is a file. */}
+        <Attachment name="menu.docx" contentType="application/pdf" />
+        <Attachment name="budget.xlsx" contentType="application/octet-stream" />
+        <Attachment name="recipes.tar.gz" />
+        <Attachment name=".gitignore" />
+        <Attachment name="pdf" />
+        <Attachment name=".md" />
+        <Attachment name="starter" />
+        <Attachment name="menu.toString" />
+      </>,
+    );
+    const icons = [...host.querySelectorAll("[data-ouro-attachment-icon]")].map((icon) => icon.getAttribute("data-ouro-attachment-icon"));
+    expect(icons).toEqual([...types.map(([kind]) => kind), ...extensions.map(([kind]) => kind), "pdf", "sheet", "zip", "file", "file", "file", "file", "file"]);
+  });
+
+  it("draws its own figure for each kind, 20px square, and colors documents, spreadsheets, slides and PDFs", async () => {
+    const kinds = ["doc", "sheet", "slides", "pdf", "image", "video", "audio", "zip", "code", "file"] as const;
+    const { host } = await render(
+      <>
+        {kinds.map((kind) => (
+          <Attachment key={kind} name="file" kind={kind} />
+        ))}
+      </>,
+    );
+    const icons = [...host.querySelectorAll<SVGElement>("svg[data-ouro-attachment-icon]")];
+    expect(icons.map((icon) => icon.getAttribute("data-ouro-attachment-icon"))).toEqual([...kinds]);
+    const drawings = icons.map((icon) => icon.querySelector("path")!.getAttribute("d")!);
+    expect(new Set(drawings).size).toBe(kinds.length);
+    for (const [index, icon] of icons.entries()) {
+      expect(drawings[index]!.length).toBeGreaterThan(20);
+      expect(icon.getBoundingClientRect().width).toBe(20);
+      expect(icon.getBoundingClientRect().height).toBe(20);
+    }
+    const color = (token: string) => {
+      const probe = document.createElement("span");
+      probe.style.color = `var(--${token})`;
+      host.append(probe);
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    };
+    expect(icons.map((icon) => getComputedStyle(icon).color)).toEqual([
+      color("primary"),
+      color("success"),
+      color("warning"),
+      color("destructive"),
+      ...Array.from({ length: 6 }, () => color("muted-foreground")),
+    ]);
+  });
+
+  it("shows the app's own icon in place of the drawing, hidden from screen readers like it", async () => {
+    const { host } = await render(
+      <>
+        <Attachment name="budget.xlsx" icon={<svg data-testid="own" viewBox="0 0 16 16" />} href="/budget.xlsx" />
+        <Attachment name="menu.pdf" icon={null} />
+        <Attachment name="notes.txt" icon={false} />
+      </>,
+    );
+    const own = host.querySelector<HTMLElement>('[data-testid="own"]')!;
+    const slot = own.parentElement!;
+    expect(slot.getAttribute("aria-hidden")).toBe("true");
+    expect(slot.getAttribute("data-ouro-attachment-icon")).toBe("sheet");
+    expect(own.getBoundingClientRect().width).toBe(20);
+    await expect.element(page.getByRole("link", { name: "budget.xlsx" })).toBeVisible();
+    expect([...host.querySelectorAll("svg[data-ouro-attachment-icon]")].map((icon) => icon.getAttribute("data-ouro-attachment-icon"))).toEqual(["pdf", "doc"]);
+  });
+
+  it("opens the file in the app from a button named by the file and its size", async () => {
+    const onOpen = vi.fn();
+    const { attachment } = await render(<Attachment name="crumb.jpg" size={348_160} contentType="image/jpeg" onOpen={onOpen} />);
+    const button = page.getByRole("button", { name: "crumb.jpg 340 kB" });
+    await userEvent.click(button);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen.mock.calls[0]![0].type).toBe("click");
+    const element = button.element() as HTMLButtonElement;
+    expect(element.type).toBe("button");
+    expect(element.dataset.ouroPart).toBe("open");
+    expect(attachment.querySelector("a")).toBeNull();
+    element.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(onOpen).toHaveBeenCalledTimes(2);
+    // It reads like the link: the attachment's font and a start-aligned row with no border of its own.
+    const style = getComputedStyle(element);
+    expect(style.borderTopWidth).toBe("0px");
+    expect(style.textAlign).toBe("start");
+    expect(style.fontFamily).toBe(getComputedStyle(attachment).fontFamily);
+    expect(style.cursor).toBe("pointer");
+  });
+
+  it("opens a linked file in the app on a plain click, and leaves a new tab or window to the link", async () => {
+    const onOpen = vi.fn();
+    await render(<Attachment name="menu.pdf" href="#attachment-open" onOpen={onOpen} />);
+    const link = page.getByRole("link", { name: "menu.pdf" }).element() as HTMLAnchorElement;
+    await userEvent.click(link);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(location.hash).not.toBe("#attachment-open");
+    const followed: boolean[] = [];
+    const watch = (event: Event) => {
+      followed.push(!event.defaultPrevented);
+      // Keep the test page where it is.
+      event.preventDefault();
+    };
+    window.addEventListener("click", watch);
+    for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }, {}]) {
+      await act(async () => link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ...init })));
+    }
+    window.removeEventListener("click", watch);
+    expect(followed).toEqual([true, true, true, true, true, false]);
+    expect(onOpen).toHaveBeenCalledTimes(2);
+  });
+
+  it("follows a link as usual without onOpen", async () => {
+    await render(<Attachment name="menu.pdf" href="#attachment-plain" />);
+    const link = page.getByRole("link", { name: "menu.pdf" }).element() as HTMLAnchorElement;
+    let prevented: boolean | undefined;
+    const watch = (event: Event) => {
+      prevented = event.defaultPrevented;
+      event.preventDefault();
+    };
+    window.addEventListener("click", watch);
+    await act(async () => link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
+    window.removeEventListener("click", watch);
+    expect(prevented).toBe(false);
   });
 
   it("removes with a button named after the file, which the app can translate", async () => {
@@ -177,12 +359,30 @@ describe("Attachment development messages", () => {
     ["onDelete", { onDelete: () => {} }, "onDelete is not a prop", '<Attachment name="menu.pdf" onRemove={remove} />'],
     ["a negative size", { size: -1 }, "size={-1} is not a byte count", '<Attachment name="menu.pdf" size={file.size} />'],
     ["download without href", { download: true }, "download needs href, the file to download", '<Attachment name="menu.pdf" href="/menu.pdf" download />'],
+    [
+      "an unknown kind",
+      { kind: "excel" },
+      'kind="excel" is not a kind; use "doc", "sheet", "slides", "pdf", "image", "video", "audio", "zip", "code" or "file"',
+      '<Attachment name="notes" kind="doc" />',
+    ],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { name: "menu.pdf", ...extra } as unknown as Parameters<typeof Attachment>[0];
     const { attachment } = await render(<Attachment {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Attachment: ${problem}. Fix: ${fix}.`);
     expect(attachment.hasAttribute("fileName")).toBe(false);
     expect(attachment.querySelector("[data-ouro-attachment-size]")).toBeNull();
+  });
+
+  it("draws an unknown kind as the type and name say", async () => {
+    const props = { name: "menu.pdf", kind: "excel" } as unknown as Parameters<typeof Attachment>[0];
+    const { attachment } = await render(<Attachment {...props} />);
+    expect(attachment.querySelector("[data-ouro-attachment-icon]")!.getAttribute("data-ouro-attachment-icon")).toBe("pdf");
+  });
+
+  it("warns of nothing for a kind it knows, or without one", async () => {
+    await render(<Attachment name="notes" kind="doc" onOpen={() => {}} icon={<svg />} />);
+    await render(<Attachment name="menu.pdf" contentType="application/pdf" />);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("warns when name is missing", async () => {

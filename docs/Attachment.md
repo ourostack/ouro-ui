@@ -2,7 +2,7 @@
 
 # Attachment
 
-A file attached to a chat message, or waiting to be sent with one: its icon, name and size. With `href` it is a link that opens or downloads the file; with `onRemove` it has a remove button, named after the file, for the composer. Long names truncate.
+A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. With `href` it is a link that opens or downloads the file; with `onOpen` it opens the file in the app, such as in a `Lightbox`; with `onRemove` it has a remove button, named after the file, for the composer. Long names truncate.
 
 ```tsx
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -13,6 +13,7 @@ import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 ```tsx
 <Attachment name="menu.pdf" size={file.size} contentType={file.type} href={file.url} />
 <Attachment name={file.name} size={file.size} onRemove={() => remove(file)} />
+<Attachment name="crumb.jpg" contentType="image/jpeg" href={file.url} onOpen={() => showInLightbox(file)} />
 ```
 
 ## Use instead when
@@ -26,11 +27,14 @@ Type: `AttachmentProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width (`mt-2`). Appearance classes warn in development. |
-| `contentType` | `string` |  | The file's MIME type (`file.type`): `image/*` shows an image icon, anything else a file icon. |
+| `contentType` | `string` |  | The file's MIME type (`file.type`). With the name's extension, it picks the icon: "application/pdf" or "menu.pdf" shows a PDF's. |
 | `download` | `boolean` |  | Downloads the file instead of opening it (the link's `download` attribute). Needs `href`. |
 | `formatSize` | `((bytes: number) => string)` | `"512 B"`, "2 kB", "1.2 MB", in steps of 1024 | Writes `size` for other languages or units. |
 | `href` | `string` |  | Where the file opens or downloads. With it, the attachment is a link named by the file and its size. |
+| `icon` | `ReactNode` |  | An icon to show instead of the one for the file's kind, such as the app's own file-type icons. |
+| `kind` | `"audio" \| "code" \| "video" \| "image" \| "sheet" \| "doc" \| "slides" \| "pdf" \| "zip" \| "file"` | from `contentType`, then the name's extension, else "file" | The kind of file, for its icon, when the type and the name do not say: a document, a spreadsheet, slides, a PDF, an image, a video, audio, an archive, code, or any other file. |
 | `name` (required) | `string` |  | The file's name, as the user sees it: "menu.pdf". Required, so every file has a name. |
+| `onOpen` | `((event: MouseEvent<HTMLElement>) => void)` |  | Opens the file in the app, for example in a `Lightbox`. Without `href` the attachment is a button that calls it. With `href` it stays a link: a plain click calls it instead of following the link, and a click with a modifier key (a new tab, a new window) or the middle button follows the link as usual. |
 | `onRemove` | `(() => void)` |  | Shows a remove button, which calls this. Use it while composing a message, before it is sent. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `removeLabel` | `((name: string) => string)` | (name) => `Remove ${name}` | The remove button's accessible name, for other languages. |

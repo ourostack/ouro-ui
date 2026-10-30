@@ -1,0 +1,2 @@
+- Attachment: an icon for the file's kind (a document, a spreadsheet, slides, a PDF, an image, a video, audio, an archive, code), picked from `contentType` and the name's extension, with `kind` to set it and `icon` to replace it.
+- Attachment: `onOpen` opens the file in the app, such as in a Lightbox; without `href` the attachment is a button, and with it a plain click stays in the app while a new tab or window still follows the link.
