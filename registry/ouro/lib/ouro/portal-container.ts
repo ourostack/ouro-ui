@@ -58,7 +58,7 @@ const landmark =
  * @claim "The props for a floating layer's" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup into OuroProvider's portalContainer, given as an element)
  * @claim "The props for a floating layer's" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > warns once, in development, when a popup opens outside every landmark of a page that has a main)
  * @claim "Inside another Ouro UI portal it" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup opened from inside another popup into that popup's portal, not the portalContainer)
- * @claim "the ref also keeps the page where it is while the layer is open" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > with holdPage, keeps the page where it is while the layer is open, and lets it go once it closes)
+ * @claim "the ref also keeps the page where it is while the layer is open" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > holdPage > with holdPage, keeps the page where it is while the layer is open, and lets it go once it closes)
  */
 function usePortalContainer(component: string, holdPage = false): PortalContainerProps {
   const { portalContainer } = useOuro();
