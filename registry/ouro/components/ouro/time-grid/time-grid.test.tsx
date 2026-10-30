@@ -676,6 +676,13 @@ describe("TimeGrid", () => {
   });
 
   it("presses an empty slot with onSlotSelect, and shows a mouse the slot first", async () => {
+    // WebKit sends a mouse move of its own when the page changes under a resting pointer, so the
+    // pointer an earlier press left over the grid would show a slot of its own.
+    const corner = document.createElement("div");
+    Object.assign(corner.style, { position: "fixed", top: "0", left: "0", width: "8px", height: "8px" });
+    document.body.append(corner);
+    await userEvent.hover(corner);
+    corner.remove();
     const slot = vi.fn();
     const { grid, rerender } = await render({ view: "day", onSlotSelect: slot });
     const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
