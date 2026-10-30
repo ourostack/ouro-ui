@@ -56,10 +56,9 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The docs may not grow: they
  * are what they loaded at 7c13bd6a (#141 on main at bf855de4, after the docs stopped loading every
  * page's Markdown first and after #138's claims), 167,396 bytes, plus 1 KiB. The voyage pages (the
- * home page and the Nautilus's) get 292 KB: 270 KB, plus the Menu and Tooltip that Message's action
- * bar brought to the home page's chat (297,518 bytes with them).
+ * home page and the Nautilus's) get 270 KB.
  */
-const CEILINGS = { voyage: 292 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 
 /** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
 const CSS_CEILINGS = { voyage: 36 * 1024, docs: 40 * 1024 } as const;

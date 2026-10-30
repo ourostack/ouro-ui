@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,6 +30,8 @@ async function render(node: ReactNode) {
   };
 }
 
+// An inline picture: a path such as "/priya.png" would ask an app's dev server for its index page.
+const picture = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4AWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
 const bubbleOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!;
 
 let warn: ReturnType<typeof vi.spyOn>;
@@ -386,7 +389,7 @@ describe("Message chat", () => {
         <Message variant="chat" role="assistant" name="Theo Brandt" avatar={<Avatar name="Theo Brandt" initials="TB!" alt="" size="lg" />}>
           Hi
         </Message>
-        <Message variant="chat" role="user" name="Priya Okafor" avatar="/priya.png">
+        <Message variant="chat" role="user" name="Priya Okafor" avatar={picture}>
           Hi
         </Message>
         <Message variant="reply" role="assistant" name="Mara Quill" avatar={false}>
@@ -667,6 +670,14 @@ function actionsFor(log: string[], extra: Partial<MessageAction> = {}): MessageA
 }
 const menu = [{ label: "Copy link", onClick: () => {} }];
 const barOf = (message: HTMLElement) => message.querySelector<HTMLElement>('[role="toolbar"]')!;
+const focusedAction = () => document.activeElement?.getAttribute("data-ouro-message-action");
+
+/** Reaches the message as a pointer does, and waits for its bar's buttons to come back with Tooltip and Menu. */
+async function arm(message: HTMLElement) {
+  const before = barOf(message).querySelector("button");
+  await act(async () => void message.dispatchEvent(new PointerEvent("pointerenter")));
+  await expect.poll(() => barOf(message).querySelector("button") !== before).toBe(true);
+}
 
 describe("Message actions", () => {
   it("names each action, runs it, and shows its label in a tooltip", async () => {
@@ -684,10 +695,12 @@ describe("Message actions", () => {
     expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Like", "Reply"]);
     expect(buttons.every((button) => button.dataset.ouroControl === "message" && button.dataset.ouroPart === "action")).toBe(true);
     expect(buttons[1]!.querySelector("svg")!.closest('[aria-hidden="true"]')).not.toBeNull();
+    await arm(message);
     await userEvent.hover(bubbleOf(message));
-    await userEvent.click(buttons[1]!);
+    const [like, reply] = [...bar.querySelectorAll<HTMLElement>("button")];
+    await userEvent.click(reply!);
     expect(log).toEqual(["reply"]);
-    await userEvent.hover(buttons[0]!);
+    await userEvent.hover(like!);
     await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="tooltip"]')?.textContent).toBe("Like");
     await userEvent.unhover(document.body);
   });
@@ -723,9 +736,13 @@ describe("Message actions", () => {
         <button type="button">After</button>
       </>,
     );
+    const plain = [...barOf(message).querySelectorAll<HTMLElement>("button")];
+    expect(plain[2]!.getAttribute("aria-label")).toBe("More actions");
+    expect(plain[2]!.querySelectorAll("svg circle")).toHaveLength(3);
+    expect(plain.map((button) => button.tabIndex)).toEqual([0, -1, -1]);
+    await arm(message);
     const [like, reply, more] = [...barOf(message).querySelectorAll<HTMLElement>("button")];
     expect(more!.getAttribute("aria-label")).toBe("More actions");
-    expect(more!.querySelectorAll("svg circle")).toHaveLength(3);
     expect([like, reply, more].map((button) => button!.tabIndex)).toEqual([0, -1, -1]);
     await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
     await pressTab();
@@ -758,6 +775,7 @@ describe("Message actions", () => {
         </Message>
       </div>,
     );
+    await arm(host.querySelector<HTMLElement>('[data-ouro="message"]')!);
     const [like, reply, more] = [...host.querySelectorAll<HTMLElement>('[role="toolbar"] button')];
     await act(async () => like!.focus());
     await userEvent.keyboard("{ArrowLeft}");
@@ -783,6 +801,7 @@ describe("Message actions", () => {
       );
     }
     const { host } = await render(<Toggling />);
+    await arm(host.querySelector<HTMLElement>('[data-ouro="message"]')!);
     const bar = host.querySelector<HTMLElement>('[role="toolbar"]')!;
     const [like, reply] = [...bar.querySelectorAll<HTMLButtonElement>("button")];
     await act(async () => reply!.focus());
@@ -801,6 +820,7 @@ describe("Message actions", () => {
         Morning!
       </Message>,
     );
+    await arm(message);
     const bar = barOf(message);
     const away = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
     await act(async () => {
@@ -827,10 +847,11 @@ describe("Message actions", () => {
     );
     const bar = barOf(message);
     expect(bar.getAttribute("aria-label")).toBe("Actions du message");
+    await arm(message);
+    await userEvent.hover(bubbleOf(message));
     const more = bar.querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
     expect(more.getAttribute("aria-label")).toBe("Plus d'actions");
     expect(more.tabIndex).toBe(0);
-    await userEvent.hover(bubbleOf(message));
     await userEvent.click(more);
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     await userEvent.unhover(document.body);
@@ -848,12 +869,88 @@ describe("Message actions", () => {
       </Message>
     );
     const { message, rerender } = await render(node(menu));
+    await arm(message);
     const more = barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
     await act(async () => more.focus());
     expect(more.tabIndex).toBe(0);
     await rerender(node([]));
     expect(barOf(message).querySelector('[data-ouro-part="menu"]')).toBeNull();
     expect([...barOf(message).querySelectorAll("button")].map((button) => button.tabIndex)).toEqual([0, -1]);
+  });
+
+  it.each(["pointerenter", "focusin", "pointerdown"])("loads Tooltip and Menu once %s reaches the message, its buttons plain until then", async (type) => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} menu={menu}>
+        Morning!
+      </Message>,
+    );
+    const before = [...barOf(message).querySelectorAll("button")];
+    // The plain menu button says what it opens, as Menu's trigger does.
+    expect(before[2]!.getAttribute("aria-haspopup")).toBe("menu");
+    expect(before[2]!.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => void message.dispatchEvent(new Event(type, { bubbles: true })));
+    await expect.poll(() => before.every((button) => !button.isConnected)).toBe(true);
+    // Arriving opens nothing.
+    expect(page.getByRole("menu").query()).toBeNull();
+    expect(barOf(message).hasAttribute("data-menu-open")).toBe(false);
+  });
+
+  it("keeps focus on the action that had it when Tooltip and Menu arrive, and leaves another message's focus alone", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+          First
+        </Message>
+        <Message variant="chat" role="assistant" name="Theo Brandt" actions={actionsFor([])}>
+          Second
+        </Message>
+      </>,
+    );
+    const [first, second] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const reply = barOf(second!).querySelectorAll<HTMLElement>("button")[1]!;
+    await act(async () => reply.focus());
+    await expect.poll(() => reply.isConnected).toBe(false);
+    expect(focusedAction()).toBe("reply");
+    expect(second!.contains(document.activeElement)).toBe(true);
+    // The first message's buttons arrive too, without taking focus from the second's.
+    await arm(first!);
+    expect(second!.contains(document.activeElement)).toBe(true);
+    expect(focusedAction()).toBe("reply");
+  });
+
+  it("opens the menu from its plain button, once Menu arrives", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" menu={menu}>
+        Morning!
+      </Message>,
+    );
+    // A click alone, with no pointer over the message first, as assistive technology sends it.
+    await act(async () => barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!.click());
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    expect(barOf(message).getAttribute("data-menu-open")).toBe("");
+  });
+
+  it("does nothing when the message leaves before Tooltip and Menu arrive", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    await act(async () =>
+      root.render(
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+          Morning!
+        </Message>,
+      ),
+    );
+    const error = vi.fn();
+    window.addEventListener("unhandledrejection", error);
+    await act(async () => {
+      host.querySelector('[data-ouro="message"]')!.dispatchEvent(new PointerEvent("pointerenter"));
+      flushSync(() => root.unmount());
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    window.removeEventListener("unhandledrejection", error);
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("has no bar without actions or menu entries", async () => {

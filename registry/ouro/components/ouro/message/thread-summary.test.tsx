@@ -26,7 +26,9 @@ async function render(node: ReactNode) {
   };
 }
 
-const repliers = [{ name: "Mara Quill" }, { name: "Theo Brandt", src: "/theo.png" }, { name: "Priya Okafor" }, { name: "Jonah Vale" }];
+// An inline picture: a path such as "/theo.png" would ask an app's dev server for its index page.
+const picture = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4AWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
+const repliers = [{ name: "Mara Quill" }, { name: "Theo Brandt", src: picture }, { name: "Priya Okafor" }, { name: "Jonah Vale" }];
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
