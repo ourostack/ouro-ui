@@ -72,8 +72,8 @@ test("multi-word commands: the longest name wins, a bare group word lists its co
 
 test("a loose command passes unknown flags and extra words through", () => {
   const c = defineCli({ name: "t", about: ["t"], commands: [defineCommand({ name: "legacy", summary: "Old.", effect: "private", loose: true })] });
-  const p = parse(c, ["legacy", "a", "--x", "1", "--y"]) as Parsed;
-  assert.deepEqual(p.unchecked, { x: "1", y: true, _: "a" });
+  const p = parse(c, ["legacy", "a", "--x", "1", "--y", "--json=yes"]) as Parsed;
+  assert.deepEqual(p.unchecked, { x: "1", y: true, json: "yes", _: "a" });
 });
 
 test("definitions are checked when the tool is built: names, rest last, examples that parse", () => {

@@ -281,12 +281,12 @@ export function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
     const name = t.slice(2, eq === -1 ? undefined : eq);
     const inline = eq === -1 ? undefined : t.slice(eq + 1);
     const spec = flags[name];
+    if (command.loose) {
+      const next = rest[i + 1];
+      unchecked[name] = inline ?? (spec?.type !== "boolean" && next !== undefined && !next.startsWith("--") ? (i++, next) : true);
+      continue;
+    }
     if (!spec) {
-      if (command.loose) {
-        const next = rest[i + 1];
-        unchecked[name] = inline ?? (next !== undefined && !next.startsWith("--") ? (i++, next) : true);
-        continue;
-      }
       const near = didYouMean(name, Object.keys(flags));
       const own = Object.keys(command.flags ?? {}).concat(command.effect === "others" || command.why ? [WHY_FLAG] : []);
       throw new AxError({
