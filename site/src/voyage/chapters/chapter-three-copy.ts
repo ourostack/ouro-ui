@@ -5,6 +5,8 @@ import type { CrewLine } from "./copy";
  * Every word Chapter III says ("Face the squid", site-design.md): the encounter at the porthole,
  * the orders you give by dialog, menu and palette, and the organ at the end. In one place so the
  * readability check (chapter-three.test.tsx) reads exactly what a visitor reads, at grade 6 or under.
+ * The squid is a friend who hugs too hard, not a monster: the crew tickle it loose with feathers,
+ * and it comes back to hear the organ.
  */
 
 /**
@@ -13,15 +15,15 @@ import type { CrewLine } from "./copy";
  * operates each in a test named "control: <id>" and asserts what it changes;
  * site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const CHAPTER_THREE_CONTROLS = ["encounter-code", "alarm", "orders", "palette", "axes", "surface", "saloon-code", "organ", "install", "components", "again"] as const;
+export const CHAPTER_THREE_CONTROLS = ["encounter-code", "alarm", "orders", "palette", "feathers", "surface", "saloon-code", "organ", "install", "components", "again"] as const;
 export type ChapterThreeControl = (typeof CHAPTER_THREE_CONTROLS)[number];
 
 export const CHAPTER_THREE = {
   number: "Chapter III",
   title: "Face the squid",
-  intro: "Something enormous is outside the window.",
+  intro: "Someone big and curious has come to say hello.",
   /** Over the course line from Chapter II into this one. */
-  handoff: "Then, one day, the Nautilus stops dead.",
+  handoff: "Then, one day, the ship stops with a bump.",
 } as const;
 
 /** The orders the crew can be given, by the menu and the palette alike. */
@@ -29,14 +31,14 @@ export const ORDERS = {
   surface: "Surface",
   dive: "Dive",
   lights: "Floodlights",
-  axes: "Ready the axes",
+  feathers: "Grab the feathers",
   organ: "Play the organ",
 } as const;
 export type Order = keyof typeof ORDERS;
 
 export const ENCOUNTER = {
   title: "The encounter",
-  intro: "A squid has the ship. Give your orders and send it off.",
+  intro: "A giant squid is hugging the ship, and it will not let go. Give the crew orders to set her free.",
   file: "encounter.tsx",
   scene: "The view from the porthole",
   alarm: "Sound the alarm",
@@ -44,24 +46,24 @@ export const ENCOUNTER = {
   palette: "Give an order",
   paletteTitle: "Orders for the crew",
   paletteSearch: "Search orders",
-  dialog: "A giant squid has seized the hull!",
-  dialogText: "Its beak is caught in the screw, so we cannot move. What shall we do?",
-  dialogBody: "The crew has axes, and Ned has his harpoon. But they can only fight up on deck.",
-  hope: "Surface and hope",
+  dialog: "A giant squid is hugging the ship!",
+  dialogText: "It has wrapped an arm round the propeller, so we cannot move. What shall we do?",
+  dialogBody: "Squids are very ticklish. The crew has feathers, but they can only reach it from up on deck.",
+  hope: "Go up and wave",
   status: "On board",
   surfaced: "At the top",
   deep: "Deep down",
   lightsOn: "Lights on",
   lightsOff: "Lights off",
-  axesReady: "Axes ready",
-  axesStowed: "Axes stowed",
+  feathersReady: "Feathers ready",
+  feathersStowed: "Feathers stowed",
   free: "Ship is free",
-  held: "Squid holds on",
+  held: "Squid hugging",
 } as const;
 
 /** The scene in words, for screen readers. */
-export function describeEncounter(state: { surfaced: boolean; lights: boolean; won: boolean }): string {
-  const squid = state.won ? "The squid sinks back into the deep in a cloud of ink." : "A giant squid holds the glass with one long arm. Its great green eye looks in.";
+export function describeEncounter(state: { surfaced: boolean; lights: boolean; won: boolean; played?: boolean }): string {
+  const squid = state.played ? "The squid has come back to listen to the music. It sways along." : state.won ? "The squid swims off in a little puff of ink, waving goodbye." : "A giant squid hugs the glass with one long arm. Its big green eye peeks in.";
   const sea = state.surfaced ? "We are at the top of the sea." : "We are deep down.";
   const lights = state.lights ? "The floodlights are on." : "";
   return [squid, sea, lights].filter(Boolean).join(" ");
@@ -69,43 +71,43 @@ export function describeEncounter(state: { surfaced: boolean; lights: boolean; w
 
 /** What the crew says as the fight goes. */
 export const FIGHT = {
-  opening: { name: "Ned Land", text: "Professor! Something is looking in at the window!" },
-  alarm: { name: "Captain Nemo", text: "Hands on deck! We have a guest on the hull." },
-  diveHeld: { name: "Captain Nemo", text: "It holds the screw. We cannot dive with it on us." },
+  opening: { name: "Ned Land", text: "Hey! Something is looking in the window!" },
+  alarm: { name: "Captain Nemo", text: "Up you get, crew! We have a visitor on the hull." },
+  diveHeld: { name: "Captain Nemo", text: "It is holding the propeller. We cannot dive with a squid on us." },
   dive: { name: "Captain Nemo", text: "Down we go again, safe and sound." },
-  surface: { name: "Captain Nemo", text: "Up we go. Hope will not do it, though. Ready the axes!" },
+  surface: { name: "Captain Nemo", text: "Up we go. It waves back, but it still holds on. Grab the feathers!" },
   surfaceAgain: { name: "Conseil", text: "We are at the top already, sir." },
-  axesDeep: { name: "Captain Nemo", text: "Axes ready. Now we must go up, to open the hatch." },
-  axesAgain: { name: "Ned Land", text: "My harpoon is ready too." },
-  lightsOnHeld: { name: "Conseil", text: "Its eye shrinks from the light. But it does not let go." },
-  lightsOn: { name: "Professor Aronnax", text: "Lights on. The sea is calm again." },
+  feathersDeep: { name: "Captain Nemo", text: "Feathers ready! Now we go up, so we can open the hatch." },
+  feathersAgain: { name: "Ned Land", text: "I have a big fluffy feather. Ready!" },
+  lightsOnHeld: { name: "Conseil", text: "It blinks at the light. Still hugging, though." },
+  lightsOn: { name: "Professor Aronnax", text: "Lights on. What a pretty sea." },
   lightsOff: { name: "Conseil", text: "Lights off." },
-  win: { name: "Ned Land", text: "Back to the deep with you, beast! Hurrah!" },
-  organHeld: { name: "Captain Nemo", text: "Not now! A squid has the ship." },
-  organ: { name: "Captain Nemo", text: "Now I will play. Listen." },
-  again: { name: "Conseil", text: "And here it comes again. It must like us." },
+  win: { name: "Ned Land", text: "Tickle, tickle! It giggled and let go. Bye, big friend!" },
+  organHeld: { name: "Captain Nemo", text: "Not now! We have a squid stuck to us." },
+  organ: { name: "Captain Nemo", text: "And now, some music. Listen..." },
+  again: { name: "Conseil", text: "It is back for another hug! I think it likes us." },
 } as const satisfies Record<string, CrewLine>;
 
 export const TOASTS = {
   win: "The squid let go!",
-  winNote: "The Nautilus is free to sail on.",
-  organ: "Twenty thousand leagues",
-  organNote: "The voyage is in the log. Thank you for sailing.",
+  winNote: "It giggled, waved, and swam off.",
+  organ: "Voyage complete!",
+  organNote: "Ship built, trip planned, squid tickled. Thanks for sailing!",
 } as const;
 
 export const SALOON = {
   title: "The saloon",
-  intro: "Once the squid is gone, Captain Nemo plays his organ, and the log is done.",
+  intro: "With the ship free, the captain plays his giant organ. Turn your sound on!",
   file: "saloon.tsx",
   organ: "Captain Nemo's organ",
   play: "Play the organ",
-  playHint: "First, send off the squid.",
-  playing: "Nemo is playing.",
+  playHint: "First, set the ship free.",
+  playing: "The captain is playing. Look who came back to listen!",
   log: "The ship's log",
-  logWaiting: "The log waits for the end of the fight.",
-  stamp: "Twenty thousand leagues",
-  logDone: "Built, planned, and safe at last. The voyage is done.",
-  next: "Now build yours.",
+  logWaiting: "The log waits until the ship is free.",
+  stamp: "Voyage complete",
+  logDone: "Ship built, trip planned, squid tickled. What a voyage!",
+  next: "This ship is built from real Ouro HX parts. Now build yours.",
   install: "Install Ouro HX",
   components: "Browse components",
   again: "Sail again",
@@ -113,15 +115,15 @@ export const SALOON = {
 
 /** The rail beside the chapter. */
 export const BATTLE = {
-  label: "How the fight stands",
+  label: "How the rescue stands",
   surface: "Go up",
   surfaceDone: "We are at the top.",
   surfaceNot: "Still deep down.",
-  axes: "Ready the axes",
-  axesDone: "The crew has them.",
-  axesNot: "Still in the rack.",
+  feathers: "Grab the feathers",
+  feathersDone: "The crew has them.",
+  feathersNot: "Still in the box.",
   organ: "Play the organ",
-  organDone: "Nemo plays.",
+  organDone: "The captain plays.",
   organNot: "It is quiet.",
 } as const;
 
@@ -136,23 +138,23 @@ export const CODE_SHEETS_THREE = {
           source: { test: "site/e2e/chapter-three.spec.ts::by keyboard alone > the alarm opens the dialog, and focus comes back to it when it closes" },
           verify: { testExists: "site/e2e/chapter-three.spec.ts::by keyboard alone > the alarm opens the dialog, and focus comes back to it when it closes" },
         }),
-        code: `<Dialog title="A giant squid has seized the hull!" open={open} onOpenChange={setOpen} footer={<Button onClick={axes}>Ready the axes</Button>}>`,
+        code: `<Dialog title="A giant squid is hugging the ship!" open={open} onOpenChange={setOpen} footer={<Button onClick={tickle}>Grab the feathers</Button>}>`,
       },
       { text: "Menu: the list of orders, the arrow keys, and the tick by the floodlights.", code: `<Menu trigger={<Button>Orders</Button>}>\n  <MenuItem onClick={surface}>Surface</MenuItem>\n  <MenuCheckboxItem checked={lights} onCheckedChange={setLights}>Floodlights</MenuCheckboxItem>\n</Menu>` },
       { text: "Command: the palette, its search, and the order you pick.", code: `<Command title="Orders for the crew" trigger={<Button>Give an order</Button>} items={orders} />` },
       { text: "Badge and Toast: how the ship stands, and the news when the squid lets go.", code: `<Badge tone="success">Ship is free</Badge>\ntoast("The squid let go!", { tone: "success" })` },
     ],
-    site: ["The porthole, the squid, and the sea.", "What an order does, and when the fight is won.", "What the crew says."],
+    site: ["The porthole, the squid, and the sea.", "What an order does, and when the ship is free.", "What the crew says."],
   },
   saloon: {
     title: "How the saloon is built",
-    description: "Ouro HX does the buttons and the toast. The site does the organ and the log.",
+    description: "Ouro HX does the buttons and the toast. The site does the organ, its tune and the log.",
     hx: [
-      { text: "Button: the press, and Play kept off until the fight is won.", code: `<Button disabled={!won} onClick={play}>Play the organ</Button>` },
+      { text: "Button: the press, and Play kept off until the ship is free.", code: `<Button disabled={!free} onClick={play}>Play the organ</Button>` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/ouro-ui/docs/installing/">Install Ouro HX</Button>` },
-      { text: "Toast: the last line of the voyage.", code: `toast("Twenty thousand leagues", { tone: "success" })` },
+      { text: "Toast: the last line of the voyage.", code: `toast("Voyage complete!", { tone: "success" })` },
     ],
-    site: ["The organ, and the notes that rise from it.", "The log, and its stamp."],
+    site: ["The organ, its tune, and the notes that rise from it.", "The squid that comes back to listen.", "The log, and its stamp."],
   },
 } as const;
 
@@ -164,6 +166,7 @@ export function allChapterThreeText(): string[] {
     ...Object.values(ENCOUNTER),
     describeEncounter({ surfaced: false, lights: true, won: false }),
     describeEncounter({ surfaced: true, lights: false, won: true }),
+    describeEncounter({ surfaced: true, lights: false, won: true, played: true }),
     ...Object.values(FIGHT).map((line) => line.text),
     ...Object.values(TOASTS),
     ...Object.values(SALOON),

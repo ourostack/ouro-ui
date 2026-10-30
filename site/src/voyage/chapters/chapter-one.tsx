@@ -249,7 +249,7 @@ function Shipyard(): JSX.Element {
   return (
     <div>
       <Plan ref={drawing} built={plan.built} launched={plan.launched} />
-      <div className="grid gap-6 p-4 sm:grid-cols-2 sm:p-6">
+      <div className="grid gap-6 py-4 sm:grid-cols-2 sm:py-6">
         <div data-chapter-control="order">
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.order}
@@ -263,7 +263,7 @@ function Shipyard(): JSX.Element {
           <JobList order={jobOrder} built={built} onTick={tick} />
         </div>
       </div>
-      <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
+      <div className="grid gap-4 border-t border-border/70 py-4 sm:py-6">
         <Progress label={SHIPYARD.progress} value={(built.size / PARTS.length) * 100} showValue />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Crew line={line} cheer={launched} />
@@ -396,7 +396,7 @@ function Articles(): JSX.Element {
   };
   const count = CREW.length + (you ? 1 : 0);
   return (
-    <div ref={box} className="grid gap-8 p-4 sm:p-6 md:grid-cols-2">
+    <div ref={box} className="grid gap-8 py-4 sm:py-6 md:grid-cols-2">
       {/* A new Form for each signing, so the fields start empty again. */}
       <Form key={signings} aria-label={ARTICLES.form} errors={formErrors(answer, answer?.errors)} onSubmit={sign}>
         <div data-chapter-control="name">

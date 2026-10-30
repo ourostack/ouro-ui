@@ -42,10 +42,12 @@ export const NAUTILUS_PAGE = {
   book: ["Nemo and his ship come from Jules Verne’s", "A league is a distance, not a depth. You don’t need to have read it."],
   chaptersLabel: "Chapters",
   chapters: [
-    { number: "Chapter I", title: "Build the ship", ready: true },
-    { number: "Chapter II", title: "Plan the voyage", ready: false },
-    { number: "Chapter III", title: "Face the squid", ready: false },
+    { number: "Chapter I", title: "Build the ship", ready: true, id: "chapter-one" },
+    { number: "Chapter II", title: "Plan the voyage", ready: true, id: "chapter-two" },
+    { number: "Chapter III", title: "Face the squid", ready: true, id: "chapter-three" },
   ],
   open: "Start here",
+  /** The link to each chapter after the first. */
+  jump: "Jump in",
   building: "Still being built",
 } as const;

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, CODE_SHEETS_TWO, FINDS, MUSEUM, PLANNING, ROUTE, SPECIMENS, START_ROUTE } from "../src/voyage/chapters/chapter-two-copy";
+import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, CODE_SHEETS_TWO, FINDS, MUSEUM, PLANNING, RADIO, RADIO_START, ROUTE, SPECIMENS, START_ROUTE } from "../src/voyage/chapters/chapter-two-copy";
 import { arrivals, routeLeagues, SHORTEST, writeDay, writeLeagues } from "../src/voyage/chapters/route";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
@@ -16,6 +16,12 @@ import { watchToasts } from "./toasts";
 const open = (page: Page) => openChapter(page, "chapter-two");
 const room = (page: Page) => page.locator("[data-composition='chart-room']");
 const catalogue = (page: Page) => page.locator("[data-composition='catalogue']");
+const radio = (page: Page) => page.locator("[data-composition='radio']");
+/** Sends a line on the radio from its Composer, by Enter. */
+async function say(page: Page, text: string): Promise<void> {
+  await radio(page).getByRole("textbox", { name: RADIO.compose }).fill(text);
+  await page.keyboard.press("Enter");
+}
 const chart = (page: Page) => page.locator(".site-chart");
 const roomCrew = (page: Page) => room(page).locator("[data-chapter-crew]");
 const catalogueCrew = (page: Page) => catalogue(page).locator("[data-chapter-crew]");
@@ -54,6 +60,45 @@ test.describe("each control in Chapter II", () => {
 
   test("control: catalogue-code opens the catalogue's Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
     await opensCodeSheet(page, "chapter-two", catalogue(page), CODE_SHEETS_TWO.catalogue);
+  });
+
+  test("control: radio-code opens the radio's Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
+    await opensCodeSheet(page, "chapter-two", radio(page), CODE_SHEETS_TWO.radio);
+  });
+
+  test("control: compose sends your line, the crew write back, and they react to yours", async ({ page }) => {
+    await open(page);
+    await expect(radio(page).getByText(RADIO_START.crew[0]!.text)).toBeVisible();
+    await say(page, "Hello there");
+    const box = radio(page).getByRole("textbox", { name: RADIO.compose });
+    await expect(box).toHaveValue("");
+    const yours = radio(page).locator("[data-ouro='message']", { hasText: "Hello there" });
+    await expect(yours).toBeVisible();
+    await expect(radio(page).locator("[data-ouro-message-content]", { hasText: "Ahoy there! Glad to have you aboard." })).toBeVisible();
+    await expect(yours.locator("[data-ouro='reaction-bar']")).toContainText("Wave, 1");
+  });
+
+  test("control: react puts your emoji on the crew's newest line, and takes it back", async ({ page }) => {
+    await open(page);
+    const newest = radio(page).locator("[data-ouro='message']", { hasText: RADIO_START.crew[2]!.text });
+    const love = newest.getByRole("button", { name: "Love", exact: true });
+    await love.click();
+    const counted = newest.getByRole("button", { name: /^Love, 1/ });
+    await expect(counted).toHaveAttribute("aria-pressed", "true");
+    await counted.click();
+    await expect(newest.getByRole("button", { name: /^Love, 1/ })).toHaveCount(0);
+  });
+
+  test("control: channels switches who you talk to, and someone new calls once you mention the squid", async ({ page }) => {
+    await open(page);
+    const list = radio(page).getByRole("list", { name: RADIO.channels });
+    await list.getByRole("button", { name: new RegExp(RADIO.captain) }).click();
+    await expect(radio(page).getByRole("region", { name: RADIO.list(RADIO.captain) })).toBeVisible();
+    await expect(list.getByRole("button", { name: new RegExp(RADIO.caller) })).toHaveCount(0);
+    await say(page, "Any squid out there?");
+    await expect(list.getByRole("button", { name: new RegExp(RADIO.caller) })).toBeVisible();
+    await list.getByRole("button", { name: new RegExp(RADIO.caller) }).click();
+    await expect(radio(page).getByText(RADIO_START.caller[2]!.text)).toBeVisible();
   });
 
   test("control: ports moves a port, the chart redraws the route, the leagues add up and Conseil judges it", async ({ page }) => {
@@ -127,14 +172,15 @@ test.describe("each control in Chapter II", () => {
     await expect(legs.locator(".recharts-cartesian-axis-tick-value").first()).toBeHidden();
   });
 
-  test("control: sort orders the specimens by name, class or depth", async ({ page }) => {
+  test("control: sort orders the specimens by name, group or depth", async ({ page }) => {
     await open(page);
     await expect.poll(() => names(page)).toEqual(SPECIMENS.map((each) => each.name).sort());
     await catalogue(page).getByRole("radio", { name: "Depth" }).click();
     await expect.poll(async () => (await names(page))[0]).toBe("Argonaut");
     await expect.poll(async () => (await names(page)).at(-1)).toBe("Red coral");
-    await catalogue(page).getByRole("radio", { name: "Class" }).click();
-    await expect.poll(async () => (await names(page))[0]).toBe("Torpedo ray");
+    await catalogue(page).getByRole("radio", { name: "Group" }).click();
+    // Corals come first, then fish.
+    await expect.poll(async () => (await names(page)).slice(0, 2)).toEqual(["Red coral", "Torpedo ray"]);
   });
 
   test("control: filter shows one class, or says there is none", async ({ page }) => {
@@ -213,7 +259,7 @@ test("Chapter II is in the server HTML, and its code, Recharts with it, loads on
   page.on("request", (request) => {
     if (/\/assets\/chapter-two-[\w-]+\.js$/.test(request.url())) chunks.push(request.url());
   });
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: CHAPTER_TWO.title })).toBeAttached();
@@ -232,7 +278,7 @@ test("X-ray outlines Chapter II's HX components", async ({ page }) => {
   const tags = page.locator("[data-ouro-inspector-outline] [data-ouro-part='tag']");
   await expect.poll(() => tags.count()).toBeGreaterThan(10);
   const names = new Set(await tags.allTextContents());
-  for (const item of ["reorderable", "date-picker", "chart", "table", "segmented-control", "select", "combobox", "link", "badge"]) expect(names, item).toContain(item);
+  for (const item of ["reorderable", "date-picker", "chart", "table", "segmented-control", "select", "combobox", "link", "badge", "conversation-list", "avatar", "message-list", "message", "reaction-bar", "composer"]) expect(names, item).toContain(item);
 });
 
 test("on a phone, the chart room and the catalogue work by touch, and nothing overflows", async ({ browser, browserName }) => {
@@ -317,7 +363,7 @@ test.describe("by keyboard alone", () => {
     await open(page);
     await catalogue(page).getByRole("radio", { name: "Name" }).focus();
     await page.keyboard.press("ArrowRight");
-    await expect(catalogue(page).getByRole("radio", { name: "Class" })).toBeChecked();
+    await expect(catalogue(page).getByRole("radio", { name: "Group" })).toBeChecked();
     await classify(page).focus();
     await page.keyboard.type("Crus");
     await expect(page.getByRole("option", { name: "Crustacean", exact: true })).toBeVisible();

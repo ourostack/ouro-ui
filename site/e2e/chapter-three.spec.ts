@@ -33,10 +33,10 @@ async function order(page: Page, name: string): Promise<void> {
   await expect(menu).toBeHidden();
 }
 
-/** Up, and the axes: the squid lets go. */
+/** Up, and the feathers: the squid lets go. */
 async function win(page: Page): Promise<void> {
   await order(page, ORDERS.surface);
-  await order(page, ORDERS.axes);
+  await order(page, ORDERS.feathers);
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
 }
 
@@ -67,13 +67,13 @@ test.describe("each control in Chapter III", () => {
     await expect(alarm(page)).toBeFocused();
   });
 
-  test("control: axes, from the dialog, readies the crew; then up, and the squid lets go", async ({ page }) => {
+  test("control: feathers, from the dialog, readies the crew; then up, and the squid lets go", async ({ page }) => {
     await open(page);
     await alarm(page).click();
-    await dialog(page).getByRole("button", { name: ORDERS.axes }).click();
+    await dialog(page).getByRole("button", { name: ORDERS.feathers }).click();
     await expect(dialog(page)).toBeHidden();
-    await expect(status(page)).toContainText(ENCOUNTER.axesReady);
-    await expect(crew(page)).toContainText(FIGHT.axesDeep.text);
+    await expect(status(page)).toContainText(ENCOUNTER.feathersReady);
+    await expect(crew(page)).toContainText(FIGHT.feathersDeep.text);
     await expect(scene(page)).toHaveAttribute("data-squid", "holding");
     const toasts = await watchToasts(page);
     await order(page, ORDERS.surface);
@@ -83,7 +83,7 @@ test.describe("each control in Chapter III", () => {
     await expect(crew(page)).toContainText(FIGHT.win.text);
   });
 
-  test("control: surface, from the dialog, takes the ship up; then the axes, and the squid lets go", async ({ page }) => {
+  test("control: surface, from the dialog, takes the ship up; then the feathers, and the squid lets go", async ({ page }) => {
     await open(page);
     await alarm(page).click();
     await dialog(page).getByRole("button", { name: ENCOUNTER.hope }).click();
@@ -92,7 +92,7 @@ test.describe("each control in Chapter III", () => {
     await expect(scene(page).locator(".ph-sky")).toHaveCSS("opacity", "1");
     await expect(crew(page)).toContainText(FIGHT.surface.text);
     await alarm(page).click();
-    await dialog(page).getByRole("button", { name: ORDERS.axes }).click();
+    await dialog(page).getByRole("button", { name: ORDERS.feathers }).click();
     await expect(scene(page)).toHaveAttribute("data-squid", "gone");
   });
 
@@ -128,9 +128,9 @@ test.describe("each control in Chapter III", () => {
     await trigger.click();
     await expect(search).toBeFocused();
     await page.keyboard.type("harpoon");
-    await expect(page.getByRole("option", { name: ORDERS.axes })).toBeVisible();
+    await expect(page.getByRole("option", { name: ORDERS.feathers })).toBeVisible();
     await page.keyboard.press("Enter");
-    await expect(status(page)).toContainText(ENCOUNTER.axesReady);
+    await expect(status(page)).toContainText(ENCOUNTER.feathersReady);
   });
 
   test("control: organ waits for the fight, then plays: the notes rise, the log is stamped, and the way on is offered", async ({ page }) => {
@@ -143,6 +143,7 @@ test.describe("each control in Chapter III", () => {
     await playButton(page).click();
     await expect(page.locator("[data-chapter-stamp]")).toHaveText(SALOON.stamp);
     await expect.poll(toasts.titles).toContain(TOASTS.organ);
+    await expect(scene(page)).toHaveAttribute("data-squid", "listening");
     await expect(saloon(page).locator(".site-organ .or-note").first()).toHaveCSS("opacity", "1");
     await expect(page.getByRole("list", { name: BATTLE.label })).toContainText(BATTLE.organDone);
     await expect(saloon(page).getByRole("link", { name: SALOON.install })).toBeFocused();
@@ -153,7 +154,7 @@ test.describe("each control in Chapter III", () => {
     await win(page);
     await playButton(page).click();
     const link = saloon(page).getByRole("link", { name: SALOON.install });
-    await expect(link).toHaveAttribute("href", /\/ouro-ui\/docs\/installing\/$/);
+    await expect(link).toHaveAttribute("href", /^\/docs\/installing\/$/);
     await link.click();
     await expect(page).toHaveURL(/\/docs\/installing\/$/);
   });
@@ -163,7 +164,7 @@ test.describe("each control in Chapter III", () => {
     await win(page);
     await playButton(page).click();
     const link = saloon(page).getByRole("link", { name: SALOON.components });
-    await expect(link).toHaveAttribute("href", /\/ouro-ui\/docs\/$/);
+    await expect(link).toHaveAttribute("href", /^\/docs\/$/);
     await link.click();
     await expect(page).toHaveURL(/\/docs\/$/);
   });
@@ -192,10 +193,10 @@ test("every operable element in Chapter III is one of its listed controls, in pa
   const found = await operable(page, "chapter-three");
   expect(found.loose).toEqual([]);
   // The dialog's two choices are over the page, not in it.
-  expect(found.order).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => id !== "axes" && id !== "surface"));
+  expect(found.order).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => id !== "feathers" && id !== "surface"));
   await alarm(page).click();
   const choices = await dialog(page).evaluate((panel) => [...panel.querySelectorAll("[data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control")));
-  expect(choices).toEqual(["surface", "axes"]);
+  expect(choices).toEqual(["surface", "feathers"]);
 });
 
 test("Chapter III is in the server HTML, and its code loads only as it nears the screen", async ({ page }) => {
@@ -204,7 +205,7 @@ test("Chapter III is in the server HTML, and its code loads only as it nears the
   page.on("request", (request) => {
     if (/\/assets\/chapter-three-[\w-]+\.js$/.test(request.url())) chunks.push(request.url());
   });
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: CHAPTER_THREE.title })).toBeAttached();
@@ -220,7 +221,7 @@ test("before its island, the porthole is the sea in its brass ring: their colour
   // No script at all: the page as the server sends it, before any island hydrates.
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 }, baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   const porthole = page.locator(".site-porthole");
   const paint = (selector: string, property: string) => porthole.locator(selector).first().evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);
   expect(await paint(".ph-sea", "fill")).not.toBe("none");
@@ -251,7 +252,7 @@ test("on a phone, the fight and the organ work by touch, and nothing overflows",
   await dialog(page).getByRole("button", { name: ENCOUNTER.hope }).tap();
   await expect(scene(page)).toHaveAttribute("data-surfaced", "");
   await alarm(page).tap();
-  await dialog(page).getByRole("button", { name: ORDERS.axes }).tap();
+  await dialog(page).getByRole("button", { name: ORDERS.feathers }).tap();
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
   await playButton(page).tap();
   await expect(page.locator("[data-chapter-stamp]")).toHaveText(SALOON.stamp);
@@ -273,8 +274,9 @@ test("under reduced motion, the fight and the organ change only colour and opaci
   await playButton(page).click();
   await page.waitForTimeout(600);
   expect(await moved()).toEqual([]);
-  // The squid still goes, and the notes still show: they fade.
-  await expect(scene(page).locator(".ph-squid")).toHaveCSS("opacity", "0");
+  // The squid still comes back to listen, and the notes still show: they fade.
+  await expect(scene(page)).toHaveAttribute("data-squid", "listening");
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("opacity", "1");
   await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "none");
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("opacity", "1");
 });
@@ -290,6 +292,9 @@ test("without reduced motion, the squid sinks back into the deep behind its ink 
   await expect(crew(page).locator("[data-chapter-cheer] > *").first()).toHaveCSS("animation-name", "site-hop");
   await playButton(page).click();
   await expect(saloon(page).locator(".or-note").first()).toHaveCSS("animation-name", "or-rise");
+  // The squid swims back, small, to listen, and sways to the tune.
+  await expect(scene(page)).toHaveAttribute("data-squid", "listening");
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("animation-name", "sq-sway");
 });
 
 test("an order paints its control first, and the porthole only in a later frame", async ({ page }) => {
@@ -361,7 +366,7 @@ test.describe("by keyboard alone", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("menuitem", { name: ORDERS.surface })).toBeFocused();
     for (let step = 0; step < 3; step++) await page.keyboard.press("ArrowDown");
-    await expect(page.getByRole("menuitem", { name: ORDERS.axes })).toBeFocused();
+    await expect(page.getByRole("menuitem", { name: ORDERS.feathers })).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(scene(page)).toHaveAttribute("data-squid", "gone");
     await playButton(page).focus();

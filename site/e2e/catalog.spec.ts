@@ -266,19 +266,21 @@ const ISLAND_CEILING = 60 * 1024;
 const rechartsIn = (modules: readonly string[]) => modules.some((module) => module.startsWith("node_modules/recharts/"));
 
 /**
- * The chapters and "Built for agents too", each its own island. Chapter II draws an HX Chart, so
+ * The chapters, each its own island. Chapter II draws an HX Chart, so
  * its closure, and only its, holds
  * Recharts; the budget counts what the island adds without that chunk and without shared HX chunks
  * (site-design.md, Budgets: "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's
  * Recharts chunk only in Chapter II's closure, never in the initial closure (asserted by module
- * name)"). A shared HX chunk holds only registry/ modules and is imported from outside the island
- * too (another chapter, a docs page): the island pays for it only if it is first to load it.
+ * name)"). A shared HX chunk holds only HX's own modules and the Base UI they are built on
+ * (HX_MODULES), and is imported from outside the island too (another chapter, a docs page): an HX
+ * component's chunk carries its Base UI parts with it, so it is still HX's, not the chapter's.
  */
+const HX_MODULES = ["registry/", "node_modules/@base-ui/"] as const;
+
 const ISLANDS = [
   { chapter: "Chapter I", entry: "src/voyage/chapters/chapter-one.tsx", source: "site/src/voyage/chapters/chapter-one", recharts: false },
   { chapter: "Chapter II", entry: "src/voyage/chapters/chapter-two.tsx", source: "site/src/voyage/chapters/chapter-two", recharts: true },
   { chapter: "Chapter III", entry: "src/voyage/chapters/chapter-three.tsx", source: "site/src/voyage/chapters/chapter-three", recharts: false },
-  { chapter: "Built for agents too", entry: "src/voyage/agents/agents.tsx", source: "site/src/voyage/agents", recharts: false },
 ] as const;
 
 for (const island of ISLANDS) {
@@ -298,7 +300,7 @@ for (const island of ISLANDS) {
     const keys = new Set(Object.keys(manifest).filter((key) => closure.has(manifest[key]!.file)));
     const importedFromOutside = (file: string) =>
       Object.entries(manifest).some(([key, item]) => !keys.has(key) && (item.imports ?? []).some((dependency) => manifest[dependency]?.file === file));
-    const hxOnly = (file: string) => (moduleMap[file] ?? []).length > 0 && moduleMap[file]!.every((module) => module.startsWith("registry/"));
+    const hxOnly = (file: string) => (moduleMap[file] ?? []).length > 0 && moduleMap[file]!.every((module) => HX_MODULES.some((prefix) => module.startsWith(prefix)));
     const own = manifest[island.entry]!.file;
     expect(voyage.has(own), "the chapter's own chunk is not in the voyage's first load").toBe(false);
     expect([...voyage].flatMap((file) => moduleMap[file] ?? []).filter((module) => module.startsWith(island.source))).toEqual([]);

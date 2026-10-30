@@ -37,8 +37,8 @@ export function StoryOpening(): JSX.Element {
                 <span className={chapter.ready ? "font-medium text-foreground" : "text-muted-foreground"}>{chapter.title}</span>
                 <span className="ms-auto shrink-0">
                   {chapter.ready ? (
-                    <a href="#chapter-one" className="site-quiet-link font-medium">
-                      {NAUTILUS_PAGE.open}
+                    <a href={`#${chapter.id}`} className="site-quiet-link font-medium">
+                      {chapter.id === "chapter-one" ? NAUTILUS_PAGE.open : NAUTILUS_PAGE.jump}
                     </a>
                   ) : (
                     <Badge tone="secondary" variant="soft">

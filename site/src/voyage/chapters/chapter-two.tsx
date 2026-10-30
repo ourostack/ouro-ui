@@ -30,6 +30,7 @@ import {
   FINDS,
   MUSEUM,
   PLANNING,
+  RADIO,
   ROUTE,
   SPECIMENS,
   START_DAY,
@@ -38,6 +39,7 @@ import {
   type Specimen,
   type SpecimenClass,
 } from "./chapter-two-copy";
+import { Radio } from "./chapter-two-radio";
 import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 import { arrivals, chartPoint, isBook, isShortest, legs, portNamed, routeLeagues, routePath, SHORTEST, writeDay, writeLeagues } from "./route";
 // What only changes once the chapter answers (the route drawing in, a port's number): it comes
@@ -46,13 +48,29 @@ import chapterStyles from "./chapter-two.css?inline";
 
 // The sea and the land take the theme's colours in the drawing's own markup, so the server HTML has
 // them without a rule in the first load's CSS (catalog.spec.ts).
-const map = parseArt(chartSource);
-const chart: Art = {
+const SEA = "color-mix(in oklab,var(--primary) 6%,var(--card))";
+// The rose's N joins the map's names, placed by coordinates rather than inside the rose's transform
+// (WebKit reports a transformed foreignObject's HTML at the wrong place).
+const map = parseArt(
+  chartSource
+    .replace(/\s*<text y="-27" text-anchor="middle" font-size="9" fill="currentColor" stroke="none">N<\/text>/, "")
+    // The ice's name sits west of the pole's mark, so a wide display face never runs under it.
+    .replace('<text x="366" y="319">THE ICE</text>', '<text x="250" y="319">THE ICE</text>')
+    .replace(/(<g class="ch-labels"[^>]*>)/, '$1\n    <text x="96" y="208.4" text-anchor="middle" font-size="9" letter-spacing="0">N</text>'),
+);
+const chart: { -readonly [K in keyof Art]: Art[K] } = {
   ...map,
   inner: map.inner
-    .replace('class="ch-sea"', 'class="ch-sea" style="fill:color-mix(in oklab,var(--primary) 6%,var(--card))"')
-    .replace('class="ch-land"', 'class="ch-land" style="fill:color-mix(in oklab,var(--chart-3) 18%,var(--card))"'),
+    .replace('class="ch-sea"', `class="ch-sea" style="fill:${SEA}"`)
+    .replace('class="ch-land"', 'class="ch-land" style="fill:color-mix(in oklab,var(--chart-3) 18%,var(--card))"')
+    // The map's names (the oceans, the line, the rose's N) in full ink, each on a patch of sea that
+    // parts the grid and the coasts around its letters, so every name reads at 4.5:1.
+    .replace('class="ch-labels" fill="currentColor" stroke="none" font-size="8" letter-spacing="1.5" opacity="0.45"', 'class="ch-labels" fill="currentColor" stroke="none" font-size="8" letter-spacing="1.5"')
+    .replace(/(<foreignObject[^>]*><div style="[^"]*">)([^<]*)(<\/div>)/g, `$1<span style="background:${SEA};padding:1px 2px;box-shadow:0 0 0 2px ${SEA}">$2</span>$3`),
 };
+/** The map's names, drawn over the route so a route never crosses a name (chart.inner without them). */
+const mapNames = /<g class="ch-labels"[\s\S]*?<\/g>/.exec(chart.inner)![0];
+chart.inner = chart.inner.replace(mapNames, "");
 const compass = parseArt(compassSource);
 
 /** How the plan stands: the chart room and the catalogue write it, the rail beside them reads it. */
@@ -85,9 +103,10 @@ const kindLabel = (kind: SpecimenClass) => CLASSES.find((each) => each.value ===
 
 /**
  * Chapter II, "Plan the voyage" (site-design.md): the chart room, where Ouro HX's Reorderable,
- * DatePicker and Chart plan the route on an engraved map, and Aronnax's catalogue, where HX's
- * Table, HoverCard, Combobox and Sheet show the finds and Conseil checks your classing. Each is one
- * framed application with a Code sheet saying which part is HX's and which the site's. The page
+ * DatePicker and Chart plan the route on an engraved map; the specimen book, where HX's Table,
+ * HoverCard, Combobox and Sheet show the finds and you sort each new one; and the ship's radio,
+ * HX's chat parts (chapter-two-radio.tsx). Each has a Code sheet saying which part is HX's and
+ * which the site's. The page
  * hydrates it only as it nears the screen, so its Chart (and Recharts with it) never loads first.
  */
 export default function ChapterTwo(): JSX.Element {
@@ -114,6 +133,9 @@ export default function ChapterTwo(): JSX.Element {
             </Composition>
             <Composition id="catalogue" title={CATALOGUE.title} intro={CATALOGUE.intro} file={CATALOGUE.file} sheet={CODE_SHEETS_TWO.catalogue}>
               <Catalogue />
+            </Composition>
+            <Composition id="radio" title={RADIO.title} intro={RADIO.intro} file={RADIO.file} sheet={CODE_SHEETS_TWO.radio}>
+              <ShipRadio />
             </Composition>
           </div>
         </Container>
@@ -155,6 +177,11 @@ function Planning(): JSX.Element {
   );
 }
 
+/** The radio, told when the plan is done, so someone new can call. */
+function ShipRadio(): JSX.Element {
+  return <Radio planned={usePlanning().every((step) => step.done)} />;
+}
+
 function PlanningMarker(): JSX.Element {
   return <PhoneMarker chapter={CHAPTER_TWO.number} title={CHAPTER_TWO.title} steps={usePlanning()} />;
 }
@@ -178,15 +205,9 @@ function ChartLabel({ x, y, anchor, className, fontSize, fontWeight, halo = fals
   const box = labelBox(x, y, anchor);
   return (
     <foreignObject className={className} x={box.x} y={box.y} width={box.width} height={box.height} fontSize={fontSize} fontWeight={fontWeight}>
-      <div
-        style={{
-          ...labelStyle,
-          textAlign: box.align,
-          // A halo of the card's colour, so the name reads across coasts and the route.
-          ...(halo ? { WebkitTextStroke: "3px var(--card)", paintOrder: "stroke fill" } : {}),
-        }}
-      >
-        {children}
+      <div style={{ ...labelStyle, textAlign: box.align }}>
+        {/* A patch of the card's colour behind the name or number, so it reads across coasts, the route and the mark's ring. */}
+        {halo ? <span style={{ background: "var(--card)", borderRadius: 2, padding: "1px 2px", boxShadow: "0 0 0 2px var(--card)" }}>{children}</span> : children}
       </div>
     </foreignObject>
   );
@@ -200,19 +221,22 @@ const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] })
         <g dangerouslySetInnerHTML={{ __html: chart.inner }} />
         {/* A new route draws itself in afresh. */}
         <path key={route.join()} className="ch-route" d={routePath(route)} pathLength={1} strokeWidth={2.2} style={{ stroke: "var(--primary)" }} />
+        <g dangerouslySetInnerHTML={{ __html: mapNames }} />
         {/* The ports' marks, card-filled and ringed in the primary colour, and their numbers and names in the page's sans and the foreground colour, which their HTML takes from here. */}
         <g style={{ fill: "var(--card)", stroke: "var(--primary)", fontFamily: "var(--font-sans)", color: "var(--foreground)" }}>
           {route.map((id, index) => {
             const { x, y } = chartPoint(id);
             const label = LABEL_AT[id];
             return (
-              <g key={id} className="ch-port" data-port={id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
-                <g className="ch-mark">
-                  <circle r={9} strokeWidth={1.4} />
-                  <ChartLabel className="ch-port-number" x={0} y={3.6} anchor="middle" fontSize={10} fontWeight={600}>
+              // Placed by coordinates, not a transform: WebKit reports a transformed foreignObject's
+              // HTML at the wrong place, so its text could not be measured where it shows.
+              <g key={id} className="ch-port" data-port={id}>
+                <g className="ch-mark" style={{ transformOrigin: `${x.toFixed(1)}px ${y.toFixed(1)}px` }}>
+                  <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={9} strokeWidth={1.4} />
+                  <ChartLabel className="ch-port-number" x={x} y={y + 3.6} anchor="middle" fontSize={10} fontWeight={600} halo>
                     {index + 1}
                   </ChartLabel>
-                  <ChartLabel className="ch-port-name" x={label.dx} y={label.dy} anchor={label.anchor} fontSize={11} fontWeight={500} halo>
+                  <ChartLabel className="ch-port-name" x={x + label.dx} y={y + label.dy} anchor={label.anchor} fontSize={11} fontWeight={500} halo>
                     {portNamed(id).short}
                   </ChartLabel>
                 </g>
@@ -271,7 +295,7 @@ function ChartRoom(): JSX.Element {
   return (
     <div>
       <RouteMap route={shown} />
-      <div className="grid gap-6 p-4 sm:grid-cols-2 sm:p-6">
+      <div className="grid gap-6 py-4 sm:grid-cols-2 sm:py-6">
         <div data-chapter-control="ports">
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {CHART_ROOM.ports}
@@ -285,7 +309,7 @@ function ChartRoom(): JSX.Element {
           <Total route={shown} last={writeDay(days.at(-1)!)} />
         </div>
       </div>
-      <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
+      <div className="grid gap-4 border-t border-border/70 py-4 sm:py-6">
         <div data-chapter-control="legs">
           <Legs route={shown} />
         </div>
@@ -423,7 +447,7 @@ function Catalogue(): JSX.Element {
 
   return (
     <div ref={box}>
-      <div className="flex flex-wrap items-end gap-4 border-b border-border/70 p-4 sm:p-6">
+      <div className="flex flex-wrap items-end gap-4 border-b border-border/70 py-4 sm:py-6">
         <div data-chapter-control="sort">
           <SegmentedControl label={CATALOGUE.sort} items={CATALOGUE.sorts} value={sort} onValueChange={(value) => setSort(value as Sort)} />
         </div>
@@ -440,7 +464,7 @@ function Catalogue(): JSX.Element {
           {CATALOGUE.shown(rows.length, all.length)}
         </span>
       </div>
-      <div className="p-4 sm:p-6" data-chapter-control="notes">
+      <div className="py-4 sm:py-6" data-chapter-control="notes">
         <Table
           caption={CATALOGUE.table}
           hideCaption
@@ -470,11 +494,11 @@ function Catalogue(): JSX.Element {
                 </span>
               ),
             },
-            { key: "depth", header: CATALOGUE.depth, align: "end", cell: (row) => CATALOGUE.fathoms(row.depth) },
+            { key: "depth", header: CATALOGUE.depth, align: "end", cell: (row) => CATALOGUE.depthLabel(row.depth) },
           ]}
         />
       </div>
-      <div className="grid gap-6 border-t border-border/70 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-6">
+      <div className="grid gap-6 border-t border-border/70 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:py-6">
         {find ? (
           <div className="grid gap-3" data-chapter-find={find.id}>
             <p className="site-eyebrow">{CATALOGUE.find}</p>
@@ -494,7 +518,7 @@ function Catalogue(): JSX.Element {
           </Button>
         </div>
       </div>
-      <div className="border-t border-border/70 p-4 sm:px-6">
+      <div className="border-t border-border/70 py-4">
         <Crew line={line} />
       </div>
       <Sheet title={MUSEUM.title} description={MUSEUM.description} side="right" open={museum} onOpenChange={setMuseum}>

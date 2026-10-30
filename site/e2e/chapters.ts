@@ -7,7 +7,7 @@ import { diagnostics } from "./diagnostics";
 
 /** Opens the voyage and scrolls to a chapter, waiting for it to hydrate. */
 export async function openChapter(page: Page, id: string): Promise<void> {
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.locator(`#${id}`).scrollIntoViewIfNeeded();
   await expect(page.locator(`#${id}[data-chapter-ready]`)).toBeAttached();

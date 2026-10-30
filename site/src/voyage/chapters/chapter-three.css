@@ -11,8 +11,8 @@
  * Then the motion:
  * the squid's arm stirs at the glass a few times, then it sinks back into the deep behind its ink when the fight
  * is won; the sky comes up when you surface, the floodlights fade on, and the organ's notes rise
- * when Nemo plays (a few times, then they rest). Under reduced motion nothing moves: the squid and
- * the ink fade, the notes appear in place.
+ * when the captain plays (a few times, then they rest), and the squid comes back to sway along.
+ * Under reduced motion nothing moves: the squid and the ink fade, the notes appear in place.
  */
 .site-porthole {
   --sq-skin: color-mix(in oklab, var(--destructive) 50%, oklch(0.58 0.05 25));
@@ -66,6 +66,13 @@
 .site-porthole[data-squid="gone"] .sq-ink {
   animation: sq-ink 1.8s ease-out both;
 }
+/*
+ * When the organ plays, the squid comes back to listen: smaller, peeking in from the side, and
+ * (with motion) swaying to the tune a few times.
+ */
+.site-porthole[data-squid="listening"] .ph-squid {
+  opacity: 1;
+}
 @keyframes sq-ink {
   0% {
     opacity: 0;
@@ -99,6 +106,12 @@
     scale: 0.35;
     opacity: 0.3;
   }
+  /* With motion, it swims back small to the porthole's edge and sways; without, it only fades in. */
+  .site-porthole[data-squid="listening"] .ph-squid {
+    translate: 24% 10%;
+    scale: 0.55;
+    animation: sq-sway 1.6s ease-in-out 1.6s 4;
+  }
   .site-organ[data-played] .or-note {
     transform-box: fill-box;
     animation: or-rise 2.2s var(--ouro-ease-out) 3 both;
@@ -131,6 +144,18 @@
   }
   50% {
     rotate: -4deg;
+  }
+}
+@keyframes sq-sway {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  25% {
+    rotate: -7deg;
+  }
+  75% {
+    rotate: 7deg;
   }
 }
 @keyframes or-rise {

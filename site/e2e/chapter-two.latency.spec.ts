@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { CATALOGUE, CHAPTER_TWO_CONTROLS, CHART_ROOM } from "../src/voyage/chapters/chapter-two-copy";
+import { CATALOGUE, CHAPTER_TWO_CONTROLS, CHART_ROOM, RADIO } from "../src/voyage/chapters/chapter-two-copy";
 import { CHAPTER_ONE } from "../src/voyage/chapters/copy";
 import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
 
@@ -10,7 +10,7 @@ import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } fro
 // a reorder a frame later (a deferred render), so a move answers before Recharts redraws.
 
 async function open(page: Page): Promise<void> {
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.locator("#chapter-two").scrollIntoViewIfNeeded();
   await expect(page.locator("#chapter-two[data-chapter-ready]")).toBeAttached();
@@ -18,6 +18,7 @@ async function open(page: Page): Promise<void> {
 
 const room = (page: Page) => page.locator("[data-composition='chart-room']");
 const catalogue = (page: Page) => page.locator("[data-composition='catalogue']");
+const radio = (page: Page) => page.locator("[data-composition='radio']");
 
 type Step = (page: Page, index: number) => Promise<unknown>;
 
@@ -49,6 +50,15 @@ const steps: Record<(typeof CHAPTER_TWO_CONTROLS)[number], { press: Step; before
   },
   classify: { press: (page) => page.getByRole("combobox", { name: CATALOGUE.classify }).click(), after: (page) => page.keyboard.press("Escape") },
   museum: { press: (page) => catalogue(page).getByRole("button", { name: CATALOGUE.museum }).click(), after: (page) => page.keyboard.press("Escape") },
+  "radio-code": { press: (page) => radio(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
+  // Calling the captain, then the whole crew, in turn: the chat swaps to that conversation.
+  channels: { press: (page, index) => radio(page).getByRole("button", { name: new RegExp(index % 2 ? RADIO.crew : RADIO.captain) }).click() },
+  compose: {
+    before: (page) => radio(page).getByRole("textbox", { name: RADIO.compose }).focus(),
+    press: (page, index) => page.keyboard.press(index % 2 ? "Backspace" : "a"),
+  },
+  // Your own reaction on the crew's newest line, on and off.
+  react: { press: (page) => radio(page).locator("[data-chapter-control='react'] [data-ouro-part]").last().click() },
 };
 
 /**
@@ -66,6 +76,10 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_TWO_CONTROLS)[number], number> = {
   notes: 24,
   classify: 64,
   museum: 72,
+  "radio-code": 64,
+  channels: 64,
+  compose: 32,
+  react: 48,
 };
 
 function presses(page: Page, id: (typeof CHAPTER_TWO_CONTROLS)[number]): Presses {

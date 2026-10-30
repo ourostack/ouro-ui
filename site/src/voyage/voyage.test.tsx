@@ -230,10 +230,10 @@ describe("the Nautilus's page", () => {
     const items = list.getByRole("listitem").elements();
     expect(items.map((item) => item.textContent)).toEqual([
       "Chapter IBuild the shipStart here",
-      `Chapter IIPlan the voyage${NAUTILUS_PAGE.building}`,
-      `Chapter IIIFace the squid${NAUTILUS_PAGE.building}`,
+      `Chapter IIPlan the voyage${NAUTILUS_PAGE.jump}`,
+      `Chapter IIIFace the squid${NAUTILUS_PAGE.jump}`,
     ]);
-    expect(list.getByRole("link").elements().map((link) => link.getAttribute("href"))).toEqual(["#chapter-one"]);
+    expect(list.getByRole("link").elements().map((link) => link.getAttribute("href"))).toEqual(["#chapter-one", "#chapter-two", "#chapter-three"]);
     await expect.element(page.getByRole("heading", { level: 2, name: "Build the ship" })).toBeInTheDocument();
     expect(document.getElementById("chapter-one")).not.toBeNull();
     // The porthole stage is the home page's; the Nautilus's page starts with the story.

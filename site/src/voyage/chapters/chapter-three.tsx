@@ -14,7 +14,8 @@ import { Container } from "../layout";
 import { parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
-import { Composition, Crew, Handoff, PhoneMarker, Steps, useAfterPaint, useChapterReady, type Step } from "./frame";
+import { useAfterPaint } from "../after-paint";
+import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
@@ -35,13 +36,13 @@ function hide(art: Art, name: string): Art {
 interface Fight {
   surfaced: boolean;
   lights: boolean;
-  axes: boolean;
+  feathers: boolean;
   won: boolean;
   played: boolean;
   line: CrewLine;
 }
 
-const START: Fight = { surfaced: false, lights: false, axes: false, won: false, played: false, line: FIGHT.opening };
+const START: Fight = { surfaced: false, lights: false, feathers: false, won: false, played: false, line: FIGHT.opening };
 
 function createFight() {
   let state = START;
@@ -81,17 +82,17 @@ function giveOrder(store: FightStore, order: Order): void {
   switch (order) {
     case "surface":
       if (fight.surfaced) say(FIGHT.surfaceAgain);
-      else if (fight.axes && !fight.won) win({ surfaced: true });
+      else if (fight.feathers && !fight.won) win({ surfaced: true });
       else say(fight.won ? FIGHT.lightsOn : FIGHT.surface, { surfaced: true });
       break;
     case "dive":
       if (!fight.won) say(FIGHT.diveHeld);
       else say(FIGHT.dive, { surfaced: false });
       break;
-    case "axes":
-      if (fight.axes || fight.won) say(FIGHT.axesAgain, { axes: true });
-      else if (fight.surfaced) win({ axes: true });
-      else say(FIGHT.axesDeep, { axes: true });
+    case "feathers":
+      if (fight.feathers || fight.won) say(FIGHT.feathersAgain, { feathers: true });
+      else if (fight.surfaced) win({ feathers: true });
+      else say(FIGHT.feathersDeep, { feathers: true });
       break;
     case "lights":
       if (fight.lights) say(FIGHT.lightsOff, { lights: false });
@@ -145,10 +146,10 @@ export default function ChapterThree(): JSX.Element {
 }
 
 function useBattle(): Step[] {
-  const { surfaced, axes, played } = useFight();
+  const { surfaced, feathers, played } = useFight();
   return [
     { label: BATTLE.surface, done: surfaced, status: surfaced ? BATTLE.surfaceDone : BATTLE.surfaceNot },
-    { label: BATTLE.axes, done: axes, status: axes ? BATTLE.axesDone : BATTLE.axesNot },
+    { label: BATTLE.feathers, done: feathers, status: feathers ? BATTLE.feathersDone : BATTLE.feathersNot },
     { label: BATTLE.organ, done: played, status: played ? BATTLE.organDone : BATTLE.organNot },
   ];
 }
@@ -186,6 +187,43 @@ function OrganArt({ small = false, played, label }: { small?: boolean; played: b
   );
 }
 
+/**
+ * The organ's tune, in the press that plays it: the famous opening flourish of Bach's Toccata in
+ * D minor, on a few sine waves an octave apart, quiet, about three seconds. Web Audio only, made
+ * here; nothing is fetched. Where the browser has no Web Audio, the organ plays in silence.
+ */
+const TUNE: ReadonlyArray<[midi: number, beats: number]> = [
+  [81, 0.25], [79, 0.25], [81, 1.5], [79, 0.25], [77, 0.25], [76, 0.25], [74, 0.25], [73, 0.75], [74, 2],
+];
+export function playTune(): void {
+  const Context = typeof window === "undefined" ? undefined : window.AudioContext;
+  if (!Context) return;
+  const audio = new Context();
+  const out = audio.createGain();
+  out.gain.value = 0.08;
+  out.connect(audio.destination);
+  const beat = 0.32;
+  let at = audio.currentTime + 0.05;
+  for (const [midi, beats] of TUNE) {
+    const frequency = 440 * 2 ** ((midi - 69) / 12);
+    const length = beats * beat;
+    for (const [harmonic, level] of [[0.5, 0.6], [1, 1], [2, 0.45], [4, 0.2]] as const) {
+      const pipe = audio.createOscillator();
+      const gain = audio.createGain();
+      pipe.frequency.value = frequency * harmonic;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(level, at + 0.02);
+      gain.gain.setValueAtTime(level, at + length - 0.04);
+      gain.gain.linearRampToValueAtTime(0, at + length);
+      pipe.connect(gain).connect(out);
+      pipe.start(at);
+      pipe.stop(at + length + 0.02);
+    }
+    at += length;
+  }
+  window.setTimeout(() => void audio.close(), (at - audio.currentTime + 0.5) * 1000);
+}
+
 /** The bolts round the porthole's brass ring. */
 const BOLTS = Array.from({ length: 12 }, (_, index) => {
   const angle = (index / 12) * Math.PI * 2;
@@ -208,16 +246,16 @@ const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
 function Porthole(): JSX.Element {
   const fight = useFight();
   // The picture follows the order once its press has painted: the menu closing, the dialog going.
-  const { surfaced, lights, won } = useAfterPaint(useMemo(() => ({ surfaced: fight.surfaced, lights: fight.lights, won: fight.won }), [fight.surfaced, fight.lights, fight.won]));
+  const { surfaced, lights, won, played } = useAfterPaint(useMemo(() => ({ surfaced: fight.surfaced, lights: fight.lights, won: fight.won, played: fight.played }), [fight.surfaced, fight.lights, fight.won, fight.played]));
   return (
     <div
       className="site-porthole"
       style={{ position: "relative", width: "100%", maxWidth: "22rem", aspectRatio: "1", marginInline: "auto" }}
       role="img"
-      aria-label={`${ENCOUNTER.scene}. ${describeEncounter({ surfaced, lights, won })}`}
+      aria-label={`${ENCOUNTER.scene}. ${describeEncounter({ surfaced, lights, won, played })}`}
       data-surfaced={surfaced ? "" : undefined}
       data-lights={lights ? "" : undefined}
-      data-squid={won ? "gone" : "holding"}
+      data-squid={played ? "listening" : won ? "gone" : "holding"}
     >
       <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
         <defs>
@@ -278,7 +316,7 @@ function Porthole(): JSX.Element {
 function Encounter(): JSX.Element {
   const store = useFightStore();
   const box = useRef<HTMLDivElement>(null);
-  const { surfaced, lights, axes, won, line } = useFight();
+  const { surfaced, lights, feathers, won, line } = useFight();
   const [alarm, setAlarm] = useState(false);
   // The order changes the fight at once (the store renders in the press's frame, so its badges
   // and the crew's line answer with it); the porthole and the organ redraw after that frame has
@@ -295,11 +333,11 @@ function Encounter(): JSX.Element {
     { label: ORDERS.surface, onSelect: () => order("surface"), keywords: ["up", "rise"] },
     { label: ORDERS.dive, onSelect: () => order("dive"), keywords: ["down", "sink"] },
     { label: ORDERS.lights, onSelect: () => order("lights"), keywords: ["lamp", "light"] },
-    { label: ORDERS.axes, onSelect: () => order("axes"), keywords: ["fight", "axe", "harpoon"] },
+    { label: ORDERS.feathers, onSelect: () => order("feathers"), keywords: ["fight", "feather", "harpoon"] },
     { label: ORDERS.organ, onSelect: () => order("organ"), keywords: ["music"] },
   ];
   return (
-    <div ref={box} className="site-split grid gap-6 p-4 sm:items-center sm:p-6">
+    <div ref={box} className="site-split grid gap-6 py-4 sm:items-center sm:py-6">
       <figure className="m-0">
         <Porthole />
       </figure>
@@ -332,7 +370,7 @@ function Encounter(): JSX.Element {
               <MenuCheckboxItem checked={lights} onCheckedChange={() => order("lights")}>
                 {ORDERS.lights}
               </MenuCheckboxItem>
-              <MenuItem onClick={() => order("axes")}>{ORDERS.axes}</MenuItem>
+              <MenuItem onClick={() => order("feathers")}>{ORDERS.feathers}</MenuItem>
               <MenuSeparator />
               <MenuItem onClick={() => order("organ")}>{ORDERS.organ}</MenuItem>
             </Menu>
@@ -362,8 +400,8 @@ function Encounter(): JSX.Element {
             <Badge tone={lights ? "primary" : "secondary"} variant="soft">
               {lights ? ENCOUNTER.lightsOn : ENCOUNTER.lightsOff}
             </Badge>
-            <Badge tone={axes ? "primary" : "secondary"} variant="soft">
-              {axes ? ENCOUNTER.axesReady : ENCOUNTER.axesStowed}
+            <Badge tone={feathers ? "primary" : "secondary"} variant="soft">
+              {feathers ? ENCOUNTER.feathersReady : ENCOUNTER.feathersStowed}
             </Badge>
           </p>
         </div>
@@ -381,8 +419,8 @@ function Encounter(): JSX.Element {
                 {ENCOUNTER.hope}
               </Button>
             </span>
-            <span className="grid" data-chapter-control="axes">
-              <Button onClick={() => choose("axes")}>{ORDERS.axes}</Button>
+            <span className="grid" data-chapter-control="feathers">
+              <Button onClick={() => choose("feathers")}>{ORDERS.feathers}</Button>
             </span>
           </>
         }
@@ -419,7 +457,7 @@ function Saloon(): JSX.Element {
     setRounds((count) => count + 1);
   };
   return (
-    <div className="site-split grid gap-6 p-4 sm:items-center sm:p-6">
+    <div className="site-split grid gap-6 py-4 sm:items-center sm:py-6">
       <figure className="m-0">
         <OrganArt played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
       </figure>
@@ -439,7 +477,15 @@ function Saloon(): JSX.Element {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <span data-chapter-control="organ">
-            <Button disabled={!won || played} variant={won && !played ? "solid" : "outline"} tone={won && !played ? "primary" : "secondary"} onClick={() => giveOrder(store, "organ")}>
+            <Button
+              disabled={!won || played}
+              variant={won && !played ? "solid" : "outline"}
+              tone={won && !played ? "primary" : "secondary"}
+              onClick={() => {
+                giveOrder(store, "organ");
+                playTune();
+              }}
+            >
               {SALOON.play}
             </Button>
           </span>

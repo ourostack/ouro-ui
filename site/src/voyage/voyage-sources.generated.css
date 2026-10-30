@@ -14,8 +14,6 @@
 @source not "../../../registry/ouro/components/ouro/code-block";
 @source not "../../../registry/ouro/components/ouro/color-field";
 @source not "../../../registry/ouro/components/ouro/color-scheme-toggle";
-@source not "../../../registry/ouro/components/ouro/composer";
-@source not "../../../registry/ouro/components/ouro/conversation-list";
 @source not "../../../registry/ouro/components/ouro/copy-button";
 @source not "../../../registry/ouro/components/ouro/description-list";
 @source not "../../../registry/ouro/components/ouro/empty";
@@ -29,7 +27,6 @@
 @source not "../../../registry/ouro/components/ouro/otp-field";
 @source not "../../../registry/ouro/components/ouro/page-header";
 @source not "../../../registry/ouro/components/ouro/pagination";
-@source not "../../../registry/ouro/components/ouro/reaction-bar";
 @source not "../../../registry/ouro/components/ouro/relative-time";
 @source not "../../../registry/ouro/components/ouro/resizable";
 @source not "../../../registry/ouro/components/ouro/route-progress";
@@ -48,7 +45,6 @@
 @source not "../../../registry/ouro/components/ouro/time-grid";
 @source not "../../../registry/ouro/components/ouro/timer";
 @source not "../../../registry/ouro/components/ouro/toggle";
-@source not "../../../registry/ouro/components/ouro/tooltip";
 @source not "../../../registry/ouro/census";
 @source not "../../../registry/ouro/e2e";
 @source not "../../../registry/ouro/source-rules";

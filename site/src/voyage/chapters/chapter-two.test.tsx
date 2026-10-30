@@ -4,7 +4,7 @@ import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { allChapterTwoText, BOOK_ROUTE, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CLASSING, FINDS, PORTS, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
+import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CLASSING, FINDS, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, SHORTEST, writeDay, writeLeagues } from "./route";
 
 // Chapter II (site-design.md, slice S3): its words read at grade 6 or under, its route maths is
@@ -74,7 +74,7 @@ describe("Chapter II's route", () => {
 
 describe("Chapter II", () => {
   it("renders after Chapter I, with every control marked in page order", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     await expect.element(page.getByRole("heading", { name: CHAPTER_TWO.title })).toBeInTheDocument();
     // Each chapter is an island that loads on its own, so the one before may come second.
     await expect.poll(() => document.querySelector("#chapter-one")).not.toBeNull();
@@ -84,7 +84,7 @@ describe("Chapter II", () => {
   });
 
   it("plans the route: a move redraws the chart, and Conseil judges the plan", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     const chart = () => document.querySelector<SVGSVGElement>(".site-chart")!;
     const crew = () => document.querySelector("[data-composition='chart-room'] [data-chapter-crew]")!.textContent ?? "";
     expect(chart().dataset.route).toBe(START_ROUTE.join(" "));
@@ -95,7 +95,7 @@ describe("Chapter II", () => {
   });
 
   it("classes a find: Conseil says so once, and it joins the catalogue", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     const announced = watchAnnouncements();
     await userEvent.click(page.getByRole("combobox", { name: CATALOGUE.classify }));
     await userEvent.click(page.getByRole("option", { name: "Crustacean" }));
@@ -103,5 +103,51 @@ describe("Chapter II", () => {
     await expect.poll(() => announced.count(CLASSING.right(FINDS[0].name, "Crustacean").text)).toBe(1);
     announced.stop();
     await expect.element(page.getByRole("link", { name: new RegExp(FINDS[0].name) })).toBeInTheDocument();
+  });
+});
+
+/** The Nautilus's page, once Chapter II's island has come, and its radio. */
+async function openRadio() {
+  await renderPage("/nautilus/");
+  await expect.poll(() => document.querySelector("#chapter-two[data-chapter-ready] [data-composition='radio']")).not.toBeNull();
+  return page.elementLocator(document.querySelector("[data-composition='radio']")!);
+}
+
+describe("the ship's radio", () => {
+  it("answers from a script: the squid makes someone new call, a greeting gets a wave, and the crew take turns", () => {
+    expect(radioReply("Is there a squid out there?", "crew", 0)).toMatchObject({ line: { name: "Ned Land" }, reaction: "funny", call: true });
+    expect(radioReply("Ahoy, crew!", "crew", 0)).toMatchObject({ line: { name: "Captain Nemo" }, reaction: "wave", call: false });
+    expect(radioReply("Ahoy!", "captain", 0).line.name).toBe("Captain Nemo");
+    expect(radioReply("blah", "crew", 0).line.text).not.toBe(radioReply("blah", "crew", 1).line.text);
+    // A few messages in, someone new calls anyway, so nobody misses the surprise.
+    expect(radioReply("blah", "crew", CALL_AFTER - 1).call).toBe(true);
+    expect(radioReply("hi", "caller", 0)).toMatchObject({ line: { name: RADIO.caller }, call: false });
+  });
+
+  it("sends your message, shows the crew writing, then their reply with their reaction on yours; your emoji goes on theirs", async () => {
+    const radio = await openRadio();
+    await expect.element(radio.getByText(RADIO_START.crew[0]!.text)).toBeInTheDocument();
+    const box = radio.getByRole("textbox", { name: RADIO.compose });
+    await userEvent.click(box);
+    await userEvent.keyboard("Hello there{Enter}");
+    await expect.element(radio.getByText("Hello there")).toBeInTheDocument();
+    await expect.element(radio.getByText("Ahoy there! Glad to have you aboard.")).toBeInTheDocument();
+    // The captain waved at your message, on top of nobody else.
+    const yours = () => [...document.querySelectorAll("[data-composition='radio'] [data-ouro='message']")].find((message) => message.textContent?.includes("Hello there"));
+    await expect.poll(() => JSON.stringify(yours()?.querySelector("[data-ouro='reaction-bar']")?.textContent)).toContain("Wave, 1");
+    const like = radio.getByRole("button", { name: "Like", exact: true });
+    await userEvent.click(like);
+    await expect.element(radio.getByRole("button", { name: "Like, 1" }).last()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("puts someone new on the radio once you mention the squid, with a dot for news, and their conversation opens", async () => {
+    const radio = await openRadio();
+    await userEvent.click(radio.getByRole("textbox", { name: RADIO.compose }));
+    await userEvent.keyboard("Any squid around?{Enter}");
+    await expect.element(radio.getByText(RADIO.crackle)).toBeInTheDocument();
+    const caller = radio.getByRole("button", { name: new RegExp(RADIO.caller) });
+    await userEvent.click(caller);
+    await expect.element(radio.getByRole("region", { name: RADIO.list(RADIO.caller) })).toBeInTheDocument();
+    await expect.element(radio.getByText(RADIO_START.caller[2]!.text)).toBeInTheDocument();
   });
 });

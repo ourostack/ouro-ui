@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useState, type JSX, type ReactNode, type RefObject } from "react";
+import { useEffect, useState, type JSX, type ReactNode, type RefObject } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -10,7 +10,7 @@ import { CHAPTER_ONE, CODE_SHEETS, CREW, type CrewLine, type SheetLine } from ".
 import frameStyles from "./frame.css?inline";
 
 /**
- * What every chapter shares: the frame each composition sits in (window chrome, its Code sheet),
+ * What every chapter shares: how each composition is laid out (its title, its Code sheet),
  * the crew's line under it, the course line that turns the page into the chapter, and the hook that
  * puts a chapter's own styles in once it answers. Each chapter is its own island; this module is
  * the chunk they share.
@@ -18,29 +18,6 @@ import frameStyles from "./frame.css?inline";
 
 /** Where the chapters' own source lives, for each Code sheet. */
 export const CHAPTER_SOURCE = `${GITHUB}/tree/main/site/src/voyage/chapters`;
-
-/**
- * A value that follows `value` once the frame that shows the change has painted, for a drawing
- * that a press changes (the porthole, the organ). A store read with useSyncExternalStore renders
- * in the press's own frame whatever startTransition says, and a deferred render
- * (`useDeferredValue`) may still commit before the browser paints the press; set from a task after
- * that frame instead, the drawing always lands after the press. (The stage's own copy is in
- * stage.tsx.)
- */
-export function useAfterPaint<T>(value: T): T {
-  const [shown, setShown] = useState(value);
-  useEffect(() => {
-    let timer = 0;
-    const frame = requestAnimationFrame(() => {
-      timer = window.setTimeout(() => startTransition(() => setShown(value)));
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(timer);
-    };
-  }, [value]);
-  return shown;
-}
 
 /** Puts a stylesheet in the page once, however often what needs it mounts. */
 function addStyles(id: string, styles: string): void {
@@ -147,35 +124,31 @@ interface SheetCopy {
 }
 
 /**
- * One framed application: its title and line above, window chrome with a Code button, and the Code
- * sheet, where each thing HX does sits over the line of the exhibit that asks it to (wrapped, never
- * cut off at the panel's edge).
+ * One composition, laid out in the open (no card, no window chrome): its title with a Code button
+ * beside it, its line, then the working controls between two hairlines. The Code sheet puts each
+ * thing HX does over the line of the exhibit that asks it to (wrapped, never cut off at the
+ * panel's edge).
  */
 export function Composition({ id, title, intro, file, sheet, children }: { id: string; title: string; intro: string; file: string; sheet: SheetCopy; children: ReactNode }): JSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <article aria-labelledby={`${id}-title`} data-composition={id}>
-      <h3 id={`${id}-title`} className="site-h3">
-        {title}
-      </h3>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 id={`${id}-title`} className="site-h3">
+          {title}
+        </h3>
+        <span className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="site-mono hidden sm:inline">{file}</span>
+          <span className="-me-2" data-chapter-control={`${id}-code`}>
+            <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+              {CHAPTER_ONE.code}
+            </Button>
+          </span>
+        </span>
+      </div>
       <p className="mt-1 mb-4 text-muted-foreground">{intro}</p>
-      <div className="site-window will-change-transform">
-        <div className="overflow-hidden border border-border/70 will-change-transform" style={{ borderRadius: "inherit" }}>
-          <div className="site-window-bar">
-            <span className="site-window-dots" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </span>
-            <span className="site-mono truncate">{file}</span>
-            <span className="ms-auto -me-2" data-chapter-control={`${id}-code`}>
-              <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-                {CHAPTER_ONE.code}
-              </Button>
-            </span>
-          </div>
-          {children}
-        </div>
+      <div className="border-y border-border/70" data-composition-body="">
+        {children}
       </div>
       <Sheet title={sheet.title} description={sheet.description} side="right" open={open} onOpenChange={setOpen}>
         <div className="grid gap-6 text-sm">
@@ -213,6 +186,17 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
   );
 }
 
+/**
+ * Who each of the crew is, by job, so nobody needs to have read the book: each line says
+ * "Ned Land, the harpooner".
+ */
+export const ROLES: Record<CrewLine["name"], string> = {
+  "Captain Nemo": "the captain",
+  "Professor Aronnax": "the ship's scientist",
+  Conseil: "the scientist's helper",
+  "Ned Land": "the harpooner",
+};
+
 /** A crew member's line, read out when it changes; at a cheer the whole crew turns out. */
 export function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean }): JSX.Element {
   return (
@@ -227,7 +211,8 @@ export function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean 
         <Avatar name={line.name} alt="" size="sm" />
       )}
       <span>
-        <span className="font-semibold">{line.name}:</span> {line.text}
+        <span className="font-semibold">{line.name}</span>
+        <span className="text-muted-foreground">, {ROLES[line.name]}:</span> {line.text}
       </span>
     </p>
   );
