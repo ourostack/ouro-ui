@@ -68,13 +68,15 @@ function listen(view: Window): () => void {
   };
   const onScroll = () => {
     const now = performance.now();
-    if (now < freeUntil || !held()) {
+    const theirs = now < freeUntil;
+    if (theirs) freeUntil = Math.max(freeUntil, now + SCROLLING_MS);
+    if (theirs || !held()) {
       left = view.scrollX;
       top = view.scrollY;
-      if (now < freeUntil) freeUntil = Math.max(freeUntil, now + SCROLLING_MS);
       return;
     }
-    if (view.scrollX !== left || view.scrollY !== top) view.scrollTo({ left, top, behavior: "instant" });
+    // Back where it was, at once: a scroll to where the page already is does nothing.
+    view.scrollTo({ left, top, behavior: "instant" });
   };
   const capture = {
     capture: true,

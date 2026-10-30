@@ -254,6 +254,14 @@ describe("usePortalContainer", () => {
 
     it("holds the page for a layer opened inside another portal, and not for a layer without holdPage", async () => {
       await render(
+        <Held name="Hint" open holdPage={false}>
+          <Held name="Tip" open holdPage={false} />
+        </Held>,
+      );
+      expect(await scrollTo(2500)).toBe(2500);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      expect(await scrollTo(2000)).toBe(2000);
+      await render(
         <Held name="Tip" open holdPage={false}>
           <Held name="Inner" open />
         </Held>,

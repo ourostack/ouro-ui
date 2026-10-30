@@ -3,7 +3,7 @@
 export { PortalScope, usePortalContainer };
 export type { PortalContainerProps };
 
-import { createContext, createElement, useCallback, useContext, useRef, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
+import { createContext, createElement, useContext, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -73,12 +73,13 @@ function usePortalContainer(component: string, holdPage = false): PortalContaine
     () => undefined,
   );
   const letGo = useRef<(() => void) | undefined>(undefined);
-  const hold = useCallback((node: HTMLDivElement | null) => {
-    letGo.current?.();
-    letGo.current = node ? holdPageScroll(node) : undefined;
-  }, []);
-  const check = useCallback(
-    (node: HTMLDivElement | null) => {
+  // One pair of ref callbacks for the layer's life: its component and holdPage are fixed where it calls this.
+  const [refs] = useState(() => {
+    const hold = (node: HTMLDivElement | null) => {
+      letGo.current?.();
+      letGo.current = node ? holdPageScroll(node) : undefined;
+    };
+    const check = (node: HTMLDivElement | null) => {
       if (holdPage) hold(node);
       /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
       if (process.env.NODE_ENV !== "production") {
@@ -89,13 +90,10 @@ function usePortalContainer(component: string, holdPage = false): PortalContaine
           "<OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>",
         );
       }
-    },
-    [component, holdPage, hold],
-  );
+    };
+    return { hold, check };
+  });
   // A layer inside another portal (a dialog's, say) holds the page itself.
-  if (nested) return holdPage ? { ref: hold } : {};
-  return {
-    ...(container ? { container } : {}),
-    ...(holdPage || process.env.NODE_ENV !== "production" ? { ref: check } : /* istanbul ignore next @preserve -- production only */ {}),
-  };
+  if (nested) return holdPage ? { ref: refs.hold } : {};
+  return { ...(container ? { container } : {}), ref: refs.check };
 }
