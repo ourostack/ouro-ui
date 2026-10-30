@@ -1,10 +1,11 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type MouseEvent, type ReactElement } from "react";
 import { expectTypeOf } from "vitest";
 import {
   ConversationList,
   type ConversationListDensity,
   type ConversationListItem,
   type ConversationListProps,
+  type ConversationListSection,
 } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 
 // Type tests: `pnpm typecheck` compiles this file.
@@ -23,6 +24,17 @@ expectTypeOf<{
   id: "inbox";
 }>().toExtend<ConversationListProps>();
 expectTypeOf<{ id: "a"; title: "Trail crew"; subtitle: "Hikes"; preview: "Meet at eight"; time: "9:41"; unread: true; badges: null; avatar: false }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "a"; title: "Design reviews"; where: "Lantern Labs"; icon: null; mark: "in 10 min"; avatar: ReactElement; section: "pinned" }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "pinned"; title: "Pinned"; note: "your folder"; defaultOpen: false; open: true }>().toExtend<ConversationListSection>();
+expectTypeOf<{
+  label: "Chats";
+  items: typeof items;
+  sections: readonly ConversationListSection[];
+  onSectionOpenChange: (id: string, open: boolean) => void;
+  onSelect: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
+}>().toExtend<ConversationListProps>();
+// The handler may take the click second, or leave it out.
+expectTypeOf<Parameters<ConversationListProps["onSelect"]>>().toEqualTypeOf<[id: string, event: MouseEvent<HTMLButtonElement>]>();
 expectTypeOf<ComponentProps<typeof ConversationList>>().toEqualTypeOf<ConversationListProps>();
 expectTypeOf<ConversationListDensity>().toEqualTypeOf<"comfortable" | "compact">();
 
@@ -37,6 +49,10 @@ expectTypeOf<{ label: "Conversations"; items: typeof items; onSelect: (id: strin
 expectTypeOf<{ label: "Conversations"; items: typeof items; onSelect: (id: string) => void; selected: "a" }>().not.toExtend<ConversationListProps>();
 expectTypeOf<{ label: "Conversations"; items: typeof items; onSelect: (id: string) => void; onValueChange: () => void }>().not.toExtend<ConversationListProps>();
 expectTypeOf<{ label: "Conversations"; onSelect: (id: string) => void; conversations: typeof items }>().not.toExtend<ConversationListProps>();
+expectTypeOf<{ label: "Conversations"; items: typeof items; onSelect: (id: string) => void; groups: [] }>().not.toExtend<ConversationListProps>();
+// A section needs its id and title; an avatar is a URL, an element or false.
+expectTypeOf<{ id: "pinned" }>().not.toExtend<ConversationListSection>();
+expectTypeOf<{ id: "a"; title: "Trail crew"; avatar: true }>().not.toExtend<ConversationListItem>();
 
 // @ts-expect-error label is required.
 createElement(ConversationList, { items, onSelect: () => {} });

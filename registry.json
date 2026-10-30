@@ -10225,6 +10225,7 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/badge-tests",

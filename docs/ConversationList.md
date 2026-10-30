@@ -2,7 +2,7 @@
 
 # ConversationList
 
-A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. The open conversation's row is highlighted and marked `aria-current`. Up and Down arrows move between rows, Home and End jump to the first and last, and Enter, Space or a click calls `onSelect`.
+A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. The open conversation's row is highlighted and marked `aria-current`. The list is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows move between rows, Home and End jump to the first and last, and Enter, Space or a click calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
 
 ```tsx
 import { ConversationList } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
@@ -12,6 +12,7 @@ import { ConversationList } from "@/registry/ouro/components/ouro/conversation-l
 
 ```tsx
 <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />
+<ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ada", title: "Ada Lovelace", section: "pinned" }]} onSelect={open} />
 ```
 
 ## Use instead when
@@ -29,10 +30,12 @@ Type: `ConversationListProps`.
 | `empty` | `ReactNode` | `"Nothing here yet"` | What shows when `items` is empty. |
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |
-| `onSelect` (required) | `(id: string) => void` |  | Called with a row's `id` when it is chosen by a click, a tap, Enter or Space. |
+| `onSectionOpenChange` | `((id: string, open: boolean) => void)` |  | Called with a section's `id` and whether it is now open, when its header is pressed. |
+| `onSelect` (required) | `(id: string, event: MouseEvent<HTMLButtonElement>) => void` |  | Called with a row's `id` when it is chosen by a click, a tap, Enter or Space. A handler that takes a second parameter also gets the click, so the app can check `event.isTrusted` or `event.metaKey`; a one-parameter handler or a server action gets the `id` alone. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
+| `sections` | `readonly ConversationListSection[]` |  | The headers the rows group under, in order. A row names its header in `section`, and a section without rows is left out. |
 | `selectedId` | `string \| null` |  | The `id` of the open conversation. Its row is highlighted and marked `aria-current`. |
-| `unreadLabel` | `string` | `"Unread"` | What screen readers hear for an unread row's dot, for other languages. |
+| `unreadLabel` | `string` | `"Unread"` | What screen readers hear for an unread row's dot, and a closed section's, for other languages. |
 
 ## Native attributes
 
@@ -43,6 +46,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `conversations`: Not a prop. The rows are `items`: `<ConversationList items={conversations}>`.
+- `groups`: Not a prop. Headers are `sections`, and a row names its own in `section`: `<ConversationList sections={sections} items={rows}>`.
 - `onValueChange`: Not a prop. A chosen row calls `onSelect`: `<ConversationList onSelect={(id) => open(id)}>`.
 - `selected`: Not a prop. The open conversation is `selectedId`: `<ConversationList selectedId={openId}>`.
 - `value`: Not a prop. The open conversation is `selectedId`: `<ConversationList selectedId={openId}>`.
@@ -67,6 +71,8 @@ interface ConversationListItem {
   id: string;
   /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
   title: string;
+  /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
+  where?: string | undefined;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
   /** The latest message, cut to one line. `density="compact"` hides it. */
@@ -75,10 +81,42 @@ interface ConversationListItem {
   time?: ReactNode;
   /** There are messages the person has not read: the title is bold and a dot shows. */
   unread?: boolean | undefined;
+  /** A small icon before the title, in the muted color, such as a pin or a muted bell. Give it a name (`role="img"` and `aria-label`) when it means something. */
+  icon?: ReactNode;
   /** Small marks after the title, such as a `<Badge>`. */
   badges?: ReactNode;
-  /** The avatar's picture URL. Without it the avatar shows initials; `false` hides the avatar. */
-  avatar?: string | false | undefined;
+  /**
+   * The row's mark, at the end of its last line under the time: a mention `<Badge>`, "in 10 min" before a meeting.
+   * It takes the unread dot's place; screen readers still hear `unreadLabel`. It keeps to the line's height, so the
+   * row stays the height of the others.
+   */
+  mark?: ReactNode;
+  /**
+   * The avatar: a picture's URL, or an element to show instead, such as an `<Avatar>` with the person's presence or an
+   * `<AvatarGroup>`. Without it the avatar shows the title's initials; `false` hides the avatar.
+   */
+  avatar?: string | ReactElement | false | undefined;
+  /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
+  section?: string | undefined;
+}
+```
+
+### `ConversationListSection`
+
+A group of rows in a `ConversationList`, under a header that opens and closes it.
+
+```ts
+interface ConversationListSection {
+  /** Identifies the section; rows name it in their `section`, and `onSectionOpenChange` receives it. */
+  id: string;
+  /** The header's words: "Pinned", "Recent". They also name the section's list for screen readers. */
+  title: string;
+  /** Muted words after the title on the header, such as "your folder". */
+  note?: ReactNode;
+  /** Whether the section starts open, when the list keeps its state. @default true */
+  defaultOpen?: boolean | undefined;
+  /** Whether the section is open, when the app keeps the state with `onSectionOpenChange`. */
+  open?: boolean | undefined;
 }
 ```
 

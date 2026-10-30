@@ -10,7 +10,16 @@ export const agentCases: AgentCase[] = [
     dev: '<ConversationList density="compact">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "conversationList03",
+    habit: "groups for the sections",
+    tsc: [
+      "error TS2741: Property ''Use sections={sections}, and section on each item'' is missing in type '{ label: string; items: never[]; }[]' but required in type '{ 'Use sections={sections}, and section on each item': never; }'.",
+    ],
+    dev: '<ConversationList sections={[{ id: "pinned", title: "Pinned" }]} items={[{ ...row, section: "pinned" }]}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid conversation-list snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["conversationListOk01"];
+export const validSnippets: string[] = ["conversationListOk01", "conversationListOk02"];

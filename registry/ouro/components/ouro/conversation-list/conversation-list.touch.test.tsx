@@ -12,7 +12,7 @@ afterEach(async () => {
   for (const node of nodes.splice(0)) node.remove();
 });
 
-it("gives each ConversationList row a target at least 44px tall to a finger, even when compact", async () => {
+it("gives each ConversationList row and section header a target at least 44px tall to a finger, even when compact", async () => {
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
   const host = document.createElement("div");
   document.body.append(host);
@@ -25,14 +25,15 @@ it("gives each ConversationList row a target at least 44px tall to a finger, eve
         density="compact"
         items={[
           { id: "trail", title: "Trail crew", avatar: false },
-          { id: "ada", title: "Ada Lovelace" },
+          { id: "ada", title: "Ada Lovelace", section: "pinned" },
         ]}
+        sections={[{ id: "pinned", title: "Pinned" }]}
         onSelect={() => {}}
       />,
     ),
   );
   const rows = [...host.querySelectorAll<HTMLElement>('[data-ouro-control="conversation-list"]')];
-  expect(rows).toHaveLength(2);
+  expect(rows).toHaveLength(3);
   for (const row of rows) {
     const rect = row.getBoundingClientRect();
     expect(rect.height).toBeGreaterThanOrEqual(44);
