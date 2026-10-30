@@ -70,10 +70,38 @@ const modalOpen = (own: Element) =>
   );
 
 /**
+ * Whether a person can see an element: it and everything around it are rendered, not `visibility: hidden`, and not fully transparent.
+ * @claim "Whether a person can see an element" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline a component no one can see, and outlines it while hover or focus shows it)
+ */
+const seen = (element: Element) => element.checkVisibility({ visibilityProperty: true, opacityProperty: true });
+
+/**
+ * The box a component shows on the screen: its own, or, where its own box has no area (a fixed
+ * region its content is placed in, as a Toaster's is), the box its visible content fills, leaving
+ * out a visually hidden child (`sr-only`, one pixel square). `null` while nothing in it shows, as in
+ * a Toaster with no toast.
+ * @claim "where its own box has no area" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector geometry > outlines a component whose own box has no area by the box its visible content fills, and not at all while nothing in it shows)
+ * @claim "`null` while nothing in it shows" registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
+ */
+function shownBox(element: Element): DOMRect | null {
+  const box = element.getBoundingClientRect();
+  if (box.width > 0 && box.height > 0) return box;
+  const inside = [...element.children].filter(seen).flatMap((child) => shownBox(child) ?? []).filter((inner) => inner.width > 1 || inner.height > 1);
+  if (inside.length === 0) return null;
+  const left = Math.min(...inside.map((inner) => inner.left));
+  const top = Math.min(...inside.map((inner) => inner.top));
+  return new DOMRect(left, top, Math.max(...inside.map((inner) => inner.right)) - left, Math.max(...inside.map((inner) => inner.bottom)) - top);
+}
+
+/**
  * Every visible Ouro component root in the page, in document order, but X-ray's own, one behind an
- * open dialog, and a part's root inside its own component (a Radio in its RadioGroup counts once).
+ * open dialog, one no one can see (fully transparent, as an action shown only on hover is until
+ * then, or with nothing in it showing), and a part's root inside its own component (a Radio in its
+ * RadioGroup counts once).
  * @claim "Every visible Ouro component root in" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > outlines every Ouro component on the page, each tagged with its item and linked to its docs)
  * @claim "Every visible Ouro component root in" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component)
+ * @claim "one no one can see" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline a component no one can see, and outlines it while hover or focus shows it)
+ * @claim "or with nothing in it showing" registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
  */
 function findComponents(own: Element, modal: boolean): Found[] {
   const found: Found[] = [];
@@ -82,10 +110,10 @@ function findComponents(own: Element, modal: boolean): Found[] {
     const name = element.getAttribute("data-ouro")!;
     const item = itemFor(name);
     if (item === null || isPartOf(name, element.parentElement?.closest("[data-ouro]")) || (modal && element.closest(shutOff))) continue;
-    if (!element.checkVisibility({ visibilityProperty: true })) continue;
-    const box = element.getBoundingClientRect();
+    if (!seen(element)) continue;
+    const box = shownBox(element);
     // A visually hidden root (`sr-only`, one pixel square) has nothing to outline; a one-pixel line (a Separator) has.
-    if (box.width <= 1 && box.height <= 1) continue;
+    if (!box || (box.width <= 1 && box.height <= 1)) continue;
     found.push({ key: keyOf(element), item, element });
   }
   return found;
@@ -277,6 +305,9 @@ const moving = (own: Element) =>
     return animation.playState === "running" && Number.isFinite(animation.effect!.getComputedTiming().iterations) && !(target && own.contains(target));
   });
 
+/** The events after which something may show or hide though nothing in the page changed: a pointer moving onto an element, and focus coming or going. */
+const reveals = ["pointerover", "focusin", "focusout"];
+
 const noSubscription = () => () => {};
 
 /** Ouro's public docs page for an item. */
@@ -289,7 +320,9 @@ const ouroDocs = (item: string) => `https://ui.ouro.bot/docs/${item}/`;
  * document order with its "Docs" and, from `sourceHref`, "Source" links. Outlines follow
  * their components through scrolling, resizing, overlays and changes to the page, measured once a
  * frame at most; they never take a pointer, so the page stays usable underneath, and only the tags
- * do. X-ray shows only what a person can see and reach: an outline is cut to the part a scrolling
+ * do. X-ray shows only what a person can see and reach: a component no one can see (fully
+ * transparent, as an action shown only on hover or focus is until then, or a Toaster with no toast)
+ * has no outline until it shows, an outline is cut to the part a scrolling
  * box lets show, a tag hides while a menu or a list lies over it, the page behind an open modal
  * dialog is left alone, and a part (a Radio) counts with
  * its component (its RadioGroup). X-ray never draws over the page's text: an outline's edge breaks
@@ -312,6 +345,8 @@ const ouroDocs = (item: string) => `https://ui.ouro.bot/docs/${item}/`;
  * @claim "Each tag names the component's registry" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lists every component in document order in its sheet, with docs and source links)
  * @claim "Outlines follow their components through scrolling" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > follows its components as the page scrolls and resizes)
  * @claim "Outlines follow their components through scrolling" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lets a click through an outline reach the control underneath, and only the tags take a pointer)
+ * @claim "a component no one can see" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline a component no one can see, and outlines it while hover or focus shows it)
+ * @claim "a component no one can see" registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
  * @claim "X-ray never draws over the page's" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other)
  * @claim "Its bar is a landmark named" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > puts its bar in a landmark named by its label)
  */
@@ -360,14 +395,15 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
    * then every outline written, so the page lays out once. An outline with nothing showing hides,
    * and so does its tag.
    * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides the outline and tag of a component scrolled out of view inside a box, and clips one partly out)
-   * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.tsx verify:fileLine(registry/ouro/components/ouro/inspector/inspector.tsx, /const\sboxes\s=\scomponents\.map\(\(component\)\s=>\scomponent\.element\.getBoundingClientRect\(\)\)/)
+   * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.tsx verify:fileLine(registry/ouro/components/ouro/inspector/inspector.tsx, /const\sboxes\s=\scomponents\.map\(\(component\)\s=>\sshownBox\(component\.element\)\s\?\?\snew\sDOMRect\(\)\)/)
    */
   const place = (all: Found[]) => {
     const own = layer.current!;
     // An outline React has yet to render is placed once it has, from the layout effect below.
     const components = all.filter((component) => outlines.has(component.key));
     const ancestors = new Map<Element, Ancestor>();
-    const boxes = components.map((component) => component.element.getBoundingClientRect());
+    // A component that stopped showing since it was found (a toast gone) has no box, and hides until the next measure drops it.
+    const boxes = components.map((component) => shownBox(component.element) ?? new DOMRect());
     const parts = components.map((component, index) => visiblePart(component.element, boxes[index]!, ancestors));
     const shown = parts.map((part) => part.right > part.left && part.bottom > part.top);
     const lines = textLines(own);
@@ -438,6 +474,8 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
     mutations.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
     addEventListener("scroll", schedule, { capture: true, passive: true });
     addEventListener("resize", schedule);
+    // Hover and focus change what shows without changing the page: an action that appears on hover or focus.
+    for (const type of reveals) addEventListener(type, schedule, true);
     schedule();
     return () => {
       cancelAnimationFrame(frame);
@@ -445,6 +483,7 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
       resizes.disconnect();
       removeEventListener("scroll", schedule, { capture: true });
       removeEventListener("resize", schedule);
+      for (const type of reveals) removeEventListener(type, schedule, true);
     };
     // `place` reads only the outlines map, which lives as long as the layer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
