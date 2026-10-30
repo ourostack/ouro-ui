@@ -366,6 +366,45 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Ouro: Preheat the oven."]);
   });
 
+  it("keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages", async () => {
+    /** An app's own message, not Ouro's Message, marked for the list. */
+    function Post({ item }: { item: Item }) {
+      return (
+        <article data-ouro-message-list-item="" data-role={item.role} aria-busy={item.streaming || undefined} style={{ padding: 8 }}>
+          <span data-ouro-message-author="">{item.role === "user" ? "Ada" : "Grace"}</span>
+          <p data-ouro-message-content="">{item.text}</p>
+        </article>
+      );
+    }
+    const Posts = ({ items }: { items: Item[] }) => (
+      <MessageList label="Team chat" style={{ height: 300 }}>
+        {items.map((item) => (
+          <Post key={item.id} item={item} />
+        ))}
+      </MessageList>
+    );
+    const items = history(20, 10);
+    const { scroller, live, rerender } = await render(<Posts items={items} />);
+    expect(scroller.querySelector('[data-ouro="message"]')).toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    const { spoken, stop } = recordAnnouncements(live);
+    await wheel(scroller, -400);
+    const viewTop = scroller.getBoundingClientRect().top;
+    const before = [...scroller.querySelectorAll("[data-ouro-message-list-item]")].find((node) => node.getBoundingClientRect().top >= viewTop)!;
+    const top = before.getBoundingClientRect().top;
+    await rerender(<Posts items={[...history(10), ...items]} />);
+    await settle(scroller);
+    expect(Math.abs(before.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    // The reader's own post is not read back; a reply is, once it finishes streaming.
+    const sent = [...history(10), ...items, { id: 30, role: "user" as const, text: "On my way." }];
+    await rerender(<Posts items={sent} />);
+    await rerender(<Posts items={[...sent, { id: 31, role: "assistant", text: "See you", streaming: true }]} />);
+    await rerender(<Posts items={[...sent, { id: 31, role: "assistant", text: "See you at six." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Grace: See you at six."]);
+  });
+
   it("says nothing when a message's key changes but it stays in place, as when a temporary id becomes the server's", async () => {
     const items = history(4);
     const { live, rerender } = await render(<Chat items={items} />);
