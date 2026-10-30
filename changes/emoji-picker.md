@@ -1,0 +1,1 @@
+- New: `EmojiPicker`, a picker for reactions and for putting emoji into text: search by name and keywords, a category bar, frequently used and quick emoji the app supplies, a skin tone choice, and a keyboard grid, in a `Popover` that is a bottom sheet on phones.
