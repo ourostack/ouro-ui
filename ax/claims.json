@@ -1,6 +1,6 @@
 {
   "$comment": "Ouro AX: the standard. Each claim is one checkable rule about an interface whose user is an agent. ax/xray.mjs checks every claim from outside, against any CLI, HTTP API or MCP server, without importing its code. Sources: Tandem's docs/ax-principles.md (P1-P15) and the Ouro UI design record of 2026-10-11 (the CLI kit and MCP kit lists).",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "claims": [
     {
       "id": "cli.help-parses",
@@ -181,6 +181,26 @@
       "source": "Tandem P4; the Apple Developer AX candidate (dry-run plans)",
       "check": "When `<command> --help` mentions `--dry-run`, run it on a real target with `--why`. Pass when it exits 0, names who will see it, and nothing changes.",
       "fix": "Add `--dry-run`: resolve the target, print the preview line (\"Would send to X as the person. Everyone in X will see it.\"), exit 0, and send nothing."
+    },
+    {
+      "id": "cli.text-as-argument",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form.",
+      "rationale": "An agent allowed to run only this CLI (`shell(<cli>)`) cannot pipe into it: the pipe's first command is not the CLI, so the call is denied.",
+      "source": "ax-eval baseline of Tandem main, 2026-10-30: every T3 and T4 run's `printf … | m365tandem send/edit-sent … -` was denied",
+      "check": "For each usage that reads text from stdin (`-`), look for a usage of the same command with a placeholder in that place. For a command others see that offers --dry-run, the preview probe passes the text as an argument.",
+      "fix": "Accept the text as an argument and list that usage first; keep `-` for stdin."
+    },
+    {
+      "id": "cli.wait-on-refs",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave.",
+      "rationale": "Waiting through the interface beats polling; when the wait refuses the ref the agent holds, agents fall back to blind streams and pollers.",
+      "source": "ax-eval baseline of Tandem main, 2026-10-30: T5 runs tried `watch r82dfi` and `watch conversation:r82dfi` (exit 2), then a bare stream or a Python poller",
+      "check": "When the CLI has a `watch` or `wait` command, run it on a harvested conversation ref with a short timeout. Pass on exit 0 or the documented waited-and-nothing-happened code; fail on a usage error.",
+      "fix": "Let the wait take every ref a read prints, and exit with a documented code when nothing happens in time."
     },
     {
       "id": "cli.reads-stay-reads",

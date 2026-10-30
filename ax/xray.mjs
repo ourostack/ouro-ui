@@ -401,6 +401,26 @@ async function checkCli(rec, opts) {
     rec.add("cli.reads-stay-reads", `${reads.length} reads, their flag probes and the missing-argument probes`, d.same ? "pass" : "fail", d.same ? `state: ${opts.state.join("; ")}` : `${opts.state.join("; ")} changed: ${refusalVerdict(d).note}`);
   } else rec.add("cli.reads-stay-reads", "state", "skip", stateNote || "no --state command given");
 
+  // Free text: a stdin-only usage needs a sibling usage with an argument in that place.
+  for (const cmd of commands.filter((c) => c.effect === "private" || c.effect === "others")) {
+    const forms = cmd.usage.map((u) => usageWords(u.replace(/\[[^[\]]*\]/g, " ")));
+    const stdinOnly = forms.filter((w) => w.includes("-")).filter((w) => {
+      const i = w.indexOf("-");
+      return !forms.some((v) => v !== w && v.length > i && v.slice(0, i).length === i && v[0] === w[0] && /^"?<[^>]+>"?$/.test(v[i]) && !v.includes("-"));
+    });
+    if (forms.some((w) => w.includes("-"))) rec.add("cli.text-as-argument", cmd.name, stdinOnly.length ? "fail" : "pass", stdinOnly.length ? `only stdin: ${stdinOnly.map((w) => w.join(" ")).join("; ").slice(0, 200)}` : "an argument form is listed beside stdin");
+  }
+
+  // Waiting: a watch or wait command takes a conversation ref a read gave.
+  const waiter = commands.find((c) => c.name === "watch" || c.name === "wait");
+  const convRef = ["conversation", "chat", "room", "channel"].map((k) => samples[k]).find(Boolean);
+  if (waiter && convRef) {
+    const waitedCode = help?.exitCodes?.find((e) => /wait|didn.t happen|timed? ?out/i.test(`${e.short ?? ""} ${e.meaning ?? ""}`))?.code;
+    const c = await call([waiter.name, convRef, "--timeout", "1s"], { timeoutMs: Math.max(opts.timeoutMs, 15_000) });
+    const ok = !c.timedOut && (c.code === 0 || (waitedCode !== undefined && c.code === waitedCode));
+    rec.add("cli.wait-on-refs", `${waiter.name} <conversation>`, ok ? "pass" : "fail", brief(c));
+  } else if (waiter) rec.add("cli.wait-on-refs", waiter.name, "skip", "no conversation ref harvested from the reads");
+
   // What other people see: refused paths only, and a preview only where the CLI advertises one.
   const others = commands.filter((c) => c.effect === "others");
   const fill = (word, value) => word.replace(/<([^>]+)>/g, (_, p) => (/^name$/i.test(p) ? "ax-xray" : typeof value === "function" ? value(placeholderKey(`<${p}>`)) : value));

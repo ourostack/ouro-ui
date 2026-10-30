@@ -1,8 +1,8 @@
 # AX X-ray: m365tandem
 
-Ouro AX standard 0.1.0, checked by ax-xray at 2026-10-30T21:43:58.138Z. Target: at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 136 calls); HTTP http://127.0.0.1:51970 (131 routes in the manifest, 100 requests).
+Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:47:56.742Z. Target: at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 137 calls); HTTP http://127.0.0.1:55325 (131 routes in the manifest, 100 requests).
 
-Claims holding: **21 of 29** (must: 19 of 26). Checks: 353 pass, 114 fail, 0 skipped. Score **75.6%**.
+Claims holding: **21 of 31** (must: 19 of 28). Checks: 353 pass, 121 fail, 0 skipped. Score **74.5%**.
 
 | | Claim | Severity | Rule | Pass | Fail | Skip |
 |---|---|---|---|---|---|---|
@@ -10,7 +10,9 @@ Claims holding: **21 of 29** (must: 19 of 26). Checks: 353 pass, 114 fail, 0 ski
 | ✗ | `http.error-teaches` | must | Every error names a next action: a route, a field, or a command. | 8 | 27 | 0 |
 | ✗ | `http.wrong-ref-first` | must | A route given an id that does not exist fails and says where to get a right one. | 2 | 17 | 0 |
 | ✗ | `cli.others-preview` | must | Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. | 0 | 8 | 0 |
+| ✗ | `cli.text-as-argument` | must | A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. | 0 | 6 | 0 |
 | ✗ | `cli.read-json` | must | Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr. | 26 | 1 | 0 |
+| ✗ | `cli.wait-on-refs` | must | A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. | 0 | 1 | 0 |
 | ✗ | `http.index` | must | The API's base path answers an index of its routes. | 0 | 1 | 0 |
 | ✗ | `http.unknown-route` | must | An unknown route answers 404 and says where the routes are listed. | 0 | 1 | 0 |
 | ✗ | `cli.flag-suggest` | should | A misspelt flag's error names the closest real flag. | 0 | 17 | 0 |
@@ -73,10 +75,10 @@ Fix: Check every flag against the command's declared flags before acting; refuse
 - **draft --abot**: `m365tandem draft show --abot --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".
 - **layout**: `m365tandem layout catalog --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
 - **layout --brif**: `m365tandem layout catalog --brif --json` → exit 0; stdout: {: --brif was ignored, so the answer is not what was asked
-- **watch**: `m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {"type":"hello","lastActionId":16}
+- **watch**: `m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {"type":"hello","lastActionId":0}
 - **watch --aftr**: `m365tandem watch --aftr 2 --json` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare "watch" streams every event
-- **log**: `m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: [: the flag was ignored
-- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: [: --limt was ignored, so the answer is not what was asked
+- **log**: `m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: []: the flag was ignored
+- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: []: --limt was ignored, so the answer is not what was asked
 - **help**: `m365tandem help --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
 - **look**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --ax-xray-n…` → exit 0; stdout: {: the flag was ignored
 - **look --limt**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --limt 2 --…` → exit 0; stdout: {: --limt was ignored, so the answer is not what was asked
@@ -160,6 +162,19 @@ Fix: Add `--dry-run`: resolve the target, print the preview line ("Would send to
 - **join**: `m365tandem join --help` offers no --dry-run, so who will see it can only be learnt by doing it
 - **mark-read**: `m365tandem mark-read --help` offers no --dry-run, so who will see it can only be learnt by doing it
 
+### `cli.text-as-argument`: A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form.
+
+Why: An agent allowed to run only this CLI (`shell(<cli>)`) cannot pipe into it: the pipe's first command is not the CLI, so the call is denied. Source: ax-eval baseline of Tandem main, 2026-10-30: every T3 and T4 run's `printf … | m365tandem send/edit-sent … -` was denied.
+
+Fix: Accept the text as an argument and list that usage first; keep `-` for stdin.
+
+- **prep**: only stdin: prep note <meeting> -
+- **note**: only stdin: note <meeting> -
+- **notes**: only stdin: notes <meeting> set -; notes <meeting> append -
+- **send**: only stdin: send <conversation> - --agent <name> --why <reason>; send notes - --agent <name> --why ...
+- **reply**: only stdin: reply <channel>#<message id> - --agent <name> --why <reason>
+- **edit-sent**: only stdin: edit-sent <conversation>#<message id> - --agent <name> --why <reason>
+
 ### `cli.read-json`: Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr.
 
 Why: One parseable answer per call is the cheapest thing for an agent to consume. Source: Ouro UI 2026-10-11 CLI kit: one definition gives human output and --json; Tandem help: --json on every read.
@@ -167,6 +182,14 @@ Why: One parseable answer per call is the cheapest thing for an agent to consume
 Fix: Give the read a `--json` that prints the same data the text shows, as one document.
 
 - **draft**: `m365tandem draft show --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".
+
+### `cli.wait-on-refs`: A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave.
+
+Why: Waiting through the interface beats polling; when the wait refuses the ref the agent holds, agents fall back to blind streams and pollers. Source: ax-eval baseline of Tandem main, 2026-10-30: T5 runs tried `watch r82dfi` and `watch conversation:r82dfi` (exit 2), then a bare stream or a Python poller.
+
+Fix: Let the wait take every ref a read prints, and exit with a documented code when nothing happens in time.
+
+- **watch <conversation>**: `m365tandem watch 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --timeout …` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare "watch" streams every event
 
 ### `http.index`: The API's base path answers an index of its routes.
 
@@ -203,7 +226,7 @@ Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; d
 - **draft --abot**: `m365tandem draft show --abot --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".; does not name --about
 - **layout --brif**: `m365tandem layout catalog --brif --json` → exit 0; stdout: {; does not name --brief
 - **watch --aftr**: `m365tandem watch --aftr 2 --json` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare "watch" streams every event; does not name --after
-- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: [; does not name --limit
+- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: []; does not name --limit
 - **look --limt**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --limt 2 --…` → exit 0; stdout: {; does not name --limit
 - **search --limt**: `m365tandem search the --limt 2 --json` → exit 0; stdout: {; does not name --limit
 - **meeting --freh**: `m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {; does not name --fresh
@@ -236,15 +259,15 @@ Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; d
 | cli · meeting | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` |
 | cli · transcript | `cli.help-effects` `cli.command-help` `cli.missing-arg` |  |
 | cli · recordings | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` |
-| cli · prep | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` |
-| cli · note | `cli.help-effects` `cli.command-help` `cli.missing-arg` |  |
-| cli · notes | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` |
+| cli · prep | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` `cli.text-as-argument` |
+| cli · note | `cli.help-effects` `cli.command-help` `cli.missing-arg` | `cli.text-as-argument` |
+| cli · notes | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` `cli.text-as-argument` |
 | cli · draft | `cli.help-effects` `cli.command-help` | `cli.read-json` `cli.unknown-flag` |
 | cli · layout | `cli.help-effects` `cli.command-help` `cli.read-json` | `cli.unknown-flag` |
-| cli · send | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
-| cli · reply | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
+| cli · send | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.text-as-argument` `cli.others-preview` |
+| cli · reply | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.text-as-argument` `cli.others-preview` |
 | cli · react | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
-| cli · edit-sent | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
+| cli · edit-sent | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.text-as-argument` `cli.others-preview` |
 | cli · delete-sent | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
 | cli · answer-invite | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
 | cli · join | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` | `cli.others-preview` |
@@ -319,6 +342,7 @@ Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; d
 | cli · search --limt |  | `cli.unknown-flag` `cli.flag-suggest` |
 | cli · meeting --freh |  | `cli.unknown-flag` `cli.flag-suggest` |
 | cli · 27 reads, their flag probes and the missing-argument probes | `cli.reads-stay-reads` |  |
+| cli · watch <conversation> |  | `cli.wait-on-refs` |
 | cli · send (no --why) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · send (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · reply (no --why) | `cli.one-line-error` `cli.error-teaches` |  |
@@ -335,7 +359,7 @@ Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; d
 | cli · join (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · mark-read (no --why) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · mark-read (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
-| cli · all 136 calls | `cli.no-stack-trace` `cli.exit-codes` |  |
+| cli · all 137 calls | `cli.no-stack-trace` `cli.exit-codes` |  |
 | http · GET /api |  | `http.index` |
 | http · GET /api/ax-xray-no-such-route | `http.error-shape` | `http.unknown-route` `http.error-teaches` |
 | http · GET /api/health | `http.json` |  |

@@ -1,5 +1,5 @@
-ax-xray (Ouro AX 0.1.0): at teams-microsoft/tandem@4f683e54 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 144 calls); HTTP http://127.0.0.1:59282 (131 routes in the manifest, 100 requests)
-Claims holding: 26 of 29 (must: 23 of 26). Checks: 512 pass, 5 fail, 0 skipped. Score 99%.
+ax-xray (Ouro AX 0.2.0): at teams-microsoft/tandem@26485501 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 142 calls); HTTP http://127.0.0.1:51585 (131 routes in the manifest, 100 requests)
+Claims holding: 28 of 31 (must: 25 of 28). Checks: 516 pass, 5 fail, 3 skipped. Score 99%.
 
 ✗ http.error-teaches [must] Every error names a next action: a route, a field, or a command. (33 of 35)
     GET /api/resolve: "link-form" names no route, flag or command
@@ -25,7 +25,9 @@ Claims holding: 26 of 29 (must: 23 of 26). Checks: 512 pass, 5 fail, 0 skipped. 
 ✓ cli.ambiguous-verbs [must] Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands. (3 of 3)
 ✓ cli.others-need-why [must] Every command other people see refuses to run without `--why`, and says so. (8 of 8)
 ✓ cli.wrong-ref-first [must] A wrong reference fails before anything reaches anyone, and the error says where to get a right one. (8 of 8)
-✓ cli.others-preview [must] Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. (8 of 8)
+✓ cli.others-preview [must] Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. (5 of 5, 3 skipped)
+✓ cli.text-as-argument [must] A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. (6 of 6)
+✓ cli.wait-on-refs [must] A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. (1 of 1)
 ✓ cli.reads-stay-reads [must] Reads change nothing. (1 of 1)
 ✓ cli.refusals-change-nothing [must] A refused call changes nothing, except an audit record that says it was refused. (8 of 8)
 ✓ http.json [must] Every route answers JSON, with a JSON content type. (62 of 62)

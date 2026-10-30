@@ -1,5 +1,5 @@
-ax-xray (Ouro AX 0.1.0): at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 136 calls); HTTP http://127.0.0.1:51970 (131 routes in the manifest, 100 requests)
-Claims holding: 21 of 29 (must: 19 of 26). Checks: 353 pass, 114 fail, 0 skipped. Score 75.6%.
+ax-xray (Ouro AX 0.2.0): at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 137 calls); HTTP http://127.0.0.1:55325 (131 routes in the manifest, 100 requests)
+Claims holding: 21 of 31 (must: 19 of 28). Checks: 353 pass, 121 fail, 0 skipped. Score 74.5%.
 
 ✗ cli.unknown-flag [must] An unknown flag fails before anything runs, and the error names the flag. (2 of 44)
     today: `m365tandem today --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
@@ -29,9 +29,19 @@ Claims holding: 21 of 29 (must: 19 of 26). Checks: 353 pass, 114 fail, 0 skipped
     edit-sent: `m365tandem edit-sent --help` offers no --dry-run, so who will see it can only be learnt by doing it
     … 4 more
     Fix: Add `--dry-run`: resolve the target, print the preview line ("Would send to X as the person. Everyone in X will see it."), exit 0, and send nothing.
+✗ cli.text-as-argument [must] A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. (0 of 6)
+    prep: only stdin: prep note <meeting> -
+    note: only stdin: note <meeting> -
+    notes: only stdin: notes <meeting> set -; notes <meeting> append -
+    send: only stdin: send <conversation> - --agent <name> --why <reason>; send notes - --agent <name> --why ...
+    … 2 more
+    Fix: Accept the text as an argument and list that usage first; keep `-` for stdin.
 ✗ cli.read-json [must] Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr. (26 of 27)
     draft: `m365tandem draft show --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".
     Fix: Give the read a `--json` that prints the same data the text shows, as one document.
+✗ cli.wait-on-refs [must] A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. (0 of 1)
+    watch <conversation>: `m365tandem watch 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --timeout …` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare "watch" streams every event
+    Fix: Let the wait take every ref a read prints, and exit with a documented code when nothing happens in time.
 ✗ http.index [must] The API's base path answers an index of its routes. (0 of 1)
     GET /api: `GET /api` → 404 {"error":"not found"}; names 0 of 131 routes
     Fix: Serve GET /api with { routes: ["GET /api/x", ...] } from the same table the router uses.

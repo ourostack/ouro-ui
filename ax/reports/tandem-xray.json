@@ -1,11 +1,11 @@
 {
   "tool": "ax-xray",
-  "standard": "0.1.0",
-  "at": "2026-10-30T21:53:23.055Z",
+  "standard": "0.2.0",
+  "at": "2026-10-30T22:51:24.694Z",
   "target": {
     "cli": {
       "name": "m365tandem",
-      "calls": 144,
+      "calls": 142,
       "commands": 39,
       "samples": {
         "word": "the",
@@ -41,21 +41,21 @@
       }
     },
     "http": {
-      "origin": "http://127.0.0.1:59282",
+      "origin": "http://127.0.0.1:51585",
       "routes": 131,
       "requests": 100
     },
-    "commit": "teams-microsoft/tandem@4f683e54 (branch ax-probe/xray)"
+    "commit": "teams-microsoft/tandem@26485501 (branch ax-probe/xray)"
   },
   "summary": {
-    "claims": 29,
-    "holding": 26,
-    "must": 26,
-    "mustHolding": 23,
+    "claims": 31,
+    "holding": 28,
+    "must": 28,
+    "mustHolding": 25,
     "checks": {
-      "pass": 512,
+      "pass": 516,
       "fail": 5,
-      "skip": 0
+      "skip": 3
     },
     "score": 99
   },
@@ -348,7 +348,58 @@
       "source": "Tandem P4; the Apple Developer AX candidate (dry-run plans)",
       "check": "When `<command> --help` mentions `--dry-run`, run it on a real target with `--why`. Pass when it exits 0, names who will see it, and nothing changes.",
       "fix": "Add `--dry-run`: resolve the target, print the preview line (\"Would send to X as the person. Everyone in X will see it.\"), exit 0, and send nothing.",
-      "pass": 8,
+      "pass": 5,
+      "fail": 0,
+      "skip": 3,
+      "holds": true,
+      "failing": [],
+      "skipped": [
+        {
+          "claim": "cli.others-preview",
+          "surface": "send",
+          "verdict": "skip",
+          "note": "no sample for <text>; pass --sample text=<value>"
+        },
+        {
+          "claim": "cli.others-preview",
+          "surface": "reply",
+          "verdict": "skip",
+          "note": "no sample for <text>; pass --sample text=<value>"
+        },
+        {
+          "claim": "cli.others-preview",
+          "surface": "edit-sent",
+          "verdict": "skip",
+          "note": "no sample for <new>; pass --sample new=<value>"
+        }
+      ]
+    },
+    {
+      "id": "cli.text-as-argument",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form.",
+      "rationale": "An agent allowed to run only this CLI (`shell(<cli>)`) cannot pipe into it: the pipe's first command is not the CLI, so the call is denied.",
+      "source": "ax-eval baseline of Tandem main, 2026-10-30: every T3 and T4 run's `printf … | m365tandem send/edit-sent … -` was denied",
+      "check": "For each usage that reads text from stdin (`-`), look for a usage of the same command with a placeholder in that place. For a command others see that offers --dry-run, the preview probe passes the text as an argument.",
+      "fix": "Accept the text as an argument and list that usage first; keep `-` for stdin.",
+      "pass": 6,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.wait-on-refs",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave.",
+      "rationale": "Waiting through the interface beats polling; when the wait refuses the ref the agent holds, agents fall back to blind streams and pollers.",
+      "source": "ax-eval baseline of Tandem main, 2026-10-30: T5 runs tried `watch r82dfi` and `watch conversation:r82dfi` (exit 2), then a bare stream or a Python poller",
+      "check": "When the CLI has a `watch` or `wait` command, run it on a harvested conversation ref with a short timeout. Pass on exit 0 or the documented waited-and-nothing-happened code; fail on a usage error.",
+      "fix": "Let the wait take every ref a read prints, and exit with a documented code when nothing happens in time.",
+      "pass": 1,
       "fail": 0,
       "skip": 0,
       "holds": true,
@@ -1091,7 +1142,7 @@
       "claim": "cli.command-help",
       "surface": "prep",
       "verdict": "pass",
-      "note": "52 lines"
+      "note": "54 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1103,7 +1154,7 @@
       "claim": "cli.command-help",
       "surface": "note",
       "verdict": "pass",
-      "note": "19 lines"
+      "note": "20 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1115,7 +1166,7 @@
       "claim": "cli.command-help",
       "surface": "notes",
       "verdict": "pass",
-      "note": "33 lines"
+      "note": "38 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1151,7 +1202,7 @@
       "claim": "cli.command-help",
       "surface": "send",
       "verdict": "pass",
-      "note": "72 lines"
+      "note": "77 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1163,7 +1214,7 @@
       "claim": "cli.command-help",
       "surface": "reply",
       "verdict": "pass",
-      "note": "48 lines"
+      "note": "52 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1187,7 +1238,7 @@
       "claim": "cli.command-help",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "24 lines"
+      "note": "27 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1247,7 +1298,7 @@
       "claim": "cli.command-help",
       "surface": "watch",
       "verdict": "pass",
-      "note": "22 lines"
+      "note": "27 lines"
     },
     {
       "claim": "cli.help-width",
@@ -2075,31 +2126,31 @@
       "claim": "cli.unknown-flag",
       "surface": "watch",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --timeout, --after, --json. Details: m365tandem watch --help."
     },
     {
       "claim": "cli.one-line-error",
       "surface": "watch --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --timeout, --after, --json. Details: m365tandem watch --help."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "watch --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --timeout, --after, --json. Details: m365tandem watch --help."
     },
     {
       "claim": "cli.unknown-flag",
-      "surface": "watch --aftr",
+      "surface": "watch --timeut",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --aftr for watch. Did you mean --after? Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+      "note": "m365tandem: unknown flag --timeut for watch. Did you mean --timeout? Its flags: --timeout, --after, --json. Details: m365tandem watch --help."
     },
     {
       "claim": "cli.flag-suggest",
-      "surface": "watch --aftr",
+      "surface": "watch --timeut",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --aftr for watch. Did you mean --after? Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+      "note": "m365tandem: unknown flag --timeut for watch. Did you mean --timeout? Its flags: --timeout, --after, --json. Details: m365tandem watch --help."
     },
     {
       "claim": "cli.unknown-flag",
@@ -2282,10 +2333,52 @@
       "note": "state: log --json; draft status --json"
     },
     {
+      "claim": "cli.text-as-argument",
+      "surface": "prep",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "note",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "notes",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.wait-on-refs",
+      "surface": "watch <conversation>",
+      "verdict": "pass",
+      "note": "`m365tandem watch 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --timeout …` → exit 5; stderr: m365tandem: no new message in \"Sam Example\" within 1s; m365tandem watch ej90am waits again"
+    },
+    {
       "claim": "cli.others-need-why",
       "surface": "send",
       "verdict": "pass",
-      "note": "`m365tandem send axxraynoref - --agent ax-xray` → exit 2; stderr: m365tandem: send needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+      "note": "`m365tandem send axxraynoref axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: send needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
     },
     {
       "claim": "cli.one-line-error",
@@ -2303,7 +2396,7 @@
       "claim": "cli.wrong-ref-first",
       "surface": "send",
       "verdict": "pass",
-      "note": "`m365tandem send axxraynoref - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not reach an…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+      "note": "`m365tandem send axxraynoref axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must no…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
     },
     {
       "claim": "cli.one-line-error",
@@ -2326,14 +2419,14 @@
     {
       "claim": "cli.others-preview",
       "surface": "send",
-      "verdict": "pass",
-      "note": "`m365tandem send 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces - --agent a…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Sending to Sam Example as the person. Sam Example will …"
+      "verdict": "skip",
+      "note": "no sample for <text>; pass --sample text=<value>"
     },
     {
       "claim": "cli.others-need-why",
       "surface": "reply",
       "verdict": "pass",
-      "note": "`m365tandem reply axxraynoref#axxraynoref - --agent ax-xray` → exit 2; stderr: m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+      "note": "`m365tandem reply axxraynoref#axxraynoref axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
     },
     {
       "claim": "cli.one-line-error",
@@ -2351,7 +2444,7 @@
       "claim": "cli.wrong-ref-first",
       "surface": "reply",
       "verdict": "pass",
-      "note": "`m365tandem reply axxraynoref#axxraynoref - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+      "note": "`m365tandem reply axxraynoref#axxraynoref axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
     },
     {
       "claim": "cli.one-line-error",
@@ -2374,8 +2467,8 @@
     {
       "claim": "cli.others-preview",
       "surface": "reply",
-      "verdict": "pass",
-      "note": "`m365tandem reply 1zijq8#1700000900000 - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must no…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Replying to Alex Example's thread in \"Design reviews\" a…"
+      "verdict": "skip",
+      "note": "no sample for <text>; pass --sample text=<value>"
     },
     {
       "claim": "cli.others-need-why",
@@ -2429,7 +2522,7 @@
       "claim": "cli.others-need-why",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "`m365tandem edit-sent axxraynoref#axxraynoref - --agent ax-xray` → exit 2; stderr: m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+      "note": "`m365tandem edit-sent axxraynoref#axxraynoref axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
     },
     {
       "claim": "cli.one-line-error",
@@ -2447,7 +2540,7 @@
       "claim": "cli.wrong-ref-first",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "`m365tandem edit-sent axxraynoref#axxraynoref - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this …` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+      "note": "`m365tandem edit-sent axxraynoref#axxraynoref axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
     },
     {
       "claim": "cli.one-line-error",
@@ -2470,8 +2563,8 @@
     {
       "claim": "cli.others-preview",
       "surface": "edit-sent",
-      "verdict": "pass",
-      "note": "`m365tandem edit-sent 1zijq8#1700001500000 - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this mus…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Editing the person's sent message in \"Design reviews\". …"
+      "verdict": "skip",
+      "note": "no sample for <new>; pass --sample new=<value>"
     },
     {
       "claim": "cli.others-need-why",
@@ -2667,13 +2760,13 @@
     },
     {
       "claim": "cli.no-stack-trace",
-      "surface": "all 144 calls",
+      "surface": "all 142 calls",
       "verdict": "pass",
       "note": ""
     },
     {
       "claim": "cli.exit-codes",
-      "surface": "all 144 calls",
+      "surface": "all 142 calls",
       "verdict": "pass",
       "note": "documented: 0, 1, 2, 3, 4, 5, 6, 7"
     },
@@ -3662,5 +3755,5 @@
       "note": "nothing changed"
     }
   ],
-  "surfaces": 229
+  "surfaces": 230
 }
