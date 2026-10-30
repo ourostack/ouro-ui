@@ -142,7 +142,7 @@ describe("NavigationRail", () => {
   ])("marks the item that owns %s", async (path, expected) => {
     const { items: links } = await render(<NavigationRail label="Main" items={items} currentPath={path} />);
     expect(currentLabels(links)).toEqual(expected ? [expected] : []);
-    for (const link of links) expect(link.hasAttribute("data-selected")).toBe(labelOf(link) === expected);
+    for (const link of links) expect(link.getAttribute("data-selected")).toBe(labelOf(link) === expected ? "" : null);
   });
 
   it("lets an item's current flag win over the path", async () => {
@@ -257,8 +257,10 @@ describe("NavigationRail separators", () => {
       { label: "Files", href: "/files", icon: icon("files") },
       { type: "separator" },
     ];
-    const { separators } = await render(<NavigationRail label="Main" items={entries} />);
+    const { separators, items: links } = await render(<NavigationRail label="Main" items={entries} />);
     expect(separators.map((separator) => separator.getClientRects().length > 0)).toEqual([false, true, false, false]);
+    // With no current item, the tab stop is the first item, not the separator before it.
+    expect(links.map((link) => link.tabIndex)).toEqual([0, -1]);
   });
 });
 
@@ -270,9 +272,10 @@ describe("NavigationRail counts", () => {
       { label: "Calendar", href: "/calendar", icon: icon("calendar"), count: 0 },
       { label: "Files", href: "/files", icon: icon("files"), count: 2.5 },
       { label: "Notes", href: "/notes", icon: icon("notes"), count: -3 },
+      { label: "Tasks", href: "/tasks", icon: icon("tasks"), count: 99 },
     ];
     const { items: links } = await render(<NavigationRail label="Main" items={counted} />);
-    expect(links.map((link) => link.querySelector("[data-ouro-navigation-rail-count]")?.textContent ?? null)).toEqual(["5", "99+", null, "2", null]);
+    expect(links.map((link) => link.querySelector("[data-ouro-navigation-rail-count]")?.textContent ?? null)).toEqual(["5", "99+", null, "2", null, "99"]);
     await expect.element(page.getByRole("link", { name: "Activity, 5 new" })).toBeVisible();
     await expect.element(page.getByRole("link", { name: "Chat, 128 new" })).toBeVisible();
     await expect.element(page.getByRole("link", { name: "Calendar", exact: true })).toBeVisible();
@@ -307,6 +310,12 @@ describe("NavigationRail keyboard", () => {
     host.querySelector<HTMLButtonElement>("button")!.focus();
     await pressTab();
     expect(at()).toBe("Calendar");
+    // The arrows move focus, and the page does not scroll with them.
+    const arrow = new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true });
+    document.activeElement!.dispatchEvent(arrow);
+    expect(arrow.defaultPrevented).toBe(true);
+    expect(at()).toBe("Chat");
+    await userEvent.keyboard("{ArrowDown}");
     await userEvent.keyboard("{ArrowDown}");
     expect(at()).toBe("Files");
     await userEvent.keyboard("{ArrowUp}{ArrowUp}");
@@ -371,6 +380,7 @@ const many: NavigationRailEntry[] = [
   { label: "Notes", href: "/notes", icon: icon("notes") },
   { type: "separator" },
   { label: "Tasks", onClick: () => {}, icon: icon("tasks"), count: 1 },
+  { type: "separator" },
   { label: "Help", href: "/help", icon: icon("help") },
 ];
 
@@ -381,6 +391,8 @@ describe("NavigationRail overflow", () => {
     // 16px of padding, then room for four 56px rows and three 4px gaps.
     const { shown, more } = await render(<NavigationRail label="Main" items={entries} />, 16 + 4 * 56 + 3 * 4);
     expect(shown.map(labelOf)).toEqual(["Activity", "Chat", "Calendar", "More"]);
+    // One tab stop, on the first item while none is current.
+    expect(shown.map((item) => item.tabIndex)).toEqual([0, -1, -1, -1]);
     expect(more!.getBoundingClientRect().bottom).toBeLessThanOrEqual(more!.closest("ul")!.getBoundingClientRect().bottom);
     // The menu's count is the sum of the moved items'.
     expect(more!.querySelector("[data-ouro-navigation-rail-count]")!.textContent).toBe("5");
@@ -388,7 +400,7 @@ describe("NavigationRail overflow", () => {
     const menu = page.getByRole("menu");
     await expect.element(menu).toBeVisible();
     const entriesShown = [...menu.element().querySelectorAll('[role="menuitem"], [role="separator"]')].map((node) => (node.getAttribute("role") === "separator" ? "—" : node.textContent));
-    expect(entriesShown).toEqual(["Files4, 4 new", "Notes", "—", "Tasks1, 1 new", "Help"]);
+    expect(entriesShown).toEqual(["Files4, 4 new", "Notes", "—", "Tasks1, 1 new", "—", "Help"]);
     await expect.element(menu.getByRole("menuitem", { name: /^Files\b.*4 new$/ })).toHaveAttribute("href", "/files");
     await userEvent.click(menu.getByRole("menuitem", { name: /^Tasks\b/ }));
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -399,7 +411,7 @@ describe("NavigationRail overflow", () => {
     const { shown, separators } = await render(<NavigationRail label="Main" items={many} currentPath="/help" />, 16 + 4 * 56 + 9 + 4 * 4);
     expect(shown.map(labelOf)).toEqual(["Activity", "Chat", "Help", "More"]);
     expect(currentLabels(shown)).toEqual(["Help"]);
-    expect(separators.map((separator) => separator.getClientRects().length > 0)).toEqual([true, false]);
+    expect(separators.map((separator) => separator.getClientRects().length > 0)).toEqual([true, false, false]);
   });
 
   it("keeps only the current item and More when nothing else fits", async () => {
@@ -442,13 +454,61 @@ describe("NavigationRail overflow", () => {
   it("measures nothing while the app hides it, and fits its items once shown", async () => {
     const { host, nav } = await render(<NavigationRail label="Main" items={many} />, 200);
     const more = nav.querySelector('[data-ouro-part="more"]');
+    const moved = () => [...nav.querySelectorAll("li.hidden")].map((entry) => entry.getAttribute("data-ouro-navigation-rail-entry"));
+    const before = moved();
     nav.style.display = "none";
     host.style.height = "1000px";
     // The resize observer reports the hidden list a frame later; nothing moves while it is hidden.
     await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
     expect(nav.querySelector('[data-ouro-part="more"]')).toBe(more);
+    expect(moved()).toEqual(before);
     nav.style.display = "";
     await expect.poll(() => nav.querySelector('[data-ouro-part="more"]')).toBeNull();
+  });
+
+  it("fits items that fill the rail exactly, and moves the last one with More when a pixel is missing", async () => {
+    const entries: NavigationRailEntry[] = [
+      { label: "Activity", href: "/activity", icon: icon("activity") },
+      { label: "Chat", href: "/chat", icon: icon("chat") },
+      { type: "separator" },
+      { label: "Files", href: "/files", icon: icon("files") },
+    ];
+    // Three 56px rows, the 9px separator and three 4px gaps, under 16px of padding.
+    const exact = await render(<NavigationRail label="Main" items={entries} />, 16 + 3 * 56 + 9 + 3 * 4);
+    expect(exact.shown.map(labelOf)).toEqual(["Activity", "Chat", "Files"]);
+    expect(exact.separators[0]!.getClientRects().length).toBe(1);
+    const short = await render(<NavigationRail label="Main" items={entries} />, 16 + 3 * 56 + 9 + 3 * 4 - 1);
+    expect(short.shown.map(labelOf)).toEqual(["Activity", "Chat", "More"]);
+    expect(short.separators[0]!.getClientRects().length).toBe(0);
+  });
+
+  it("counts More's own height in what fits", async () => {
+    const four = ["Activity", "Chat", "Calendar", "Files"].map((label) => ({ label, href: `/${label.toLowerCase()}`, icon: icon(label) }));
+    // Two rows and More, with 4px to spare: a third row needs 60px.
+    const { shown } = await render(<NavigationRail label="Main" items={four} />, 16 + 3 * 56 + 3 * 4);
+    expect(shown.map(labelOf)).toEqual(["Activity", "Chat", "More"]);
+  });
+
+  it("keeps the current item on the rail when even it does not fit", async () => {
+    const four = ["Activity", "Chat", "Calendar"].map((label) => ({ label, href: `/${label.toLowerCase()}`, icon: icon(label) }));
+    const { shown } = await render(<NavigationRail label="Main" items={four} currentPath="/activity" />, 16 + 30);
+    expect(shown.map(labelOf)).toEqual(["Activity", "More"]);
+  });
+
+  it("puts the tab stop back on the current item when the item focused last moves under More, and on More while it is there", async () => {
+    const { host, nav, items: links } = await render(<NavigationRail label="Main" items={many} currentPath="/chat" />, 1000);
+    await act(async () => links[4]!.focus());
+    expect(links[4]!.tabIndex).toBe(0);
+    host.style.height = "260px";
+    await expect.poll(() => links[4]!.getClientRects().length).toBe(0);
+    expect(links[1]!.tabIndex).toBe(0);
+    const more = nav.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+    await act(async () => more.focus());
+    expect(more.tabIndex).toBe(0);
+    expect(links[1]!.tabIndex).toBe(-1);
+    host.style.height = "1000px";
+    await expect.poll(() => nav.querySelector('[data-ouro-part="more"]')).toBeNull();
+    expect(links[1]!.tabIndex).toBe(0);
   });
 
   it("renders nothing to fit with no items", async () => {
@@ -463,14 +523,18 @@ describe("NavigationRail labels", () => {
       { label: "Bots and workflows", href: "/bots", icon: icon("bots") },
       { label: "Customer support escalations", href: "/support", icon: icon("support") },
       { label: "Chat", href: "/chat", icon: icon("chat") },
+      { label: "Notes for the team and you", href: "/notes", icon: icon("notes") },
     ];
     const { items: links } = await render(<NavigationRail label="Main" items={long} />);
     const lines = (link: HTMLElement) => Math.round(link.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!.getBoundingClientRect().height / 14);
-    expect(links.map(lines)).toEqual([2, 2, 1]);
+    expect(links.map(lines)).toEqual([2, 2, 1, 2]);
     const text = links[0]!.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!;
     expect(text.scrollHeight).toBeLessThanOrEqual(text.clientHeight);
     await userEvent.hover(page.getByRole("link", { name: "Customer support escalations" }));
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Customer support escalations");
+    // Short words, three lines' worth: cut by its height alone.
+    await userEvent.hover(page.getByRole("link", { name: "Notes for the team and you" }));
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Notes for the team and you");
     await userEvent.hover(page.getByRole("link", { name: "Bots and workflows" }));
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
   });

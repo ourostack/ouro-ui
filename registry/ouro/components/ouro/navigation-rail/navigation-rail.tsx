@@ -153,13 +153,16 @@ const example = '<NavigationRail label="Main" items={[{ label: "Chat", href: "/c
 
 /** The paths a link item owns, with the item's place in `items`, for `currentHref`. */
 function ownedPaths(entries: readonly NavigationRailEntry[]): Array<{ path: string; index: number }> {
-  return entries.flatMap((entry, index) => (entry.type === "separator" || entry.href === undefined ? [] : [entry.href, ...(entry.paths ?? [])].map((path) => ({ path, index }))));
+  return entries.flatMap((entry, index) => {
+    const { href, paths } = entry as Partial<NavigationRailLinkItem>;
+    // Stryker disable next-line ArrayDeclaration: a path that is no page's marks nothing, as no path does.
+    return href === undefined ? [] : [href, ...(paths ?? [])].map((path) => ({ path, index }));
+  });
 }
 
 /** A count worth showing: a positive number, whole. */
 function countOf(item: NavigationRailItem): number {
-  const count = item.count ?? 0;
-  return count > 0 ? Math.floor(count) : 0;
+  return Math.max(0, Math.floor(item.count ?? 0));
 }
 
 /**
@@ -185,12 +188,13 @@ function shownSeparators(entries: readonly NavigationRailEntry[], shown: (index:
   return separators;
 }
 
-/** What the client measured: the items moved under More, the labels cut short, and the side the rail's popups open on. */
+/** What the client measured: the places of the items moved under More, and of the labels cut short. */
 interface Fit {
-  hidden: string;
-  truncated: string;
-  side: "left" | "right";
+  hidden: readonly number[];
+  truncated: readonly number[];
 }
+
+const same = (a: readonly number[], b: readonly number[]) => a.join() === b.join();
 
 const rovingKeys = new Set(["ArrowDown", "ArrowUp", "Home", "End"]);
 
@@ -268,7 +272,8 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; NavigationRail sets its own look from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "NavigationRail",
@@ -295,7 +300,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   );
 
   // An item's own `current` wins; otherwise the path decides.
-  let current = items.findIndex((entry) => entry.type !== "separator" && entry.current);
+  let current = items.findIndex((entry) => (entry as NavigationRailItem).current === true);
   if (current === -1) {
     const owned = ownedPaths(items);
     const match = currentHref(
@@ -306,13 +311,15 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   }
 
   // Server HTML shows every item; the client measures what fits before it paints.
-  const [fit, setFit] = useState<Fit>({ hidden: "", truncated: "", side: "right" });
-  const hidden = new Set(fit.hidden === "" ? [] : fit.hidden.split(",").map(Number));
-  const truncated = new Set(fit.truncated === "" ? [] : fit.truncated.split(",").map(Number));
+  // Stryker disable next-line ArrayDeclaration: a place that is no item's moves and cuts nothing, as an empty list does.
+  const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [] });
+  const hidden = new Set(fit.hidden);
+  const truncated = new Set(fit.truncated);
   const nav = useRef<HTMLElement>(null);
   const navRef = useMergedRef(ref, nav);
   const list = useRef<HTMLUListElement>(null);
-  // Each entry's last measured height, by key, so a hidden item still has one.
+  // Each entry's last measured height, by key, so a hidden item still has one. One not yet measured
+  // counts nothing until it shows, and the measure that follows corrects the fit before paint.
   const heights = useRef(new Map<string, number>());
   const measure = useRef<() => void>(null);
   const observer = useRef<ResizeObserver | null>(null);
@@ -328,43 +335,44 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
         const height = (child as HTMLElement).offsetHeight;
         if (height > 0) heights.current.set((child as HTMLElement).dataset.ouroNavigationRailEntry!, height);
       }
-      const known = [...heights.current.values()];
-      const fallback = Math.max(0, ...known);
-      const height = (key: string) => heights.current.get(key) ?? fallback;
       const gap = parseFloat(getComputedStyle(element).rowGap);
       const room = element.clientHeight;
       const indexes = items.flatMap((entry, index) => (entry.type === "separator" ? [] : [index]));
       /** The list's height with `shown` items on it, and More when `more`. */
-      const total = (shown: Set<number>, more: boolean) => {
+      const total = (shown: ReadonlySet<number>, more: boolean) => {
         const separators = shownSeparators(items, (index) => shown.has(index));
         const keys = [...[...shown].map(String), ...[...separators].map(() => "separator"), ...(more ? ["more"] : [])];
-        return keys.reduce((sum, key) => sum + height(key), 0) + gap * (keys.length - 1);
+        return keys.reduce((sum, key) => sum + (heights.current.get(key) ?? 0), 0) + gap * (keys.length - 1);
       };
-      let moved: number[] = [];
-      if (total(new Set(indexes), false) > room + 0.5) {
-        const kept = new Set(current === -1 ? [] : [current]);
+      let kept = new Set(indexes);
+      // Stryker disable next-line EqualityOperator: heights are whole pixels and gaps CSS lengths, so a total is never exactly half a pixel over.
+      if (total(kept, false) > room + 0.5) {
+        kept = new Set(current === -1 ? [] : [current]);
         for (const index of indexes) {
           if (index === current) continue;
           kept.add(index);
+          // Stryker disable next-line EqualityOperator: as above, a total is never exactly half a pixel over.
           if (total(kept, true) > room + 0.5) {
             kept.delete(index);
             break;
           }
         }
-        moved = indexes.filter((index) => !kept.has(index));
       }
-      const cut = hideLabels
-        ? []
-        : [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")]
-            .filter((text) => text.getClientRects().length > 0 && (text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1))
-            .map((text) => Number(text.dataset.ouroNavigationRailLabel));
-      const next: Fit = { hidden: moved.join(","), truncated: cut.join(","), side: getComputedStyle(nav.current!).direction === "rtl" ? "left" : "right" };
-      setFit((last) => (last.hidden === next.hidden && last.truncated === next.truncated && last.side === next.side ? last : next));
+      const next: Fit = {
+        hidden: indexes.filter((index) => !kept.has(index)),
+        // A label cut short, by its two lines or by a word too wide. A hidden one measures nothing.
+        truncated: [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")]
+          .filter((text) => text.scrollHeight > text.clientHeight || text.scrollWidth > text.clientWidth)
+          .map((text) => Number(text.dataset.ouroNavigationRailLabel)),
+      };
+      setFit((last) => (same(last.hidden, next.hidden) && same(last.truncated, next.truncated) ? last : next));
     };
     observer.current ??= new ResizeObserver(() => measure.current!());
     // Each element once: observing one again makes the observer report it again (WebKit does) and measure for nothing.
     for (const element of [list.current!, ...list.current!.children]) {
+      // Stryker disable next-line ConditionalExpression: in Chromium, observing an element again does nothing; elsewhere the measure it starts finds the same fit.
       if (observed.current.has(element)) continue;
+      // Stryker disable next-line CallExpression: as above, an element observed again changes no fit.
       observed.current.add(element);
       observer.current.observe(element);
     }
@@ -375,13 +383,16 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
       observer.current!.disconnect();
       observed.current = new WeakSet();
     },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
     [],
   );
 
   // Roving tab stop: the item focused last, else the current one, else the first.
   const [focused, setFocused] = useState<string | null>(null);
-  const shownKeys = [...items.flatMap((entry, index) => (entry.type === "separator" || hidden.has(index) ? [] : [String(index)])), ...(hidden.size > 0 ? ["more"] : [])];
-  const stop = focused !== null && shownKeys.includes(focused) ? focused : current !== -1 ? String(current) : shownKeys[0];
+  // The items measure moved under More. A place left over from earlier items is put right before paint.
+  const moved = items.flatMap((entry, index) => (hidden.has(index) ? [{ entry: entry as NavigationRailItem, index }] : []));
+  const stops = [...items.flatMap((entry, index) => (entry.type === "separator" || hidden.has(index) ? [] : [String(index)])), ...(moved.length > 0 ? ["more"] : [])];
+  const stop = stops.find((key) => key === focused) ?? (current === -1 ? stops[0] : String(current));
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !rovingKeys.has(event.key)) return;
     const stops = [...event.currentTarget.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-stop]")].filter((element) => element.getClientRects().length > 0);
@@ -397,7 +408,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   const named = (text: string, count: number) => (count > 0 ? `${text}, ${countLabel.replace("{count}", String(count))}` : undefined);
   const tip = (show: boolean, text: string, element: ReactElement) =>
     show ? (
-      <Tooltip content={text} side={fit.side}>
+      <Tooltip content={text} side="right">
         {element}
       </Tooltip>
     ) : (
@@ -421,7 +432,6 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
     </>
   );
   const shownSeparatorSet = shownSeparators(items, (index) => !hidden.has(index));
-  const moved = items.flatMap((entry, index) => (entry.type !== "separator" && hidden.has(index) ? [{ entry, index }] : []));
   const movedCount = moved.reduce((sum, { entry }) => sum + countOf(entry), 0);
 
   return (
@@ -470,7 +480,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
         {moved.length > 0 && (
           <li data-ouro-navigation-rail-entry="more" className="flex shrink-0">
             <Menu
-              side={fit.side}
+              side="right"
               trigger={tip(
                 hideLabels,
                 moreLabel,
@@ -482,10 +492,9 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
                   aria-label={named(moreLabel, movedCount)}
                   tabIndex={stop === "more" ? 0 : -1}
                   onFocus={() => setFocused("more")}
-                  onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
-                    // The arrows move along the rail, so they do not open the menu; Enter and Space do.
-                    if (rovingKeys.has(event.key)) (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler();
-                  }}
+                  // The trigger's own keys are off, since the arrows (which would open the menu) move along
+                  // the rail; Enter and Space press the button, which opens it.
+                  onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
                   className={itemClass[look]}
                 >
                   {inside(
