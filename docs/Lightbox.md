@@ -2,7 +2,7 @@
 
 # Lightbox
 
-Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe; the new position is announced politely, once. Escape, Close or a press outside closes it, and focus goes back to the thumbnail that opened it. The viewer grows from that thumbnail and slides between images; with reduced motion it fades and jumps instead.
+Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe; the new position is announced politely, once. Escape, Close or a press outside closes it, and focus goes back to the thumbnail that opened it. The viewer grows from that thumbnail and slides between images; with reduced motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
 
 ```tsx
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
@@ -51,6 +51,7 @@ The props the modes share. Type: `LightboxProps`.
 | `originalLabel` | `string` | `"Open original"` | The text of the link to an image's `href`. |
 | `positionLabel` | `string` | `"{n} of {total}"` | The position the viewer shows and announces when it changes: `{n}` is the image's number and `{total}` the number of images. |
 | `previousLabel` | `string` | `"Previous image"` | The Previous button's accessible name. |
+| `zoomLabel` | `string` | `"Zoom"` | The zoom button's accessible name. It shows while the image is drawn smaller than its own size, and zooms it to that size, as a double-tap or a pinch does. |
 
 ## Modes
 

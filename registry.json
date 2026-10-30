@@ -10580,6 +10580,11 @@
           "target": "@components/ouro/lightbox/lightbox.touch.test.tsx"
         },
         {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.zoom.test.tsx"
+        },
+        {
           "path": "registry/ouro/e2e/ouro/lightbox.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/lightbox.spec.ts"
