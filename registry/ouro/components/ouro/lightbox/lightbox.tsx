@@ -405,6 +405,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   // What had focus as the app opened the viewer, read before Base UI makes the page inert.
   const [wasOpen, setWasOpen] = useState(open);
   const [opener, setOpener] = useState<Element | null>(null);
+  // Stryker disable next-line ConditionalExpression: read again while open, the opener changes nothing, since the origin is set once per opening.
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) setOpener(document.activeElement);

@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { Lightbox, type LightboxImage, type LightboxProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
+import { Lightbox, type LightboxImage, type LightboxProps, type LightboxWithThumbnailsProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
@@ -34,7 +34,7 @@ async function render(node: ReactNode, width = 600) {
   return { host, rerender: (next: ReactNode) => act(async () => root.render(next)) };
 }
 
-const lightbox = (props: Partial<LightboxProps> = {}) => <Lightbox label="Kitchen photos" images={kitchen} {...props} />;
+const lightbox = (props: Partial<LightboxWithThumbnailsProps> = {}) => <Lightbox label="Kitchen photos" images={kitchen} {...props} />;
 
 const thumbnails = (host: Element) => [...host.querySelectorAll<HTMLButtonElement>('[data-ouro-part="thumbnail"]')];
 const popup = () => document.querySelector<HTMLElement>('[data-ouro="dialog"]');
@@ -189,7 +189,7 @@ describe("Lightbox opening and closing", () => {
     expect(document.activeElement).toBe(thumbnails(host)[1]);
   });
 
-  it("gives focus to the thumbnail pressed even when focus was elsewhere as it opened", async () => {
+  it("gives focus to the thumbnail pressed, and grows from it, even when focus was elsewhere as it opened", async () => {
     const { host } = await render(
       <>
         <button type="button">Elsewhere</button>
@@ -200,6 +200,9 @@ describe("Lightbox opening and closing", () => {
     // As Safari presses a button: without focusing it.
     await act(async () => thumbnails(host)[2]!.click());
     await settled();
+    const rect = thumbnails(host)[2]!.getBoundingClientRect();
+    const [x] = popup()!.style.transformOrigin.split(" ").map(parseFloat);
+    expect(x).toBeCloseTo(rect.left + rect.width / 2 - popup()!.offsetLeft, -1);
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     expect(document.activeElement).toBe(thumbnails(host)[2]);
@@ -509,9 +512,12 @@ describe("Lightbox controlled", () => {
     const [x, y] = dialog.style.transformOrigin.split(" ").map(parseFloat);
     expect(x).toBeCloseTo(rect.left + rect.width / 2 - dialog.offsetLeft, -1);
     expect(y).toBeCloseTo(rect.top + rect.height / 2 - dialog.offsetTop, -1);
+    const scroller = viewport();
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(position).toBe("3 of 4");
     expect(onIndexChange).toHaveBeenLastCalledWith(2);
+    // Following the user with index moves nothing: the same carousel stays.
+    expect(viewport()).toBe(scroller);
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     expect(document.activeElement).toBe(opener);
@@ -552,21 +558,43 @@ describe("Lightbox controlled", () => {
     expect(slideInView()).toBe(1);
   });
 
-  it("names open without onOpenChange, index without open and className with open, each with the fix", async () => {
-    const fix = '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>';
-    const untyped = (props: object) => <Lightbox {...({ label: "Photos", images: kitchen, ...props } as unknown as LightboxProps)} />;
-    await render(untyped({ index: 1, onOpenChange: () => {} }));
-    await render(untyped({ open: false, className: "mt-4", onOpenChange: () => {} }));
-    await render(untyped({ open: true }));
+  it("stays where the user went after the app moved it, when the app does not follow", async () => {
+    const { host } = await render(<Controlled follow={false} />);
+    await userEvent.click(host.querySelectorAll("button")[1]!);
+    await settled();
+    // The app moves the viewer to the first image, then lets the user go on alone.
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="first"]')!.click());
+    await expect.poll(position).toBe("1 of 4");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("2 of 4");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(position()).toBe("2 of 4");
+    expect(slideInView()).toBe(1);
+  });
+
+  it.each([
+    ["open without onOpenChange", { open: true }, "open needs onOpenChange, which closes the viewer"],
+    ["index without open", { index: 1 }, "index and onOpenChange need open; without it Lightbox draws its own thumbnails"],
+    ["onOpenChange without open", { onOpenChange: () => {} }, "index and onOpenChange need open; without it Lightbox draws its own thumbnails"],
+    ["className with open", { open: false, onOpenChange: () => {}, className: "mt-4" }, "className lays out the thumbnails, and a Lightbox with open draws none"],
+  ])("names %s, and only that, with the fix", async (_case, props, message) => {
+    await render(<Lightbox {...({ label: "Photos", images: kitchen, ...props } as unknown as LightboxProps)} />);
+    const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toContain(`Lightbox: ${message}. Fix: `);
+  });
+
+  it("gives correct controlled props no message, and closes nothing without onOpenChange", async () => {
+    await render(<Lightbox label="Photos" images={kitchen} open={false} index={1} onOpenChange={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+    await render(<Lightbox {...({ label: "Photos", images: kitchen, open: true } as unknown as LightboxProps)} />);
     await settled();
     // Without onOpenChange, Escape closes nothing and throws nothing.
     await userEvent.keyboard("{Escape}");
     expect(popup()).not.toBeNull();
-    const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
-    expect(messages).toContain(`[ouro-ui] Lightbox: open needs onOpenChange, which closes the viewer. Fix: ${fix}.`);
-    expect(messages).toContain(`[ouro-ui] Lightbox: index and onOpenChange need open; without it Lightbox draws its own thumbnails. Fix: ${fix}.`);
-    expect(messages).toContain('[ouro-ui] Lightbox: className lays out the thumbnails, and a Lightbox with open draws none. Fix: <div className="…"><Lightbox open={open} … /></div>.');
-    expect(messages.filter((message) => message.includes("need"))).toHaveLength(2);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Lightbox: open needs onOpenChange, which closes the viewer. Fix: <Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>.',
+    );
   });
 });
 
