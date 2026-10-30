@@ -355,5 +355,5 @@ const statusClass: Record<TimeGridStatus, string> = {
     "border-0 border-s-3 [border-inline-start-style:dashed] forced-colors:[border-inline-start-style:dashed] [background-image:repeating-linear-gradient(135deg,transparent_0_5px,color-mix(in_oklab,currentColor_7%,transparent)_5px_10px)]",
   free: "border border-s-3",
   unanswered: "border border-s-3 border-dashed",
-  cancelled: "border-0 border-s-3 [border-inline-start-style:dotted] forced-colors:[border-inline-start-style:dotted] text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] line-through",
+  cancelled: "border-0 border-s-3 [border-inline-start-style:dotted] forced-colors:[border-inline-start-style:dotted] text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))] line-through",
 };

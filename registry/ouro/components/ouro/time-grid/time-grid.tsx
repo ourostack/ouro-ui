@@ -229,10 +229,10 @@ const clock = minuteClock();
 // Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
 const serverNow = () => 0;
 
-// An event's time and description: muted text mixed toward the foreground, as muted text on a
-// tinted fill is across Ouro.
-const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
-const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+// An event's time and description: muted text mixed toward the foreground, further than on a
+// plain muted surface, because a dark theme colour tints the fill under it.
+const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
+const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 
 /**
  * One drawn piece of an event: a timed event has one per day it covers; an all-day event, one.
