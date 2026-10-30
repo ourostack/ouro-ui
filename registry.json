@@ -3563,6 +3563,34 @@
       ]
     },
     {
+      "name": "lightbox",
+      "type": "registry:ui",
+      "title": "Lightbox",
+      "description": "Thumbnails that open a full-screen image viewer.",
+      "docs": "Thumbnails that open a full-screen image viewer. Import: import { Lightbox } from \"@/components/ouro/lightbox/lightbox\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, carousel, dialog, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/lightbox.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/carousel",
+        "ourostack/ouro-ui/dialog",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/lightbox/lightbox-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/lightbox/lightbox.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -10365,6 +10393,73 @@
       }
     },
     {
+      "name": "lightbox-tests",
+      "type": "registry:item",
+      "title": "Lightbox tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for lightbox, and the tests of everything it installs. Add it beside lightbox: add lightbox lightbox-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "lightbox's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/carousel-tests",
+        "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/lightbox",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/sheet-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/lightbox.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/lightbox.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -10486,6 +10581,7 @@
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
+        "ourostack/ouro-ui/lightbox-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/local-date-tests",
         "ourostack/ouro-ui/menu-tests",

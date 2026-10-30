@@ -468,6 +468,13 @@
     "summary": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it."
   },
   {
+    "name": "lightbox",
+    "title": "Lightbox",
+    "group": "Display",
+    "source": "registry/ouro/components/ouro/lightbox/lightbox.tsx",
+    "summary": "Thumbnails that open a full-screen image viewer."
+  },
+  {
     "name": "accordion",
     "title": "Accordion",
     "group": "Lists",

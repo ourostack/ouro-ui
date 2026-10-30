@@ -1,0 +1,1 @@
+- New: Lightbox, a grid of image thumbnails that opens a full-screen viewer on the one pressed, steps through the images with the arrow keys, buttons, a trackpad or a swipe, and announces the position once per change.
