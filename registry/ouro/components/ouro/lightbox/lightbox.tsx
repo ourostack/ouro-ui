@@ -108,14 +108,17 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
   index?: never;
   /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
   onOpenChange?: never;
+  /** Not with thumbnails: focus goes to the thumbnail of the image last shown. */
+  returnFocus?: never;
 };
 
 /** A controlled Lightbox: the viewer alone, which you open from thumbnails you lay out yourself. */
 export type LightboxControlledProps = LightboxBaseProps & {
   /**
-   * Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the
-   * viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already
-   * open after a press or a key appears and leaves without its transitions, and says so in development.
+   * Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, unless
+   * `returnFocus` gives another element, and the viewer grows from that element. Keep the Lightbox
+   * mounted and change `open`: one that mounts already open after a press or a key appears and leaves
+   * without its transitions, and says so in development.
    *
    * @claim "Keep the Lightbox mounted and change" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > says once in development that a viewer mounted already open runs no transitions)
    * @claim "Focus goes back to whatever had" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus back to what had it when the viewer opened, and grows from it)
@@ -130,6 +133,14 @@ export type LightboxControlledProps = LightboxBaseProps & {
   index?: number | undefined;
   /** Called with `false` when the user closes the viewer (Close, Escape, a press outside). */
   onOpenChange: (open: boolean) => void;
+  /**
+   * Where focus goes as the viewer closes, given the index of the image last shown: return that
+   * image's thumbnail in your layout, so the user is back where they were looking. Return nothing
+   * to give focus back to what had it when the viewer opened.
+   *
+   * @claim "Where focus goes as the viewer" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus to what returnFocus gives for the image last shown, or else back to what had it)
+   */
+  returnFocus?: ((index: number) => HTMLElement | null | undefined) | undefined;
   /** Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone. */
   className?: never;
 };
@@ -175,21 +186,34 @@ interface ViewerProps {
   positionLabel: string;
   originalLabel: string;
   zoomLabel: string;
+  /** Where the viewer writes the index of the image it shows, for focus to go to as it closes. */
+  shownRef: { current: number };
 }
 
 /**
  * Steps the viewer with the arrow keys, in reading order, from anywhere in it, by pressing the
- * carousel's own Previous or Next. A key with a modifier, or one typed into a field in a caption,
- * is left alone.
+ * carousel's own Previous or Next, and goes to the first or the last image with Home or End. A
+ * key with a modifier, or one typed into a field in a caption, is left alone.
  */
-function stepWithArrowKeys(event: KeyboardEvent<HTMLElement>): void {
-  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+function stepWithKeys(event: KeyboardEvent<HTMLElement>): void {
+  const { key } = event;
+  if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   // A field in a caption moves its caret, and a zoomed image scrolls.
   if ((event.target as Element).closest("input, textarea, select, [contenteditable], [data-ouro-lightbox-zoom-view]")) return;
   event.preventDefault();
+  if (key === "Home" || key === "End") {
+    // Scrolled there as the carousel's buttons scroll: the carousel reports and announces where it settles.
+    const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
+    const slide = key === "Home" ? viewport.firstElementChild : viewport.lastElementChild;
+    if (!slide) return;
+    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    // Each slide fills the viewport, so its left edge lines up in either reading direction.
+    viewport.scrollTo({ left: viewport.scrollLeft + slide.getBoundingClientRect().left - viewport.getBoundingClientRect().left, behavior });
+    return;
+  }
   const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
-  const part = (event.key === "ArrowRight") !== rtl ? "next" : "previous";
+  const part = (key === "ArrowRight") !== rtl ? "next" : "previous";
   event.currentTarget.querySelector<HTMLButtonElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.click();
 }
 
@@ -219,13 +243,16 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
   const figure = useRef<HTMLElement>(null);
   const picture = useRef<HTMLImageElement>(null);
   const view = useRef<HTMLDivElement>(null);
+  // Stryker disable next-line ObjectLiteral: measured as the image mounts, before anything reads it; unmeasured, max is 1 either way.
   const [fitted, setFitted] = useState({ width: 0, height: 0, natural: 0 });
   // Never larger than the image's own size: a small image does not zoom at all.
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: unmeasured, 0 / 0 makes max NaN, which zooms nothing, as 1 does.
   const max = fitted.width > 0 ? Math.max(1, fitted.natural / fitted.width) : 1;
   const zoomed = scale > 1;
   // The point of the image to keep under the finger as the scale changes: a fraction of the
   // image (fx, fy) and where it sits in the figure (px, py).
   const focal = useRef<{ fx: number; fy: number; px: number; py: number } | null>(null);
+  // Stryker disable next-line ObjectLiteral: the layout effect below fills it before anything reads it.
   const latest = useRef({ scale, max, onScale, onMaxScale });
   useLayoutEffect(() => {
     latest.current = { scale, max, onScale, onMaxScale };
@@ -238,10 +265,8 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
     focal.current = { fx: (x - drawn.left) / drawn.width, fy: (y - drawn.top) / drawn.height, px: x - box.left, py: y - box.top };
     latest.current.onScale(next);
   };
+  // For the pinch's listeners: zoomTo reads only refs, so the first is as good as any.
   const zoomAt = useRef(zoomTo);
-  useLayoutEffect(() => {
-    zoomAt.current = zoomTo;
-  });
 
   // The fitted size, measured while the image is drawn in the slide (it stays there, hidden,
   // while zoomed), and its own size once it has loaded.
@@ -280,6 +305,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
     let pinch: { distance: number; scale: number; last: number } | undefined;
     const spread = (touches: TouchList) => Math.hypot(touches[0]!.clientX - touches[1]!.clientX, touches[0]!.clientY - touches[1]!.clientY);
     const onStart = (event: TouchEvent) => {
+      // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
       if (event.touches.length === 2 && latest.current.max > minZoom) pinch = { distance: spread(event.touches), scale: latest.current.scale, last: latest.current.scale };
     };
     const onMove = (event: TouchEvent) => {
@@ -293,10 +319,13 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
     const onEnd = (event: TouchEvent) => {
       if (!pinch || event.touches.length > 1) return;
       // A pinch that ends nearly fitted settles fitted.
+      // Stryker disable next-line EqualityOperator: no pinch ends at exactly minZoom, so < and <= agree.
       if (pinch.last < minZoom) latest.current.onScale(1);
       pinch = undefined;
     };
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: onStart never takes the default, so passive only spares the browser a wait.
     node.addEventListener("touchstart", onStart, { passive: true });
+    // Stryker disable next-line ObjectLiteral: an element's touchmove listener is not passive unless asked; this says so.
     node.addEventListener("touchmove", onMove, { passive: false });
     node.addEventListener("touchend", onEnd);
     node.addEventListener("touchcancel", onEnd);
@@ -327,6 +356,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
       return;
     }
     if (zoomed) onScale(1);
+    // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
     else if (max > minZoom) zoomTo(max, event.clientX, event.clientY);
   };
 
@@ -387,6 +417,7 @@ function LightboxViewer({
   positionLabel,
   originalLabel,
   zoomLabel,
+  shownRef,
 }: ViewerProps): JSX.Element {
   const [start, setStart] = useState(index);
   const [current, setCurrent] = useState(index);
@@ -411,6 +442,9 @@ function LightboxViewer({
   const total = images.length;
   // The app may remove images while the viewer is open.
   const shown = Math.min(current, total - 1);
+  useLayoutEffect(() => {
+    shownRef.current = shown;
+  });
   const href = images[shown]?.href;
   // Only the image in view is zoomed, and moving to another image draws it fitted again.
   const [zoom, setZoom] = useState<{ index: number; scale: number } | null>(null);
@@ -511,16 +545,18 @@ function LightboxViewer({
  * photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows
  * the image as large as the screen allows, uncropped, with its title and caption under it and
  * Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys,
- * the Previous and Next buttons, a trackpad or a swipe; the new position is announced politely,
- * once. Escape, Close or a press outside closes it, and focus goes back to the thumbnail that
- * opened it. The viewer grows from that thumbnail and slides between images; with reduced
- * motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller
- * than its own size zooms to that size with a double-tap or the zoom button, or as far as two
- * fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
+ * the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home
+ * or End; the new position is announced politely, once. Escape, Close or a press outside closes
+ * it, and focus goes to the thumbnail of the image last shown. The viewer grows from the
+ * thumbnail pressed and slides between images; with reduced motion it fades and jumps instead.
+ * On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that
+ * size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe
+ * moves around the image rather than to the next one.
  *
  * To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a
  * map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with
- * `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it.
+ * `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to
+ * the element `returnFocus` gives for the image last shown, such as its thumbnail.
  *
  * Use `Carousel` instead to show the images in the page one at a time, and `Dialog`
  * when the viewer holds more than images.
@@ -547,13 +583,15 @@ function LightboxViewer({
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > steps with the arrow keys from anywhere in the viewer, in reading order)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox on a touch screen > moves to the next image with a swipe)
  * @claim "the new position is announced politely" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position and announces it once when it changes)
- * @claim "focus goes back to the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox opening and closing > closes with Escape and gives focus back to the thumbnail that opened it)
+ * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > goes to the first and the last image with Home and End)
+ * @claim "focus goes to the thumbnail of" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox opening and closing > closes with Escape and gives focus to the thumbnail of the image last shown)
+ * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus to what returnFocus gives for the image last shown, or else back to what had it)
  * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > draws no thumbnails, and opens on index when open)
  * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus back to what had it when the viewer opened, and grows from it)
  * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx::Lightbox zoom > zooms at a double-tap's point and back with another)
- * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx::Lightbox pinch > pinches between the fitted size and the image's own size, holding the point between the fingers)
+ * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx, /chromiumOnly\(\"pinches\sbetween\sthe\sfitted\ssize\sand\sthe\simage's\sown\ssize,\sholding\sthe\spoint\sbetween\sthe\sfingers\"/)
  * @claim "zoomed, a swipe moves around the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox zoom on a touch screen > zooms with a real double-tap, and then pans with a swipe instead of turning the page)
- * @claim "The viewer grows from that thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
+ * @claim "The viewer grows from the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
  */
 export function Lightbox(props: LightboxProps): JSX.Element {
   const {
@@ -571,6 +609,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     open: openProp,
     index: indexProp,
     onOpenChange,
+    returnFocus,
     // A guard prop (hint type), dropped here so it never reaches the DOM.
     slides,
   } = props as LightboxBaseProps & {
@@ -578,6 +617,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     open?: boolean;
     index?: number;
     onOpenChange?: (open: boolean) => void;
+    returnFocus?: (index: number) => HTMLElement | null | undefined;
   };
   const controlled = openProp !== undefined;
   const mountedOpen = useMountedOpen(openProp);
@@ -613,8 +653,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
             ],
           !controlled &&
-            (indexProp !== undefined || onOpenChange !== undefined) && [
-              "index and onOpenChange need open; without it Lightbox draws its own thumbnails",
+            (indexProp !== undefined || onOpenChange !== undefined || returnFocus !== undefined) && [
+              "index, onOpenChange and returnFocus need open; without it Lightbox draws its own thumbnails",
               '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
             ],
           mountedOpen && [
@@ -647,6 +687,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   // Stryker disable next-line ArrayDeclaration: each thumbnail's ref writes its own place before the viewer can read it.
   const thumbnails = useRef<(HTMLButtonElement | null)[]>([]);
   const popup = useRef<HTMLDivElement | null>(null);
+  const shown = useRef(0);
 
   const viewer = (
     <DialogRoot open={open} onOpenChange={(next) => setOpen(next)}>
@@ -666,10 +707,12 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             className={popupClass}
             aria-labelledby={nameId}
             initialFocus={() => popup.current!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")}
-            // Controlled, Base UI gives focus back to what had it when the viewer opened. A pressed
-            // thumbnail need not have had focus (Safari does not focus a pressed button).
-            finalFocus={controlled ? true : () => thumbnails.current[start]}
-            onKeyDown={stepWithArrowKeys}
+            // Focus goes to the thumbnail of the image last shown. Controlled, that is what
+            // returnFocus gives, or else (true) Base UI gives focus back to what had it when the
+            // viewer opened. A pressed thumbnail need not have had focus (Safari does not focus a
+            // pressed button).
+            finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[shown.current]}
+            onKeyDown={stepWithKeys}
           >
             <LightboxViewer
               label={label}
@@ -684,6 +727,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               positionLabel={positionLabel}
               originalLabel={originalLabel}
               zoomLabel={zoomLabel}
+              shownRef={shown}
             />
           </DialogPopupUnchecked>
         </DialogViewport>
