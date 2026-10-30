@@ -156,6 +156,24 @@ describe("TimeGrid date and layout math", () => {
       { key: "b", top: 0, bottom: 60, column: 1, span: 1, columns: 2 },
       { key: "c", top: 60, bottom: 90, column: 0, span: 1, columns: 1 },
     ]);
+    // x spreads into the third column, whose events end before it starts or start after it ends.
+    expect(
+      layoutDay([
+        { key: "a", start: 0, end: 120 },
+        { key: "b", start: 0, end: 30 },
+        { key: "w", start: 0, end: 30 },
+        { key: "x", start: 30, end: 60 },
+        { key: "z", start: 60, end: 120 },
+        { key: "y", start: 90, end: 120 },
+      ]).map(({ key, column, span }) => [key, column, span]),
+    ).toEqual([
+      ["a", 0, 1],
+      ["b", 1, 1],
+      ["w", 2, 1],
+      ["x", 1, 2],
+      ["z", 1, 1],
+      ["y", 2, 1],
+    ]);
     // e spreads into the third column, whose events end before it starts.
     expect(
       layoutDay([
@@ -441,6 +459,8 @@ describe("TimeGrid", () => {
         { id: "hour", title: "Design review", start: at(12, "13:00"), end: at(12, "14:00"), description: "Room 2" },
         { id: "long", title: "Launch rehearsal", start: at(12, "15:00"), end: at(12, "16:30"), description: "Room 4" },
         { id: "bare", title: "Writing", start: at(12, "17:00"), end: at(12, "18:30") },
+        { id: "three", title: "Workshop", start: at(12, "19:00"), end: at(12, "20:15"), description: "Lab" },
+        { id: "half", title: "Check-in", start: at(12, "21:00"), end: at(12, "21:45") },
       ],
     });
     const parts = (title: string) => [...titled(title).querySelectorAll(":scope > span:not([data-ouro-touch-target]) > span")].map((part) => plain(part.textContent));
@@ -451,6 +471,9 @@ describe("TimeGrid", () => {
     expect(parts("Writing")).toEqual(["Writing", "5:00 – 6:30 PM"]);
     const lines = (title: string) => titled(title).querySelector<HTMLElement>(":scope > span > span[style]")!.style.getPropertyValue("--ouro-lines");
     expect([lines("Design review"), lines("Launch rehearsal"), lines("Writing")]).toEqual(["1", "2", "3"]);
+    expect(parts("Workshop")).toEqual(["Workshop", "7:00 – 8:15 PM", "Lab"]);
+    expect(titled("Workshop").querySelectorAll('[dir="auto"]')).toHaveLength(2);
+    expect(plain(titled("Check-in").getAttribute("aria-label"))).toBe("Thursday, 9:00 – 9:45 PM, Check-in");
   });
 
   it("puts all-day events in their own row, across the days they cover", async () => {
@@ -497,6 +520,8 @@ describe("TimeGrid", () => {
         { id: "midnight", title: "Evening", start: at(9, "21:00"), end: at(10, "00:00") },
         { id: "past", title: "Old trip", start: at(1, "09:00"), end: at(3, "09:00") },
         { id: "border", title: "Long weekend", start: "2026-03-07T12:00:00-05:00", end: at(9, "12:00") },
+        { id: "toMidnight", title: "Hackathon", start: at(13, "09:00"), end: at(15, "00:00") },
+        { id: "fromMidnight", title: "Fasting", start: at(11, "00:00"), end: at(12, "12:00") },
       ],
     });
     const row = [...grid.querySelectorAll('[data-ouro-time-grid-head] li')].map((item) => [item.textContent, (item as HTMLElement).style.gridColumn]);
@@ -504,8 +529,12 @@ describe("TimeGrid", () => {
       ["Long weekend", "1 / 3"],
       ["Two days", "2 / 4"],
       ["Conference", "3 / 6"],
+      ["Fasting", "4 / 6"],
+      ["Hackathon", "6 / 8"],
       ["Whole day", "6 / 7"],
     ]);
+    expect(plain(titled("Hackathon").getAttribute("aria-label"))).toBe(`${acrossDays(at(13, "09:00"), at(15, "00:00"))}, Hackathon`);
+    expect(plain(titled("Fasting").getAttribute("aria-label"))).toBe(`${acrossDays(at(11, "00:00"), at(12, "12:00"))}, Fasting`);
     expect(plain(titled("Two days").getAttribute("aria-label"))).toBe("Monday, March 9 – Tuesday, March 10, All day, Two days, free");
     expect(plain(titled("Conference").getAttribute("aria-label"))).toBe(`${acrossDays(at(10, "09:00"), at(12, "09:00"))}, Conference`);
     expect(plain(titled("Whole day").getAttribute("aria-label"))).toBe("Friday, All day, Whole day");
@@ -541,6 +570,13 @@ describe("TimeGrid", () => {
     const keys = vi.fn();
     const { grid } = await render({ events: [forum, focus, standup, demo, { id: "closed", title: "Office closed", start: "2026-03-13" }], onKeyDown: keys });
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Standup")]);
+    expect(events().filter((element) => element.tabIndex === -1)).toHaveLength(4);
+    titled("Standup").focus();
+    // The arrow key is the grid's, so it does not scroll the page as well.
+    const key = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    titled("Standup").dispatchEvent(key);
+    expect(key.defaultPrevented).toBe(true);
+    await act(async () => {});
     titled("Standup").focus();
     await press("{ArrowDown}");
     expect(document.activeElement).toBe(titled("Architecture forum"));
@@ -579,6 +615,11 @@ describe("TimeGrid", () => {
     expect(grid.contains(document.activeElement)).toBe(true);
   });
 
+  it("takes events that start together longest first", async () => {
+    await render({ view: "day", events: [{ id: "quick", title: "Quick sync", start: at(12, "10:00"), end: at(12, "10:15") }, forum] });
+    expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Architecture forum")]);
+  });
+
   it("swaps Left and Right in a right-to-left page", async () => {
     await render({ events: [forum, standup], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
     titled("Standup").focus();
@@ -614,6 +655,13 @@ describe("TimeGrid", () => {
     expect(titled("Architecture forum").dataset.ouroPart).toBe("event");
   });
 
+  it("takes a press on an event without onEventSelect", async () => {
+    await render({ view: "day", events: [forum] });
+    await userEvent.click(titled("Architecture forum"));
+    await act(async () => {});
+    expect(titled("Architecture forum").tabIndex).toBe(0);
+  });
+
   it("makes an event with href a link", async () => {
     const select = vi.fn();
     await render({ events: [{ ...forum, href: "#forum" }], onEventSelect: select, view: "day" });
@@ -647,7 +695,7 @@ describe("TimeGrid", () => {
     await act(async () => {});
     expect(grid.querySelector("[data-ouro-time-grid-slot]")).toBeNull();
     // The last slot of the day ends at midnight; a 15 or 60 minute slot follows slotMinutes.
-    slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(1439.9) }));
+    slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(1455) }));
     expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T23:30:00-04:00"), end: new Date("2026-03-13T00:00:00-04:00") });
     await rerender({ view: "day", onSlotSelect: slot, slotMinutes: 15 });
     slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(620) }));
@@ -676,11 +724,34 @@ describe("TimeGrid", () => {
     const label = grid.querySelector<HTMLElement>("[data-ouro-time-grid-now-label]")!;
     expect(plain(label.textContent)).toBe("☀10:41");
     expect(label.closest("[aria-hidden]")).not.toBeNull();
+    expect(label.style.top).toBe(line.style.top);
+    expect([getComputedStyle(line).borderTopWidth, getComputedStyle(lines[0]!).borderTopWidth]).toEqual(["2px", "1px"]);
     // The hour label the now line would cover gives way: 11 AM is 19 minutes away.
     const hours = [...grid.querySelectorAll("[data-ouro-time-grid-body] > [aria-hidden] > span:not([data-ouro-time-grid-now-label])")].map((span) => plain(span.textContent));
     expect(hours).toHaveLength(22);
     expect(hours).not.toContain("11 AM");
     expect(hours).toContain("10 AM");
+    const tenLabel = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] > [aria-hidden] > span")].find((span) => plain(span.textContent) === "10 AM")!;
+    expect(tenLabel.style.top).toBe("calc(var(--ouro-time-grid-hour) * 10)");
+  });
+
+  it("hides the hour the now line is within 20 minutes of, in a day too", async () => {
+    const { grid } = await render({ view: "day", now: at(12, "10:40") });
+    expect(grid.querySelector('[data-ouro-time-grid-now="today"]')).not.toBeNull();
+    const hours = [...grid.querySelectorAll("[data-ouro-time-grid-body] > [aria-hidden] > span:not([data-ouro-time-grid-now-label])")].map((span) => plain(span.textContent));
+    expect(hours).not.toContain("11 AM");
+    expect(hours).toContain("10 AM");
+  });
+
+  it("lays its header, row of whole days and body out in one column per day after the hours", async () => {
+    const { grid } = await render({ events: everyDay });
+    const tracks = (element: Element) => getComputedStyle(element).gridTemplateColumns.split(" ").length;
+    expect(tracks(grid.querySelector("[data-ouro-time-grid-head]")!)).toBe(8);
+    expect(tracks(grid.querySelector("[data-ouro-time-grid-body]")!)).toBe(8);
+    const row = grid.querySelector('[data-ouro-time-grid-head] ul[role="list"]')!;
+    expect([getComputedStyle(row).gridColumnStart, tracks(row)]).toEqual(["2", 7]);
+    const { grid: none } = await render({ date: "soon" });
+    expect(tracks(none.querySelector("[data-ouro-time-grid-head]")!)).toBe(2);
   });
 
   it("draws no now line when today is not shown, and keeps every hour", async () => {
@@ -700,6 +771,7 @@ describe("TimeGrid", () => {
     expect(top()).toBe("calc(var(--ouro-time-grid-hour) * 10.683333333333334)");
     await act(async () => vi.advanceTimersByTime(30_000));
     expect(top()).toBe("calc(var(--ouro-time-grid-hour) * 10.7)");
+    expect(warnings()).toEqual([]);
   });
 
   it("opens at now when today shows, else half an hour before the working day", async () => {
@@ -802,6 +874,9 @@ describe("TimeGrid", () => {
       },
     });
     onTestFinished(() => void Object.assign(Intl, { DateTimeFormat }));
+    // 14:41 UTC on the 12th is 23:41 in Tokyo, the same day.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-03-12T14:41:00Z"));
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const props = { ...base, timeZone: undefined, now: undefined, view: "day" as const, events: [{ id: "e", title: "Sync", start: "2026-03-12T14:00:00Z", end: "2026-03-12T15:00:00Z" }] };
     const html = renderToString(<TimeGrid {...props} />);
@@ -817,8 +892,13 @@ describe("TimeGrid", () => {
     });
     roots.push(root!);
     expect(errors).not.toHaveBeenCalled();
-    // 14:00 UTC is 23:00 in Tokyo.
+    // 14:00 UTC is 23:00 in Tokyo. Once the browser knows it is 23:41, the grid opens 90 minutes before.
     expect(hours(host.querySelector("[data-ouro-event-key]")!)).toEqual([23, 1]);
+    expect(host.querySelector('[data-ouro-time-grid-now="today"]')).not.toBeNull();
+    const scroller = host.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    // As far down as the area scrolls, short of 22:11.
+    expect(Math.abs(scroller.scrollTop - Math.min(((23 * 60 + 41 - 90) / 60) * 48, scroller.scrollHeight - scroller.clientHeight))).toBeLessThan(1);
+    expect(scroller.scrollTop).toBeGreaterThan(8 * 48);
   });
 
   it("draws no now line before the browser knows the time, even on the first day of 1970", () => {
@@ -836,7 +916,12 @@ describe("TimeGrid", () => {
         { id: "reminder", title: "Reminder", start: at(12, "00:00"), end: at(12, "00:00") },
       ],
     });
-    expect(events().map((element) => element.getAttribute("aria-label")!.split(", ").at(-1))).toEqual(["Holiday", "Backup", "Reminder"]);
+    expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Holiday")]);
+    titled("Holiday").focus();
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(titled("Backup"));
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(titled("Reminder"));
     expect(hours(titled("Reminder"))).toEqual([0, 0.5]);
   });
 

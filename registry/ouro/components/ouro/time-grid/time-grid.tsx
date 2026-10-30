@@ -219,12 +219,20 @@ export interface TimeGridOwnProps {
 /** Props for {@link TimeGrid}: its own props and the div attributes it passes through to the root. */
 export type TimeGridProps = Omit<HTMLAttributes<HTMLDivElement>, keyof TimeGridOwnProps> & TimeGridOwnProps;
 
-const defaultStatusLabels: Required<TimeGridStatusLabels> = { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" };
+// Busy, the usual, goes unsaid.
+const defaultStatusLabels: Record<TimeGridStatus, string> = { busy: "", tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" };
+/** `value` when it is one of `list`, else `fallback`. */
+const oneOf = <Name extends string>(list: readonly Name[], value: string | undefined, fallback: Name): Name => ((list as readonly (string | undefined)[]).includes(value) ? (value as Name) : fallback);
 const defaultWorkingHours = { start: 8, end: 17 };
 
 const clock = minuteClock();
 // Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
 const serverNow = () => 0;
+
+// An event's time and description: muted text mixed toward the foreground, as muted text on a
+// tinted fill is across Ouro.
+const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
  * One drawn piece of an event: a timed event has one per day it covers; an all-day event, one.
@@ -311,7 +319,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     scrollToTime,
     ...rest
   } = props;
-  const view: TimeGridView = (views as readonly string[]).includes(viewProp) ? (viewProp as TimeGridView) : "week";
+  const view = oneOf(views, viewProp, "week");
   const slotMinutes = slotSizes.includes(slotProp) ? slotProp : 30;
   const workingHours =
     workingHoursProp && workingHoursProp.start >= 0 && workingHoursProp.end <= 24 && workingHoursProp.start < workingHoursProp.end ? workingHoursProp : defaultWorkingHours;
@@ -423,7 +431,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? '<TimeGrid className="h-[40rem]" />, and set colors in your theme\'s CSS variables, or tone on an event'
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "TimeGrid",
@@ -431,7 +440,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       ? () => [
           !label && ["label is required; it names the grid for screen readers", '<TimeGrid label="Team calendar">'],
           !isIsoDate(date) && [`date=${JSON.stringify(String(date))} is not an ISO date (YYYY-MM-DD)`, '<TimeGrid date="2026-03-12">'],
-          view !== viewProp && [`view="${String(viewProp)}" is not a view; use "day", "work-week" or "week"`, '<TimeGrid view="week">'],
+          !(views as readonly string[]).includes(viewProp) && [`view="${String(viewProp)}" is not a view; use "day", "work-week" or "week"`, '<TimeGrid view="week">'],
           nowProp !== undefined && !nowGiven && [`now=${JSON.stringify(nowProp)} is not a date`, "<TimeGrid now={new Date()}>, or leave it out to follow the clock"],
           workingHoursProp !== undefined && workingHours !== workingHoursProp && [
             `workingHours=${JSON.stringify(workingHoursProp)} is not a working day; start and end are hours from 0 to 24, start first`,
@@ -473,8 +482,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   };
 
   // Open at now when today shows, else half an hour before the working day: once for each set
-  // of days, and once more when the browser first knows the time.
-  const scrollKey = `${days[0]}:${days.length}:${todayIndex >= 0}`;
+  // of days, and again when today moves (the browser first knows the time, or midnight passes).
+  const scrollKey = `${days[0]}:${days.length}:${todayIndex}`;
   useLayoutEffect(() => {
     const viewport = rootRef.current!.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const body = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
@@ -512,35 +521,35 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // The now label leaves out AM and PM, which the hours beside it already show, so it fits the gutter.
   const nowText = formats.time
     .formatToParts(nowTime)
-    .filter((part, index, parts) => part.type !== "dayPeriod" && !(part.type === "literal" && (parts[index + 1]?.type === "dayPeriod" || parts[index - 1]?.type === "dayPeriod")))
+    .filter((part) => part.type !== "dayPeriod")
     .map((part) => part.value)
-    .join("");
+    .join("")
+    .trim();
   const hourLabels = Array.from({ length: 23 }, (_, index) => index + 1).filter((hour) => !nowAt || todayIndex < 0 || Math.abs(hour * 60 - nowAt.minutes) > 20);
 
   const renderEvent = (piece: Piece, placed?: { top: number; bottom: number }) => {
     const { event } = piece;
-    const tone: TimeGridTone = (tones as readonly string[]).includes(event.tone ?? "") ? (event.tone as TimeGridTone) : "primary";
-    const status: TimeGridStatus = (statuses as readonly string[]).includes(event.status ?? "") ? (event.status as TimeGridStatus) : "busy";
+    const tone = oneOf(tones, event.tone, "primary");
+    const status = oneOf(statuses, event.status, "busy");
     const lines = placed ? lineCount(placed.bottom - placed.top) : 1;
     const start = placed ? toInstant(event.start)! : null;
     const end = placed ? toInstant(event.end!)! : null;
-    const muted = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
     const content =
       !placed || lines === 1 ? (
         <span className="truncate">
           <span dir="auto" className="font-medium">
             {event.title}
           </span>
-          {start ? <span className={muted}> {formats.time.format(start)}</span> : null}
+          {start ? <span className={mutedClass}> {formats.time.format(start)}</span> : null}
         </span>
       ) : (
         <>
           <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>
-          <span className={cn("truncate", muted)}>{rangeText(formats.time, start!, end!)}</span>
+          <span className={mutedLineClass}>{rangeText(formats.time, start!, end!)}</span>
           {lines >= 3 && event.description ? (
-            <span dir="auto" className={cn("truncate", muted)}>
+            <span dir="auto" className={mutedLineClass}>
               {event.description}
             </span>
           ) : null}
@@ -598,7 +607,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             >
               <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
               <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
-                {formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value}
+                {
+                  // Stryker disable next-line ConditionalExpression: in the locales tested the day comes first; the search is for one where it does not
+                  formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value
+                }
               </span>
               <span className="truncate text-xs text-muted-foreground group-data-today/day:font-medium group-data-today/day:text-foreground">{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
@@ -723,7 +735,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 }
 
 /** What a screen reader hears for an event: when, the title, the status and the description. */
-function spoken(when: string[], event: TimeGridEvent, words: Required<TimeGridStatusLabels>): string {
-  const status = event.status !== "busy" && Object.hasOwn(words, event.status ?? "") ? words[event.status as Exclude<TimeGridStatus, "busy">] : "";
-  return [...when, event.title, status, event.description].filter(Boolean).join(", ");
+function spoken(when: string[], event: TimeGridEvent, words: Record<TimeGridStatus, string>): string {
+  return [...when, event.title, words[oneOf(statuses, event.status, "busy")], event.description].filter(Boolean).join(", ");
 }
