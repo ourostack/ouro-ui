@@ -15,7 +15,6 @@ import generated from "../generated/agent-messages.json";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_BADGE, SHADCN_LINE } from "../copy";
 import { latestRelease } from "../latest-release";
 import { href } from "../routes";
-import spoonjoy from "../docs/spoonjoy.json";
 
 /** A small label beside a heading: "Works with shadcn/ui", "Alpha". */
 export function Pill({ children }: { children: ReactNode }): JSX.Element {
@@ -363,6 +362,8 @@ function Switching(): JSX.Element {
 
 const SPOONJOY = "https://spoonjoy.app/";
 const SPOONJOY_SOURCE = "https://github.com/spoonjoy/spoonjoy-v2";
+/** Spoonjoy's guide, as in site/src/docs/spoonjoy.json (not imported, so the landing page doesn't load that file). */
+const SPOONJOY_GUIDE = "https://github.com/spoonjoy/spoonjoy-v2/blob/main/docs/building-with-ouro-hx.md";
 
 function InUse(): JSX.Element {
   return (
@@ -389,7 +390,7 @@ function InUse(): JSX.Element {
               <Button href={SPOONJOY_SOURCE} variant="outline" tone="secondary">
                 Spoonjoy's source
               </Button>
-              <Button href={spoonjoy.guide} variant="outline" tone="secondary">
+              <Button href={SPOONJOY_GUIDE} variant="outline" tone="secondary">
                 How Spoonjoy builds with Ouro HX
               </Button>
             </div>

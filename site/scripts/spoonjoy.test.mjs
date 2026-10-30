@@ -46,3 +46,9 @@ test("the committed Spoonjoy data names only registry components, Spoonjoy's own
     for (const file of use.sources) assert.ok(file.startsWith(`${SOURCE}/blob/main/app/`), file);
   }
 });
+
+test("the landing page links Spoonjoy's guide without importing the data the docs pages load", () => {
+  const landing = readFileSync(new URL("../src/pages/landing.tsx", import.meta.url), "utf8");
+  assert.ok(landing.includes(`const SPOONJOY_GUIDE = "${data.guide}";`), "SPOONJOY_GUIDE matches spoonjoy.json's guide");
+  assert.doesNotMatch(landing, /docs\/spoonjoy\.json"/);
+});
