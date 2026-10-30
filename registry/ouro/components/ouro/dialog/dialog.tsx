@@ -80,19 +80,22 @@ export interface DialogBaseProps {
    */
   presentation?: DialogPresentation | (string & { 'Use "auto", "dialog" or "sheet"': never }) | undefined;
   /**
-   * The centered dialog's width: `sm` (24rem), `md` (32rem) and `lg` (40rem) are fixed widths, for forms and text.
-   * `xl` (56rem), `2xl` (72rem) and `full` (the whole viewport) are caps for wide content, such as a
-   * gallery or a table: the dialog fits its content, at least 32rem and at most the cap. Every size narrows
-   * to the viewport less its 1rem margins (or the safe area). A paragraph's natural width is its whole line,
-   * so text alone widens an `xl` or wider dialog to its cap; the default stays `md` for that reason. @default "md"
+   * The centered dialog's width. By default (`auto`) it fits its content and the screen: at least 32rem, so a form or a short
+   * question keeps a comfortable width, and at most 70% of the screen, from 40rem up to 56rem, so a gallery or a table grows
+   * on a big screen. Running text (paragraphs, headings, list items, labels, `Text`) wraps at a readable 65ch and does not
+   * widen it; bare text in a `div` measures as one long line, so put prose in a `<p>`. `xl` (56rem), `2xl` (72rem) and
+   * `full` (the viewport) raise the cap for wide content. `sm` (24rem), `md` (32rem) and `lg` (40rem) pin a fixed width
+   * whatever the content. Every size narrows to the viewport less its 1rem margins (or the safe area). @default "auto"
    *
-   * @claim "The centered dialog's" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"w-full\smax-w-\[24rem\]",\smd:\s"w-full\smax-w-\[32rem\]",\slg:\s"w-full\smax-w-\[40rem\]",\sxl:\s"w-fit\smin-w-\[min\(32rem,100%\)\]\smax-w-\[min\(56rem,100%\)\]",\s"2xl":\s"w-fit\smin-w-\[min\(32rem,100%\)\]\smax-w-\[min\(72rem,100%\)\]",\sfull:\s"w-fit\smin-w-\[min\(32rem,100%\)\]\smax-w-full"\s\}/)
-   * @claim "The centered dialog's" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > caps size %s at %ipx wide)
-   * @claim "`xl` (56rem), `2xl` (72rem) and" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > fits size %s to its content, from 32rem up to %ipx)
-   * @claim "A paragraph's natural width is its" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > widens size %s to its cap for a long paragraph, so wide sizes are for wide content)
+   * @claim "By default (`auto`) it fits" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > fits size %s to its content, from 32rem up to %ipx)
+   * @claim "By default (`auto`) it fits" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > follows the screen by default: a wide table makes it %ipx wide on a %ipx screen)
+   * @claim "Running text (paragraphs, headings, list" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > keeps running text at a readable 65ch in size %s, so text alone does not widen it)
+   * @claim "Running text (paragraphs, headings, list" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > lets the app's own max-width class on a paragraph win over the 65ch measure)
+   * @claim "`xl` (56rem), `2xl` (72rem) and" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > caps size %s at %ipx wide)
+   * @claim "`sm` (24rem), `md` (32rem) and" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > keeps size %s at %ipx whatever the content)
    * @claim "Every size narrows to the viewport" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > keeps size %s inside a 390px phone's 16px margins when presentation is dialog)
    */
-  size?: DialogSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or "full"': never }) | undefined;
+  size?: DialogSize | (string & { 'Use "auto", "sm", "md", "lg", "xl", "2xl" or "full"': never }) | undefined;
   /**
    * The actions row: a row at the end on wider screens, stacked full width on
    * phones. Put the primary action last, so it sits on the right on wider
@@ -235,7 +238,7 @@ export function Dialog(props: DialogProps): JSX.Element {
     closeLabel = "Close",
     description,
     presentation: presentationProp = "auto",
-    size: sizeProp = "md",
+    size: sizeProp = "auto",
     footer,
     children,
     className,
@@ -258,7 +261,7 @@ export function Dialog(props: DialogProps): JSX.Element {
   const mountedOpen = useMountedOpen(open);
 
   // A size or presentation that is not one of Ouro UI's (a type error) warns and renders the default.
-  const size = dialogSizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "md";
+  const size = dialogSizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "auto";
   const presentation = presentations.includes(presentationProp as DialogPresentation)
     ? (presentationProp as DialogPresentation)
     : "auto";

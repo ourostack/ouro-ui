@@ -1,2 +1,0 @@
-- New: Dialog and DialogPopup take wider sizes for wide content, `size="xl"`, `"2xl"` and `"full"`, which fit the dialog to its content up to their cap, so a gallery or a table widens it on a big screen; `sm`, `md` (the default) and `lg` keep their fixed widths.
-- New: Dialog and Lightbox say in development when they mount already open after a press or a key (`{editing && <Dialog open … />}`), since their open and close transitions can't run then; keep them mounted and change `open`.

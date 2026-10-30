@@ -33,8 +33,8 @@ expectTypeOf<{ title: "Edit"; open: true; children: "Body" }>().not.toExtend<Dia
 // Named options only.
 expectTypeOf<{ title: "Edit"; trigger: ReactElement; presentation: "drawer"; children: "Body" }>().not.toExtend<DialogProps>();
 expectTypeOf<{ title: "Edit"; trigger: ReactElement; size: "xs"; children: "Body" }>().not.toExtend<DialogProps>();
-// The wide sizes, for content-heavy dialogs.
-expectTypeOf<{ title: "Edit"; trigger: ReactElement; size: "xl" | "2xl" | "full"; children: "Body" }>().toExtend<DialogProps>();
+// The default that fits its content, and the wide caps.
+expectTypeOf<{ title: "Edit"; trigger: ReactElement; size: "auto" | "xl" | "2xl" | "full"; children: "Body" }>().toExtend<DialogProps>();
 // Sheet-only and guessed props are declared `never`.
 expectTypeOf<{ title: "Edit"; trigger: ReactElement; side: "left"; children: "Body" }>().not.toExtend<DialogProps>();
 expectTypeOf<{ title: "Edit"; trigger: ReactElement; snapPoints: [0.5]; children: "Body" }>().not.toExtend<DialogProps>();

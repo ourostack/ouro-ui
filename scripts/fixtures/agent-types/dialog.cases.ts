@@ -28,7 +28,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "s31",
     habit: "an xs DialogPopup part",
-    tsc: [notAssignable('"xs"', `DialogSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or "full"': never; }) | undefined`)],
+    tsc: [notAssignable('"xs"', `DialogSize | (string & { 'Use "auto", "sm", "md", "lg", "xl", "2xl" or "full"': never; }) | undefined`)],
     dev: '<DialogPopup size="md">',
     names: ["tsc", "dev"],
   },
