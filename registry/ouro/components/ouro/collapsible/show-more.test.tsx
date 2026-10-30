@@ -664,7 +664,7 @@ describe("ShowMore with maxHeight", () => {
     const { root } = await render(<ShowMore maxHeight={120}><Tall height={400} /></ShowMore>);
     await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")?.textContent).toBe("Show more");
     expect(fold(root).getBoundingClientRect().height).toBeCloseTo(120, 0);
-    expect(fold(root).hasAttribute("data-folded")).toBe(true);
+    expect(fold(root).getAttribute("data-folded")).toBe("");
     expect(getComputedStyle(fold(root)).maskImage).toContain("linear-gradient");
   });
 
@@ -712,7 +712,12 @@ describe("ShowMore with maxHeight", () => {
   });
 
   it("unfolds when keyboard focus moves into the folded part", async () => {
-    const { root } = await render(<ShowMore maxHeight={120} showMoreLabel="Voir plus" showLessLabel="Voir moins"><Tall height={400} link /></ShowMore>);
+    // Lower on the page, so the box's own place on the page counts only once.
+    const { root } = await render(
+      <div style={{ marginTop: 300 }}>
+        <ShowMore maxHeight={120} showMoreLabel="Voir plus" showLessLabel="Voir moins"><Tall height={400} link /></ShowMore>
+      </div>,
+    );
     await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")?.textContent).toBe("Voir plus");
     // Focus in the part that shows leaves it folded.
     await act(async () => root.querySelector<HTMLElement>('a[href="#top"]')!.focus());
@@ -731,6 +736,8 @@ describe("ShowMore with maxHeight", () => {
     const html = renderToString(node);
     expect(html).toContain("Top link");
     expect(html).toContain("max-h-(--ouro-show-more-height)");
+    // Not measured yet: no fade, and no button.
+    expect(html).not.toMatch(/\sdata-folded=/);
     expect(html).not.toContain("data-ouro-show-more-toggle");
     const host = document.createElement("div");
     host.innerHTML = html;
@@ -745,6 +752,67 @@ describe("ShowMore with maxHeight", () => {
     await expect.poll(() => host.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("shows content exactly a fifth taller than maxHeight whole", async () => {
+    const { root } = await render(<ShowMore maxHeight={120}><div style={{ height: 144 }} /></ShowMore>);
+    await expect.poll(() => fold(root).getBoundingClientRect().height).toBeCloseTo(144, 0);
+    expect(root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+  });
+
+  it("measures again when maxHeight changes, and stops measuring once gone", async () => {
+    const disconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
+    const r = await render(<ShowMore maxHeight={120}><div style={{ height: 200 }} /></ShowMore>);
+    await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+    await r.rerender(<ShowMore maxHeight={300}><div style={{ height: 200 }} /></ShowMore>);
+    await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+    expect(fold(r.root).getBoundingClientRect().height).toBeCloseTo(200, 0);
+    const before = disconnect.mock.calls.length;
+    await r.rerender(null);
+    expect(disconnect.mock.calls.length).toBe(before + 1);
+  });
+
+  it("keeps a focused element that ends right at the fold folded", async () => {
+    const { root } = await render(
+      <ShowMore maxHeight={120}>
+        <a href="#edge" style={{ display: "block", height: 120 }}>
+          Edge
+        </a>
+        <div style={{ height: 400 }} />
+      </ShowMore>,
+    );
+    await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+    await act(async () => root.querySelector<HTMLElement>('a[href="#edge"]')!.focus());
+    expect(fold(root).hasAttribute("data-folded")).toBe(true);
+  });
+
+  it("brings the button back into view after Show less only when it is out of view", async () => {
+    const { host } = await render(
+      <div data-scroller="" style={{ height: 300, overflowY: "auto" }}>
+        <ShowMore maxHeight={120}>
+          <div style={{ height: 1000 }} />
+        </ShowMore>
+        <div style={{ height: 1000 }} />
+      </div>,
+    );
+    const scroller = host.querySelector<HTMLElement>("[data-scroller]")!;
+    await expect.poll(() => host.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+    const button = host.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!;
+    const frame = () => act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // Folding back from far below: the button, now above the view, scrolls back in.
+    await act(async () => button.click());
+    await act(async () => void (scroller.scrollTop = 1100));
+    await act(async () => button.click());
+    await frame();
+    const view = scroller.getBoundingClientRect();
+    await expect.poll(() => button.getBoundingClientRect().top).toBeGreaterThanOrEqual(view.top - 1);
+    expect(button.getBoundingClientRect().bottom).toBeLessThanOrEqual(view.bottom + 1);
+    // Folding back with the button still in view leaves the scroll alone.
+    await act(async () => button.click());
+    await act(async () => void (scroller.scrollTop = 60));
+    await act(async () => button.click());
+    await frame();
+    expect(scroller.scrollTop).toBe(60);
   });
 });
 
@@ -775,6 +843,20 @@ describe("ShowMore development messages", () => {
     const lines = await render(<ShowMore {...({ lines: 0, children: longText } as unknown as ShowMoreProps)} />);
     const text = lines.root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
     expect(text.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(text).lineHeight) * 3, 0);
+  });
+
+  it("warns of nothing when the props are right, in every mode", async () => {
+    await render(<ShowMore items={recipes} initialCount={3} />);
+    await render(<ShowMore lines={2}>{longText}</ShowMore>);
+    await render(<ShowMore maxHeight={120}>{longText}</ShowMore>);
+    await render(<ShowMore items={recipes} hasMore={false} onShowMore={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("renders a list when items comes with maxHeight", async () => {
+    const { rows, root } = await render(<ShowMore {...({ items: recipes, maxHeight: 100 } as unknown as ShowMoreProps)} />);
+    expect(rows).toHaveLength(5);
+    expect(root.querySelector("[data-ouro-show-more-fold]")).toBeNull();
   });
 
   it("folds to the default height for an invalid maxHeight", async () => {

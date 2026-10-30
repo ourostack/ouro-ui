@@ -256,7 +256,7 @@ function rowKey(item: ReactNode, index: number): string | number {
 }
 
 const isCount = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
-const isHeight = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value > 0;
+const isHeight = (value: unknown): value is number => Number.isFinite(value) && (value as number) > 0;
 const DEFAULT_HEIGHT = 240;
 
 /**
@@ -412,9 +412,8 @@ function ShowMoreHeight({
   const buttonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const content = contentRef.current!;
-    const measure = () => setFits(content.scrollHeight <= maxHeight * 1.2);
-    measure();
-    const observer = new ResizeObserver(measure);
+    // The observer measures once as it starts, and again on every change of size.
+    const observer = new ResizeObserver(() => setFits(content.scrollHeight <= maxHeight * 1.2));
     observer.observe(content);
     return () => observer.disconnect();
   }, [maxHeight]);
@@ -428,7 +427,7 @@ function ShowMoreHeight({
   };
   // Focus that lands below the fold (a link, a button in a card) unfolds the content.
   const reveal = (event: FocusEvent<HTMLDivElement>) => {
-    if (!folded) return;
+    // Unfolded, nothing is below the box's bottom, so this is folded content only.
     const fold = event.currentTarget;
     // The browser may already have scrolled the clipped box to the focused element, so measure
     // from the box's unscrolled top.
