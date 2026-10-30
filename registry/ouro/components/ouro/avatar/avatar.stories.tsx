@@ -140,13 +140,13 @@ export const Presence: Story = {
   ),
 };
 
-/** Initials take a hue from the name (or `idForColor`); `brand` tints with the primary and `neutral` stays plain. */
+/** Initials take a hue from the name (or `idForColor`), here one name per hue; `brand` tints with the primary and `neutral` stays plain. */
 export const Colors: Story = {
   parameters: { screenshot: { name: "avatar-colors" } },
   render: () => (
     <Surface>
       <div style={row}>
-        {["Ada Lovelace", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra", "Barbara Liskov", "Donald Knuth", "Frances Allen", "Tim Berners-Lee", "Radia Perlman"].map((name) => (
+        {["Alan Turing", "Jean Sammet", "Lynn Conway", "Edsger Dijkstra", "Grace Hopper", "Radia Perlman", "Sophie Wilson", "Dennis Ritchie"].map((name) => (
           <Avatar key={name} name={name} />
         ))}
       </div>
