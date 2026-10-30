@@ -3,8 +3,14 @@
  * pulls the docs' generated Markdown (routes.ts) into its JavaScript.
  */
 
-/** The page module that renders a path: each has its own JavaScript closure (app.tsx). */
-export type PageKind = "landing" | "voyage" | "docs";
+/**
+ * The page module that renders a path: each has its own JavaScript closure (app.tsx). The voyage
+ * module renders the home page and the Nautilus's page.
+ */
+export type PageKind = "voyage" | "docs";
+
+/** The paths the voyage module renders. */
+export const VOYAGE_PATHS = ["/", "/nautilus/"] as const;
 
 /** A site path with a trailing slash and no `index.html`. */
 export function normalizePath(path: string): string {
@@ -14,9 +20,7 @@ export function normalizePath(path: string): string {
 /** Which page module renders a path. Every docs page and the 404 page are the docs module's. */
 export function pageKind(path: string): PageKind {
   const normalized = normalizePath(path);
-  if (normalized === "/") return "landing";
-  if (normalized === "/voyage/") return "voyage";
-  return "docs";
+  return (VOYAGE_PATHS as readonly string[]).includes(normalized) ? "voyage" : "docs";
 }
 
 /** The site path for a browser pathname under the base. */

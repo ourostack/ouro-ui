@@ -1,0 +1,3 @@
+- ConversationList: rows can group under `sections` with headers that open and close, and a row can show a `where` after its title, an `icon` before it, a `mark` at the end of its last line and an avatar element (`avatar={<Avatar … />}`).
+- ConversationList takes one Tab stop, on the open conversation, and the arrow keys move between its rows and headers; the time ends the first line and the unread dot the last.
+- ConversationList's `onSelect` gets the click as its second argument when the handler takes one, so an app can check `event.isTrusted`; a server action still gets only the id.

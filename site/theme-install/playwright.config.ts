@@ -9,7 +9,7 @@ export default defineConfig({
   projects: [{ name: "theme-install", use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4190/" } }],
   webServer: {
     command: "node serve.mjs",
-    url: "http://127.0.0.1:4190/voyage/",
+    url: "http://127.0.0.1:4190/",
     reuseExistingServer: false,
     timeout: 30_000,
   },

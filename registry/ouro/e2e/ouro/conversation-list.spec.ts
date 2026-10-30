@@ -18,3 +18,27 @@ test("a conversation opens on a click, and the arrow keys and Enter open another
   await page.keyboard.press("Enter");
   await expect(rows.nth(2)).toHaveAttribute("aria-current", "true");
 });
+
+test("the list is one Tab stop on the open chat, and a section header closes and opens its rows", async ({ page }) => {
+  await openStory(page, "chat-conversationlist--sections");
+  const list = page.getByRole("list", { name: "Chats" });
+  const open = list.getByRole("button", { name: /^Mira Okonkwo/ });
+  await expect(open).toHaveAttribute("aria-current", "true");
+  await open.focus();
+  await expect(list.locator('[tabindex="0"]')).toHaveCount(1);
+  const recent = list.getByRole("button", { name: /^Recent/ });
+  await expect(recent).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(recent).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(recent).toHaveAttribute("aria-expanded", "false");
+  await expect(open).toHaveCount(0);
+  await page.keyboard.press("ArrowRight");
+  await expect(recent).toHaveAttribute("aria-expanded", "true");
+  await expect(open).toBeVisible();
+  const quiet = list.getByRole("button", { name: /^Quiet/ });
+  await expect(quiet).toHaveAttribute("aria-expanded", "false");
+  await quiet.click();
+  await expect(list.getByRole("button", { name: /^Garden club/ })).toBeVisible();
+});

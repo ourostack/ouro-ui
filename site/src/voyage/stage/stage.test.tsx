@@ -76,7 +76,7 @@ describe("the drawings", () => {
 
 describe("the hero", () => {
   it("says what HX is first, and engraves the motto on the porthole's ring", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     expect(EYEBROW).toBe("Ouro HX · Under construction");
     expect(document.querySelector("h1")!.textContent).toBe("Feels right to the people using it. Obvious to the agents building it.");
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
@@ -86,7 +86,7 @@ describe("the hero", () => {
   });
 
   it("shows the release the command pins beside it, linking to that release", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const release = page.getByRole("link", { name: `${latestRelease} · latest release` });
     await expect.element(release).toHaveAttribute("href", `https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
     expect(RELEASE_HREF).toBe(`https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
@@ -94,7 +94,7 @@ describe("the hero", () => {
   });
 
   it("links each proof claim, computed from the repository, to its evidence", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     expect(proof.line).toBe(proof.claims.map((claim) => claim.text).join(" · "));
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
@@ -103,7 +103,7 @@ describe("the hero", () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
     try {
-      await renderPage("/voyage/");
+      await renderPage("/");
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
       expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)} is one of ${install.count}.`);
@@ -128,13 +128,13 @@ describe("the hero", () => {
 
 describe("the stage's controls", () => {
   it("lists each control the stage has, by the marker its wrapper carries", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const marked = [...document.querySelectorAll("[data-stage] [data-stage-control]")].map((element) => element.getAttribute("data-stage-control"));
     expect(marked).toEqual([...STAGE_CONTROLS]);
   });
 
   it("opens with the captain's welcome under the porthole, and in the log", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     expect(logText()).toHaveLength(OPENING_LOG.length);
     expect(logText()[0]).toContain(OPENING_LOG[0]!.text);
     expect(lastLog()).toBe(`${OPENING_LOG[0]!.name}: ${OPENING_LOG[0]!.text}`);
@@ -142,7 +142,7 @@ describe("the stage's controls", () => {
   });
 
   it("takes the porthole down with the depth slider, and the crew says when the water changes", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const depth = page.getByRole("slider", { name: "Depth" });
     expect(scene().dataset.band).toBe("sunlit");
     (depth.element() as HTMLElement).focus();
@@ -160,7 +160,7 @@ describe("the stage's controls", () => {
   });
 
   it("dives only once all three tanks are full, then surfaces and empties them", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const dive = page.getByRole("button", { name: STAGE_COPY.dive, exact: true });
     await expect.element(dive).toBeDisabled();
     // real clock: the dive control's hint, which stays.
@@ -190,7 +190,7 @@ describe("the stage's controls", () => {
   });
 
   it("lights the deep with the floodlights, where the hidden creatures are", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const hidden = () => Number(getComputedStyle(document.querySelector(".stage-hidden")!).opacity);
     const lights = page.getByRole("switch", { name: STAGE_COPY.lights });
     await userEvent.click(lights);
@@ -208,7 +208,7 @@ describe("the stage's controls", () => {
   });
 
   it("sets the fish's speed, and stops them", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     expect(scene().dataset.speed).toBe("half");
     await userEvent.click(page.getByRole("radio", { name: "Full" }));
     await expect.poll(() => scene().dataset.speed).toBe("full");
@@ -219,7 +219,7 @@ describe("the stage's controls", () => {
   });
 
   it("rings the bell: a toast from the crew, in turn, each replacing the last, and a line in the log", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     const ring = () => document.querySelector<HTMLElement>("[data-stage-control='bell']")!.dataset.ring;
     expect(ring()).toBeUndefined();
@@ -243,7 +243,7 @@ describe("the stage's controls", () => {
   });
 
   it("keeps the newest five lines in the log, the newest also under the porthole", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
     await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
     for (const name of ["Full", "Stop", "Half", "Full", "Stop"]) await userEvent.click(page.getByRole("radio", { name }));
@@ -258,7 +258,7 @@ describe("the stage's controls", () => {
   });
 
   it("reads each crew line once, with the ship's log folded or open", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const announced = watchAnnouncements();
     // A folded panel is hidden, and a screen reader hears nothing from a live region inside it.
     const heard = (text: string) => announced.matching(text).filter((each) => !each.region.closest("[hidden]")).length;
@@ -274,7 +274,7 @@ describe("the stage's controls", () => {
 
   it("keeps the crew's line with the porthole on a phone, pinned under the header", async () => {
     await page.viewport(390, 844);
-    await renderPage("/voyage/");
+    await renderPage("/");
     const crew = document.querySelector("[data-stage-crew]")!;
     expect(crew.closest(".stage-window")).not.toBeNull();
     expect(getComputedStyle(document.querySelector(".stage-window")!).position).toBe("sticky");
@@ -285,7 +285,7 @@ describe("the stage's controls", () => {
 
 describe("the stage's colours", () => {
   it("come from the theme, so each preset repaints the sea and the rim", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const paint = () => {
       const sea = getComputedStyle(document.querySelector(".stage-sea-top")!).stopColor;
       const rim = getComputedStyle(document.querySelector(".stage-metal-mid")!).stopColor;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
@@ -8,8 +8,12 @@ import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
+import { docsSections } from "./components/docs-sidebar";
 import { href, routes } from "./routes";
-import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
+import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
+import { TWO_SHIPS } from "./voyage/copy";
+import { agentExamples } from "./agents/examples";
+import spoonjoyData from "./docs/spoonjoy.json";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
 import { siteGroups } from "../../scripts/catalog-groups.mts";
@@ -38,37 +42,53 @@ const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monore
 // The upgrade note is UPGRADING.md, rendered on the Updating page; every command shows.
 const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
 
-describe("landing page", () => {
-  it("renders the exact hero text and the shadcn wording", async () => {
+describe("home page", () => {
+  it("opens on the Nautilus hero, and Come aboard goes to the Nautilus's page", async () => {
     await renderPage("/");
     const heading = page.getByRole("heading", { level: 1 });
     await expect.element(heading).toBeVisible();
-    expect(heading.element().textContent).toBe(HERO_TITLE);
-    expect(HERO_TITLE).toBe("Designed down to the last tap and the last prop.");
-    expect(HERO_SUBLINE).toBe(
-      "Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.",
-    );
-    await expect.element(page.getByText(HERO_SUBLINE, { exact: true })).toBeVisible();
-    await expect.element(page.getByText("Works with shadcn/ui", { exact: true })).toBeVisible();
-    await expect.element(page.getByText(SHADCN_LINE, { exact: true })).toBeVisible();
-    expect(SHADCN_LINE).toBe(
-      "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.",
-    );
+    expect(heading.element().textContent).toBe(VOYAGE_HERO.title.join(" "));
+    expect(page.getByRole("link", { name: "Come aboard", exact: true }).first().element().getAttribute("href")).toBe("/nautilus/");
     expect(document.body.innerText).not.toContain("compliant");
-    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("https://ui.ouro.bot/llms.txt");
+    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
-  it("has no phone mockup", async () => {
-    const host = await renderPage("/");
-    expect(host.querySelector("[data-site-phone-screen]")).toBeNull();
-    expect(page.getByRole("button", { name: "Save to cookbook" }).elements()).toEqual([]);
+  it("shows two ships, the Nautilus and Spoonjoy, each with its way in and its X-ray", async () => {
+    await renderPage("/");
+    const section = page.getByRole("region", { name: TWO_SHIPS.title });
+    await expect.element(section.getByRole("heading", { level: 2, name: TWO_SHIPS.title })).toBeVisible();
+    const nautilus = section.getByRole("article", { name: TWO_SHIPS.nautilus.title });
+    const spoonjoy = section.getByRole("article", { name: TWO_SHIPS.spoonjoy.title });
+    await expect.element(nautilus.getByText(TWO_SHIPS.nautilus.body)).toBeVisible();
+    const links = (card: typeof nautilus) => card.getByRole("link").elements().map((link) => [link.textContent, link.getAttribute("href")]);
+    expect(links(nautilus)).toEqual([
+      ["Come aboard", "/nautilus/"],
+      ["X-ray it", "/nautilus/?xray"],
+    ]);
+    expect(links(spoonjoy)).toEqual([
+      ["Try the Test Kitchen", "https://spoonjoy.app/test-kitchen"],
+      ["X-ray it", "https://spoonjoy.app/test-kitchen?xray"],
+      ["Source", "https://github.com/spoonjoy/spoonjoy-v2"],
+    ]);
+    expect(spoonjoy.element().textContent).toContain(`built with ${Object.keys(spoonjoyData.items).length} Ouro HX components.`);
+    // Side by side on a wide screen.
+    await page.viewport(1280, 800);
+    const [a, b] = [nautilus.element().getBoundingClientRect(), spoonjoy.element().getBoundingClientRect()];
+    expect(a.top).toBe(b.top);
+    expect(a.right).toBeLessThan(b.left);
+  });
+
+  it("has no live catalog of examples behind Show buttons", async () => {
+    await renderPage("/");
+    expect(page.getByRole("button", { name: /^Show .* example$/ }).elements()).toEqual([]);
+    expect(document.querySelector("[data-site-demo]")).toBeNull();
   });
 
   it("keeps Ouro UI as the parent, HX under construction and AX scope undefined", async () => {
     await renderPage("/");
     await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
     await expect.element(page.getByText("Under construction", { exact: true })).toBeVisible();
-    await expect.element(page.getByRole("heading", { level: 2, name: "Coming soon: Ouro AX" })).toBeVisible();
+    await expect.element(page.getByRole("heading", { level: 3, name: "Coming soon: Ouro AX" })).toBeVisible();
     await expect.element(page.getByText(AGENTS_COMING_SOON.intro, { exact: true })).toBeVisible();
     const copy = Object.values(AGENTS_COMING_SOON).join(" ");
     expect(copy).toContain("scope is still being defined");
@@ -86,6 +106,7 @@ describe("landing page", () => {
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
     await renderPage("/");
     const home = page.getByRole("link", { name: "Ouro HX", exact: true }).element();
+    expect(home.getAttribute("href")).toBe("/");
     const image = home.querySelector("img");
     expect(image).not.toBeNull();
     expect(image!.alt).toBe("");
@@ -97,12 +118,12 @@ describe("landing page", () => {
     expect(response.headers.get("content-type")).toContain("image/webp");
     expect(image!.naturalWidth).toBeGreaterThan(0);
     expect(image!.naturalWidth).toBe(image!.naturalHeight);
-    expect(image!.getBoundingClientRect().width).toBe(40);
-    expect(image!.getBoundingClientRect().height).toBe(40);
+    expect(image!.getBoundingClientRect().width).toBe(32);
+    expect(image!.getBoundingClientRect().height).toBe(32);
   });
 
-  it("keeps the hero copy the same in the head tags, README and llms.txt", () => {
-    expect(routes[0]!.description.startsWith(`${HERO_TITLE} ${HERO_SUBLINE}`)).toBe(true);
+  it("describes itself with the hero's words, and README and llms.txt keep their shared first lines", () => {
+    expect(routes[0]!.description.startsWith(VOYAGE_HERO.title.join(" "))).toBe(true);
     expect(readme).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     expect(llms).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     for (const text of [readme, llms, routes[0]!.description]) {
@@ -117,11 +138,23 @@ describe("landing page", () => {
     expect(latestRelease).toMatch(/^v\d+\.\d+\.\d+$/);
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
     await expect.element(page.getByText(/Without it, the address installs/)).toBeVisible();
+    await expect.element(page.getByText("npx shadcn@latest add @ouro/ouro-base @ouro/sheet", { exact: true })).toBeVisible();
+    expect(page.getByRole("link", { name: "Switching from shadcn" }).element().getAttribute("href")).toBe("/docs/switching-from-shadcn/");
   });
 
   it("adds ouro-base once, before the first component", async () => {
     await renderPage("/");
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`, { exact: true })).toBeVisible();
+  });
+
+  it("keeps the agents section: each example with its type check, source and console line", async () => {
+    await renderPage("/");
+    await expect.element(page.getByRole("heading", { level: 2, name: "Agents read the types" })).toBeVisible();
+    for (const example of agentExamples) {
+      const item = page.getByTestId(`agent-example-${example.id}`);
+      await expect.element(item).toBeVisible();
+      await expect.element(item.getByText(example.devMessage, { exact: true })).toBeInTheDocument();
+    }
   });
 });
 
@@ -132,6 +165,41 @@ describe("docs", () => {
     expect(host.querySelector("a a")).toBeNull();
     const comparison = host.querySelector<HTMLAnchorElement>('section[aria-labelledby="group-guides"] a[href$="/docs/why-no-skill-settings-form/"]');
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
+  });
+
+  it("lists the components in the sidebar under a label per catalog group, with Start first and Guides last", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/checklist/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
+    for (const group of groups) {
+      const list = nav.getByRole("list", { name: group, exact: true });
+      expect(list.getByRole("link").elements().map((link) => link.textContent), group).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
+    }
+    const labels = docsSections().map((section) => section.label);
+    expect(labels).toEqual(["Start", ...groups, "Guides"]);
+    await expect.element(nav.getByRole("link", { name: "Checklist", exact: true })).toHaveAttribute("aria-current", "page");
+    // The sidebar scrolls on its own, opened where the current page and its group's label show.
+    const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+    const box = scroller.getBoundingClientRect();
+    for (const element of [nav.getByText("Lists", { exact: true }).element(), nav.getByRole("link", { name: "Checklist", exact: true }).element()]) {
+      const rect = element.getBoundingClientRect();
+      expect(rect.top).toBeGreaterThanOrEqual(box.top);
+      expect(rect.bottom).toBeLessThanOrEqual(box.bottom);
+    }
+  });
+
+  it("narrows the sidebar to the components a filter names, and says when none is called that", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "text field");
+    expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["TextField"]);
+    await expect.element(nav.getByRole("list", { name: "Forms", exact: true })).toBeVisible();
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "zzz");
+    expect(nav.getByRole("link").elements()).toHaveLength(0);
+    await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
   });
 
   it("has a page for every registry item at docs/<name>", () => {

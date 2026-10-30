@@ -32,7 +32,7 @@ VoiceOver starts for each test, as @guidepup/playwright's fixture starts it, and
 ## When it runs
 
 - Nightly, on main (`.github/workflows/screen-reader.yml`).
-- Before every release: `release.yml` dispatches the lane on its release branch with `source_sha` set to the release commit, and tags that commit only when the run concluded `success` for that exact SHA.[^sr-release]
+- Before every release: `release.yml` dispatches the lane on its release branch with `source_sha` set to the release commit as it starts CI there, so the lane and CI run side by side, and tags that commit only when the run concluded `success` for that exact SHA.[^sr-release]
 - By hand: `gh workflow run screen-reader.yml --ref <branch> -f source_sha=<the branch's tip SHA>`. The lane refuses any other commit.
 
 It never runs for a pull request.[^sr-triggers]
@@ -64,7 +64,7 @@ Guidepup's setup changes the operating system: on macOS it enables VoiceOver's A
 - runs only from its schedule (main) or a dispatch, which needs write access to the repository, and never for a pull request;[^sr-triggers]
 - holds `contents: read` and no secrets, with every action pinned to a commit; only the job that files the nightly issue may write issues, and it runs no Guidepup.[^sr-permissions]
 
-[^sr-release]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::a release passes CI (with shadcn@latest), then the screen-reader lane on its own commit, before it tags) verify:testExists(scripts/workflows.test.mjs::the release's screen-reader gate refuses a run for another commit, and a lane that never starts)
+[^sr-release]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::a release runs the screen-reader lane beside CI (with shadcn@latest) on its own commit, and tags only when both passed) verify:testExists(scripts/workflows.test.mjs::the release's screen-reader gate refuses a run for another commit, and a lane that never starts)
 [^sr-runners]: .github/workflows/screen-reader.yml verify:testExists(scripts/workflows.test.mjs::the screen-reader lane runs VoiceOver on macos-15 and NVDA on windows-2025, at the commit it was given)
 [^sr-stories]: registry/ouro/e2e/screen-reader/stories.sr.setup.ts verify:fileLine(registry/ouro/e2e/screen-reader/stories.sr.setup.ts, /request\.get\("index\.json"\)/)
 [^sr-nvda]: registry/ouro/e2e/screen-reader/nvda.ts verify:fileLine(registry/ouro/e2e/screen-reader/nvda.ts, /capture: "initial"/)

@@ -5,7 +5,7 @@ import { pageKind, type PageKind } from "./paths";
 export type PageComponent = (props: { path: string }) => JSX.Element;
 
 /**
- * Each page kind is its own chunk, so the landing page, the voyage preview and the docs each load
+ * Each page kind is its own chunk, so the voyage pages (home and the Nautilus) and the docs each load
  * only their own JavaScript (site/e2e/catalog.spec.ts measures each closure). The client entry
  * loads the module after the server HTML has painted, then hydrates.
  */
@@ -16,7 +16,6 @@ interface PageModule {
 }
 
 const modules: Record<PageKind, () => Promise<PageModule>> = {
-  landing: () => import("./pages/landing"),
   voyage: () => import("./pages/voyage"),
   docs: () => import("./pages/docs"),
 };

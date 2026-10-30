@@ -3,7 +3,8 @@
   "components": ["conversation-list"],
   "controls": {
     "conversation-list": [
-      {"part": "row", "role": "button", "portal": false}
+      {"part": "row", "role": "button", "portal": false},
+      {"part": "section", "role": "button", "portal": false}
     ]
   }
 }

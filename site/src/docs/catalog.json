@@ -409,7 +409,7 @@
     "title": "Avatar",
     "group": "Display",
     "source": "registry/ouro/components/ouro/avatar/avatar.tsx",
-    "summary": "A person's picture, or their initials until it loads or when it fails."
+    "summary": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name."
   },
   {
     "name": "badge",
@@ -681,6 +681,13 @@
     "summary": "A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`)."
   },
   {
+    "name": "time-grid",
+    "title": "TimeGrid",
+    "group": "Data",
+    "source": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
+    "summary": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app."
+  },
+  {
     "name": "message",
     "title": "Message",
     "group": "Chat",
@@ -721,6 +728,13 @@
     "group": "Chat",
     "source": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
     "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
+  },
+  {
+    "name": "composer",
+    "title": "Composer",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/composer/composer.tsx",
+    "summary": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline."
   },
   {
     "name": "inspector",

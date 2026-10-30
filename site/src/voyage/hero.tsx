@@ -156,7 +156,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
               <Install />
             </div>
             <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">
-              <Button href={href("/docs/installing/")} size="lg">
+              <Button href={href("/nautilus/")} size="lg">
                 Come aboard
               </Button>
               <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">

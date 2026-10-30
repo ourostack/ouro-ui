@@ -150,6 +150,21 @@ describe("Sidebar", () => {
     expect(page.getByRole("list").elements().length).toBe(2);
   });
 
+  it("sets each section's label apart from its links: the text colour, a heavier weight, room above and a rule", async () => {
+    const { nav } = await render(<Sidebar label="Main" sections={sections} />);
+    const label = page.getByText("Library", { exact: true }).element();
+    const link = page.getByRole("link", { name: "Cookbooks" }).element();
+    const above = page.getByRole("link", { name: "Recipes" }).element();
+    expect(getComputedStyle(label).color).toBe(getComputedStyle(nav!).color);
+    expect(getComputedStyle(label).color).not.toBe(getComputedStyle(link).color);
+    expect(Number(getComputedStyle(label).fontWeight)).toBeGreaterThan(Number(getComputedStyle(link).fontWeight));
+    // The gap to the previous section is wider than the label's own height, so the label sits with the links below it.
+    expect(label.getBoundingClientRect().top - above.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(24);
+    // A rule starts the section, under forced colours too.
+    expect(parseFloat(getComputedStyle(label.parentElement!).borderTopWidth)).toBeGreaterThan(0);
+    expect(parseFloat(getComputedStyle(page.getByText("Home").element().closest("ul")!.parentElement!).borderTopWidth)).toBe(0);
+  });
+
   it("hides the icons from screen readers", async () => {
     await render(<Sidebar label="Main" sections={sections} />);
     const icon = page.getByTestId("icon").first().element();

@@ -17,7 +17,15 @@
           "success": "#157d3c",
           "success-foreground": "#ffffff",
           "warning": "#b05109",
-          "warning-foreground": "#ffffff"
+          "warning-foreground": "#ffffff",
+          "avatar-1": "#c4314b",
+          "avatar-2": "#ca5010",
+          "avatar-3": "#986f0b",
+          "avatar-4": "#498205",
+          "avatar-5": "#038387",
+          "avatar-6": "#0f6cbd",
+          "avatar-7": "#8764b8",
+          "avatar-8": "#c239b3"
         },
         "dark": {
           "input": "oklch(1 0 0 / 15%)",
@@ -25,7 +33,15 @@
           "success": "#4ade80",
           "success-foreground": "#000000",
           "warning": "#fbbf24",
-          "warning-foreground": "#000000"
+          "warning-foreground": "#000000",
+          "avatar-1": "#ee8a99",
+          "avatar-2": "#f4a46c",
+          "avatar-3": "#f2c661",
+          "avatar-4": "#8bd17b",
+          "avatar-5": "#4bc4c8",
+          "avatar-6": "#6cb8f6",
+          "avatar-7": "#c3a6ec",
+          "avatar-8": "#ef85e2"
         },
         "theme": {
           "color-input": "var(--input)",
@@ -1282,6 +1298,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-field",
         "ourostack/ouro-ui/text-field"
@@ -1731,8 +1748,8 @@
       "name": "avatar",
       "type": "registry:ui",
       "title": "Avatar",
-      "description": "A person's picture, or their initials until it loads or when it fails.",
-      "docs": "A person's picture, or their initials until it loads or when it fails. Import: import { Avatar } from \"@/components/ouro/avatar/avatar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/avatar.md",
+      "description": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name.",
+      "docs": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name. Import: import { Avatar } from \"@/components/ouro/avatar/avatar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/avatar.md",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
@@ -3591,6 +3608,31 @@
       ]
     },
     {
+      "name": "composer",
+      "type": "registry:ui",
+      "title": "Composer",
+      "description": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline.",
+      "docs": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Import: import { Composer } from \"@/components/ouro/composer/composer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, text-area, text-field, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/composer.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/composer/composer.tsx"
+        }
+      ]
+    },
+    {
       "name": "navigation-rail",
       "type": "registry:ui",
       "title": "NavigationRail",
@@ -3617,6 +3659,37 @@
           "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/navigation-rail/navigation-rail.tsx"
+        }
+      ]
+    },
+    {
+      "name": "time-grid",
+      "type": "registry:ui",
+      "title": "TimeGrid",
+      "description": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app.",
+      "docs": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Import: import { TimeGrid } from \"@/components/ouro/time-grid/time-grid\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, calendar, local-date, scroll-area, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/time-grid.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/calendar",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-tones",
+        "ourostack/ouro-ui/lib-touch-target",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/local-date",
+        "ourostack/ouro-ui/scroll-area"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/time-grid/time-grid-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/time-grid/time-grid.tsx"
         }
       ]
     },
@@ -5009,6 +5082,11 @@
         "ourostack/ouro-ui/text-field-tests"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-area.highlights.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/text-field/text-area.stories.tsx",
           "type": "registry:component",
@@ -10255,6 +10333,7 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/badge-tests",
@@ -10490,6 +10569,73 @@
       }
     },
     {
+      "name": "composer-tests",
+      "type": "registry:item",
+      "title": "Composer tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for composer, and the tests of everything it installs. Add it beside composer: add composer composer-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "composer's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/attachment",
+        "ourostack/ouro-ui/attachment-tests",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/composer",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests",
+        "ourostack/ouro-ui/toggle",
+        "ourostack/ouro-ui/toggle-tests",
+        "ourostack/ouro-ui/tooltip-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/composer/composer.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/composer/composer.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/composer/composer.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/composer.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/composer.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "navigation-rail-tests",
       "type": "registry:item",
       "title": "NavigationRail tests",
@@ -10552,6 +10698,71 @@
           "path": "registry/ouro/e2e/ouro/navigation-rail.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/navigation-rail.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "time-grid-tests",
+      "type": "registry:item",
+      "title": "TimeGrid tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for time-grid, and the tests of everything it installs. Add it beside time-grid: add time-grid time-grid-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "time-grid's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/calendar",
+        "ourostack/ouro-ui/calendar-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/local-date-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/scroll-area-tests",
+        "ourostack/ouro-ui/segmented-control",
+        "ourostack/ouro-ui/segmented-control-tests",
+        "ourostack/ouro-ui/time-grid"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/time-grid/time-grid.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/time-grid/time-grid.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/time-grid/time-grid.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/time-grid/time-grid.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/time-grid.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/time-grid.spec.ts"
         }
       ],
       "meta": {
@@ -10634,6 +10845,7 @@
         "ourostack/ouro-ui/color-scheme-toggle-tests",
         "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/command-tests",
+        "ourostack/ouro-ui/composer-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/conversation-list-tests",
         "ourostack/ouro-ui/copy-button-tests",
@@ -10731,6 +10943,7 @@
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/time-grid-tests",
         "ourostack/ouro-ui/timer-tests",
         "ourostack/ouro-ui/timer-tray-tests",
         "ourostack/ouro-ui/toaster-tests",

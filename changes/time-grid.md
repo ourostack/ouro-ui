@@ -1,0 +1,1 @@
+- New: TimeGrid, the day, work week and week calendar grid: events placed by their times in the time zone the app names or the reader's own, overlapping ones side by side, a row for whole-day events, a now line that passes under event text, and a single Tab stop with arrow keys through events in time order.

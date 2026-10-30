@@ -5,11 +5,13 @@ import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Popups, PopupsProvider } from "../components/popups";
-import { href } from "../paths";
-import { ChapterOneIsland } from "../voyage/chapters/island";
+import { href, normalizePath } from "../paths";
+import { ChapterOneIsland, HomeReferenceIsland } from "../voyage/chapters/island";
 import { VoyageHeader } from "../voyage/header";
+import { TwoShips } from "../voyage/home";
 import { Hero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
+import { StoryOpening } from "../voyage/nautilus";
 import { Repaint } from "../voyage/repaint";
 import { openXray, setXray, useXray } from "../voyage/xray-store";
 import "../themes/presets.generated.css";
@@ -39,11 +41,21 @@ function Xray(): JSX.Element {
   return <Inspector open={on && painted} onOpenChange={setXray} docsHref={docsHref} />;
 }
 
+/** X-ray on at load when the address asks for it (`?xray`), as the home page's "X-ray it" link does. */
+function useXrayFromAddress(): void {
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("xray")) setXray(true);
+  }, []);
+}
+
 /**
- * "Mobilis in mobili": the new landing page, built in slices on the hidden /voyage/ route
- * (noindex, unlinked) until it replaces "/" (site-design.md). Its own chunk and stylesheet.
+ * The voyage pages ("Mobilis in mobili", site-design.md), one chunk and stylesheet: the home page
+ * (the porthole stage, the two ships, the themes, agents and install) and the Nautilus's own page
+ * (the story's opening, its chapters, then Chapter I).
  */
-export default function VoyagePage(): JSX.Element {
+export default function VoyagePage({ path }: { path: string }): JSX.Element {
+  const nautilus = normalizePath(path) === "/nautilus/";
+  useXrayFromAddress();
   // Leaving the page turns X-ray off, so the next page starts without it.
   useEffect(() => () => setXray(false), []);
   return (
@@ -52,16 +64,25 @@ export default function VoyagePage(): JSX.Element {
         {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <VoyageHeader />
+            <VoyageHeader path={nautilus ? "/nautilus/" : "/"} />
           </Suspense>
-          <main>
-            <Hero onXray={openXray} />
-            <Suspense>
-              <Repaint />
-            </Suspense>
-            <ChapterOneIsland />
-            <Popups />
-          </main>
+          {nautilus ? (
+            <main>
+              <StoryOpening />
+              <ChapterOneIsland />
+              <Popups />
+            </main>
+          ) : (
+            <main>
+              <Hero onXray={openXray} />
+              <TwoShips />
+              <Suspense>
+                <Repaint />
+              </Suspense>
+              <HomeReferenceIsland />
+              <Popups />
+            </main>
+          )}
           <Suspense>
             <VoyageFooter />
           </Suspense>

@@ -2,8 +2,8 @@ import { StrictMode } from "react";
 import { App, loadPage } from "./app";
 import { renderHtml } from "./render-html";
 
-export { headTags } from "./head";
-export { routes, routeFor } from "./routes";
+export { headTags, redirectPage } from "./head";
+export { redirects, routes, routeFor } from "./routes";
 export { pageKind } from "./paths";
 export { docsItems, installedPaths } from "./docs/items";
 export { docsPages, publishedMarkdown } from "./docs/pages";

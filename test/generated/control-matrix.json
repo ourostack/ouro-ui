@@ -262,7 +262,8 @@
       "TextArea/Playground",
       "TextArea/AutoGrow",
       "TextArea/States",
-      "TextArea/Composer"
+      "TextArea/Composer",
+      "TextArea/Highlights"
     ]
   },
   {
@@ -2302,7 +2303,26 @@
       "ConversationList/Playground",
       "ConversationList/Selectable",
       "ConversationList/Compact",
-      "ConversationList/Empty"
+      "ConversationList/Empty",
+      "ConversationList/Sections",
+      "ConversationList/Filtered"
+    ]
+  },
+  {
+    "item": "conversation-list",
+    "stem": "conversation-list",
+    "mode": "default",
+    "part": "section",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ConversationList/Playground",
+      "ConversationList/Selectable",
+      "ConversationList/Compact",
+      "ConversationList/Empty",
+      "ConversationList/Sections",
+      "ConversationList/Filtered"
     ]
   },
   {
@@ -2396,6 +2416,25 @@
     ]
   },
   {
+    "item": "composer",
+    "stem": "composer",
+    "mode": "default",
+    "part": "send",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Composer/Playground",
+      "Composer/Basic",
+      "Composer/Suggested",
+      "Composer/WithTools",
+      "Composer/SendingOff",
+      "Composer/Sending",
+      "Composer/ModEnter",
+      "Composer/Disabled"
+    ]
+  },
+  {
     "item": "navigation-rail",
     "stem": "navigation-rail",
     "mode": "default",
@@ -2441,6 +2480,36 @@
       "NavigationRail/IconsOnly",
       "NavigationRail/Overflow",
       "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "time-grid",
+    "stem": "time-grid",
+    "mode": "button",
+    "part": "event",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimeGrid/Playground",
+      "TimeGrid/WorkWeek",
+      "TimeGrid/Day",
+      "TimeGrid/Statuses",
+      "TimeGrid/Locales",
+      "TimeGrid/NowAdornment",
+      "TimeGrid/WithToolbar"
+    ]
+  },
+  {
+    "item": "time-grid",
+    "stem": "time-grid",
+    "mode": "link",
+    "part": "event-link",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimeGrid/Links"
     ]
   }
 ]

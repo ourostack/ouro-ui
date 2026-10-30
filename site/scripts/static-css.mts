@@ -128,7 +128,7 @@ export function presetCss(preset: Preset, css: string, fonts: readonly Font[]): 
     header([
       `Ouro HX "${preset.label}" theme as plain CSS: ${preset.mood.toLowerCase()}. shadcn/ui's tokens,`,
       "--font-sans, --font-mono, --font-heading and the --shadow-* scale, in light and dark. Load",
-      `ouro-base.css with it. Preview: ${SITE}/voyage/`,
+      `ouro-base.css with it. Preview: ${SITE}/`,
       ...MODES,
       `Fonts: ${used.map((font) => font.family).join(", ")}, from ../../fonts/ (SIL Open Font License; LICENSE.txt there).`,
       `From site/src/themes/${preset.name}.css. ${GENERATED}`,

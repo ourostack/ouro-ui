@@ -38,3 +38,14 @@ export function ChapterOneIsland(): JSX.Element {
     </Suspense>
   );
 }
+
+/** The home page's agents and install sections, as an island in the same way (home-reference.tsx). */
+const HomeReference = lazy(() => (import.meta.env.SSR ? import("../home-reference") : nearScreen("reference").then(() => import("../home-reference"))));
+
+export function HomeReferenceIsland(): JSX.Element {
+  return (
+    <Suspense>
+      <HomeReference />
+    </Suspense>
+  );
+}
