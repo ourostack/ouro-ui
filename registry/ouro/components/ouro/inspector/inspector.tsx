@@ -86,6 +86,7 @@ const seen = (element: Element) => element.checkVisibility({ visibilityProperty:
 function shownBox(element: Element): DOMRect | null {
   const box = element.getBoundingClientRect();
   if (box.width > 0 && box.height > 0) return box;
+  // Stryker disable next-line ArrayDeclaration: anything put in place of a child with nothing showing has no width or height, so the filter after it drops it as it drops nothing.
   const inside = [...element.children].filter(seen).flatMap((child) => shownBox(child) ?? []).filter((inner) => inner.width > 1 || inner.height > 1);
   // Stryker disable next-line ConditionalExpression: with nothing inside, the box below spans from +Infinity to -Infinity, and every caller drops a box that small.
   if (inside.length === 0) return null;

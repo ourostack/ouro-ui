@@ -408,10 +408,14 @@ describe("Inspector geometry", () => {
         {/* A one-pixel line, as a Separator draws, across or down, has area. */}
         <div data-ouro="badge" style={{ position: "fixed", left: 100, top: 500, width: 200, height: 1 }} />
         <div data-ouro="badge" style={{ position: "fixed", left: 500, top: 100, width: 1, height: 200 }} />
+        {/* No width, its content a line drawn down. */}
+        <div data-ouro="badge" style={{ position: "fixed", left: 600, top: 100, width: 0, height: 200 }}>
+          <div style={{ position: "absolute", left: 0, top: 0, width: 1, height: 200 }} />
+        </div>
       </>,
     );
     await xray();
-    await drawn(3);
+    await drawn(4);
     const box = () => {
       const { left, top, width, height } = outlines()[0]!.getBoundingClientRect();
       return { left, top, width, height };
