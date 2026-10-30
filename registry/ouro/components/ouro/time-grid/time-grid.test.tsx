@@ -437,6 +437,7 @@ describe("TimeGrid", () => {
     ]);
     expect(events().map((element) => element.dataset.status)).toEqual(["busy", "free", "tentative", "unanswered", "busy", "cancelled"]);
     expect(events().map((element) => element.dataset.tone)).toEqual(["primary", "primary", "primary", "primary", "secondary", "primary"]);
+    expect(warnings()).toEqual([]);
   });
 
   it("speaks the statuses in the words given", async () => {
@@ -819,8 +820,19 @@ describe("TimeGrid", () => {
     });
     const { grid } = await render({
       view: "day",
-      events: [statusEvent("busy", 9), statusEvent("tentative", 11), statusEvent("free", 13), statusEvent("unanswered", 15), statusEvent("cancelled", 17), statusEvent("busy", 19, "warning")],
+      events: [
+        statusEvent("busy", 9),
+        statusEvent("tentative", 11),
+        statusEvent("free", 13),
+        statusEvent("unanswered", 15),
+        statusEvent("cancelled", 17),
+        { ...statusEvent("busy", 19, "warning"), id: "amber" },
+        { ...statusEvent("busy", 20, "destructive"), id: "red" },
+        { ...statusEvent("busy", 21, "primary"), id: "blue" },
+      ],
     });
+    expect(events().map((element) => element.dataset.tone)).toEqual(["success", "success", "success", "success", "success", "warning", "destructive", "primary"]);
+    expect(warnings()).toEqual([]);
     const probe = document.createElement("span");
     grid.append(probe);
     const color = (value: string) => {
@@ -833,8 +845,8 @@ describe("TimeGrid", () => {
     expect(busy!.borderInlineStartWidth).toBe("3px");
     expect([busy!.borderTopWidth, busy!.borderInlineStartStyle]).toEqual(["0px", "solid"]);
     expect(busy!.backgroundColor).not.toBe(color("var(--background)"));
-    expect(getComputedStyle(events().at(-1)!).borderInlineStartColor).toBe(color("var(--warning)"));
-    expect(getComputedStyle(events().at(-1)!).backgroundColor).not.toBe(busy!.backgroundColor);
+    expect(getComputedStyle(events()[5]!).borderInlineStartColor).toBe(color("var(--warning)"));
+    expect(getComputedStyle(events()[5]!).backgroundColor).not.toBe(busy!.backgroundColor);
     expect([tentative!.borderInlineStartStyle, tentative!.backgroundImage.startsWith("repeating-linear-gradient")]).toEqual(["dashed", true]);
     expect([tentative!.backgroundColor, free!.backgroundColor, unanswered!.backgroundColor, cancelled!.backgroundColor]).toEqual(Array(4).fill(color("var(--background)")));
     expect([free!.borderTopWidth, free!.borderTopStyle, free!.borderInlineStartWidth, free!.borderTopColor]).toEqual(["1px", "solid", "3px", color("var(--success)")]);
