@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -145,6 +145,329 @@ describe("Avatar", () => {
   });
 });
 
+// Colors as the browser resolves them, through a 1px canvas, as in the theme's contrast test.
+type Rgb = [number, number, number];
+const canvas = document.createElement("canvas");
+canvas.width = canvas.height = 1;
+const context = canvas.getContext("2d", { willReadFrequently: true })!;
+function toRgb(color: string): Rgb {
+  context.clearRect(0, 0, 1, 1);
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, 1, 1);
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+  return [r!, g!, b!];
+}
+const luminance = ([r, g, b]: Rgb) => {
+  const lin = (c: number) => ((c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+};
+const ratio = (a: Rgb, b: Rgb) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+};
+/** A theme variable's color, as the page resolves it. */
+function token(name: string): string {
+  const probe = document.createElement("i");
+  probe.style.color = `var(--${name})`;
+  document.body.append(probe);
+  const value = getComputedStyle(probe).color;
+  probe.remove();
+  return value;
+}
+
+const names = Array.from({ length: 48 }, (_, index) => `Person ${index} Example`);
+
+describe("Avatar colors", () => {
+  afterEach(() => document.documentElement.classList.remove("dark"));
+
+  it("picks the same hue for the same name, and spreads names across the hues", async () => {
+    const { host } = await render(
+      <>
+        {names.map((name) => (
+          <Avatar key={name} name={name} />
+        ))}
+        <Avatar name="Ada Lovelace" />
+        <Avatar name="  ada lovelace " />
+      </>,
+    );
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    const backgrounds = avatars.map((avatar) => getComputedStyle(avatar).backgroundColor);
+    expect(new Set(backgrounds.slice(0, names.length)).size).toBe(8);
+    expect(backgrounds.at(-1)).toBe(backgrounds.at(-2));
+    expect(backgrounds).not.toContain(token("secondary"));
+  });
+
+  it("maps each name to its hue, the same in every browser and on the server", async () => {
+    // FNV-1a over the trimmed, lowercased name, scaled from its top bits to the eight hues.
+    const expected = [
+      ["Alan Turing", 1],
+      ["Jean Sammet", 2],
+      ["Lynn Conway", 3],
+      ["Edsger Dijkstra", 4],
+      ["Grace Hopper", 5],
+      ["Radia Perlman", 6],
+      ["Sophie Wilson", 7],
+      ["Dennis Ritchie", 8],
+      ["😀 Smile", 5],
+      ["Émile Zola", 8],
+    ] as const;
+    const { host } = await render(
+      <>
+        {expected.map(([name]) => (
+          <Avatar key={name} name={name} />
+        ))}
+      </>,
+    );
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    for (const [index, [, hue]] of expected.entries()) {
+      const probe = document.createElement("i");
+      probe.style.backgroundColor = `color-mix(in oklab, var(--avatar-${hue}) 18%, var(--background))`;
+      probe.style.color = `color-mix(in oklab, var(--avatar-${hue}) 70%, var(--foreground))`;
+      document.body.append(probe);
+      const want = getComputedStyle(probe);
+      expect(getComputedStyle(avatars[index]!).backgroundColor).toBe(want.backgroundColor);
+      expect(getComputedStyle(avatars[index]!).color).toBe(want.color);
+      probe.remove();
+    }
+  });
+
+  it("picks the hue from idForColor when given, so one name can take two colors", async () => {
+    const { host } = await render(
+      <>
+        {names.slice(0, 8).map((name) => (
+          <Avatar key={name} name="Sam Example" idForColor={name} />
+        ))}
+      </>,
+    );
+    const backgrounds = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar).backgroundColor);
+    expect(new Set(backgrounds).size).toBeGreaterThan(1);
+  });
+
+  it.each(["light", "dark"] as const)("keeps the initials at least 4.5:1 on every hue and on brand (%s)", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    const { host } = await render(
+      <>
+        {names.map((name) => (
+          <Avatar key={name} name={name} />
+        ))}
+        <Avatar name="Ada Lovelace" color="brand" />
+      </>,
+    );
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    for (const avatar of avatars) {
+      const style = getComputedStyle(avatar);
+      expect(ratio(toRgb(style.color), toRgb(style.backgroundColor))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("tints with the theme's primary for brand, and uses the secondary surface for neutral", async () => {
+    const { host } = await render(
+      <>
+        <Avatar name="Ada Lovelace" color="brand" />
+        <Avatar name="Ada Lovelace" color="neutral" />
+      </>,
+    );
+    const [brand, neutral] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar));
+    const probe = document.createElement("i");
+    probe.style.backgroundColor = "color-mix(in oklab, var(--primary) 18%, var(--background))";
+    probe.style.color = "color-mix(in oklab, var(--primary) 70%, var(--foreground))";
+    document.body.append(probe);
+    expect(brand!.backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    expect(brand!.color).toBe(getComputedStyle(probe).color);
+    probe.remove();
+    expect(neutral!.backgroundColor).toBe(token("secondary"));
+    expect(neutral!.color).toBe(token("secondary-foreground"));
+  });
+});
+
+describe("Avatar shapes and icons", () => {
+  it("is a circle by default and a rounded square for a team", async () => {
+    const { host } = await render(
+      <>
+        <Avatar name="Ada Lovelace" size="lg" />
+        <Avatar name="Design reviews" shape="square" size="lg" />
+      </>,
+    );
+    const [circle, square] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(circle!.getAttribute("data-shape")).toBe("circle");
+    expect(square!.getAttribute("data-shape")).toBe("square");
+    expect(parseFloat(getComputedStyle(circle!).borderTopLeftRadius)).toBeGreaterThanOrEqual(24);
+    const corner = parseFloat(getComputedStyle(square!).borderTopLeftRadius);
+    expect(corner).toBeGreaterThan(0);
+    expect(corner).toBeLessThan(16);
+  });
+
+  it("rounds a square's corners more as it grows", async () => {
+    const sizes = ["xs", "md", "xl", "3xl"] as const;
+    const { host } = await render(
+      <>
+        {sizes.map((size) => (
+          <Avatar key={size} name="Design reviews" shape="square" size={size} />
+        ))}
+      </>,
+    );
+    const corners = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => parseFloat(getComputedStyle(avatar).borderTopLeftRadius));
+    expect([...corners].sort((a, b) => a - b)).toEqual(corners);
+    expect(corners[0]).toBeLessThan(corners.at(-1)!);
+  });
+
+  it("clips a square's picture to its corners", async () => {
+    const { avatar } = await render(<Avatar name="Design reviews" shape="square" src={photo} />);
+    await expect.poll(() => avatar.querySelector("img")).not.toBeNull();
+    expect(getComputedStyle(avatar.querySelector("img")!).borderTopLeftRadius).toBe(getComputedStyle(avatar).borderTopLeftRadius);
+  });
+
+  it("shows an icon instead of initials, keeping the name for screen readers", async () => {
+    const { avatar } = await render(
+      <Avatar
+        name="Weekly sync"
+        color="brand"
+        icon={
+          <svg data-testid="calendar" viewBox="0 0 20 20">
+            <rect width="20" height="20" />
+          </svg>
+        }
+      />,
+    );
+    expect(avatar.textContent).toBe("");
+    expect(avatar.getAttribute("aria-label")).toBe("Weekly sync");
+    const icon = avatar.querySelector<SVGElement>('[data-testid="calendar"]')!;
+    expect(icon.getBoundingClientRect().width).toBe(22);
+    // Centered in the avatar.
+    const box = avatar.getBoundingClientRect();
+    const mark = icon.getBoundingClientRect();
+    expect(mark.left - box.left).toBeCloseTo(box.right - mark.right, 0);
+    expect(mark.top - box.top).toBeCloseTo(box.bottom - mark.bottom, 0);
+  });
+});
+
+describe("Avatar presence", () => {
+  const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
+
+  it("says the presence after the name, and alone when the name is written beside it", async () => {
+    const { host } = await render(
+      <>
+        <Avatar name="Ada Lovelace" presence="busy" presenceLabel="In a meeting" />
+        <Avatar name="Ada Lovelace" alt="" presence="busy" presenceLabel="In a meeting" />
+      </>,
+    );
+    const [named, beside] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(named!.getAttribute("aria-label")).toBe("Ada Lovelace, In a meeting");
+    expect(named!.getAttribute("data-presence")).toBe("busy");
+    expect(beside!.getAttribute("role")).toBe("img");
+    expect(beside!.getAttribute("aria-label")).toBe("In a meeting");
+    await expect.element(page.getByRole("img", { name: "Ada Lovelace, In a meeting" })).toBeVisible();
+  });
+
+  it("sits on the lower end corner at every size, with a ring in the surface's color", async () => {
+    const { host } = await render(
+      <>
+        {sizes.map((size) => (
+          <Avatar key={size} name="Ada Lovelace" size={size} presence="available" presenceLabel="Available" />
+        ))}
+      </>,
+    );
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    const dots = avatars.map((avatar) => avatar.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!);
+    const widths = dots.map((dot) => dot.getBoundingClientRect().width);
+    expect([...widths].sort((a, b) => a - b)).toEqual(widths);
+    for (const [index, avatar] of avatars.entries()) {
+      const box = avatar.getBoundingClientRect();
+      const dot = dots[index]!.getBoundingClientRect();
+      // A third to a sixth of the avatar, its center near the circle's edge at the corner.
+      expect(dot.width / box.width).toBeGreaterThan(0.24);
+      expect(dot.width / box.width).toBeLessThan(0.42);
+      expect(dot.height).toBe(dot.width);
+      const radius = box.width / 2;
+      const center = { x: dot.left + dot.width / 2 - (box.left + radius), y: dot.top + dot.height / 2 - (box.top + radius) };
+      expect(Math.abs(Math.hypot(center.x, center.y) - radius)).toBeLessThan(radius * 0.25);
+      expect(center.x).toBeGreaterThan(0);
+      expect(center.y).toBeGreaterThan(0);
+      expect(getComputedStyle(dots[index]!).backgroundColor).toBe(token("background"));
+      // The glyph fills the dot inside the ring.
+      const glyph = dots[index]!.querySelector("svg")!.getBoundingClientRect();
+      expect(glyph.width).toBeLessThan(dot.width);
+      expect(glyph.width).toBeGreaterThanOrEqual(dot.width - 6);
+    }
+  });
+
+  it("takes the ring's color from --ouro-avatar-ring, as on a card", async () => {
+    const { host } = await render(
+      <div style={{ "--ouro-avatar-ring": "var(--card)" } as CSSProperties}>
+        <Avatar name="Ada Lovelace" presence="away" presenceLabel="Away" />
+      </div>,
+    );
+    expect(getComputedStyle(host.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!).backgroundColor).toBe(token("card"));
+  });
+
+  it("moves to the other corner right to left", async () => {
+    const { host } = await render(
+      <div dir="rtl">
+        <Avatar name="Ada Lovelace" presence="available" presenceLabel="Available" />
+      </div>,
+    );
+    const box = host.querySelector<HTMLElement>('[data-ouro="avatar"]')!.getBoundingClientRect();
+    const dot = host.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!.getBoundingClientRect();
+    expect(dot.left + dot.width / 2).toBeLessThan(box.left + box.width / 2);
+  });
+
+  it("draws each state in its own shape and tone", async () => {
+    const states = [
+      ["available", "success"],
+      ["busy", "destructive"],
+      ["do-not-disturb", "destructive"],
+      ["away", "warning"],
+      ["offline", "muted-foreground"],
+      ["out-of-office", "primary"],
+    ] as const;
+    const { host } = await render(
+      <>
+        {states.map(([presence]) => (
+          <Avatar key={presence} name="Ada Lovelace" presence={presence} presenceLabel={presence} />
+        ))}
+      </>,
+    );
+    const glyphs = [...host.querySelectorAll<HTMLElement>("[data-ouro-avatar-presence] svg")];
+    expect(glyphs).toHaveLength(states.length);
+    // Every state draws different marks, so none relies on color alone.
+    expect(new Set(glyphs.map((glyph) => glyph.innerHTML.replace(/ class="[^"]*"/g, ""))).size).toBe(states.length);
+    for (const [index, [presence, tone]] of states.entries()) {
+      const glyph = glyphs[index]!;
+      expect(glyph.getAttribute("aria-hidden")).toBe("true");
+      expect(glyph.getAttribute("focusable")).toBe("false");
+      const circle = glyph.querySelector("circle")!;
+      const style = getComputedStyle(circle);
+      const ring = style.fill === "none";
+      expect(ring).toBe(presence === "offline" || presence === "out-of-office");
+      expect(ring ? style.stroke : style.fill).toBe(token(tone));
+      // The circle fills the glyph's box: the drawing is scaled to the dot.
+      const disc = circle.getBoundingClientRect();
+      const frame = glyph.getBoundingClientRect();
+      expect(disc.width).toBeGreaterThan(frame.width * (ring ? 0.8 : 0.95));
+      // The marks on it are rounded strokes in the tone's foreground (or the tone, on a ring), never filled.
+      for (const mark of glyph.querySelectorAll("path")) {
+        const line = getComputedStyle(mark);
+        expect(line.fill).toBe("none");
+        expect(line.strokeLinecap).toBe("round");
+        expect(line.strokeLinejoin).toBe("round");
+        expect(line.stroke).toBe(token(ring ? tone : `${tone}-foreground`));
+        const drawn = mark.getBBox();
+        expect(Math.max(drawn.width, drawn.height)).toBeGreaterThan(4);
+      }
+      expect(glyph.querySelectorAll("path")).toHaveLength(presence === "busy" ? 0 : 1);
+    }
+  });
+
+  it("renders the dot in server HTML", () => {
+    const html = renderToString(<Avatar name="Ada Lovelace" presence="do-not-disturb" presenceLabel="Do not disturb" shape="square" />);
+    expect(html).toContain('aria-label="Ada Lovelace, Do not disturb"');
+    expect(html).toContain('data-presence="do-not-disturb"');
+    expect(html).toContain("data-ouro-avatar-presence");
+  });
+});
+
 describe("AvatarGroup", () => {
   const cooks = ["Ada Lovelace", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra"];
 
@@ -231,6 +554,34 @@ describe("Avatar development messages", () => {
     expect(avatar.getBoundingClientRect().width).toBe(40);
   });
 
+  it.each([
+    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square"', '<Avatar shape="square">'],
+    ["color", { color: "blue" }, 'color="blue" is not a color; use "colorful", "brand", "neutral"', '<Avatar color="colorful">'],
+    [
+      "presence",
+      { presence: "dnd", presenceLabel: "Do not disturb" },
+      'presence="dnd" is not a presence; use "available", "busy", "away", "do-not-disturb", "offline", "out-of-office"',
+      '<Avatar presence="do-not-disturb" presenceLabel="Do not disturb">',
+    ],
+  ])("renders the default for an unknown %s, with the fix", async (_name, extra, problem, fix) => {
+    const props = { name: "Ada Lovelace", ...extra } as unknown as Parameters<typeof Avatar>[0];
+    const { avatar } = await render(<Avatar {...props} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] Avatar: ${problem}. Fix: ${fix}.`);
+    expect(avatar.getAttribute("data-shape")).toBe("circle");
+    expect(avatar.hasAttribute("data-presence")).toBe(false);
+    expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
+    expect(avatar.getAttribute("aria-label")).toBe("Ada Lovelace");
+  });
+
+  it("names the presence label when it is missing, and still speaks the presence", async () => {
+    const props = { name: "Ada Lovelace", presence: "out-of-office" } as unknown as Parameters<typeof Avatar>[0];
+    const { avatar } = await render(<Avatar {...props} />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Avatar: presenceLabel is missing, so screen readers hear no presence. Fix: <Avatar presence="out-of-office" presenceLabel="Out of office">.',
+    );
+    expect(avatar.getAttribute("aria-label")).toBe("Ada Lovelace, out of office");
+  });
+
   it("warns once when name is missing", async () => {
     const props = { src: photo } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
@@ -250,9 +601,9 @@ describe("Avatar development messages", () => {
   });
 
   it.each([
-    ["rounded-md", 'remove "rounded-md"; Avatar is always a circle'],
-    ["rounded-none", 'remove "rounded-none"; Avatar is always a circle'],
-    ["bg-blue-500", 'remove "bg-blue-500"; Avatar colors its initials from the theme'],
+    ["rounded-md", 'shape="square"'],
+    ["rounded-none", 'shape="square"'],
+    ["bg-blue-500", 'remove "bg-blue-500"; Avatar colors its initials from the name, or pass color="neutral"'],
     ["text-lg", 'size="lg"'],
     ["size-12", ""],
   ])("checks the className %s", async (className, fix) => {

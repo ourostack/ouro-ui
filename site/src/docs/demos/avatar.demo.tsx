@@ -7,9 +7,10 @@ export default function AvatarDemo(): JSX.Element {
   return (
     <div className="grid gap-4">
       <div className="flex items-center gap-3">
-        <Avatar name="Ada Lovelace" size="sm" />
-        <Avatar name="Grace Hopper" />
-        <Avatar name="Alan Turing" size="lg" />
+        <Avatar name="Ada Lovelace" size="sm" presence="available" presenceLabel="Available" />
+        <Avatar name="Grace Hopper" presence="busy" presenceLabel="In a meeting" />
+        <Avatar name="Alan Turing" size="lg" presence="away" presenceLabel="Away" />
+        <Avatar name="Design reviews" size="lg" shape="square" />
       </div>
       <AvatarGroup label="Cooks on this recipe" max={3}>
         <Avatar name="Ada Lovelace" />
