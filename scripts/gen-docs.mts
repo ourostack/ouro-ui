@@ -5,7 +5,9 @@
 // - the catalog in README.md, between <!-- catalog:start --> and <!-- catalog:end -->, and its
 //   item list, between <!-- items:start --> and <!-- items:end -->, from the component
 //   manifests and lib/ouro;
-// - site/src/docs/catalog.json, the site's page per registry item, and site/src/docs/pages.json,
+// - site/src/docs/catalog.json, the site's page per registry item, with site/src/docs/sources.json,
+//   each item's source file, apart because only its docs page reads it (the catalog ships in the
+//   landing page's JavaScript), and site/src/docs/pages.json,
 //   its page per other documented export (Radio, OuroProvider) and per guide (docs/guides/*.md,
 //   written by hand), so every docs page has an address: docs/<kebab-case name>; each with its
 //   summary, so the docs index lists the pages without loading their Markdown; page-index.json
@@ -635,13 +637,16 @@ const siteItems = components
     name: entry.name,
     title: entry.title,
     group: groupOf.get(entry.title)!,
-    source: `${componentsDir}${entry.folder}/${entry.stem}.tsx`,
     summary: summary(outputs.get(`docs/${entry.title}.md`)!),
     ...(partFiles[entry.title] ? { parts: entry.title } : {}),
     ...(pageFunctions(entry.name).length > 0 ? { functions: pageFunctions(entry.name) } : {}),
   }))
   .sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group));
 outputs.set("site/src/docs/catalog.json", `${JSON.stringify(siteItems, null, 2)}\n`);
+const siteSources = Object.fromEntries(
+  components.filter((entry) => siteItems.some((item) => item.name === entry.name)).map((entry) => [entry.name, `${componentsDir}${entry.folder}/${entry.stem}.tsx`]),
+);
+outputs.set("site/src/docs/sources.json", `${JSON.stringify(siteSources, null, 2)}\n`);
 
 /** `OuroProvider` to `ouro-provider`: the address of an export's page that is not a registry item's. */
 const kebab = (name: string) => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
