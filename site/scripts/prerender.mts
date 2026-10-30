@@ -99,7 +99,7 @@ for (const { from, to } of redirects) {
 }
 writeFileSync(
   join(dist, "404.html"),
-  await page({ path: "/404/", title: "Page not found · Ouro UI", description: "That page isn't here." }, "/404/", false),
+  await page({ path: "/404/", title: "Lost at sea · Ouro HX", description: "This page has drifted off our charts. Head back to the surface, or search the docs." }, "/404/", false),
 );
 // The published Markdown shows installed paths (`@/components/ouro/...`), as the HTML pages
 // do, and parts.md is published beside it so each page's link to it resolves.

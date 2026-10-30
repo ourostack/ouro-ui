@@ -11,6 +11,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import { LiveDemo } from "../components/live-demo";
+import { LostAtSea } from "../components/lost-at-sea";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
@@ -446,7 +447,7 @@ export function Updating(): JSX.Element {
 export function NotFound(): JSX.Element {
   return (
     <DocsShell current="">
-      <PageTitle eyebrow="404" title="Page not found" lead={<>That page isn't here. The <a href={href("/docs/")} className="text-primary underline underline-offset-4">docs</a> {claim("list every component.", { source: { file: "site/src/site.test.tsx" }, verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" } })}</>} />
+      <LostAtSea />
     </DocsShell>
   );
 }

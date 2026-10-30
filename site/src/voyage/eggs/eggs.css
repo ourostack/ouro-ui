@@ -1,0 +1,177 @@
+/* The voyage pages' easter eggs (listen.ts). Loaded with an egg's own code, when someone finds it. */
+
+/* Captain Nemo's visit: bubbles rise and the Nautilus sails across, over the page and taking none of it. */
+.egg-nemo {
+  --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
+  --hull-trim: color-mix(in oklab, var(--primary) 22%, oklch(0.42 0.025 250));
+  --metal: color-mix(in oklab, var(--chart-3) 70%, var(--hull-trim));
+  --sea-ink: var(--primary);
+  --glow: var(--chart-3);
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--ouro-layer, 50) + 2);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(to top, color-mix(in oklab, var(--primary) 16%, transparent), transparent 60%);
+  transition: opacity 300ms ease-out;
+}
+.egg-nemo[data-open] {
+  opacity: 1;
+}
+.egg-nemo[data-closing] {
+  opacity: 0;
+}
+.egg-bubble {
+  position: absolute;
+  bottom: var(--y);
+  left: var(--x);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in oklab, var(--primary) 55%, white);
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, white 70%, transparent), color-mix(in oklab, var(--primary) 12%, transparent) 60%);
+}
+.egg-ship {
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  width: min(70vw, 420px);
+  translate: -50% 0;
+}
+.egg-ship svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.egg-ship .n-hull {
+  fill: var(--hull);
+}
+.egg-ship .n-platform,
+.egg-ship .n-cage,
+.egg-ship .n-cage-cap,
+.egg-ship .n-rudder,
+.egg-ship .n-spur-collar {
+  fill: var(--hull-trim);
+}
+.egg-ship .n-plates,
+.egg-ship .n-deck-edge,
+.egg-ship .n-highlight,
+.egg-ship .n-keel-light {
+  fill: none;
+  stroke: color-mix(in oklab, var(--background) 30%, transparent);
+}
+.egg-ship .n-screw,
+.egg-ship .n-spur {
+  fill: var(--metal);
+  stroke: var(--metal);
+}
+.egg-ship .n-lights circle,
+.egg-ship .n-lantern {
+  fill: color-mix(in oklab, var(--glow) 80%, white);
+}
+.egg-ship .n-hull-sheen-top {
+  stop-color: white;
+  stop-opacity: 0.4;
+}
+.egg-ship .n-hull-sheen-mid {
+  stop-opacity: 0;
+}
+.egg-ship .n-hull-sheen-bottom {
+  stop-color: black;
+  stop-opacity: 0.45;
+}
+.egg-ship .n-hull-sheen-keel {
+  stop-opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .egg-bubble {
+    bottom: -40px;
+    animation: egg-rise 4.5s ease-in var(--delay) both;
+  }
+  .egg-ship {
+    left: 0;
+    translate: -100% 0;
+    animation: egg-sail 6.2s cubic-bezier(0.45, 0, 0.55, 1) both;
+  }
+  .egg-ship svg {
+    animation: egg-bob 1.6s ease-in-out infinite alternate;
+  }
+  /* The lantern flashes hello as she passes. */
+  .egg-ship .n-lantern,
+  .egg-ship .n-lights circle {
+    animation: egg-wave 0.5s ease-in-out 2s 6 alternate;
+  }
+}
+@keyframes egg-rise {
+  from {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--drift), -115vh);
+    opacity: 0.6;
+  }
+}
+@keyframes egg-sail {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: calc(100vw + 10%) 0;
+  }
+}
+@keyframes egg-bob {
+  from {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+  to {
+    transform: translateY(4px) rotate(1deg);
+  }
+}
+@keyframes egg-wave {
+  to {
+    fill: white;
+    opacity: 0.2;
+  }
+}
+
+/* The ship's log: the leagues traveled, small, at the screen's bottom start corner. */
+.egg-leagues {
+  position: fixed;
+  inset-inline-start: max(1rem, env(safe-area-inset-left));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 20;
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  backdrop-filter: blur(6px);
+}
+.egg-leagues[data-open] {
+  opacity: 1;
+}
+.egg-leagues-count {
+  color: var(--foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.egg-leagues[data-done] .egg-leagues-count {
+  color: var(--primary);
+}
+/* X-ray's bar sits at the bottom, so the log steps aside while it is on. */
+body:has([data-ouro="inspector"]) .egg-leagues {
+  visibility: hidden;
+}

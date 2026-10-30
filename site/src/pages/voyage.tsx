@@ -7,6 +7,7 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Popups, PopupsProvider } from "../components/popups";
 import { href, normalizePath } from "../paths";
 import { ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland } from "../voyage/chapters/island";
+import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
 import { Hero } from "../voyage/hero";
@@ -57,6 +58,7 @@ function useXrayFromAddress(): void {
 export default function VoyagePage({ path }: { path: string }): JSX.Element {
   const nautilus = normalizePath(path) === "/nautilus/";
   useXrayFromAddress();
+  useEggs(nautilus);
   // Leaving the page turns X-ray off, so the next page starts without it.
   useEffect(() => () => setXray(false), []);
   return (

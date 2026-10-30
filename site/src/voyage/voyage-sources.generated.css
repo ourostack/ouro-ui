@@ -55,6 +55,7 @@
 @source not "../components/icons.tsx";
 @source not "../components/layout.tsx";
 @source not "../components/live-demo.tsx";
+@source not "../components/lost-at-sea.tsx";
 @source not "../docs";
 @source not "../entry-server.tsx";
 @source not "../head.ts";
