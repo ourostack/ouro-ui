@@ -170,14 +170,27 @@ function XraySwitch(): JSX.Element {
   return <Switch label="X-ray" checked={useXray()} onCheckedChange={setXray} />;
 }
 
-/** The voyage page's header, built from Ouro HX: Navbar, Popover, RadioGroup, SegmentedControl, Switch, Command and Kbd. */
-export function VoyageHeader({ path }: { path: "/" | "/nautilus/" }): JSX.Element {
+/** The bar's side gutters: the voyage's 1200px column, or the docs' (Container in components/layout.tsx). */
+const GUTTERS = {
+  voyage: "ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]",
+  docs: "ps-[max(1rem,calc(50%-560px))] pe-[max(1rem,calc(50%-560px))] sm:ps-[max(1.5rem,calc(50%-554px))] sm:pe-[max(1.5rem,calc(50%-554px))] lg:ps-[max(2rem,calc(50%-544px))] lg:pe-[max(2rem,calc(50%-544px))]",
+} as const;
+
+/**
+ * The site's one header, on the voyage pages and the docs alike, built from Ouro HX: Navbar, Popover,
+ * RadioGroup, SegmentedControl, Switch, Command and Kbd. `path` is the page's, for the current link.
+ */
+export function VoyageHeader({ path, gutters = "voyage" }: { path: string; gutters?: keyof typeof GUTTERS }): JSX.Element {
   return (
     <Navbar
       label="Site"
-      className="sticky top-0 z-40 ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]"
+      className={`sticky top-0 z-40 ${GUTTERS[gutters]}`}
       brand={
-        <a href={href("/")} className="site-brand">
+        <a
+          href={href("/")}
+          className="-ms-1 inline-flex min-h-11 items-center gap-2 rounded-[calc(var(--radius)*0.8)] px-1 font-[family-name:var(--font-heading)] text-[1.0625rem] font-semibold tracking-[-0.015em] text-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
+          data-site-brand=""
+        >
           <HxLogo size={32} className="size-8" />
           Ouro HX
         </a>

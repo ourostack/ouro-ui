@@ -13,7 +13,7 @@ import { keepClearOfToasts } from "../clear-of-toasts";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
-import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
+import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEAKER, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
 import "./stage.css";
 
@@ -160,7 +160,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     // that frame, and the toast stack measures and re-lays itself out).
     afterPaint(() => {
       write(LOG.bell);
-      toast(`${line.name}: ${line.text}`, { id: BELL_TOAST });
+      toast(`${SPEAKER[line.name]}: ${line.text}`, { id: BELL_TOAST });
       keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
     });
   });
@@ -224,7 +224,7 @@ const CrewLine = memo(function CrewLine({ entry, logOpen }: { entry: Entry; logO
     <p className="stage-crew" data-stage-crew="" aria-live={quiet ? "off" : "polite"} aria-atomic="true">
       <Avatar name={entry.name} alt="" size="sm" />
       <span className="stage-crew-words">
-        <span className="stage-crew-name">{entry.name}:</span> {entry.text}
+        <span className="stage-crew-name">{SPEAKER[entry.name]}:</span> {entry.text}
       </span>
     </p>
   );
@@ -414,7 +414,7 @@ type Flag = ReturnType<typeof createFlag>;
 
 const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Element {
   return (
-    <Message role="assistant" name={entry.name}>
+    <Message role="assistant" name={SPEAKER[entry.name]}>
       {entry.text}
     </Message>
   );

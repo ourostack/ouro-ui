@@ -19,7 +19,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
   const title = escape(route.title);
   const description = escape(route.description);
   const image = `${SITE}/og.png`;
-  const alt = "Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop.";
+  const alt = "Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it.";
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,

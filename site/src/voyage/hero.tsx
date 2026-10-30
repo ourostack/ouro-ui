@@ -11,7 +11,7 @@ import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
 
-/** What the hero says the library is, before anything else: HX, and that it is under construction. */
+/** What the hero says the library is, before anything else: its name. */
 export const EYEBROW = VOYAGE_HERO.eyebrow;
 
 /**
@@ -23,11 +23,12 @@ export const INSTALL_COMMAND = `npx shadcn@latest add ourostack/ouro-ui/${instal
 const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
 
 /**
- * Under the command: how it installs, and that it adds one component of many, so nobody thinks it
- * installs the whole library. The count is the release's (proof.mts), never typed in.
+ * Under the command: how it installs, and that it adds that one component, so nobody thinks it
+ * installs the whole library. No count: the home page sells what the kit does, not how many parts
+ * it has (Ari, 2026-10-30).
  */
-export const INSTALL_CAPTION = `Installs with the shadcn CLI. ${title(install.item)} is one of ${install.count}.`;
-const [INSTALL_HOW, INSTALL_COUNT] = [INSTALL_CAPTION.slice(0, INSTALL_CAPTION.indexOf(". ") + 1), INSTALL_CAPTION.slice(INSTALL_CAPTION.indexOf(". ") + 2)];
+export const INSTALL_CAPTION = `Installs with the shadcn CLI. This adds ${title(install.item)}; add any other part the same way.`;
+const [INSTALL_HOW, INSTALL_MORE] = [INSTALL_CAPTION.slice(0, INSTALL_CAPTION.indexOf(". ") + 1), INSTALL_CAPTION.slice(INSTALL_CAPTION.indexOf(". ") + 2)];
 
 /** The release the command pins, beside it, linking to that release's notes. */
 export const RELEASE_HREF = `${GITHUB}/releases/tag/${latestRelease}`;
@@ -97,7 +98,7 @@ function Install(): JSX.Element {
       </div>
       <div className="site-install-foot">
         <p className="site-install-caption" data-site-install-caption="">
-          {INSTALL_HOW} <span className="site-install-count">{INSTALL_COUNT}</span>
+          {INSTALL_HOW} <span className="site-install-more">{INSTALL_MORE}</span>
         </p>
         <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
           {`${latestRelease} · latest release`}
@@ -118,7 +119,7 @@ function CheckIcon(): JSX.Element {
 /** The proof: each claim, computed from the repository, links to where you can check it. */
 function Proof(): JSX.Element {
   return (
-    <ul className="site-proof" aria-label="What we test" data-site-proof="">
+    <ul className="site-proof" aria-label="What you can count on" data-site-proof="">
       {proof.claims.map((claim) => (
         <li key={claim.text}>
           <CheckIcon />
@@ -139,9 +140,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
         <div className="site-hero-copy">
           <div>
             <p className="site-eyebrow site-hero-eyebrow" data-site-eyebrow="">
-              <span className="site-hero-brand">{EYEBROW.split(" · ")[0]}</span>
-              <span className="sr-only"> · </span>
-              <span className="site-hero-status">{EYEBROW.split(" · ")[1]}</span>
+              <span className="site-hero-brand">{EYEBROW}</span>
             </p>
             <h1 id="hero-title" className="site-h1 site-hero-title mt-2 sm:mt-3 lg:mt-5">
               {VOYAGE_HERO.title.map((sentence, index) => (

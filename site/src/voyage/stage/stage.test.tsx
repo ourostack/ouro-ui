@@ -7,7 +7,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
-import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
+import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt, partsOf } from "./art";
 
 // The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
@@ -75,12 +75,12 @@ describe("the drawings", () => {
 });
 
 describe("the hero", () => {
-  it("says what HX is first, and engraves the motto on the porthole's ring", async () => {
+  it("says what HX is first, and engraves the ship's name on the porthole's ring", async () => {
     await renderPage("/");
-    expect(EYEBROW).toBe("Ouro HX · Under construction");
+    expect(EYEBROW).toBe("Ouro HX");
     expect(document.querySelector("h1")!.textContent).toBe("Feels right to the people using it. Obvious to the agents building it.");
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
-    expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("MOBILIS IN MOBILI");
+    expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("THE NAUTILUS");
     // real clock: the hero's line, which stays.
     await expect.element(page.getByText(STAGE_COPY.real)).toBeVisible();
   });
@@ -106,7 +106,9 @@ describe("the hero", () => {
       await renderPage("/");
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
-      expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)} is one of ${install.count}.`);
+      expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. This adds ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)}; add any other part the same way.`);
+      // No count of components on the home page (Ari, 2026-10-30).
+      expect(INSTALL_CAPTION).not.toMatch(/\d/);
       // real clock: the hero's install command, which stays.
       await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
       // real clock: the install command's caption, which stays.
@@ -137,7 +139,7 @@ describe("the stage's controls", () => {
     await renderPage("/");
     expect(logText()).toHaveLength(OPENING_LOG.length);
     expect(logText()[0]).toContain(OPENING_LOG[0]!.text);
-    expect(lastLog()).toBe(`${OPENING_LOG[0]!.name}: ${OPENING_LOG[0]!.text}`);
+    expect(lastLog()).toBe(`${SPEAKER[OPENING_LOG[0]!.name]}: ${OPENING_LOG[0]!.text}`);
     await expect.element(page.elementLocator(document.querySelector("[data-stage-crew]")!)).toBeVisible();
   });
 
@@ -227,13 +229,13 @@ describe("the stage's controls", () => {
     // announcements are recorded as they happen.
     const announced = watchAnnouncements();
     await userEvent.click(bell);
-    await expect.poll(() => announced.count(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBe(1);
+    await expect.poll(() => announced.count(`${SPEAKER[BELL_TOASTS[0]!.name]}: ${BELL_TOASTS[0]!.text}`)).toBe(1);
     await expect.poll(lastLog).toContain(LOG.bell.text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
     await expect.poll(() => document.querySelectorAll(".stage-ripple").length).toBe(3);
     await userEvent.click(bell);
-    await expect.poll(() => announced.count(`${BELL_TOASTS[1]!.name}: ${BELL_TOASTS[1]!.text}`)).toBe(1);
+    await expect.poll(() => announced.count(`${SPEAKER[BELL_TOASTS[1]!.name]}: ${BELL_TOASTS[1]!.text}`)).toBe(1);
     announced.stop();
     expect(ring()).toBe("b");
     // The second ring's answer took the first one's place: one toast shows, and the first answer is gone.

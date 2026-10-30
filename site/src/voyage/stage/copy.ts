@@ -16,6 +16,17 @@ export type StageControl = (typeof STAGE_CONTROLS)[number];
 
 export type CrewName = "Captain Nemo" | "Professor Aronnax" | "Conseil" | "Ned Land";
 
+/**
+ * How the stage names each speaker: by name and job, so someone who has never read the book knows
+ * who is talking (Ari, 2026-10-30: "not at all inside baseball").
+ */
+export const SPEAKER: Record<CrewName, string> = {
+  "Captain Nemo": "Captain Nemo",
+  "Professor Aronnax": "Aronnax, the scientist",
+  Conseil: "Conseil, the helper",
+  "Ned Land": "Ned, the harpooner",
+};
+
 export interface LogLine {
   name: CrewName;
   text: string;
@@ -66,14 +77,15 @@ export const STAGE_COPY = {
   bell: "Ring the bell",
   log: "Ship's log",
   logAll: (count: number) => `Ship's log (${count})`,
-  real: claim("Every control here is a real HX component", {
+  real: claim("Every control here is a real Ouro HX component", {
     source: [{ file: "site/src/voyage/stage/stage.tsx" }, { file: "site/e2e/stage.spec.ts" }],
     verify: { testExists: "site/e2e/stage.spec.ts::each control on the stage > control: xray outlines every HX component on the page, only when pressed" },
   }),
   xray: "See how it’s built",
   source: "Source",
   ready: "Ready to dive",
-  motto: "Mobilis in mobili",
+  /** Engraved on the porthole's ring: the ship's name, which needs no explaining. */
+  motto: "The Nautilus",
 } as const;
 
 /** The scene in words, for screen readers: what the picture shows right now. */
@@ -86,12 +98,12 @@ export function describeScene(state: { band: Band; dived: boolean; lights: boole
 }
 
 export const OPENING_LOG: readonly LogLine[] = [
-  { name: "Captain Nemo", text: "Welcome aboard, Professor! Fill three tanks to dive." },
+  { name: "Captain Nemo", text: "Welcome aboard my secret sub! Fill three tanks to dive." },
 ];
 
 export const LOG = {
   band: {
-    sunlit: { name: "Conseil", text: "Sunlit water, Professor. Sardines. Many sardines." },
+    sunlit: { name: "Conseil", text: "Sunlit water. Sardines. Many sardines." },
     twilight: { name: "Professor Aronnax", text: "The light is going blue. A ray just flew by!" },
     midnight: { name: "Ned Land", text: "Too dark to see a thing. Turn on the floodlights!" },
   },
@@ -126,6 +138,7 @@ export const BELL_TOASTS: readonly LogLine[] = [
 export function allStageText(): string[] {
   const lines: string[] = [
     ...Object.values(STAGE_COPY).flatMap((value) => (typeof value === "string" ? [value] : [])),
+    ...Object.values(SPEAKER),
     STAGE_COPY.diveHint(1),
     STAGE_COPY.diveHint(3),
     STAGE_COPY.tankCount(1),

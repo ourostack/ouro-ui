@@ -205,8 +205,7 @@ export function InstallSteps(): JSX.Element {
             {claim("item that never changes your test tools' versions.", {
               source: { test: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
               verify: { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
-            })}{" "}
-            Ouro HX is under construction, so props can still change.
+            })}
           </p>
           <p className="mt-4 mb-0 text-muted-foreground">
             Coming from shadcn/ui? Ouro HX reads the same theme variables, and installs beside your <InlineCode>components/ui</InlineCode>, so you can switch one

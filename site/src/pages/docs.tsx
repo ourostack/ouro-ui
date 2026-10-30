@@ -1,5 +1,8 @@
 // First, so the page's own rules come after Tailwind's and win.
 import "../styles.css";
+// The presets the shared header's theme picker switches between, as on the voyage pages.
+import "../themes/presets.generated.css";
+import "../themes/by-preset.css";
 import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
