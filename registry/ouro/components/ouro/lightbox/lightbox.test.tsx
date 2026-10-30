@@ -85,14 +85,16 @@ afterEach(async () => {
 describe("Lightbox development messages", () => {
   it("names a missing label, missing images and a missing alt, each with the fix", async () => {
     await render(<Lightbox label="" images={[]} />);
-    await render(<Lightbox label="Photos" images={[{ src: "/a.jpg", alt: "" }, { src: "/b.jpg", alt: "B" }]} />);
+    // Inline pictures: a path such as "/a.jpg" would ask an app's dev server for its index page.
+    const blank = picture(1, 1, "#fff");
+    await render(<Lightbox label="Photos" images={[{ src: blank, alt: "" }, { src: blank, alt: "B" }]} />);
     const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
     expect(messages).toContain(
       '[ouro-ui] Lightbox: label is required; it names the thumbnails and the viewer for screen readers. Fix: <Lightbox label="Kitchen photos" images={images}>.',
     );
     expect(messages).toContain('[ouro-ui] Lightbox: there are no images. Fix: <Lightbox label="Kitchen photos" images={[{ src: "/photos/a.jpg", alt: "…" }]}>.');
     expect(messages).toContain(
-      '[ouro-ui] Lightbox: images[0] has no alt; describe the image for screen readers. Fix: { src: "/a.jpg", alt: "The new kitchen, with white cabinets" }.',
+      `[ouro-ui] Lightbox: images[0] has no alt; describe the image for screen readers. Fix: { src: "${blank}", alt: "The new kitchen, with white cabinets" }.`,
     );
     expect(messages.filter((message) => message.includes("has no alt"))).toHaveLength(1);
   });
