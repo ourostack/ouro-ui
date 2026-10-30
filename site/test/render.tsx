@@ -73,7 +73,11 @@ export const describeViolations = describeFindings;
 
 /**
  * How long one page's scan may take, as long as a story's (test/story-axe.ts): text axe could not
- * judge is measured from screenshots, and a page of wide tables takes several, slower in CI.
+ * judge is measured from screenshots, and a page of wide tables takes several, slower in CI. Every
+ * test that scans a whole page takes it, the voyage's presets included: one of those scans took
+ * 17s on a loaded runner, past the default 15s.
+ *
+ * @claim "one of those scans took 17s" https://github.com/ourostack/ouro-ui/actions/runs/41041013638 verify:fileLine(site/src/voyage/voyage.test.tsx, /\}, pageScanTimeout\);/)
  */
 export const pageScanTimeout = 30_000;
 
