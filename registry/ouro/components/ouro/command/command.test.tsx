@@ -600,7 +600,7 @@ describe("Command media", () => {
     await openPalette({
       items: [
         { label: "Grace Hopper", onSelect: () => {}, avatar: picture },
-        { label: "Ada Lovelace", onSelect: () => {}, avatar: <Avatar name="Ada Lovelace" alt="" size="xs" idForColor="person-2" /> },
+        { label: "Ada Lovelace", onSelect: () => {}, avatar: <Avatar name="Ada Lovelace" alt="" size="xs" initials="A" idForColor="person-2" /> },
         { label: "Settings", onSelect: () => {}, icon: gear },
         { label: "Sign out", onSelect: () => {} },
       ],
@@ -610,7 +610,8 @@ describe("Command media", () => {
     expect(picked.getAttribute("aria-hidden")).toBe("true");
     expect(picked.getBoundingClientRect().width).toBe(24);
     expect(before(picked, label(grace!))).toBe(true);
-    expect(ada!.querySelector("[data-ouro-command-avatar]")!.textContent).toBe("AL");
+    // The app's own element, as it is, not a picture's URL.
+    expect(ada!.querySelector("[data-ouro-command-avatar]")!.textContent).toBe("A");
     const icon = settings!.querySelector<HTMLElement>("[data-ouro-command-icon]")!;
     expect(icon.getAttribute("aria-hidden")).toBe("true");
     expect(icon.querySelector("svg")!.getBoundingClientRect().width).toBe(16);
@@ -769,13 +770,19 @@ describe("Command dev messages", () => {
 
   it("names the fix once for an item with both avatar and icon, and shows the avatar", async () => {
     await openPalette({
-      items: [{ label: "Grace Hopper", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", icon: <svg viewBox="0 0 16 16" /> }],
+      items: [
+        { label: "Grace Hopper", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", icon: <svg viewBox="0 0 16 16" /> },
+        { label: "Ada Lovelace", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=" },
+        { label: "Settings", onSelect: () => {}, icon: <svg viewBox="0 0 16 16" /> },
+        { label: "Sign out", onSelect: () => {} },
+      ],
     } as object);
     expect(warnings()).toEqual([
       '[ouro-ui] Command: the item "Grace Hopper" has both avatar and icon, and shows only the avatar; pass one. Fix: { label: "Grace Hopper", avatar: picture }.',
     ]);
-    expect(document.querySelector("[data-ouro-command-avatar]")).not.toBeNull();
-    expect(document.querySelector("[data-ouro-command-icon]")).toBeNull();
+    const grace = page.getByRole("option", { name: /^Grace Hopper/ }).element();
+    expect(grace.querySelector("[data-ouro-command-avatar]")).not.toBeNull();
+    expect(grace.querySelector("[data-ouro-command-icon]")).toBeNull();
   });
 
   it("warns about an appearance class", async () => {
