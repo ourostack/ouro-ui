@@ -3,7 +3,7 @@ import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
 
 /** Where Pages serves the site. */
-export const SITE = "https://ourostack.github.io/ouro-ui";
+export const SITE = "https://ui.ouro.bot";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
@@ -26,7 +26,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="description" content="${description}" />`,
     route.noindex ? `<meta name="robots" content="noindex, nofollow" />` : "",
     canonical ? `<link rel="canonical" href="${SITE}${route.path}" />` : "",
-    `<link rel="icon" href="/ouro-ui/brand/ouro-hx.svg" type="image/svg+xml" />`,
+    `<link rel="icon" href="/brand/ouro-hx.svg" type="image/svg+xml" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -43,7 +43,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="twitter:image:alt" content="${alt}" />`,
     // The voyage page sets its type in Geist and Geist Mono; only they are preloaded.
     ...(route.path === "/voyage/"
-      ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/ouro-ui/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
+      ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
       : []),
   ].filter(Boolean);
 }

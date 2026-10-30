@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 import { proofPlugin } from "./scripts/proof.mts";
 
 // The landing page and docs site, built from the repository's own dependencies (no
-// package of its own). Pages serves it at https://ourostack.github.io/ouro-ui/.
+// package of its own). Pages serves it at https://ui.ouro.bot/.
 // `pnpm site:build` builds the client, then a server bundle that prerenders every route
 // to static HTML (site/scripts/prerender.mts), so each docs URL is readable without
 // JavaScript, by people and by agents.
@@ -36,7 +36,7 @@ export function chunkEvidence(root: string): Plugin {
 
 export default defineConfig(({ isSsrBuild }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
-  base: "/ouro-ui/",
+  base: "/",
   plugins: [react(), tailwindcss(), chunkEvidence(repo), proofPlugin()],
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.

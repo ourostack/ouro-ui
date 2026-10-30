@@ -1,5 +1,5 @@
 // Serves the built site (site/dist) the way GitHub Pages does, for Lighthouse: over HTTP/2 and
-// TLS, gzipped, under /ouro-ui/, with Pages' cache headers for hashed assets. Lighthouse's
+// TLS, gzipped, at /, with Pages' cache headers for hashed assets. Lighthouse's
 // simulated throttling models a page's requests by protocol, and over vite preview's HTTP/1.1 it
 // charges a round trip per six requests that Pages, on HTTP/2, never pays.
 //
@@ -16,7 +16,7 @@ const repo = fileURLToPath(new URL("../..", import.meta.url));
 const dist = join(repo, "site/dist");
 const certDir = join(repo, ".tmp/pages-cert");
 const port = Number(process.argv[2] ?? 4180);
-const base = "/ouro-ui/";
+const base = "/";
 
 const types = {
   ".html": "text/html; charset=utf-8",

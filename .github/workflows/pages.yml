@@ -1,5 +1,5 @@
 name: Pages
-# Publishes https://ourostack.github.io/ouro-ui/: the site and docs at / and the Storybook at
+# Publishes https://ui.ouro.bot/: the site and docs at / and the Storybook at
 # /storybook/, from main, and the registry for the @ouro namespace at /r/ (each item at
 # /r/<item>.json, the index at /r/registry.json) from the newest release tag
 # (scripts/namespace.sh). The build asks GitHub for the newest release and names it in the

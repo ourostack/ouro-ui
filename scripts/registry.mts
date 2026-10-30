@@ -46,7 +46,7 @@ import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
 import { componentsDir, MANIFEST, readComponents } from "./components.mts";
 
 const REPO = "ourostack/ouro-ui";
-const DOCS_URL = "https://ourostack.github.io/ouro-ui/docs";
+const DOCS_URL = "https://ui.ouro.bot/docs";
 
 /** Components, from each folder's component.json (scripts/components.mts): item name, folder, file stem, export name. */
 const components = readComponents();
@@ -681,7 +681,7 @@ export function buildRegistry(root: string): Registry {
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
     name: "ouro",
-    homepage: "https://ourostack.github.io/ouro-ui/",
+    homepage: "https://ui.ouro.bot/",
     items,
   };
 }

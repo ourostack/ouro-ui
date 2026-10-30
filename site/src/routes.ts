@@ -7,7 +7,7 @@ import { normalizePath } from "./paths";
 
 export { href, pathFromLocation } from "./paths";
 
-/** Every page the site builds. Paths are relative to the base (`/ouro-ui/`) and end in `/`. */
+/** Every page the site builds. Paths are relative to the base (`/`) and end in `/`. */
 export interface Route {
   path: string;
   title: string;

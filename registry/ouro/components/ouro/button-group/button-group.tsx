@@ -82,7 +82,7 @@ const groupClass =
  * row (`<div className="flex gap-2">`) for buttons that are not one control.
  *
  * @group Actions
- * @see https://ourostack.github.io/ouro-ui/docs/button-group
+ * @see https://ui.ouro.bot/docs/button-group
  *
  * @example
  * <ButtonGroup label="Pagination">

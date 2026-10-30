@@ -166,7 +166,7 @@ test("initial landing JS excludes demos and each opened example requests only it
     const path = new URL(response.url()).pathname;
     if (path.endsWith(".js")) {
       reads.push(response.body().then((body) => ({
-        file: path.replace(/^\/ouro-ui\//, ""),
+        file: path.replace(/^\//, ""),
         bytes: body.byteLength,
         encoding: response.headers()["content-encoding"],
       })));
@@ -246,7 +246,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const reads: string[] = [];
     const styles: string[] = [];
     const listener = (response: { url(): string }) => {
-      const file = new URL(response.url()).pathname.replace(/^\/ouro-ui\//, "");
+      const file = new URL(response.url()).pathname.replace(/^\//, "");
       if (file.endsWith(".js")) reads.push(file);
       if (file.endsWith(".css")) styles.push(file);
     };

@@ -79,7 +79,7 @@ const bubbles = {
  * `toast()` for a passing confirmation.
  *
  * @group Chat
- * @see https://ourostack.github.io/ouro-ui/docs/message
+ * @see https://ui.ouro.bot/docs/message
  *
  * @example
  * <Message role="user" name={user.name} avatar={user.photoUrl}>How long do I rest the dough?</Message>

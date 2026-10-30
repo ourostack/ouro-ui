@@ -65,7 +65,7 @@ function sizeClass(prefix: "w" | "h", value: unknown): string {
  * far along the work is.
  *
  * @group Display
- * @see https://ourostack.github.io/ouro-ui/docs/skeleton
+ * @see https://ui.ouro.bot/docs/skeleton
  *
  * @example
  * <div aria-busy="true" className="grid gap-2">

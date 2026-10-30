@@ -27,7 +27,7 @@ Type: `InspectorProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `docsHref` | `((item: string) => string)` |  | The address of an item's docs page, from its registry name, where each tag and the list link. Without it they link to Ouro's public docs, `https://ourostack.github.io/ouro-ui/docs/<item>/`. |
+| `docsHref` | `((item: string) => string)` |  | The address of an item's docs page, from its registry name, where each tag and the list link. Without it they link to Ouro's public docs, `https://ui.ouro.bot/docs/<item>/`. |
 | `label` | `string` | `"X-ray"` | What X-ray is called, on its bar and as its list's title. Translate it here. |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the person closes X-ray (its Close button, or Escape). |
 | `open` (required) | `boolean` |  | Whether X-ray is on: outlines over every Ouro component, and the bar with the list. Pair it with `onOpenChange`. |

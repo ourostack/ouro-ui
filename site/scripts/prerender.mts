@@ -69,7 +69,7 @@ function pageAssets(kind: string): string[] {
   };
   visit(key);
   const loaded = closure("index.html");
-  return [...css].filter((file) => !loaded.has(file)).map((file) => `<link rel="stylesheet" crossorigin href="/ouro-ui/${file}" />`);
+  return [...css].filter((file) => !loaded.has(file)).map((file) => `<link rel="stylesheet" crossorigin href="/${file}" />`);
 }
 
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {

@@ -231,7 +231,7 @@ jobs:
             echo 'Or through the `@ouro` namespace, which serves the newest release: this one, once main is prepared for the next release. Add it to `components.json` once:'
             echo
             echo '```json'
-            echo '"registries": { "@ouro": "https://ourostack.github.io/ouro-ui/r/{name}.json" }'
+            echo '"registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" }'
             echo '```'
             echo
             echo '```sh'

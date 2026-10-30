@@ -188,7 +188,7 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
  * page.
  *
  * @group Navigation
- * @see https://ourostack.github.io/ouro-ui/docs/sidebar
+ * @see https://ui.ouro.bot/docs/sidebar
  *
  * @example
  * <Sidebar

@@ -97,7 +97,7 @@ const noSubscription = () => () => {};
  * hold the place of content that is loading.
  *
  * @group Feedback
- * @see https://ourostack.github.io/ouro-ui/docs/progress
+ * @see https://ui.ouro.bot/docs/progress
  *
  * @example
  * <Progress label="Uploading photos" value={40} showValue />

@@ -1,0 +1,1 @@
+- The site, docs, Storybook and `@ouro` namespace moved to https://ui.ouro.bot/, so a `components.json` can name `https://ui.ouro.bot/r/{name}.json`.

@@ -26,6 +26,6 @@ test("a page that names no release at all fails: it is not the page we publish",
 
 test("it reads the site's llms.txt and main's README", () => {
   assert.deepEqual(Object.keys(sources("ourostack/ouro-ui")), ["llms.txt", "README.md"]);
-  assert.equal(sources("ourostack/ouro-ui")["llms.txt"], "https://ourostack.github.io/ouro-ui/llms.txt");
+  assert.equal(sources("ourostack/ouro-ui")["llms.txt"], "https://ui.ouro.bot/llms.txt");
   assert.match(sources("ourostack/ouro-ui")["README.md"], /^https:\/\/api\.github\.com\/repos\/ourostack\/ouro-ui\/contents\/README\.md\?ref=main$/);
 });

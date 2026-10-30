@@ -32,7 +32,7 @@ const DIALOG: Array<[string, (page: Page) => ReturnType<Page["locator"]>]> = [
 
 async function serveFonts(context: BrowserContext): Promise<void> {
   // The copied CSS names the fonts on Pages; this build's files stand in for them, with Pages' CORS header.
-  await context.route("https://ourostack.github.io/ouro-ui/fonts/*", (route) =>
+  await context.route("https://ui.ouro.bot/fonts/*", (route) =>
     route.fulfill({
       body: readFileSync(join(fontsDir, new URL(route.request().url()).pathname.split("/").pop()!)),
       headers: { "content-type": "font/woff2", "access-control-allow-origin": "*" },
@@ -81,7 +81,7 @@ for (const preset of themes) {
       const site = await browser.newContext({ viewport: { width: 1280, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
       const page = await site.newPage();
       await page.addInitScript((value) => localStorage.setItem("ouro-site-theme", value), JSON.stringify({ preset: preset.name, mode }));
-      await page.goto("ouro-ui/voyage/");
+      await page.goto("voyage/");
       await expect(page.locator("html[data-site-ready]")).toBeAttached();
       // What the button copies is what the app was built with.
       await page.getByRole("button", { name: "Copy theme", exact: true }).click();

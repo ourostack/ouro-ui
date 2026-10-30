@@ -254,7 +254,7 @@ export function ResizableGroupFrame({
  * for this only when a handle needs its own label.
  *
  * @group Layout
- * @see https://ourostack.github.io/ouro-ui/docs/resizable
+ * @see https://ui.ouro.bot/docs/resizable
  *
  * @example
  * <ResizablePanelGroup orientation="vertical" autoSaveId="preview">
@@ -307,7 +307,7 @@ export interface ResizablePanelProps {
  * needs a plain grid instead.
  *
  * @group Layout
- * @see https://ourostack.github.io/ouro-ui/docs/resizable
+ * @see https://ui.ouro.bot/docs/resizable
  *
  * @example
  * <ResizablePanel label="Files" defaultSize={25} minSize={15}>
@@ -379,7 +379,7 @@ export interface ResizableHandleProps {
  * Use `Resizable` instead, which places these for you.
  *
  * @group Layout
- * @see https://ourostack.github.io/ouro-ui/docs/resizable
+ * @see https://ui.ouro.bot/docs/resizable
  *
  * @example
  * <ResizableHandle />
@@ -560,7 +560,7 @@ export interface ResizableProps extends ResizableGroupProps {
  * for a side panel that opens and closes.
  *
  * @group Layout
- * @see https://ourostack.github.io/ouro-ui/docs/resizable
+ * @see https://ui.ouro.bot/docs/resizable
  *
  * @example
  * <Resizable autoSaveId="editor" className="h-96">

@@ -718,7 +718,7 @@ const readmeItems = [
     verify: { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
   })} Optional: \`ouro-theme\`, the Ouro look.`,
   "",
-  "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ourostack.github.io/ouro-ui/docs/guardrails/)).",
+  "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
   "",
   `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })} ${helperItems.map(code).join(", ")}. ${claim(
     "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",

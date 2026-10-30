@@ -44,10 +44,9 @@ export interface Proof {
 }
 
 const REPO = "https://github.com/ourostack/ouro-ui";
-const SITE = "/ouro-ui";
 /** Each claim's evidence: the docs, the source, the CI workflow, the theme matrix, the thresholds. */
 export const EVIDENCE = {
-  components: `${SITE}/docs/`,
+  components: "/docs/",
   typescript: `${REPO}/tree/main/registry/ouro/components/ouro`,
   engines: `${REPO}/actions/workflows/ci.yml?query=branch%3Amain`,
   themes: `${REPO}/blob/main/site/e2e/voyage.spec.ts`,

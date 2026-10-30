@@ -110,7 +110,7 @@ const stackBelowClasses = {
  * description and actions.
  *
  * @group Layout
- * @see https://ourostack.github.io/ouro-ui/docs/row
+ * @see https://ui.ouro.bot/docs/row
  *
  * @example
  * <Row justify="between">

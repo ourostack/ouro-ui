@@ -55,7 +55,7 @@ test("each claim links to evidence that exists in this repository", () => {
   for (const href of Object.values(EVIDENCE)) {
     const path = /github\.com\/ourostack\/ouro-ui\/(?:tree|blob)\/main\/([^#?]+)/.exec(href)?.[1];
     if (path) assert.ok(existsSync(new URL(`../../${path}`, import.meta.url)), href);
-    else if (!href.includes("/actions/workflows/")) assert.equal(href, "/ouro-ui/docs/");
+    else if (!href.includes("/actions/workflows/")) assert.equal(href, "/docs/");
   }
   assert.ok(existsSync(new URL("../../.github/workflows/ci.yml", import.meta.url)));
 });

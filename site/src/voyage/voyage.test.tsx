@@ -100,7 +100,7 @@ describe("the theme before first paint", () => {
     expect(tags.some((tag) => tag.includes("canonical") || tag.includes("og:url"))).toBe(false);
     const preloads = tags.filter((tag) => tag.includes('rel="preload"'));
     expect(preloads).toEqual(
-      fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/ouro-ui/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
+      fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
     );
     expect(preloads.map((tag) => /fonts\/([a-z-]+)-/.exec(tag)?.[1])).toEqual(["geist", "geist-mono"]);
     expect(headTags(routeFor("/")!, true).some((tag) => tag.includes('rel="preload"') || tag.includes("robots"))).toBe(false);
@@ -157,7 +157,7 @@ describe("the header and the theme section", () => {
       await userEvent.click(page.getByRole("button", { name: "Copy tokens only", exact: true }));
       await expect.poll(() => announced.count("Copied the Brass tokens")).toBe(1);
       expect(writes).toEqual([brass.css.theme, brass.css.tokens]);
-      expect(writes[0]).toContain("https://ourostack.github.io/ouro-ui/fonts/cormorant-garamond-5.3.0.woff2");
+      expect(writes[0]).toContain("https://ui.ouro.bot/fonts/cormorant-garamond-5.3.0.woff2");
       expect(writes[1]).not.toContain("@font-face");
     } finally {
       announced.stop();

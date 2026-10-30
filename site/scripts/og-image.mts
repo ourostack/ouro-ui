@@ -22,7 +22,7 @@ try {
   // Laid out at 1600×840, a desktop width, and captured at 0.75 scale: 1200×630.
   const context = await browser.newContext({ viewport: { width: 1600, height: 840 }, deviceScaleFactor: 0.75, colorScheme: "light", reducedMotion: "reduce" });
   const page = await context.newPage();
-  await page.goto("http://localhost:4180/ouro-ui/", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:4180/", { waitUntil: "networkidle" });
   await page.getByRole("heading", { level: 1 }).waitFor();
   // Wait until every transition has finished, so the frame is the same on each run.
   await page.waitForFunction(() => document.getAnimations().length === 0);

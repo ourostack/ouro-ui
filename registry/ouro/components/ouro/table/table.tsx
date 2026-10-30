@@ -254,7 +254,7 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
  * `ItemGroup` for a list of rows that need no columns, which reads better on a phone.
  *
  * @group Data
- * @see https://ourostack.github.io/ouro-ui/docs/table
+ * @see https://ui.ouro.bot/docs/table
  *
  * @example
  * <Table
