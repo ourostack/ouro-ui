@@ -192,8 +192,34 @@ export function inClassPosition(path) {
   return false;
 }
 
+/**
+ * Whether a node lies wholly in lines another shard owns: `excluded` (repository-relative path to
+ * 1-based line ranges, `unitExclusions` in scripts/mutation.mjs, by default from
+ * `OURO_MUTATION_EXCLUDED`), the parts of a long range this run's spanning unit leaves to the
+ * units that own them. Stryker names the file absolutely (its Babel file's `filename`).
+ */
+export function inOtherShard(path, excluded = excludedLines()) {
+  const filename = path.hub?.file?.opts?.filename;
+  const loc = path.node?.loc;
+  if (!filename || !loc) return false;
+  for (const [file, ranges] of Object.entries(excluded)) {
+    if (filename !== file && !filename.endsWith(`/${file}`)) continue;
+    if (ranges.some(([start, end]) => loc.start.line >= start && loc.end.line <= end)) return true;
+  }
+  return false;
+}
+
+const parsedExclusions = new Map();
+/** `OURO_MUTATION_EXCLUDED` as it is now (scripts/mutation.mjs sets it only after it plans the shards), parsed once. */
+function excludedLines() {
+  const value = process.env["OURO_MUTATION_EXCLUDED"] ?? "{}";
+  if (!parsedExclusions.has(value)) parsedExclusions.set(value, JSON.parse(value));
+  return parsedExclusions.get(value);
+}
+
 /** Why Stryker leaves a node's mutants out, or undefined to mutate it. */
 export function ignoreReason(path) {
+  if (inOtherShard(path)) return "another shard's part of this range";
   const literal = path.isStringLiteral() && isClassList(path.node.value);
   const quasis = path.isTemplateLiteral() ? path.node.quasis.map((quasi) => quasi.value.cooked ?? "").filter((text) => text.trim() !== "") : [];
   if ((literal || (quasis.length > 0 && isClassList(quasis.join(" ")))) && inClassPosition(path)) return "Tailwind classes: how a part looks, which the screenshot tests hold";
