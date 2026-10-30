@@ -268,7 +268,7 @@ for (const [event, ref, expected] of [
 
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
-  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
+  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n(?:\s+if: [^\n]+\n)?\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
   const node = proof.match(/run: (pnpm exec vitest run --config test\/form-answer\.config\.ts[^\n]*)/)?.[1];
   assert.ok(browser && node, "The proof must execute both regression commands.");
   // GitHub's implicit shell is bash -e; explicit shell: bash additionally sets pipefail.
@@ -281,6 +281,21 @@ test("Form answer proof propagates a failing test command through both logged pi
     const actual = spawnSync("bash", [...args, "-c", controlled], { encoding: "utf8" });
     assert.equal(actual.status, 17, "A failed regression/coverage command must fail the proof job, not only tee.");
   }
+});
+
+test("Form answer proof skips its fixture, browsers and tests only on a pull request whose change cannot reach it", () => {
+  const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
+  // HEAD^1 is the pull request's base in its merge commit.
+  assert.match(proof, /^ {6}- uses: actions\/checkout@\S+ # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n {10}fetch-depth: 2$/m);
+  const steps = proof.slice(proof.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const at = steps.findIndex((step) => /^id: impact$/m.test(step));
+  assert.ok(at > 0, "the impact step");
+  const impact = steps[at];
+  assert.match(impact, /if \[ "\$EVENT" = pull_request \]; then\n\s+node scripts\/form-answer-impact\.mjs HEAD\^1 HEAD \|\| echo "run=true" >> "\$GITHUB_OUTPUT"\n\s+else\n\s+echo "The proof runs: \$EVENT\."\n\s+echo "run=true" >> "\$GITHUB_OUTPUT"\n\s+fi/);
+  for (const step of steps.slice(0, at)) assert.doesNotMatch(step, /vitest|npm ci|playwright/, step);
+  const after = steps.slice(at + 1);
+  assert.ok(after.length >= 5);
+  for (const step of after) assert.match(step, /^(?:- )?(?:if: |\s+if: )(?:always\(\) && )?steps\.impact\.outputs\.run == 'true'$/m, step);
 });
 
 test("Form answer fixture uses the public npm registry, not a machine-specific mirror", () => {
