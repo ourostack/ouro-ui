@@ -56,6 +56,14 @@
     "summary": "Ouro HX's tokens also come as plain stylesheets, for a page with no build step and no Tailwind: a status page, a report or a prototype written in HTML."
   },
   {
+    "name": "status-dashboards",
+    "title": "Status dashboards",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/status-dashboards.md",
+    "summary": "A status dashboard tells a person where some work stands: what is done, what failed, what is running, and what nobody has started."
+  },
+  {
     "name": "testing",
     "title": "Testing",
     "kind": "guide",
