@@ -224,14 +224,18 @@ function initialsOf(name: string): string {
   return first(words[0]) + (words.length > 1 ? first(words.at(-1)) : "");
 }
 
-/** One of the hues for a key, the same on the server and in the browser (an FNV hash). */
+/**
+ * One of the hues for a key, the same on the server and in the browser: an FNV hash, scaled
+ * from its top bits, which every character's every bit reaches (its low bits see only each
+ * character's low bits).
+ */
 function hueOf(key: string): string {
   let hash = 0x811c9dc5;
   for (const char of key.trim().toLowerCase()) {
     hash ^= char.codePointAt(0)!;
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
-  return hues[hash % hues.length]!;
+  return hues[Math.floor((hash / 2 ** 32) * hues.length)]!;
 }
 
 function checkSize(size: unknown): AvatarSize | undefined {
@@ -339,7 +343,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   // A size, shape, color or presence that is not one of Ouro UI's (a type error) warns and renders the default.
   const size = groupSize ?? checkSize(sizeProp) ?? "md";
   const shape = oneOf(shapes, shapeProp) ?? "circle";
-  const color = oneOf(colors, colorProp) ?? "colorful";
+  const color = oneOf(colors, colorProp);
   const presence = oneOf(presences, presenceProp);
   const [image, setImage] = useState<string>("idle");
   useAppearanceClassNameCheck(

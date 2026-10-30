@@ -200,18 +200,18 @@ describe("Avatar colors", () => {
   });
 
   it("maps each name to its hue, the same in every browser and on the server", async () => {
-    // FNV-1a over the trimmed, lowercased name, modulo the eight hues.
+    // FNV-1a over the trimmed, lowercased name, scaled from its top bits to the eight hues.
     const expected = [
       ["Alan Turing", 1],
-      ["Edsger Dijkstra", 2],
-      ["Barbara Liskov", 3],
-      ["Grace Hopper", 4],
-      ["Dennis Ritchie", 5],
-      ["Donald Knuth", 6],
-      ["Ada Lovelace", 7],
-      ["Katherine Johnson", 8],
-      ["😀 Smile", 8],
-      ["Émile Zola", 4],
+      ["Jean Sammet", 2],
+      ["Lynn Conway", 3],
+      ["Edsger Dijkstra", 4],
+      ["Grace Hopper", 5],
+      ["Radia Perlman", 6],
+      ["Sophie Wilson", 7],
+      ["Dennis Ritchie", 8],
+      ["😀 Smile", 5],
+      ["Émile Zola", 8],
     ] as const;
     const { host } = await render(
       <>
@@ -270,14 +270,13 @@ describe("Avatar colors", () => {
       </>,
     );
     const [brand, neutral] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar));
-    const background = toRgb(token("background"));
-    const primary = toRgb(token("primary"));
-    const tint = toRgb(brand!.backgroundColor);
-    // The tint lies between the background and the primary, nearer the background.
-    for (const channel of [0, 1, 2]) {
-      expect(Math.abs(tint[channel]! - background[channel]!)).toBeLessThanOrEqual(Math.abs(primary[channel]! - background[channel]!));
-    }
-    expect(tint).not.toEqual(background);
+    const probe = document.createElement("i");
+    probe.style.backgroundColor = "color-mix(in oklab, var(--primary) 18%, var(--background))";
+    probe.style.color = "color-mix(in oklab, var(--primary) 70%, var(--foreground))";
+    document.body.append(probe);
+    expect(brand!.backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    expect(brand!.color).toBe(getComputedStyle(probe).color);
+    probe.remove();
     expect(neutral!.backgroundColor).toBe(token("secondary"));
     expect(neutral!.color).toBe(token("secondary-foreground"));
   });
