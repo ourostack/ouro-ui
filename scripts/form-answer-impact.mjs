@@ -18,18 +18,16 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const proofFolders = ["form", "link", "radio-group"];
 
 /**
- * Paths the proof never loads, though the plan runs everything for some of them: the scripts
- * other than what vitest.config.ts imports (its `.mts` files, and the shard split they read),
- * the site but the proof plugin vitest.config.ts loads, the screenshots, the install fixtures,
- * the test files in `test/` that are tests of their own, the end-to-end specs, the root stories
- * and the workflows but this one and the browser download it uses.
+ * Paths the proof never loads, though the plan runs everything for some of them: the scripts but
+ * the modules vitest.config.ts imports (shard-timings.json only splits a sharded run, and the
+ * proof is not sharded), the test folder but the proof's own files and the browser commands
+ * vitest.config.ts imports, the site but the proof plugin it loads, the end-to-end specs, the
+ * root stories, and the workflows but this one and the browser download it uses.
  */
 export const unread = [
-  [/^scripts\/(?![^/]+\.mts$|shard\.mjs$|shard-timings\.json$)/, "a script vitest.config.ts does not import"],
+  [/^scripts\/(?!motion-reporter\.mts$|vitest-shards\.mts$|shard\.mjs$)/, "a script vitest.config.ts does not import"],
+  [/^test\/(?!form-answer|conformance\/commands\.ts$)/, "a test file or fixture outside the proof"],
   [/^site\/(?!scripts\/proof\.mts$)/, "the site"],
-  [/^test\/__screenshots__\//, "a screenshot baseline"],
-  [/^test\/install-fixture[^/]*\//, "an install fixture"],
-  [/^test\/(?!form-answer)[^/]+\.test\.tsx?$/, "a test file of its own"],
   [/^registry\/ouro\/e2e\//, "an end-to-end spec"],
   [/^stories\//, "a story outside the registry"],
   [/^\.github\/(?!workflows\/form-answer-proof\.yml$|actions\/playwright-browsers\/)/, "another workflow"],
