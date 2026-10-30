@@ -925,11 +925,14 @@ describe("TimeGrid", () => {
       events: [
         { id: "midnight", title: "Backup", start: at(12, "00:00"), end: at(12, "00:30") },
         { id: "holiday", title: "Holiday", start: "2026-03-12" },
+        { id: "retreat", title: "Retreat", start: at(12, "06:00"), end: at(13, "08:00") },
         { id: "reminder", title: "Reminder", start: at(12, "00:00"), end: at(12, "00:00") },
       ],
     });
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Holiday")]);
     titled("Holiday").focus();
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(titled("Retreat"));
     await press("{ArrowDown}");
     expect(document.activeElement).toBe(titled("Backup"));
     await press("{ArrowDown}");

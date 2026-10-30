@@ -253,6 +253,8 @@ interface Piece {
   end: number;
   /** The words a screen reader hears. */
   name: string;
+  /** Its status, `busy` for one the grid does not know. */
+  status: TimeGridStatus;
 }
 
 const utcDate = (day: string) => new Date(`${day}T00:00:00Z`);
@@ -372,6 +374,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   for (const [index, event] of events.entries()) {
     // A repeated id still gets keys of its own, so React keeps every event.
     const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
+    const status = oneOf(statuses, event.status, "busy");
     if (process.env.NODE_ENV !== "production" && id !== event.id) problems.push([`two events have id "${event.id}"`, "give each event its own id"]);
     seen.add(event.id);
     if (isIsoDate(event.start)) {
@@ -381,7 +384,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       const span = spanOf(startsOn, endsOn);
       if (!span) continue;
       const key = `all:${id}`;
-      pieces.push({ key, event, day: span.first, start: -1, end: dayLength, name: spoken([daysText(startsOn, endsOn), allDayLabel], event, words) });
+      pieces.push({ key, event, status, day: span.first, start: -1, end: dayLength, name: spoken([daysText(startsOn, endsOn), allDayLabel], event, words[status]) });
       allDaySpans.push({ key, ...span });
       continue;
     }
@@ -405,7 +408,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       if (!span) continue;
       const key = `all:${id}`;
       const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
-      pieces.push({ key, event, day: span.first, start: -1, end: dayLength, name: spoken(when, event, words) });
+      pieces.push({ key, event, status, day: span.first, start: -1, end: dayLength, name: spoken(when, event, words[status]) });
       allDaySpans.push({ key, ...span });
       continue;
     }
@@ -418,7 +421,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       const key = `${column}:${id}`;
       const top = day === from.day ? from.minutes : 0;
       const bottom = day === to.day ? to.minutes : dayLength;
-      pieces.push({ key, event, day: column, start: top, end: bottom, name: spoken(when, event, words) });
+      pieces.push({ key, event, status, day: column, start: top, end: bottom, name: spoken(when, event, words[status]) });
       timedItems[column]!.push({ key, start: top, end: bottom });
     });
   }
@@ -530,7 +533,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const renderEvent = (piece: Piece, placed?: { top: number; bottom: number }) => {
     const { event } = piece;
     const tone = oneOf(tones, event.tone, "primary");
-    const status = oneOf(statuses, event.status, "busy");
+    const { status } = piece;
     const lines = placed ? lineCount(placed.bottom - placed.top) : 1;
     const start = placed ? toInstant(event.start)! : null;
     const end = placed ? toInstant(event.end!)! : null;
@@ -735,6 +738,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 }
 
 /** What a screen reader hears for an event: when, the title, the status and the description. */
-function spoken(when: string[], event: TimeGridEvent, words: Record<TimeGridStatus, string>): string {
-  return [...when, event.title, words[oneOf(statuses, event.status, "busy")], event.description].filter(Boolean).join(", ");
+function spoken(when: string[], event: TimeGridEvent, status: string): string {
+  return [...when, event.title, status, event.description].filter(Boolean).join(", ");
 }
