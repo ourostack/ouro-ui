@@ -304,6 +304,8 @@ export function DialogContent({ className, ref, ...props }: DialogContentProps):
         "box-border min-h-0 flex-auto overflow-y-auto overscroll-contain px-5 pt-2 pb-5",
         // A body that overflows is a tab stop (useKeyboardScrollable); show where focus is.
         "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid",
+        // Under forced colours, where the body ends while it is one.
+        "forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1",
         className,
       )}
     />
