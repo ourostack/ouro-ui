@@ -1,0 +1,11 @@
+{
+  "order": 2640,
+  "components": ["time-grid"],
+  "modes": {"time-grid": ["button", "link"]},
+  "controls": {
+    "time-grid": [
+      {"part": "event", "role": "button", "portal": false, "modes": ["button"]},
+      {"part": "event-link", "role": "link", "portal": false, "modes": ["link"]}
+    ]
+  }
+}

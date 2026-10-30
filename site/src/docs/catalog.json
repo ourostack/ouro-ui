@@ -674,6 +674,13 @@
     "summary": "A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`)."
   },
   {
+    "name": "time-grid",
+    "title": "TimeGrid",
+    "group": "Data",
+    "source": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
+    "summary": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app."
+  },
+  {
     "name": "message",
     "title": "Message",
     "group": "Chat",

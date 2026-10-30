@@ -2433,5 +2433,35 @@
       "Composer/ModEnter",
       "Composer/Disabled"
     ]
+  },
+  {
+    "item": "time-grid",
+    "stem": "time-grid",
+    "mode": "button",
+    "part": "event",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimeGrid/Playground",
+      "TimeGrid/WorkWeek",
+      "TimeGrid/Day",
+      "TimeGrid/Statuses",
+      "TimeGrid/Locales",
+      "TimeGrid/NowAdornment",
+      "TimeGrid/WithToolbar"
+    ]
+  },
+  {
+    "item": "time-grid",
+    "stem": "time-grid",
+    "mode": "link",
+    "part": "event-link",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimeGrid/Links"
+    ]
   }
 ]
