@@ -289,3 +289,34 @@ test("the home page's Nautilus card leads to the Nautilus's page, with X-ray on 
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
 });
+
+test("typing nemo on the built page brings the Nautilus by with a toast, once a visit", async ({ page }) => {
+  const errors = diagnostics(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "nautilus/");
+  await page.keyboard.type("nemo");
+  const nemo = page.locator('[data-egg="nemo"]');
+  await expect(nemo.locator(".egg-ship svg")).toBeVisible();
+  await expect(page.locator("[data-ouro-toast-title]", { hasText: "Captain Nemo waves hello!" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(nemo).toHaveCount(0);
+  await page.keyboard.type("nemo");
+  await page.waitForTimeout(300);
+  await expect(nemo).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("the 404 page is lost at sea: a guess, a search and the way home, passing the strict audit", async ({ page, browserName }) => {
+  test.slow(browserName === "webkit");
+  const errors = diagnostics(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("404.html");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("heading", { level: 1, name: "Lost at sea" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to the surface" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search the docs" }).fill("button");
+  await expect(page.getByRole("search").getByRole("link", { name: "Button", exact: true })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  expect(await auditPage(page, browserName)).toBe("");
+  expect(errors).toEqual([]);
+});

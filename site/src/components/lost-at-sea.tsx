@@ -66,7 +66,7 @@ function Compass(): JSX.Element {
     <svg viewBox="0 0 120 120" aria-hidden="true" className="lost-compass size-28 text-primary">
       <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="2" />
       <circle cx="60" cy="60" r="44" fill="none" stroke="currentColor" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="2 5" />
-      <g fill="currentColor" fillOpacity="0.6" fontSize="11" fontFamily="inherit" textAnchor="middle">
+      <g className="fill-muted-foreground" fontSize="11" fontFamily="inherit" textAnchor="middle">
         <text x="60" y="22">N</text>
         <text x="60" y="106">S</text>
         <text x="102" y="64">E</text>
