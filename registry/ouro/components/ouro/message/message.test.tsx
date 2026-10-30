@@ -507,6 +507,9 @@ describe("Message rows", () => {
       expect(chip(mine!, `${row}3`).right).toBeCloseTo(chip(mine!, `${row}2`).right, 0);
       expect(chip(theirs!, `${row}3`).left).toBeCloseTo(chip(theirs!, `${row}1`).left, 0);
     }
+    // A short message sits at the same side as the rows under it.
+    expect(bubbleOf(mine!).getBoundingClientRect().right).toBeCloseTo(chip(mine!, "f2").right, 0);
+    expect(bubbleOf(theirs!).getBoundingClientRect().left).toBeCloseTo(chip(theirs!, "f1").left, 0);
   });
 
   it("keeps 4px between a message and its footer", async () => {

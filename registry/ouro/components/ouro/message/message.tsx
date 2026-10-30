@@ -512,7 +512,9 @@ function ActionBar({
   card: boolean;
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
-  const keys = [...actions.filter((action) => !action.disabled).map((action) => action.key), ...(menu !== undefined && menu.length > 0 ? [MENU_KEY] : [])];
+  const hasMenu = menu !== undefined && menu.length > 0;
+  const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
+  if (hasMenu) keys.push(MENU_KEY);
   const [current, setCurrent] = useState<string | undefined>(undefined);
   const tabStop = keys.find((key) => key === current) ?? keys[0];
   const buttons = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLElement>("[data-ouro-message-action]:not(:disabled)")];
@@ -564,7 +566,7 @@ function ActionBar({
           </Button>
         </Tooltip>
       ))}
-      {menu !== undefined && menu.length > 0 && (
+      {hasMenu && (
         <Menu
           items={menu}
           onOpenChange={setMenuOpen}
