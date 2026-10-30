@@ -24,6 +24,8 @@ export interface McpOptions {
   include?: (cmd: CommandDef) => boolean;
   /** The most characters a result's text may have (default 20,000). */
   maxChars?: number;
+  /** Run tool calls side by side; by default one at a time, in the order they came, as an agent would type them. */
+  concurrent?: boolean;
 }
 
 export interface McpTool {
@@ -78,6 +80,13 @@ export function createMcpHandler(options: McpOptions): (message: unknown) => Pro
   const maxChars = options.maxChars ?? 20_000;
   const call = options.call ?? defaultCall;
   const byName = new Map(toolsOf(options).map((c) => [toolName(c), c]));
+  let queue: Promise<unknown> = Promise.resolve();
+  const inTurn = <T>(work: () => Promise<T>): Promise<T> => {
+    if (options.concurrent) return work();
+    const next = queue.then(work, work);
+    queue = next.catch(() => undefined);
+    return next;
+  };
   const toolError = (shape: AxErrorShape) => ({ content: [{ type: "text", text: errorLine(cli.name, shape) }], structuredContent: errorJson(shape), isError: true });
   return async (raw) => {
     const msg = (raw && typeof raw === "object" ? raw : {}) as Message;
@@ -119,7 +128,7 @@ export function createMcpHandler(options: McpOptions): (message: unknown) => Pro
         }
         let result: McpCallResult;
         try {
-          result = await call(cmd, input);
+          result = await inTurn(() => call(cmd, input));
         } catch (e) {
           const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: name, problem: e instanceof Error ? e.message : String(e), fix: null };
           return ok(toolError(shape));

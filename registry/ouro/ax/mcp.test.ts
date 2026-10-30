@@ -44,6 +44,19 @@ test("results are cut to maxChars; unknown methods and bad messages are JSON-RPC
   assert.equal(((await handle({ id: 4 })) as { error: { code: number } }).error.code, -32600);
 });
 
+test("tool calls run one at a time, in order, unless concurrent", async () => {
+  const order: string[] = [];
+  const slow = (concurrent: boolean) =>
+    createMcpHandler({ cli, concurrent, call: async (cmd) => { order.push(`start ${cmd.name}`); await new Promise((r) => setTimeout(r, cmd.name === "rooms" ? 20 : 0)); order.push(`end ${cmd.name}`); return { ok: true, data: {} }; } });
+  const h = slow(false);
+  await Promise.all([h({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "rooms", arguments: {} } }), h({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "note", arguments: { room: "abc123", text: "x" } } })]);
+  assert.deepEqual(order, ["start rooms", "end rooms", "start note", "end note"]);
+  order.length = 0;
+  const c = slow(true);
+  await Promise.all([c({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "rooms", arguments: {} } }), c({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "note", arguments: { room: "abc123", text: "x" } } })]);
+  assert.deepEqual(order, ["start rooms", "start note", "end note", "end rooms"]);
+});
+
 test("serveMcp answers line by line over a stream", async () => {
   let out = "";
   const lines = [JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) + "\n", "not json\n", JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "rooms", arguments: {} } })];

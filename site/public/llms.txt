@@ -244,6 +244,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.14     # install a component
 - `ax-example`: Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it.
 - `ax-exit-codes`: Ouro AX: A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift.
 - `ax-help`: Ouro AX: Help from the definitions: a one-screen overview under the two effect headings, each command's details, and the same as JSON (`help --json`), which an agent parses instead of scraping text.
+- `ax-lint`: Ouro AX: The kit's conformance check for a tool's definitions: what an agent needs from every declared command (a summary, an example, a described argument and flag, --why where other people see it, help that fits the width), and how much of the tool is declared yet.
 - `ax-mcp`: Ouro AX: The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold.
 - `ax-output`: Ouro AX: One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data.
 - `ax-cli-tests`: Optional: the node:test tests for ax-cli; run them with node --test.
@@ -252,6 +253,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.2.14     # install a component
 - `ax-errors-tests`: Optional: the node:test tests for ax-errors; run them with node --test.
 - `ax-exit-codes-tests`: Optional: the node:test tests for ax-exit-codes; run them with node --test.
 - `ax-help-tests`: Optional: the node:test tests for ax-help; run them with node --test.
+- `ax-lint-tests`: Optional: the node:test tests for ax-lint; run them with node --test.
 - `ax-mcp-tests`: Optional: the node:test tests for ax-mcp; run them with node --test.
 - `ax-output-tests`: Optional: the node:test tests for ax-output; run them with node --test.
 - `ouro-ax`: Ouro AX in one item: every ax-* primitive, so one definition of a command gives its parser, help, --json, errors, exit codes, effects and MCP tool.

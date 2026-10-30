@@ -10952,6 +10952,24 @@
       ]
     },
     {
+      "name": "ax-lint",
+      "type": "registry:lib",
+      "title": "ax-lint",
+      "description": "Ouro AX: The kit's conformance check for a tool's definitions: what an agent needs from every declared command (a summary, an example, a described argument and flag, --why where other people see it, help that fits the width), and how much of the tool is declared yet.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-effects",
+        "ourostack/ouro-ui/ax-help"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/lint.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/lint.ts"
+        }
+      ]
+    },
+    {
       "name": "ax-mcp",
       "type": "registry:lib",
       "title": "ax-mcp",
@@ -11086,6 +11104,24 @@
       ]
     },
     {
+      "name": "ax-lint-tests",
+      "type": "registry:item",
+      "title": "ax-lint tests",
+      "description": "Optional: the node:test tests for ax-lint; run them with node --test.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-example",
+        "ourostack/ouro-ui/ax-lint"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/lint.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/lint.test.ts"
+        }
+      ]
+    },
+    {
       "name": "ax-mcp-tests",
       "type": "registry:item",
       "title": "ax-mcp tests",
@@ -11131,6 +11167,7 @@
         "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-help",
+        "ourostack/ouro-ui/ax-lint",
         "ourostack/ouro-ui/ax-mcp",
         "ourostack/ouro-ui/ax-output"
       ]
@@ -11147,6 +11184,7 @@
         "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-help-tests",
+        "ourostack/ouro-ui/ax-lint-tests",
         "ourostack/ouro-ui/ax-mcp-tests",
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ouro-ax"
