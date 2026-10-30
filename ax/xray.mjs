@@ -251,7 +251,7 @@ async function checkCli(rec, opts) {
   if (!help) {
     // Without help JSON, commands come from the text: an indented word, two spaces, then words.
     for (const l of overviewLines) {
-      const m = /^ {2,4}([a-z][\w-]*) {2,}\S/.exec(l);
+      const m = /^ {2,4}([a-z][\w-]*):? {2,}\S/.exec(l);
       if (m) commands.push({ name: m[1], effect: null, usage: [m[1]] });
     }
   }
@@ -317,8 +317,8 @@ async function checkCli(rec, opts) {
     if (c.code !== 0) errorChecks(NO_SUCH_COMMAND, c);
   }
 
-  // Ambiguous verbs.
-  for (const v of AMBIGUOUS.filter((v) => !names.includes(v))) {
+  // Ambiguous verbs, only when help JSON says what every command is: an unknown CLI's bare `delete` might act.
+  for (const v of help ? AMBIGUOUS.filter((v) => !names.includes(v)) : []) {
     const c = await call([v]);
     const named = names.filter((n) => new RegExp(`\\b${n.replace(/[-]/g, "\\-")}\\b`).test(c.stderr) && !["help"].includes(n));
     const ok = c.code !== 0 && !c.timedOut && named.length >= 1;

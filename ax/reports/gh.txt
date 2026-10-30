@@ -1,0 +1,32 @@
+ax-xray (Ouro AX 0.1.0): CLI `gh` (41 commands, 45 calls)
+Claims holding: 4 of 11 (must: 4 of 9). Checks: 75 pass, 16 fail, 1 skipped. Score 82.4%.
+
+✗ cli.help-parses [must] `<cli> help --json` prints one JSON document that names every command. (0 of 1)
+    help: `gh --help --json` → exit 1; stderr: unknown flag: --json
+    Fix: Keep help as data (a COMMANDS table) and print it with `help --json`: { commands: [{ name, effect, summary, usage[] }], exitCodes: [{ code, meaning }] }.
+✗ cli.help-effects [must] Help says who sees each command: only the person, or other people. (0 of 1)
+    help: no help JSON, so no command says who sees it
+    Fix: Add `effect: "private" | "others"` to every command in help JSON, from one action catalog, and group the text help under two headings.
+✗ cli.exit-codes [must] Exit codes are documented, and every exit code the CLI gives is one of them. (0 of 1)
+    help: no exit codes in help --json or an `Exit codes:` line
+    Fix: Keep one exit-code table, print it in help and help JSON, and exit only with codes from it.
+✗ cli.one-line-error [must] Every error is one line on stderr, with nothing on stdout. (0 of 1)
+    ax-xray-no-such-command: `gh ax-xray-no-such-command` → exit 1; stderr: unknown command "ax-xray-no-such-command" for "gh" (63 stderr lines, 0 stdout lines)
+    Fix: Catch errors at the entry point and print one line to stderr.
+– cli.reads-stay-reads [must] Reads change nothing. (0 of 0, 1 skipped)
+✗ cli.help-width [should] No help line is wider than the width limit (100 columns by default). (31 of 42)
+    --help: 1 lines over 100 columns, first:   status:        Print information about relevant issues, pull requests, and notifications across repositories
+    browse --help: 1 lines over 100 columns, first (111):   -c, --commit string[="last"]   Select another commit by passing in the commit SHA, default is the last commit
+    agent-task --help: 1 lines over 100 columns, first (109):   - by URL, e.g. "https://github.com/OWNER/REPO/pull/123/agent-sessions/12345abc-12345-12345-12345-12345abc";
+    api --help: 3 lines over 100 columns, first (131):   -F, --field key=value          Add a typed parameter in key=value format (use "@<path>" or "@-" to read value from file or stdin)
+    config --help: 9 lines over 100 columns, first (190): - `api_host`: experimental: the hostname to use when making API requests for a GitHub host. Note: this is not a security boundary and reque…
+    copilot --help: 1 lines over 100 columns, first (103): If the Copilot CLI is not installed, it will be downloaded to /Users/microsoft/.local/share/gh/copilot.
+    … 5 more
+    Fix: Wrap help at one width in the help renderer, not by hand.
+✗ cli.overview-short [should] The overview (`--help`) fits one screen: at most 60 lines. (0 of 1)
+    --help: 71 lines
+    Fix: Keep one line per command in the overview and move details to `<command> --help`.
+✓ cli.command-help [must] Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. (41 of 41)
+✓ cli.unknown-command [must] An unknown command fails with the usage exit code and lists the commands. (1 of 1)
+✓ cli.error-teaches [must] Every error names a next action: a command to run or a flag to add. (1 of 1)
+✓ cli.no-stack-trace [must] No call prints a stack trace. (1 of 1)
