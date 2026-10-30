@@ -70,5 +70,6 @@
   "conversation-list",
   "attention-card",
   "reaction-bar",
-  "lightbox"
+  "lightbox",
+  "emoji-picker"
 ]

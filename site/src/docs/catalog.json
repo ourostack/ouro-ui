@@ -716,6 +716,13 @@
     "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
   },
   {
+    "name": "emoji-picker",
+    "title": "EmojiPicker",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx",
+    "summary": "An emoji picker for reactions and for putting emoji into text: a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones."
+  },
+  {
     "name": "inspector",
     "title": "Inspector",
     "group": "App setup",
