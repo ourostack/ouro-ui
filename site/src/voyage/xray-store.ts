@@ -33,3 +33,13 @@ export function useXray(): boolean {
     () => false,
   );
 }
+
+/**
+ * The component an address asks X-ray to point out, as its registry item: `?xray=TextField` and
+ * `?xray=text-field` both name `text-field`. A bare `?xray` names none.
+ */
+export function spotlightFrom(search: string): string | undefined {
+  const name = new URLSearchParams(search).get("xray")?.trim();
+  if (!name) return undefined;
+  return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}

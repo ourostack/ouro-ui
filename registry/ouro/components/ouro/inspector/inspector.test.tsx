@@ -370,6 +370,26 @@ describe("Inspector geometry", () => {
     ]);
   });
 
+  it("places the spotlit component's tag first, so it takes the best place", async () => {
+    component(100, 200, 100, 50);
+    component(120, 200, 100, 50).setAttribute("data-ouro", "button");
+    // Without a spotlight the first in document order goes above (as in the test before); spotlit,
+    // the second one's tag goes above and the first one's inside.
+    const { rerender } = await render(<Inspector open onOpenChange={() => {}} spotlight="button" />);
+    await drawn(2);
+    await expect.poll(() => tags().map((tag) => [tag.textContent, tag.style.transform, tag.hasAttribute("data-inside")])).toEqual([
+      ["badge", "translate(0px, 0px)", true],
+      ["button", "translate(0px, -16px)", false],
+    ]);
+    // Spotlit in turn, the first one's tag takes the place back.
+    await rerender(<Inspector open onOpenChange={() => {}} spotlight="badge" />);
+    dispatchEvent(new Event("resize"));
+    await expect.poll(() => tags().map((tag) => [tag.textContent, tag.style.transform, tag.hasAttribute("data-inside")])).toEqual([
+      ["badge", "translate(0px, -16px)", false],
+      ["button", "translate(0px, 0px)", true],
+    ]);
+  });
+
   it("hides a tag whose centre an overlay's popup covers, though its component's corner shows", async () => {
     component(100, 200, 200, 100);
     await xray();
@@ -1023,6 +1043,98 @@ describe("Inspector", () => {
     await drawn(1);
     await expect.element(page.getByRole("button", { name: "1 component", exact: true })).toBeVisible();
     expect(tags()[0]!.getAttribute("href")).toBe("https://ui.ouro.bot/docs/button/");
+  });
+
+  /** A page with its components far below the first screen, X-ray pointing one item out. */
+  const Far = ({ spotlight, extra }: { spotlight: string; extra?: ReactNode }) => (
+    <div>
+      <Button>Near</Button>
+      <div style={{ height: 2400 }} />
+      <Badge>First</Badge>
+      <Badge>Second</Badge>
+      {extra}
+      <div style={{ height: 2400 }} />
+      <Inspector open onOpenChange={() => {}} docsHref={docsHref} spotlight={spotlight} />
+    </div>
+  );
+  const status = () => page.getByRole("region", { name: "X-ray" }).getByRole("status");
+  const spotlit = () => outlines().filter((outline) => outline.hasAttribute("data-spotlight"));
+
+  it("points out the spotlit item: scrolls the first one into view, draws its outline stronger and names it on the bar", async () => {
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host, rerender } = await render(<Far spotlight="badge" />);
+    await drawn(3);
+    const [, first, second] = pageRoots(host);
+    // The outline follows the scroll on X-ray's next frame.
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, first!), { timeout: 5000 }).toBe(true);
+    expect(into).toHaveBeenCalledTimes(1);
+    expect(into.mock.contexts[0]).toBe(first);
+    expect(spotlit()[0]!.getAttribute("data-spotlight")).toBe("");
+    expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "smooth" }]);
+    // The first badge comes to the middle of the screen.
+    await expect.poll(() => Math.abs(first!.getBoundingClientRect().top + first!.getBoundingClientRect().height / 2 - innerHeight / 2) < 2, { timeout: 5000 }).toBe(true);
+    await expect.element(status()).toHaveTextContent("Showing badge");
+    // The spotlit frame is the primary color in full, two pixels wide; the others stay as they were.
+    const stroke = (outline: HTMLElement) => getComputedStyle(outline.querySelector("[data-ouro-inspector-frame]")!);
+    const other = outlines().find((outline) => onTarget(outline, second!))!;
+    expect(stroke(spotlit()[0]!).strokeWidth).toBe("2px");
+    expect(stroke(other).strokeWidth).toBe("1px");
+    expect(stroke(spotlit()[0]!).stroke).not.toBe(stroke(other).stroke);
+    // Scrolling on does not bring it back, nor does a change to the page.
+    scrollTo(0, 0);
+    await rerender(<Far spotlight="badge" extra={<Checkbox label="Added" />} />);
+    await drawn(4);
+    expect(into).toHaveBeenCalledTimes(1);
+    expect(first!.getBoundingClientRect().top).toBeGreaterThan(innerHeight);
+  });
+
+  it("scrolls to the spotlit item at once with reduced motion", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    await render(<Far spotlight="badge" />);
+    await drawn(3);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "instant" }]);
+  });
+
+  it("says when the page has no spotlit item, and points one out when it appears", async () => {
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { rerender, host } = await render(<Far spotlight="checkbox" />);
+    await drawn(3);
+    await expect.element(status()).toHaveTextContent("No checkbox on this page");
+    expect(spotlit()).toEqual([]);
+    expect(into).not.toHaveBeenCalled();
+    await rerender(<Far spotlight="checkbox" extra={<Checkbox label="Late" />} />);
+    await drawn(4);
+    await expect.element(status()).toHaveTextContent("Showing checkbox");
+    const late = host.querySelector('[data-ouro="checkbox"]')!;
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, late), { timeout: 5000 }).toBe(true);
+    expect(into.mock.contexts).toEqual([late]);
+    // Another item to point out: X-ray goes to it.
+    await rerender(<Far spotlight="button" extra={<Checkbox label="Late" />} />);
+    await expect.element(status()).toHaveTextContent("Showing button");
+    await expect.poll(() => into.mock.contexts.length).toBe(2);
+    expect(into.mock.contexts[1]).toBe(host.querySelector('[data-ouro="button"]'));
+  });
+
+  it("says nothing on its bar until it has looked, and nothing without a spotlight", async () => {
+    // Before X-ray's first measure (a frame later) the status is empty, so no "none" is announced
+    // for a page it has yet to read. A mutation observer's callback runs before that frame.
+    let first: string | undefined;
+    const watch = new MutationObserver(() => {
+      first ??= document.querySelector('[data-ouro="inspector"] [role="status"]')?.textContent ?? undefined;
+    });
+    watch.observe(document.body, { childList: true, subtree: true });
+    await render(<Far spotlight="checkbox" />);
+    watch.disconnect();
+    expect(first).toBe("");
+    await drawn(3);
+    await expect.element(status()).toHaveTextContent("No checkbox on this page");
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    await render(<Page />);
+    await drawn(3);
+    expect(document.querySelector('[data-ouro="inspector"] [role="status"]')).toBeNull();
+    expect(spotlit()).toEqual([]);
   });
 
   it("renders nothing while closed, and nothing on the server", async () => {

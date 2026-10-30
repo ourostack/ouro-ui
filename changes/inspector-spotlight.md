@@ -1,0 +1,3 @@
+- Inspector `spotlight` points out one item, such as `spotlight="button"`: X-ray scrolls the first one to the middle of the screen (at once with reduced motion), draws its outline stronger with its tag placed first, and its bar says which item it shows or that the page has none.[^spotlight]
+
+[^spotlight]: test:registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > says when the page has no spotlit item, and points one out when it appears verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > says when the page has no spotlit item, and points one out when it appears)

@@ -4,6 +4,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 import { LOG, TANKS } from "../src/voyage/stage/copy";
+import shipComponents from "../src/docs/ship-components.json" with { type: "json" };
+import { SHIP_PAGES } from "../src/docs/ships";
 import { auditPage } from "./audit";
 import { diagnostics } from "./diagnostics";
 
@@ -277,6 +279,31 @@ for (const path of PAGES) {
     await expect(page.locator("html[data-site-ready]")).toBeAttached();
     await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
     await expect(page.locator("[data-ouro-inspector-outline]").first()).toBeAttached();
+  });
+}
+
+// Every component a docs page links on a ship page (ship-components.json, from the built pages'
+// HTML) is one X-ray finds there and points out: on the screen, its outline the spotlit one.
+for (const ship of SHIP_PAGES) {
+  test(`?xray=<item> points out each component the docs link on ${ship.path}`, async ({ page }) => {
+    test.setTimeout(240_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const items = Object.entries(shipComponents.items).filter(([, paths]) => paths.includes(ship.path)).map(([item]) => item);
+    expect(items.length).toBeGreaterThan(3);
+    for (const item of items) {
+      await page.goto(`.${ship.path}?xray=${item}`);
+      await expect(page.locator("html[data-site-ready]")).toBeAttached();
+      const bar = page.getByRole("region", { name: "X-ray" });
+      await expect(bar.getByRole("status"), item).toHaveText(`Showing ${item}`);
+      const spotlit = page.locator("[data-ouro-inspector-outline][data-spotlight]");
+      await expect(spotlit, item).toHaveCount(1);
+      await expect(spotlit.getByRole("link", { includeHidden: true }), item).toHaveText(item);
+      await expect.poll(async () => {
+        const box = await spotlit.boundingBox();
+        return !!box && box.y < 900 && box.y + box.height > 0;
+      }, { message: `${item} comes onto the screen` }).toBe(true);
+    }
   });
 }
 

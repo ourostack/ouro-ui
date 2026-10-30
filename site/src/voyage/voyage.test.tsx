@@ -10,6 +10,7 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../themes/prepaint";
 import { presetList } from "./presets";
 import { NAUTILUS_PAGE } from "./copy";
+import { spotlightFrom } from "./xray-store";
 
 // The voyage preview's themes and header (site-design.md, slice S1): the stored theme applies
 // before paint, the header's controls repaint the page and remember it, Copy theme copies the
@@ -265,6 +266,36 @@ describe("the Nautilus's page", () => {
     await cleanupPage();
     await renderPage(path);
     await expect.element(page.getByRole("switch", { name: "X-ray" })).not.toBeChecked();
+  });
+});
+
+describe("X-ray spotlight from the address", () => {
+  it("reads a component's registry name or its component name, and nothing from a bare ?xray", () => {
+    expect(spotlightFrom("?xray=switch")).toBe("switch");
+    expect(spotlightFrom("?xray=Switch")).toBe("switch");
+    expect(spotlightFrom("?xray=TextField")).toBe("text-field");
+    expect(spotlightFrom("?xray=text-field")).toBe("text-field");
+    expect(spotlightFrom("?xray=%20Kbd%20")).toBe("kbd");
+    expect(spotlightFrom("?xray")).toBeUndefined();
+    expect(spotlightFrom("?xray=")).toBeUndefined();
+    expect(spotlightFrom("?other=switch")).toBeUndefined();
+  });
+
+  it.each([
+    ["/nautilus/", "TextField", "Showing text-field"],
+    ["/", "Slider", "Showing slider"],
+    ["/", "Dialog", "No dialog on this page"],
+  ])("on %s, ?xray=%s turns X-ray on and its bar says what it points out", async (path, name, said) => {
+    await page.viewport(1280, 800);
+    const before = location.href;
+    history.replaceState(null, "", `?xray=${name}`);
+    try {
+      await renderPage(path);
+      await expect.element(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
+      await expect.element(page.getByRole("region", { name: "X-ray" }).getByRole("status")).toHaveTextContent(said);
+    } finally {
+      history.replaceState(null, "", before);
+    }
   });
 });
 

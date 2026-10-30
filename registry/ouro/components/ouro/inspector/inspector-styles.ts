@@ -1,4 +1,4 @@
-export { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, tagClass };
+export { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass };
 
 // Class strings and names for Inspector, apart from the component so its file exports only
 // components (React Fast Refresh). Class strings are literal so the app's Tailwind finds them.
@@ -77,7 +77,9 @@ const outlineClass = "absolute top-0 left-0 will-change-transform data-clipped:i
  * @claim "An outline's frame: its edges, drawn" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other)
  * @claim "An outline's frame: its edges, drawn" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > hides the outline and tag of a component scrolled out of view inside a box, and clips one partly out)
  */
-const frameClass = "absolute inset-0 fill-none stroke-[color-mix(in_oklab,var(--primary)_75%,transparent)] [shape-rendering:crispEdges]";
+const frameClass =
+  "absolute inset-0 fill-none stroke-[color-mix(in_oklab,var(--primary)_75%,transparent)] [shape-rendering:crispEdges] " +
+  "in-data-spotlight:stroke-primary in-data-spotlight:stroke-2";
 
 /**
  * An outline's name tag, a link to its docs, by the part of its component that shows, where it
@@ -100,6 +102,9 @@ const tagClass =
 const pillClass =
   "pointer-events-auto in-data-modal:invisible fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-1 " +
   "rounded-full bg-popover p-1 ps-4 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60";
+
+/** The bar's word on the spotlit item, cut short where the bar runs out of room. It stays in place while empty, so a screen reader hears it when it fills. @internal */
+const statusClass = "ms-1 me-2 min-w-0 truncate text-muted-foreground";
 
 /** The list of components in the sheet. @internal */
 const listClass = "m-0 grid list-none gap-1 p-0";
