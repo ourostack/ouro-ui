@@ -408,6 +408,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   // Stryker disable next-line ConditionalExpression: read again while open, the opener changes nothing, since the origin is set once per opening.
   if (open !== wasOpen) {
     setWasOpen(open);
+    // Stryker disable next-line ConditionalExpression: an opener read as it closes is read again before the next opening uses it.
     if (open) setOpener(document.activeElement);
   }
   const nameId = useId();

@@ -523,9 +523,17 @@ describe("Lightbox controlled", () => {
     expect(document.activeElement).toBe(opener);
   });
 
-  it("grows from the middle when nothing had focus as it opened", async () => {
-    (document.activeElement as HTMLElement | null)?.blur();
+  it("grows from the middle when it is open from the start", async () => {
     await render(<Lightbox label="Kitchen photos" images={kitchen} open index={1} onOpenChange={() => {}} />);
+    await settled();
+    expect(popup()!.style.transformOrigin).toBe("");
+  });
+
+  it("grows from the middle when nothing had focus as it opened", async () => {
+    const { rerender } = await render(<Lightbox label="Kitchen photos" images={kitchen} open={false} index={1} onOpenChange={() => {}} />);
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    await rerender(<Lightbox label="Kitchen photos" images={kitchen} open index={1} onOpenChange={() => {}} />);
     await settled();
     expect(popup()!.style.transformOrigin).toBe("");
   });
@@ -580,8 +588,11 @@ describe("Lightbox controlled", () => {
   ])("names %s, and only that, with the fix", async (_case, props, message) => {
     await render(<Lightbox {...({ label: "Photos", images: kitchen, ...props } as unknown as LightboxProps)} />);
     const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
-    expect(messages).toHaveLength(1);
-    expect(messages[0]).toContain(`Lightbox: ${message}. Fix: `);
+    const fix =
+      "className" in props
+        ? '<div className="…"><Lightbox open={open} … /></div>'
+        : '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>';
+    expect(messages).toEqual([`[ouro-ui] Lightbox: ${message}. Fix: ${fix}.`]);
   });
 
   it("gives correct controlled props no message, and closes nothing without onOpenChange", async () => {
