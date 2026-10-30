@@ -1597,14 +1597,19 @@ test("a release installs with shadcn@latest in CI on its release commit, and onl
   }
 });
 
-test("a release passes CI (with shadcn@latest), then the screen-reader lane on its own commit, before it tags", () => {
+test("a release runs the screen-reader lane beside CI (with shadcn@latest) on its own commit, and tags only when both passed", () => {
   const release = workflow("release.yml");
+  const start = release.indexOf("name: Start the screen-reader lane on the release commit");
   const ci = release.indexOf("name: Run CI on the release commit");
   const lane = release.indexOf("name: Pass the screen-reader lane on the release commit");
   const tag = release.indexOf('git tag "$TAG"');
-  assert.ok(ci > release.indexOf("name: Push the release branch") && lane > ci && tag > lane, "push, CI, the screen-reader lane, then the tag");
+  assert.ok(start > release.indexOf("name: Push the release branch") && ci > start && lane > ci && tag > lane, "push, the lane started, CI, the lane passed, then the tag");
+  // Started before CI's wait, so the two run side by side; the gate waits for that run, and dispatches again only after an infrastructure failure.
+  const started = releaseStep("Start the screen-reader lane on the release commit");
+  assert.match(started, /gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"/);
+  assert.match(started, /echo "SR_BEFORE=\$before" >> "\$GITHUB_ENV"/);
   const gate = releaseStep("Pass the screen-reader lane on the release commit");
-  assert.match(gate, /gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"/);
+  assert.match(gate, /if \[ "\$attempt" = 1 \]; then\n\s+before=\$SR_BEFORE\n\s+else\n[^]*?gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"\n\s+fi/);
   assert.match(gate, /gh run list --workflow screen-reader\.yml --branch "\$BRANCH" --json databaseId,headSha,event,createdAt/);
   assert.match(gate, /gh run watch "\$run" --exit-status/);
   assert.match(releaseJobs().release, /^ {6}issues: write # /m);
@@ -1691,7 +1696,7 @@ test("a release's tag never stays out without main and Pages following unnoticed
   assert.doesNotMatch(untagged.stderr, /issue create/);
 });
 
-/** Runs the release's screen-reader gate with a stand-in gh that plays the lane's runs in order. */
+/** Runs the release's screen-reader start and gate with a stand-in gh that plays the lane's runs in order. */
 function runReleaseGate(outcomes, { startsWith = true, headSha } = {}) {
   const scratch = join(root, ".tmp");
   mkdirSync(scratch, { recursive: true });
@@ -1699,6 +1704,7 @@ function runReleaseGate(outcomes, { startsWith = true, headSha } = {}) {
   const summary = join(dir, "summary.md");
   writeFileSync(summary, "");
   writeFileSync(join(dir, "outcomes"), outcomes.join("\n") + "\n");
+  const start = releaseStep("Start the screen-reader lane on the release commit");
   const gate = releaseStep("Pass the screen-reader lane on the release commit");
   const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
     git() { echo ${sha}; }
@@ -1720,10 +1726,12 @@ function runReleaseGate(outcomes, { startsWith = true, headSha } = {}) {
         *) echo "Unexpected gh call: $*" >&2; return 99 ;;
       esac
     }
+    ${start}
+    SR_BEFORE=$(sed -n 's/^SR_BEFORE=//p' "$GITHUB_ENV")
     ${gate.replace("scripts/sr-infra-issue.sh", "issue_script")}
   `], {
     cwd: root, encoding: "utf8",
-    env: { ...process.env, DIR: dir, STARTS: String(startsWith), HEAD_SHA: headSha ?? "", BRANCH: "release/v9.9.9", TAG: "v9.9.9", GITHUB_STEP_SUMMARY: summary, GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "ourostack/ouro-ui" },
+    env: { ...process.env, DIR: dir, STARTS: String(startsWith), HEAD_SHA: headSha ?? "", BRANCH: "release/v9.9.9", TAG: "v9.9.9", GITHUB_STEP_SUMMARY: summary, GITHUB_ENV: join(dir, "env"), GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "ourostack/ouro-ui" },
   });
   assert.doesNotMatch(result.stderr, /Unexpected gh call/);
   return { ...result, dispatches: (result.stderr.match(/CALL workflow run screen-reader\.yml/g) ?? []).length, summary: readFileSync(summary, "utf8") };
