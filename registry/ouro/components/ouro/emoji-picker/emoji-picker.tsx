@@ -463,22 +463,25 @@ const Cell = memo(function Cell({ glyph, name, index, active, quick }: { glyph: 
   );
 });
 
+/** The emoji a search finds, the frequently used first, each once. */
+function found(categories: readonly EmojiPickerCategory[], frequent: readonly EmojiPickerEmoji[] | undefined, query: string): EmojiPickerEmoji[] {
+  const seen = new Set<string>();
+  // Stryker disable next-line ArrayDeclaration: a stand-in with no emoji or name matches no search, so it changes no result.
+  return [...(frequent ?? []), ...categories.flatMap((category) => category.emoji)].filter((item) => {
+    if (seen.has(item.emoji) || !matchEmoji(item, query)) return false;
+    seen.add(item.emoji);
+    return true;
+  });
+}
+
 /** The grid's sections and rows: the search's results while there is a search, else the frequently used emoji and the categories. */
 function useSections(categories: readonly EmojiPickerCategory[], frequent: readonly EmojiPickerEmoji[] | undefined, query: string, labels: PanelLabels) {
   const searching = query.trim() !== "";
-  const results = useMemo(() => {
-    if (!searching) return [];
-    const seen = new Set<string>();
-    return [...(frequent ?? []), ...categories.flatMap((category) => category.emoji)].filter((item) => {
-      if (seen.has(item.emoji) || !matchEmoji(item, query)) return false;
-      seen.add(item.emoji);
-      return true;
-    });
-  }, [searching, query, frequent, categories]);
   const { resultsLabel, frequentLabel } = labels;
   const sections = useMemo(() => {
+    const results = (items: EmojiPickerEmoji[]) => ({ label: fillCount(resultsLabel, items.length), icon: null, items });
     const list: Omit<Section, "start">[] = searching
-      ? [{ label: fillCount(resultsLabel, results.length), icon: null, items: results }]
+      ? [results(found(categories, frequent, query))]
       : [
           ...(frequent?.length ? [{ label: frequentLabel, icon: <ClockIcon />, items: frequent }] : []),
           ...categories
@@ -491,7 +494,7 @@ function useSections(categories: readonly EmojiPickerCategory[], frequent: reado
       start += section.items.length;
       return placed;
     });
-  }, [searching, results, frequent, categories, resultsLabel, frequentLabel]);
+  }, [searching, query, frequent, categories, resultsLabel, frequentLabel]);
   const rows = useMemo(() => {
     const list: Row[] = [];
     sections.forEach((section, index) => {
@@ -502,7 +505,7 @@ function useSections(categories: readonly EmojiPickerCategory[], frequent: reado
     return list;
   }, [sections]);
   const total = rows.length ? rows.at(-1)!.start + rows.at(-1)!.length : 0;
-  return { searching, results, sections, rows, total };
+  return { searching, sections, rows, total };
 }
 
 /** Speaks a message politely when it changes, and nothing when it is empty. */
@@ -661,7 +664,7 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
   const toneButtonRef = useRef<HTMLButtonElement>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
 
-  const { searching, results, sections, rows, total } = useSections(categories, frequent, query, labels);
+  const { searching, sections, rows, total } = useSections(categories, frequent, query, labels);
   // The app can take emoji away while the picker is open; the Tab stop stays on the last one.
   const active = Math.min(activeCell, total - 1);
   const itemAt = (index: number) => {
@@ -669,7 +672,7 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
     return section.items[index - section.start]!;
   };
 
-  useAnnouncement(searching ? (results.length ? fillCount(labels.resultsLabel, results.length) : labels.noResultsLabel) : "");
+  useAnnouncement(searching ? (total ? fillCount(labels.resultsLabel, total) : labels.noResultsLabel) : "");
 
   const tonesShown = offersTones(frequent) || offersTones(quick) || categories.some((category) => offersTones(category.emoji));
 
@@ -756,9 +759,9 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
                 if (event.key === "ArrowDown" && total) {
                   event.preventDefault();
                   focusCell(active);
-                } else if (event.key === "Enter" && searching && results.length) {
+                } else if (event.key === "Enter" && searching && total) {
                   event.preventDefault();
-                  onChoose(results[0]!, event);
+                  onChoose(itemAt(0), event);
                 }
               }}
             />

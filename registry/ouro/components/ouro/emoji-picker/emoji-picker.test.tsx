@@ -106,7 +106,7 @@ async function settled() {
       if (!element || element.hasAttribute("data-starting-style")) return false;
       for (const animation of element.getAnimations()) animation.finish();
       return true;
-    })
+    }, { interval: 5 })
     .toBe(true);
 }
 
@@ -116,7 +116,7 @@ async function closed() {
     .poll(() => {
       for (const animation of popup()?.getAnimations() ?? []) animation.finish();
       return panel();
-    })
+    }, { interval: 5 })
     .toBeNull();
 }
 
