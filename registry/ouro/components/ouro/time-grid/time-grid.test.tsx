@@ -129,6 +129,51 @@ describe("TimeGrid date and layout math", () => {
     ]);
   });
 
+  it("orders events that start together longest first, and starts a new group where the last one ends", () => {
+    for (const items of [
+      [
+        { key: "short", start: 540, end: 570 },
+        { key: "long", start: 540, end: 720 },
+      ],
+      [
+        { key: "long", start: 540, end: 720 },
+        { key: "short", start: 540, end: 570 },
+      ],
+    ]) {
+      expect(layoutDay(items).map(({ key, column }) => [key, column])).toEqual([
+        ["long", 0],
+        ["short", 1],
+      ]);
+    }
+    expect(
+      layoutDay([
+        { key: "a", start: 0, end: 60 },
+        { key: "b", start: 0, end: 60 },
+        { key: "c", start: 60, end: 90 },
+      ]),
+    ).toEqual([
+      { key: "a", top: 0, bottom: 60, column: 0, span: 1, columns: 2 },
+      { key: "b", top: 0, bottom: 60, column: 1, span: 1, columns: 2 },
+      { key: "c", top: 60, bottom: 90, column: 0, span: 1, columns: 1 },
+    ]);
+    // e spreads into the third column, whose events end before it starts.
+    expect(
+      layoutDay([
+        { key: "a", start: 0, end: 120 },
+        { key: "b", start: 0, end: 60 },
+        { key: "c", start: 0, end: 30 },
+        { key: "d", start: 30, end: 60 },
+        { key: "e", start: 60, end: 120 },
+      ]).map(({ key, column, span, columns }) => [key, column, span, columns]),
+    ).toEqual([
+      ["a", 0, 1, 3],
+      ["b", 1, 1, 3],
+      ["c", 2, 1, 3],
+      ["d", 2, 1, 3],
+      ["e", 1, 2, 3],
+    ]);
+  });
+
   it("draws an event at least half an hour tall, never past midnight, and spreads it where its neighbours end", () => {
     expect(
       layoutDay([
@@ -172,6 +217,24 @@ describe("TimeGrid date and layout math", () => {
     ]);
   });
 
+  it("stacks all-day events that start together longest first", () => {
+    for (const items of [
+      [
+        { key: "one", first: 1, last: 1 },
+        { key: "three", first: 1, last: 3 },
+      ],
+      [
+        { key: "three", first: 1, last: 3 },
+        { key: "one", first: 1, last: 1 },
+      ],
+    ]) {
+      expect(allDayLanes(items).map(({ key, lane }) => [key, lane])).toEqual([
+        ["three", 0],
+        ["one", 1],
+      ]);
+    }
+  });
+
   it("counts the lines an event's height holds", () => {
     expect([15, 30, 44, 45, 60, 90, 120].map(lineCount)).toEqual([1, 1, 1, 2, 2, 4, 5]);
   });
@@ -184,6 +247,10 @@ describe("TimeGrid date and layout math", () => {
     expect(viewDays("2026-03-12", "work-week", "ar-EG")).toEqual(["2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12"]);
     expect(weekendDays("en-US")).toEqual([6, 0]);
     expect(weekendDays("ar-EG")).toEqual([5, 6]);
+    // India's weekend is Sunday alone, where the browser knows it (Chromium does).
+    const india = new Intl.Locale("hi-IN") as Intl.Locale & { getWeekInfo?: () => { weekend: number[] }; weekInfo?: { weekend: number[] } };
+    const known = india.getWeekInfo?.() ?? india.weekInfo;
+    expect(weekendDays("hi-IN")).toEqual(known ? [0] : [6, 0]);
   });
 
   it("reads the weekend from the region where the browser has no week information", () => {
@@ -241,6 +308,8 @@ describe("TimeGrid date and layout math", () => {
     expect(stepTo(pieces, "a", "ArrowLeft", false)).toBeUndefined();
     expect(stepTo(pieces, "c", "ArrowRight", false)).toBeUndefined();
     expect(stepTo(pieces, "a", "Enter", false)).toBeUndefined();
+    // Two events as near in time on the next day: the earlier.
+    expect(stepTo([{ key: "x", day: 0, start: 600 }, { key: "early", day: 1, start: 540 }, { key: "late", day: 1, start: 660 }], "x", "ArrowRight", false)).toBe("early");
   });
 
   it("keeps one clock for every grid, moved on at each minute and stopped when the last one goes", () => {
@@ -653,6 +722,47 @@ describe("TimeGrid", () => {
       ["", "calc(var(--ouro-time-grid-hour) * 18)"],
     ]);
     expect(columns.every((column) => [...column.querySelectorAll("[data-ouro-time-grid-off]")].every((shade) => shade.getAttribute("aria-hidden") === "true"))).toBe(true);
+  });
+
+  it("takes week as a view without a message", async () => {
+    const { grid } = await render({ view: "week" });
+    expect(grid.dataset.view).toBe("week");
+    expect(warnings()).toEqual([]);
+  });
+
+  it("draws each status in its event's tone, from the theme", async () => {
+    const statusEvent = (status: TimeGridEvent["status"], hour: number, tone: TimeGridEvent["tone"] = "success"): TimeGridEvent => ({
+      id: String(status),
+      title: String(status),
+      start: at(12, `${String(hour).padStart(2, "0")}:00`),
+      end: at(12, `${String(hour + 1).padStart(2, "0")}:00`),
+      status,
+      tone,
+    });
+    const { grid } = await render({
+      view: "day",
+      events: [statusEvent("busy", 9), statusEvent("tentative", 11), statusEvent("free", 13), statusEvent("unanswered", 15), statusEvent("cancelled", 17), statusEvent("busy", 19, "warning")],
+    });
+    const probe = document.createElement("span");
+    grid.append(probe);
+    const color = (value: string) => {
+      probe.style.color = value;
+      return getComputedStyle(probe).color;
+    };
+    const style = (title: string) => getComputedStyle(titled(title));
+    const [busy, tentative, free, unanswered, cancelled] = ["busy", "tentative", "free", "unanswered", "cancelled"].map(style);
+    expect(busy!.borderInlineStartColor).toBe(color("var(--success)"));
+    expect(busy!.borderInlineStartWidth).toBe("3px");
+    expect([busy!.borderTopWidth, busy!.borderInlineStartStyle]).toEqual(["0px", "solid"]);
+    expect(busy!.backgroundColor).not.toBe(color("var(--background)"));
+    expect(getComputedStyle(events().at(-1)!).borderInlineStartColor).toBe(color("var(--warning)"));
+    expect(getComputedStyle(events().at(-1)!).backgroundColor).not.toBe(busy!.backgroundColor);
+    expect([tentative!.borderInlineStartStyle, tentative!.backgroundImage.startsWith("repeating-linear-gradient")]).toEqual(["dashed", true]);
+    expect([tentative!.backgroundColor, free!.backgroundColor, unanswered!.backgroundColor, cancelled!.backgroundColor]).toEqual(Array(4).fill(color("var(--background)")));
+    expect([free!.borderTopWidth, free!.borderTopStyle, free!.borderInlineStartWidth, free!.borderTopColor]).toEqual(["1px", "solid", "3px", color("var(--success)")]);
+    expect([unanswered!.borderTopWidth, unanswered!.borderTopStyle]).toEqual(["1px", "dashed"]);
+    expect([cancelled!.borderInlineStartStyle, cancelled!.textDecorationLine]).toEqual(["dotted", "line-through"]);
+    probe.remove();
   });
 
   it("takes layout classes on the root and passes its attributes and ref through", async () => {

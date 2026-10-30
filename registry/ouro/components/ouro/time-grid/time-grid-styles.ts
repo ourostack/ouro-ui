@@ -95,6 +95,7 @@ function zonedClock(timeZone: string | undefined): ZonedClock {
       // an hour that a daylight saving change moves.
       const target = wall(day, minutes);
       let guess = target;
+      // Stryker disable next-line EqualityOperator: a third pass lands where the second did
       for (let pass = 0; pass < 2; pass++) {
         const seen = at(guess);
         guess += target - wall(seen.day, seen.minutes);
@@ -159,10 +160,14 @@ function layoutDay<Key>(items: ReadonlyArray<{ key: Key; start: number; end: num
   const placed: Array<DayPlacement<Key>> = [];
   let group: Array<DayPlacement<Key>> = [];
   let groupEnd = 0;
+  // Stryker disable next-line ArrayDeclaration: the first event closes an empty group, which empties it
   let ends: number[] = [];
   const close = () => {
     for (const item of group) {
       item.columns = ends.length;
+      // An event to the right that starts as this one ends would have taken this one's column, so
+      // `<` and `<=` read the same here.
+      // Stryker disable next-line EqualityOperator: no event in a later column starts as this one ends
       const overlaps = (column: number) => group.some((other) => other.column === column && other.top < item.bottom && item.top < other.bottom);
       while (item.column + item.span < ends.length && !overlaps(item.column + item.span)) item.span++;
     }
