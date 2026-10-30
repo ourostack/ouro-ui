@@ -39,8 +39,8 @@ export interface ConversationListItem {
   badges?: ReactNode;
   /**
    * The row's mark, at the end of its last line under the time: a mention `<Badge>`, "in 10 min" before a meeting.
-   * It takes the unread dot's place; screen readers still hear `unreadLabel`. It keeps to the line's height, so the
-   * row stays the height of the others.
+   * It takes the unread dot's place; screen readers still hear `unreadLabel`. Words show small and muted, like the
+   * time. It keeps to the line's height, so the row stays the height of the others.
    */
   mark?: ReactNode;
   /**
@@ -277,7 +277,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       <>
         {hasMark && (
           // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
-          <span data-ouro-conversation-mark="" className="flex h-5 shrink-0 items-center">
+          <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
             {item.mark}
           </span>
         )}

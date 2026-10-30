@@ -394,6 +394,9 @@ describe("ConversationList", () => {
     // With no preview, on the subtitle's line; with one line, after the time.
     expect(mark(rows[1]!).parentElement).toBe(rows[1]!.querySelector("[data-ouro-conversation-subtitle]")!.parentElement);
     expect(mark(rows[1]!).textContent).toBe("in 10 min");
+    // Words show small and muted, like the time.
+    expect(getComputedStyle(mark(rows[1]!)).fontSize).toBe("12px");
+    expect(getComputedStyle(mark(rows[1]!)).color).toBe(getComputedStyle(time(rows[1]!)).color);
     expect(rows[1]!.querySelector("[data-ouro-conversation-unread]")).toBeNull();
     expect(rows[2]!.querySelector("[data-ouro-conversation-unread]")!.previousElementSibling).toBe(time(rows[2]!));
   });

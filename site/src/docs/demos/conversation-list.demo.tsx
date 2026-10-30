@@ -1,5 +1,4 @@
 import { useState, type JSX } from "react";
-import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { ConversationList, type ConversationListItem, type ConversationListSection } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 
 // The live demo at the top of docs/conversation-list/: the component as an app would use it, with its props, nothing else.
@@ -16,11 +15,7 @@ const conversations: ConversationListItem[] = [
     title: "Morning standup",
     preview: "Fen: Shipped the settings page.",
     time: "9:27",
-    mark: (
-      <Badge tone="warning" variant="outline">
-        in 10 min
-      </Badge>
-    ),
+    mark: "in 10 min",
     section: "recent",
   },
   { id: "design", title: "Design reviews", where: "Lantern Labs", preview: "Odile: Can you sign off on the mockups?", time: "9:12", section: "recent" },
