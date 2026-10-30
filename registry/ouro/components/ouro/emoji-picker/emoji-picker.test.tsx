@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import {
   EmojiPicker,
@@ -98,14 +98,26 @@ const preview = () => panel()!.lastElementChild!.textContent;
 const trigger = (host: Element) => host.querySelector<HTMLButtonElement>("button")!;
 const focused = () => document.activeElement as HTMLElement;
 
-/** Waits until the open popover has finished its entrance. */
+/** Waits until the open popover has started its entrance, then ends the fade at once. */
 async function settled() {
   await expect
     .poll(() => {
       const element = popup();
-      return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
+      if (!element || element.hasAttribute("data-starting-style")) return false;
+      for (const animation of element.getAnimations()) animation.finish();
+      return true;
     })
     .toBe(true);
+}
+
+/** Waits until the popover has gone, ending its exit fade at once. */
+async function closed() {
+  await expect
+    .poll(() => {
+      for (const animation of popup()?.getAnimations() ?? []) animation.finish();
+      return panel();
+    })
+    .toBeNull();
 }
 
 async function open(props: Partial<EmojiPickerProps> = {}, paddingTop = 0) {
@@ -119,11 +131,24 @@ async function type(text: string) {
   await userEvent.type(search(), text);
 }
 
+/** Narrows the page to a phone's width until the test ends. */
+let narrowed = false;
+async function phone() {
+  narrowed = true;
+  await page.viewport(390, 800);
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
-beforeEach(async () => {
+// The page's size and motion are set once for the file, each a round trip to the browser.
+beforeAll(async () => {
   await page.viewport(1280, 800);
-  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   await commands.emulateMedia({ reducedMotion: "reduce" });
+});
+afterAll(async () => {
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
+beforeEach(() => {
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
   vi.restoreAllMocks();
@@ -131,7 +156,8 @@ afterEach(async () => {
   for (const node of mounted) node.remove();
   mounted = [];
   document.documentElement.removeAttribute("dir");
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  if (narrowed) await page.viewport(1280, 800);
+  narrowed = false;
 });
 
 describe("EmojiPicker development messages", () => {
@@ -193,7 +219,7 @@ describe("EmojiPicker opening and closing", () => {
     expect(page.getByRole("dialog", { name: "Add a reaction" }).element()).toBe(popup());
     expect(popup()!.getAttribute("data-ouro-presentation")).toBe("popover");
     await userEvent.click(trigger(host));
-    await expect.poll(panel).toBeNull();
+    await closed();
     expect(trigger(host).getAttribute("aria-expanded")).toBe("false");
   });
 
@@ -239,7 +265,7 @@ describe("EmojiPicker opening and closing", () => {
     await settled();
     await expect.poll(focused).toBe(search());
     await userEvent.keyboard("{Escape}");
-    await expect.poll(panel).toBeNull();
+    await closed();
     await expect.poll(focused).toBe(trigger(host));
   });
 
@@ -251,7 +277,7 @@ describe("EmojiPicker opening and closing", () => {
   });
 
   it("is a bottom sheet below 640px, filling its width, and a popover from 640px up", async () => {
-    await page.viewport(390, 800);
+    await phone();
     await open();
     expect(popup()!.getAttribute("data-ouro")).toBe("sheet");
     expect(panel()!.className).toContain("w-full");
@@ -259,7 +285,7 @@ describe("EmojiPicker opening and closing", () => {
   });
 
   it("stays a popover on a phone with presentation popover, and falls back to it for an unknown presentation", async () => {
-    await page.viewport(390, 800);
+    await phone();
     await open({ presentation: "popover" });
     expect(popup()!.getAttribute("data-ouro")).toBe("popover");
     expect(panel()!.className).toContain("w-[21rem]");
@@ -311,17 +337,17 @@ describe("EmojiPicker opening and closing", () => {
     await userEvent.click(cell("pizza"));
     expect(chosen).toEqual(["🍕"]);
     expect(changes).toEqual([false]);
-    await expect.poll(panel).toBeNull();
+    await closed();
     await userEvent.click(host.querySelector("button")!);
     await settled();
     await userEvent.keyboard("{Escape}");
     expect(changes).toEqual([false, false]);
-    await expect.poll(panel).toBeNull();
+    await closed();
     // A press on the anchor is the app's own toggle, not an outside press.
     await userEvent.click(host.querySelector("button")!);
     await settled();
     await userEvent.click(host.querySelector("button")!);
-    await expect.poll(panel).toBeNull();
+    await closed();
     expect(changes).toEqual([false, false]);
   });
 });
@@ -389,7 +415,7 @@ describe("EmojiPicker content", () => {
     expect(selection).toEqual({ emoji: "🍕", name: "pizza", skinTone: "default", item: food[2] });
     expect((event as MouseEvent).type).toBe("click");
     expect((event as { isTrusted: boolean }).isTrusted).toBe(true);
-    await expect.poll(panel).toBeNull();
+    await closed();
     await expect.poll(focused).toBe(trigger(host));
   });
 
@@ -398,7 +424,7 @@ describe("EmojiPicker content", () => {
     await open({ quick, onSelect });
     await userEvent.click(quickCells()[2]!);
     expect(onSelect).toHaveBeenCalledWith({ emoji: "😮", name: "face with open mouth", skinTone: "default", item: smileys[7] }, expect.anything());
-    await expect.poll(panel).toBeNull();
+    await closed();
   });
 
   it("ignores a press between the emoji", async () => {
@@ -815,7 +841,7 @@ describe("EmojiPicker search", () => {
     await type("pizz");
     await userEvent.keyboard("{Enter}");
     expect(onSelect).toHaveBeenCalledWith({ emoji: "🍕", name: "pizza", skinTone: "default", item: food[2] }, expect.objectContaining({ key: "Enter" }));
-    await expect.poll(panel).toBeNull();
+    await closed();
   });
 
   it("moves from the search to the first result with Down", async () => {
@@ -966,7 +992,7 @@ describe("EmojiPicker skin tones", () => {
     await userEvent.click(toneButton()!);
     await userEvent.click(toneOptions()[1]!);
     await userEvent.click(trigger(host));
-    await expect.poll(panel).toBeNull();
+    await closed();
     await userEvent.click(trigger(host));
     await settled();
     expect(cell("thumbs up").textContent).toBe("👍🏻");
