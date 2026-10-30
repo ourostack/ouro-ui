@@ -1,0 +1,9 @@
+{
+  "order": 2640,
+  "components": ["composer"],
+  "controls": {
+    "composer": [
+      {"part": "send", "role": "button", "portal": false}
+    ]
+  }
+}
