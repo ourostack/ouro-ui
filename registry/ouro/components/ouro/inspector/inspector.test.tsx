@@ -405,12 +405,13 @@ describe("Inspector geometry", () => {
         <div data-ouro="badge" style={{ position: "fixed", left: 400, top: 100, width: 0, height: 40 }} />
         {/* No height, and nothing in it. */}
         <div data-ouro="badge" style={{ position: "fixed", left: 100, top: 400, width: 200, height: 0 }} />
-        {/* A one-pixel line, as a Separator draws, has area. */}
+        {/* A one-pixel line, as a Separator draws, across or down, has area. */}
         <div data-ouro="badge" style={{ position: "fixed", left: 100, top: 500, width: 200, height: 1 }} />
+        <div data-ouro="badge" style={{ position: "fixed", left: 500, top: 100, width: 1, height: 200 }} />
       </>,
     );
     await xray();
-    await drawn(2);
+    await drawn(3);
     const box = () => {
       const { left, top, width, height } = outlines()[0]!.getBoundingClientRect();
       return { left, top, width, height };
@@ -418,8 +419,8 @@ describe("Inspector geometry", () => {
     // From the line's top at 179 to the bottom edge, and from the region's start to its end.
     await expect.poll(box).toEqual({ left: 100, top: 179, width: 200, height: 121 });
     for (const child of host.querySelectorAll<HTMLElement>("[data-ouro] > div")) child.style.opacity = "0";
-    await expect.poll(() => outlines().length).toBe(1);
-    expect(outlines()[0]!.getBoundingClientRect()).toMatchObject({ top: 500, height: 1 });
+    await expect.poll(() => outlines().length).toBe(2);
+    expect(outlines().map((outline) => outline.getBoundingClientRect()).map(({ width, height }) => ({ width, height }))).toEqual(expect.arrayContaining([{ width: 200, height: 1 }, { width: 1, height: 200 }]));
   });
 });
 
