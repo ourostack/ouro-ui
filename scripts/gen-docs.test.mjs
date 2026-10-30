@@ -200,6 +200,23 @@ test("the catalog is grouped by job in README", async () => {
   assert.match(catalog, /- \*\*Button\*\* — A button, or a link styled as one\./);
 });
 
+test("the README's item list has one component and one helper per line, alphabetically, so pull requests that add different ones merge", () => {
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  const items = readme.split("<!-- items:start -->")[1].split("<!-- items:end -->")[0].split("\n");
+  const list = (heading) => {
+    const start = items.findIndex((line) => line.startsWith(heading)) + 1;
+    const end = items.findIndex((line, index) => index >= start && !/^`[a-z0-9-]+`,$/.test(line));
+    assert.match(items[end], /^`[a-z0-9-]+`\.$/, `${heading} ends with one name and a full stop`);
+    return items.slice(start, end + 1).map((line) => line.slice(1, line.indexOf("`", 1)));
+  };
+  for (const names of [list("Components:"), list("Helpers,")]) {
+    assert.ok(names.length > 1);
+    assert.deepEqual(names, [...names].sort());
+  }
+  assert.ok(list("Components:").includes("button"));
+  assert.ok(list("Helpers,").includes("lib-cn"));
+});
+
 test("generated docs have no timestamps", () => {
   // Example dates in code (Calendar's `value="2026-10-11"`) are not timestamps; prose must have none.
   // Guides are authored separately; a comparison's cohort dates are provenance, not build timestamps.
