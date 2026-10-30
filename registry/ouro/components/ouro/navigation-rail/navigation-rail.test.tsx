@@ -142,7 +142,8 @@ describe("NavigationRail", () => {
   ])("marks the item that owns %s", async (path, expected) => {
     const { items: links } = await render(<NavigationRail label="Main" items={items} currentPath={path} />);
     expect(currentLabels(links)).toEqual(expected ? [expected] : []);
-    for (const link of links) expect(link.getAttribute("data-selected")).toBe(labelOf(link) === expected ? "" : null);
+    // shadcn/tailwind.css, which shadcn init imports, redefines data-selected: as [data-selected="true"].
+    for (const link of links) expect(link.getAttribute("data-selected")).toBe(labelOf(link) === expected ? "true" : null);
   });
 
   it("lets an item's current flag win over the path", async () => {
@@ -595,23 +596,32 @@ describe("NavigationRail motion", () => {
     }
   });
 
-  it("eases a button item's colour and grows its bar when it becomes current", async () => {
-    const views = (current: string): NavigationRailEntry[] => ["Chat", "Calendar"].map((label) => ({ label, icon: icon(label), onClick: () => {}, current: label === current }));
+  it("eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases", async () => {
+    const views = (current: string): NavigationRailEntry[] => ["Chat", "Calendar", "Files"].map((label) => ({ label, icon: icon(label), onClick: () => {}, current: label === current }));
     const { root, items: buttons } = await render(<NavigationRail label="Main" items={views("Chat")} />);
-    const bar = buttons[1]!.querySelector<HTMLElement>('[data-ouro-part="indicator"]')!;
-    void getComputedStyle(buttons[1]!).color;
-    void getComputedStyle(bar).scale;
-    flushSync(() =>
-      root.render(
-        <OuroProvider linkComponent={StayLink}>
-          <NavigationRail label="Main" items={views("Calendar")} />
-        </OuroProvider>,
-      ),
-    );
-    await Promise.all([
-      expectMotion(buttons[1]!, { stem: "navigation-rail", state: "data-selected", properties: { color: token("--ouro-duration-fast") }, reduced: false }),
-      expectMotion(bar, { stem: "navigation-rail", state: "data-selected", properties: { opacity: token("--ouro-duration-base"), scale: token("--ouro-duration-base") }, reduced: false }),
-    ]);
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      const button = buttons[reduced ? 2 : 1]!;
+      const bar = button.querySelector<HTMLElement>('[data-ouro-part="indicator"]')!;
+      void getComputedStyle(button).color;
+      void getComputedStyle(bar).scale;
+      flushSync(() =>
+        root.render(
+          <OuroProvider linkComponent={StayLink}>
+            <NavigationRail label="Main" items={views(reduced ? "Files" : "Calendar")} />
+          </OuroProvider>,
+        ),
+      );
+      await Promise.all([
+        expectMotion(button, { stem: "navigation-rail", state: "data-selected", properties: { color: token("--ouro-duration-fast") }, reduced }),
+        expectMotion(bar, {
+          stem: "navigation-rail",
+          state: "data-selected",
+          properties: reduced ? { opacity: token("--ouro-duration-fast") } : { opacity: token("--ouro-duration-base"), scale: token("--ouro-duration-base") },
+          reduced,
+        }),
+      ]);
+    }
   });
 });
 

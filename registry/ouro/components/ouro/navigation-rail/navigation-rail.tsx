@@ -452,7 +452,8 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
           const shared = {
             "aria-current": isCurrent ? ("page" as const) : undefined,
             "aria-label": named(entry.label, count),
-            "data-selected": isCurrent ? "" : undefined,
+            // "true", the only form shadcn's data-selected variant matches; Tailwind's matches any.
+            "data-selected": isCurrent ? "true" : undefined,
             "data-ouro-navigation-rail-stop": key,
             tabIndex: key === stop ? 0 : -1,
             onFocus: () => setFocused(key),

@@ -20,7 +20,7 @@
           },
           "tests": [
             "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
-            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current"
+            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases"
           ]
         }
       }
