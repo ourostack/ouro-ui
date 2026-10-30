@@ -119,7 +119,7 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  scrollTo(0, 0);
+  scrollTo({ top: 0, behavior: "instant" });
   await page.viewport(414, 896);
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
@@ -1081,7 +1081,8 @@ describe("Inspector", () => {
     expect(stroke(other).strokeWidth).toBe("1px");
     expect(stroke(spotlit()[0]!).stroke).not.toBe(stroke(other).stroke);
     // Scrolling on does not bring it back, nor does a change to the page.
-    scrollTo(0, 0);
+    // Instant even where the app scrolls smoothly, so the check below reads where the page stays.
+    scrollTo({ top: 0, behavior: "instant" });
     await rerender(<Far spotlight="badge" extra={<Checkbox label="Added" />} />);
     await drawn(4);
     expect(into).toHaveBeenCalledTimes(1);
