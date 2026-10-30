@@ -32,7 +32,15 @@ expectTypeOf<{
   onIndexChange: (index: number) => void;
 }>().toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void }>().toExtend<LightboxProps>();
-// open needs onOpenChange; index and onOpenChange need open; a controlled Lightbox takes no className.
+expectTypeOf<{
+  label: "Kitchen photos";
+  images: typeof images;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  returnFocus: (index: number) => HTMLButtonElement | null;
+}>().toExtend<LightboxProps>();
+// open needs onOpenChange; index, onOpenChange and returnFocus need open; a controlled Lightbox takes no className.
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; returnFocus: (index: number) => HTMLElement }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; index: 1 }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; onOpenChange: (open: boolean) => void }>().not.toExtend<LightboxProps>();

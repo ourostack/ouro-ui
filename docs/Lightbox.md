@@ -2,7 +2,7 @@
 
 # Lightbox
 
-Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe; the new position is announced politely, once. Escape, Close or a press outside closes it, and focus goes back to the thumbnail that opened it. The viewer grows from that thumbnail and slides between images; with reduced motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
+Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home or End; the new position is announced politely, once. Escape, Close or a press outside closes it, and focus goes to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and slides between images; with reduced motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
 
 ```tsx
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
@@ -30,7 +30,7 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 ## Usage
 
-To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it.
+To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to the element `returnFocus` gives for the image last shown, such as its thumbnail.
 
 ## Use instead when
 
@@ -65,7 +65,8 @@ A controlled Lightbox: the viewer alone, which you open from thumbnails you lay 
 | --- | --- | --- | --- |
 | `index` | `number` | `0` | The image the viewer shows, by its place in `images`. It opens on it, and moves to it when you change it while open; update it in `onIndexChange` to follow the user. |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user closes the viewer (Close, Escape, a press outside). |
-| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already open after a press or a key appears and leaves without its transitions, and says so in development. |
+| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, unless `returnFocus` gives another element, and the viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already open after a press or a key appears and leaves without its transitions, and says so in development. |
+| `returnFocus` | `((index: number) => HTMLElement \| null \| undefined)` |  | Where focus goes as the viewer closes, given the index of the image last shown: return that image's thumbnail in your layout, so the user is back where they were looking. Return nothing to give focus back to what had it when the viewer opened. |
 
 Not in this mode (typed `never`):
 
@@ -84,6 +85,7 @@ Not in this mode (typed `never`):
 - `index`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
 - `onOpenChange`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
 - `open`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
+- `returnFocus`: Not with thumbnails: focus goes to the thumbnail of the image last shown.
 
 ## Don't use
 

@@ -157,7 +157,7 @@ describe("Lightbox zoom", () => {
     expect(popup()!.querySelectorAll("[data-ouro-lightbox-zoom-view]")).toHaveLength(1);
     expect(zoomButton()!.getAttribute("aria-pressed")).toBe("true");
     expect(icon()).toBe("M5 7h4M10.5 10.5L14 14");
-    expect(figure().hasAttribute("data-zoomed")).toBe(true);
+    expect(figure().getAttribute("data-zoomed")).toBe("");
     const zoomedImage = scroller.querySelector("img")!;
     expect(zoomedImage.offsetWidth).toBeCloseTo(1600, -1);
     expect(zoomedImage.alt).toBe("A wide dashboard screenshot");
@@ -196,27 +196,47 @@ describe("Lightbox zoom", () => {
     tap(x, y);
     tap(x, y);
     await expect.poll(() => view()).toBeNull();
+    // Taps that drift up to 24px, and land up to 24px apart, still make a double-tap.
+    tap(x, y, { from: [x, y - 24] });
+    tap(x + 24, y, { from: [x + 24, y + 24] });
+    await expect.poll(() => view()).not.toBeNull();
   });
 
   it("takes no slow, distant, dragged or second-finger tap for a double-tap", async () => {
     await open([wide]);
     await expect.poll(zoomButton).not.toBeNull();
     const [x, y] = onPicture(0.5, 0.5);
+    // Each pair waits for React to draw a zoom it should not have made.
+    const unzoomed = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(view()).toBeNull();
+    };
     tap(x, y);
     await new Promise((resolve) => setTimeout(resolve, 350));
     tap(x, y);
+    await unzoomed();
     tap(x + 40, y);
+    await unzoomed();
     // Dragged 40px, ending where the tap before it was.
     tap(x + 40, y, { from: [x + 40, y - 40] });
+    await unzoomed();
     tap(x, y);
     tap(x, y, { primary: false });
+    await unzoomed();
+    // A press that began off the picture is no tap, and breaks nothing.
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => errors.push(event.error);
+    addEventListener("error", onError);
     tap(x, y);
     figure().dispatchEvent(new PointerEvent("pointerup", { bubbles: true, isPrimary: true, clientX: x, clientY: y }));
+    removeEventListener("error", onError);
+    expect(errors).toEqual([]);
     tap(x, y);
+    await unzoomed();
     // A second finger landing between two taps makes them a pinch's.
     fittedImage().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: false, clientX: x, clientY: y }));
     tap(x, y);
-    expect(view()).toBeNull();
+    await unzoomed();
   });
 
   it("zooms nothing on a double-tap at an image drawn nearly at its own size", async () => {
@@ -227,7 +247,56 @@ describe("Lightbox zoom", () => {
     const [x, y] = onPicture(0.5, 0.5, 1);
     tap(x, y, { index: 1 });
     tap(x, y, { index: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(view(1)).toBeNull();
+  });
+
+  it("listens once on each image, and lets go of everything as it closes", async () => {
+    const added: [EventTarget, string, unknown][] = [];
+    const removed: [EventTarget, string, unknown][] = [];
+    const { addEventListener: add, removeEventListener: remove } = EventTarget.prototype;
+    vi.spyOn(EventTarget.prototype, "addEventListener").mockImplementation(function (this: EventTarget, type, listener, options) {
+      added.push([this, type, listener]);
+      add.call(this, type, listener, options);
+    });
+    vi.spyOn(EventTarget.prototype, "removeEventListener").mockImplementation(function (this: EventTarget, type, listener, options) {
+      removed.push([this, type, listener]);
+      remove.call(this, type, listener, options);
+    });
+    const observed = new Map<ResizeObserver, Element>();
+    const { observe } = ResizeObserver.prototype;
+    vi.spyOn(ResizeObserver.prototype, "observe").mockImplementation(function (this: ResizeObserver, target, options) {
+      observed.set(this, target);
+      observe.call(this, target, options);
+    });
+    const disconnected = new Set<ResizeObserver>();
+    const { disconnect } = ResizeObserver.prototype;
+    vi.spyOn(ResizeObserver.prototype, "disconnect").mockImplementation(function (this: ResizeObserver) {
+      disconnected.add(this);
+      disconnect.call(this);
+    });
+    await open([wide, { ...wide, alt: "Another wide screenshot" }]);
+    await expect.poll(zoomButton).not.toBeNull();
+    const figures = [figure(0), figure(1)];
+    const pictures = [fittedImage(0), fittedImage(1)];
+    const on = (target: EventTarget) => added.filter(([at]) => at === target).map(([, type]) => type);
+    for (const node of figures) expect(on(node)).toEqual(["touchstart", "touchmove", "touchend", "touchcancel"]);
+    for (const node of pictures) expect(on(node)).toContain("load");
+    const listening = [...figures, ...pictures].map(on);
+    // Zoomed and back, so each image draws again, and listens no more than it did.
+    await userEvent.click(zoomButton()!);
+    await userEvent.click(zoomButton()!);
+    expect([...figures, ...pictures].map(on)).toEqual(listening);
+    const watching = [...observed].filter(([, target]) => pictures.includes(target as HTMLImageElement)).map(([observer]) => observer);
+    expect(watching).toHaveLength(2);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    // Every touch listener goes, and each image's load listener (React's own stays with the image).
+    const touches = added.filter(([at]) => figures.includes(at as HTMLElement));
+    expect(touches).toHaveLength(8);
+    for (const [at, type, listener] of touches) expect(removed.some((entry) => entry[0] === at && entry[1] === type && entry[2] === listener), type).toBe(true);
+    for (const node of pictures) expect(removed.filter(([at, type]) => at === node && type === "load")).toHaveLength(1);
+    for (const observer of watching) expect(disconnected.has(observer)).toBe(true);
   });
 
   it("draws the next image fitted, and the zoomed one fitted again on return", async () => {
@@ -283,10 +352,34 @@ describe("Lightbox pinch", () => {
     // Never past the image's own size, and never smaller than fitted.
     touch("touchmove", target, fingers(x, y, 5000));
     await expect.poll(() => zoomedImage()?.offsetWidth).toBe(1200);
+    // Taller than the screen now: the point between the fingers holds still up and down too.
+    const tall = zoomedImage()!.getBoundingClientRect();
+    expect(tall.height).toBeGreaterThan(view()!.clientHeight);
+    expect((y - tall.top) / tall.height).toBeCloseTo(0.5, 2);
     touch("touchmove", target, fingers(x, y, 10));
     await expect.poll(() => zoomedImage()).toBeNull();
     touch("touchend", target, []);
     expect(position()).toBe("1 of 3");
+  });
+
+  chromiumOnly("pinches on from where a zoomed image was moved to, holding the point between the fingers", async () => {
+    await open(photos);
+    const box = fittedImage().getBoundingClientRect();
+    const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+    touch("touchstart", fittedImage(), fingers(x, y, 100));
+    touch("touchmove", fittedImage(), fingers(x, y, 200));
+    touch("touchend", fittedImage(), []);
+    await expect.poll(() => zoomedImage()).not.toBeNull();
+    // Moved along, so the point between the fingers is no longer the fitted picture's.
+    view()!.scrollLeft += 100;
+    const before = zoomedImage()!.getBoundingClientRect();
+    const at = (x - before.left) / before.width;
+    expect(at).not.toBeCloseTo(0.5, 1);
+    touch("touchstart", view()!, fingers(x, y, 100));
+    touch("touchmove", view()!, fingers(x, y, 125));
+    await expect.poll(() => zoomedImage()!.offsetWidth).toBeCloseTo(before.width * 1.25, -1);
+    const after = zoomedImage()!.getBoundingClientRect();
+    expect((x - after.left) / after.width).toBeCloseTo(at, 2);
   });
 
   chromiumOnly("settles a pinch that ends nearly fitted, keeps one that ends zoomed, and pinches on from there", async () => {
@@ -310,18 +403,37 @@ describe("Lightbox pinch", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(zoomedImage()).not.toBeNull();
     const width = zoomedImage()!.offsetWidth;
-    // A third finger lifting leaves the pinch going; a cancelled touch ends it.
+    // A third finger lifting leaves the pinch going, and three fingers moving are no pinch; a
+    // cancelled touch ends it.
     touch("touchstart", target, fingers(x, y, 100));
     touch("touchend", target, fingers(x, y, 100));
     touch("touchmove", target, fingers(x, y, 150));
     await expect.poll(() => zoomedImage()?.offsetWidth).toBeCloseTo(width * 1.5, -1);
+    expect(touch("touchmove", target, [...fingers(x, y, 300), [x, y + 50]]).defaultPrevented).toBe(false);
     touch("touchcancel", target, []);
     expect(touch("touchmove", target, fingers(x, y, 300)).defaultPrevented).toBe(false);
+    // One finger lifting ends a pinch too, settling one that ends nearly fitted.
+    touch("touchstart", target, fingers(x, y, 100));
+    touch("touchmove", target, fingers(x, y, 10));
+    await expect.poll(() => zoomedImage()).toBeNull();
+    touch("touchend", target, []);
+    touch("touchstart", target, fingers(x, y, 100));
+    touch("touchmove", target, fingers(x, y, 103));
+    await expect.poll(() => zoomedImage()).not.toBeNull();
+    touch("touchend", target, [[x, y]]);
+    await expect.poll(() => zoomedImage()).toBeNull();
   });
 
   chromiumOnly("leaves one finger's moves, and a pinch on an image at its own size, to the browser", async () => {
-    await open([small, ...photos]);
-    const drawn = fittedImage();
+    await open([photos[0]!, small]);
+    // A finger on a picture that can zoom.
+    const corner = fittedImage().getBoundingClientRect();
+    touch("touchstart", fittedImage(), [[corner.left + 50, corner.top + 50]]);
+    expect(touch("touchmove", fittedImage(), [[corner.left + 80, corner.top + 50]]).defaultPrevented).toBe(false);
+    touch("touchend", fittedImage(), []);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("2 of 2");
+    const drawn = fittedImage(1);
     expect(drawn.offsetWidth).toBe(200);
     const box = drawn.getBoundingClientRect();
     const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
@@ -331,6 +443,6 @@ describe("Lightbox pinch", () => {
     touch("touchstart", drawn, fingers(x, y, 40));
     expect(touch("touchmove", drawn, fingers(x, y, 80)).defaultPrevented).toBe(false);
     touch("touchend", drawn, []);
-    expect(zoomedImage()).toBeNull();
+    expect(view(1)).toBeNull();
   });
 });
