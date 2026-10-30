@@ -6,19 +6,19 @@
 
 /**
  * The home page's "two ships" section: the Nautilus, the story built to show Ouro HX off, and
- * Spoonjoy, a real app built with it. The three headings are proposals awaiting Ari's approval.
+ * Spoonjoy, a real app built with it. Ari approved the headings on 2026-10-30.
  */
 export const TWO_SHIPS = {
   eyebrow: "Built with Ouro HX",
   title: "Two ships, same parts.",
   nautilus: {
-    title: "The Nautilus: built to show off.",
+    title: "The Nautilus: built for the story.",
     body: "Captain Nemo is building a submarine in secret. Help him finish it, with controls built from Ouro HX.",
     open: "Come aboard",
     xray: "X-ray it",
   },
   spoonjoy: {
-    title: "Spoonjoy: built to ship.",
+    title: "Spoonjoy: built for dinner.",
     /** Before and after the component count, which is a claim (site.test.tsx compares it with spoonjoy.json). */
     body: ["A real recipe app, in its own look, built with", "."],
     open: "Try the Test Kitchen",
