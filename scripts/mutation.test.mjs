@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, inScope, shardUnits, splitRange, unitChanges, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, inScope, mutationRunners, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
-import { ignoreReason, isClassList, testPhases } from "./mutation/plugins.mjs";
+import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
 import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, scopeReport, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
@@ -423,4 +423,72 @@ test("shardUnits makes each changed range of runtime source a unit of its own, w
   assert.ok(units["registry/ouro/components/ouro/sheet/sheet-parts.tsx:216-216"].mutants > 0);
   // Back to the changed lines Stryker mutates, by file.
   assert.deepEqual(unitChanges(["registry/ouro/components/ouro/sheet/sheet-parts.tsx:438-439"], units), { "registry/ouro/components/ouro/sheet/sheet-parts.tsx": [[438, 439]] });
+});
+
+test("splitRange cuts inside one long node once a part has gathered the long limit with no clean cut, and the nodes it crosses make a spanning unit", () => {
+  const text = ["function big(a) {", "  const b = a > 1 && a < 9;", "  const c = a > 2 || a < 8;", "  const d = a >= 3 && !a;", "  return [b, c, d];", "}"].join("\n");
+  // The function's body spans the range, so below the long limit nothing is cut.
+  assert.deepEqual(splitRange(text, "f.tsx", [1, 6], 2), [[1, 6]]);
+  // Past it, the body is cut at its statements; once the cut is made, the body no longer holds the next part back.
+  const parts = splitRange(text, "f.tsx", [1, 6], 2, 4);
+  assert.deepEqual(parts, [[1, 2], [3, 3], [4, 4], [5, 6]]);
+  // Only the body's own mutant crosses a cut.
+  assert.equal(spanningMutants(text, "f.tsx", [1, 6], parts), 1);
+  assert.equal(spanningMutants(text, "f.tsx", [1, 6], [[1, 6]]), null);
+});
+
+test("shardUnits adds a spanning unit for a range cut across a node, and unitExclusions leaves its parts to the shards that hold them", () => {
+  const file = "registry/ouro/components/ouro/big/big.tsx";
+  const body = Array.from({ length: 40 }, (_, index) => `  const v${index} = a > ${index} && a < ${index + 9};`);
+  const text = ["export function big(a) {", ...body, "  return a;", "}"].join("\n");
+  const units = shardUnits({ [file]: [[1, 43]] }, { read: () => text, testsFor: () => ({ own: ["big.test.tsx"], wider: [] }) });
+  const spanning = units[`${file}:1-43`];
+  assert.ok(spanning, "a spanning unit keyed by the whole range");
+  assert.ok(spanning.parts.length > 1);
+  assert.deepEqual(spanning.own, ["big.test.tsx"]);
+  const partIds = spanning.parts.map(([start, end]) => `${file}:${start}-${end}`);
+  for (const id of partIds) assert.ok(units[id], id);
+  // Alone, the spanning unit leaves every part out; with one part beside it, that part stays in.
+  assert.deepEqual(unitExclusions([`${file}:1-43`], units), { [file]: spanning.parts });
+  assert.deepEqual(unitExclusions([`${file}:1-43`, partIds[0]], units), { [file]: spanning.parts.slice(1) });
+  assert.deepEqual(unitExclusions(partIds, units), {});
+  assert.deepEqual(unitChanges([`${file}:1-43`], units), { [file]: [[1, 43]] });
+});
+
+test("scopeReport and inScope drop the mutants of lines another shard owns, so a spanning unit reports only its own", () => {
+  const file = "registry/ouro/components/ouro/big/big.tsx";
+  const at = (start, end) => ({ start: { line: start, column: 1 }, end: { line: end, column: 2 } });
+  const report = { files: { [file]: { mutants: [{ id: "0", location: at(1, 43), status: "Killed" }, { id: "1", location: at(5, 5), status: "Ignored" }] } } };
+  const scoped = scopeReport(report, { [file]: [[1, 43]] }, { [file]: [[2, 10]] });
+  assert.deepEqual(scoped.files[file].mutants.map((mutant) => mutant.id), ["0"]);
+  assert.ok(inScope({ fileName: file, location: at(1, 43) }, { [file]: [[1, 43]] }, { [file]: [[2, 10]] }));
+  assert.ok(!inScope({ fileName: file, location: at(5, 5) }, { [file]: [[1, 43]] }, { [file]: [[2, 10]] }));
+});
+
+test("the parts ignorer leaves out a node wholly in another shard's lines of the same file, by Stryker's absolute file name", () => {
+  const file = "registry/ouro/components/ouro/big/big.tsx";
+  const node = (filename, start, end) => ({ hub: { file: { opts: { filename } } }, node: { loc: { start: { line: start }, end: { line: end } } } });
+  const excluded = { [file]: [[2, 10]] };
+  assert.ok(inOtherShard(node(`/work/ouro-ui/${file}`, 3, 4), excluded));
+  assert.ok(inOtherShard(node(file, 2, 10), excluded));
+  assert.ok(!inOtherShard(node(`/work/ouro-ui/${file}`, 1, 43), excluded), "a node that crosses the part is the spanning unit's");
+  assert.ok(!inOtherShard(node("/work/ouro-ui/registry/ouro/components/ouro/other/big.tsx", 3, 4), excluded), "another file");
+  assert.ok(!inOtherShard({ node: { loc: { start: { line: 3 }, end: { line: 4 } } } }, excluded), "no file name");
+  assert.ok(!inOtherShard(node(file, 3, 4), {}));
+  const before = process.env["OURO_MUTATION_EXCLUDED"];
+  try {
+    process.env["OURO_MUTATION_EXCLUDED"] = JSON.stringify(excluded);
+    assert.match(ignoreReason({ ...node(file, 3, 4), isStringLiteral: () => false, isTemplateLiteral: () => false, parentPath: null }), /another shard/);
+  } finally {
+    if (before === undefined) delete process.env["OURO_MUTATION_EXCLUDED"];
+    else process.env["OURO_MUTATION_EXCLUDED"] = before;
+  }
+});
+
+test("mutationRunners starts two test runners on four cores or more, one below, and takes an override", () => {
+  assert.equal(mutationRunners(4, undefined), 2);
+  assert.equal(mutationRunners(12, ""), 2);
+  assert.equal(mutationRunners(2, undefined), 1);
+  assert.equal(mutationRunners(4, "3"), 3);
+  assert.equal(mutationRunners(4, "0"), 1);
 });

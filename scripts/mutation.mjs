@@ -14,6 +14,7 @@ import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, runtimeSource, scopeReport, shardCost, testFilesFor, testSeconds } from "./mutation/cache.mjs";
@@ -90,12 +91,15 @@ export function estimateMutants(text, path, ranges) {
 export const UNIT_MUTANTS = 8;
 
 /**
- * A changed range (1-based, inclusive) cut into parts of about `most` estimated mutants each, so
- * one long range of slow mutants spreads across shards. Stryker mutates a node only when one range
- * holds all of its lines, so the range is cut only after a line that no node in it runs past: not
- * a mutable one, nor a statement or call (a call's mutants span all of it), nor a function's body.
+ * The mutants a part may gather inside one node, such as a component's function body, before the
+ * range is cut inside that node anyway (`splitRange`): one long body of slow mutants must not
+ * leave one shard running long after the others. The mutants of a node a cut crosses go to the
+ * range's spanning unit (`shardUnits`).
  */
-export function splitRange(text, path, range, most = UNIT_MUTANTS) {
+export const LONG_UNIT_MUTANTS = 32;
+
+/** The nodes that lie wholly in a range (1-based, inclusive), each with whether it counts as a mutant (`estimateMutants`). */
+function nodesIn(text, path, range) {
   const ast = parse(text, { sourceType: "module", sourceFilename: path, errorRecovery: true, plugins: ["typescript", "jsx"] });
   const nodes = [];
   (traverse.default ?? traverse)(ast, {
@@ -106,6 +110,20 @@ export function splitRange(text, path, range, most = UNIT_MUTANTS) {
       nodes.push({ start: start.line, end: end.line, counts });
     },
   });
+  return nodes;
+}
+
+/**
+ * A changed range (1-based, inclusive) cut into parts of about `most` estimated mutants each, so
+ * one long range of slow mutants spreads across shards. Stryker mutates a node only when one range
+ * holds all of its lines, so the range is cut only after a line that no node begun in the part runs
+ * past: not a mutable one, nor a statement or call (a call's mutants span all of it), nor a
+ * function's body; unless the part has gathered `long` mutants without such a line, as in one
+ * long component body, which is then cut where it has reached them. The nodes such a cut crosses
+ * are mutated by the range's spanning unit (`spanningMutants`, `shardUnits`).
+ */
+export function splitRange(text, path, range, most = UNIT_MUTANTS, long = LONG_UNIT_MUTANTS) {
+  const nodes = nodesIn(text, path, range);
   const parts = [];
   let from = range[0];
   let count = 0;
@@ -116,21 +134,37 @@ export function splitRange(text, path, range, most = UNIT_MUTANTS) {
       if (node.counts) count += 1;
       reach = Math.max(reach, node.end);
     }
-    if (count >= most && reach <= line) {
+    if (count >= most && (reach <= line || count >= long)) {
       parts.push([from, line]);
       from = line + 1;
       count = 0;
+      reach = 0;
     }
   }
   parts.push([from, range[1]]);
   return parts;
 }
 
+/** Whether a node's lines lie wholly in one of `parts`. */
+const withinOne = (node, parts) => parts.some(([start, end]) => node.start >= start && node.end <= end);
+
+/**
+ * About how many mutants Stryker makes of a range's nodes that no one of its `parts` holds whole,
+ * which none of the parts' units mutate; null when every node lies in one part, as after cuts
+ * that cross no node.
+ */
+export function spanningMutants(text, path, range, parts) {
+  const spanning = nodesIn(text, path, range).filter((node) => !withinOne(node, parts));
+  return spanning.length === 0 ? null : spanning.filter((node) => node.counts).length;
+}
+
 /**
  * The units the CI shards share out: each changed range of runtime source, a long one cut into
  * parts (`splitRange`), with its estimated mutants and its file's tests (`own`, `wider`), keyed as
  * Stryker names it (`path:start-end`). A range, not a file, so one file with many slow mutants
- * (Sheet's parts, the Toaster's announcer) spreads across shards.
+ * (Sheet's parts, the Toaster's announcer) spreads across shards. A range cut across a node also
+ * makes a spanning unit, keyed by the whole range, with its `parts`: it mutates the whole range
+ * except what lies wholly in a part (`unitExclusions`), so each mutant runs in exactly one unit.
  */
 export function shardUnits(changed, { read = (path) => readFileSync(join(root, path), "utf8"), testsFor = (path) => testFilesFor([path]) } = {}) {
   const units = {};
@@ -139,7 +173,10 @@ export function shardUnits(changed, { read = (path) => readFileSync(join(root, p
     const text = read(path);
     const tests = testsFor(path);
     for (const range of ranges) {
-      for (const part of splitRange(text, path, range)) units[`${path}:${part[0]}-${part[1]}`] = { path, range: part, mutants: estimateMutants(text, path, [part]), ...tests };
+      const parts = splitRange(text, path, range);
+      for (const part of parts) units[`${path}:${part[0]}-${part[1]}`] = { path, range: part, mutants: estimateMutants(text, path, [part]), ...tests };
+      const spanning = parts.length > 1 ? spanningMutants(text, path, range, parts) : null;
+      if (spanning !== null) units[`${path}:${range[0]}-${range[1]}`] = { path, range, parts, mutants: spanning, ...tests };
     }
   }
   return units;
@@ -150,6 +187,22 @@ export function unitChanges(ids, units) {
   const changes = {};
   for (const id of ids) (changes[units[id].path] ??= []).push(units[id].range);
   return changes;
+}
+
+/**
+ * The lines, by file, that the chosen spanning units' ranges hold but other units own: the parts
+ * of their ranges that are not among `ids`. A mutant that lies wholly in one of them is another
+ * shard's, so this run leaves it out (the `ouro-parts` reason in scripts/mutation/plugins.mjs) and
+ * does not report it (`scopeReport`).
+ */
+export function unitExclusions(ids, units) {
+  const chosen = new Set(ids);
+  const excluded = {};
+  for (const id of ids) {
+    const { path, parts } = units[id];
+    for (const part of parts ?? []) if (!chosen.has(`${path}:${part[0]}-${part[1]}`)) (excluded[path] ??= []).push(part);
+  }
+  return excluded;
 }
 
 /** `--shard 2/3` as a 1-based index and a count; null without one. */
@@ -261,6 +314,7 @@ async function main(args) {
   if (diff.status !== 0) throw new Error(`git diff failed: ${diff.stderr}`);
   const changed = changedLines(diff.stdout);
   let changes = changed;
+  let excluded = {};
   if (shard) {
     const seconds = testSeconds();
     const units = shardUnits(changed);
@@ -271,6 +325,7 @@ async function main(args) {
         .join("\n")}`,
     );
     changes = unitChanges(shards[shard.index - 1], units);
+    excluded = unitExclusions(shards[shard.index - 1], units);
   }
   const mutate = mutateRanges(changes);
   if (mutate.length === 0) {
@@ -284,6 +339,7 @@ async function main(args) {
       .join("\n")}`,
   );
   process.env["OURO_MUTATION_TESTS"] = JSON.stringify(testsByFile);
+  process.env["OURO_MUTATION_EXCLUDED"] = JSON.stringify(excluded);
   const incrementalFile = join(root, ".tmp/stryker-incremental.json");
   const kept = existsSync(incrementalFile) ? JSON.parse(readFileSync(incrementalFile, "utf8")) : null;
   // Every runtime file the pull request changes, a deletion-only change too: what pruneChangedFiles
@@ -301,7 +357,7 @@ async function main(args) {
     // Stryker touches only the files it mutates: no `// @ts-nocheck` written into the rest.
     ignorePatterns: ["**", ...Object.keys(changes).filter(runtimeSource).map((path) => `!${path}`)],
     disableTypeChecks: false,
-    concurrency: 1,
+    concurrency: mutationRunners(),
     reporters: ["clear-text", "progress"],
     clearTextReporter: { reportTests: false, reportMutants: false, reportScoreTable: true },
     tempDirName: ".tmp/stryker",
@@ -320,9 +376,9 @@ async function main(args) {
   } finally {
     // What this run owns, alone: Stryker also writes every kept mutant it did not run, with the
     // status it had, which another shard's fresh result must not meet in the merge.
-    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(recordSources(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes), changedFiles)));
+    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(recordSources(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes, excluded), changedFiles)));
   }
-  results = results.filter((mutant) => inScope(mutant, changes));
+  results = results.filter((mutant) => inScope(mutant, changes, excluded));
   const surviving = survivors(results);
   if (surviving.length === 0) {
     console.log(`Every one of ${results.filter((mutant) => mutant.status !== "Ignored").length} mutants in the changed lines failed a test.`);
@@ -334,10 +390,21 @@ async function main(args) {
   return 1;
 }
 
-/** Whether Stryker's result for a mutant lies in the changed ranges this run mutated (its file name may be absolute). */
-export function inScope(mutant, changes) {
+/**
+ * How many test runners Stryker starts side by side, each its own Vitest and Chromium: two on a
+ * machine with four or more cores (CI's runners have four), so a shard's mutants take about half
+ * the time, and one on a smaller one, where two would slow each other past the mutant timeout.
+ * `OURO_MUTATION_RUNNERS` overrides it.
+ */
+export function mutationRunners(cores = availableParallelism(), override = process.env["OURO_MUTATION_RUNNERS"]) {
+  if (override !== undefined && override !== "") return Math.max(1, Number.parseInt(override, 10) || 1);
+  return cores >= 4 ? 2 : 1;
+}
+
+/** Whether Stryker's result for a mutant lies in the changed ranges this run mutated, outside the lines other shards own (its file name may be absolute). */
+export function inScope(mutant, changes, excluded = {}) {
   const path = relative(root, resolvePath(root, mutant.fileName)).split("\\").join("/");
-  return Object.keys(scopeReport({ files: { [path]: { mutants: [mutant] } } }, changes).files).length > 0;
+  return Object.keys(scopeReport({ files: { [path]: { mutants: [mutant] } } }, changes, excluded).files).length > 0;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) process.exitCode = await main(process.argv.slice(2));

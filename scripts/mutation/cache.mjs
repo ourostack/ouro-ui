@@ -209,13 +209,16 @@ const undetected = ({ status }) => status === "Survived" || status === "NoCovera
  * A shard's incremental report cut to the mutants inside its own ranges (`changes`: path to
  * 1-based line ranges, as `mutateRanges` gives Stryker, which takes a mutant inside a range only
  * when it lies wholly within it). Stryker writes into the report every mutant it was not asked to
- * run as well, with the status it last had: stale in another shard's report.
+ * run as well, with the status it last had: stale in another shard's report. A mutant wholly in
+ * one of the `excluded` lines (`unitExclusions` in scripts/mutation.mjs) is another shard's too:
+ * this run left it out, as Ignored.
  */
-export function scopeReport(report, changes) {
+export function scopeReport(report, changes, excluded = {}) {
   const files = {};
+  const within = (location, ranges) => ranges.some(([start, end]) => location.start.line >= start && location.end.line <= end);
   for (const [path, file] of Object.entries(report.files ?? {})) {
     const ranges = changes[path] ?? [];
-    const mutants = file.mutants.filter(({ location }) => location && ranges.some(([start, end]) => location.start.line >= start && location.end.line <= end));
+    const mutants = file.mutants.filter(({ location }) => location && within(location, ranges) && !within(location, excluded[path] ?? []));
     if (mutants.length > 0) files[path] = { ...file, mutants };
   }
   return { ...report, files };
