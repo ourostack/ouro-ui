@@ -364,9 +364,10 @@ export function Sidebar(props: SidebarProps): JSX.Element {
   /** The sections as lists: in the column (`rail` when collapsed) or in the drawer. */
   const renderSections = (place: string, rail: boolean, onNavigate?: () => void) =>
     sections.map((section, index) => (
-      <div key={index} className="grid gap-1">
+      // A rule above every section after the first, so a section's label reads as the start of a group.
+      <div key={index} className={cn("grid gap-1", index > 0 && "border-0 border-t border-solid border-border pt-4")}>
         {section.label !== undefined && (
-          <p id={`${id}${place}${index}`} className={rail ? "sr-only" : "m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground"}>
+          <p id={`${id}${place}${index}`} className={rail ? "sr-only" : "m-0 px-3 py-1 text-sm leading-5 font-semibold text-foreground"}>
             {section.label}
           </p>
         )}
@@ -470,7 +471,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       {wide && (
         <nav aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
           {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden px-3 py-2">{header}</div>}
-          <div data-ouro-sidebar-scroll="" className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto overscroll-contain p-2">
+          <div data-ouro-sidebar-scroll="" className="grid min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain p-2">
             {renderSections("c", collapsed)}
           </div>
           {collapsible && (
@@ -494,7 +495,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       <SheetFrame title={menuLabel} hideTitle={header !== undefined} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
         <div className="grid gap-4">
           {header !== undefined && <div className="flex min-h-11 items-center px-3">{header}</div>}
-          <nav aria-label={label} className="grid gap-4">
+          <nav aria-label={label} className="grid gap-6">
             {renderSections("d", false, () => setOpen(false))}
           </nav>
           {footer !== undefined && <div className="flex min-h-11 items-center border-0 border-t border-solid border-border px-3 pt-4">{footer}</div>}

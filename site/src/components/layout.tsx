@@ -1,13 +1,8 @@
 import type { JSX, ReactNode } from "react";
-import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { docsItems, GITHUB } from "../docs/items";
-import pageIndex from "../docs/page-index.json";
+import { GITHUB } from "../docs/items";
 import { href } from "../routes";
 import { HxLogo } from "./brand";
-import { MenuIcon } from "./icons";
-import { Popups, PopupsProvider } from "./popups";
 
 export const STORYBOOK = "https://ui.ouro.bot/storybook/";
 
@@ -86,88 +81,5 @@ export function SiteFooter(): JSX.Element {
         </nav>
       </Container>
     </footer>
-  );
-}
-
-const guides = [
-  ...pageIndex.filter((page) => page.kind === "guide").map((page) => ({ path: `/docs/${page.name}/`, label: page.title })),
-  { path: "/docs/switching-from-shadcn/", label: "Switching from shadcn" },
-  { path: "/docs/updating/", label: "Updating installed components" },
-];
-
-function DocsNav({ current }: { current: string }): JSX.Element {
-  const item = (path: string, label: string) => {
-    const active = path === current;
-    return (
-      <li key={path}>
-        <a
-          href={href(path)}
-          aria-current={active ? "page" : undefined}
-          className={cn(
-            "flex min-h-11 items-center rounded-md px-3 text-[0.9375rem] no-underline outline-ring focus-visible:outline-2 sm:min-h-9 sm:text-sm",
-            active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {label}
-        </a>
-      </li>
-    );
-  };
-  const group = (title: string, children: ReactNode) => (
-    <div className="grid gap-1.5">
-      <p className="m-0 px-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</p>
-      <ul className="m-0 grid list-none gap-0.5 p-0">{children}</ul>
-    </div>
-  );
-  return (
-    <div className="grid gap-7">
-      {group("Start", item("/docs/", "Overview"))}
-      {group(
-        "Components",
-        docsItems.map((doc) => item(`/docs/${doc.name}/`, doc.title)),
-      )}
-      {group(
-        "Guides",
-        guides.map((guide) => item(guide.path, guide.label)),
-      )}
-    </div>
-  );
-}
-
-/** Docs pages: a sidebar from 1024px up; on smaller screens the same list opens in a Sheet. */
-export function DocsShell({ current, children }: { current: string; children: ReactNode }): JSX.Element {
-  return (
-    <PopupsProvider>
-      <SiteHeader />
-      <Container className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-14">
-        <aside className="hidden lg:block">
-          <nav aria-label="Docs" className="sticky top-6 pt-8">
-            <DocsNav current={current} />
-          </nav>
-        </aside>
-        <div className="min-w-0">
-          <div className="border-b border-border pb-3 lg:hidden">
-            <Sheet
-              title="Docs"
-              hideTitle
-              trigger={
-                <Button size="sm" variant="outline" tone="secondary" startIcon={MenuIcon}>
-                  Browse docs
-                </Button>
-              }
-            >
-              <nav aria-label="Docs pages" className="px-2 pb-4">
-                <DocsNav current={current} />
-              </nav>
-            </Sheet>
-          </div>
-          <main className="max-w-3xl pt-8 lg:pt-10">
-            {children}
-            <Popups />
-          </main>
-        </div>
-      </Container>
-      <SiteFooter />
-    </PopupsProvider>
   );
 }
