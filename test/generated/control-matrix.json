@@ -2302,7 +2302,26 @@
       "ConversationList/Playground",
       "ConversationList/Selectable",
       "ConversationList/Compact",
-      "ConversationList/Empty"
+      "ConversationList/Empty",
+      "ConversationList/Sections",
+      "ConversationList/Filtered"
+    ]
+  },
+  {
+    "item": "conversation-list",
+    "stem": "conversation-list",
+    "mode": "default",
+    "part": "section",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ConversationList/Playground",
+      "ConversationList/Selectable",
+      "ConversationList/Compact",
+      "ConversationList/Empty",
+      "ConversationList/Sections",
+      "ConversationList/Filtered"
     ]
   },
   {

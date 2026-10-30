@@ -1,15 +1,28 @@
 import { useState, type JSX } from "react";
-import { ConversationList, type ConversationListItem } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
+import { ConversationList, type ConversationListItem, type ConversationListSection } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 
 // The live demo at the top of docs/conversation-list/: the component as an app would use it, with its props, nothing else.
 
+const sections: ConversationListSection[] = [
+  { id: "pinned", title: "Pinned" },
+  { id: "recent", title: "Recent" },
+];
+
 const conversations: ConversationListItem[] = [
-  { id: "trail", title: "Trail crew", subtitle: "Weekend hikes", preview: "Meet at the north gate at eight.", time: "9:41", unread: true },
-  { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15" },
-  { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Tue" },
+  { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", unread: true, section: "pinned" },
+  {
+    id: "standup",
+    title: "Morning standup",
+    preview: "Fen: Shipped the settings page.",
+    time: "9:27",
+    mark: "in 10 min",
+    section: "recent",
+  },
+  { id: "design", title: "Design reviews", where: "Lantern Labs", preview: "Odile: Can you sign off on the mockups?", time: "9:12", section: "recent" },
+  { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
 ];
 
 export default function ConversationListDemo(): JSX.Element {
   const [openId, setOpenId] = useState<string | null>("ada");
-  return <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} className="max-w-sm" />;
+  return <ConversationList label="Conversations" items={conversations} sections={sections} selectedId={openId} onSelect={setOpenId} className="max-w-sm" />;
 }
