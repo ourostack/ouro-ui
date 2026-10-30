@@ -235,6 +235,7 @@
         "ourostack/ouro-ui/lib-use-install-prompt",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable",
         "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/lib-use-mounted-open",
         "ourostack/ouro-ui/lib-use-ouro",
         "ourostack/ouro-ui/lib-use-sheet-presentation",
         "ourostack/ouro-ui/lib-use-timer"
@@ -951,6 +952,22 @@
       ]
     },
     {
+      "name": "lib-use-mounted-open",
+      "type": "registry:lib",
+      "title": "lib-use-mounted-open",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-mounted-open.ts.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-last-input"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-mounted-open.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-mounted-open.ts"
+        }
+      ]
+    },
+    {
       "name": "lib-use-ouro",
       "type": "registry:lib",
       "title": "lib-use-ouro",
@@ -1132,6 +1149,7 @@
         "ourostack/ouro-ui/lib-use-backdrop-anchor",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable",
+        "ourostack/ouro-ui/lib-use-mounted-open",
         "ourostack/ouro-ui/lib-use-sheet-presentation",
         "ourostack/ouro-ui/sheet"
       ],
@@ -3592,7 +3610,8 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
-        "ourostack/ouro-ui/lib-use-dev-messages"
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-mounted-open"
       ],
       "files": [
         {
@@ -4318,6 +4337,32 @@
       }
     },
     {
+      "name": "lib-use-mounted-open-tests",
+      "type": "registry:item",
+      "title": "lib-use-mounted-open tests",
+      "description": "Optional: the Vitest browser tests for lib-use-mounted-open, and the tests of everything it installs. Add it beside lib-use-mounted-open: add lib-use-mounted-open lib-use-mounted-open-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-mounted-open.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-mounted-open.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-use-sheet-presentation-tests",
       "type": "registry:item",
       "title": "lib-use-sheet-presentation tests",
@@ -4625,6 +4670,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet",
@@ -4698,6 +4744,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet-tests"
@@ -5420,6 +5467,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/select",
@@ -6293,6 +6341,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover",
@@ -6566,6 +6615,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet-tests"
@@ -9090,6 +9140,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
@@ -9781,6 +9832,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet-tests",
@@ -9849,6 +9901,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet-tests",
@@ -9919,6 +9972,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet-tests",
@@ -10467,6 +10521,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lightbox",
         "ourostack/ouro-ui/ouro-testing",
@@ -10608,6 +10663,7 @@
         "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-lib"
@@ -10695,6 +10751,7 @@
         "ourostack/ouro-ui/lib-use-install-prompt-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/lightbox-tests",

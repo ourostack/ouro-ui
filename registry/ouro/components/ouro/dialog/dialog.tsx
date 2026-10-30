@@ -18,6 +18,7 @@ import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
+import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
@@ -79,11 +80,19 @@ export interface DialogBaseProps {
    */
   presentation?: DialogPresentation | (string & { 'Use "auto", "dialog" or "sheet"': never }) | undefined;
   /**
-   * The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. @default "md"
+   * The centered dialog's width: `sm` (24rem), `md` (32rem) and `lg` (40rem) are fixed widths, for forms and text.
+   * `xl` (56rem), `2xl` (72rem) and `full` (the whole viewport) are caps for wide content, such as a
+   * gallery or a table: the dialog fits its content, at least 32rem and at most the cap. Every size narrows
+   * to the viewport less its 1rem margins (or the safe area). A paragraph's natural width is its whole line,
+   * so text alone widens an `xl` or wider dialog to its cap; the default stays `md` for that reason. @default "md"
    *
-   * @claim "The centered dialog's maximum width: `sm`" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"max-w-\[24rem\]",\smd:\s"max-w-\[32rem\]",\slg:\s"max-w-\[40rem\]"\s\}/)
+   * @claim "The centered dialog's" registry/ouro/components/ouro/dialog/dialog-parts.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /const\spopupSizes\s=\s\{\ssm:\s"w-full\smax-w-\[24rem\]",\smd:\s"w-full\smax-w-\[32rem\]",\slg:\s"w-full\smax-w-\[40rem\]",\sxl:\s"w-fit\smin-w-\[min\(32rem,100%\)\]\smax-w-\[min\(56rem,100%\)\]",\s"2xl":\s"w-fit\smin-w-\[min\(32rem,100%\)\]\smax-w-\[min\(72rem,100%\)\]",\sfull:\s"w-fit\smin-w-\[min\(32rem,100%\)\]\smax-w-full"\s\}/)
+   * @claim "The centered dialog's" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > caps size %s at %ipx wide)
+   * @claim "`xl` (56rem), `2xl` (72rem) and" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > fits size %s to its content, from 32rem up to %ipx)
+   * @claim "A paragraph's natural width is its" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > widens size %s to its cap for a long paragraph, so wide sizes are for wide content)
+   * @claim "Every size narrows to the viewport" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > keeps size %s inside a 390px phone's 16px margins when presentation is dialog)
    */
-  size?: DialogSize | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
+  size?: DialogSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or "full"': never }) | undefined;
   /**
    * The actions row: a row at the end on wider screens, stacked full width on
    * phones. Put the primary action last, so it sits on the right on wider
@@ -127,6 +136,9 @@ export type DialogControlledProps = DialogBaseProps & {
    * Whether the dialog is open. When a touch or pen tap opened it (on your own
    * button, say), the centered dialog focuses itself rather than its first input,
    * so no software keyboard pops up; after a key press it focuses the first control.
+   * Keep the Dialog mounted and change `open`: one that mounts already open after a press or a key
+   * (`{editing && <Dialog open … />}`) appears and leaves without its transitions, and says so in development.
+   * @claim "Keep the Dialog mounted and change" registry/ouro/components/ouro/dialog/dialog.first-mount.touch.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.first-mount.touch.test.tsx::Dialog mounted by the tap that opens it > says once in development that its open and close transitions don't run)
    * @claim "When a touch or pen tap" registry/ouro/components/ouro/dialog/dialog.touch.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.touch.test.tsx::initial focus in a controlled dialog opened from the app's own button > focuses the centered popup, not its first input, after a tap)
    * @claim "When a touch or pen tap" registry/ouro/components/ouro/dialog/dialog.touch.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.touch.test.tsx::initial focus in a controlled dialog opened from the app's own button > focuses the centered popup's first input after a keyboard open)
    */
@@ -243,6 +255,7 @@ export function Dialog(props: DialogProps): JSX.Element {
   };
 
   checkOpenMode("Dialog", "dialog", trigger !== undefined, open, onOpenChange);
+  const mountedOpen = useMountedOpen(open);
 
   // A size or presentation that is not one of Ouro UI's (a type error) warns and renders the default.
   const size = dialogSizes.includes(sizeProp as DialogSize) ? (sizeProp as DialogSize) : "md";
@@ -265,6 +278,10 @@ export function Dialog(props: DialogProps): JSX.Element {
           const list = (values: readonly string[]) => values.map((name) => `"${name}"`).join(", ");
           return [
             !title && ["title is required; it names the dialog for screen readers", '<Dialog title="Edit recipe">'],
+            mountedOpen && [
+              "mounted already open, so its open and close transitions don't run; mount it closed and change open",
+              "<Dialog open={open} onOpenChange={setOpen}>",
+            ],
             size !== sizeProp && dialogSizeWarning(String(sizeProp), '<Dialog size="md">'),
             presentation !== presentationProp && [
               `presentation="${String(presentationProp)}" is not a presentation; use ${list(presentations)}`,

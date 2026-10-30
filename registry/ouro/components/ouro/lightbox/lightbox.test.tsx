@@ -583,7 +583,7 @@ describe("Lightbox controlled", () => {
   });
 
   it.each([
-    ["open without onOpenChange", { open: true }, "open needs onOpenChange, which closes the viewer"],
+    ["open without onOpenChange", { open: false }, "open needs onOpenChange, which closes the viewer"],
     ["index without open", { index: 1 }, "index and onOpenChange need open; without it Lightbox draws its own thumbnails"],
     ["onOpenChange without open", { onOpenChange: () => {} }, "index and onOpenChange need open; without it Lightbox draws its own thumbnails"],
     ["className with open", { open: false, onOpenChange: () => {}, className: "mt-4" }, "className lays out the thumbnails, and a Lightbox with open draws none"],
@@ -608,6 +608,17 @@ describe("Lightbox controlled", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Lightbox: open needs onOpenChange, which closes the viewer. Fix: <Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>.',
     );
+  });
+
+  it("says once in development that a viewer mounted already open runs no transitions", async () => {
+    // The app mounts the Lightbox on the press that opens it, as `{viewing && <Lightbox open … />}` does.
+    document.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse" }));
+    const { rerender } = await render(<Lightbox label="Photos" images={kitchen} open index={1} onOpenChange={() => {}} />);
+    await settled();
+    await rerender(<Lightbox label="Photos" images={kitchen} open index={2} onOpenChange={() => {}} />);
+    expect(warn.mock.calls.map((call: unknown[]) => String(call[0]))).toEqual([
+      "[ouro-ui] Lightbox: mounted already open, so the viewer's open and close transitions don't run; mount it closed and change open. Fix: <Lightbox label=\"Kitchen photos\" images={images} open={open} index={index} onOpenChange={setOpen}>.",
+    ]);
   });
 });
 

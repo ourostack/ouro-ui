@@ -4,6 +4,7 @@ import { useId, useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent,
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { fillTemplate } from "@/registry/ouro/components/ouro/carousel/carousel-styles";
@@ -104,8 +105,10 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
 export type LightboxControlledProps = LightboxBaseProps & {
   /**
    * Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the
-   * viewer grows from that element.
+   * viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already
+   * open after a press or a key appears and leaves without its transitions, and says so in development.
    *
+   * @claim "Keep the Lightbox mounted and change" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > says once in development that a viewer mounted already open runs no transitions)
    * @claim "Focus goes back to whatever had" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus back to what had it when the viewer opened, and grows from it)
    */
   open: boolean;
@@ -353,6 +356,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     onOpenChange?: (open: boolean) => void;
   };
   const controlled = openProp !== undefined;
+  const mountedOpen = useMountedOpen(openProp);
 
   useAppearanceClassNameCheck(
     "Lightbox",
@@ -389,6 +393,10 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               "index and onOpenChange need open; without it Lightbox draws its own thumbnails",
               '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
             ],
+          mountedOpen && [
+            "mounted already open, so the viewer's open and close transitions don't run; mount it closed and change open",
+            '<Lightbox label="Kitchen photos" images={images} open={open} index={index} onOpenChange={setOpen}>',
+          ],
           controlled &&
             className !== undefined && [
               "className lays out the thumbnails, and a Lightbox with open draws none",

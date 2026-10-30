@@ -50,6 +50,26 @@ function RecipeForm() {
   );
 }
 
+const tile: CSSProperties = {
+  width: 160, height: 120, borderRadius: "var(--radius)",
+  background: "var(--muted)", border: "1px solid var(--border)",
+};
+
+/** Six photo tiles in a row that wraps: 1020px wide when there is room, so a wide size can fit them. */
+function Gallery() {
+  const rooms = ["Kitchen", "Pantry", "Dining room", "Hallway", "Garden", "Porch"];
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+      {rooms.map((room) => (
+        <figure key={room} style={{ ...stack, gap: 6, margin: 0 }}>
+          <div role="img" aria-label={`${room} photo`} style={tile} />
+          <figcaption style={caption}>{room}</figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
 function Lines({ count }: { count: number }) {
   return (
     <div style={stack}>
@@ -73,7 +93,7 @@ const meta = {
   },
   argTypes: {
     presentation: { control: "inline-radio", options: ["auto", "dialog", "sheet"] },
-    size: { control: "inline-radio", options: ["sm", "md", "lg"] },
+    size: { control: "inline-radio", options: ["sm", "md", "lg", "xl", "2xl", "full"] },
     trigger: { table: { disable: true } },
     children: { table: { disable: true } },
     footer: { table: { disable: true } },
@@ -102,17 +122,28 @@ export const WithFooter: Story = {
   },
 };
 
-/** `size` caps the centered dialog's width at 24, 32 or 40rem. */
+/** `size` sets the centered dialog's width: `sm`, `md` and `lg` are fixed at 24, 32 and 40rem; `xl`, `2xl` and `full` fit wide content up to 56rem, 72rem and the viewport, and text alone fills them. */
 export const Sizes: Story = {
   render: () => (
     <div style={row}>
-      {(["sm", "md", "lg"] as const).map((size) => (
+      {(["sm", "md", "lg", "xl", "2xl", "full"] as const).map((size) => (
         <Dialog key={size} title={`Size ${size}`} size={size} trigger={<Button variant="soft">{size}</Button>}>
           <Lines count={2} />
         </Dialog>
       ))}
     </div>
   ),
+};
+
+/** A wide size lets wide content widen the dialog: these six tiles take 1020px of `2xl`'s 72rem on a wide screen, and wrap on a narrow one. */
+export const WideContent: Story = {
+  parameters: { screenshot: { name: "dialog-wide-content-open", open: true } },
+  args: {
+    title: "Kitchen photos",
+    description: "Six rooms, photographed in October.",
+    size: "2xl",
+    children: <Gallery />,
+  },
 };
 
 /** `presentation` fixes the form at every width. */
