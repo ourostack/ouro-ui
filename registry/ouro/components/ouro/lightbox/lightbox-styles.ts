@@ -104,7 +104,8 @@ const mosaicMoreClass =
  */
 function mosaicLayout(count: number, width?: number, height?: number): { ratio: number; grid: string } {
   if (count === 1) {
-    const own = width && height && width > 0 && height > 0 ? width / height : 4 / 3;
+    const [w, h] = [width ?? 0, height ?? 0];
+    const own = w > 0 && h > 0 ? w / h : 4 / 3;
     return { ratio: Math.min(3, Math.max(3 / 4, own)), grid: "grid-cols-1 grid-rows-1" };
   }
   if (count === 2) return { ratio: 2, grid: "grid-cols-2 grid-rows-1" };

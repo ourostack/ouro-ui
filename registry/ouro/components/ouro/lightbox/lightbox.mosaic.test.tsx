@@ -84,6 +84,10 @@ describe("Lightbox mosaic", () => {
     // The picture fills its frame, cropped to it, and keeps the frame's shape before it loads.
     expect(thumbnails(own.host)[0]!.getBoundingClientRect().width).toBeCloseTo(list(own.host).getBoundingClientRect().width - 2, 0);
     expect(mosaicLayout(1, 0, 600)).toEqual(mosaicLayout(1));
+    expect(mosaicLayout(1, 600, 0)).toEqual(mosaicLayout(1));
+    expect(mosaicLayout(1, 600)).toEqual(mosaicLayout(1));
+    // A mosaic is a layout, so it says nothing in development.
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid", async () => {
@@ -143,6 +147,13 @@ describe("Lightbox mosaic", () => {
     expect(document.activeElement).toBe(thumbnails(host)[1]);
   });
 
+  it("draws an empty frame, and names the missing images, when there are none", async () => {
+    const { host } = await render(mosaic([]));
+    expect(thumbnails(host)).toHaveLength(0);
+    expect(ratio(list(host))).toBeCloseTo(4 / 3, 1);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Lightbox: there are no images. Fix: <Lightbox label="Kitchen photos" images={[{ src: "/photos/a.jpg", alt: "…" }]}>.');
+  });
+
   it("names a layout that is not one, and draws the grid", async () => {
     const props = { label: "Photos", images: offsite, layout: "masonry" } as unknown as LightboxProps;
     const { host } = await render(<Lightbox {...props} />);
@@ -196,7 +207,7 @@ describe("Lightbox full screen", () => {
     expect(style.borderTopLeftRadius).toBe("0px");
     // No hairline and no shadow: every layer Tailwind composes has zero size.
     expect(style.boxShadow.replace(/[a-z]+\([^)]*\)/g, "").match(/[1-9]/)).toBeNull();
-    expect(popup()!.hasAttribute("data-full-screen")).toBe(true);
+    expect(popup()!.getAttribute("data-full-screen")).toBe("");
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
 
