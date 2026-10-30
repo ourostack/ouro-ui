@@ -1,0 +1,336 @@
+{
+  "$comment": "Ouro AX: the standard. Each claim is one checkable rule about an interface whose user is an agent. ax/xray.mjs checks every claim from outside, against any CLI, HTTP API or MCP server, without importing its code. Sources: Tandem's docs/ax-principles.md (P1-P15) and the Ouro UI design record of 2026-10-11 (the CLI kit and MCP kit lists).",
+  "version": "0.1.0",
+  "claims": [
+    {
+      "id": "cli.help-parses",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "`<cli> help --json` prints one JSON document that names every command.",
+      "rationale": "An agent learns the interface from the interface. Help that parses lets it list commands without scraping prose.",
+      "source": "Ouro UI 2026-10-11 CLI kit: help that parses; Tandem P15",
+      "check": "Run `help --json` (then `--help --json`). Pass when stdout is one JSON document with a `commands` array of objects that each have a `name`.",
+      "fix": "Keep help as data (a COMMANDS table) and print it with `help --json`: { commands: [{ name, effect, summary, usage[] }], exitCodes: [{ code, meaning }] }."
+    },
+    {
+      "id": "cli.help-effects",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Help says who sees each command: only the person, or other people.",
+      "rationale": "The one thing an agent must know before acting is whether other people will see it.",
+      "source": "Tandem P1, P2",
+      "check": "Each command in `help --json` has `effect` of `private` or `others`.",
+      "fix": "Add `effect: \"private\" | \"others\"` to every command in help JSON, from one action catalog, and group the text help under two headings."
+    },
+    {
+      "id": "cli.command-help",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr.",
+      "rationale": "An agent asks the command itself, at the point of use; it should not need a separate document.",
+      "source": "Ouro UI 2026-10-11 CLI kit; Tandem P7",
+      "check": "Run `<command> --help` for every listed command.",
+      "fix": "Route `<command> --help` to the command's own help page before parsing its arguments."
+    },
+    {
+      "id": "cli.help-width",
+      "surface": "cli",
+      "severity": "should",
+      "rule": "No help line is wider than the width limit (100 columns by default).",
+      "rationale": "Long lines wrap unpredictably in terminals and transcripts and cost tokens to re-read.",
+      "source": "Tandem src/cli/help.ts WIDTH",
+      "check": "Measure every line of `--help` and each `<command> --help`.",
+      "fix": "Wrap help at one width in the help renderer, not by hand."
+    },
+    {
+      "id": "cli.overview-short",
+      "surface": "cli",
+      "severity": "should",
+      "rule": "The overview (`--help`) fits one screen: at most 60 lines.",
+      "rationale": "The overview is read on every cold start; details belong on each command's page.",
+      "source": "Tandem OVERVIEW_MAX_LINES",
+      "check": "Count the lines of `--help`.",
+      "fix": "Keep one line per command in the overview and move details to `<command> --help`."
+    },
+    {
+      "id": "cli.exit-codes",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Exit codes are documented, and every exit code the CLI gives is one of them.",
+      "rationale": "Stable, documented exit codes let an agent branch without parsing prose.",
+      "source": "Ouro UI 2026-10-11 CLI kit: stable exit codes",
+      "check": "Read `exitCodes` from help JSON (or an `Exit codes:` line), then compare every exit code seen during the X-ray.",
+      "fix": "Keep one exit-code table, print it in help and help JSON, and exit only with codes from it."
+    },
+    {
+      "id": "cli.read-json",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr.",
+      "rationale": "One parseable answer per call is the cheapest thing for an agent to consume.",
+      "source": "Ouro UI 2026-10-11 CLI kit: one definition gives human output and --json; Tandem help: --json on every read",
+      "check": "Run each read command's argument-free usage (or with one harvested ref) with `--json`.",
+      "fix": "Give the read a `--json` that prints the same data the text shows, as one document."
+    },
+    {
+      "id": "cli.unknown-command",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "An unknown command fails with the usage exit code and lists the commands.",
+      "rationale": "A guessed command is the commonest first call; the error should be the menu.",
+      "source": "Tandem P7",
+      "check": "Run a command that does not exist.",
+      "fix": "On an unknown command, print one line: `unknown command \"x\". Commands: a, b, c. Details: <cli> help`, and exit with the usage code."
+    },
+    {
+      "id": "cli.unknown-flag",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "An unknown flag fails before anything runs, and the error names the flag.",
+      "rationale": "A silently ignored flag gives an agent a wrong answer that looks right: `--limt 2` returns everything.",
+      "source": "Tandem P8 (check before you act)",
+      "check": "Run a read with a flag no command has, and with a misspelt real flag.",
+      "fix": "Check every flag against the command's declared flags before acting; refuse an unknown one with the usage exit code."
+    },
+    {
+      "id": "cli.flag-suggest",
+      "surface": "cli",
+      "severity": "should",
+      "rule": "A misspelt flag's error names the closest real flag.",
+      "rationale": "The error should carry the fix, so the next call is right.",
+      "source": "Ouro UI 2026-10-11 CLI kit: errors that name the fix",
+      "check": "Run a read with one of its flags misspelt (a letter dropped).",
+      "fix": "Suggest the declared flag nearest by edit distance: `unknown flag --limt; did you mean --limit?`."
+    },
+    {
+      "id": "cli.missing-arg",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A command missing a required argument fails with the usage exit code and says what to give.",
+      "rationale": "The error is where the agent learns the argument; it should not have to open help.",
+      "source": "Tandem P7",
+      "check": "Run each command whose every usage needs an argument with no arguments.",
+      "fix": "Validate arguments first and name the missing one and where to get it."
+    },
+    {
+      "id": "cli.one-line-error",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every error is one line on stderr, with nothing on stdout.",
+      "rationale": "One line is cheap to read and easy to quote back; stdout stays parseable.",
+      "source": "Tandem P7",
+      "check": "Every failing call the X-ray makes.",
+      "fix": "Catch errors at the entry point and print one line to stderr."
+    },
+    {
+      "id": "cli.error-teaches",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every error names a next action: a command to run or a flag to add.",
+      "rationale": "An agent recovers from the error alone when the error says what to do instead.",
+      "source": "Tandem P7, P8; Ouro UI 2026-10-11: errors that name the fix",
+      "check": "Every failing call's error line contains `<cli> <word>`, a `--flag`, or a quoted command name.",
+      "fix": "End each error with what to do: `Try \"<cli> conversations\"`."
+    },
+    {
+      "id": "cli.no-stack-trace",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "No call prints a stack trace.",
+      "rationale": "A stack trace is noise to an agent and leaks internals.",
+      "source": "Tandem P7",
+      "check": "Look for `    at ` frames in every output.",
+      "fix": "Turn the thrown error into a one-line message at the entry point."
+    },
+    {
+      "id": "cli.ambiguous-verbs",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands.",
+      "rationale": "`edit` could mean a private draft or a message others already saw; guessing is how agents do the wrong thing.",
+      "source": "Tandem P3",
+      "check": "Run `edit`, `delete` and `remove` when they are not listed commands. Pass when each fails and names at least one listed command.",
+      "fix": "Answer each ambiguous verb with one line naming the private command and the one others see."
+    },
+    {
+      "id": "cli.others-need-why",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every command other people see refuses to run without `--why`, and says so.",
+      "rationale": "What others see is logged with who asked and why.",
+      "source": "Tandem P6",
+      "check": "Run each others-see command with a made-up target and no `--why`.",
+      "fix": "Check `--why` first in every others-see command and refuse with the usage exit code."
+    },
+    {
+      "id": "cli.wrong-ref-first",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A wrong reference fails before anything reaches anyone, and the error says where to get a right one.",
+      "rationale": "Checking before acting keeps a stale id from becoming a wrong message.",
+      "source": "Tandem P8",
+      "check": "Run each others-see command with `--why` and a target that does not exist.",
+      "fix": "Resolve the target first; on a miss, name the command that lists valid ones."
+    },
+    {
+      "id": "cli.others-preview",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it.",
+      "rationale": "An agent, or a checker, can confirm the audience without acting; a wall it is not, because nothing waits on it.",
+      "source": "Tandem P4; the Apple Developer AX candidate (dry-run plans)",
+      "check": "When `<command> --help` mentions `--dry-run`, run it on a real target with `--why`. Pass when it exits 0, names who will see it, and nothing changes.",
+      "fix": "Add `--dry-run`: resolve the target, print the preview line (\"Would send to X as the person. Everyone in X will see it.\"), exit 0, and send nothing."
+    },
+    {
+      "id": "cli.reads-stay-reads",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Reads change nothing.",
+      "rationale": "An agent must be able to look freely.",
+      "source": "Tandem P9",
+      "check": "Snapshot the state commands before and after every read the X-ray makes (including the flag probes); compare.",
+      "fix": "Keep reads free of writes (no mark-read, no log row, no cache eviction others see)."
+    },
+    {
+      "id": "cli.refusals-change-nothing",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A refused call changes nothing, except an audit record that says it was refused.",
+      "rationale": "An agent that gets the call wrong must be able to try again safely.",
+      "source": "Tandem P8, P10",
+      "check": "Snapshot the state commands around each refused probe of what other people see. Pass when nothing changed, or when every added record mentions the refusal and nothing was removed.",
+      "fix": "Refuse before writing anything; if you log the refusal, say so in the record (`send.refused`)."
+    },
+    {
+      "id": "http.json",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every route answers JSON, with a JSON content type.",
+      "rationale": "One format, always parseable.",
+      "source": "Ouro UI 2026-10-11: one error shape",
+      "check": "GET every read route in the manifest.",
+      "fix": "Answer every route through one sendJson."
+    },
+    {
+      "id": "http.error-shape",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every error is a JSON object with a string `error`.",
+      "rationale": "One error shape lets an agent handle every failure the same way.",
+      "source": "Ouro UI 2026-10-11 MCP kit: one error shape",
+      "check": "Every non-2xx answer the X-ray gets.",
+      "fix": "Throw one HttpError type and serialise it as { error, code? }."
+    },
+    {
+      "id": "http.error-teaches",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every error names a next action: a route, a field, or a command.",
+      "rationale": "`not found` alone leaves the agent guessing.",
+      "source": "Tandem P7",
+      "check": "Every non-2xx answer's `error` contains a route (`/api/...`), a quoted field, or a CLI command.",
+      "fix": "Say where to go: `no such conversation; GET /api/conversations lists them`."
+    },
+    {
+      "id": "http.index",
+      "surface": "http",
+      "severity": "must",
+      "rule": "The API's base path answers an index of its routes.",
+      "rationale": "An agent finds the routes from the API itself, not from source code.",
+      "source": "Tandem P15; Ouro UI 2026-10-11: discoverable capabilities",
+      "check": "GET the manifest's base path. Pass when it answers JSON naming at least 80% of the manifest's routes.",
+      "fix": "Serve GET /api with { routes: [\"GET /api/x\", ...] } from the same table the router uses."
+    },
+    {
+      "id": "http.unknown-route",
+      "surface": "http",
+      "severity": "must",
+      "rule": "An unknown route answers 404 and says where the routes are listed.",
+      "rationale": "A guessed route is the commonest first call.",
+      "source": "Tandem P7",
+      "check": "GET a route that does not exist.",
+      "fix": "Answer 404 with `no route GET /api/x; GET /api lists the routes`."
+    },
+    {
+      "id": "http.wrong-ref-first",
+      "surface": "http",
+      "severity": "must",
+      "rule": "A route given an id that does not exist fails and says where to get a right one.",
+      "rationale": "Checking before acting keeps a stale id from becoming a wrong write.",
+      "source": "Tandem P8",
+      "check": "GET each `{id}` route with a made-up id; POST each others-see probe with a made-up target and a why.",
+      "fix": "On a miss, name the route that lists valid ids."
+    },
+    {
+      "id": "http.others-need-why",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every route that does what other people see refuses a request without a why, and names the field.",
+      "rationale": "What others see is logged with who asked and why.",
+      "source": "Tandem P6",
+      "check": "POST each others-see probe from the manifest without its why field.",
+      "fix": "Check the why field first and answer 4xx naming it."
+    },
+    {
+      "id": "http.reads-stay-reads",
+      "surface": "http",
+      "severity": "must",
+      "rule": "GET requests change nothing.",
+      "rationale": "An agent must be able to look freely.",
+      "source": "Tandem P9",
+      "check": "Snapshot the manifest's state routes before and after every GET; compare.",
+      "fix": "Keep GET handlers free of writes."
+    },
+    {
+      "id": "http.refusals-change-nothing",
+      "surface": "http",
+      "severity": "must",
+      "rule": "A refused request changes nothing, except an audit record that says it was refused.",
+      "rationale": "An agent that gets the request wrong must be able to try again safely.",
+      "source": "Tandem P8, P10",
+      "check": "Snapshot the manifest's state routes around each refused probe. Pass when nothing changed, or when every added record mentions the refusal and nothing was removed.",
+      "fix": "Refuse before writing anything; if you log the refusal, say so in the record."
+    },
+    {
+      "id": "mcp.tools-list",
+      "surface": "mcp",
+      "severity": "must",
+      "rule": "The server lists its tools, each with a description and an input schema.",
+      "rationale": "The tool list is the MCP surface's help.",
+      "source": "Ouro UI 2026-10-11 MCP kit",
+      "check": "initialize, then tools/list.",
+      "fix": "Give every tool a one-line description and a JSON Schema for its input."
+    },
+    {
+      "id": "mcp.effect-annotated",
+      "surface": "mcp",
+      "severity": "should",
+      "rule": "Every tool says whether it only reads or changes something (`readOnlyHint` or `destructiveHint`).",
+      "rationale": "The MCP form of `effect`: who sees it.",
+      "source": "Tandem P1; MCP tool annotations",
+      "check": "Read `annotations` from tools/list.",
+      "fix": "Set `annotations.readOnlyHint` on reads and `destructiveHint` on what others see."
+    },
+    {
+      "id": "mcp.bad-call-teaches",
+      "surface": "mcp",
+      "severity": "must",
+      "rule": "A call missing a required argument is refused, and the error names the argument.",
+      "rationale": "Schemas that reject bad calls with the fix.",
+      "source": "Ouro UI 2026-10-11 MCP kit",
+      "check": "Call each tool that has required arguments with none.",
+      "fix": "Validate input against the schema before running and name each missing field."
+    },
+    {
+      "id": "mcp.unknown-tool",
+      "surface": "mcp",
+      "severity": "must",
+      "rule": "An unknown tool is refused, and the error names the tools or tools/list.",
+      "rationale": "The error should be the menu.",
+      "source": "Tandem P7",
+      "check": "Call a tool that does not exist.",
+      "fix": "Answer with the tool names."
+    }
+  ]
+}

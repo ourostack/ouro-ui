@@ -55,6 +55,16 @@
       "match": "^site/src/docs/demos/",
       "mode": "input",
       "reason": "a docs demo's sample content, not a statement about Ouro HX"
+    },
+    {
+      "match": "^ax/reports/",
+      "mode": "evidence",
+      "reason": "an AX X-ray run's record, written by ax/xray.mjs"
+    },
+    {
+      "match": "^ax/fixtures/",
+      "mode": "input",
+      "reason": "the X-ray's test fixtures"
     }
   ],
   "generated": [
