@@ -4,7 +4,7 @@ import { cleanupPage, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, PARTS, SIGN, START_ORDER, YARD } from "./copy";
+import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "./copy";
 
 // Chapter I (site-design.md, slice S2): its words read at grade 6 or under, it renders in the page
 // with each control marked, and the shipyard and the articles do what they say. The end-to-end spec
@@ -62,6 +62,7 @@ describe("Chapter I", () => {
     await expect.poll(crew).toContain(YARD.ready.text);
     await userEvent.click(page.getByRole("button", { name: "Launch", exact: true }));
     await expect.poll(() => plan().dataset.launched).toBe("");
+    await expect.element(page.elementLocator(document.querySelector("#chapter-one")!).getByText(SHIPYARD.afloat)).toBeVisible();
   });
 
   it("refuses a name already aboard, through the form's own errors", async () => {

@@ -1,4 +1,4 @@
-import { lazy, Suspense, type JSX } from "react";
+import { lazy, Suspense, type ComponentType, type JSX } from "react";
 
 /**
  * Resolves once the element with this id comes within half a screen of the viewport, or at once
@@ -24,28 +24,28 @@ export function nearScreen(id: string): Promise<void> {
 }
 
 /**
- * Chapter I as an island (site-design.md: each chapter "hydrated when it nears the viewport"). The
+ * Each chapter as an island (site-design.md: each chapter "hydrated when it nears the viewport"). The
  * server renders it whole, so it reads before any JavaScript; in the browser its chunk loads only
  * as the chapter nears the screen, and React hydrates the server's HTML then. Until that moment the
  * page's own closure carries none of its code.
  */
-const ChapterOne = lazy(() => (import.meta.env.SSR ? import("./chapter-one") : nearScreen("chapter-one").then(() => import("./chapter-one"))));
-
-export function ChapterOneIsland(): JSX.Element {
-  return (
-    <Suspense>
-      <ChapterOne />
-    </Suspense>
-  );
+function island(id: string, load: () => Promise<{ default: ComponentType }>): () => JSX.Element {
+  const Chapter = lazy(() => (import.meta.env.SSR ? load() : nearScreen(id).then(load)));
+  return function Island(): JSX.Element {
+    return (
+      <Suspense>
+        <Chapter />
+      </Suspense>
+    );
+  };
 }
+
+export const ChapterOneIsland = island("chapter-one", () => import("./chapter-one"));
+
+/** Chapter II: its Chart, and Recharts with it, load only with this island, never with the page. */
+export const ChapterTwoIsland = island("chapter-two", () => import("./chapter-two"));
+
+export const ChapterThreeIsland = island("chapter-three", () => import("./chapter-three"));
 
 /** The home page's agents and install sections, as an island in the same way (home-reference.tsx). */
-const HomeReference = lazy(() => (import.meta.env.SSR ? import("../home-reference") : nearScreen("reference").then(() => import("../home-reference"))));
-
-export function HomeReferenceIsland(): JSX.Element {
-  return (
-    <Suspense>
-      <HomeReference />
-    </Suspense>
-  );
-}
+export const HomeReferenceIsland = island("reference", () => import("../home-reference"));

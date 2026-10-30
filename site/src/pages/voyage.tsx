@@ -6,7 +6,7 @@ import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Popups, PopupsProvider } from "../components/popups";
 import { href, normalizePath } from "../paths";
-import { ChapterOneIsland, HomeReferenceIsland } from "../voyage/chapters/island";
+import { ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland } from "../voyage/chapters/island";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
 import { Hero } from "../voyage/hero";
@@ -71,6 +71,8 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
             <main>
               <StoryOpening />
               <ChapterOneIsland />
+              <ChapterTwoIsland />
+              <ChapterThreeIsland />
               <Popups />
             </main>
           ) : (

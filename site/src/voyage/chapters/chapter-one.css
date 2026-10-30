@@ -50,6 +50,29 @@
 .site-blueprint[data-launched] .bp-launch {
   opacity: 1;
 }
+/* Under the plan once she floats: what is done and what comes next, on a plate of its own so it reads on any sea. */
+.site-afloat {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 0.75rem;
+  max-width: calc(100% - 2rem);
+  padding: 0.25rem 0.625rem;
+  border-radius: calc(var(--radius) - 2px);
+  background: color-mix(in oklab, var(--background) 92%, transparent);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: site-fade 0.6s 1.2s ease-out both;
+}
+/* On a phone the plan is short: the plate drops to the foot of the sea, clear of the hull. */
+@media (max-width: 40rem) {
+  .site-afloat {
+    inset-inline-start: 0.5rem;
+    bottom: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
 .bp-flash {
   fill: var(--chart-3);
 }
@@ -87,6 +110,12 @@
     stroke-dasharray: 60;
     animation: bp-wake 1.4s 0.5s ease-out both;
   }
+  /* The wake spreads as she gathers way: narrow at the screw, then wide astern. */
+  .site-blueprint[data-launched] .bp-wake {
+    transform-box: view-box;
+    transform-origin: 88px 125px;
+    animation: bp-wake-widen 2s 0.5s var(--ouro-ease-out) both;
+  }
   .site-blueprint[data-launched] .bp-bubbles circle {
     animation: bp-bubble 1.8s ease-out both;
   }
@@ -116,6 +145,14 @@
   100% {
     translate: 0 10px;
     rotate: 0deg;
+  }
+}
+@keyframes bp-wake-widen {
+  from {
+    scale: 0.35 0.4;
+  }
+  to {
+    scale: 1.2 1.6;
   }
 }
 @keyframes bp-wake {
@@ -216,51 +253,6 @@
   }
 }
 
-/* The crew turns out at the launch: each face hops up in turn (fades in, under reduced motion). */
-.site-cheer {
-  display: inline-flex;
-  flex-shrink: 0;
-}
-.site-cheer > * + * {
-  margin-inline-start: -0.5rem;
-}
-.site-cheer > * {
-  box-shadow: 0 0 0 2px var(--card);
-  animation: site-hop 0.7s var(--ouro-ease-out) both;
-}
-.site-cheer > :nth-child(2) {
-  animation-delay: 0.08s;
-}
-.site-cheer > :nth-child(3) {
-  animation-delay: 0.16s;
-}
-.site-cheer > :nth-child(4) {
-  animation-delay: 0.24s;
-}
-@keyframes site-hop {
-  0% {
-    opacity: 0;
-    translate: 0 6px;
-  }
-  45% {
-    opacity: 1;
-    translate: 0 -5px;
-  }
-  100% {
-    translate: 0 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .site-cheer > * {
-    animation-name: site-fade;
-  }
-}
-@keyframes site-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 /* A signing that waits on Conseil: your name on the list in pencil, not yet in ink. */
 [data-chapter-pending] {
   opacity: 0.8;
@@ -270,10 +262,3 @@
   outline-offset: 2px;
 }
 
-/* The Code sheet's lines wrap at the panel's edge rather than run off it. */
-.site-code-line {
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}

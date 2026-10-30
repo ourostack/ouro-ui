@@ -16,7 +16,46 @@ export interface Art {
   inner: string;
 }
 
-/** Splits a drawing into what the scene nests: the stage draws each at a size and place of its own. */
+/** How far a label's box reaches either side of its anchor, and above its baseline, in the drawing's units. */
+const LABEL_REACH = 200;
+const LABEL_RISE = 20;
+
+/**
+ * Where a label sits, as the box of a `<foreignObject>` holding it as HTML: the anchor point is an
+ * SVG text's x and y (its baseline), and `anchor` its `text-anchor`. The HTML inside is one line
+ * (line height 1, `labelStyle`) whose baseline falls on y, about 0.8em below the line's top.
+ */
+export function labelBox(x: number, y: number, anchor: string): { x: number; y: number; width: number; height: number; align: "left" | "center" | "right" } {
+  return {
+    x: anchor === "middle" ? x - LABEL_REACH : anchor === "end" ? x - 2 * LABEL_REACH : x,
+    y: y - LABEL_RISE,
+    width: 2 * LABEL_REACH,
+    height: LABEL_RISE * 1.5,
+    align: anchor === "middle" ? "center" : anchor === "end" ? "right" : "left",
+  };
+}
+
+/** The style of the line inside a label's box. */
+export const labelStyle = { paddingTop: `calc(${LABEL_RISE}px - .8em)`, lineHeight: 1, whiteSpace: "nowrap" } as const;
+
+/**
+ * A drawing's labels as HTML in a `<foreignObject>`, not SVG `<text>`. In WebKit any SVG text
+ * rendered on the page makes every press of the pointer lay out and repaint the whole page, about
+ * 300 ms on CI against 3 ms with none (measured for pull request 153). A label keeps its place
+ * (labelBox), its size and spacing (its own `font-size` and `letter-spacing`, or its group's, which
+ * HTML inherits), its class and its colour: `currentColor`, as the drawings' labels are.
+ */
+export function htmlLabels(inner: string): string {
+  return inner.replace(/<text\b([^>]*)>([^<]*)<\/text>/g, (_, attributes: string, content: string) => {
+    const read = (name: string) => new RegExp(`(?:^|\\s)${name}="([^"]*)"`).exec(attributes)?.[1];
+    const box = labelBox(Number(read("x") ?? 0), Number(read("y") ?? 0), read("text-anchor") ?? "start");
+    const kept = ["class", "font-size", "letter-spacing", "opacity"].map((name) => (read(name) === undefined ? "" : ` ${name}="${read(name)}"`)).join("");
+    const style = `padding-top:${labelStyle.paddingTop};line-height:1;white-space:nowrap${box.align === "left" ? "" : `;text-align:${box.align}`}`;
+    return `<foreignObject x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}"${kept}><div style="${style}">${content}</div></foreignObject>`;
+  });
+}
+
+/** Splits a drawing into what the scene nests: the stage draws each at a size and place of its own. Its labels are HTML (htmlLabels). */
 export function parseArt(source: string): Art {
   const open = /<svg\b[^>]*\bviewBox="([^"]+)"[^>]*>/.exec(source);
   if (!open) throw new Error("A drawing needs an <svg> with a viewBox");
@@ -26,7 +65,7 @@ export function parseArt(source: string): Art {
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<title>[\s\S]*?<\/title>/g, "")
     .replace(/\n\s*/g, "");
-  return { viewBox: open[1]!, width: width!, height: height!, inner };
+  return { viewBox: open[1]!, width: width!, height: height!, inner: htmlLabels(inner) };
 }
 
 /**

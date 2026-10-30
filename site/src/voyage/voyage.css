@@ -52,10 +52,13 @@
     color: var(--muted-foreground);
     text-wrap: pretty;
   }
-  /* A framed application on the page: a card with window chrome, like React Aria's hero. */
+  /*
+   * A framed application on the page: a card with window chrome, like React Aria's hero. WebKit
+   * blurs a box shadow again, whole, on each repaint of the layer that holds it. So the window, with
+   * its shadow, is a layer of its own, and its contents sit in a pane on another (Composition in
+   * chapters/frame.tsx): a press, a menu or a toast repaints the pane and nothing under it.
+   */
   .site-window {
-    overflow: hidden;
-    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     color: var(--card-foreground);

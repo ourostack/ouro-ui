@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>A tentacle curls round a porthole</title>
+  <!-- Original drawing for Ouro HX (manifest.json): Chapter III's vignette, a round porthole with
+       its bolts, and a squid's arm curling over its rim, suckers turned out. Engraved lines only;
+       its colour comes from the theme. -->
+  <circle cx="64" cy="42" r="26" stroke-width="2" />
+  <circle cx="64" cy="42" r="20" stroke-width="1" />
+  <path d="M64 13 V16 M64 68 V71 M35 42 H38 M90 42 H93 M44 22 L46 24 M84 62 L82 60 M84 22 L82 24 M44 62 L46 60" stroke-width="1.4" />
+  <path d="M6 76 C14 60 22 50 36 46 C52 42 58 30 54 22 C50 14 40 16 40 24 C40 30 47 31 48 26" stroke-width="5.5" />
+  <path d="M6 76 C14 60 22 50 36 46 C52 42 58 30 54 22 C50 14 40 16 40 24 C40 30 47 31 48 26" class="tn-core" stroke-width="2.6" />
+  <path d="M24 58 l1 1 M32 51 l1 1 M42 46 l1 1 M51 40 l1 1 M55 31 l1 1" stroke-width="2" />
+</svg>

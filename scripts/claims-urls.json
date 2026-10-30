@@ -87,6 +87,14 @@
     "status": 200,
     "checked": "2026-10-21"
   },
+  "https://en.wikipedia.org/wiki/Decapoda": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
+  "https://en.wikipedia.org/wiki/Octopus": {
+    "status": 200,
+    "checked": "2026-10-21"
+  },
   "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas": {
     "status": 200,
     "checked": "2026-10-21"
