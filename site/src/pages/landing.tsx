@@ -380,8 +380,7 @@ function InUse(): JSX.Element {
             <Text size="lg" tone="muted">
               <a href={SPOONJOY} className="text-primary underline underline-offset-4">Spoonjoy</a>, a recipe app, uses{" "}
               {claim("60 Ouro HX components", { source: { spec: "https://spoonjoy.app/ouro-provenance.json" }, verify: { count: "site/src/docs/spoonjoy.json#items", is: 60 } })}, from its
-              navigation to its recipe pages, forms and cooking timers.{" "}
-              {claim("Each component's docs page links to where Spoonjoy shows it and to the files that render it.", { source: { file: "site/src/pages/docs.tsx" }, verify: { fileLine: "site/src/pages/docs.tsx", pattern: "<InSpoonjoy name=\\{item\\.name\\} />" } })}
+              navigation to its recipe pages, forms and cooking timers.
             </Text>
             <div className="flex flex-wrap gap-3">
               <Button href={SPOONJOY} endIcon={ArrowRightIcon}>
