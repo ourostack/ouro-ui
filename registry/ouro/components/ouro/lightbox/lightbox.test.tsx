@@ -465,7 +465,7 @@ describe("Lightbox viewer", () => {
     await rerender(lightbox({ images: [] }));
     expect(position()).toBe("0 of 0");
     expect(button("Open original")).toBeUndefined();
-    // Home and End with no image to go to do nothing.
+    // Home and End with no image to go to change nothing.
     for (const key of ["Home", "End"]) {
       const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
       await act(async () => button("Close").dispatchEvent(event));

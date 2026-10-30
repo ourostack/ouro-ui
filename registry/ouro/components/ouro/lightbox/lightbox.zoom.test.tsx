@@ -144,6 +144,21 @@ describe("Lightbox zoom", () => {
     expect(fittedImage().offsetWidth).toBe(900);
   });
 
+  it("measures again when the app swaps in an image of the same shape at another size", async () => {
+    await open([{ src: picture(800, 500, "#335"), alt: "A medium screenshot" }]);
+    await expect.poll(zoomButton).not.toBeNull();
+    await userEvent.click(zoomButton()!);
+    expect(zoomedImage()!.offsetWidth).toBeCloseTo(800, -1);
+    await userEvent.click(zoomButton()!);
+    const drawn = fittedImage().offsetWidth;
+    await act(async () => roots.at(-1)!.render(<Lightbox label="Proof images" images={[wide]} />));
+    await expect.poll(() => fittedImage().naturalWidth).toBe(1600);
+    // Drawn the same size as before, so only its load tells the viewer it can zoom further.
+    expect(fittedImage().offsetWidth).toBe(drawn);
+    await userEvent.click(zoomButton()!);
+    expect(zoomedImage()!.offsetWidth).toBeCloseTo(1600, -1);
+  });
+
   it("zooms to the image's own size from the zoom button, in the middle, and back", async () => {
     await open([wide, { ...wide, alt: "Another wide screenshot" }], { zoomLabel: "Agrandir" });
     await expect.poll(zoomButton).not.toBeNull();

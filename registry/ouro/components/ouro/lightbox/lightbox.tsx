@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type SVGProps } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SVGProps } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -203,13 +203,12 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>): void {
   if ((event.target as Element).closest("input, textarea, select, [contenteditable], [data-ouro-lightbox-zoom-view]")) return;
   event.preventDefault();
   if (key === "Home" || key === "End") {
-    // Scrolled there as the carousel's buttons scroll: the carousel reports and announces where it settles.
+    // Scrolled to the start or the end, as the carousel's buttons scroll: the carousel reports and
+    // announces where it settles. Right to left, the end is the most negative scrollLeft.
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
-    const slide = key === "Home" ? viewport.firstElementChild : viewport.lastElementChild;
-    if (!slide) return;
+    const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
     const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
-    // Each slide fills the viewport, so its left edge lines up in either reading direction.
-    viewport.scrollTo({ left: viewport.scrollLeft + slide.getBoundingClientRect().left - viewport.getBoundingClientRect().left, behavior });
+    viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
     return;
   }
   const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
@@ -234,6 +233,127 @@ interface FigureProps {
   zoomLabel: string;
 }
 
+/** The image's fitted size, and its own width. */
+interface Fitted {
+  width: number;
+  height: number;
+  natural: number;
+}
+
+/**
+ * The fitted size, measured while the image is drawn in the slide (it stays there, hidden, while
+ * zoomed), and its own width once it has loaded: another image of the same shape takes the same
+ * space, so only its load tells its own size has changed.
+ */
+function useFittedSize(picture: RefObject<HTMLImageElement | null>): Fitted {
+  // Stryker disable next-line ObjectLiteral: measured as the image mounts, before anything reads it; unmeasured, max is 1 either way.
+  const [fitted, setFitted] = useState<Fitted>({ width: 0, height: 0, natural: 0 });
+  useEffect(
+    () => {
+      const img = picture.current!;
+      const measure = () => setFitted({ width: img.offsetWidth, height: img.offsetHeight, natural: img.naturalWidth });
+      const observer = new ResizeObserver(measure);
+      observer.observe(img);
+      img.addEventListener("load", measure);
+      return () => {
+        observer.disconnect();
+        img.removeEventListener("load", measure);
+      };
+    },
+    // Stryker disable next-line ArrayDeclaration: a ref does not change, so the effect runs once whatever its dependencies.
+    [picture],
+  );
+  return fitted;
+}
+
+/** What the pinch reads as it happens: the scale drawn, how far it can go, and how to set it. */
+interface Zoom {
+  scale: number;
+  max: number;
+  onScale: (scale: number) => void;
+}
+
+/**
+ * A pinch on the figure: the fingers set the scale and hold the point between them still. Its
+ * moves are the pinch's alone, so the carousel does not also turn the page (a non-passive
+ * listener). `zoomTo` sets the scale, keeping the point at (x, y) still.
+ */
+function usePinch(figure: RefObject<HTMLElement | null>, latest: RefObject<Zoom>, zoomTo: RefObject<(scale: number, x: number, y: number) => void>): void {
+  useEffect(
+    () => {
+      const node = figure.current!;
+      // The scale the pinch last set, kept here: a lift can come before React has drawn it.
+      let pinch: { distance: number; scale: number; last: number } | undefined;
+      const spread = (touches: TouchList) => Math.hypot(touches[0]!.clientX - touches[1]!.clientX, touches[0]!.clientY - touches[1]!.clientY);
+      const onStart = (event: TouchEvent) => {
+        // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
+        if (event.touches.length === 2 && latest.current.max > minZoom) pinch = { distance: spread(event.touches), scale: latest.current.scale, last: latest.current.scale };
+      };
+      const onMove = (event: TouchEvent) => {
+        if (!pinch || event.touches.length !== 2) return;
+        event.preventDefault();
+        const next = Math.min(latest.current.max, Math.max(1, (pinch.scale * spread(event.touches)) / pinch.distance));
+        pinch.last = next;
+        const [a, b] = [event.touches[0]!, event.touches[1]!];
+        zoomTo.current(next, (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+      };
+      const onEnd = (event: TouchEvent) => {
+        if (!pinch || event.touches.length > 1) return;
+        // A pinch that ends nearly fitted settles fitted.
+        // Stryker disable next-line EqualityOperator: no pinch ends at exactly minZoom, so < and <= agree.
+        if (pinch.last < minZoom) latest.current.onScale(1);
+        pinch = undefined;
+      };
+      // Stryker disable next-line ObjectLiteral,BooleanLiteral: onStart never takes the default, so passive only spares the browser a wait.
+      node.addEventListener("touchstart", onStart, { passive: true });
+      // Stryker disable next-line ObjectLiteral: an element's touchmove listener is not passive unless asked; this says so.
+      node.addEventListener("touchmove", onMove, { passive: false });
+      node.addEventListener("touchend", onEnd);
+      node.addEventListener("touchcancel", onEnd);
+      return () => {
+        node.removeEventListener("touchstart", onStart);
+        node.removeEventListener("touchmove", onMove);
+        node.removeEventListener("touchend", onEnd);
+        node.removeEventListener("touchcancel", onEnd);
+      };
+    },
+    // Stryker disable next-line ArrayDeclaration: refs do not change, so the effect runs once whatever its dependencies.
+    [figure, latest, zoomTo],
+  );
+}
+
+/**
+ * A double-tap, or a double-click: a short press soon after another, close to where it was. Returns
+ * the pointer handlers for the element, which call `onDoubleTap` with the second press's point.
+ */
+function useDoubleTap(onDoubleTap: (x: number, y: number) => void): Pick<HTMLAttributes<HTMLElement>, "onPointerDown" | "onPointerUp"> {
+  const pressed = useRef<{ x: number; y: number } | undefined>(undefined);
+  const lastTap = useRef<{ time: number; x: number; y: number } | undefined>(undefined);
+  const onPointerDown = (event: PointerEvent<HTMLElement>) => {
+    pressed.current = { x: event.clientX, y: event.clientY };
+    // A second finger is a pinch, not a tap.
+    if (!event.isPrimary) lastTap.current = undefined;
+  };
+  const onPointerUp = (event: PointerEvent<HTMLElement>) => {
+    const start = pressed.current;
+    pressed.current = undefined;
+    const previous = lastTap.current;
+    lastTap.current = undefined;
+    if (!start || !event.isPrimary || Math.hypot(event.clientX - start.x, event.clientY - start.y) > tapSlop) return;
+    if (
+      !previous ||
+      // Stryker disable next-line EqualityOperator: a test cannot time a press to the millisecond, and no person can tell one apart.
+      event.timeStamp - previous.time > doubleTapTime ||
+      Math.hypot(event.clientX - previous.x, event.clientY - previous.y) > tapSlop
+    ) {
+      lastTap.current = { time: event.timeStamp, x: event.clientX, y: event.clientY };
+      return;
+    }
+    onDoubleTap(event.clientX, event.clientY);
+  };
+  return { onPointerDown, onPointerUp };
+}
+
 /**
  * One image and its caption. Zoomed, the image is drawn larger in a scroller over the slide, so a
  * finger, a trackpad or the arrow keys move around it, and a swipe there pans instead of turning
@@ -243,8 +363,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
   const figure = useRef<HTMLElement>(null);
   const picture = useRef<HTMLImageElement>(null);
   const view = useRef<HTMLDivElement>(null);
-  // Stryker disable next-line ObjectLiteral: measured as the image mounts, before anything reads it; unmeasured, max is 1 either way.
-  const [fitted, setFitted] = useState({ width: 0, height: 0, natural: 0 });
+  const fitted = useFittedSize(picture);
   // Never larger than the image's own size: a small image does not zoom at all.
   // Stryker disable next-line ConditionalExpression,EqualityOperator: unmeasured, 0 / 0 makes max NaN, which zooms nothing, as 1 does.
   const max = fitted.width > 0 ? Math.max(1, fitted.natural / fitted.width) : 1;
@@ -267,20 +386,16 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
   };
   // For the pinch's listeners: zoomTo reads only refs, so the first is as good as any.
   const zoomAt = useRef(zoomTo);
+  usePinch(figure, latest, zoomAt);
+  const taps = useDoubleTap((x, y) => {
+    if (zoomed) {
+      onScale(1);
+      return;
+    }
+    // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
+    if (max > minZoom) zoomTo(max, x, y);
+  });
 
-  // The fitted size, measured while the image is drawn in the slide (it stays there, hidden,
-  // while zoomed), and its own size once it has loaded.
-  useEffect(() => {
-    const img = picture.current!;
-    const measure = () => setFitted({ width: img.offsetWidth, height: img.offsetHeight, natural: img.naturalWidth });
-    const observer = new ResizeObserver(measure);
-    observer.observe(img);
-    img.addEventListener("load", measure);
-    return () => {
-      observer.disconnect();
-      img.removeEventListener("load", measure);
-    };
-  }, []);
   useEffect(() => {
     latest.current.onMaxScale(max);
   }, [max]);
@@ -297,77 +412,13 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
     scroller.scrollTop = drawn.offsetTop + fy * drawn.offsetHeight - py;
   }, [scale, zoomed]);
 
-  // A pinch: two fingers set the scale and hold the point between them still. Its moves are
-  // the pinch's alone, so the carousel does not also turn the page (a non-passive listener).
-  useEffect(() => {
-    const node = figure.current!;
-    // The scale the pinch last set, kept here: a lift can come before React has drawn it.
-    let pinch: { distance: number; scale: number; last: number } | undefined;
-    const spread = (touches: TouchList) => Math.hypot(touches[0]!.clientX - touches[1]!.clientX, touches[0]!.clientY - touches[1]!.clientY);
-    const onStart = (event: TouchEvent) => {
-      // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
-      if (event.touches.length === 2 && latest.current.max > minZoom) pinch = { distance: spread(event.touches), scale: latest.current.scale, last: latest.current.scale };
-    };
-    const onMove = (event: TouchEvent) => {
-      if (!pinch || event.touches.length !== 2) return;
-      event.preventDefault();
-      const next = Math.min(latest.current.max, Math.max(1, (pinch.scale * spread(event.touches)) / pinch.distance));
-      pinch.last = next;
-      const [a, b] = [event.touches[0]!, event.touches[1]!];
-      zoomAt.current(next, (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
-    };
-    const onEnd = (event: TouchEvent) => {
-      if (!pinch || event.touches.length > 1) return;
-      // A pinch that ends nearly fitted settles fitted.
-      // Stryker disable next-line EqualityOperator: no pinch ends at exactly minZoom, so < and <= agree.
-      if (pinch.last < minZoom) latest.current.onScale(1);
-      pinch = undefined;
-    };
-    // Stryker disable next-line ObjectLiteral,BooleanLiteral: onStart never takes the default, so passive only spares the browser a wait.
-    node.addEventListener("touchstart", onStart, { passive: true });
-    // Stryker disable next-line ObjectLiteral: an element's touchmove listener is not passive unless asked; this says so.
-    node.addEventListener("touchmove", onMove, { passive: false });
-    node.addEventListener("touchend", onEnd);
-    node.addEventListener("touchcancel", onEnd);
-    return () => {
-      node.removeEventListener("touchstart", onStart);
-      node.removeEventListener("touchmove", onMove);
-      node.removeEventListener("touchend", onEnd);
-      node.removeEventListener("touchcancel", onEnd);
-    };
-  }, []);
-
-  // A double-tap, or a double-click: two short presses close together in time and place.
-  const pressed = useRef<{ x: number; y: number } | undefined>(undefined);
-  const lastTap = useRef<{ time: number; x: number; y: number } | undefined>(undefined);
-  const onPointerDown = (event: PointerEvent<HTMLElement>) => {
-    pressed.current = { x: event.clientX, y: event.clientY };
-    // A second finger is a pinch, not a tap.
-    if (!event.isPrimary) lastTap.current = undefined;
-  };
-  const onPointerUp = (event: PointerEvent<HTMLElement>) => {
-    const start = pressed.current;
-    pressed.current = undefined;
-    const previous = lastTap.current;
-    lastTap.current = undefined;
-    if (!start || !event.isPrimary || Math.hypot(event.clientX - start.x, event.clientY - start.y) > tapSlop) return;
-    if (!previous || event.timeStamp - previous.time > doubleTapTime || Math.hypot(event.clientX - previous.x, event.clientY - previous.y) > tapSlop) {
-      lastTap.current = { time: event.timeStamp, x: event.clientX, y: event.clientY };
-      return;
-    }
-    if (zoomed) onScale(1);
-    // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
-    else if (max > minZoom) zoomTo(max, event.clientX, event.clientY);
-  };
-
   return (
     <figure
       ref={figure}
       data-ouro-lightbox-figure=""
       data-zoomed={zoomed ? "" : undefined}
       className={figureClass}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
+      {...taps}
     >
       <img ref={picture} src={image.src} alt={image.alt} decoding="async" className={cn(imageClass, zoomed && "invisible")} />
       {/* Zoomed, the image covers the caption, so the caption steps aside until it is fitted again. */}
