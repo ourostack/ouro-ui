@@ -226,8 +226,8 @@ function initialsOf(name: string): string {
 
 /**
  * One of the hues for a key, the same on the server and in the browser: an FNV hash, scaled
- * from its top bits, which every character's every bit reaches (its low bits see only each
- * character's low bits).
+ * from its top bits, which mix the whole of each character (its low bits see only the low bits).
+ * @claim "an FNV hash, scaled from its top bits" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > maps each name to its hue, the same in every browser and on the server)
  */
 function hueOf(key: string): string {
   let hash = 0x811c9dc5;
