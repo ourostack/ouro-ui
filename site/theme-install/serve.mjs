@@ -5,7 +5,8 @@ import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { URL } from "node:url";
 
-const roots = { "/": join(import.meta.dirname, "../dist"), "/app/": process.env.THEME_APP };
+// "/app/" comes first: the first prefix that matches wins, and "/" matches everything.
+const roots = { "/app/": process.env.THEME_APP, "/": join(import.meta.dirname, "../dist") };
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".woff2": "font/woff2", ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".webp": "image/webp", ".txt": "text/plain" };
 
 createServer((request, response) => {
