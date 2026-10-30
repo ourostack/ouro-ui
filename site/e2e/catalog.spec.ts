@@ -19,6 +19,23 @@ function buildManifest(): Record<string, BuildEntry> {
  * The JavaScript a page needs before it is interactive: the client entry's static closure and its
  * page module's (site/src/app.tsx loads the module after the first paint, then hydrates).
  */
+/**
+ * The files a lazily loaded module adds after a page's own closure: its chunk and the imports that
+ * closure does not already hold. The docs sidebar loads this way (site/src/components/docs-shell.tsx).
+ */
+function islandFiles(manifest: Record<string, BuildEntry>, key: string, initial: string[]): string[] {
+  const files = new Set<string>();
+  const visit = (name: string) => {
+    const item = manifest[name];
+    if (!item) throw new Error(`Missing build manifest dependency: ${name}`);
+    if (files.has(item.file) || initial.includes(item.file)) return;
+    files.add(item.file);
+    for (const dependency of item.imports ?? []) visit(dependency);
+  };
+  visit(key);
+  return [...files];
+}
+
 function initialFiles(manifest: Record<string, BuildEntry>, kind: "landing" | "voyage" | "docs"): string[] {
   const entry = Object.entries(manifest).find(([key, value]) => key === "index.html" && value.isEntry);
   if (!entry) throw new Error("No production client entry in the build manifest");
@@ -267,7 +284,10 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     // Each docs page loads only its own Markdown, so neither the docs nor the landing page (which
     // shares their routes) grows with every page the docs add.
     if (kind === "landing" || kind === "docs") expect(modules.filter((module) => /^(?:docs\/.*\.md|UPGRADING\.md)\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
-    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-"));
+    // The docs sidebar is an island: it loads after the page's closure, so it is not part of the ceiling.
+    const island = kind === "docs" ? islandFiles(manifest, "src/components/docs-sidebar.tsx", expected) : [];
+    if (kind === "docs") expect(reads, "docs loads its sidebar after its closure").toEqual(expect.arrayContaining(island));
+    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.includes(file));
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);

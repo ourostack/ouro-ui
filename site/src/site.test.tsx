@@ -8,7 +8,7 @@ import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
-import { docsSections } from "./components/docs-shell";
+import { docsSections } from "./components/docs-sidebar";
 import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
 import readme from "../../README.md?raw";

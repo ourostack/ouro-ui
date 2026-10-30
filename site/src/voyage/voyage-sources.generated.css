@@ -60,6 +60,7 @@
 @source not "../agents";
 @source not "../components/code.tsx";
 @source not "../components/docs-shell.tsx";
+@source not "../components/docs-sidebar.tsx";
 @source not "../components/icons.tsx";
 @source not "../components/layout.tsx";
 @source not "../components/live-catalog.tsx";
