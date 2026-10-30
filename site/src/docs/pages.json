@@ -48,6 +48,14 @@
     "summary": "Ouro UI's components are read by real screen readers before every release: VoiceOver on macOS and NVDA on Windows, driven through Guidepup in this repository's CI."
   },
   {
+    "name": "static-css",
+    "title": "Static CSS",
+    "kind": "guide",
+    "group": "Guides",
+    "markdown": "docs/guides/static-css.md",
+    "summary": "Ouro HX's tokens also come as plain stylesheets, for a page with no build step and no Tailwind: a status page, a report or a prototype written in HTML."
+  },
+  {
     "name": "testing",
     "title": "Testing",
     "kind": "guide",
