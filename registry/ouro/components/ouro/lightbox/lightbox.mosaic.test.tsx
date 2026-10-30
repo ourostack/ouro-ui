@@ -1,0 +1,222 @@
+import type { ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
+import { Lightbox, type LightboxImage, type LightboxProps, type LightboxWithThumbnailsProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
+import { mosaicLayout } from "@/registry/ouro/components/ouro/lightbox/lightbox-styles";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// Runs in Chromium and WebKit: the mosaic layout, the still frame and the full-screen viewer.
+
+const roots: Root[] = [];
+let mounted: Element[] = [];
+
+/** A flat picture of the given size, drawn inline so the tests need no network. */
+const picture = (width: number, height: number, fill: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="${fill}"/></svg>`)}`;
+
+const offsite: LightboxImage[] = [
+  { src: picture(900, 600, "#68a"), alt: "Two mugs on a dock by a lake", width: 900, height: 600 },
+  { src: picture(800, 600, "#ec7"), alt: "The retro board, covered in sticky notes" },
+  { src: picture(900, 600, "#435"), alt: "A trail through the pines at dusk" },
+  { src: picture(600, 900, "#7a6"), alt: "The team on the summit" },
+  { src: picture(900, 900, "#a64"), alt: "Dinner by the fire" },
+  { src: picture(900, 600, "#579"), alt: "The lake at night" },
+];
+
+async function render(node: ReactNode, width = 400) {
+  const host = document.createElement("div");
+  host.style.width = `${width}px`;
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(node));
+  return { host, rerender: (next: ReactNode) => act(async () => root.render(next)) };
+}
+
+const mosaic = (images: readonly LightboxImage[], props: Partial<LightboxWithThumbnailsProps> = {}) => (
+  <Lightbox label="Offsite photos" images={images} layout="mosaic" {...props} />
+);
+const thumbnails = (host: Element) => [...host.querySelectorAll<HTMLButtonElement>('[data-ouro-part="thumbnail"]')];
+const list = (host: Element) => host.querySelector<HTMLElement>("ul")!;
+const ratio = (element: Element) => {
+  const rect = element.getBoundingClientRect();
+  return rect.width / rect.height;
+};
+const popup = () => document.querySelector<HTMLElement>('[data-ouro="dialog"]');
+const position = () => popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent;
+
+async function settled() {
+  await expect
+    .poll(() => {
+      const element = popup();
+      return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
+    })
+    .toBe(true);
+}
+
+let warn: ReturnType<typeof vi.spyOn>;
+beforeEach(async () => {
+  await page.viewport(1280, 800);
+  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  await commands.emulateMedia({ reducedMotion: "reduce" });
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  for (const node of mounted) node.remove();
+  mounted = [];
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
+
+describe("Lightbox mosaic", () => {
+  it("draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown", async () => {
+    const own = await render(mosaic([offsite[0]!]));
+    expect(ratio(list(own.host))).toBeCloseTo(3 / 2, 1);
+    const tall = await render(mosaic([{ ...offsite[0]!, width: 400, height: 2000 }]));
+    expect(ratio(list(tall.host))).toBeCloseTo(3 / 4, 1);
+    const wide = await render(mosaic([{ ...offsite[0]!, width: 4000, height: 400 }]));
+    expect(ratio(list(wide.host))).toBeCloseTo(3, 1);
+    const unknown = await render(mosaic([offsite[1]!]));
+    expect(ratio(list(unknown.host))).toBeCloseTo(4 / 3, 1);
+    // The picture fills its frame, cropped to it, and keeps the frame's shape before it loads.
+    expect(thumbnails(own.host)[0]!.getBoundingClientRect().width).toBeCloseTo(list(own.host).getBoundingClientRect().width - 2, 0);
+    expect(mosaicLayout(1, 0, 600)).toEqual(mosaicLayout(1));
+  });
+
+  it("draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid", async () => {
+    const two = await render(mosaic(offsite.slice(0, 2)));
+    expect(ratio(list(two.host))).toBeCloseTo(2, 1);
+    const [a, b] = thumbnails(two.host).map((thumbnail) => thumbnail.getBoundingClientRect());
+    expect(a!.top).toBeCloseTo(b!.top, 0);
+    expect(a!.width).toBeCloseTo(b!.width, 0);
+
+    const three = await render(mosaic(offsite.slice(0, 3)));
+    expect(ratio(list(three.host))).toBeCloseTo(3 / 2, 1);
+    const [large, top, bottom] = thumbnails(three.host).map((thumbnail) => thumbnail.getBoundingClientRect());
+    // The first spans both rows, wider than the two stacked beside it.
+    expect(large!.height).toBeCloseTo(top!.height + bottom!.height + 2, 0);
+    expect(large!.width).toBeGreaterThan(top!.width);
+    expect(top!.left).toBeCloseTo(bottom!.left, 0);
+
+    const four = await render(mosaic(offsite.slice(0, 4)));
+    expect(ratio(list(four.host))).toBeCloseTo(4 / 3, 1);
+    expect(thumbnails(four.host)).toHaveLength(4);
+    expect(four.host.querySelector("[data-ouro-lightbox-more]")).toBeNull();
+  });
+
+  it("shows four of more pictures, the last saying how many more follow, to sight and to screen readers", async () => {
+    const { host } = await render(mosaic(offsite));
+    const buttons = thumbnails(host);
+    expect(buttons).toHaveLength(4);
+    const more = host.querySelector("[data-ouro-lightbox-more]")!;
+    expect(more.textContent).toBe("+2");
+    expect(more.getAttribute("aria-hidden")).toBe("true");
+    expect(buttons[3]!.contains(more)).toBe(true);
+    await expect.element(page.getByRole("button", { name: /^The team on the summit\s*, and 2 more$/ })).toBeInTheDocument();
+    expect(list(host).getAttribute("aria-label")).toBe("Offsite photos");
+    expect(host.querySelector('[data-ouro="lightbox"]')!.getAttribute("data-layout")).toBe("mosaic");
+  });
+
+  it("opens the viewer on the picture pressed, steps on past the four shown, and gives focus back to the last one shown", async () => {
+    const { host } = await render(mosaic(offsite));
+    await userEvent.click(thumbnails(host)[3]!);
+    await settled();
+    expect(position()).toBe("4 of 6");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("5 of 6");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(thumbnails(host)[3]);
+  });
+
+  it("gives focus back to a picture the mosaic shows when the viewer closes on it", async () => {
+    const { host } = await render(mosaic(offsite.slice(0, 3)));
+    await userEvent.click(thumbnails(host)[0]!);
+    await settled();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("2 of 3");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(thumbnails(host)[1]);
+  });
+
+  it("names a layout that is not one, and draws the grid", async () => {
+    const props = { label: "Photos", images: offsite, layout: "masonry" } as unknown as LightboxProps;
+    const { host } = await render(<Lightbox {...props} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Lightbox: layout="masonry" is not a layout; use "grid", "mosaic". Fix: <Lightbox layout="mosaic">.');
+    expect(thumbnails(host)).toHaveLength(6);
+    expect(host.querySelector("[data-layout]")).toBeNull();
+  });
+
+  it("renders the mosaic on the server", () => {
+    const html = renderToString(mosaic(offsite));
+    expect(html).toContain('data-layout="mosaic"');
+    expect(html).toContain("aspect-ratio:1.3333333333333333");
+    expect(html).toContain(">+2<");
+  });
+});
+
+describe("Lightbox still frames", () => {
+  const gif: LightboxImage = { src: picture(300, 200, "#a3c"), alt: "Shipped! A rocket in confetti", still: picture(300, 200, "#333") };
+
+  it("shows an animated image's still frame in its thumbnail when the user asks for reduced motion", async () => {
+    const { host } = await render(mosaic([gif]));
+    const image = thumbnails(host)[0]!.querySelector("img")!;
+    expect(host.querySelector("source")!.getAttribute("media")).toBe("(prefers-reduced-motion: reduce)");
+    await expect.poll(() => image.currentSrc).toBe(gif.still);
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    await expect.poll(() => image.currentSrc).toBe(gif.src);
+  });
+
+  it("plays the image itself in the viewer", async () => {
+    const { host } = await render(mosaic([gif]));
+    await userEvent.click(thumbnails(host)[0]!);
+    await settled();
+    expect(popup()!.querySelector<HTMLImageElement>("img")!.getAttribute("src")).toBe(gif.src);
+    expect(popup()!.querySelector("source")).toBeNull();
+  });
+
+  it("adds no source for an image with no still frame", async () => {
+    const { host } = await render(mosaic([offsite[0]!]));
+    expect(host.querySelector("source")).toBeNull();
+  });
+});
+
+describe("Lightbox full screen", () => {
+  it("covers the whole screen with no frame, from the thumbnails or controlled", async () => {
+    const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
+    await userEvent.click(thumbnails(host)[0]!);
+    await settled();
+    const rect = popup()!.getBoundingClientRect();
+    expect([rect.left, rect.top, rect.width, rect.height]).toEqual([0, 0, 1280, 800]);
+    const style = getComputedStyle(popup()!);
+    expect(style.borderTopLeftRadius).toBe("0px");
+    // No hairline and no shadow: every layer Tailwind composes has zero size.
+    expect(style.boxShadow.replace(/[a-z]+\([^)]*\)/g, "").match(/[1-9]/)).toBeNull();
+    expect(popup()!.hasAttribute("data-full-screen")).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+
+    await render(<Lightbox label="Offsite photos" images={offsite} open index={1} onOpenChange={() => {}} fullScreen />);
+    await settled();
+    expect(popup()!.getBoundingClientRect().width).toBe(1280);
+  });
+
+  it("keeps the dialog's frame without it", async () => {
+    const { host } = await render(mosaic(offsite.slice(0, 2)));
+    await userEvent.click(thumbnails(host)[0]!);
+    await settled();
+    expect(popup()!.getBoundingClientRect().width).toBeLessThan(1280);
+    expect(popup()!.hasAttribute("data-full-screen")).toBe(false);
+  });
+
+  it("names fullscreen, in lower case, as not a prop", async () => {
+    const props = { label: "Photos", images: offsite, fullscreen: true } as unknown as LightboxProps;
+    const { host } = await render(<Lightbox {...props} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Lightbox: fullscreen is not a prop. Fix: <Lightbox label="Kitchen photos" images={images} fullScreen>.');
+    expect(host.querySelector("[fullscreen]")).toBeNull();
+  });
+});
