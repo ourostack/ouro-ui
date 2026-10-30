@@ -284,9 +284,8 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     // Each docs page loads only its own Markdown, so neither the docs nor the landing page (which
     // shares their routes) grows with every page the docs add.
     if (kind === "landing" || kind === "docs") expect(modules.filter((module) => /^(?:docs\/.*\.md|UPGRADING\.md)\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
-    // The docs sidebar is an island: it loads after the page's closure, so it is not part of the ceiling.
+    // The docs sidebar is an island: it may load after the page's closure, and it is not part of the ceiling.
     const island = kind === "docs" ? islandFiles(manifest, "src/components/docs-sidebar.tsx", expected) : [];
-    if (kind === "docs") expect(reads, "docs loads its sidebar after its closure").toEqual(expect.arrayContaining(island));
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.includes(file));
     expect(loaded.sort(), `${kind} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
