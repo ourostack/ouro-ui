@@ -18,11 +18,21 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
     </Message>
   ))}
 </MessageList>
+<MessageList label="Team chat" className="flex-1">
+  {posts.map((post) => (
+    <article key={post.id} data-ouro-message-list-item="" data-role={post.mine ? "user" : "assistant"}>
+      <span data-ouro-message-author="">{post.author}</span>
+      <p data-ouro-message-content="">{post.text}</p>
+    </article>
+  ))}
+</MessageList>
 ```
 
 ## Usage
 
 Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
+
+Your own message components work too: mark each one's root `data-ouro-message-list-item`, the reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its author's name and its text in elements marked `data-ouro-message-author` and `data-ouro-message-content`, as `Message` does. The list keeps the reader's place among them and announces them as it does `Message`s. Leave `data-ouro="message"` to Ouro's `Message`: it names the element Ouro's Message, and X-ray outlines it as one.
 
 ## Use instead when
 
@@ -34,7 +44,7 @@ Type: `MessageListProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The `Message`s, oldest first. |
+| `children` (required) | `ReactNode` |  | The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see `MessageList`). |
 | `className` | `string` |  | Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that height, so give it one. Appearance classes warn in development. |
 | `jumpLabel` | `string` | `"Jump to latest"` | The button that appears once the reader scrolls up, for other languages. |
 | `label` (required) | `string` |  | What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. |
