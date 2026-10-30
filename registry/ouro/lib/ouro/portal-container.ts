@@ -3,8 +3,9 @@
 export { PortalScope, usePortalContainer };
 export type { PortalContainerProps };
 
-import { createContext, createElement, useCallback, useContext, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
+import { createContext, createElement, useCallback, useContext, useRef, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
+import { holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 
 // Where a floating layer (Select, Menu, Combobox, Popover, Tooltip, HoverCard,
@@ -48,14 +49,18 @@ const landmark =
 /**
  * The props for a floating layer's Base UI `Portal`: OuroProvider's `portalContainer`, and
  * in development a ref that warns when the open popup lands outside every landmark of a
- * page that has a `<main>`. Inside another Ouro UI portal it gives neither.
+ * page that has a `<main>`. Inside another Ouro UI portal it gives neither. With
+ * `holdPage`, for a layer that takes focus (Menu, Popover, Select, Combobox), the ref also
+ * keeps the page where it is while the layer is open (`holdPageScroll`), inside another
+ * portal too.
  *
  * @internal
  * @claim "The props for a floating layer's" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup into OuroProvider's portalContainer, given as an element)
  * @claim "The props for a floating layer's" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > warns once, in development, when a popup opens outside every landmark of a page that has a main)
  * @claim "Inside another Ouro UI portal it" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup opened from inside another popup into that popup's portal, not the portalContainer)
+ * @claim "the ref also keeps the page where it is while the layer is open" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > with holdPage, keeps the page where it is while the layer is open, and lets it go once it closes)
  */
-function usePortalContainer(component: string): PortalContainerProps {
+function usePortalContainer(component: string, holdPage = false): PortalContainerProps {
   const { portalContainer } = useOuro();
   const nested = useContext(InsidePortal);
   // Base UI reads its container once, as the portal mounts. A ref's element can commit after this
@@ -67,8 +72,14 @@ function usePortalContainer(component: string): PortalContainerProps {
     () => resolve(portalContainer),
     () => undefined,
   );
+  const letGo = useRef<(() => void) | undefined>(undefined);
+  const hold = useCallback((node: HTMLDivElement | null) => {
+    letGo.current?.();
+    letGo.current = node ? holdPageScroll(node) : undefined;
+  }, []);
   const check = useCallback(
     (node: HTMLDivElement | null) => {
+      if (holdPage) hold(node);
       /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
       if (process.env.NODE_ENV !== "production") {
         if (!node || !document.querySelector('main, [role="main"]') || node.parentElement!.closest(landmark)) return;
@@ -79,11 +90,12 @@ function usePortalContainer(component: string): PortalContainerProps {
         );
       }
     },
-    [component],
+    [component, holdPage, hold],
   );
-  if (nested) return {};
+  // A layer inside another portal (a dialog's, say) holds the page itself.
+  if (nested) return holdPage ? { ref: hold } : {};
   return {
     ...(container ? { container } : {}),
-    ...(process.env.NODE_ENV !== "production" ? { ref: check } : /* istanbul ignore next @preserve -- production only */ {}),
+    ...(holdPage || process.env.NODE_ENV !== "production" ? { ref: check } : /* istanbul ignore next @preserve -- production only */ {}),
   };
 }
