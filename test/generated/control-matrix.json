@@ -953,7 +953,8 @@
       "Command/Playground",
       "Command/Shortcut",
       "Command/Empty",
-      "Command/ServerSearch"
+      "Command/ServerSearch",
+      "Command/Media"
     ]
   },
   {
@@ -968,7 +969,8 @@
       "Command/Playground",
       "Command/Shortcut",
       "Command/Empty",
-      "Command/ServerSearch"
+      "Command/ServerSearch",
+      "Command/Media"
     ]
   },
   {
@@ -983,7 +985,8 @@
       "Command/Playground",
       "Command/Shortcut",
       "Command/Empty",
-      "Command/ServerSearch"
+      "Command/ServerSearch",
+      "Command/Media"
     ]
   },
   {

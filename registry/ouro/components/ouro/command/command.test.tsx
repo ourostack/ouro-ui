@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/components/ouro/command/command";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -587,6 +589,98 @@ describe("Command server search", () => {
   });
 });
 
+describe("Command media", () => {
+  const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  const gear = <svg data-testid="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="currentColor" /></svg>;
+  const row = (name: string) => page.getByRole("option", { name: new RegExp(`^${name}`) }).element() as HTMLElement;
+  const label = (option: HTMLElement) => option.querySelector<HTMLElement>("[data-ouro-command-label]")!;
+  const before = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it("shows an avatar from a picture or an element, and a muted icon, before the label", async () => {
+    await openPalette({
+      items: [
+        { label: "Grace Hopper", onSelect: () => {}, avatar: picture },
+        { label: "Ada Lovelace", onSelect: () => {}, avatar: <Avatar name="Ada Lovelace" alt="" size="xs" idForColor="person-2" /> },
+        { label: "Settings", onSelect: () => {}, icon: gear },
+        { label: "Sign out", onSelect: () => {} },
+      ],
+    } as object);
+    const [grace, ada, settings, signOut] = ["Grace Hopper", "Ada Lovelace", "Settings", "Sign out"].map(row);
+    const picked = grace!.querySelector<HTMLElement>('[data-ouro-command-avatar] [data-ouro="avatar"]')!;
+    expect(picked.getAttribute("aria-hidden")).toBe("true");
+    expect(picked.getBoundingClientRect().width).toBe(24);
+    expect(before(picked, label(grace!))).toBe(true);
+    expect(ada!.querySelector("[data-ouro-command-avatar]")!.textContent).toBe("AL");
+    const icon = settings!.querySelector<HTMLElement>("[data-ouro-command-icon]")!;
+    expect(icon.getAttribute("aria-hidden")).toBe("true");
+    expect(icon.querySelector("svg")!.getBoundingClientRect().width).toBe(16);
+    expect(before(icon, label(settings!))).toBe(true);
+    expect(getComputedStyle(icon).color).not.toBe(getComputedStyle(label(settings!)).color);
+    expect(signOut!.querySelector("[data-ouro-command-avatar], [data-ouro-command-icon]")).toBeNull();
+    // An avatar keeps the row the height of the others.
+    expect(grace!.getBoundingClientRect().height).toBe(signOut!.getBoundingClientRect().height);
+    expect(options()).toEqual(["Grace Hopper", "Ada Lovelace", "Settings", "Sign out"]);
+  });
+
+  it("marks an unread command with a bold label, a dot and a spoken label", async () => {
+    await openPalette({
+      unreadLabel: "Non lu",
+      items: [
+        { label: "Grace Hopper", onSelect: () => {}, unread: true },
+        { label: "Ada Lovelace", onSelect: () => {} },
+      ],
+    } as object);
+    const [grace, ada] = ["Grace Hopper", "Ada Lovelace"].map(row);
+    expect(Number(getComputedStyle(label(grace!)).fontWeight)).toBeGreaterThanOrEqual(600);
+    expect(Number(getComputedStyle(label(ada!)).fontWeight)).toBe(400);
+    const unread = grace!.querySelector<HTMLElement>("[data-ouro-command-unread]")!;
+    expect(unread.textContent).toBe("Non lu");
+    expect(unread.querySelector('[aria-hidden="true"]')!.getBoundingClientRect().width).toBe(8);
+    expect(before(label(grace!), unread)).toBe(true);
+    expect(ada!.querySelector("[data-ouro-command-unread]")).toBeNull();
+    await expect.element(page.getByRole("option", { name: /Grace Hopper.*Non lu/ })).toBeVisible();
+  });
+
+  it("ends the row with a mark in the unread dot's place, before the shortcut", async () => {
+    await openPalette({
+      items: [
+        { label: "Launch team", onSelect: () => {}, unread: true, mark: <Badge>3</Badge>, shortcut: ["mod", "1"] },
+        { label: "Weekly notes", onSelect: () => {}, mark: "Draft" },
+        { label: "Kai Sample", onSelect: () => {}, mark: false, icon: null },
+        { label: "Sam Example", onSelect: () => {} },
+      ],
+    } as object);
+    const [team, notes, kai, sam] = ["Launch team", "Weekly notes", "Kai Sample", "Sam Example"].map(row);
+    for (const quiet of [kai!, sam!]) expect(quiet.querySelector("[data-ouro-command-mark], [data-ouro-command-icon], [data-ouro-command-unread]")).toBeNull();
+    const mark = team!.querySelector<HTMLElement>("[data-ouro-command-mark]")!;
+    expect(mark.querySelector('[data-ouro="badge"]')!.textContent).toBe("3");
+    const unread = team!.querySelector<HTMLElement>("[data-ouro-command-unread]")!;
+    expect(unread.textContent).toBe("Unread");
+    expect(unread.querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(unread.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    expect(before(label(team!), mark)).toBe(true);
+    expect(before(mark, team!.querySelector('[data-ouro="kbd"]')!)).toBe(true);
+    const words = notes!.querySelector<HTMLElement>("[data-ouro-command-mark]")!;
+    expect(words.textContent).toBe("Draft");
+    expect(parseFloat(getComputedStyle(words).fontSize)).toBeLessThan(parseFloat(getComputedStyle(label(notes!)).fontSize));
+    expect(notes!.querySelector("[data-ouro-command-unread]")).toBeNull();
+  });
+
+  it("still searches only the labels and keywords", async () => {
+    await openPalette({
+      items: [
+        { label: "Grace Hopper", onSelect: () => {}, avatar: picture, mark: "Draft" },
+        { label: "Ada Lovelace", onSelect: () => {}, icon: gear, keywords: ["engine"] },
+      ],
+    } as object);
+    await userEvent.type(input(), "draft");
+    await expect.poll(options).toEqual([]);
+    await userEvent.clear(input());
+    await userEvent.type(input(), "engine");
+    await expect.poll(options).toEqual(["Ada Lovelace"]);
+  });
+});
+
 describe("Command closing", () => {
   it("starts empty, with every command, when opened again", async () => {
     await openPalette();
@@ -669,6 +763,17 @@ describe("Command dev messages", () => {
       '[ouro-ui] Command: commands is not a prop; the commands are items. Fix: <Command items={[{ label: "New recipe", onSelect: create }]}>.',
       '[ouro-ui] Command: the item "Home" has onClick; a command runs onSelect. Fix: { label: "Home", onSelect: run }.',
     ]);
+  });
+
+  it("names the fix once for an item with both avatar and icon, and shows the avatar", async () => {
+    await openPalette({
+      items: [{ label: "Grace Hopper", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", icon: <svg viewBox="0 0 16 16" /> }],
+    } as object);
+    expect(warnings()).toEqual([
+      '[ouro-ui] Command: the item "Grace Hopper" has both avatar and icon, and shows only the avatar; pass one. Fix: { label: "Grace Hopper", avatar: picture }.',
+    ]);
+    expect(document.querySelector("[data-ouro-command-avatar]")).not.toBeNull();
+    expect(document.querySelector("[data-ouro-command-icon]")).toBeNull();
   });
 
   it("warns about an appearance class", async () => {

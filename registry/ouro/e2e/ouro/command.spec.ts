@@ -21,6 +21,22 @@ test.describe("on a desktop", () => {
     await expect(trigger).toBeFocused();
   });
 
+  test("jumps to a chat by name, its avatar and unread state in the row", async ({ page }) => {
+    await openStory(page, "menus-command--media");
+    const trigger = page.getByRole("button", { name: "Go to…" });
+    await trigger.click();
+    const dialog = page.getByRole("dialog", { name: "Go to a chat" });
+    await expect(dialog.getByRole("option", { name: /^Launch team.*Unread/ })).toBeVisible();
+    await dialog.getByRole("combobox", { name: "Search commands" }).fill("launch");
+    const option = dialog.getByRole("option");
+    await expect(option).toHaveCount(1);
+    await expect(option.locator('[data-ouro="avatar"]')).toBeVisible();
+    await expect(option.locator('[data-ouro="badge"]')).toHaveText("3");
+    await page.keyboard.press("Enter");
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test("shows the empty state when nothing matches", async ({ page }) => {
     await openStory(page, "menus-command--playground");
     await page.getByRole("button", { name: "Search…" }).click();
