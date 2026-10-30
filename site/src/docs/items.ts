@@ -17,8 +17,6 @@ export interface DocsItem {
   title: string;
   /** Catalog group, as in the README catalog; App setup's components come last. */
   group: SiteGroup;
-  /** The registry source file, from the repo root. */
-  source: string;
   /** The first sentence of its page, for the catalog (`summary`, written by `pnpm run docs`). */
   summary: string;
   /** The family in docs/parts.md whose nesting this page shows, if it has parts. */
