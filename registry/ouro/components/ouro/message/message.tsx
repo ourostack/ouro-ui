@@ -285,6 +285,7 @@ export function Message(props: MessageProps): JSX.Element {
   const [active, setActive] = useState(false);
   const [element, setElement] = useState<HTMLElement | null>(null);
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: listening while inactive would only set it inactive again.
     if (!active) return;
     const away = (event: Event) => {
       if (!element!.contains(event.target as Node)) setActive(false);
@@ -311,6 +312,7 @@ export function Message(props: MessageProps): JSX.Element {
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";
     const bubble = (
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: on a fine pointer the article is text-sm already; the touch tests hold the system note's smaller text.
       <div data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
         {body}
       </div>
@@ -327,8 +329,7 @@ export function Message(props: MessageProps): JSX.Element {
         aria-busy={streaming || rest["aria-busy"]}
         onPointerUp={tap}
         className={cn(
-          "box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
-          hasBar && "group/message",
+          "group/message box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
           role === "user" && "flex-row-reverse",
           role === "system" && "justify-center",
           className,
@@ -353,7 +354,7 @@ export function Message(props: MessageProps): JSX.Element {
             )}
           </span>
           {bar ? (
-            <div className={cn("relative flex max-w-full flex-col", role === "user" ? "items-end" : "items-start")}>
+            <div className="relative flex max-w-full flex-col">
               {bubble}
               {bar}
             </div>
@@ -383,7 +384,7 @@ export function Message(props: MessageProps): JSX.Element {
   // In chat the user's own name is not shown (the side says whose it is), only the time.
   const nameShown = !continued && !end;
   const header = (
-    <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex min-w-0 items-baseline gap-2 px-0.5 text-xs", end && "flex-row-reverse")}>
+    <span data-ouro-message-header="" className={continued ? "sr-only" : "flex min-w-0 items-baseline gap-2 px-0.5 text-xs"}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
         {name}
       </span>
@@ -488,6 +489,7 @@ function Extra({ slot, end, inset = false, children }: { slot: "footer" | "threa
 }
 
 // The menu button's key in the bar's roving focus, apart from the actions' keys by its leading space.
+// Stryker disable next-line StringLiteral: any key no action uses works the same.
 const MENU_KEY = " menu";
 
 /**
@@ -512,7 +514,7 @@ function ActionBar({
   const [menuOpen, setMenuOpen] = useState(false);
   const keys = [...actions.filter((action) => !action.disabled).map((action) => action.key), ...(menu !== undefined && menu.length > 0 ? [MENU_KEY] : [])];
   const [current, setCurrent] = useState<string | undefined>(undefined);
-  const tabStop = current !== undefined && keys.includes(current) ? current : keys[0];
+  const tabStop = keys.find((key) => key === current) ?? keys[0];
   const buttons = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLElement>("[data-ouro-message-action]:not(:disabled)")];
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const list = buttons(event.currentTarget);
@@ -527,6 +529,7 @@ function ActionBar({
   };
   const focus = (event: FocusEvent<HTMLDivElement>) => {
     const key = (event.target as HTMLElement).getAttribute("data-ouro-message-action");
+    // Stryker disable next-line ConditionalExpression: only the bar's buttons take focus, and a key of null falls back to the first button anyway.
     if (key !== null) setCurrent(key);
   };
   const iconButton = "w-(--ouro-button-h) px-0";

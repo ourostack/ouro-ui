@@ -43,3 +43,24 @@ it("shows a message's action bar after a tap, letting taps through until then, w
     expect(rect.width).toBeGreaterThanOrEqual(44);
   }
 });
+
+it("sets a system note in smaller text than a message on a touch screen", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <>
+        <Message role="assistant" name="Ouro">
+          Hi
+        </Message>
+        <Message role="system" name="Ouro">
+          Ada joined
+        </Message>
+      </>,
+    ),
+  );
+  const [message, note] = [...host.querySelectorAll("[data-ouro-message-content]")].map((content) => parseFloat(getComputedStyle(content).fontSize));
+  expect(note).toBeLessThan(message!);
+});

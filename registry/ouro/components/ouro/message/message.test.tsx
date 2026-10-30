@@ -53,6 +53,7 @@ describe("Message", () => {
     await expect.element(page.getByRole("article")).toBeVisible();
     const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
     expect(author.textContent).toBe("Ouro");
+    expect(author.getBoundingClientRect().width).toBeGreaterThan(1);
     expect(bubbleOf(message).textContent).toBe("Preheat the oven to 220°C.");
     // The name comes first in reading order, so it is heard before the message.
     expect(author.compareDocumentPosition(bubbleOf(message)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -232,6 +233,9 @@ describe("Message development messages", () => {
         <Message variant="reply" role="user" name="Priya Okafor" continued>
           Hi
         </Message>
+        <Message role="assistant" name="Ouro">
+          Hi
+        </Message>
       </>,
     );
     expect(warn).not.toHaveBeenCalled();
@@ -254,6 +258,15 @@ describe("Message development messages", () => {
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Message: ${problem}. Fix: ${fix}.`);
     expect(message.hasAttribute("from")).toBe(false);
     expect(message.hasAttribute("content")).toBe(false);
+  });
+
+  it("shows no subject off a post", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Ouro" subject="Agenda">
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector("[data-ouro-message-subject]")).toBeNull();
   });
 
   it("renders an unknown role as an assistant message", async () => {
@@ -330,6 +343,7 @@ describe("Message chat", () => {
     const tint = getComputedStyle(bubbleOf(mine!)).backgroundColor;
     expect(tint).not.toBe(probeColor(host, "var(--card)"));
     expect(tint).not.toBe(probeColor(host, "var(--primary)"));
+    expect(tint).not.toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(bubbleOf(mine!)).color).toBe(probeColor(host, "var(--foreground)"));
   });
 
@@ -348,7 +362,7 @@ describe("Message chat", () => {
       </>,
     );
     const [first, second, third] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
-    expect(second!.hasAttribute("data-continued")).toBe(true);
+    expect(second!.getAttribute("data-continued")).toBe("");
     expect(first!.hasAttribute("data-continued")).toBe(false);
     expect(second!.querySelector('[data-ouro="avatar"]')).toBeNull();
     // The bubbles line up in one column.
@@ -382,6 +396,9 @@ describe("Message chat", () => {
     );
     const [theo, priya, mara] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     expect(theo!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("TB!");
+    // Without a time, the header is the name alone.
+    expect(headerOf(theo!).textContent).toBe("Theo Brandt");
+    expect(headerOf(theo!).querySelector("time")).toBeNull();
     expect(priya!.querySelector('[data-ouro="avatar"]')).toBeNull();
     expect(mara!.querySelector("[data-ouro-message-gutter]")).toBeNull();
   });
@@ -431,7 +448,7 @@ describe("Message chat", () => {
     expect(author.querySelector("time")!.getAttribute("dateTime")).toBe("2026-05-04T09:41");
     expect(first!.querySelector("[data-ouro-message-footer]")!.textContent).toBe("Edited");
     expect(first!.querySelector("[data-ouro-message-thread]")!.textContent).toBe("2 replies");
-    expect(second!.hasAttribute("data-continued")).toBe(true);
+    expect(second!.getAttribute("data-continued")).toBe("");
     expect(second!.querySelector('[data-ouro="avatar"]')).toBeNull();
     expect(visible(second!.querySelector("[data-ouro-message-author]")!)).toBe(false);
     expect(bubbleOf(second!).getBoundingClientRect().left).toBeCloseTo(bubbleOf(first!).getBoundingClientRect().left, 0);
@@ -458,6 +475,96 @@ describe("Message chat", () => {
   });
 });
 
+// Three 200px chips: wider than a message's column, so they wrap onto a second row.
+const chips = (label: string) => (
+  <>
+    {[1, 2, 3].map((n) => (
+      <span key={n} data-chip={`${label}${n}`} style={{ display: "inline-block", width: 200, height: 20 }} />
+    ))}
+  </>
+);
+const chip = (message: HTMLElement, name: string) => message.querySelector(`[data-chip="${name}"]`)!.getBoundingClientRect();
+
+describe("Message rows", () => {
+  it.each([
+    ["default", undefined],
+    ["chat", "chat"],
+  ] as const)("lines up wrapped attachments, footer and thread rows at the user's end in the %s layout, and at the start for others", async (_name, variant) => {
+    const { host } = await render(
+      <>
+        <Message variant={variant} role="user" name="Priya Okafor" attachments={chips("a")} footer={chips("f")} thread={chips("t")}>
+          Mine
+        </Message>
+        <Message variant={variant} role="assistant" name="Mara Quill" attachments={chips("a")} footer={chips("f")} thread={chips("t")}>
+          Theirs
+        </Message>
+      </>,
+    );
+    const [mine, theirs] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    for (const row of ["a", "f", "t"]) {
+      // The third chip wraps onto a row of its own.
+      expect(chip(mine!, `${row}3`).top).toBeGreaterThan(chip(mine!, `${row}1`).top);
+      expect(chip(mine!, `${row}3`).right).toBeCloseTo(chip(mine!, `${row}2`).right, 0);
+      expect(chip(theirs!, `${row}3`).left).toBeCloseTo(chip(theirs!, `${row}1`).left, 0);
+    }
+  });
+
+  it("keeps 4px between a message and its footer", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" footer={chips("f")}>
+          Hi
+        </Message>
+        <Message role="assistant" name="Ouro" footer={chips("f")}>
+          Hi
+        </Message>
+      </>,
+    );
+    for (const message of host.querySelectorAll<HTMLElement>('[data-ouro="message"]')) {
+      const footer = message.querySelector("[data-ouro-message-footer]")!;
+      expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+    }
+  });
+
+  it("leaves out the attachments row when there are none", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Ouro">
+          Hi
+        </Message>
+        <Message role="user" name="Ada" attachments={null}>
+          Hi
+        </Message>
+        <Message variant="chat" role="user" name="Ada" attachments={null}>
+          Hi
+        </Message>
+      </>,
+    );
+    expect(host.querySelector("[data-ouro-message-attachments]")).toBeNull();
+  });
+
+  it("centers a system note over a wider footer", async () => {
+    const { host, message } = await render(
+      <Message role="system" name="Ouro" footer={<span style={{ display: "inline-block", width: 300, height: 20 }} />}>
+        Ada joined
+      </Message>,
+    );
+    const box = bubbleOf(message).getBoundingClientRect();
+    const hostBox = host.getBoundingClientRect();
+    expect(box.width).toBeLessThan(200);
+    expect(Math.abs(box.left - hostBox.left - (hostBox.right - box.right))).toBeLessThan(2);
+  });
+
+  it("keeps a long chat message within 85% of the list's width", async () => {
+    const { host, message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        {"A long message that goes on and on. ".repeat(20)}
+      </Message>,
+    );
+    expect(bubbleOf(message).getBoundingClientRect().width).toBeLessThanOrEqual(host.getBoundingClientRect().width * 0.85 + 1);
+  });
+});
+
 describe("Message post", () => {
   it("is a card as wide as the list under the name and time, with the subject and footer inside it", async () => {
     const { host, message } = await render(
@@ -475,6 +582,7 @@ describe("Message post", () => {
       </Message>,
     );
     const card = message.querySelector<HTMLElement>("[data-ouro-message-card]")!;
+    expect(card.getAttribute("data-ouro-message-card")).toBe("");
     const hostBox = host.getBoundingClientRect();
     // The user's own post sits at the start too, with their name shown.
     expect(visible(message.querySelector("[data-ouro-message-author]")!)).toBe(true);
@@ -487,6 +595,9 @@ describe("Message post", () => {
     expect(bubbleOf(message).contains(subject)).toBe(true);
     const footer = card.querySelector<HTMLElement>("[data-ouro-message-footer]")!;
     expect(footer.textContent).toBe("4 likes");
+    expect(footer.getAttribute("data-ouro-message-footer")).toBe("");
+    // Inside the card, the footer keeps 8px from the text.
+    expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     // Reactions are not part of what MessageList reads out as the message.
     expect(bubbleOf(message).contains(footer)).toBe(false);
     const thread = message.querySelector<HTMLElement>("[data-ouro-message-thread]")!;
@@ -495,13 +606,20 @@ describe("Message post", () => {
   });
 
   it("shows no subject line without one, and no card footer without a footer", async () => {
-    const { message } = await render(
-      <Message variant="post" role="assistant" name="Jonah Vale" subject={null}>
-        Short post.
-      </Message>,
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" subject={null}>
+          Short post.
+        </Message>
+        <Message variant="post" role="assistant" name="Jonah Vale">
+          Another.
+        </Message>
+      </>,
     );
-    expect(message.querySelector("[data-ouro-message-subject]")).toBeNull();
-    expect(message.querySelector("[data-ouro-message-footer]")).toBeNull();
+    for (const message of host.querySelectorAll('[data-ouro="message"]')) {
+      expect(message.querySelector("[data-ouro-message-subject]")).toBeNull();
+      expect(message.querySelector("[data-ouro-message-footer]")).toBeNull();
+    }
   });
 
   it("lays a reply out unboxed under its name and time, at the start for everyone", async () => {
@@ -601,6 +719,8 @@ describe("Message actions", () => {
       </>,
     );
     const [like, reply, more] = [...barOf(message).querySelectorAll<HTMLElement>("button")];
+    expect(more!.getAttribute("aria-label")).toBe("More actions");
+    expect(more!.querySelectorAll("svg circle")).toHaveLength(3);
     expect([like, reply, more].map((button) => button!.tabIndex)).toEqual([0, -1, -1]);
     await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
     await pressTab();
@@ -628,17 +748,19 @@ describe("Message actions", () => {
   it("moves the other way in a right-to-left page", async () => {
     const { host } = await render(
       <div dir="rtl">
-        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} menu={menu}>
           Morning!
         </Message>
       </div>,
     );
-    const [like, reply] = [...host.querySelectorAll<HTMLElement>('[role="toolbar"] button')];
+    const [like, reply, more] = [...host.querySelectorAll<HTMLElement>('[role="toolbar"] button')];
     await act(async () => like!.focus());
     await userEvent.keyboard("{ArrowLeft}");
     expect(document.activeElement).toBe(reply);
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(like);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(more);
   });
 
   it("skips a disabled action, and moves the Tab stop off one that turns disabled", async () => {
@@ -675,11 +797,20 @@ describe("Message actions", () => {
       </Message>,
     );
     const bar = barOf(message);
+    const away = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
     await act(async () => {
       bar.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
-      bar.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      bar.dispatchEvent(away);
     });
+    expect(away.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(document.body);
     expect([...bar.querySelectorAll("button")].map((button) => button.tabIndex)).toEqual([0, -1]);
+    // An arrow key on a button moves focus instead of scrolling the page.
+    const [like, reply] = [...bar.querySelectorAll<HTMLElement>("button")];
+    const arrow = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    await act(async () => void like!.dispatchEvent(arrow));
+    expect(arrow.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(reply);
   });
 
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
@@ -698,11 +829,26 @@ describe("Message actions", () => {
     await userEvent.click(more);
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     await userEvent.unhover(document.body);
-    expect(bar.hasAttribute("data-menu-open")).toBe(true);
+    expect(bar.getAttribute("data-menu-open")).toBe("");
     expect(getComputedStyle(bar).opacity).toBe("1");
     await userEvent.click(page.getByRole("menuitem", { name: "Copy link" }));
     expect(copied).toHaveBeenCalledTimes(1);
     await expect.poll(() => bar.hasAttribute("data-menu-open")).toBe(false);
+  });
+
+  it("moves the Tab stop back to the first action when the menu goes, and shows no menu button for an empty menu", async () => {
+    const node = (entries: typeof menu) => (
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} menu={entries}>
+        Morning!
+      </Message>
+    );
+    const { message, rerender } = await render(node(menu));
+    const more = barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
+    await act(async () => more.focus());
+    expect(more.tabIndex).toBe(0);
+    await rerender(node([]));
+    expect(barOf(message).querySelector('[data-ouro-part="menu"]')).toBeNull();
+    expect([...barOf(message).querySelectorAll("button")].map((button) => button.tabIndex)).toEqual([0, -1]);
   });
 
   it("has no bar without actions or menu entries", async () => {
@@ -729,10 +875,38 @@ describe("Message actions", () => {
       </>,
     );
     const [mine, user, assistant] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
-    expect(barOf(mine!).getBoundingClientRect().left).toBeCloseTo(bubbleOf(mine!).getBoundingClientRect().left + 8, 0);
-    expect(barOf(user!)).not.toBeNull();
-    expect(bubbleOf(user!).getBoundingClientRect().right).toBeGreaterThan(host.getBoundingClientRect().right - 60);
-    expect(barOf(assistant!)).not.toBeNull();
+    const box = (element: Element) => element.getBoundingClientRect();
+    expect(box(barOf(mine!)).left).toBeCloseTo(box(bubbleOf(mine!)).left + 8, 0);
+    expect(box(bubbleOf(user!)).right).toBeGreaterThan(box(host).right - 60);
+    // Elsewhere it sits at the bubble's end corner, 32px above it.
+    for (const message of [user!, assistant!]) {
+      expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);
+    }
+  });
+
+  it("puts the bar at the end corner of others' chat messages, and over a post card's corner", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+          Theirs
+        </Message>
+        <Message variant="post" role="user" name="Priya Okafor" actions={actionsFor([])}>
+          My post
+        </Message>
+        <Message variant="reply" role="user" name="Priya Okafor" actions={actionsFor([])}>
+          My reply
+        </Message>
+      </>,
+    );
+    const [chat, post, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const box = (element: Element) => element.getBoundingClientRect();
+    expect(box(barOf(chat!)).right).toBeCloseTo(box(bubbleOf(chat!)).right - 8, 0);
+    expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 32, 0);
+    const card = post!.querySelector("[data-ouro-message-card]")!;
+    expect(box(barOf(post!)).right).toBeCloseTo(box(card).right - 8, 0);
+    expect(box(barOf(post!)).top).toBeCloseTo(box(card).top - 20, 0);
+    expect(box(barOf(reply!)).right).toBeCloseTo(box(bubbleOf(reply!)).right - 8, 0);
   });
 
   it("shows the bar after a tap on a touch screen, until a press lands outside the message", async () => {
@@ -753,13 +927,16 @@ describe("Message actions", () => {
     expect(message.hasAttribute("data-ouro-message-active")).toBe(false);
     expect(onPointerUp).toHaveBeenCalledTimes(2);
     await tap(bubbleOf(message));
-    expect(message.hasAttribute("data-ouro-message-active")).toBe(true);
+    expect(message.getAttribute("data-ouro-message-active")).toBe("");
     await expect.poll(() => getComputedStyle(barOf(message)).opacity).toBe("1");
     // A press inside keeps it; one outside hides it.
     await tap(bubbleOf(message), "pointerdown");
     expect(message.hasAttribute("data-ouro-message-active")).toBe(true);
+    const removed = vi.spyOn(document, "removeEventListener");
     await tap(host.querySelector("p")!, "pointerdown");
     expect(message.hasAttribute("data-ouro-message-active")).toBe(false);
+    // It stops listening once hidden.
+    expect(removed).toHaveBeenCalledWith("pointerdown", expect.any(Function));
   });
 
   it("shows the default layout's bar after a tap too", async () => {
@@ -769,7 +946,7 @@ describe("Message actions", () => {
       </Message>,
     );
     await act(async () => void bubbleOf(message).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
-    expect(message.hasAttribute("data-ouro-message-active")).toBe(true);
+    expect(message.getAttribute("data-ouro-message-active")).toBe("");
   });
 
   it("ignores taps on a message with no actions", async () => {
