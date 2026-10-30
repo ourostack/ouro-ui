@@ -1,0 +1,3666 @@
+{
+  "tool": "ax-xray",
+  "standard": "0.1.0",
+  "at": "2026-10-30T21:53:23.055Z",
+  "target": {
+    "cli": {
+      "name": "m365tandem",
+      "calls": 144,
+      "commands": 39,
+      "samples": {
+        "word": "the",
+        "words": "the",
+        "emoji": "like",
+        "<conversation>#<message id>": "1zijq8#1700001500000",
+        "reply:<channel>#<message id>": "1zijq8#1700000900000",
+        "answer-invite:<meeting>": "5rvwe6",
+        "meeting": "s5wqme",
+        "next": "jpkf7d",
+        "top": "1zijq8#1700004200000",
+        "poster": "8:orgid:00000000-0000-4000-8000-000000000002",
+        "folder": "00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001~Favorites",
+        "recentsender": "8:orgid:00000000-0000-4000-8000-000000000003",
+        "member": "8:orgid:00000000-0000-4000-8000-0000000000b0",
+        "conversation": "19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces",
+        "pinned": "19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces",
+        "section": "pinned",
+        "team": "19:00000000dddd0000dddd000000000001@thread.tacv2",
+        "channel": "19:00000000dddd0000dddd000000000002@thread.tacv2",
+        "entry": "shxx1y",
+        "committed": "mock-event-weekly|2026-10-30T20:00:00.000Z",
+        "invite": "mock-event-standup|2026-10-30T19:00:00.000Z",
+        "declined": "mock-event-vendor|2026-10-30T23:00:00.000Z",
+        "allday": "mock-event-allday|2026-10-30T07:00:00.000Z",
+        "category": "mock-category-0001",
+        "recording": "by8i9a",
+        "view": "customer-chats",
+        "pane": "customers",
+        "action": "read",
+        "message": "ej90am#1700001200000",
+        "content": "1f389_partypopper"
+      }
+    },
+    "http": {
+      "origin": "http://127.0.0.1:59282",
+      "routes": 131,
+      "requests": 100
+    },
+    "commit": "teams-microsoft/tandem@4f683e54 (branch ax-probe/xray)"
+  },
+  "summary": {
+    "claims": 29,
+    "holding": 26,
+    "must": 26,
+    "mustHolding": 23,
+    "checks": {
+      "pass": 512,
+      "fail": 5,
+      "skip": 0
+    },
+    "score": 99
+  },
+  "claims": [
+    {
+      "id": "cli.help-parses",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "`<cli> help --json` prints one JSON document that names every command.",
+      "rationale": "An agent learns the interface from the interface. Help that parses lets it list commands without scraping prose.",
+      "source": "Ouro UI 2026-10-11 CLI kit: help that parses; Tandem P15",
+      "check": "Run `help --json` (then `--help --json`). Pass when stdout is one JSON document with a `commands` array of objects that each have a `name`.",
+      "fix": "Keep help as data (a COMMANDS table) and print it with `help --json`: { commands: [{ name, effect, summary, usage[] }], exitCodes: [{ code, meaning }] }.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.help-effects",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Help says who sees each command: only the person, or other people.",
+      "rationale": "The one thing an agent must know before acting is whether other people will see it.",
+      "source": "Tandem P1, P2",
+      "check": "Each command in `help --json` has `effect` of `private` or `others`.",
+      "fix": "Add `effect: \"private\" | \"others\"` to every command in help JSON, from one action catalog, and group the text help under two headings.",
+      "pass": 39,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.command-help",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr.",
+      "rationale": "An agent asks the command itself, at the point of use; it should not need a separate document.",
+      "source": "Ouro UI 2026-10-11 CLI kit; Tandem P7",
+      "check": "Run `<command> --help` for every listed command.",
+      "fix": "Route `<command> --help` to the command's own help page before parsing its arguments.",
+      "pass": 39,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.help-width",
+      "surface": "cli",
+      "severity": "should",
+      "rule": "No help line is wider than the width limit (100 columns by default).",
+      "rationale": "Long lines wrap unpredictably in terminals and transcripts and cost tokens to re-read.",
+      "source": "Tandem src/cli/help.ts WIDTH",
+      "check": "Measure every line of `--help` and each `<command> --help`.",
+      "fix": "Wrap help at one width in the help renderer, not by hand.",
+      "pass": 40,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.overview-short",
+      "surface": "cli",
+      "severity": "should",
+      "rule": "The overview (`--help`) fits one screen: at most 60 lines.",
+      "rationale": "The overview is read on every cold start; details belong on each command's page.",
+      "source": "Tandem OVERVIEW_MAX_LINES",
+      "check": "Count the lines of `--help`.",
+      "fix": "Keep one line per command in the overview and move details to `<command> --help`.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.exit-codes",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Exit codes are documented, and every exit code the CLI gives is one of them.",
+      "rationale": "Stable, documented exit codes let an agent branch without parsing prose.",
+      "source": "Ouro UI 2026-10-11 CLI kit: stable exit codes",
+      "check": "Read `exitCodes` from help JSON (or an `Exit codes:` line), then compare every exit code seen during the X-ray.",
+      "fix": "Keep one exit-code table, print it in help and help JSON, and exit only with codes from it.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.read-json",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr.",
+      "rationale": "One parseable answer per call is the cheapest thing for an agent to consume.",
+      "source": "Ouro UI 2026-10-11 CLI kit: one definition gives human output and --json; Tandem help: --json on every read",
+      "check": "Run each read command's argument-free usage (or with one harvested ref) with `--json`.",
+      "fix": "Give the read a `--json` that prints the same data the text shows, as one document.",
+      "pass": 26,
+      "fail": 1,
+      "skip": 0,
+      "holds": false,
+      "failing": [
+        {
+          "claim": "cli.read-json",
+          "surface": "draft",
+          "verdict": "fail",
+          "note": "`m365tandem draft show --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from \"m365tandem conversations\"."
+        }
+      ],
+      "skipped": []
+    },
+    {
+      "id": "cli.unknown-command",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "An unknown command fails with the usage exit code and lists the commands.",
+      "rationale": "A guessed command is the commonest first call; the error should be the menu.",
+      "source": "Tandem P7",
+      "check": "Run a command that does not exist.",
+      "fix": "On an unknown command, print one line: `unknown command \"x\". Commands: a, b, c. Details: <cli> help`, and exit with the usage code.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.unknown-flag",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "An unknown flag fails before anything runs, and the error names the flag.",
+      "rationale": "A silently ignored flag gives an agent a wrong answer that looks right: `--limt 2` returns everything.",
+      "source": "Tandem P8 (check before you act)",
+      "check": "Run a read with a flag no command has, and with a misspelt real flag.",
+      "fix": "Check every flag against the command's declared flags before acting; refuse an unknown one with the usage exit code.",
+      "pass": 44,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.flag-suggest",
+      "surface": "cli",
+      "severity": "should",
+      "rule": "A misspelt flag's error names the closest real flag.",
+      "rationale": "The error should carry the fix, so the next call is right.",
+      "source": "Ouro UI 2026-10-11 CLI kit: errors that name the fix",
+      "check": "Run a read with one of its flags misspelt (a letter dropped).",
+      "fix": "Suggest the declared flag nearest by edit distance: `unknown flag --limt; did you mean --limit?`.",
+      "pass": 17,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.missing-arg",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A command missing a required argument fails with the usage exit code and says what to give.",
+      "rationale": "The error is where the agent learns the argument; it should not have to open help.",
+      "source": "Tandem P7",
+      "check": "Run each command whose every usage needs an argument with no arguments.",
+      "fix": "Validate arguments first and name the missing one and where to get it.",
+      "pass": 4,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.one-line-error",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every error is one line on stderr, with nothing on stdout.",
+      "rationale": "One line is cheap to read and easy to quote back; stdout stays parseable.",
+      "source": "Tandem P7",
+      "check": "Every failing call the X-ray makes.",
+      "fix": "Catch errors at the entry point and print one line to stderr.",
+      "pass": 51,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.error-teaches",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every error names a next action: a command to run or a flag to add.",
+      "rationale": "An agent recovers from the error alone when the error says what to do instead.",
+      "source": "Tandem P7, P8; Ouro UI 2026-10-11: errors that name the fix",
+      "check": "Every failing call's error line contains `<cli> <word>`, a `--flag`, or a quoted command name.",
+      "fix": "End each error with what to do: `Try \"<cli> conversations\"`.",
+      "pass": 51,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.no-stack-trace",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "No call prints a stack trace.",
+      "rationale": "A stack trace is noise to an agent and leaks internals.",
+      "source": "Tandem P7",
+      "check": "Look for `    at ` frames in every output.",
+      "fix": "Turn the thrown error into a one-line message at the entry point.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.ambiguous-verbs",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands.",
+      "rationale": "`edit` could mean a private draft or a message others already saw; guessing is how agents do the wrong thing.",
+      "source": "Tandem P3",
+      "check": "Run `edit`, `delete` and `remove` when they are not listed commands. Pass when each fails and names at least one listed command.",
+      "fix": "Answer each ambiguous verb with one line naming the private command and the one others see.",
+      "pass": 3,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.others-need-why",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every command other people see refuses to run without `--why`, and says so.",
+      "rationale": "What others see is logged with who asked and why.",
+      "source": "Tandem P6",
+      "check": "Run each others-see command with a made-up target and no `--why`.",
+      "fix": "Check `--why` first in every others-see command and refuse with the usage exit code.",
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.wrong-ref-first",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A wrong reference fails before anything reaches anyone, and the error says where to get a right one.",
+      "rationale": "Checking before acting keeps a stale id from becoming a wrong message.",
+      "source": "Tandem P8",
+      "check": "Run each others-see command with `--why` and a target that does not exist.",
+      "fix": "Resolve the target first; on a miss, name the command that lists valid ones.",
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.others-preview",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it.",
+      "rationale": "An agent, or a checker, can confirm the audience without acting; a wall it is not, because nothing waits on it.",
+      "source": "Tandem P4; the Apple Developer AX candidate (dry-run plans)",
+      "check": "When `<command> --help` mentions `--dry-run`, run it on a real target with `--why`. Pass when it exits 0, names who will see it, and nothing changes.",
+      "fix": "Add `--dry-run`: resolve the target, print the preview line (\"Would send to X as the person. Everyone in X will see it.\"), exit 0, and send nothing.",
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.reads-stay-reads",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "Reads change nothing.",
+      "rationale": "An agent must be able to look freely.",
+      "source": "Tandem P9",
+      "check": "Snapshot the state commands before and after every read the X-ray makes (including the flag probes); compare.",
+      "fix": "Keep reads free of writes (no mark-read, no log row, no cache eviction others see).",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "cli.refusals-change-nothing",
+      "surface": "cli",
+      "severity": "must",
+      "rule": "A refused call changes nothing, except an audit record that says it was refused.",
+      "rationale": "An agent that gets the call wrong must be able to try again safely.",
+      "source": "Tandem P8, P10",
+      "check": "Snapshot the state commands around each refused probe of what other people see. Pass when nothing changed, or when every added record mentions the refusal and nothing was removed.",
+      "fix": "Refuse before writing anything; if you log the refusal, say so in the record (`send.refused`).",
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.json",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every route answers JSON, with a JSON content type.",
+      "rationale": "One format, always parseable.",
+      "source": "Ouro UI 2026-10-11: one error shape",
+      "check": "GET every read route in the manifest.",
+      "fix": "Answer every route through one sendJson.",
+      "pass": 62,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.error-shape",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every error is a JSON object with a string `error`.",
+      "rationale": "One error shape lets an agent handle every failure the same way.",
+      "source": "Ouro UI 2026-10-11 MCP kit: one error shape",
+      "check": "Every non-2xx answer the X-ray gets.",
+      "fix": "Throw one HttpError type and serialise it as { error, code? }.",
+      "pass": 35,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.error-teaches",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every error names a next action: a route, a field, or a command.",
+      "rationale": "`not found` alone leaves the agent guessing.",
+      "source": "Tandem P7",
+      "check": "Every non-2xx answer's `error` contains a route (`/api/...`), a quoted field, or a CLI command.",
+      "fix": "Say where to go: `no such conversation; GET /api/conversations lists them`.",
+      "pass": 33,
+      "fail": 2,
+      "skip": 0,
+      "holds": false,
+      "failing": [
+        {
+          "claim": "http.error-teaches",
+          "surface": "GET /api/resolve",
+          "verdict": "fail",
+          "note": "\"link-form\" names no route, flag or command"
+        },
+        {
+          "claim": "http.error-teaches",
+          "surface": "GET /api/agent-actions/{id}",
+          "verdict": "fail",
+          "note": "\"no such action\" names no route, flag or command"
+        }
+      ],
+      "skipped": []
+    },
+    {
+      "id": "http.index",
+      "surface": "http",
+      "severity": "must",
+      "rule": "The API's base path answers an index of its routes.",
+      "rationale": "An agent finds the routes from the API itself, not from source code.",
+      "source": "Tandem P15; Ouro UI 2026-10-11: discoverable capabilities",
+      "check": "GET the manifest's base path. Pass when it answers JSON naming at least 80% of the manifest's routes.",
+      "fix": "Serve GET /api with { routes: [\"GET /api/x\", ...] } from the same table the router uses.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.unknown-route",
+      "surface": "http",
+      "severity": "must",
+      "rule": "An unknown route answers 404 and says where the routes are listed.",
+      "rationale": "A guessed route is the commonest first call.",
+      "source": "Tandem P7",
+      "check": "GET a route that does not exist.",
+      "fix": "Answer 404 with `no route GET /api/x; GET /api lists the routes`.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.wrong-ref-first",
+      "surface": "http",
+      "severity": "must",
+      "rule": "A route given an id that does not exist fails and says where to get a right one.",
+      "rationale": "Checking before acting keeps a stale id from becoming a wrong write.",
+      "source": "Tandem P8",
+      "check": "GET each `{id}` route with a made-up id; POST each others-see probe with a made-up target and a why.",
+      "fix": "On a miss, name the route that lists valid ids.",
+      "pass": 17,
+      "fail": 2,
+      "skip": 0,
+      "holds": false,
+      "failing": [
+        {
+          "claim": "http.wrong-ref-first",
+          "surface": "GET /api/drafts/{id}",
+          "verdict": "fail",
+          "note": "`GET /api/drafts/axxraynoref` → 200 {\"conversationId\":\"axxraynoref\",\"draft\":{\"text\":\"\",\"spans\":[],\"version\":0,\"updatedAt\":null,\"updatedBy\":null,\"readiness\":\"drafting\",\"readinessBy\":null,\"readines…"
+        },
+        {
+          "claim": "http.wrong-ref-first",
+          "surface": "GET /api/agent-actions/{id}",
+          "verdict": "fail",
+          "note": "`GET /api/agent-actions/axxraynoref` → 404 {\"error\":\"no such action\"}"
+        }
+      ],
+      "skipped": []
+    },
+    {
+      "id": "http.others-need-why",
+      "surface": "http",
+      "severity": "must",
+      "rule": "Every route that does what other people see refuses a request without a why, and names the field.",
+      "rationale": "What others see is logged with who asked and why.",
+      "source": "Tandem P6",
+      "check": "POST each others-see probe from the manifest without its why field.",
+      "fix": "Check the why field first and answer 4xx naming it.",
+      "pass": 5,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.reads-stay-reads",
+      "surface": "http",
+      "severity": "must",
+      "rule": "GET requests change nothing.",
+      "rationale": "An agent must be able to look freely.",
+      "source": "Tandem P9",
+      "check": "Snapshot the manifest's state routes before and after every GET; compare.",
+      "fix": "Keep GET handlers free of writes.",
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    },
+    {
+      "id": "http.refusals-change-nothing",
+      "surface": "http",
+      "severity": "must",
+      "rule": "A refused request changes nothing, except an audit record that says it was refused.",
+      "rationale": "An agent that gets the request wrong must be able to try again safely.",
+      "source": "Tandem P8, P10",
+      "check": "Snapshot the manifest's state routes around each refused probe. Pass when nothing changed, or when every added record mentions the refusal and nothing was removed.",
+      "fix": "Refuse before writing anything; if you log the refusal, say so in the record.",
+      "pass": 5,
+      "fail": 0,
+      "skip": 0,
+      "holds": true,
+      "failing": [],
+      "skipped": []
+    }
+  ],
+  "results": [
+    {
+      "claim": "cli.help-parses",
+      "surface": "help",
+      "verdict": "pass",
+      "note": "`m365tandem help --json` lists 39 commands"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "today",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "activity",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "status",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "update",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "conversations",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "look",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "emoji",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "people",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "folders",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "teams",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "apps",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "focus",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "show",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "search",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "attention",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "agenda",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "calendar",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "matters",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "categories",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "categorize",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "meeting",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "transcript",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "recordings",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "prep",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "note",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "notes",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "draft",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "layout",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "react",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "delete-sent",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "answer-invite",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "join",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "mark-read",
+      "verdict": "pass",
+      "note": "effect: others"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "watch",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "log",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-effects",
+      "surface": "help",
+      "verdict": "pass",
+      "note": "effect: private"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "--help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.overview-short",
+      "surface": "--help",
+      "verdict": "pass",
+      "note": "46 lines"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "today",
+      "verdict": "pass",
+      "note": "49 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "today --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "activity",
+      "verdict": "pass",
+      "note": "44 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "activity --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "status",
+      "verdict": "pass",
+      "note": "52 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "status --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "update",
+      "verdict": "pass",
+      "note": "33 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "update --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "conversations",
+      "verdict": "pass",
+      "note": "58 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "conversations --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "look",
+      "verdict": "pass",
+      "note": "86 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "look --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "emoji",
+      "verdict": "pass",
+      "note": "22 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "emoji --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "people",
+      "verdict": "pass",
+      "note": "28 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "people --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "folders",
+      "verdict": "pass",
+      "note": "43 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "folders --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "teams",
+      "verdict": "pass",
+      "note": "20 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "teams --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "apps",
+      "verdict": "pass",
+      "note": "30 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "apps --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "focus",
+      "verdict": "pass",
+      "note": "14 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "focus --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "show",
+      "verdict": "pass",
+      "note": "33 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "show --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "search",
+      "verdict": "pass",
+      "note": "15 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "search --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "attention",
+      "verdict": "pass",
+      "note": "60 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "attention --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "agenda",
+      "verdict": "pass",
+      "note": "18 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "agenda --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "calendar",
+      "verdict": "pass",
+      "note": "38 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "calendar --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "matters",
+      "verdict": "pass",
+      "note": "43 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "matters --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "categories",
+      "verdict": "pass",
+      "note": "16 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "categories --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "categorize",
+      "verdict": "pass",
+      "note": "43 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "categorize --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "meeting",
+      "verdict": "pass",
+      "note": "98 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "meeting --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "transcript",
+      "verdict": "pass",
+      "note": "68 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "transcript --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "recordings",
+      "verdict": "pass",
+      "note": "28 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "recordings --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "prep",
+      "verdict": "pass",
+      "note": "52 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "prep --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "note",
+      "verdict": "pass",
+      "note": "19 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "note --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "notes",
+      "verdict": "pass",
+      "note": "33 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "notes --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "draft",
+      "verdict": "pass",
+      "note": "73 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "draft --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "layout",
+      "verdict": "pass",
+      "note": "68 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "layout --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "72 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "send --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "48 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "reply --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "react",
+      "verdict": "pass",
+      "note": "25 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "react --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "24 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "edit-sent --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "delete-sent",
+      "verdict": "pass",
+      "note": "23 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "delete-sent --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "answer-invite",
+      "verdict": "pass",
+      "note": "26 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "answer-invite --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "join",
+      "verdict": "pass",
+      "note": "34 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "join --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "mark-read",
+      "verdict": "pass",
+      "note": "25 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "mark-read --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "watch",
+      "verdict": "pass",
+      "note": "22 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "watch --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "log",
+      "verdict": "pass",
+      "note": "21 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "log --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.command-help",
+      "surface": "help",
+      "verdict": "pass",
+      "note": "19 lines"
+    },
+    {
+      "claim": "cli.help-width",
+      "surface": "help --help",
+      "verdict": "pass",
+      "note": "every line ≤ 100 columns"
+    },
+    {
+      "claim": "cli.unknown-command",
+      "surface": "ax-xray-no-such-command",
+      "verdict": "pass",
+      "note": "`m365tandem ax-xray-no-such-command` → exit 2; stderr: m365tandem: unknown command \"ax-xray-no-such-command\". Commands: today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, cal…; lists 39 of 39 commands"
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "ax-xray-no-such-command",
+      "verdict": "pass",
+      "note": "m365tandem: unknown command \"ax-xray-no-such-command\". Commands: today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, calendar, matters, cate…"
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "ax-xray-no-such-command",
+      "verdict": "pass",
+      "note": "m365tandem: unknown command \"ax-xray-no-such-command\". Commands: today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, calendar, matters, cate…"
+    },
+    {
+      "claim": "cli.ambiguous-verbs",
+      "surface": "edit",
+      "verdict": "pass",
+      "note": "`m365tandem edit` → exit 2; stderr: m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>.; names people, draft, edit-sent"
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "edit",
+      "verdict": "pass",
+      "note": "m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "edit",
+      "verdict": "pass",
+      "note": "m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>."
+    },
+    {
+      "claim": "cli.ambiguous-verbs",
+      "surface": "delete",
+      "verdict": "pass",
+      "note": "`m365tandem delete` → exit 2; stderr: m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>.; names people, draft, delete-sent"
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "delete",
+      "verdict": "pass",
+      "note": "m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "delete",
+      "verdict": "pass",
+      "note": "m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>."
+    },
+    {
+      "claim": "cli.ambiguous-verbs",
+      "surface": "remove",
+      "verdict": "pass",
+      "note": "`m365tandem remove` → exit 2; stderr: m365tandem: unknown command \"remove\". Commands: today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, calendar, matters, c…; names today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, calendar, matters, cat…"
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "remove",
+      "verdict": "pass",
+      "note": "m365tandem: unknown command \"remove\". Commands: today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, calendar, matters, categories, categoriz…"
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "remove",
+      "verdict": "pass",
+      "note": "m365tandem: unknown command \"remove\". Commands: today, activity, status, update, conversations, look, emoji, people, folders, teams, apps, focus, show, search, attention, agenda, calendar, matters, categories, categoriz…"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "today",
+      "verdict": "pass",
+      "note": "`m365tandem today --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "activity",
+      "verdict": "pass",
+      "note": "`m365tandem activity --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "status",
+      "verdict": "pass",
+      "note": "`m365tandem status --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "update",
+      "verdict": "pass",
+      "note": "`m365tandem update --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "conversations",
+      "verdict": "pass",
+      "note": "`m365tandem conversations --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "emoji",
+      "verdict": "pass",
+      "note": "`m365tandem emoji --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "folders",
+      "verdict": "pass",
+      "note": "`m365tandem folders --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "teams",
+      "verdict": "pass",
+      "note": "`m365tandem teams --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "apps",
+      "verdict": "pass",
+      "note": "`m365tandem apps --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "focus",
+      "verdict": "pass",
+      "note": "`m365tandem focus --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "attention",
+      "verdict": "pass",
+      "note": "`m365tandem attention --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "agenda",
+      "verdict": "pass",
+      "note": "`m365tandem agenda --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "calendar",
+      "verdict": "pass",
+      "note": "`m365tandem calendar --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "matters",
+      "verdict": "pass",
+      "note": "`m365tandem matters --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "categories",
+      "verdict": "pass",
+      "note": "`m365tandem categories --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "recordings",
+      "verdict": "pass",
+      "note": "`m365tandem recordings --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "prep",
+      "verdict": "pass",
+      "note": "`m365tandem prep --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "draft",
+      "verdict": "fail",
+      "note": "`m365tandem draft show --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "layout",
+      "verdict": "pass",
+      "note": "`m365tandem layout catalog --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "watch",
+      "verdict": "pass",
+      "note": "a stream: 9 lines, each JSON"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "log",
+      "verdict": "pass",
+      "note": "`m365tandem log --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "help",
+      "verdict": "pass",
+      "note": "`m365tandem help --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "look",
+      "verdict": "pass",
+      "note": "`m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "people",
+      "verdict": "pass",
+      "note": "`m365tandem people 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "search",
+      "verdict": "pass",
+      "note": "`m365tandem search the --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "meeting",
+      "verdict": "pass",
+      "note": "`m365tandem meeting s5wqme --json` → one JSON document"
+    },
+    {
+      "claim": "cli.read-json",
+      "surface": "notes",
+      "verdict": "pass",
+      "note": "`m365tandem notes s5wqme --json` → one JSON document"
+    },
+    {
+      "claim": "cli.missing-arg",
+      "surface": "show",
+      "verdict": "pass",
+      "note": "`m365tandem show` → exit 2; stderr: m365tandem: show what? A conversation ([id] from \"m365tandem conversations\", or <conversation>#<message id>), or a link from a message (https, mailto or tel)."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "show (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: show what? A conversation ([id] from \"m365tandem conversations\", or <conversation>#<message id>), or a link from a message (https, mailto or tel)."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "show (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: show what? A conversation ([id] from \"m365tandem conversations\", or <conversation>#<message id>), or a link from a message (https, mailto or tel)."
+    },
+    {
+      "claim": "cli.missing-arg",
+      "surface": "categorize",
+      "verdict": "pass",
+      "note": "`m365tandem categorize` → exit 2; stderr: m365tandem: which meeting? m365tandem categorize <meeting> <category...> --why \"<reason>\" (the [id] from \"calendar\" or \"agenda\")."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "categorize (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: which meeting? m365tandem categorize <meeting> <category...> --why \"<reason>\" (the [id] from \"calendar\" or \"agenda\")."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "categorize (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: which meeting? m365tandem categorize <meeting> <category...> --why \"<reason>\" (the [id] from \"calendar\" or \"agenda\")."
+    },
+    {
+      "claim": "cli.missing-arg",
+      "surface": "transcript",
+      "verdict": "pass",
+      "note": "`m365tandem transcript` → exit 2; stderr: m365tandem: which meeting? Give its [ref] from \"agenda\", \"today\" or \"recordings\", \"next\", or a meeting chat."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "transcript (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: which meeting? Give its [ref] from \"agenda\", \"today\" or \"recordings\", \"next\", or a meeting chat."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "transcript (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: which meeting? Give its [ref] from \"agenda\", \"today\" or \"recordings\", \"next\", or a meeting chat."
+    },
+    {
+      "claim": "cli.missing-arg",
+      "surface": "note",
+      "verdict": "pass",
+      "note": "`m365tandem note` → exit 2; stderr: m365tandem: which meeting? m365tandem prep note <meeting> - (the note on stdin), for example: \"...\" | m365tandem prep note next -"
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "note (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: which meeting? m365tandem prep note <meeting> - (the note on stdin), for example: \"...\" | m365tandem prep note next -"
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "note (no argument)",
+      "verdict": "pass",
+      "note": "m365tandem: which meeting? m365tandem prep note <meeting> - (the note on stdin), for example: \"...\" | m365tandem prep note next -"
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "today",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for today. Its flags: --ids, --json. Details: m365tandem today --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "today --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for today. Its flags: --ids, --json. Details: m365tandem today --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "today --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for today. Its flags: --ids, --json. Details: m365tandem today --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "activity",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for activity. Its flags: --all, --type, --since, --limit, --before, --agent, --why, --json. Details: m365tandem activity --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "activity --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for activity. Its flags: --all, --type, --since, --limit, --before, --agent, --why, --json. Details: m365tandem activity --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "activity --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for activity. Its flags: --all, --type, --since, --limit, --before, --agent, --why, --json. Details: m365tandem activity --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "activity --allx",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --allx for activity. Did you mean --all? Its flags: --all, --type, --since, --limit, --before, --agent, --why, --json. Details: m365tandem activity --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "activity --allx",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --allx for activity. Did you mean --all? Its flags: --all, --type, --since, --limit, --before, --agent, --why, --json. Details: m365tandem activity --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "status",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for status. Details: m365tandem status --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "status --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for status. Details: m365tandem status --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "status --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for status. Details: m365tandem status --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "update",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for update. Details: m365tandem update --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "update --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for update. Details: m365tandem update --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "update --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for update. Details: m365tandem update --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "conversations",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for conversations. Its flags: --limit, --unread, --chat, --sections, --untitled, --json. Details: m365tandem conversations --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "conversations --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for conversations. Its flags: --limit, --unread, --chat, --sections, --untitled, --json. Details: m365tandem conversations --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "conversations --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for conversations. Its flags: --limit, --unread, --chat, --sections, --untitled, --json. Details: m365tandem conversations --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "conversations --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for conversations. Did you mean --limit? Its flags: --limit, --unread, --chat, --sections, --untitled, --json. Details: m365tandem conversations --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "conversations --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for conversations. Did you mean --limit? Its flags: --limit, --unread, --chat, --sections, --untitled, --json. Details: m365tandem conversations --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "emoji",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for emoji. Its flags: --limit, --json. Details: m365tandem emoji --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "emoji --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for emoji. Its flags: --limit, --json. Details: m365tandem emoji --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "emoji --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for emoji. Its flags: --limit, --json. Details: m365tandem emoji --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "emoji --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for emoji. Did you mean --limit? Its flags: --limit, --json. Details: m365tandem emoji --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "emoji --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for emoji. Did you mean --limit? Its flags: --limit, --json. Details: m365tandem emoji --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "folders",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for folders. Its flags: --all, --sections, --json. Details: m365tandem folders --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "folders --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for folders. Its flags: --all, --sections, --json. Details: m365tandem folders --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "folders --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for folders. Its flags: --all, --sections, --json. Details: m365tandem folders --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "folders --allx",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --allx for folders. Did you mean --all? Its flags: --all, --sections, --json. Details: m365tandem folders --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "folders --allx",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --allx for folders. Did you mean --all? Its flags: --all, --sections, --json. Details: m365tandem folders --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "teams",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for teams. Its flags: --hidden, --json. Details: m365tandem teams --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "teams --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for teams. Its flags: --hidden, --json. Details: m365tandem teams --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "teams --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for teams. Its flags: --hidden, --json. Details: m365tandem teams --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "teams --hiddn",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --hiddn for teams. Did you mean --hidden? Its flags: --hidden, --json. Details: m365tandem teams --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "teams --hiddn",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --hiddn for teams. Did you mean --hidden? Its flags: --hidden, --json. Details: m365tandem teams --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "apps",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for apps. Its flags: --lookup, --json. Details: m365tandem apps --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "apps --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for apps. Its flags: --lookup, --json. Details: m365tandem apps --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "apps --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for apps. Its flags: --lookup, --json. Details: m365tandem apps --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "apps --lookp",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --lookp for apps. Did you mean --lookup? Its flags: --lookup, --json. Details: m365tandem apps --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "apps --lookp",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --lookp for apps. Did you mean --lookup? Its flags: --lookup, --json. Details: m365tandem apps --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "focus",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for focus. Details: m365tandem focus --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "focus --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for focus. Details: m365tandem focus --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "focus --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for focus. Details: m365tandem focus --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "attention",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "attention --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "attention --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "attention --allx",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --allx for attention. Did you mean --all? Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "attention --allx",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --allx for attention. Did you mean --all? Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "agenda",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for agenda. Details: m365tandem agenda --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "agenda --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for agenda. Details: m365tandem agenda --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "agenda --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for agenda. Details: m365tandem agenda --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "calendar",
+      "verdict": "pass",
+      "note": "m365tandem: unsupported calendar option \"--ax-xray-no-such-flag\". Use a positional range, for example: m365tandem calendar week."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "calendar --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unsupported calendar option \"--ax-xray-no-such-flag\". Use a positional range, for example: m365tandem calendar week."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "calendar --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unsupported calendar option \"--ax-xray-no-such-flag\". Use a positional range, for example: m365tandem calendar week."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "calendar --categry",
+      "verdict": "pass",
+      "note": "m365tandem: unsupported calendar option \"--categry\". Did you mean --category? Use a positional range, for example: m365tandem calendar week."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "calendar --categry",
+      "verdict": "pass",
+      "note": "m365tandem: unsupported calendar option \"--categry\". Did you mean --category? Use a positional range, for example: m365tandem calendar week."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "matters",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "matters --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "matters --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "matters --seris",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --seris for matters. Did you mean --series? Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "matters --seris",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --seris for matters. Did you mean --series? Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "categories",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for categories. Details: m365tandem categories --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "categories --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for categories. Details: m365tandem categories --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "categories --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for categories. Details: m365tandem categories --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "recordings",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for recordings. Its flags: --since, --limit, --json. Details: m365tandem recordings --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "recordings --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for recordings. Its flags: --since, --limit, --json. Details: m365tandem recordings --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "recordings --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for recordings. Its flags: --since, --limit, --json. Details: m365tandem recordings --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "recordings --sine",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --sine for recordings. Did you mean --since? Its flags: --since, --limit, --json. Details: m365tandem recordings --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "recordings --sine",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --sine for recordings. Did you mean --since? Its flags: --since, --limit, --json. Details: m365tandem recordings --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "prep",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --reads, --agent, --json. Details: m365tandem prep --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "prep --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --reads, --agent, --json. Details: m365tandem prep --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "prep --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --reads, --agent, --json. Details: m365tandem prep --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "draft",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "draft --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "draft --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "draft --abot",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --abot for draft. Did you mean --about? Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "draft --abot",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --abot for draft. Did you mean --about? Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "layout",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for layout. Its flags: --brief, --full, --note, --patch, --base, --why, --json. Details: m365tandem layout --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "layout --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for layout. Its flags: --brief, --full, --note, --patch, --base, --why, --json. Details: m365tandem layout --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "layout --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for layout. Its flags: --brief, --full, --note, --patch, --base, --why, --json. Details: m365tandem layout --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "layout --brif",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --brif for layout. Did you mean --brief? Its flags: --brief, --full, --note, --patch, --base, --why, --json. Details: m365tandem layout --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "layout --brif",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --brif for layout. Did you mean --brief? Its flags: --brief, --full, --note, --patch, --base, --why, --json. Details: m365tandem layout --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "watch",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "watch --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "watch --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for watch. Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "watch --aftr",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --aftr for watch. Did you mean --after? Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "watch --aftr",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --aftr for watch. Did you mean --after? Its flags: --after, --timeout, --json. Details: m365tandem watch --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "log",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for log. Its flags: --limit, --since-id, --json. Details: m365tandem log --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "log --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for log. Its flags: --limit, --since-id, --json. Details: m365tandem log --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "log --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for log. Its flags: --limit, --since-id, --json. Details: m365tandem log --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "log --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for log. Did you mean --limit? Its flags: --limit, --since-id, --json. Details: m365tandem log --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "log --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for log. Did you mean --limit? Its flags: --limit, --since-id, --json. Details: m365tandem log --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "help",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for help. Details: m365tandem help --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "help --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for help. Details: m365tandem help --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "help --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for help. Details: m365tandem help --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "look",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for look. Its flags: --limit, --ids, --thread, --json. Details: m365tandem look --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "look --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for look. Its flags: --limit, --ids, --thread, --json. Details: m365tandem look --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "look --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for look. Its flags: --limit, --ids, --thread, --json. Details: m365tandem look --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "look --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for look. Did you mean --limit? Its flags: --limit, --ids, --thread, --json. Details: m365tandem look --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "look --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for look. Did you mean --limit? Its flags: --limit, --ids, --thread, --json. Details: m365tandem look --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "people",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for people. Details: m365tandem people --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "people --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for people. Details: m365tandem people --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "people --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for people. Details: m365tandem people --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "search",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for search. Its flags: --limit, --json. Details: m365tandem search --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "search --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for search. Its flags: --limit, --json. Details: m365tandem search --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "search --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for search. Its flags: --limit, --json. Details: m365tandem search --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "search --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for search. Did you mean --limit? Its flags: --limit, --json. Details: m365tandem search --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "search --limt",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --limt for search. Did you mean --limit? Its flags: --limit, --json. Details: m365tandem search --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "meeting",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for meeting. Its flags: --people, --about, --fresh, --recap, --transcript, --turns, --accept, --tentative, --decline, --ask, --why, --json. Details: m365tandem meeting --h…"
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "meeting --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for meeting. Its flags: --people, --about, --fresh, --recap, --transcript, --turns, --accept, --tentative, --decline, --ask, --why, --json. Details: m365tandem meeting --h…"
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "meeting --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for meeting. Its flags: --people, --about, --fresh, --recap, --transcript, --turns, --accept, --tentative, --decline, --ask, --why, --json. Details: m365tandem meeting --h…"
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "meeting --freh",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --freh for meeting. Did you mean --fresh? Its flags: --people, --about, --fresh, --recap, --transcript, --turns, --accept, --tentative, --decline, --ask, --why, --json. Details: m365tandem meeti…"
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "meeting --freh",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --freh for meeting. Did you mean --fresh? Its flags: --people, --about, --fresh, --recap, --transcript, --turns, --accept, --tentative, --decline, --ask, --why, --json. Details: m365tandem meeti…"
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "notes",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --agent, --json. Details: m365tandem notes --help."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "notes --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --agent, --json. Details: m365tandem notes --help."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "notes --ax-xray-no-such-flag",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --agent, --json. Details: m365tandem notes --help."
+    },
+    {
+      "claim": "cli.reads-stay-reads",
+      "surface": "27 reads, their flag probes and the missing-argument probes",
+      "verdict": "pass",
+      "note": "state: log --json; draft status --json"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "`m365tandem send axxraynoref - --agent ax-xray` → exit 2; stderr: m365tandem: send needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "send (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: send needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "send (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: send needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "`m365tandem send axxraynoref - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not reach an…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "send (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "send (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "send",
+      "verdict": "pass",
+      "note": "`m365tandem send 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces - --agent a…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Sending to Sam Example as the person. Sam Example will …"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "`m365tandem reply axxraynoref#axxraynoref - --agent ax-xray` → exit 2; stderr: m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "reply (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "reply (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "`m365tandem reply axxraynoref#axxraynoref - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "reply (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "reply (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "reply",
+      "verdict": "pass",
+      "note": "`m365tandem reply 1zijq8#1700000900000 - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must no…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Replying to Alex Example's thread in \"Design reviews\" a…"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "react",
+      "verdict": "pass",
+      "note": "`m365tandem react axxraynoref#axxraynoref like --agent ax-xray` → exit 2; stderr: m365tandem: react needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "react (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: react needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "react (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: react needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "react",
+      "verdict": "pass",
+      "note": "`m365tandem react axxraynoref#axxraynoref like --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this m…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "react (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "react (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "react",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "react",
+      "verdict": "pass",
+      "note": "`m365tandem react 1zijq8#1700001500000 like --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Reacting like to the person's message in \"Design review…"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "`m365tandem edit-sent axxraynoref#axxraynoref - --agent ax-xray` → exit 2; stderr: m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "edit-sent (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "edit-sent (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "`m365tandem edit-sent axxraynoref#axxraynoref - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this …` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "edit-sent (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "edit-sent (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "edit-sent",
+      "verdict": "pass",
+      "note": "`m365tandem edit-sent 1zijq8#1700001500000 - --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this mus…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Editing the person's sent message in \"Design reviews\". …"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "delete-sent",
+      "verdict": "pass",
+      "note": "`m365tandem delete-sent axxraynoref#axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: delete-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "delete-sent (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: delete-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "delete-sent (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: delete-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "delete-sent",
+      "verdict": "pass",
+      "note": "`m365tandem delete-sent axxraynoref#axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this …` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "delete-sent (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "delete-sent (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "delete-sent",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "delete-sent",
+      "verdict": "pass",
+      "note": "`m365tandem delete-sent 1zijq8#1700001500000 --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this mus…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Deleting the person's sent message in \"Design reviews\".…"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "answer-invite",
+      "verdict": "pass",
+      "note": "`m365tandem answer-invite axxraynoref accept --agent ax-xray` → exit 2; stderr: m365tandem: answer-invite needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "answer-invite (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: answer-invite needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "answer-invite (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: answer-invite needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "answer-invite",
+      "verdict": "pass",
+      "note": "`m365tandem answer-invite axxraynoref accept --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this mus…` → exit 1; stderr: m365tandem: no meeting matches \"axxraynoref\". Try \"m365tandem agenda\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "answer-invite (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no meeting matches \"axxraynoref\". Try \"m365tandem agenda\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "answer-invite (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no meeting matches \"axxraynoref\". Try \"m365tandem agenda\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "answer-invite",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "answer-invite",
+      "verdict": "pass",
+      "note": "`m365tandem answer-invite 5rvwe6 accept --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Accepting \"Daily standup\" as the person. The organizer,…"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "join",
+      "verdict": "pass",
+      "note": "`m365tandem join meeting:axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: join needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "join (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: join needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "join (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: join needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "join",
+      "verdict": "pass",
+      "note": "`m365tandem join meeting:axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not re…` → exit 1; stderr: m365tandem: no meeting matches \"axxraynoref\". Try \"m365tandem agenda\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "join (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no meeting matches \"axxraynoref\". Try \"m365tandem agenda\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "join (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no meeting matches \"axxraynoref\". Try \"m365tandem agenda\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "join",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "join",
+      "verdict": "pass",
+      "note": "`m365tandem join meeting:s5wqme --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not reach a…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Opening \"Design review\" in the Teams app on the person'…"
+    },
+    {
+      "claim": "cli.others-need-why",
+      "surface": "mark-read",
+      "verdict": "pass",
+      "note": "`m365tandem mark-read axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: mark-read needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "mark-read (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: mark-read needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "mark-read (no --why)",
+      "verdict": "pass",
+      "note": "m365tandem: mark-read needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+    },
+    {
+      "claim": "cli.wrong-ref-first",
+      "surface": "mark-read",
+      "verdict": "pass",
+      "note": "`m365tandem mark-read axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not reach…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.one-line-error",
+      "surface": "mark-read (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.error-teaches",
+      "surface": "mark-read (wrong ref)",
+      "verdict": "pass",
+      "note": "m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+    },
+    {
+      "claim": "cli.refusals-change-nothing",
+      "surface": "mark-read",
+      "verdict": "pass",
+      "note": "nothing changed"
+    },
+    {
+      "claim": "cli.others-preview",
+      "surface": "mark-read",
+      "verdict": "pass",
+      "note": "`m365tandem mark-read 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --agen…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Marking Sam Example read as the person. With read recei…"
+    },
+    {
+      "claim": "cli.no-stack-trace",
+      "surface": "all 144 calls",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "claim": "cli.exit-codes",
+      "surface": "all 144 calls",
+      "verdict": "pass",
+      "note": "documented: 0, 1, 2, 3, 4, 5, 6, 7"
+    },
+    {
+      "claim": "http.index",
+      "surface": "GET /api",
+      "verdict": "pass",
+      "note": "`GET /api` → 200 {\"routes\":[\"GET /api\",\"GET /api/health\",\"GET /api/update\",\"POST /api/update/check\",\"POST /api/update/restart\",\"GET /api/state\",\"GET /api/freshness\",\"GET /api/c…; names 131 of 131 routes"
+    },
+    {
+      "claim": "http.unknown-route",
+      "surface": "GET /api/ax-xray-no-such-route",
+      "verdict": "pass",
+      "note": "`GET /api/ax-xray-no-such-route` → 404 {\"error\":\"no route GET /api/ax-xray-no-such-route; GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/ax-xray-no-such-route",
+      "verdict": "pass",
+      "note": "`GET /api/ax-xray-no-such-route` → 404 {\"error\":\"no route GET /api/ax-xray-no-such-route; GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/ax-xray-no-such-route",
+      "verdict": "pass",
+      "note": "no route GET /api/ax-xray-no-such-route; GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/health",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/update",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/state",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/freshness",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/conversations",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/conversations/{id}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/conversations/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/conversations/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/conversations/{id}",
+      "verdict": "pass",
+      "note": "no such conversation; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/conversations/{id}/messages",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/conversations/{id}/messages",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref/messages` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/conversations/{id}/messages",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref/messages` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/conversations/{id}/messages",
+      "verdict": "pass",
+      "note": "no such conversation; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/conversations/{id}/artifacts",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/conversations/{id}/artifacts",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref/artifacts` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/conversations/{id}/artifacts",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref/artifacts` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/conversations/{id}/artifacts",
+      "verdict": "pass",
+      "note": "no such conversation; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/conversations/{id}/transcript",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/conversations/{id}/transcript",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref/transcript` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/conversations/{id}/transcript",
+      "verdict": "pass",
+      "note": "`GET /api/conversations/axxraynoref/transcript` → 404 {\"error\":\"no such conversation; GET /api/conversations lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/conversations/{id}/transcript",
+      "verdict": "pass",
+      "note": "no such conversation; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/focus",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/drafts",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/drafts/{id}",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/drafts/{id}",
+      "verdict": "fail",
+      "note": "`GET /api/drafts/axxraynoref` → 200 {\"conversationId\":\"axxraynoref\",\"draft\":{\"text\":\"\",\"spans\":[],\"version\":0,\"updatedAt\":null,\"updatedBy\":null,\"readiness\":\"drafting\",\"readinessBy\":null,\"readines…"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/log",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/callbacks",
+      "verdict": "pass",
+      "note": "400"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/callbacks",
+      "verdict": "pass",
+      "note": "`GET /api/callbacks` → 400 {\"error\":\"object is required: pass ?object=meeting:<6 characters>, a meeting's short id from GET /api/agenda\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/callbacks",
+      "verdict": "pass",
+      "note": "object is required: pass ?object=meeting:<6 characters>, a meeting's short id from GET /api/agenda"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/search",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/resolve",
+      "verdict": "pass",
+      "note": "422"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/resolve",
+      "verdict": "pass",
+      "note": "`GET /api/resolve` → 422 {\"error\":\"link-form\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/resolve",
+      "verdict": "fail",
+      "note": "\"link-form\" names no route, flag or command"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/layout",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/layout/catalog",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/layout/list",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/usage",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/layout/v3",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/settings",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/actions",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/agent-actions",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/agent-actions",
+      "verdict": "pass",
+      "note": "`GET /api/agent-actions` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/agent-actions",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/agent-actions/{id}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/agent-actions/{id}",
+      "verdict": "fail",
+      "note": "`GET /api/agent-actions/axxraynoref` → 404 {\"error\":\"no such action\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/agent-actions/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/agent-actions/axxraynoref` → 404 {\"error\":\"no such action\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/agent-actions/{id}",
+      "verdict": "fail",
+      "note": "\"no such action\" names no route, flag or command"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/activity",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/activity/seen/{id}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/activity/seen/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/activity/seen/axxraynoref` → 404 {\"error\":\"no such request; its id is in the answer to POST /api/activity/seen\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/activity/seen/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/activity/seen/axxraynoref` → 404 {\"error\":\"no such request; its id is in the answer to POST /api/activity/seen\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/activity/seen/{id}",
+      "verdict": "pass",
+      "note": "no such request; its id is in the answer to POST /api/activity/seen"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/activity/seen-work",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/activity/seen-work",
+      "verdict": "pass",
+      "note": "`GET /api/activity/seen-work` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/activity/seen-work",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/attention",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/prep",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/prep/{id}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/prep/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/prep/axxraynoref` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/prep/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/prep/axxraynoref` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/prep/{id}",
+      "verdict": "pass",
+      "note": "no such meeting; GET /api/agenda lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/agenda",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/meetings",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/meetings/{id}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/meetings/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/meetings/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/meetings/{id}",
+      "verdict": "pass",
+      "note": "no such meeting; GET /api/agenda lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/meetings/{id}/recap",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/meetings/{id}/recap",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref/recap` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/meetings/{id}/recap",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref/recap` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/meetings/{id}/recap",
+      "verdict": "pass",
+      "note": "no such meeting; GET /api/agenda lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/meetings/{id}/transcript",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/meetings/{id}/transcript",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref/transcript` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/meetings/{id}/transcript",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref/transcript` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/meetings/{id}/transcript",
+      "verdict": "pass",
+      "note": "no such meeting; GET /api/agenda lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/meetings/{id}/notes",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/meetings/{id}/notes",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref/notes` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/meetings/{id}/notes",
+      "verdict": "pass",
+      "note": "`GET /api/meetings/axxraynoref/notes` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/meetings/{id}/notes",
+      "verdict": "pass",
+      "note": "no such meeting; GET /api/agenda lists them"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/recordings",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/recordings/{ref}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/recordings/{ref}",
+      "verdict": "pass",
+      "note": "`GET /api/recordings/axxraynoref` → 404 {\"error\":\"no recorded call with that ref in the last 30 days. \\\"m365tandem recordings --since 30d\\\" lists them.\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/recordings/{ref}",
+      "verdict": "pass",
+      "note": "`GET /api/recordings/axxraynoref` → 404 {\"error\":\"no recorded call with that ref in the last 30 days. \\\"m365tandem recordings --since 30d\\\" lists them.\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/recordings/{ref}",
+      "verdict": "pass",
+      "note": "no recorded call with that ref in the last 30 days. \"m365tandem recordings --since 30d\" lists them."
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/calendar",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/matters",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/matters/proposals",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/categories",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/calendar/categorize",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/calendar/categorize",
+      "verdict": "pass",
+      "note": "`GET /api/calendar/categorize` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/calendar/categorize",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/calendar/categorize/{id}",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "GET /api/calendar/categorize/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/calendar/categorize/axxraynoref` → 404 {\"error\":\"no such request; its id is in the answer to POST /api/calendar/categorize\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/calendar/categorize/{id}",
+      "verdict": "pass",
+      "note": "`GET /api/calendar/categorize/axxraynoref` → 404 {\"error\":\"no such request; its id is in the answer to POST /api/calendar/categorize\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/calendar/categorize/{id}",
+      "verdict": "pass",
+      "note": "no such request; its id is in the answer to POST /api/calendar/categorize"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/people",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/people/presence",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/people/avatars",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/folders",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/teams",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/apps",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/untitled",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/emoji",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/emoji/status",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/emoji/catalog",
+      "verdict": "pass",
+      "note": "404"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/emoji/catalog",
+      "verdict": "pass",
+      "note": "`GET /api/emoji/catalog` → 404 {\"error\":\"the emoji catalog has not been loaded yet; open the tandem window\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/emoji/catalog",
+      "verdict": "pass",
+      "note": "the emoji catalog has not been loaded yet; open the tandem window"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/sync/fresh-work",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/sync/fresh-work",
+      "verdict": "pass",
+      "note": "`GET /api/sync/fresh-work` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/sync/fresh-work",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/sync/recap-work",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/sync/recap-work",
+      "verdict": "pass",
+      "note": "`GET /api/sync/recap-work` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/sync/recap-work",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/sync/attendees",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/sync/chat-work",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/sync/chat-work",
+      "verdict": "pass",
+      "note": "`GET /api/sync/chat-work` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/sync/chat-work",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/sync/profile-work",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/sync/profile-work",
+      "verdict": "pass",
+      "note": "`GET /api/sync/profile-work` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/sync/profile-work",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/sync/org-work",
+      "verdict": "pass",
+      "note": "403"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "GET /api/sync/org-work",
+      "verdict": "pass",
+      "note": "`GET /api/sync/org-work` → 403 {\"error\":\"only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "GET /api/sync/org-work",
+      "verdict": "pass",
+      "note": "only tandem's own page may do this; agents act through m365tandem, and GET /api lists the routes"
+    },
+    {
+      "claim": "http.json",
+      "surface": "GET /api/lifecycle",
+      "verdict": "pass",
+      "note": "200"
+    },
+    {
+      "claim": "http.reads-stay-reads",
+      "surface": "70 GET requests",
+      "verdict": "pass",
+      "note": "GET /api/log; GET /api/drafts unchanged"
+    },
+    {
+      "claim": "http.others-need-why",
+      "surface": "POST /api/agent-actions (message.send)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (message.send) (no why)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (message.send) (no why)",
+      "verdict": "pass",
+      "note": "say why, and who asked: --why <reason> (it goes in the action log)"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "POST /api/agent-actions (message.send)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"not a conversation tandem can act in; GET /api/conversations lists them\",\"code\":\"target\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (message.send) (wrong ref)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"not a conversation tandem can act in; GET /api/conversations lists them\",\"code\":\"target\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (message.send) (wrong ref)",
+      "verdict": "pass",
+      "note": "not a conversation tandem can act in; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.refusals-change-nothing",
+      "surface": "POST /api/agent-actions (message.send)",
+      "verdict": "pass",
+      "note": "2 audit records of the refusal, nothing else"
+    },
+    {
+      "claim": "http.others-need-why",
+      "surface": "POST /api/agent-actions (reaction.add)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (reaction.add) (no why)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (reaction.add) (no why)",
+      "verdict": "pass",
+      "note": "say why, and who asked: --why <reason> (it goes in the action log)"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "POST /api/agent-actions (reaction.add)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"not a conversation tandem can act in; GET /api/conversations lists them\",\"code\":\"target\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (reaction.add) (wrong ref)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"not a conversation tandem can act in; GET /api/conversations lists them\",\"code\":\"target\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (reaction.add) (wrong ref)",
+      "verdict": "pass",
+      "note": "not a conversation tandem can act in; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.refusals-change-nothing",
+      "surface": "POST /api/agent-actions (reaction.add)",
+      "verdict": "pass",
+      "note": "2 audit records of the refusal, nothing else"
+    },
+    {
+      "claim": "http.others-need-why",
+      "surface": "POST /api/agent-actions (conversation.markRead)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (conversation.markRead) (no why)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (conversation.markRead) (no why)",
+      "verdict": "pass",
+      "note": "say why, and who asked: --why <reason> (it goes in the action log)"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "POST /api/agent-actions (conversation.markRead)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"not a conversation tandem can act in; GET /api/conversations lists them\",\"code\":\"target\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (conversation.markRead) (wrong ref)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"not a conversation tandem can act in; GET /api/conversations lists them\",\"code\":\"target\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (conversation.markRead) (wrong ref)",
+      "verdict": "pass",
+      "note": "not a conversation tandem can act in; GET /api/conversations lists them"
+    },
+    {
+      "claim": "http.refusals-change-nothing",
+      "surface": "POST /api/agent-actions (conversation.markRead)",
+      "verdict": "pass",
+      "note": "2 audit records of the refusal, nothing else"
+    },
+    {
+      "claim": "http.others-need-why",
+      "surface": "POST /api/agent-actions (meeting.respond)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (meeting.respond) (no why)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (meeting.respond) (no why)",
+      "verdict": "pass",
+      "note": "say why, and who asked: --why <reason> (it goes in the action log)"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "POST /api/agent-actions (meeting.respond)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 403 {\"error\":\"writes to Teams are off; only the person turns them on (npm run writes -- on). Tell them, do not retry.\",\"code\":\"writes-off\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/agent-actions (meeting.respond) (wrong ref)",
+      "verdict": "pass",
+      "note": "`POST /api/agent-actions` → 403 {\"error\":\"writes to Teams are off; only the person turns them on (npm run writes -- on). Tell them, do not retry.\",\"code\":\"writes-off\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/agent-actions (meeting.respond) (wrong ref)",
+      "verdict": "pass",
+      "note": "writes to Teams are off; only the person turns them on (npm run writes -- on). Tell them, do not retry."
+    },
+    {
+      "claim": "http.refusals-change-nothing",
+      "surface": "POST /api/agent-actions (meeting.respond)",
+      "verdict": "pass",
+      "note": "2 audit records of the refusal, nothing else"
+    },
+    {
+      "claim": "http.others-need-why",
+      "surface": "POST /api/meetings/{id}/join",
+      "verdict": "pass",
+      "note": "`POST /api/meetings/axxraynoref/join` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/meetings/{id}/join (no why)",
+      "verdict": "pass",
+      "note": "`POST /api/meetings/axxraynoref/join` → 422 {\"error\":\"say why, and who asked: --why <reason> (it goes in the action log)\",\"code\":\"why\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/meetings/{id}/join (no why)",
+      "verdict": "pass",
+      "note": "say why, and who asked: --why <reason> (it goes in the action log)"
+    },
+    {
+      "claim": "http.wrong-ref-first",
+      "surface": "POST /api/meetings/{id}/join",
+      "verdict": "pass",
+      "note": "`POST /api/meetings/axxraynoref/join` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-shape",
+      "surface": "POST /api/meetings/{id}/join (wrong ref)",
+      "verdict": "pass",
+      "note": "`POST /api/meetings/axxraynoref/join` → 404 {\"error\":\"no such meeting; GET /api/agenda lists them\"}"
+    },
+    {
+      "claim": "http.error-teaches",
+      "surface": "POST /api/meetings/{id}/join (wrong ref)",
+      "verdict": "pass",
+      "note": "no such meeting; GET /api/agenda lists them"
+    },
+    {
+      "claim": "http.refusals-change-nothing",
+      "surface": "POST /api/meetings/{id}/join",
+      "verdict": "pass",
+      "note": "nothing changed"
+    }
+  ],
+  "surfaces": 229
+}

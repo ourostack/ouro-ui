@@ -1,0 +1,40 @@
+ax-xray (Ouro AX 0.1.0): at teams-microsoft/tandem@4f683e54 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 144 calls); HTTP http://127.0.0.1:59282 (131 routes in the manifest, 100 requests)
+Claims holding: 26 of 29 (must: 23 of 26). Checks: 512 pass, 5 fail, 0 skipped. Score 99%.
+
+✗ http.error-teaches [must] Every error names a next action: a route, a field, or a command. (33 of 35)
+    GET /api/resolve: "link-form" names no route, flag or command
+    GET /api/agent-actions/{id}: "no such action" names no route, flag or command
+    Fix: Say where to go: `no such conversation; GET /api/conversations lists them`.
+✗ http.wrong-ref-first [must] A route given an id that does not exist fails and says where to get a right one. (17 of 19)
+    GET /api/drafts/{id}: `GET /api/drafts/axxraynoref` → 200 {"conversationId":"axxraynoref","draft":{"text":"","spans":[],"version":0,"updatedAt":null,"updatedBy":null,"readiness":"drafting","readinessBy":null,"readines…
+    GET /api/agent-actions/{id}: `GET /api/agent-actions/axxraynoref` → 404 {"error":"no such action"}
+    Fix: On a miss, name the route that lists valid ids.
+✗ cli.read-json [must] Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr. (26 of 27)
+    draft: `m365tandem draft show --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".
+    Fix: Give the read a `--json` that prints the same data the text shows, as one document.
+✓ cli.help-parses [must] `<cli> help --json` prints one JSON document that names every command. (1 of 1)
+✓ cli.help-effects [must] Help says who sees each command: only the person, or other people. (39 of 39)
+✓ cli.command-help [must] Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. (39 of 39)
+✓ cli.exit-codes [must] Exit codes are documented, and every exit code the CLI gives is one of them. (1 of 1)
+✓ cli.unknown-command [must] An unknown command fails with the usage exit code and lists the commands. (1 of 1)
+✓ cli.unknown-flag [must] An unknown flag fails before anything runs, and the error names the flag. (44 of 44)
+✓ cli.missing-arg [must] A command missing a required argument fails with the usage exit code and says what to give. (4 of 4)
+✓ cli.one-line-error [must] Every error is one line on stderr, with nothing on stdout. (51 of 51)
+✓ cli.error-teaches [must] Every error names a next action: a command to run or a flag to add. (51 of 51)
+✓ cli.no-stack-trace [must] No call prints a stack trace. (1 of 1)
+✓ cli.ambiguous-verbs [must] Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands. (3 of 3)
+✓ cli.others-need-why [must] Every command other people see refuses to run without `--why`, and says so. (8 of 8)
+✓ cli.wrong-ref-first [must] A wrong reference fails before anything reaches anyone, and the error says where to get a right one. (8 of 8)
+✓ cli.others-preview [must] Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. (8 of 8)
+✓ cli.reads-stay-reads [must] Reads change nothing. (1 of 1)
+✓ cli.refusals-change-nothing [must] A refused call changes nothing, except an audit record that says it was refused. (8 of 8)
+✓ http.json [must] Every route answers JSON, with a JSON content type. (62 of 62)
+✓ http.error-shape [must] Every error is a JSON object with a string `error`. (35 of 35)
+✓ http.index [must] The API's base path answers an index of its routes. (1 of 1)
+✓ http.unknown-route [must] An unknown route answers 404 and says where the routes are listed. (1 of 1)
+✓ http.others-need-why [must] Every route that does what other people see refuses a request without a why, and names the field. (5 of 5)
+✓ http.reads-stay-reads [must] GET requests change nothing. (1 of 1)
+✓ http.refusals-change-nothing [must] A refused request changes nothing, except an audit record that says it was refused. (5 of 5)
+✓ cli.help-width [should] No help line is wider than the width limit (100 columns by default). (40 of 40)
+✓ cli.overview-short [should] The overview (`--help`) fits one screen: at most 60 lines. (1 of 1)
+✓ cli.flag-suggest [should] A misspelt flag's error names the closest real flag. (17 of 17)

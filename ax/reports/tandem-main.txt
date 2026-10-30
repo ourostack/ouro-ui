@@ -1,0 +1,68 @@
+ax-xray (Ouro AX 0.1.0): at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 136 calls); HTTP http://127.0.0.1:51970 (131 routes in the manifest, 100 requests)
+Claims holding: 21 of 29 (must: 19 of 26). Checks: 353 pass, 114 fail, 0 skipped. Score 75.6%.
+
+✗ cli.unknown-flag [must] An unknown flag fails before anything runs, and the error names the flag. (2 of 44)
+    today: `m365tandem today --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
+    activity: `m365tandem activity --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
+    activity --allx: `m365tandem activity --allx --json` → exit 0; stdout: {: --allx was ignored, so the answer is not what was asked
+    status: `m365tandem status --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
+    … 38 more
+    Fix: Check every flag against the command's declared flags before acting; refuse an unknown one with the usage exit code.
+✗ http.error-teaches [must] Every error names a next action: a route, a field, or a command. (8 of 35)
+    GET /api/ax-xray-no-such-route: "not found" names no route, flag or command
+    GET /api/conversations/{id}: "no such conversation" names no route, flag or command
+    GET /api/conversations/{id}/messages: "no such conversation" names no route, flag or command
+    GET /api/conversations/{id}/artifacts: "no such conversation" names no route, flag or command
+    … 23 more
+    Fix: Say where to go: `no such conversation; GET /api/conversations lists them`.
+✗ http.wrong-ref-first [must] A route given an id that does not exist fails and says where to get a right one. (2 of 19)
+    GET /api/conversations/{id}: `GET /api/conversations/axxraynoref` → 404 {"error":"no such conversation"}
+    GET /api/conversations/{id}/messages: `GET /api/conversations/axxraynoref/messages` → 404 {"error":"no such conversation"}
+    GET /api/conversations/{id}/artifacts: `GET /api/conversations/axxraynoref/artifacts` → 404 {"error":"no such conversation"}
+    GET /api/conversations/{id}/transcript: `GET /api/conversations/axxraynoref/transcript` → 404 {"error":"no such conversation"}
+    … 13 more
+    Fix: On a miss, name the route that lists valid ids.
+✗ cli.others-preview [must] Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. (0 of 8)
+    send: `m365tandem send --help` offers no --dry-run, so who will see it can only be learnt by doing it
+    reply: `m365tandem reply --help` offers no --dry-run, so who will see it can only be learnt by doing it
+    react: `m365tandem react --help` offers no --dry-run, so who will see it can only be learnt by doing it
+    edit-sent: `m365tandem edit-sent --help` offers no --dry-run, so who will see it can only be learnt by doing it
+    … 4 more
+    Fix: Add `--dry-run`: resolve the target, print the preview line ("Would send to X as the person. Everyone in X will see it."), exit 0, and send nothing.
+✗ cli.read-json [must] Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr. (26 of 27)
+    draft: `m365tandem draft show --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".
+    Fix: Give the read a `--json` that prints the same data the text shows, as one document.
+✗ http.index [must] The API's base path answers an index of its routes. (0 of 1)
+    GET /api: `GET /api` → 404 {"error":"not found"}; names 0 of 131 routes
+    Fix: Serve GET /api with { routes: ["GET /api/x", ...] } from the same table the router uses.
+✗ http.unknown-route [must] An unknown route answers 404 and says where the routes are listed. (0 of 1)
+    GET /api/ax-xray-no-such-route: `GET /api/ax-xray-no-such-route` → 404 {"error":"not found"}
+    Fix: Answer 404 with `no route GET /api/x; GET /api lists the routes`.
+✗ cli.flag-suggest [should] A misspelt flag's error names the closest real flag. (0 of 17)
+    activity --allx: `m365tandem activity --allx --json` → exit 0; stdout: {; does not name --all
+    conversations --limt: `m365tandem conversations --limt 2 --json` → exit 0; stdout: [; does not name --limit
+    emoji --limt: `m365tandem emoji --limt 2 --json` → exit 0; stdout: {; does not name --limit
+    folders --allx: `m365tandem folders --allx --json` → exit 0; stdout: {; does not name --all
+    … 13 more
+    Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; did you mean --limit?`.
+✓ cli.help-parses [must] `<cli> help --json` prints one JSON document that names every command. (1 of 1)
+✓ cli.help-effects [must] Help says who sees each command: only the person, or other people. (39 of 39)
+✓ cli.command-help [must] Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. (39 of 39)
+✓ cli.exit-codes [must] Exit codes are documented, and every exit code the CLI gives is one of them. (1 of 1)
+✓ cli.unknown-command [must] An unknown command fails with the usage exit code and lists the commands. (1 of 1)
+✓ cli.missing-arg [must] A command missing a required argument fails with the usage exit code and says what to give. (4 of 4)
+✓ cli.one-line-error [must] Every error is one line on stderr, with nothing on stdout. (26 of 26)
+✓ cli.error-teaches [must] Every error names a next action: a command to run or a flag to add. (26 of 26)
+✓ cli.no-stack-trace [must] No call prints a stack trace. (1 of 1)
+✓ cli.ambiguous-verbs [must] Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands. (3 of 3)
+✓ cli.others-need-why [must] Every command other people see refuses to run without `--why`, and says so. (8 of 8)
+✓ cli.wrong-ref-first [must] A wrong reference fails before anything reaches anyone, and the error says where to get a right one. (8 of 8)
+✓ cli.reads-stay-reads [must] Reads change nothing. (1 of 1)
+✓ cli.refusals-change-nothing [must] A refused call changes nothing, except an audit record that says it was refused. (8 of 8)
+✓ http.json [must] Every route answers JSON, with a JSON content type. (62 of 62)
+✓ http.error-shape [must] Every error is a JSON object with a string `error`. (35 of 35)
+✓ http.others-need-why [must] Every route that does what other people see refuses a request without a why, and names the field. (5 of 5)
+✓ http.reads-stay-reads [must] GET requests change nothing. (1 of 1)
+✓ http.refusals-change-nothing [must] A refused request changes nothing, except an audit record that says it was refused. (5 of 5)
+✓ cli.help-width [should] No help line is wider than the width limit (100 columns by default). (40 of 40)
+✓ cli.overview-short [should] The overview (`--help`) fits one screen: at most 60 lines. (1 of 1)
