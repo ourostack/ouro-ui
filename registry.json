@@ -200,6 +200,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/lib-announce",
         "ourostack/ouro-ui/lib-appearance-hints",
+        "ourostack/ouro-ui/lib-ax-outcome",
         "ourostack/ouro-ui/lib-claims",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
@@ -426,6 +427,19 @@
           "path": "registry/ouro/lib/ouro/appearance-hints.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/appearance-hints.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-ax-outcome",
+      "type": "registry:lib",
+      "title": "lib-ax-outcome",
+      "description": "Ouro AX outcomes: the envelope every action of an agent interface returns (state, audience, scope, postcondition, receipt, next steps), the wait an agent resumes from a cursor, and a validator for both. No component imports it; add it by name. The helper lib/ouro/ax-outcome.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/ax-outcome.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax-outcome.ts"
         }
       ]
     },
@@ -3674,6 +3688,31 @@
           "path": "registry/ouro/lib/ouro/appearance-hints.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/appearance-hints.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-ax-outcome-tests",
+      "type": "registry:item",
+      "title": "lib-ax-outcome tests",
+      "description": "Optional: the Vitest browser tests for lib-ax-outcome, and the tests of everything it installs. Add it beside lib-ax-outcome: add lib-ax-outcome lib-ax-outcome-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-ax-outcome",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/ax-outcome.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax-outcome.test.ts"
         }
       ],
       "meta": {
@@ -10583,6 +10622,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-ax-outcome-tests",
         "ourostack/ouro-ui/lib-claims-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
@@ -10670,6 +10710,7 @@
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-ax-outcome-tests",
         "ourostack/ouro-ui/lib-claims-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",

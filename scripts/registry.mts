@@ -505,7 +505,9 @@ export function buildRegistry(root: string): Registry {
                   verify: [{ testExists: "scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app" }, { urlOk: "https://nodejs.org/api/typescript.html#type-stripping" }],
                 },
               )} ${claim("No component imports it; add it by name.", { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } })} The helper lib/ouro/claims.ts and the script lib/ouro/claims-check.mjs.`
-            : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
+            : name === "lib-ax-outcome"
+              ? `Ouro AX outcomes: ${claim("the envelope every action of an agent interface returns (state, audience, scope, postcondition, receipt, next steps), the wait an agent resumes from a cursor, and a validator for both", { source: { test: "registry/ouro/lib/ouro/ax-outcome.test.ts::validateOutcome > passes a checked, received send" }, verify: { testExists: "registry/ouro/lib/ouro/ax-outcome.test.ts::validateOutcome > passes a checked, received send" } })}. No component imports it; add it by name. The helper lib/ouro/ax-outcome.ts.`
+              : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
       docs: undefined as string | undefined,
     })),
     ...components.map((entry) => ({
