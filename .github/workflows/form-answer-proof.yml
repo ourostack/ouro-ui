@@ -34,28 +34,12 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           if [ "$EVENT" = pull_request ]; then
-            node scripts/form-answer-impact.mjs HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
+            git fetch -q --no-tags --depth=2 origin refs/pull/280/merge:refs/probe/280 # temporary: the skip path, as #280 would take it
+            node scripts/form-answer-impact.mjs refs/probe/280^1 refs/probe/280 || echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "The proof runs: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Probe the selection on open pull requests (temporary)
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_OUTPUT: /dev/null
-        run: |
-          for n in 280 279 277 276 275 274 273 272 271 267 266 262 260 259 258 255 254 253; do
-            git fetch -q --no-tags --depth=2 origin "refs/pull/$n/merge:refs/probe/$n" 2>/dev/null || { echo "#$n: no merge ref"; continue; }
-            dir="$RUNNER_TEMP/p$n"
-            git worktree add -q --detach "$dir" "refs/probe/$n"
-            cp scripts/form-answer-impact.mjs "$dir/scripts/"
-            ln -s "$GITHUB_WORKSPACE/node_modules" "$dir/node_modules"
-            node "$dir/scripts/form-answer-impact.mjs" HEAD^1 HEAD > "$RUNNER_TEMP/p$n.txt"
-            echo "::group::#$n"; cat "$RUNNER_TEMP/p$n.txt"; echo "::endgroup::"
-            echo "#$n: $(head -1 "$RUNNER_TEMP/p$n.txt")" >> "$RUNNER_TEMP/probe.txt"
-            git worktree remove --force "$dir"
-          done
-          cat "$RUNNER_TEMP/probe.txt" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Restore repo-only fixture into owned CI scratch
         if: steps.impact.outputs.run == 'true'
         run: |
