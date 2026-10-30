@@ -297,7 +297,7 @@ export function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
         fix: near ? at(i, [`--${near}${inline === undefined ? "" : `=${inline}`}`]) : at(i, []),
       });
     }
-    if (Object.hasOwn(input, name)) throw new AxError({ code: "duplicate-flag", exit: usage(cli), thing, problem: `--${name} is given twice`, fix: at(i, []) });
+    if (Object.hasOwn(input, name)) throw new AxError({ code: "duplicate-flag", exit: usage(cli), thing, problem: `--${name} is given twice`, fix: at(i, [], spec.type === "boolean" || inline !== undefined ? 1 : 2) });
     if (spec.type === "boolean") {
       if (inline !== undefined && inline !== "true" && inline !== "false") throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes no value`, fix: at(i, [`--${name}`]) });
       input[name] = inline !== "false";

@@ -48,7 +48,7 @@ test("every refusal names the exact command to run instead", () => {
   assert.equal(refusal(["note", "abc123"]).fix, "notes note abc123 <text>");
   assert.equal(refusal(["rooms", "extra"]).code, "extra-arg");
   assert.equal(refusal(["rooms", "extra"]).fix, "notes rooms");
-  assert.equal(refusal(["rooms", "--limit", "1", "--limit", "2"]).code, "duplicate-flag");
+  assert.deepEqual([refusal(["rooms", "--limit", "1", "--limit", "2"]).code, refusal(["rooms", "--limit", "1", "--limit", "2"]).fix], ["duplicate-flag", "notes rooms --limit 1"]);
   assert.equal(refusal(["rooms", "--json=yes"]).code, "bad-value");
   assert.deepEqual(refusal(["edit", "x"]), { code: "ambiguous", exit: 2, thing: "edit", problem: '"edit" could mean 2 things, so it does nothing: a note only you see; or a message other people see', fix: "notes note <room> <text> or notes post <room> <text> --why <why>" });
   assert.equal(refusal(["romos"]).fix, "notes rooms");
