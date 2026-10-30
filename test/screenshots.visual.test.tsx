@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories } from "./stories.tsx";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -44,7 +44,6 @@ const widths = [
 ];
 
 let style: HTMLStyleElement;
-let shield: HTMLElement | undefined;
 beforeEach(() => {
   // A stable frame: no caret blink, no scrollbars, and the page fills the viewport.
   style = document.createElement("style");
@@ -53,7 +52,6 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanupStories();
-  shield?.remove();
   style.remove();
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
@@ -62,13 +60,6 @@ describe.each(widths)("at $width px", ({ width, height }) => {
   describe.each(modes)("$name", (mode) => {
     it.each(subjects)("$name", async ({ name, id, Story, open, focus }) => {
       await page.viewport(width, height);
-      // Rest the pointer on a pixel above everything else: a subject opened with a click leaves
-      // it where that click was, and whatever the next subject draws there would show its hover.
-      shield = document.createElement("div");
-      shield.style.cssText = "position: fixed; left: 0; top: 0; width: 1px; height: 1px; z-index: 2147483647";
-      shield.dataset["testHarness"] = "";
-      document.body.append(shield);
-      await userEvent.hover(shield);
       await commands.emulateMedia({ reducedMotion: mode.reducedMotion });
       setScheme(mode.scheme);
       const host = await renderStory(Story);

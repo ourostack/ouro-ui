@@ -82,6 +82,36 @@ afterEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
+describe("Lightbox development messages", () => {
+  it("names a missing label, missing images and a missing alt, each with the fix", async () => {
+    await render(<Lightbox label="" images={[]} />);
+    await render(<Lightbox label="Photos" images={[{ src: "/a.jpg", alt: "" }, { src: "/b.jpg", alt: "B" }]} />);
+    const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(messages).toContain(
+      '[ouro-ui] Lightbox: label is required; it names the thumbnails and the viewer for screen readers. Fix: <Lightbox label="Kitchen photos" images={images}>.',
+    );
+    expect(messages).toContain('[ouro-ui] Lightbox: there are no images. Fix: <Lightbox label="Kitchen photos" images={[{ src: "/photos/a.jpg", alt: "…" }]}>.');
+    expect(messages).toContain(
+      '[ouro-ui] Lightbox: images[0] has no alt; describe the image for screen readers. Fix: { src: "/a.jpg", alt: "The new kitchen, with white cabinets" }.',
+    );
+    expect(messages.filter((message) => message.includes("has no alt"))).toHaveLength(1);
+  });
+
+  it("names slides, shadcn-style, as not a prop", async () => {
+    const props = { label: "Photos", images: kitchen, slides: kitchen } as unknown as LightboxProps;
+    const { host } = await render(<Lightbox {...props} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Lightbox: slides is not a prop. Fix: <Lightbox label="Kitchen photos" images={[{ src, alt }]}>.');
+    expect(host.querySelector("[slides]")).toBeNull();
+  });
+
+  it("names an appearance class with the fix", async () => {
+    await render(lightbox({ className: "bg-red-500" }));
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Lightbox: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; Lightbox draws its own thumbnails.',
+    );
+  });
+});
+
 describe("Lightbox thumbnails", () => {
   it("is a named list of thumbnail buttons, each named by its image and opening a dialog", async () => {
     const { host } = await render(lightbox());
@@ -210,97 +240,6 @@ describe("Lightbox opening and closing", () => {
   });
 });
 
-describe("Lightbox viewer", () => {
-  it("shows the title and caption with the image, exactly as given", async () => {
-    const { host } = await render(lightbox());
-    await openAt(host, 0);
-    const caption = (index: number) => slides()[index]!.querySelector("figcaption");
-    // The caption keeps its own prefix: nothing is added in front of it.
-    expect([...caption(0)!.children].map((part) => part.textContent)).toEqual(["Before", "Before: dark cabinets and a narrow counter."]);
-    expect(caption(0)!.textContent).toBe("BeforeBefore: dark cabinets and a narrow counter.");
-    expect([...caption(1)!.children].map((part) => part.textContent)).toEqual(["After"]);
-    expect([...caption(2)!.children].map((part) => part.textContent)).toEqual(["Oak shelves, floor to ceiling."]);
-    expect(caption(3)).toBeNull();
-    expect(slides()[0]!.querySelector("figure")!.contains(caption(0))).toBe(true);
-  });
-
-  it("fits the image to the screen, uncropped, with the caption right under it, on a phone and on a desktop", async () => {
-    for (const [width, height] of [
-      [390, 844],
-      [1280, 800],
-    ] as const) {
-      await page.viewport(width, height);
-      const { host } = await render(lightbox({ images: [{ src: picture(900, 1600, "#335"), alt: "A tall photo", caption: "Tall" }, ...kitchen] }), width - 32);
-      for (const index of [0, 1, 3]) {
-        await openAt(host, index);
-        const frame = popup()!.getBoundingClientRect();
-        expect(frame.width).toBeLessThanOrEqual(width);
-        expect(frame.height).toBeLessThanOrEqual(height);
-        const image = slides()[index]!.querySelector("img")!;
-        await expect.poll(() => image.complete && image.naturalWidth > 0).toBe(true);
-        const box = image.getBoundingClientRect();
-        // Inside the viewer, and at the picture's own shape: nothing is cropped or stretched.
-        expect(box.top).toBeGreaterThanOrEqual(frame.top);
-        expect(box.bottom).toBeLessThanOrEqual(frame.bottom);
-        expect(box.width).toBeLessThanOrEqual(frame.width);
-        expect(box.width / box.height).toBeCloseTo(image.naturalWidth / image.naturalHeight, 1);
-        // Large: it fills the stage's width or its height.
-        const stage = slides()[index]!.getBoundingClientRect();
-        expect(Math.max(box.width / stage.width, box.height / stage.height)).toBeGreaterThan(0.6);
-        const caption = slides()[index]!.querySelector("figcaption");
-        if (caption) expect(caption.getBoundingClientRect().top - box.bottom).toBeLessThanOrEqual(13);
-        await userEvent.keyboard("{Escape}");
-        await expect.poll(popup).toBeNull();
-      }
-    }
-  });
-
-  it("shows the position and announces it once when it changes", async () => {
-    const { host } = await render(lightbox());
-    await openAt(host, 0);
-    const announcements = watchAnnouncements();
-    await userEvent.click(button("Next image"));
-    await expect.poll(position).toBe("2 of 4");
-    await expect.poll(() => announcements.count("2 of 4")).toBe(1);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    expect(announcements.count("2 of 4")).toBe(1);
-    // The position at the top is not a live region of its own.
-    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.closest("[aria-live]")).toBeNull();
-    announcements.stop();
-  });
-
-  it("links to the image's original in a new tab, only when it has one", async () => {
-    const images = kitchen.map((image, index) => (index === 1 ? { ...image, href: "https://example.com/after.jpg" } : image));
-    const { host } = await render(lightbox({ images }));
-    await openAt(host, 0);
-    expect(button("Open original")).toBeUndefined();
-    await userEvent.click(button("Next image"));
-    await expect.poll(position).toBe("2 of 4");
-    const link = button("Open original") as HTMLAnchorElement;
-    expect(link.tagName).toBe("A");
-    expect(link.href).toBe("https://example.com/after.jpg");
-    expect(link.target).toBe("_blank");
-    expect(link.rel).toContain("noopener");
-    expect(link.getAttribute("data-ouro-control")).toBe("lightbox");
-    expect(link.getAttribute("data-ouro-part")).toBe("original");
-    // An icon says it opens elsewhere; below 640px it shows alone, and the text still names the link.
-    expect(link.querySelector('svg[aria-hidden="true"] path')).not.toBeNull();
-    expect(link.querySelector("span.max-sm\\:sr-only")!.textContent).toBe("Open original");
-  });
-
-  it("keeps working when the app removes images while the viewer is open", async () => {
-    const { host, rerender } = await render(lightbox({ images: kitchen.map((image) => ({ ...image, href: image.src })) }));
-    await openAt(host, 3);
-    expect(position()).toBe("4 of 4");
-    await rerender(lightbox({ images: kitchen.slice(0, 2).map((image) => ({ ...image, href: image.src })) }));
-    expect(position()).toBe("2 of 2");
-    expect(button("Open original")).toBeTruthy();
-    await rerender(lightbox({ images: [] }));
-    expect(position()).toBe("0 of 0");
-    expect(button("Open original")).toBeUndefined();
-  });
-});
-
 describe("Lightbox navigation", () => {
   it("steps with the arrow keys from anywhere in the viewer, in reading order", async () => {
     const { host } = await render(lightbox());
@@ -377,6 +316,98 @@ describe("Lightbox navigation", () => {
   });
 });
 
+describe("Lightbox viewer", () => {
+  it("shows the title and caption with the image, exactly as given", async () => {
+    const { host } = await render(lightbox());
+    await openAt(host, 0);
+    const caption = (index: number) => slides()[index]!.querySelector("figcaption");
+    // The caption keeps its own prefix: nothing is added in front of it.
+    expect([...caption(0)!.children].map((part) => part.textContent)).toEqual(["Before", "Before: dark cabinets and a narrow counter."]);
+    expect(caption(0)!.textContent).toBe("BeforeBefore: dark cabinets and a narrow counter.");
+    expect([...caption(1)!.children].map((part) => part.textContent)).toEqual(["After"]);
+    expect([...caption(2)!.children].map((part) => part.textContent)).toEqual(["Oak shelves, floor to ceiling."]);
+    expect(caption(3)).toBeNull();
+    expect(slides()[0]!.querySelector("figure")!.contains(caption(0))).toBe(true);
+  });
+
+  it("shows the position and announces it once when it changes", async () => {
+    const { host } = await render(lightbox());
+    await openAt(host, 0);
+    const announcements = watchAnnouncements();
+    await userEvent.click(button("Next image"));
+    await expect.poll(position).toBe("2 of 4");
+    await expect.poll(() => announcements.count("2 of 4")).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(announcements.count("2 of 4")).toBe(1);
+    // The position at the top is not a live region of its own.
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.closest("[aria-live]")).toBeNull();
+    announcements.stop();
+  });
+
+  it("links to the image's original in a new tab, only when it has one", async () => {
+    const images = kitchen.map((image, index) => (index === 1 ? { ...image, href: "https://example.com/after.jpg" } : image));
+    const { host } = await render(lightbox({ images }));
+    await openAt(host, 0);
+    expect(button("Open original")).toBeUndefined();
+    await userEvent.click(button("Next image"));
+    await expect.poll(position).toBe("2 of 4");
+    const link = button("Open original") as HTMLAnchorElement;
+    expect(link.tagName).toBe("A");
+    expect(link.href).toBe("https://example.com/after.jpg");
+    expect(link.target).toBe("_blank");
+    expect(link.rel).toContain("noopener");
+    expect(link.getAttribute("data-ouro-control")).toBe("lightbox");
+    expect(link.getAttribute("data-ouro-part")).toBe("original");
+    // An icon says it opens elsewhere; below 640px it shows alone, and the text still names the link.
+    expect(link.querySelector('svg[aria-hidden="true"] path')).not.toBeNull();
+    expect(link.querySelector("span.max-sm\\:sr-only")!.textContent).toBe("Open original");
+  });
+
+  it("keeps working when the app removes images while the viewer is open", async () => {
+    const { host, rerender } = await render(lightbox({ images: kitchen.map((image) => ({ ...image, href: image.src })) }));
+    await openAt(host, 3);
+    expect(position()).toBe("4 of 4");
+    await rerender(lightbox({ images: kitchen.slice(0, 2).map((image) => ({ ...image, href: image.src })) }));
+    expect(position()).toBe("2 of 2");
+    expect(button("Open original")).toBeTruthy();
+    await rerender(lightbox({ images: [] }));
+    expect(position()).toBe("0 of 0");
+    expect(button("Open original")).toBeUndefined();
+  });
+
+  it("fits the image to the screen, uncropped, with the caption right under it, on a phone and on a desktop", async () => {
+    for (const [width, height] of [
+      [390, 844],
+      [1280, 800],
+    ] as const) {
+      await page.viewport(width, height);
+      const { host } = await render(lightbox({ images: [{ src: picture(900, 1600, "#335"), alt: "A tall photo", caption: "Tall" }, ...kitchen] }), width - 32);
+        // A tall picture and a wide one.
+      for (const index of [0, 3]) {
+        await openAt(host, index);
+        const frame = popup()!.getBoundingClientRect();
+        expect(frame.width).toBeLessThanOrEqual(width);
+        expect(frame.height).toBeLessThanOrEqual(height);
+        const image = slides()[index]!.querySelector("img")!;
+        await expect.poll(() => image.complete && image.naturalWidth > 0).toBe(true);
+        const box = image.getBoundingClientRect();
+        // Inside the viewer, and at the picture's own shape: nothing is cropped or stretched.
+        expect(box.top).toBeGreaterThanOrEqual(frame.top);
+        expect(box.bottom).toBeLessThanOrEqual(frame.bottom);
+        expect(box.width).toBeLessThanOrEqual(frame.width);
+        expect(box.width / box.height).toBeCloseTo(image.naturalWidth / image.naturalHeight, 1);
+        // Large: it fills the stage's width or its height.
+        const stage = slides()[index]!.getBoundingClientRect();
+        expect(Math.max(box.width / stage.width, box.height / stage.height)).toBeGreaterThan(0.6);
+        const caption = slides()[index]!.querySelector("figcaption");
+        if (caption) expect(caption.getBoundingClientRect().top - box.bottom).toBeLessThanOrEqual(13);
+        await userEvent.keyboard("{Escape}");
+        await expect.poll(popup).toBeNull();
+      }
+    }
+  });
+});
+
 describe("Lightbox motion", () => {
   it("grows from the thumbnail that opened it, and only fades with reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
@@ -403,35 +434,5 @@ describe("Lightbox motion", () => {
     await userEvent.click(button("Next image"));
     // Reduced motion jumps to the next image.
     expect(slideInView()).toBe(3);
-  });
-});
-
-describe("Lightbox development messages", () => {
-  it("names a missing label, missing images and a missing alt, each with the fix", async () => {
-    await render(<Lightbox label="" images={[]} />);
-    await render(<Lightbox label="Photos" images={[{ src: "/a.jpg", alt: "" }, { src: "/b.jpg", alt: "B" }]} />);
-    const messages: string[] = warn.mock.calls.map((call: unknown[]) => String(call[0]));
-    expect(messages).toContain(
-      '[ouro-ui] Lightbox: label is required; it names the thumbnails and the viewer for screen readers. Fix: <Lightbox label="Kitchen photos" images={images}>.',
-    );
-    expect(messages).toContain('[ouro-ui] Lightbox: there are no images. Fix: <Lightbox label="Kitchen photos" images={[{ src: "/photos/a.jpg", alt: "…" }]}>.');
-    expect(messages).toContain(
-      '[ouro-ui] Lightbox: images[0] has no alt; describe the image for screen readers. Fix: { src: "/a.jpg", alt: "The new kitchen, with white cabinets" }.',
-    );
-    expect(messages.filter((message) => message.includes("has no alt"))).toHaveLength(1);
-  });
-
-  it("names slides, shadcn-style, as not a prop", async () => {
-    const props = { label: "Photos", images: kitchen, slides: kitchen } as unknown as LightboxProps;
-    const { host } = await render(<Lightbox {...props} />);
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Lightbox: slides is not a prop. Fix: <Lightbox label="Kitchen photos" images={[{ src, alt }]}>.');
-    expect(host.querySelector("[slides]")).toBeNull();
-  });
-
-  it("names an appearance class with the fix", async () => {
-    await render(lightbox({ className: "bg-red-500" }));
-    expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Lightbox: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; Lightbox draws its own thumbnails.',
-    );
   });
 });

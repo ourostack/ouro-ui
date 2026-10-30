@@ -114,6 +114,21 @@ interface ViewerProps {
   originalLabel: string;
 }
 
+/**
+ * Steps the viewer with the arrow keys, in reading order, from anywhere in it, by pressing the
+ * carousel's own Previous or Next. A key with a modifier, or one typed into a field in a caption,
+ * is left alone.
+ */
+function stepWithArrowKeys(event: KeyboardEvent<HTMLElement>): void {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if ((event.target as Element).closest("input, textarea, select, [contenteditable]")) return;
+  event.preventDefault();
+  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+  const part = (event.key === "ArrowRight") !== rtl ? "next" : "previous";
+  event.currentTarget.querySelector<HTMLButtonElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.click();
+}
+
 /** The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen. */
 function LightboxViewer({
   label,
@@ -277,18 +292,6 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   const thumbnails = useRef<(HTMLButtonElement | null)[]>([]);
   const popup = useRef<HTMLDivElement | null>(null);
 
-  // The arrow keys step from anywhere in the viewer, in reading order. A key with a modifier,
-  // or one typed into a field in a caption, is left alone.
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if ((event.target as Element).closest("input, textarea, select, [contenteditable]")) return;
-    event.preventDefault();
-    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
-    const part = (event.key === "ArrowRight") !== rtl ? "next" : "previous";
-    event.currentTarget.querySelector<HTMLButtonElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.click();
-  };
-
   return (
     <div data-ouro="lightbox" className={cn("min-w-0", className)}>
       <ul role="list" aria-label={label} className={gridClass}>
@@ -328,7 +331,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               className={popupClass}
               initialFocus={() => popup.current!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")}
               finalFocus={() => thumbnails.current[start]}
-              onKeyDown={onKeyDown}
+              onKeyDown={stepWithArrowKeys}
             >
               <LightboxViewer
                 label={label}
