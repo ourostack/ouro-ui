@@ -466,6 +466,13 @@ test("Release opens the pull request that prepares main with a title and body th
   }
 });
 
+test("CI cancels only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
+  const text = workflow("ci.yml");
+  const block = text.split("\nconcurrency:\n")[1].split(/\n(?=\S)/)[0];
+  assert.equal(block, ["  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}", "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}"].join("\n"));
+  assert.doesNotMatch(text.split("\njobs:\n")[1], /^\s+concurrency:/m, "no job has a group of its own that could cancel it");
+});
+
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
   assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
