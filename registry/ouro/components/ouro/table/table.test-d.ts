@@ -1,6 +1,6 @@
 import { createElement, type ReactNode } from "react";
 import { expectTypeOf } from "vitest";
-import { Table, type TableColumn, type TableProps } from "@/registry/ouro/components/ouro/table/table";
+import { Table, type TableColumn, type TableProps, type TableSort } from "@/registry/ouro/components/ouro/table/table";
 
 // Type tests: `pnpm typecheck` compiles this file.
 
@@ -42,6 +42,29 @@ createElement(Table<Recipe>, {
   columns: [{ key: "added", header: "Added", cell: (row) => row.added.toLocaleDateString() }],
   rows: [] as Recipe[],
   rowHref: (row) => `/recipes/${row.id}`,
+});
+
+// A column sorts by its field with `sortable`, or by what `sortValue` returns: text, a number, a date or a yes or no.
+expectTypeOf<{ key: "name"; header: "Recipe"; sortable: true }>().toExtend<TableColumn<Recipe>>();
+expectTypeOf<{ key: "added"; header: "Added"; cell: (row: Recipe) => string; sortValue: (row: Recipe) => Date }>().toExtend<TableColumn<Recipe>>();
+expectTypeOf<{ key: "name"; header: "Recipe"; sortValue: (row: Recipe) => { name: string } }>().not.toExtend<TableColumn<Recipe>>();
+expectTypeOf<{ key: "name"; header: "Recipe"; enableSorting: true }>().not.toExtend<TableColumn<Recipe>>();
+
+// A sort names a column and a direction in aria-sort's words; `null` is no sort.
+expectTypeOf<{ key: "name"; direction: "descending" }>().toExtend<TableSort>();
+expectTypeOf<{ key: "name"; direction: "desc" }>().not.toExtend<TableSort>();
+expectTypeOf<{ caption: "Recipes"; columns: TableColumn<Recipe>[]; rows: Recipe[]; sort: TableSort | null; onSortChange: (sort: TableSort) => void }>().toExtend<TableProps<Recipe>>();
+expectTypeOf<{ caption: "Recipes"; columns: TableColumn<Recipe>[]; rows: Recipe[]; defaultSort: { key: "name"; direction: "ascending" } }>().toExtend<TableProps<Recipe>>();
+// Sorting is a column's, not the Table's, and parts sort from their headers.
+expectTypeOf<{ caption: "Recipes"; columns: TableColumn<Recipe>[]; rows: Recipe[]; sortable: true }>().not.toExtend<TableProps<Recipe>>();
+expectTypeOf<{ caption: "Pantry"; children: ReactNode; sort: TableSort }>().not.toExtend<TableProps>();
+
+// The row type flows into `sortValue`, and `onSortChange` reports a direction in aria-sort's words.
+createElement(Table<Recipe>, {
+  caption: "Recipes",
+  columns: [{ key: "added", header: "Added", cell: (row) => row.added.toLocaleDateString(), sortValue: (row) => row.added }],
+  rows: [] as Recipe[],
+  onSortChange: (sort) => expectTypeOf(sort.direction).toEqualTypeOf<"ascending" | "descending">(),
 });
 
 // @ts-expect-error caption is required.

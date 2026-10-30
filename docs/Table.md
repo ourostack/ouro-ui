@@ -2,7 +2,7 @@
 
 # Table
 
-A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. It scrolls sideways inside its own region on a phone, so the page never does. With `rowHref` each row is one link with one tab stop, named by its row header, and the buttons, links and inputs in its cells keep their own taps. `striped`, `dense` and `stickyHeader` (inside a height you set) change how it reads; it does not sort or page.
+A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. It scrolls sideways inside its own region on a phone, so the page never does. With `rowHref` each row is one link with one tab stop, named by its row header, and the buttons, links and inputs in its cells keep their own taps. A `sortable` column sorts the rows when its header is pressed, and reverses them on the next press. `striped`, `dense` and `stickyHeader` (inside a height you set) change how it reads. It does not page or filter.
 
 ```tsx
 import { Table } from "@/registry/ouro/components/ouro/table/table";
@@ -21,6 +21,16 @@ import { Table } from "@/registry/ouro/components/ouro/table/table";
   rows={recipes}
   rowHref={(recipe) => `/recipes/${recipe.id}`}
 />
+<Table
+  caption="Orders"
+  columns={[
+    { key: "customer", header: "Customer", sortable: true },
+    { key: "placed", header: "Placed", cell: (order) => formatDate(order.placed), sortValue: (order) => order.placed },
+    { key: "total", header: "Total", align: "end", sortable: true },
+  ]}
+  rows={orders}
+  defaultSort={{ key: "placed", direction: "descending" }}
+/>
 <Table caption="Pantry" hideCaption>
   <TableHeader>
     <TableRow><TableHead>Item</TableHead><TableHead align="end">Qty</TableHead></TableRow>
@@ -31,6 +41,10 @@ import { Table } from "@/registry/ouro/components/ouro/table/table";
 </Table>
 ```
 
+## Usage
+
+To sort on a server or by more than one column, control `sort` and pass the rows in that order.
+
 ## Use instead when
 
 - Use `DescriptionList` instead for one thing's details as label and value pairs, and `ItemGroup` for a list of rows that need no columns, which reads better on a phone.
@@ -39,16 +53,17 @@ import { Table } from "@/registry/ouro/components/ouro/table/table";
 
 The props the modes share. Type: `TableProps<Row>`.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `caption` (required) | `string` | What the table shows: "Recipes", "Order history". It names the table and its scrolling region for screen readers, and shows above it unless `hideCaption`. |
-| `className` | `string` | Layout: margins, width, and the height the table scrolls inside (`max-h-96`). Appearance classes warn in development; put the Table inside a `Card` for a frame. |
-| `dense` | `boolean` | Tighter cells, for many rows. A row is still 44px tall on a touch screen when it is a link. |
-| `hideCaption` | `boolean` | Hides the caption visually and keeps it as the table's name, when a heading already shows it. |
-| `ref` | `Ref<HTMLTableElement>` | A ref to the `<table>` element. |
-| `stickyHeader` | `boolean` | Keeps the header row at the top while the rows scroll under it. The table scrolls inside its own height, so give it one: `className="max-h-96"`. It keeps working while the table also scrolls sideways. |
-| `striped` | `boolean` | Shades every other body row, for long rows that are hard to follow across. |
-| `style` | `CSSProperties` |  |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `caption` (required) | `string` |  | What the table shows: "Recipes", "Order history". It names the table and its scrolling region for screen readers, and shows above it unless `hideCaption`. |
+| `className` | `string` |  | Layout: margins, width, and the height the table scrolls inside (`max-h-96`). Appearance classes warn in development; put the Table inside a `Card` for a frame. |
+| `dense` | `boolean` |  | Tighter cells, for many rows. A row is still 44px tall on a touch screen when it is a link. |
+| `hideCaption` | `boolean` |  | Hides the caption visually and keeps it as the table's name, when a heading already shows it. |
+| `ref` | `Ref<HTMLTableElement>` |  | A ref to the `<table>` element. |
+| `sortedLabel` | `((header: string, direction: TableSortDirection) => string)` | (header, direction) => `Sorted by ${header}, ${direction}` | What screen readers hear after a header sorts the rows, from the column's header and the new direction. Pass it to translate the message. |
+| `stickyHeader` | `boolean` |  | Keeps the header row at the top while the rows scroll under it. The table scrolls inside its own height, so give it one: `className="max-h-96"`. It keeps working while the table also scrolls sideways. |
+| `striped` | `boolean` |  | Shades every other body row, for long rows that are hard to follow across. |
+| `style` | `CSSProperties` |  |  |
 
 ## Modes
 
@@ -63,24 +78,30 @@ The props the modes share. Type: `TableProps<Row>`.
 Not in this mode (typed `never`):
 
 - `columns`: Only without parts.
+- `defaultSort`: Only without parts. Give the sorted column's header `<TableHead sorted="ascending">`.
 - `empty`: Only without parts.
 - `externalLabel`: Only without parts. Give a row `<TableRow externalLabel="…">`.
+- `onSortChange`: Only without parts. Give each header `<TableHead onSort={…}>`.
 - `rowExternal`: Only without parts. Give a row `<TableRow href="…" external>`.
 - `rowHref`: Only without parts. Give a linked row `<TableRow href="…">`.
 - `rowKey`: Only without parts.
 - `rows`: Only without parts.
+- `sort`: Only without parts. Give the sorted column's header `<TableHead sorted="ascending">`.
 
-### With `columns` and `rows` and `rowKey` and `rowHref` and `rowExternal` and `externalLabel` and `empty`
+### With `columns` and `rows` and `sort` and `defaultSort` and `onSortChange` and `rowKey` and `rowHref` and `rowExternal` and `externalLabel` and `empty`
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `columns` (required) | `readonly TableColumn<NoInfer<Row>>[]` |  | The columns, in order: each one's `header`, `key` and optional `cell`. |
+| `defaultSort` | `TableSort` |  | The column the rows are sorted by at first. Table then sorts the rows itself as the headers are pressed. |
 | `empty` | `ReactNode` | `"Nothing here yet."` | What the body shows when there are no rows, in one cell across every column. |
 | `externalLabel` | `string` | `"(opens in a new tab)"` | What screen readers hear after a row link's name with `rowExternal`. |
+| `onSortChange` | `((sort: { key: string; direction: TableSortDirection }) => void)` |  | Called with the new sort when a header is pressed, with `sort` or without it. |
 | `rowExternal` | `boolean` |  | Opens every row link in a new tab, safely, and tells screen readers so with `externalLabel`. |
 | `rowHref` | `TableKeysOf<Row, string \| undefined> \| ((row: Row) => string \| undefined)` |  | Makes each row one link, with one tab stop, named by its row header cell: a function that returns the row's path (or `undefined` for a row that is not a link), or the name of a field that holds it (`rowHref="href"`), which a Server Component can pass. Buttons, links and inputs in the cells stay their own tab stops and take their own taps. On a touch screen a linked row is at least 44px tall. |
 | `rowKey` | `TableKeysOf<Row, string \| number> \| ((row: Row, index: number) => Key)` |  | Each row's React key: the name of a field (`rowKey="slug"`) or a function. Without it, a row's `id` field, or else its position. |
-| `rows` (required) | `readonly Row[]` |  | The rows, in the order to show them. Table does not sort or page them. |
+| `rows` (required) | `readonly Row[]` |  | The rows, in the order to show them until a `sortable` column sorts them. Table does not page them. |
+| `sort` | `TableSort \| null` |  | The sorted column, controlled: Table marks its header and shows the rows in the order you pass them, so you sort them (on a server, say), and `onSortChange` tells you which sort to show next. Pass `null` while nothing is sorted. To let Table sort the rows itself, use `defaultSort` instead. |
 
 Not in this mode (typed `never`):
 
@@ -96,7 +117,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `data`: Not a prop. Ouro UI uses `rows`: `<Table rows={recipes} columns={…}>`.
 - `onRowClick`: Not a prop. A row opens a link with `rowHref`: `<Table rowHref={(row) => `/recipes/${row.id}`}>`.
-- `sortable`: Not a prop. Table does not sort: pass the rows in the order to show them.
+- `sortable`: Not a prop. A column sorts with `sortable`: `{ key: "name", header: "Recipe", sortable: true }`.
 - `title`: Not a prop. Ouro UI uses `caption`: `<Table caption="Recipes">`.
 
 ## `className` is for layout only
@@ -118,8 +139,13 @@ When these props cannot express your layout, build it from the parts in `@/regis
 One column of a `Table`: its `header`, and where its cells come from. `key` names a field of the row whose value is shown as it is (text, a number, an element), or, with `cell`, any name, and `cell` renders each row's cell.
 
 ```ts
-type TableColumn<Row> = TableColumnBase &
-  (
+type TableColumn<Row> = TableColumnBase & {
+  /**
+   * What the column sorts by, when its cells show something else (a `cell` renderer, a
+   * formatted date): `sortValue: (row) => row.added`. It makes the column `sortable`.
+   */
+  sortValue?: ((row: Row) => TableSortValue) | undefined;
+} & (
     | {
         /**
          * The field of each row to show, and the column's React key.
@@ -171,7 +197,16 @@ interface TableColumnBase {
   wrap?: boolean | undefined;
   /** Layout only, on the header cell: a width (`w-32`). */
   className?: string | undefined;
+  /**
+   * Makes the column's header a button that sorts the rows by it; pressing it again reverses
+   * them. Table sorts by the row's `key` field, or by `sortValue`: numbers and dates as
+   * numbers and dates, text in the reader's language with the numbers in it in order ("Step 2"
+   * before "Step 10"), and rows with an empty value last. Rows with equal values keep their order.
+   */
+  sortable?: boolean | undefined;
 
+  /** Not a prop. Ouro UI uses `sortable`: `{ key: "name", header: "Recipe", sortable: true }`. */
+  enableSorting?: { "Use sortable: true": never };
   /** Not a prop. Ouro UI uses `key`: `{ key: "name", header: "Recipe" }`. */
   accessorKey?: { 'Use key: "name"': never };
   /** Not a prop. Ouro UI uses `header`: `{ key: "name", header: "Recipe" }`. */
@@ -189,6 +224,27 @@ The keys of `Row` whose values are assignable to `Value`.
 
 ```ts
 type TableKeysOf<Row, Value> = { [K in keyof Row]-?: Row[K] extends Value ? K : never }[keyof Row] & string;
+```
+
+### `TableSort`
+
+Which column the rows are sorted by, and which way: what `sort`, `defaultSort` and `onSortChange` take.
+
+```ts
+interface TableSort {
+  /** The sorted column's `key`. */
+  key: string;
+  /** `"ascending"`: A to Z, low to high, old to new. `"descending"`: the other way. */
+  direction: TableSortDirection | (string & { 'Use "ascending" or "descending": asc is "ascending"': never });
+}
+```
+
+### `TableSortValue`
+
+What a column sorts by: text, a number, a date or a boolean. An empty value sorts last.
+
+```ts
+type TableSortValue = string | number | Date | boolean | null | undefined;
 ```
 
 [^layout-classes]: test:registry/ouro/components/ouro/table/table.test.tsx::Table > passes attributes to the root, the ref to the table, and lets layout classes win verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > passes attributes to the root, the ref to the table, and lets layout classes win)

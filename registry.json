@@ -2539,6 +2539,7 @@
       "description": "A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts.",
       "docs": "A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts. Import: import { Table } from \"@/components/ouro/table/table\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: scroll-area, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/table.md",
       "registryDependencies": [
+        "ourostack/ouro-ui/lib-announce",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-dev",

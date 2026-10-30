@@ -3,7 +3,8 @@
   "components": ["table"],
   "controls": {
     "table": [
-      {"part": "row-link", "role": "link", "portal": false}
+      {"part": "row-link", "role": "link", "portal": false},
+      {"part": "sort", "role": "button", "portal": false}
     ]
   }
 }

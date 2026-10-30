@@ -27,7 +27,22 @@ export const agentCases: AgentCase[] = [
     dev: '{ align: "end" }',
     names: ["tsc", "dev"],
   },
+  {
+    id: "table06",
+    habit: "sortable on the Table in place of on a column",
+    tsc: [notAssignable("boolean", '{ "Put sortable on a column: { key, header, sortable: true }": never; }')],
+    dev: '{ key: "name", header: "Recipe", sortable: true }',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "table07",
+    habit: "desc for a descending sort",
+    tsc: [`error TS2322: Type '"desc"' is not assignable to type 'TableSortDirection | (string & { 'Use "ascending" or "descending": asc is "ascending"': never; })'.`],
+    dev: '{ key: "name", direction: "descending" }',
+    names: ["tsc", "dev"],
+  },
+  { id: "table08", habit: "TanStack's enableSorting on a column", tsc: [notAssignable("boolean", '{ "Use sortable: true": never; }')], dev: '{ key: "name", header: "…", sortable: true }', names: ["tsc", "dev"] },
 ];
 
 /** Valid table snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["table06", "table07"];
+export const validSnippets: string[] = ["table09", "table10", "table11", "table12"];

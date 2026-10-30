@@ -1,5 +1,5 @@
-export { alignClasses, cellBase, cellPad, headCell, rowLinkClass, sectionCell, stickyHead, tableAligns, wrapClass };
-export type { TableAlign };
+export { alignClasses, cellBase, cellPad, directionOf, directionWarning, headCell, rowLinkClass, sectionCell, sortButtonClass, sortIconPaths, sortedLabelDefault, stickyHead, tableAligns, wrapClass };
+export type { TableAlign, TableSortDirection };
 
 /** How a column's content lines up: `end` for numbers, `center` for a status mark. */
 type TableAlign = "start" | "center" | "end";
@@ -31,3 +31,42 @@ const sectionCell = {
 // The row link's focus ring is drawn by the layer that covers the row, so it outlines the
 // whole row in every browser (WebKit paints no outline on a <tr>).
 const rowLinkClass = "after:outline-ring after:-outline-offset-2 focus-visible:after:outline-2 focus-visible:after:outline-solid";
+
+/** Which way a sorted column runs, in the words `aria-sort` uses. */
+type TableSortDirection = "ascending" | "descending";
+
+/** What screen readers hear after a header sorts the rows, unless the table says otherwise. */
+const sortedLabelDefault = (header: string, direction: TableSortDirection): string => `Sorted by ${header}, ${direction}`;
+
+// The sort button's layer covers its header cell, so a press anywhere on the cell sorts, and its
+// focus ring outlines the cell. It highlights while pressed instead of scaling, as a linked row
+// does, because a whole cell that shrinks reads as a jump. Under forced colours the layer keeps an
+// edge, since its highlight is a background.
+const sortButtonClass =
+  "m-0 inline-flex max-w-full cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-start [font:inherit] text-inherit outline-none " +
+  "pointer-fine:hover:text-foreground after:absolute after:inset-0 after:z-1 after:content-[''] " +
+  "after:transition-colors after:duration-(--ouro-duration-fast) pointer-fine:hover:after:bg-foreground/[0.03] active:after:bg-foreground/[0.06] " +
+  "after:outline-ring after:-outline-offset-2 focus-visible:after:outline-2 focus-visible:after:outline-solid " +
+  "forced-colors:after:border forced-colors:after:border-solid";
+
+// An arrow up or down for the sorted column, and both chevrons for one that can sort: a shape, not a colour.
+const sortIconPaths = {
+  ascending: "M8 13V3M4 7l4-4 4 4",
+  descending: "M8 3v10M4 9l4 4 4-4",
+  none: "M5 6l3-3 3 3M5 10l3 3 3-3",
+} as const;
+
+/** A sort direction that is not one of ours reads as ascending. */
+function directionOf(direction: string | undefined): TableSortDirection | undefined {
+  return direction === undefined ? undefined : direction === "descending" ? "descending" : "ascending";
+}
+
+/** The development message for a sort direction that is not one of ours, with `fix` given the likely one. */
+function directionWarning(direction: string | undefined, fix: (direction: TableSortDirection) => string): readonly [string, string] | false {
+  return (
+    directionOf(direction) !== direction && [
+      `"${direction}" is not a sort direction; use "ascending" or "descending"`,
+      fix(String(direction).startsWith("d") ? "descending" : "ascending"),
+    ]
+  );
+}
