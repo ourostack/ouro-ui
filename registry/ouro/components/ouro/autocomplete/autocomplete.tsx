@@ -305,7 +305,7 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     setMatch((previous) => (sameMatch(previous, next) ? previous : next));
     if (next) setAnchorAt(next.start);
     if (!sameMatch(match, next)) setActive(0);
-    if (dismissed !== null && next?.start !== dismissed) setDismissed(null);
+    if (next?.start !== dismissed) setDismissed(null);
   };
 
   return { match, trigger, items, open, current, anchorAt, setActive, setFocused, setDismissed, evaluate };
