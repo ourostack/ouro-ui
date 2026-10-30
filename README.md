@@ -2,7 +2,7 @@
 
 Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
-**[See it live: ourostack.github.io/ouro-ui](https://ourostack.github.io/ouro-ui/)**, with the [docs](https://ourostack.github.io/ouro-ui/docs/) and [Storybook](https://ourostack.github.io/ouro-ui/storybook/).
+**[See it live: ourostack.github.io/ouro-ui](https://ourostack.github.io/ouro-ui/)**, with the [docs](https://ourostack.github.io/ouro-ui/docs/) and [Storybook](https://ourostack.github.io/ouro-ui/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
 Under construction. Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, `@ouro` namespace and install addresses are unchanged.
 
@@ -475,3 +475,4 @@ MIT
 [^not-ui]: scripts/install-check.mjs; .github/workflows/ci.yml verify:fileLine(scripts/install-check.mjs, /an Ouro item landed in components\/ui/) verify:ciJob(ci.yml#install)
 [^test-versions]: test:scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
 [^cn-wins]: test:registry/ouro/lib/ouro/cn.test.ts::lets a later class win over an earlier one that sets the same property verify:testExists(registry/ouro/lib/ouro/cn.test.ts::lets a later class win over an earlier one that sets the same property)
+[^spoonjoy]: site/scripts/spoonjoy.mts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\{item\.name\} \/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)

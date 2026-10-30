@@ -360,6 +360,46 @@ function Switching(): JSX.Element {
   );
 }
 
+const SPOONJOY = "https://spoonjoy.app/";
+const SPOONJOY_SOURCE = "https://github.com/spoonjoy/spoonjoy-v2";
+/** Spoonjoy's guide, as in site/src/docs/spoonjoy.json (not imported, so the landing page doesn't load that file). */
+const SPOONJOY_GUIDE = "https://github.com/spoonjoy/spoonjoy-v2/blob/main/docs/building-with-ouro-hx.md";
+
+function InUse(): JSX.Element {
+  return (
+    <section aria-labelledby="in-use-title" className="border-t border-border">
+      <Container className="py-20 sm:py-28">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-16">
+          <div>
+            <Eyebrow>In use</Eyebrow>
+            <Heading level={2} size="2xl" id="in-use-title">
+              Spoonjoy is built with it
+            </Heading>
+          </div>
+          <div className="grid content-start justify-items-start gap-6">
+            <Text size="lg" tone="muted">
+              <a href={SPOONJOY} className="text-primary underline underline-offset-4">Spoonjoy</a>, a recipe app, uses{" "}
+              {claim("60 Ouro HX components", { source: { spec: "https://spoonjoy.app/ouro-provenance.json" }, verify: { count: "site/src/docs/spoonjoy.json#items", is: 60 } })}, from its
+              navigation to its recipe pages, forms and cooking timers.
+            </Text>
+            <div className="flex flex-wrap gap-3">
+              <Button href={SPOONJOY} endIcon={ArrowRightIcon}>
+                Open Spoonjoy
+              </Button>
+              <Button href={SPOONJOY_SOURCE} variant="outline" tone="secondary">
+                Spoonjoy's source
+              </Button>
+              <Button href={SPOONJOY_GUIDE} variant="outline" tone="secondary">
+                How Spoonjoy builds with Ouro HX
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
 function ComingSoon(): JSX.Element {
   return (
     <section aria-labelledby="coming-soon-title" className="border-t border-border">
@@ -387,6 +427,7 @@ export default function Landing(): JSX.Element {
         <LiveCatalog />
         <Agents />
         <Principles />
+        <InUse />
         <Install />
         <Switching />
         <ComingSoon />
