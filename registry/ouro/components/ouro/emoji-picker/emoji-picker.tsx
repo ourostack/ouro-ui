@@ -516,7 +516,11 @@ function useAnnouncement(message: string): void {
 
 /** Where a key takes focus in the grid. */
 interface GridStep {
-  /** The cell focus moves to, or -1 for the search field. */
+  /**
+   * The cell focus moves to, or -1 for the search field.
+   *
+   * @claim "or -1 for the search" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker keyboard > moves from the search into the grid with Down, and back up from the first row with Up)
+   */
   next: number;
   /** The column an Up, Down or page key keeps, for the next one. */
   column?: number;
@@ -539,7 +543,8 @@ function gridStep(key: string, ctrl: boolean, at: number, column: number, rows: 
   if (key === "ArrowUp") return vertical(rowIndex === 0 ? -1 : inRow(rows[rowIndex - 1]));
   if (key === "PageDown") return vertical(inRow(row.section + 1 < sectionCount ? firstRowOf(row.section + 1) : rows.at(-1)));
   if (key === "PageUp") return vertical(inRow(firstRowOf(firstRowOf(row.section) === row ? Math.max(row.section - 1, 0) : row.section)));
-  if (key === "Home" || key === "End") return { next: ctrl ? (key === "Home" ? 0 : total - 1) : row.start + stepInRow(key, at - row.start, row.length, false)! };
+  if (key === "Home") return { next: ctrl ? 0 : row.start };
+  if (key === "End") return { next: ctrl ? total - 1 : row.start + row.length - 1 };
   if (key !== "ArrowRight" && key !== "ArrowLeft") return undefined;
   const forward = (key === "ArrowRight") !== rtl;
   return { next: Math.min(Math.max(at + (forward ? 1 : -1), 0), total - 1) };
@@ -603,7 +608,11 @@ function ToneChoice({ tone, setTone, label, names, onDone }: { tone: EmojiSkinTo
 /** The raised hand the skin tone button and its choices show. */
 const hand = { emoji: "✋", name: "", skinTones: true };
 
-/** The categories' or results' grids, each labelled by its heading, which stays at the top as its emoji scroll. */
+/**
+ * The categories' or results' grids, each labelled by its heading, which stays at the top as its emoji scroll.
+ *
+ * @claim "each labelled by its heading" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > shows the quick row, the frequently used emoji and every category, each emoji named for screen readers)
+ */
 function Grids({ id, sections, rows, tone, active, sectionRefs }: { id: string; sections: readonly Section[]; rows: readonly Row[]; tone: EmojiSkinTone; active: number; sectionRefs: RefObject<(HTMLElement | null)[]> }) {
   return sections.map((section, index) => (
     <div
