@@ -1165,6 +1165,37 @@ describe("TimeGrid background events", () => {
     expect(document.activeElement).toBe(titled("Focus time"));
   });
 
+  it("takes the person's own event first, then background events longest first, when they start together", async () => {
+    const short: TimeGridEvent = { id: "short", title: "Quick sync", start: at(12, "10:00"), end: at(12, "10:30") };
+    const long: TimeGridEvent = { id: "long", title: "Offsite prep", start: at(12, "10:00"), end: at(12, "11:30") };
+    await render({ view: "day", events: [forum], backgroundEvents: [short, long] });
+    const order = [titled("Architecture forum")];
+    titled("Architecture forum").focus();
+    for (let step = 0; step < 2; step++) {
+      await press("{ArrowDown}");
+      order.push(document.activeElement as HTMLElement);
+    }
+    expect(order).toEqual([titled("Architecture forum"), spokenAs("Offsite prep"), spokenAs("Quick sync")]);
+  });
+
+  it("draws a bar filled when busy, and outlined in its tone for every other status", async () => {
+    const statuses = ["busy", "tentative", "free", "unanswered", "cancelled"] as const;
+    await render({
+      backgroundEvents: statuses.map((status, index) => ({ id: status, title: status, status, start: at(9 + index, "10:00"), end: at(9 + index, "11:00") })),
+    });
+    const looks = statuses.map((status) => {
+      const swatch = getComputedStyle(spokenAs(`Other calendars: ${status}`).querySelector("[data-ouro-time-grid-bar]")!);
+      return [swatch.backgroundColor === "rgba(0, 0, 0, 0)", swatch.borderTopWidth, swatch.borderTopStyle];
+    });
+    expect(looks).toEqual([
+      [false, "0px", "solid"],
+      [true, "1px", "solid"],
+      [true, "1px", "solid"],
+      [true, "1px", "dashed"],
+      [true, "1px", "dotted"],
+    ]);
+  });
+
   it("tells onEventSelect which element was pressed, and marks the one whose popover is open", async () => {
     const select = vi.fn();
     const { rerender } = await render({ events: [forum], backgroundEvents: [hands], onEventSelect: select });
