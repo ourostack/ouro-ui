@@ -4,6 +4,7 @@
   "controls": {
     "attachment": [
       {"part": "link", "role": "link", "portal": false},
+      {"part": "open", "role": "button", "portal": false},
       {"part": "remove", "role": "button", "portal": false}
     ],
     "message-list": [

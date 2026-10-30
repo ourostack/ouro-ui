@@ -78,3 +78,39 @@ function Composer() {
 export const Removable: Story = {
   render: () => <Composer />,
 };
+
+/** An icon for each kind of file, picked from the MIME type or the name's extension: documents, spreadsheets, slides and PDFs in the colors people know them by. */
+export const Kinds: Story = {
+  render: () => (
+    <Surface>
+      <Attachment name="trip-notes.docx" size={24_576} href="#notes" />
+      <Attachment name="budget.xlsx" size={18_432} href="#budget" />
+      <Attachment name="pitch.pptx" size={4_404_019} href="#pitch" />
+      <Attachment name="menu.pdf" size={2048} contentType="application/pdf" href="#menu" />
+      <Attachment name="crumb.jpg" size={348_160} contentType="image/jpeg" href="#crumb" />
+      <Attachment name="first-rise.mov" size={52_428_800} contentType="video/quicktime" href="#rise" />
+      <Attachment name="voice-note.m4a" size={409_600} href="#voice" />
+      <Attachment name="recipes.zip" size={9_437_184} href="#recipes" />
+      <Attachment name="timer.ts" size={1200} href="#timer" />
+      <Attachment name="starter" size={512} href="#starter" />
+    </Surface>
+  ),
+};
+
+function InApp() {
+  const [opened, setOpened] = useState<string | null>(null);
+  return (
+    <Surface>
+      <Attachment name="crumb.jpg" size={348_160} contentType="image/jpeg" onOpen={() => setOpened("crumb.jpg")} />
+      <Attachment name="menu.pdf" size={2048} contentType="application/pdf" href="#menu" onOpen={() => setOpened("menu.pdf")} />
+      <p role="status" style={{ flexBasis: "100%", margin: 0, color: "var(--muted-foreground)" }}>
+        {opened ? `Opened ${opened} in the app` : "Nothing open"}
+      </p>
+    </Surface>
+  );
+}
+
+/** `onOpen` opens a file in the app, such as in a Lightbox: a button without `href`, and with it a link whose plain click stays in the app. */
+export const OpensInApp: Story = {
+  render: () => <InApp />,
+};

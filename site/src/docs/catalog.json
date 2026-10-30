@@ -692,7 +692,7 @@
     "title": "Attachment",
     "group": "Chat",
     "source": "registry/ouro/components/ouro/message/attachment.tsx",
-    "summary": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size."
+    "summary": "A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size."
   },
   {
     "name": "conversation-list",

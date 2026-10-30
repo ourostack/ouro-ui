@@ -2997,8 +2997,8 @@
       "name": "attachment",
       "type": "registry:ui",
       "title": "Attachment",
-      "description": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size.",
-      "docs": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size. Import: import { Attachment } from \"@/components/ouro/message/attachment\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/attachment.md",
+      "description": "A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size.",
+      "docs": "A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. Import: import { Attachment } from \"@/components/ouro/message/attachment\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/attachment.md",
       "registryDependencies": [
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
