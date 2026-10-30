@@ -80,6 +80,7 @@ function toned(item: ToneableEmoji, tone: EmojiSkinTone): string {
 
 /** Lower case, without accents, so "Café" matches "cafe". */
 function fold(text: string): string {
+  // Stryker disable next-line MethodExpression: both sides of every comparison fold the same way, so upper case matches as lower case does.
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
@@ -93,9 +94,10 @@ function fold(text: string): string {
 function matchEmoji(item: ToneableEmoji, query: string): boolean {
   const typed = query.trim();
   if (typed === item.emoji) return true;
-  const words = fold([item.name, ...(item.keywords ?? [])].join(" ")).split(/[\s_:-]+/);
+  // Runs of separators leave empty words and terms, which match nothing and everything, so they change no result.
+  const words = fold([item.name, ...(item.keywords ?? [])].join(" ")).split(/[\s_:-]/);
   return fold(typed)
-    .split(/\s+/)
+    .split(/\s/)
     .every((term) => words.some((word) => word.startsWith(term)));
 }
 

@@ -146,9 +146,10 @@ describe("EmojiPicker development messages", () => {
     ]);
   });
 
-  it("names missing categories the same way as empty ones", async () => {
-    await render(picker({ categories: undefined } as unknown as EmojiPickerProps));
+  it("names missing categories the same way as empty ones, and opens empty", async () => {
+    await open({ categories: undefined } as unknown as EmojiPickerProps);
     expect(warn.mock.calls.map((call: unknown[]) => String(call[0]))).toEqual([expect.stringContaining("EmojiPicker: categories is empty")]);
+    expect(cells()).toEqual([]);
   });
 
   it("names other libraries' props with the fix, and keeps them off the page", async () => {
@@ -270,6 +271,7 @@ describe("EmojiPicker opening and closing", () => {
   it("is a sheet at every width with presentation sheet", async () => {
     await open({ presentation: "sheet" });
     expect(popup()!.getAttribute("data-ouro")).toBe("sheet");
+    expect(panel()!.className).toContain("w-full");
   });
 
   it("lets app layout classes win on the panel", async () => {
@@ -363,8 +365,11 @@ describe("EmojiPicker content", () => {
     expect(panel()!.querySelector('[role="toolbar"][aria-label="Quick reactions"]')).toBeNull();
   });
 
-  it("shows a magnifier in the search field", async () => {
+  it("shows a search field named Search emoji, with a magnifier, and a Close button for screen readers", async () => {
     await open();
+    expect(page.getByRole("searchbox", { name: "Search emoji" }).element()).toBe(search());
+    expect(search().placeholder).toBe("Search emoji");
+    expect([...popup()!.querySelectorAll("button")].some((button) => button.textContent === "Close")).toBe(true);
     expect(search().closest("[data-ouro-input-group]")!.querySelector("svg")).not.toBeNull();
   });
 
@@ -738,6 +743,10 @@ describe("EmojiPicker search", () => {
     await userEvent.clear(search());
     await type("   ");
     expect(headings()).toEqual(["Smileys", "People", "Food"]);
+    await type("pizzá");
+    expect(names(cells())).toEqual(["pizza"]);
+    await userEvent.fill(search(), " ☕ ");
+    expect(names(cells())).toEqual(["hot beverage"]);
   });
 
   it("shows the first result's name, not the emoji the mouse was on, once the search changes", async () => {
@@ -949,6 +958,7 @@ describe("EmojiPicker skin tones", () => {
     expect(cell("thumbs up").textContent).toBe("👍🏻");
     await rerender(picker({ skinTone: "tan" } as unknown as EmojiPickerProps));
     expect(cell("thumbs up").textContent).toBe("👍");
+    expect(toneButton()!.getAttribute("aria-label")).toBe("Skin tone: Default");
   });
 
   it("remembers the tone it was given across openings when the app does not keep it", async () => {

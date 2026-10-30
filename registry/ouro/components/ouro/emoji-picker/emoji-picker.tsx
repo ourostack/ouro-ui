@@ -207,7 +207,6 @@ type TriggerProps = {
 const categoriesFix = '<EmojiPicker label="Add a reaction" categories={[{ label: "Smileys", emoji: [{ emoji: "😀", name: "grinning face" }] }]} onSelect={react}>';
 const selectFix = "<EmojiPicker onSelect={(selection) => insert(selection.emoji)}>";
 const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={buttonRef}>";
-const presentations: readonly string[] = ["auto", "popover", "sheet"];
 
 /**
  * An emoji picker for reactions and for putting emoji into text. It has a search field, a bar
@@ -330,8 +329,8 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
     onSkinToneChange?.(next);
   };
 
-  // Popover falls back to "popover" for a presentation that is not one of its own.
-  const asSheet = useSheetPresentation(presentations.includes(presentation) ? presentation : "popover");
+  // A presentation that is not one of Popover's is a popover there, and is no sheet here either.
+  const asSheet = useSheetPresentation(presentation);
 
   const triggerRef = useRef<HTMLElement>(null);
   // A Server Component's trigger can arrive as a lazy wrapper; resolve it before cloning.
@@ -464,10 +463,179 @@ const Cell = memo(function Cell({ glyph, name, index, active, quick }: { glyph: 
   );
 });
 
+/** The grid's sections and rows: the search's results while there is a search, else the frequently used emoji and the categories. */
+function useSections(categories: readonly EmojiPickerCategory[], frequent: readonly EmojiPickerEmoji[] | undefined, query: string, labels: PanelLabels) {
+  const searching = query.trim() !== "";
+  const results = useMemo(() => {
+    if (!searching) return [];
+    const seen = new Set<string>();
+    return [...(frequent ?? []), ...categories.flatMap((category) => category.emoji)].filter((item) => {
+      if (seen.has(item.emoji) || !matchEmoji(item, query)) return false;
+      seen.add(item.emoji);
+      return true;
+    });
+  }, [searching, query, frequent, categories]);
+  const { resultsLabel, frequentLabel } = labels;
+  const sections = useMemo(() => {
+    const list: Omit<Section, "start">[] = searching
+      ? [{ label: fillCount(resultsLabel, results.length), icon: null, items: results }]
+      : [
+          ...(frequent?.length ? [{ label: frequentLabel, icon: <ClockIcon />, items: frequent }] : []),
+          ...categories
+            .filter((category) => category.emoji.length)
+            .map((category) => ({ label: category.label, icon: category.icon ?? category.emoji[0]!.emoji, items: category.emoji })),
+        ];
+    let start = 0;
+    return list.map((section) => {
+      const placed = { ...section, start };
+      start += section.items.length;
+      return placed;
+    });
+  }, [searching, results, frequent, categories, resultsLabel, frequentLabel]);
+  const rows = useMemo(() => {
+    const list: Row[] = [];
+    sections.forEach((section, index) => {
+      for (let offset = 0; offset < section.items.length; offset += COLUMNS) {
+        list.push({ section: index, start: section.start + offset, length: Math.min(COLUMNS, section.items.length - offset) });
+      }
+    });
+    return list;
+  }, [sections]);
+  const total = rows.length ? rows.at(-1)!.start + rows.at(-1)!.length : 0;
+  return { searching, results, sections, rows, total };
+}
+
+/** Speaks a message politely when it changes, and nothing when it is empty. */
+function useAnnouncement(message: string): void {
+  const announced = useRef("");
+  useEffect(() => {
+    if (message && message !== announced.current) announce(message);
+    announced.current = message;
+  }, [message]);
+}
+
+/** Where a key takes focus in the grid. */
+interface GridStep {
+  /** The cell focus moves to, or -1 for the search field. */
+  next: number;
+  /** The column an Up, Down or page key keeps, for the next one. */
+  column?: number;
+}
+
+/**
+ * Where a key moves focus in the grid from cell `at`: the arrows (Left and Right swapped in a
+ * right-to-left page), Up from the first row to the search, Home and End to the ends of the row
+ * (with Ctrl or Command, of the grid), Page Down and Page Up by category. Up, Down and the page
+ * keys keep `column` across shorter rows. Any other key is not the grid's.
+ */
+function gridStep(key: string, ctrl: boolean, at: number, column: number, rows: readonly Row[], sectionCount: number, rtl: boolean): GridStep | undefined {
+  const rowIndex = rows.findLastIndex((row) => row.start <= at);
+  const row = rows[rowIndex]!;
+  const total = rows.at(-1)!.start + rows.at(-1)!.length;
+  const inRow = (other: Row | undefined) => (other ? other.start + Math.min(column, other.length - 1) : undefined);
+  const firstRowOf = (section: number) => rows.find((entry) => entry.section === section)!;
+  const vertical = (next: number | undefined) => (next === undefined ? undefined : { next, column });
+  if (key === "ArrowDown") return vertical(inRow(rows[rowIndex + 1]));
+  if (key === "ArrowUp") return vertical(rowIndex === 0 ? -1 : inRow(rows[rowIndex - 1]));
+  if (key === "PageDown") return vertical(inRow(row.section + 1 < sectionCount ? firstRowOf(row.section + 1) : rows.at(-1)));
+  if (key === "PageUp") return vertical(inRow(firstRowOf(firstRowOf(row.section) === row ? Math.max(row.section - 1, 0) : row.section)));
+  if (key === "Home" || key === "End") return { next: ctrl ? (key === "Home" ? 0 : total - 1) : row.start + stepInRow(key, at - row.start, row.length, false)! };
+  if (key !== "ArrowRight" && key !== "ArrowLeft") return undefined;
+  const forward = (key === "ArrowRight") !== rtl;
+  return { next: Math.min(Math.max(at + (forward ? 1 : -1), 0), total - 1) };
+}
+
+/** The skin tones as a radio group, in place of the search while the person chooses. */
+function ToneChoice({ tone, setTone, label, names, onDone }: { tone: EmojiSkinTone; setTone: (tone: EmojiSkinTone) => void; label: string; names: Readonly<Record<EmojiSkinTone, string>>; onDone: (returnFocus: boolean) => void }) {
+  const group = useRef<HTMLDivElement>(null);
+  useEffect(() => group.current!.querySelector<HTMLElement>('[aria-checked="true"]')!.focus(), []);
+  return (
+    <div
+      ref={group}
+      role="radiogroup"
+      aria-label={label}
+      className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-1 pointer-coarse:min-h-11"
+      // Keeps focus on the checked tone while another is pressed: Safari does not focus a
+      // pressed button, and the row would close on the blur before the press lands.
+      onMouseDown={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onDone(true);
+          return;
+        }
+        const arrows: Record<string, string> = { ArrowDown: "ArrowRight", ArrowUp: "ArrowLeft" };
+        const key = arrows[event.key] ?? event.key;
+        const next = stepInRow(key, emojiSkinTones.indexOf(tone), emojiSkinTones.length, key === event.key && isRtl(event.currentTarget));
+        if (next === undefined) return;
+        event.preventDefault();
+        setTone(emojiSkinTones[next]!);
+        event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]!.focus();
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onDone(false);
+      }}
+    >
+      {emojiSkinTones.map((option) => (
+        <button
+          key={option}
+          type="button"
+          role="radio"
+          aria-checked={option === tone}
+          aria-label={names[option]}
+          tabIndex={option === tone ? 0 : -1}
+          data-ouro-control="emoji-picker"
+          data-ouro-part="tone"
+          className={toneOptionClass}
+          onClick={() => {
+            setTone(option);
+            onDone(true);
+          }}
+        >
+          <span aria-hidden="true">{toned(hand, option)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The raised hand the skin tone button and its choices show. */
+const hand = { emoji: "✋", name: "", skinTones: true };
+
+/** The categories' or results' grids, each labelled by its heading, which stays at the top as its emoji scroll. */
+function Grids({ id, sections, rows, tone, active, sectionRefs }: { id: string; sections: readonly Section[]; rows: readonly Row[]; tone: EmojiSkinTone; active: number; sectionRefs: RefObject<(HTMLElement | null)[]> }) {
+  return sections.map((section, index) => (
+    <div
+      key={index}
+      ref={(element) => {
+        sectionRefs.current[index] = element;
+      }}
+    >
+      <div id={`${id}-s${index}`} className={headingClass}>
+        {section.label}
+      </div>
+      <div role="grid" aria-labelledby={`${id}-s${index}`} className="grid">
+        {rows
+          .filter((row) => row.section === index)
+          .map((row) => (
+            <div role="row" key={row.start} className={gridClass}>
+              {section.items.slice(row.start - section.start, row.start - section.start + row.length).map((item, offset) => (
+                <div role="gridcell" key={offset} className="flex justify-center">
+                  <Cell glyph={toned(item, tone)} name={item.name} index={row.start + offset} active={row.start + offset === active} quick={false} />
+                </div>
+              ))}
+            </div>
+          ))}
+      </div>
+    </div>
+  ));
+}
+
 function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, className, onChoose }: PanelProps): JSX.Element {
   const id = useId();
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
+  const [activeCell, setActive] = useState(0);
   const [quickActive, setQuickActive] = useState(0);
   const [categoryActive, setCategoryActive] = useState(0);
   const [inView, setInView] = useState(0);
@@ -482,67 +650,28 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
   const searchRef = useRef<HTMLInputElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const toneButtonRef = useRef<HTMLButtonElement>(null);
-  const toneGroupRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
 
-  const searching = query.trim() !== "";
-  const results = useMemo(() => {
-    if (!searching) return [];
-    const seen = new Set<string>();
-    return [...(frequent ?? []), ...categories.flatMap((category) => category.emoji)].filter((item) => {
-      if (seen.has(item.emoji) || !matchEmoji(item, query)) return false;
-      seen.add(item.emoji);
-      return true;
-    });
-  }, [searching, query, frequent, categories]);
-
-  const sections = useMemo(() => {
-    const list: Omit<Section, "start">[] = searching
-      ? [{ label: fillCount(labels.resultsLabel, results.length), icon: null, items: results }]
-      : [
-          ...(frequent?.length ? [{ label: labels.frequentLabel, icon: <ClockIcon />, items: frequent }] : []),
-          ...categories
-            .filter((category) => category.emoji.length)
-            .map((category) => ({ label: category.label, icon: category.icon ?? category.emoji[0]!.emoji, items: category.emoji })),
-        ];
-    let start = 0;
-    return list.map((section) => {
-      const placed = { ...section, start };
-      start += section.items.length;
-      return placed;
-    });
-  }, [searching, results, frequent, categories, labels.resultsLabel, labels.frequentLabel]);
-
-  const rows = useMemo(() => {
-    const list: Row[] = [];
-    sections.forEach((section, index) => {
-      for (let offset = 0; offset < section.items.length; offset += COLUMNS) {
-        list.push({ section: index, start: section.start + offset, length: Math.min(COLUMNS, section.items.length - offset) });
-      }
-    });
-    return list;
-  }, [sections]);
-  const total = rows.length ? rows.at(-1)!.start + rows.at(-1)!.length : 0;
+  const { searching, results, sections, rows, total } = useSections(categories, frequent, query, labels);
+  // The app can take emoji away while the picker is open; the Tab stop stays on the last one.
+  const active = Math.min(activeCell, total - 1);
   const itemAt = (index: number) => {
     const section = sections.findLast((entry) => entry.start <= index)!;
     return section.items[index - section.start]!;
   };
 
-  // Results are announced as the count changes, and once when nothing matches.
-  const announced = useRef("");
-  const resultsMessage = searching ? (results.length ? fillCount(labels.resultsLabel, results.length) : labels.noResultsLabel) : "";
-  useEffect(() => {
-    if (resultsMessage && resultsMessage !== announced.current) announce(resultsMessage);
-    announced.current = resultsMessage;
-  }, [resultsMessage]);
+  useAnnouncement(searching ? (results.length ? fillCount(labels.resultsLabel, results.length) : labels.noResultsLabel) : "");
 
   const tonesShown = offersTones(frequent) || offersTones(quick) || categories.some((category) => offersTones(category.emoji));
 
   useEffect(() => {
-    if (choosingTone) toneGroupRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
-    else if (toneReturn.current) toneButtonRef.current?.focus();
+    if (!choosingTone && toneReturn.current) toneButtonRef.current!.focus();
     toneReturn.current = false;
   }, [choosingTone]);
+  const doneChoosingTone = (returnFocus: boolean) => {
+    toneReturn.current = returnFocus;
+    setChoosingTone(false);
+  };
 
   const focusCell = (index: number) => {
     setActive(index);
@@ -555,35 +684,13 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
     const cell = target(event);
     if (!cell) return;
     const at = Number(cell.dataset.cell);
-    const rowIndex = rows.findLastIndex((row) => row.start <= at);
-    const row = rows[rowIndex]!;
-    const vertical = ["ArrowDown", "ArrowUp", "PageDown", "PageUp"].includes(event.key);
-    const column = vertical && sticky.current?.at === at ? sticky.current.column : at - row.start;
-    const inRow = (other: Row | undefined) => (other ? other.start + Math.min(column, other.length - 1) : undefined);
-    const firstRowOf = (section: number) => rows.find((entry) => entry.section === section)!;
-    let next: number | undefined;
-    const ctrl = event.ctrlKey || event.metaKey;
-    if (event.key === "ArrowDown") next = inRow(rows[rowIndex + 1]);
-    else if (event.key === "ArrowUp") {
-      if (rowIndex === 0) {
-        event.preventDefault();
-        searchRef.current?.focus();
-        return;
-      }
-      next = inRow(rows[rowIndex - 1]);
-    } else if (event.key === "PageDown") next = inRow(row.section + 1 < sections.length ? firstRowOf(row.section + 1) : rows.at(-1));
-    else if (event.key === "PageUp") next = inRow(firstRowOf(firstRowOf(row.section) === row ? Math.max(row.section - 1, 0) : row.section));
-    else if (ctrl && event.key === "Home") next = 0;
-    else if (ctrl && event.key === "End") next = total - 1;
-    else if (event.key === "Home" || event.key === "End") next = row.start + stepInRow(event.key, column, row.length, false)!;
-    else if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-      const forward = (event.key === "ArrowRight") !== isRtl(event.currentTarget);
-      next = Math.min(Math.max(at + (forward ? 1 : -1), 0), total - 1);
-    }
-    if (next === undefined) return;
+    const column = sticky.current?.at === at ? sticky.current.column : at - rows[rows.findLastIndex((row) => row.start <= at)]!.start;
+    const step = gridStep(event.key, event.ctrlKey || event.metaKey, at, column, rows, sections.length, isRtl(event.currentTarget));
+    if (!step) return;
     event.preventDefault();
-    sticky.current = vertical ? { at: next, column } : null;
-    focusCell(next);
+    sticky.current = step.column === undefined ? null : { at: step.next, column: step.column };
+    if (step.next < 0) searchRef.current!.focus();
+    else focusCell(step.next);
   };
 
   const onRowKey = (event: KeyboardEvent<HTMLDivElement>, count: number, at: number, move: (index: number) => void) => {
@@ -611,66 +718,13 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
     focusCell(sections[index]!.start);
   };
 
-  const preview = hovered ?? (total ? itemAt(Math.min(active, total - 1)) : undefined);
-  const toneButtonGlyph = toned({ emoji: "✋", name: "", skinTones: true }, tone);
+  const preview = hovered ?? (total ? itemAt(active) : undefined);
 
   return (
-    <div
-      data-ouro="emoji-picker"
-      className={cn(panelClass, asSheet ? "w-full" : "w-[21rem] max-w-full", className)}
-    >
+    <div data-ouro="emoji-picker" className={cn(panelClass, asSheet ? "w-full" : "w-[21rem] max-w-full", className)}>
       <div className="flex min-w-0 shrink-0 items-center gap-1">
         {choosingTone ? (
-          <div
-            ref={toneGroupRef}
-            role="radiogroup"
-            aria-label={labels.skinToneLabel}
-            className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-1 pointer-coarse:min-h-11"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                event.stopPropagation();
-                toneReturn.current = true;
-                setChoosingTone(false);
-                return;
-              }
-              const arrows: Record<string, string> = { ArrowDown: "ArrowRight", ArrowUp: "ArrowLeft" };
-              const at = emojiSkinTones.indexOf(tone);
-              const key = arrows[event.key] ?? event.key;
-              const next = stepInRow(key, at, emojiSkinTones.length, key === event.key && isRtl(event.currentTarget));
-              if (next === undefined) return;
-              event.preventDefault();
-              setTone(emojiSkinTones[next]!);
-              event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]!.focus();
-            }}
-            // Keeps focus on the checked tone while another is pressed: Safari does not focus a
-            // pressed button, and the row would close on the blur before the press lands.
-            onMouseDown={(event) => event.preventDefault()}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setChoosingTone(false);
-            }}
-          >
-            {emojiSkinTones.map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="radio"
-                aria-checked={option === tone}
-                aria-label={labels.skinToneNames[option]}
-                tabIndex={option === tone ? 0 : -1}
-                data-ouro-control="emoji-picker"
-                data-ouro-part="tone"
-                className={toneOptionClass}
-                onClick={() => {
-                  setTone(option);
-                  toneReturn.current = true;
-                  setChoosingTone(false);
-                }}
-              >
-                <span aria-hidden="true">{toned({ emoji: "✋", name: "", skinTones: true }, option)}</span>
-              </button>
-            ))}
-          </div>
+          <ToneChoice tone={tone} setTone={setTone} label={labels.skinToneLabel} names={labels.skinToneNames} onDone={doneChoosingTone} />
         ) : (
           <>
             <TextField
@@ -692,7 +746,7 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
               onKeyDown={(event) => {
                 if (event.key === "ArrowDown" && total) {
                   event.preventDefault();
-                  focusCell(Math.min(active, total - 1));
+                  focusCell(active);
                 } else if (event.key === "Enter" && searching && results.length) {
                   event.preventDefault();
                   onChoose(results[0]!, event);
@@ -712,7 +766,7 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
                 onClick={() => setChoosingTone(true)}
               >
                 <span aria-hidden="true" className="text-xl leading-none">
-                  {toneButtonGlyph}
+                  {toned(hand, tone)}
                 </span>
               </Button>
             )}
@@ -736,12 +790,7 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
         </div>
       ) : null}
       {!searching && sections.length > 1 && (
-        <div
-          role="toolbar"
-          aria-label={labels.categoriesLabel}
-          className={barClass}
-          onKeyDown={(event) => onRowKey(event, sections.length, categoryActive, setCategoryActive)}
-        >
+        <div role="toolbar" aria-label={labels.categoriesLabel} className={barClass} onKeyDown={(event) => onRowKey(event, sections.length, categoryActive, setCategoryActive)}>
           {sections.map((section, index) => (
             <button
               key={index}
@@ -781,35 +830,9 @@ function Panel({ categories, frequent, quick, tone, setTone, asSheet, labels, cl
         }}
       >
         {total === 0 ? (
-          <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">
-            {searching ? labels.noResultsLabel : null}
-          </p>
+          <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
         ) : (
-          sections.map((section, index) => (
-            <div
-              key={index}
-              ref={(element) => {
-                sectionRefs.current[index] = element;
-              }}
-            >
-              <div id={`${id}-s${index}`} className={headingClass}>
-                {section.label}
-              </div>
-              <div role="grid" aria-labelledby={`${id}-s${index}`} className="grid">
-                {rows
-                  .filter((row) => row.section === index)
-                  .map((row) => (
-                    <div role="row" key={row.start} className={gridClass}>
-                      {section.items.slice(row.start - section.start, row.start - section.start + row.length).map((item, offset) => (
-                        <div role="gridcell" key={offset} className="flex justify-center">
-                          <Cell glyph={toned(item, tone)} name={item.name} index={row.start + offset} active={row.start + offset === Math.min(active, total - 1)} quick={false} />
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))
+          <Grids id={id} sections={sections} rows={rows} tone={tone} active={active} sectionRefs={sectionRefs} />
         )}
       </div>
       <div aria-hidden="true" className={previewClass}>
