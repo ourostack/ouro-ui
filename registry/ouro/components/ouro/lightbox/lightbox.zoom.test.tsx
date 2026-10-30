@@ -123,12 +123,18 @@ describe("Lightbox zoom", () => {
   });
 
   it("zooms to the image's own size from the zoom button, in the middle, and back", async () => {
-    await open([wide], { zoomLabel: "Agrandir" });
+    await open([wide, { ...wide, alt: "Another wide screenshot" }], { zoomLabel: "Agrandir" });
     await expect.poll(zoomButton).not.toBeNull();
+    // A magnifier with a plus, and with a minus once zoomed.
+    const icon = () => zoomButton()!.querySelector("svg[aria-hidden='true'] path")!.getAttribute("d");
+    expect(icon()).toBe("M5 7h4M7 5v4M10.5 10.5L14 14");
     await userEvent.click(zoomButton()!);
     const scroller = view()!;
     expect(scroller).not.toBeNull();
+    // Only the image in view zooms.
+    expect(popup()!.querySelectorAll("[data-ouro-lightbox-zoom-view]")).toHaveLength(1);
     expect(zoomButton()!.getAttribute("aria-pressed")).toBe("true");
+    expect(icon()).toBe("M5 7h4M10.5 10.5L14 14");
     expect(figure().hasAttribute("data-zoomed")).toBe(true);
     const zoomedImage = scroller.querySelector("img")!;
     expect(zoomedImage.offsetWidth).toBeCloseTo(1600, -1);
@@ -149,6 +155,7 @@ describe("Lightbox zoom", () => {
     await userEvent.click(zoomButton()!);
     expect(view()).toBeNull();
     expect(zoomButton()!.getAttribute("aria-pressed")).toBe("false");
+    expect(icon()).toBe("M5 7h4M7 5v4M10.5 10.5L14 14");
     expect(getComputedStyle(fittedImage()).visibility).toBe("visible");
     expect(getComputedStyle(figure().querySelector("figcaption")!).visibility).toBe("visible");
   });
