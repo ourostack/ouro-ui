@@ -174,6 +174,8 @@ describe("holdPageScroll", () => {
     // One set of listeners, however many popups hold the page.
     expect(add).toHaveBeenCalledTimes(5);
     second.release();
+    expect(remove).not.toHaveBeenCalled();
+    expect(removeFromWindow).not.toHaveBeenCalled();
     first.release();
     expect(remove.mock.calls.map(([type, , options]) => [type, options])).toEqual([
       ["wheel", { capture: true, passive: true }],
@@ -183,5 +185,39 @@ describe("holdPageScroll", () => {
       ["scroll", undefined],
     ]);
     expect(removeFromWindow.mock.calls.map(([type]) => type)).toEqual(["keydown"]);
+  });
+
+  it("makes the page's scrolls instant while it holds the page, and gives back its own scroll-behavior after", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    const first = portal();
+    expect(html.style.scrollBehavior).toBe("auto");
+    // The person's scroll glides as the page sets it, until a popup handles a key again.
+    page.dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
+    expect(html.style.scrollBehavior).toBe("smooth");
+    for (let press = 0; press < 2; press++) {
+      page.addEventListener("keydown", (event) => event.preventDefault(), { once: true });
+      page.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ArrowDown" }));
+      expect(html.style.scrollBehavior).toBe("auto");
+    }
+    const second = portal();
+    second.release();
+    expect(html.style.scrollBehavior).toBe("auto");
+    first.release();
+    expect(html.style.scrollBehavior).toBe("smooth");
+  });
+
+  it("leaves scroll-behavior to whatever set it since, and keeps a page's own inline auto", async () => {
+    const html = document.documentElement;
+    const { release } = portal();
+    // Base UI's scroll lock saves and restores this style too; what it put back stands.
+    html.style.scrollBehavior = "unset";
+    release();
+    expect(html.style.scrollBehavior).toBe("unset");
+    html.style.scrollBehavior = "auto";
+    const again = portal();
+    page.dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
+    again.release();
+    expect(html.style.scrollBehavior).toBe("auto");
   });
 });
