@@ -262,7 +262,8 @@
       "TextArea/Playground",
       "TextArea/AutoGrow",
       "TextArea/States",
-      "TextArea/Composer"
+      "TextArea/Composer",
+      "TextArea/Highlights"
     ]
   },
   {
@@ -2393,6 +2394,25 @@
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter"
+    ]
+  },
+  {
+    "item": "composer",
+    "stem": "composer",
+    "mode": "default",
+    "part": "send",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Composer/Playground",
+      "Composer/Basic",
+      "Composer/Suggested",
+      "Composer/WithTools",
+      "Composer/SendingOff",
+      "Composer/Sending",
+      "Composer/ModEnter",
+      "Composer/Disabled"
     ]
   }
 ]

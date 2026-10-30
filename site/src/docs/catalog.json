@@ -716,6 +716,13 @@
     "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
   },
   {
+    "name": "composer",
+    "title": "Composer",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/composer/composer.tsx",
+    "summary": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline."
+  },
+  {
     "name": "inspector",
     "title": "Inspector",
     "group": "App setup",

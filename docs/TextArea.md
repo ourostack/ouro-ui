@@ -13,6 +13,14 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 ```tsx
 <TextArea label="Notes" name="notes" description="Only you see these." />
 <TextArea label="Message" name="message" autoGrow rows={2} maxRows={8} required error={errors?.message} />
+// Words an assistant suggested, marked in the person's draft; the marks follow edits.
+<TextArea
+  label="Reply"
+  value={text}
+  onValueChange={setText}
+  highlights={[{ start: 0, end: 22, label: "Suggested by your assistant" }]}
+  onHighlightsChange={setHighlights}
+/>
 // A chat composer: the box is the app's, and the textarea inside it has no frame.
 <form className="flex items-end gap-2 rounded-xl border border-border p-2 focus-within:border-ring">
   <TextArea label="Message" hideLabel name="message" placeholder="Ask anything" variant="plain" autoGrow rows={1} maxRows={8} className="flex-1" />
@@ -22,11 +30,11 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 
 ## Usage
 
-`variant="plain"` draws no frame, for a textarea inside a box your app draws, and `size="lg"` sets 20px text.
+`variant="plain"` draws no frame, for a textarea inside a box your app draws, and `size="lg"` sets 20px text. `highlights` marks ranges of the text in place, each with a tone and a label screen readers hear, and the marks follow their words as the person edits.
 
 ## Use instead when
 
-- Use `TextField` instead for one line, and `Field` with `FieldControl` for a control that is not text.
+- Use `TextField` instead for one line, `Composer` for a chat message box with its send button, and `Field` with `FieldControl` for a control that is not text.
 
 ## Props
 
@@ -41,9 +49,11 @@ Type: `TextAreaProps`.
 | `disabled` | `boolean` |  | Disables the field and fades it. |
 | `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
+| `highlights` | `readonly TextAreaHighlight[]` |  | Ranges of the text to mark in place, each with a tone and a label: words an assistant wrote in the person's draft, or spelling and grammar notes. The marks wrap with the words and scroll with them, and screen readers hear each label with the words it marks in the field's description. As the person types, pastes or undoes, the marks follow their words: what the person types is never marked, an edit inside a mark splits it, and undo brings back the marks the text had. Pass `[]` for none, rather than switching the prop off and on, which remounts the textarea. |
 | `label` (required) | `string` |  | What the field is for, shown above it and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label. |
 | `maxRows` | `number` |  | With `autoGrow`, the most lines it grows to before it scrolls. Unset, it keeps growing. |
 | `name` | `string` |  | The form field name the text submits under. |
+| `onHighlightsChange` | `((highlights: TextAreaHighlight[]) => void)` |  | Called with the highlights moved to fit the text after the person edits it. Store them and pass them back as `highlights`, or recompute your own from your data. |
 | `onValueChange` | `FieldControlProps["onValueChange"]` |  | Called with the new text on every change. |
 | `placeholder` | `string` |  | An example of what to write, shown while the field is empty. It is not a label; pass `label`, which stays visible. |
 | `ref` | `Ref<HTMLTextAreaElement>` |  | The textarea element. |
@@ -69,6 +79,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `isDisabled`: Not a prop. Ouro UI uses `disabled`: `<TextArea disabled>`.
 - `isInvalid`: Not a prop. `error` marks the field invalid: `<TextArea error="What is wrong">`.
 - `isRequired`: Not a prop. Ouro UI uses `required`: `<TextArea required>`.
+- `marks`: Not a prop. Ouro UI uses `highlights`: `<TextArea highlights={[{ start: 0, end: 5, label: "Suggested" }]}>`.
 - `minRows`: Not a prop. `rows` is the minimum: `<TextArea autoGrow rows={2} maxRows={8}>`.
 
 ## `className` is for layout only
@@ -106,6 +117,32 @@ A read-only message view accepted by fields and Form; mutable input arrays remai
 
 ```ts
 type ReadonlyErrorMessages = ErrorMessage | readonly ErrorMessage[];
+```
+
+### `TextAreaHighlight`
+
+A range of a TextArea's text that it marks: words an assistant suggested in the person's draft, a possible spelling mistake. `start` and `end` are JavaScript string indexes, and `end` is exclusive, so a mark covers `text.slice(start, end)`.
+
+```ts
+interface TextAreaHighlight {
+  /** Where the mark starts: the index of its first character in the text. */
+  start: number;
+  /** Where it ends: the index just after its last character. */
+  end: number;
+  /**
+   * What the mark means, which screen readers hear with the words it marks: "Suggested by
+   * your assistant", "Possible spelling mistake". Required, so no mark is shown only to sighted people.
+   */
+  label: string;
+  /**
+   * The mark's colour, a theme tone. `destructive` and `warning` draw a wavy underline, as
+   * spelling and grammar checkers do; the others a dotted underline on a faint tint.
+   * @default "primary"
+   */
+  tone?: "primary" | "secondary" | "destructive" | "success" | "warning" | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never }) | undefined;
+  /** Your own id for the mark. An edit inside a mark splits it, and both pieces keep its id. */
+  id?: string | undefined;
+}
 ```
 
 [^layout-classes]: test:registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea > lets app layout classes win on the root verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea > lets app layout classes win on the root)

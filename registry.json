@@ -1282,6 +1282,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-field",
         "ourostack/ouro-ui/text-field"
@@ -3591,6 +3592,31 @@
       ]
     },
     {
+      "name": "composer",
+      "type": "registry:ui",
+      "title": "Composer",
+      "description": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline.",
+      "docs": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Import: import { Composer } from \"@/components/ouro/composer/composer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, text-area, text-field, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/composer.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/composer/composer.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -4979,6 +5005,11 @@
         "ourostack/ouro-ui/text-field-tests"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/text-field/text-area.highlights.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/text-field/text-area.stories.tsx",
           "type": "registry:component",
@@ -10460,6 +10491,73 @@
       }
     },
     {
+      "name": "composer-tests",
+      "type": "registry:item",
+      "title": "Composer tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for composer, and the tests of everything it installs. Add it beside composer: add composer composer-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "composer's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/attachment",
+        "ourostack/ouro-ui/attachment-tests",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/composer",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests",
+        "ourostack/ouro-ui/toggle",
+        "ourostack/ouro-ui/toggle-tests",
+        "ourostack/ouro-ui/tooltip-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/composer/composer.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/composer/composer.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/composer/composer.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/composer/composer.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/composer.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/composer.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -10531,6 +10629,7 @@
         "ourostack/ouro-ui/color-scheme-toggle-tests",
         "ourostack/ouro-ui/combobox-tests",
         "ourostack/ouro-ui/command-tests",
+        "ourostack/ouro-ui/composer-tests",
         "ourostack/ouro-ui/confirm-dialog-tests",
         "ourostack/ouro-ui/conversation-list-tests",
         "ourostack/ouro-ui/copy-button-tests",
