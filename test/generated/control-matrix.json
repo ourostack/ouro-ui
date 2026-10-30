@@ -2463,5 +2463,19 @@
     "stories": [
       "TimeGrid/Links"
     ]
+  },
+  {
+    "item": "autocomplete",
+    "stem": "autocomplete",
+    "mode": "default",
+    "part": "option",
+    "role": "option",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Autocomplete/Composer",
+      "Autocomplete/Open",
+      "Autocomplete/SingleLine"
+    ]
   }
 ]

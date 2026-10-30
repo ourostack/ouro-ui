@@ -256,6 +256,13 @@
     "summary": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove."
   },
   {
+    "name": "autocomplete",
+    "title": "Autocomplete",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx",
+    "summary": "Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character."
+  },
+  {
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",

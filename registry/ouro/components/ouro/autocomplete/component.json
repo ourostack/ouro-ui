@@ -1,0 +1,9 @@
+{
+  "order": 2650,
+  "components": ["autocomplete"],
+  "controls": {
+    "autocomplete": [
+      {"part": "option", "role": "option", "portal": true}
+    ]
+  }
+}
