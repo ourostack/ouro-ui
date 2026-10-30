@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
@@ -8,6 +8,7 @@ import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
+import { docsSections } from "./components/layout";
 import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_LINE } from "./copy";
 import readme from "../../README.md?raw";
@@ -132,6 +133,41 @@ describe("docs", () => {
     expect(host.querySelector("a a")).toBeNull();
     const comparison = host.querySelector<HTMLAnchorElement>('section[aria-labelledby="group-guides"] a[href$="/docs/why-no-skill-settings-form/"]');
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
+  });
+
+  it("lists the components in the sidebar under a label per catalog group, with Start first and Guides last", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/checklist/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
+    for (const group of groups) {
+      const list = nav.getByRole("list", { name: group, exact: true });
+      expect(list.getByRole("link").elements().map((link) => link.textContent), group).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
+    }
+    const labels = docsSections().map((section) => section.label);
+    expect(labels).toEqual(["Start", ...groups, "Guides"]);
+    await expect.element(nav.getByRole("link", { name: "Checklist", exact: true })).toHaveAttribute("aria-current", "page");
+    // The sidebar scrolls on its own, opened where the current page and its group's label show.
+    const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+    const box = scroller.getBoundingClientRect();
+    for (const element of [nav.getByText("Lists", { exact: true }).element(), nav.getByRole("link", { name: "Checklist", exact: true }).element()]) {
+      const rect = element.getBoundingClientRect();
+      expect(rect.top).toBeGreaterThanOrEqual(box.top);
+      expect(rect.bottom).toBeLessThanOrEqual(box.bottom);
+    }
+  });
+
+  it("narrows the sidebar to the components a filter names, and says when none is called that", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "text field");
+    expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["TextField"]);
+    await expect.element(nav.getByRole("list", { name: "Forms", exact: true })).toBeVisible();
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "zzz");
+    expect(nav.getByRole("link").elements()).toHaveLength(0);
+    await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
   });
 
   it("has a page for every registry item at docs/<name>", () => {
