@@ -40,17 +40,17 @@ describe("Chapter I's words", () => {
 });
 
 describe("Chapter I", () => {
-  it("renders after the themes, with every control marked in page order", async () => {
-    await renderPage("/voyage/");
+  it("renders after the story's list of chapters, with every control marked in page order", async () => {
+    await renderPage("/nautilus/");
     await expect.element(page.getByRole("heading", { name: CHAPTER_ONE.title })).toBeInTheDocument();
-    expect(document.querySelector("#themes")!.compareDocumentPosition(document.querySelector("#chapter-one")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.querySelector("[data-site-chapter-ready]")!.compareDocumentPosition(document.querySelector("#chapter-one")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // "leave" shows once you have signed.
     const marked = () => [...document.querySelectorAll("#chapter-one [data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
     expect(marked()).toEqual(CHAPTER_ONE_CONTROLS.filter((id) => id !== "leave"));
   });
 
   it("builds the ship: each tick draws a part, and every job done readies Launch", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     const plan = () => document.querySelector<SVGSVGElement>(".site-blueprint")!;
     const crew = () => document.querySelector("[data-composition='shipyard'] [data-chapter-crew]")!.textContent ?? "";
     expect(crew()).toContain(YARD.opening.text);
@@ -65,7 +65,7 @@ describe("Chapter I", () => {
   });
 
   it("refuses a name already aboard, through the form's own errors", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     const name = page.getByRole("textbox", { name: ARTICLES.name });
     await userEvent.fill(name, "nemo");
     await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
@@ -76,7 +76,7 @@ describe("Chapter I", () => {
   });
 
   it("says the signing aloud once: the toast, and Conseil's welcome", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ada");
     await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
     await userEvent.click(page.getByRole("option", { name: "Cook" }));
@@ -89,7 +89,7 @@ describe("Chapter I", () => {
   });
 
   it("has Conseil refuse aloud, politely, while the articles want a trade and the oath", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/nautilus/");
     await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ada");
     const announced = watchAnnouncements();
     await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));

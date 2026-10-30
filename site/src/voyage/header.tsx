@@ -141,6 +141,8 @@ function SiteCommand(): JSX.Element {
               {
                 label: "Pages",
                 items: [
+                  { label: "Home", onSelect: go(href("/")), keywords: ["start", "porthole"] },
+                  { label: "The Nautilus", onSelect: go(href("/nautilus/")), keywords: ["story", "chapters", "ship"] },
                   { label: "Docs", onSelect: go(href("/docs/installing/")), keywords: ["install", "guide"] },
                   { label: "Components", onSelect: go(href("/docs/")), keywords: ["catalog"] },
                   { label: "GitHub", onSelect: go(GITHUB), keywords: ["source", "repository"] },
@@ -169,23 +171,24 @@ function XraySwitch(): JSX.Element {
 }
 
 /** The voyage page's header, built from Ouro HX: Navbar, Popover, RadioGroup, SegmentedControl, Switch, Command and Kbd. */
-export function VoyageHeader(): JSX.Element {
+export function VoyageHeader({ path }: { path: "/" | "/nautilus/" }): JSX.Element {
   return (
     <Navbar
       label="Site"
       className="sticky top-0 z-40 ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]"
       brand={
-        <a href={href("/voyage/")} className="site-brand">
+        <a href={href("/")} className="site-brand">
           <HxLogo size={32} className="size-8" />
           Ouro HX
         </a>
       }
       items={[
+        { label: "The Nautilus", href: href("/nautilus/") },
         { label: "Docs", href: href("/docs/installing/") },
         { label: "Components", href: href("/docs/") },
         { label: "GitHub", href: GITHUB },
       ]}
-      currentPath={href("/voyage/")}
+      currentPath={href(path)}
       actions={
         <>
           <ThemePicker />

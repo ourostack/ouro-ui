@@ -9,7 +9,7 @@ import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } fro
 // beside other workers the runner's CPU is shared and the numbers measure the neighbours.
 
 async function open(page: Page): Promise<void> {
-  await page.goto("voyage/");
+  await page.goto("./");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
 }
 

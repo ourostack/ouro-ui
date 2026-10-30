@@ -17,11 +17,13 @@ interface Route {
   title: string;
   description: string;
 }
-const { render, routes, docsItems, docsPages, publishedMarkdown, headTags, pageKind } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, pageKind } = (await import(pathToFileURL(server).href)) as {
   render: (path: string) => Promise<string>;
   pageKind: (path: string) => string;
   headTags: (route: Route, canonical: boolean) => string[];
   routes: Route[];
+  redirects: Array<{ from: string; to: string }>;
+  redirectPage: (to: string) => string;
   docsItems: Array<{ name: string; title: string }>;
   docsPages: Array<{ name: string; title: string; file: string }>;
   publishedMarkdown: (markdown: string, from: string) => string;
@@ -88,6 +90,13 @@ for (const route of routes) {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, await page(route, route.path, true));
 }
+// Old addresses: GitHub Pages is static, so each is a page that refreshes to the new one.
+for (const { from, to } of redirects) {
+  if (routes.some((route) => route.path === from)) throw new Error(`${from} is both a page and a redirect`);
+  const file = join(dist, from, "index.html");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, redirectPage(to));
+}
 writeFileSync(
   join(dist, "404.html"),
   await page({ path: "/404/", title: "Page not found · Ouro UI", description: "That page isn't here." }, "/404/", false),
@@ -115,4 +124,4 @@ for (const page of docsPages) {
 for (const file of [...docsItems.map((item) => `${item.name}.md`), ...docsPages.map((page) => `${page.name}.md`), "parts.md"]) {
   if (readFileSync(join(dist, "docs", file), "utf8").includes("@/registry/")) throw new Error(`docs/${file} still has registry paths`);
 }
-console.log(`prerendered ${routes.length} routes, 404.html and ${docsItems.length + docsPages.length + 1} Markdown docs into site/dist`);
+console.log(`prerendered ${routes.length} routes, ${redirects.length} redirects, 404.html and ${docsItems.length + docsPages.length + 1} Markdown docs into site/dist`);

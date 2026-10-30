@@ -10,7 +10,7 @@ import { watchToasts } from "./toasts";
 // motion, and the fish rest off screen. Each control's latency is stage.latency.spec.ts's.
 
 async function open(page: Page): Promise<void> {
-  await page.goto("voyage/");
+  await page.goto("./");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
 }
 
@@ -455,7 +455,7 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     const background = (locator: ReturnType<Page["locator"]>) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
-    const solid = await background(page.getByRole("link", { name: "Come aboard" }));
+    const solid = await background(page.locator(".site-hero").getByRole("link", { name: "Come aboard" }));
     expect(await background(diveButton(page))).not.toBe(solid);
     const started = await recordAnimations(page);
     await fillTanks(page);

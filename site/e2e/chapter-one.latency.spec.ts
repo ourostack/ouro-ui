@@ -11,7 +11,7 @@ import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } fro
 // latency job: beside other workers the runner's CPU is shared and the numbers measure the neighbours.
 
 async function open(page: Page): Promise<void> {
-  await page.goto("voyage/");
+  await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.locator("#chapter-one").scrollIntoViewIfNeeded();
   await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();

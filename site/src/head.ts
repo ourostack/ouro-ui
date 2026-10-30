@@ -1,4 +1,5 @@
 import type { Route } from "./routes";
+import { pageKind } from "./paths";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
 
@@ -13,7 +14,7 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
  * (site/scripts/og-image.mts) as the image.
  */
 export function headTags(route: Route, canonical: boolean): string[] {
-  // A preview route is unlinked and unindexed: no canonical address, and a robots tag.
+  // An unindexed route has no canonical address, and a robots tag.
   canonical = canonical && !route.noindex;
   const title = escape(route.title);
   const description = escape(route.description);
@@ -41,9 +42,34 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:image:alt" content="${alt}" />`,
-    // The voyage page sets its type in Geist and Geist Mono; only they are preloaded.
-    ...(route.path === "/voyage/"
+    // The voyage pages set their type in Geist and Geist Mono; only they are preloaded.
+    ...(pageKind(route.path) === "voyage"
       ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
       : []),
   ].filter(Boolean);
+}
+
+/**
+ * The page at an old address (routes.ts, `redirects`): GitHub Pages serves static files only, so
+ * it refreshes to the new address at once, names that address as canonical for search engines, and
+ * links to it for a browser that does not follow the refresh.
+ */
+export function redirectPage(to: string): string {
+  const url = escape(to);
+  return [
+    "<!doctype html>",
+    '<html lang="en">',
+    "<head>",
+    '<meta charset="utf-8" />',
+    `<title>Moved · Ouro HX</title>`,
+    `<meta http-equiv="refresh" content="0; url=${url}" />`,
+    `<link rel="canonical" href="${SITE}${url}" />`,
+    '<meta name="robots" content="noindex" />',
+    "</head>",
+    "<body>",
+    `<p>This page has moved to <a href="${url}">${escape(SITE + to)}</a>.</p>`,
+    "</body>",
+    "</html>",
+    "",
+  ].join("\n");
 }

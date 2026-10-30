@@ -117,7 +117,7 @@ export default function ChapterOne(): JSX.Element {
   );
 }
 
-/** From the themes into the chapter: a course line with the shipwright's dividers on it, and the line that turns the page. */
+/** From the story's opening into the chapter: a course line with the shipwright's dividers on it, and the line that turns the page. */
 function Handoff(): JSX.Element {
   return (
     <Container className="flex items-center gap-4 py-12 text-muted-foreground lg:py-16" data-chapter-handoff="">

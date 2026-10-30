@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
-import { headTags } from "../head";
-import { routeFor } from "../routes";
+import { headTags, redirectPage } from "../head";
+import { redirects, routeFor } from "../routes";
 import themes from "../themes/themes.json";
 import fonts from "../themes/fonts.json";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../themes/prepaint";
 import { presetList } from "./presets";
+import { NAUTILUS_PAGE } from "./copy";
 
 // The voyage preview's themes and header (site-design.md, slice S1): the stored theme applies
 // before paint, the header's controls repaint the page and remember it, Copy theme copies the
@@ -83,7 +84,7 @@ describe("the theme before first paint", () => {
     expect(buttons.map((button) => button.attributes.get("aria-pressed"))).toEqual([undefined, undefined]);
     parsed!();
     expect(buttons.map((button) => button.attributes.get("aria-pressed"))).toEqual(["false", "true"]);
-    for (const path of ["/", "/voyage/", "/docs/"]) {
+    for (const path of ["/", "/nautilus/", "/docs/"]) {
       const tags = headTags(routeFor(path)!, true);
       expect(tags[0]).toBe(`<script>${prepaintScript}</script>`);
     }
@@ -94,16 +95,31 @@ describe("the theme before first paint", () => {
     expect(themes.map((preset) => preset.name)).toEqual([...PRESET_NAMES]);
   });
 
-  it("keeps the preview out of search and links only Geist and Geist Mono for preload", () => {
-    const tags = headTags(routeFor("/voyage/")!, true);
-    expect(tags).toContain('<meta name="robots" content="noindex, nofollow" />');
-    expect(tags.some((tag) => tag.includes("canonical") || tag.includes("og:url"))).toBe(false);
-    const preloads = tags.filter((tag) => tag.includes('rel="preload"'));
-    expect(preloads).toEqual(
-      fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
-    );
-    expect(preloads.map((tag) => /fonts\/([a-z-]+)-/.exec(tag)?.[1])).toEqual(["geist", "geist-mono"]);
-    expect(headTags(routeFor("/")!, true).some((tag) => tag.includes('rel="preload"') || tag.includes("robots"))).toBe(false);
+  it("lets search index the home page and the Nautilus, each preloading only Geist and Geist Mono", () => {
+    for (const path of ["/", "/nautilus/"]) {
+      const tags = headTags(routeFor(path)!, true);
+      expect(tags.some((tag) => tag.includes("robots"))).toBe(false);
+      expect(tags).toContain(`<link rel="canonical" href="https://ui.ouro.bot${path}" />`);
+      const preloads = tags.filter((tag) => tag.includes('rel="preload"'));
+      expect(preloads).toEqual(
+        fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
+      );
+      expect(preloads.map((tag) => /fonts\/([a-z-]+)-/.exec(tag)?.[1])).toEqual(["geist", "geist-mono"]);
+    }
+    expect(headTags(routeFor("/docs/")!, true).some((tag) => tag.includes('rel="preload"') || tag.includes("robots"))).toBe(false);
+    expect(routeFor("/voyage/")).toBeUndefined();
+  });
+});
+
+describe("the old /voyage/ address", () => {
+  it("is a page that sends the reader to the home page, with a link for when it does not", () => {
+    expect(redirects).toEqual([{ from: "/voyage/", to: "/" }]);
+    const html = redirectPage("/");
+    expect(html).toContain('<meta http-equiv="refresh" content="0; url=/" />');
+    expect(html).toContain('<link rel="canonical" href="https://ui.ouro.bot/" />');
+    expect(html).toContain('<meta name="robots" content="noindex" />');
+    expect(html).toMatch(/<a href="\/">[^<]+<\/a>/);
+    expect(html.startsWith("<!doctype html>")).toBe(true);
   });
 });
 
@@ -114,7 +130,7 @@ describe("the header and the theme section", () => {
 
   it("repaint the page from the header's picker, and remember it", async () => {
     root.setAttribute("data-theme", "sleek");
-    await renderPage("/voyage/");
+    await renderPage("/");
     const background = () => getComputedStyle(document.body).backgroundColor;
     const sleek = background();
     await userEvent.click(page.getByRole("button", { name: /Theme: Sleek/ }));
@@ -132,7 +148,7 @@ describe("the header and the theme section", () => {
 
   it("repaints from the swatches, which say which preset is on", async () => {
     root.setAttribute("data-theme", "sleek");
-    await renderPage("/voyage/");
+    await renderPage("/");
     const presets = page.getByRole("group", { name: "Presets" });
     for (const preset of presetList) {
       await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }));
@@ -150,7 +166,7 @@ describe("the header and the theme section", () => {
     const announced = watchAnnouncements();
     try {
       root.setAttribute("data-theme", "brass");
-      await renderPage("/voyage/");
+      await renderPage("/");
       const brass = presetList.find((preset) => preset.name === "brass")!;
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
       await expect.poll(() => announced.count("Copied the Brass theme")).toBe(1);
@@ -169,7 +185,7 @@ describe("the header and the theme section", () => {
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
     const announced = watchAnnouncements();
     try {
-      await renderPage("/voyage/");
+      await renderPage("/");
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
       // A destructive toast is read out once, from an assertive live region.
       await expect.poll(() => announced.matching("Couldn't copy").map((change) => change.region.getAttribute("role"))).toEqual(["alert"]);
@@ -180,7 +196,7 @@ describe("the header and the theme section", () => {
   });
 
   it("turns X-ray on from the header's switch and from See how it's built", async () => {
-    await renderPage("/voyage/");
+    await renderPage("/");
     const xray = page.getByRole("switch", { name: "X-ray" });
     await userEvent.click(xray);
     await expect.element(xray).toBeChecked();
@@ -193,13 +209,52 @@ describe("the header and the theme section", () => {
 
   it("opens the command palette on ⌘K and repaints from it", async () => {
     root.setAttribute("data-theme", "sleek");
-    await renderPage("/voyage/");
+    await renderPage("/");
     await userEvent.keyboard(/Mac|iPhone|iPad/.test(navigator.platform) ? "{Meta>}k{/Meta}" : "{Control>}k{/Control}");
     const search = page.getByRole("combobox", { name: "Search commands" });
     await expect.element(search).toBeVisible();
     await userEvent.type(search, "coral");
     await userEvent.keyboard("{Enter}");
     expect(root.getAttribute("data-theme")).toBe("coral");
+  });
+});
+
+describe("the Nautilus's page", () => {
+  it("opens the story, lists its chapters honestly, then Chapter I", async () => {
+    await renderPage("/nautilus/");
+    await expect.element(page.getByRole("heading", { level: 1, name: NAUTILUS_PAGE.title })).toBeVisible();
+    expect(document.querySelector("[data-site-motto]")!.textContent).toBe(NAUTILUS_PAGE.motto);
+    expect(document.querySelector("#story-title + p")!.textContent).toBe(NAUTILUS_PAGE.intro);
+    expect(routeFor("/nautilus/")!.description.startsWith(NAUTILUS_PAGE.intro)).toBe(true);
+    const list = page.getByRole("list", { name: NAUTILUS_PAGE.chaptersLabel });
+    const items = list.getByRole("listitem").elements();
+    expect(items.map((item) => item.textContent)).toEqual([
+      "Chapter IBuild the shipStart here",
+      `Chapter IIPlan the voyage${NAUTILUS_PAGE.building}`,
+      `Chapter IIIFace the squid${NAUTILUS_PAGE.building}`,
+    ]);
+    expect(list.getByRole("link").elements().map((link) => link.getAttribute("href"))).toEqual(["#chapter-one"]);
+    await expect.element(page.getByRole("heading", { level: 2, name: "Build the ship" })).toBeInTheDocument();
+    expect(document.getElementById("chapter-one")).not.toBeNull();
+    // The porthole stage is the home page's; the Nautilus's page starts with the story.
+    expect(document.querySelector("[data-stage-crew]")).toBeNull();
+    expect(page.getByRole("link", { name: "Ouro HX", exact: true }).element().getAttribute("href")).toBe("/");
+  });
+
+  it.each(["/", "/nautilus/"])("turns X-ray on at load on %s when the address asks with ?xray", async (path) => {
+    await page.viewport(1280, 800);
+    const before = location.href;
+    history.replaceState(null, "", "?xray");
+    try {
+      await renderPage(path);
+      await expect.element(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
+      await expect.poll(() => document.querySelectorAll("[data-ouro-inspector-outline]").length).toBeGreaterThan(3);
+    } finally {
+      history.replaceState(null, "", before);
+    }
+    await cleanupPage();
+    await renderPage(path);
+    await expect.element(page.getByRole("switch", { name: "X-ray" })).not.toBeChecked();
   });
 });
 
@@ -211,10 +266,10 @@ describe.each([
     await page.viewport(width, height);
   });
   describe.each(["light", "dark"] as const)("%s", (scheme) => {
-    it.each(PRESET_NAMES.map((name) => ({ name })))("$name has zero axe violations on /voyage/", async ({ name }) => {
+    it.each(PRESET_NAMES.flatMap((name) => ["/", "/nautilus/"].map((path) => ({ name, path }))))("$name has zero axe violations on $path", async ({ name, path }) => {
       root.setAttribute("data-theme", name);
       setScheme(scheme);
-      await renderPage("/voyage/");
+      await renderPage(path);
       await settle();
       const violations = await scan();
       expect(violations, describeViolations(violations)).toEqual([]);

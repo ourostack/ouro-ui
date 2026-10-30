@@ -47,7 +47,7 @@ test("readmeSteps fails when a section or a file is missing", () => {
 });
 
 test("every published first-install command through @ouro adds ouro-base, which no component brings", () => {
-  const files = ["README.md", "UPGRADING.md", "site/public/llms.txt", ".github/workflows/release.yml", "site/src/pages/landing.tsx", "site/src/pages/docs.tsx", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md"];
+  const files = ["README.md", "UPGRADING.md", "site/public/llms.txt", ".github/workflows/release.yml", "site/src/voyage/home-reference.tsx", "site/src/pages/docs.tsx", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md"];
   const missing = [];
   for (const path of files) {
     read(path)

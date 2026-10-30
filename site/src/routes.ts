@@ -1,7 +1,7 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { docsItems } from "./docs/items";
 import pageIndex from "./docs/page-index.json";
-import { HERO_COPY, VOYAGE_HERO } from "./copy";
+import { VOYAGE_HERO } from "./copy";
 import { latestRelease } from "./latest-release";
 import { normalizePath } from "./paths";
 
@@ -12,17 +12,20 @@ export interface Route {
   path: string;
   title: string;
   description: string;
-  /** A preview page that search engines must not index and no page links to (`/voyage/`). */
+  /** A page that search engines must not index. */
   noindex?: boolean;
 }
 
-const DESCRIPTION = `${HERO_COPY} Ouro HX is the component library within Ouro UI. Under construction. React components you copy into your app and own; they install with the shadcn CLI.`;
-const VOYAGE_DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI. Under construction.`;
+/** Old addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
+export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }];
+
+const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI. Under construction.`;
+// NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
+const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret. Help him finish it. A story told with Ouro HX components: build the Nautilus, then sign on to her crew.`;
 
 export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
-  // The new landing page, built in slices on this hidden route until it replaces "/".
-  { path: "/voyage/", title: "Mobilis in mobili · Ouro HX", description: VOYAGE_DESCRIPTION, noindex: true },
+  { path: "/nautilus/", title: "The Nautilus · Ouro HX", description: NAUTILUS_DESCRIPTION },
   {
     path: "/docs/",
     title: "Docs · Ouro HX",

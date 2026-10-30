@@ -3,7 +3,7 @@
     "collect": {
       "startServerCommand": "node site/scripts/serve-pages.mjs 4180",
       "startServerReadyPattern": "Serving site/dist",
-      "url": ["https://127.0.0.1:4180/voyage/"],
+      "url": ["https://127.0.0.1:4180/", "https://127.0.0.1:4180/nautilus/"],
       "numberOfRuns": 3,
       "settings": {
         "chromeFlags": "--headless=new --ignore-certificate-errors",
