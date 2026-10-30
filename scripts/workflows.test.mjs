@@ -1827,12 +1827,32 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
   assert.equal(calls[5], "issue comment 12 --body Failed again (nightly): https://github.com/o/r/actions/runs/1");
 });
 
+test("the workflows beside CI cancel only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
+  const blocks = {
+    "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
+    "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+  };
+  for (const { file, text } of workflows) {
+    if (file === "ci.yml" || !/^concurrency:$/m.test(text)) continue;
+    const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
+    const events = [...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]);
+    const block = text.split(/^concurrency:\n/m)[1].split(/\n(?=\S)/)[0];
+    assert.doesNotMatch(text.split(/^jobs:\n/m)[1], /^\s+concurrency:/m, `${file}: no job has a group of its own`);
+    if (!events.includes("pull_request")) {
+      assert.match(block, /^ {2}cancel-in-progress: false$/m, `${file} runs on no pull request, so it cancels nothing`);
+    } else if (events.length > 1) {
+      // A third run in a group replaces the one waiting there, cancel or not, so every run but a pull request's has its own group.
+      assert.equal(block, [blocks[file], "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}"].join("\n"), file);
+    } else {
+      assert.match(block, /^ {2}group: [\w-]+\$\{\{ github\.event\.pull_request\.number \}\}\n {2}cancel-in-progress: true$/, file);
+    }
+  }
+});
+
 test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {
   const { text } = workflows.find(({ file }) => file === "conformance-exemptions.yml");
   assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n {2}workflow_dispatch:\n/m);
   assert.match(text, /^ {4}name: conformance exemptions$/m);
-  // One run per pull request, and one per merge-queue entry: never one entry's run cancelling another's.
-  assert.match(text, /^ {2}group: conformance-exemptions-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}$/m);
   const steps = text.slice(text.indexOf("    steps:")).split(/\n {6}- /).slice(1);
   const queue = steps.filter((step) => /^if: github\.event_name == 'merge_group'$/m.test(step));
   assert.equal(queue.length, 1);
