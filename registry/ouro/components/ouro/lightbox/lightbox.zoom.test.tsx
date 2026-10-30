@@ -1,11 +1,12 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Lightbox, type LightboxImage } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
-// Runs in Chromium and WebKit. The pinch, which needs touch events, is in lightbox.touch.test.tsx.
+// Runs in Chromium and WebKit; the pinch, built from touch events WebKit cannot construct, in
+// Chromium alone. A real double-tap and swipe on a touch screen are in lightbox.touch.test.tsx.
 
 /** A flat picture of the given size, drawn inline so the tests need no network. */
 const picture = (width: number, height: number, fill: string) =>
@@ -13,6 +14,8 @@ const picture = (width: number, height: number, fill: string) =>
 
 const wide: LightboxImage = { src: picture(1600, 1000, "#335"), alt: "A wide dashboard screenshot", caption: "Every row healthy." };
 const small: LightboxImage = { src: picture(200, 120, "#a75"), alt: "A small badge" };
+const photos: LightboxImage[] = ["#335", "#cba", "#7a9"].map((fill, index) => ({ src: picture(1200, 800, fill), alt: `Photo ${index + 1}` }));
+const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -34,6 +37,7 @@ const fittedImage = (index = 0) => figure(index).querySelector<HTMLImageElement>
 const view = (index = 0) => figure(index).querySelector<HTMLElement>("[data-ouro-lightbox-zoom-view]");
 const zoomButton = () => popup()!.querySelector<HTMLButtonElement>('[data-ouro-part="zoom"]');
 const position = () => popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent;
+const zoomedImage = () => view()?.querySelector("img") ?? null;
 
 /** Opens the viewer on the first image and waits until its picture is loaded and measured. */
 async function open(images: readonly LightboxImage[], props: { zoomLabel?: string } = {}) {
@@ -63,6 +67,24 @@ function onPicture(fx: number, fy: number, index = 0): [number, number] {
   const box = fittedImage(index).getBoundingClientRect();
   return [box.left + fx * box.width, box.top + fy * box.height];
 }
+
+/**
+ * One step of a touch gesture, dispatched on `target` with the fingers at `points`, as the browser
+ * sends it (touchstart, touchmove, touchend), so the pinch can be measured finger by finger.
+ * Returns the event, to read whether a handler took its default.
+ */
+function touch(type: "touchstart" | "touchmove" | "touchend" | "touchcancel", target: Element, points: [number, number][]): TouchEvent {
+  const touches = points.map(([clientX, clientY], identifier) => new Touch({ identifier, target, clientX, clientY }));
+  const event = new TouchEvent(type, { bubbles: true, cancelable: true, touches, targetTouches: touches, changedTouches: touches });
+  target.dispatchEvent(event);
+  return event;
+}
+
+/** Two fingers `distance` apart, level, either side of (x, y). */
+const fingers = (x: number, y: number, distance: number): [number, number][] => [
+  [x - distance / 2, y],
+  [x + distance / 2, y],
+];
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
@@ -242,5 +264,73 @@ describe("Lightbox zoom", () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(position()).toBe("1 of 2");
     expect(view()).not.toBeNull();
+  });
+});
+
+describe("Lightbox pinch", () => {
+  chromiumOnly("pinches between the fitted size and the image's own size, holding the point between the fingers", async () => {
+    await open(photos);
+    const target = fittedImage();
+    const width = target.offsetWidth;
+    const box = target.getBoundingClientRect();
+    const [x, y] = [box.left + box.width * 0.3, box.top + box.height * 0.5];
+    touch("touchstart", target, fingers(x, y, 100));
+    // The pinch's own moves: the carousel does not also swipe.
+    expect(touch("touchmove", target, fingers(x, y, 200)).defaultPrevented).toBe(true);
+    await expect.poll(() => zoomedImage()?.offsetWidth).toBeCloseTo(width * 2, -1);
+    const drawn = zoomedImage()!.getBoundingClientRect();
+    expect((x - drawn.left) / drawn.width).toBeCloseTo(0.3, 2);
+    // Never past the image's own size, and never smaller than fitted.
+    touch("touchmove", target, fingers(x, y, 5000));
+    await expect.poll(() => zoomedImage()?.offsetWidth).toBe(1200);
+    touch("touchmove", target, fingers(x, y, 10));
+    await expect.poll(() => zoomedImage()).toBeNull();
+    touch("touchend", target, []);
+    expect(position()).toBe("1 of 3");
+  });
+
+  chromiumOnly("settles a pinch that ends nearly fitted, keeps one that ends zoomed, and pinches on from there", async () => {
+    await open(photos);
+    const target = fittedImage();
+    const box = target.getBoundingClientRect();
+    const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+    touch("touchstart", target, fingers(x, y, 100));
+    touch("touchmove", target, fingers(x, y, 103));
+    await expect.poll(() => zoomedImage()).not.toBeNull();
+    touch("touchend", target, []);
+    await expect.poll(() => zoomedImage()).toBeNull();
+    // Lifted straight after the move, before React has drawn it.
+    touch("touchstart", target, fingers(x, y, 100));
+    touch("touchmove", target, fingers(x, y, 200));
+    touch("touchend", target, []);
+    await expect.poll(() => zoomedImage()).not.toBeNull();
+    // Two fingers that lift without moving change nothing.
+    touch("touchstart", target, fingers(x, y, 100));
+    touch("touchend", target, []);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(zoomedImage()).not.toBeNull();
+    const width = zoomedImage()!.offsetWidth;
+    // A third finger lifting leaves the pinch going; a cancelled touch ends it.
+    touch("touchstart", target, fingers(x, y, 100));
+    touch("touchend", target, fingers(x, y, 100));
+    touch("touchmove", target, fingers(x, y, 150));
+    await expect.poll(() => zoomedImage()?.offsetWidth).toBeCloseTo(width * 1.5, -1);
+    touch("touchcancel", target, []);
+    expect(touch("touchmove", target, fingers(x, y, 300)).defaultPrevented).toBe(false);
+  });
+
+  chromiumOnly("leaves one finger's moves, and a pinch on an image at its own size, to the browser", async () => {
+    await open([small, ...photos]);
+    const drawn = fittedImage();
+    expect(drawn.offsetWidth).toBe(200);
+    const box = drawn.getBoundingClientRect();
+    const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+    touch("touchstart", drawn, [[x, y]]);
+    expect(touch("touchmove", drawn, [[x + 30, y]]).defaultPrevented).toBe(false);
+    touch("touchend", drawn, []);
+    touch("touchstart", drawn, fingers(x, y, 40));
+    expect(touch("touchmove", drawn, fingers(x, y, 80)).defaultPrevented).toBe(false);
+    touch("touchend", drawn, []);
+    expect(zoomedImage()).toBeNull();
   });
 });
