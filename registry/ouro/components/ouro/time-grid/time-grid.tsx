@@ -23,6 +23,7 @@ import { renamedTones } from "@/registry/ouro/lib/ouro/tones";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { addDays } from "@/registry/ouro/components/ouro/calendar/calendar-styles";
+import { inBrowser, onServer, subscribeNever } from "@/registry/ouro/components/ouro/local-date/local-date-styles";
 import {
   allDayClass,
   allDayLanes,
@@ -222,10 +223,8 @@ const defaultStatusLabels: Required<TimeGridStatusLabels> = { tentative: "tentat
 const defaultWorkingHours = { start: 8, end: 17 };
 
 const clock = minuteClock();
+// Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
 const serverNow = () => 0;
-const subscribeNever = () => () => {};
-const inBrowser = () => true;
-const onServer = () => false;
 
 /**
  * One drawn piece of an event: a timed event has one per day it covers; an all-day event, one.
@@ -238,9 +237,9 @@ interface Piece {
   /** The index of its (first) day among those shown. */
   day: number;
   /**
-   * Minutes from that day's midnight it starts and ends; -1 for an all-day event, which comes first.
+   * Minutes from that day's midnight it starts and ends; for an all-day event, -1 (so it comes first) to the day's end.
    *
-   * @claim "Minutes from that day's" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /start: -1, end: -1/)
+   * @claim "Minutes from that day's" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /start: -1, end: dayLength/)
    */
   start: number;
   end: number;
@@ -316,7 +315,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const slotMinutes = slotSizes.includes(slotProp) ? slotProp : 30;
   const workingHours =
     workingHoursProp && workingHoursProp.start >= 0 && workingHoursProp.end <= 24 && workingHoursProp.start < workingHoursProp.end ? workingHoursProp : defaultWorkingHours;
-  const nowGiven = nowProp === undefined ? null : toInstant(nowProp);
+  const nowGiven = toInstant(nowProp ?? Number.NaN);
 
   // The reader's time zone and clock are the browser's: the server and hydration write UTC with
   // no now, so the markup matches wherever the server runs; the browser then fills them in.
@@ -326,7 +325,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const zone = timeZone ?? (hydrated ? undefined : "UTC");
 
   const days = useMemo(() => (isIsoDate(date) ? viewDays(date, view, locale) : []), [date, view, locale]);
-  const weekend = useMemo(() => weekendDays(locale), [locale]);
+  const weekend = weekendDays(locale);
   const formats = useMemo(
     () => ({
       clock: zonedClock(zone),
@@ -367,18 +366,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
     if (process.env.NODE_ENV !== "production" && id !== event.id) problems.push([`two events have id "${event.id}"`, "give each event its own id"]);
     seen.add(event.id);
-    if (typeof event.start === "string" && isIsoDate(event.start)) {
+    if (isIsoDate(event.start)) {
       const startsOn = event.start;
-      const endsOn = typeof event.end === "string" && isIsoDate(event.end) && event.end > startsOn ? event.end : startsOn;
+      // Stryker disable next-line EqualityOperator: an end on the start day is the start day either way
+      const endsOn = isIsoDate(event.end) && event.end > startsOn ? event.end : startsOn;
       const span = spanOf(startsOn, endsOn);
       if (!span) continue;
       const key = `all:${id}`;
-      pieces.push({ key, event, day: span.first, start: -1, end: -1, name: spoken([daysText(startsOn, endsOn), allDayLabel], event, words) });
+      pieces.push({ key, event, day: span.first, start: -1, end: dayLength, name: spoken([daysText(startsOn, endsOn), allDayLabel], event, words) });
       allDaySpans.push({ key, ...span });
       continue;
     }
     const start = toInstant(event.start);
-    const end = event.end === undefined ? null : toInstant(event.end);
+    const end = toInstant(event.end ?? Number.NaN);
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") {
       if (!start) problems.push([`event "${event.id}" has start=${JSON.stringify(event.start)}, which is not a date`, '{ start: "2026-03-12T09:00:00Z" }, or start: "2026-03-12" for all day']);
@@ -397,7 +397,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       if (!span) continue;
       const key = `all:${id}`;
       const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
-      pieces.push({ key, event, day: span.first, start: -1, end: -1, name: spoken(when, event, words) });
+      pieces.push({ key, event, day: span.first, start: -1, end: dayLength, name: spoken(when, event, words) });
       allDaySpans.push({ key, ...span });
       continue;
     }
@@ -509,6 +509,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const columns = `var(--ouro-time-grid-gutter) repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`;
   const lanes = allDay.reduce((most, piece) => Math.max(most, piece.lane + 1), 1);
   const nowTop = nowAt ? minutesTall(nowAt.minutes) : undefined;
+  // The now label leaves out AM and PM, which the hours beside it already show, so it fits the gutter.
+  const nowText = formats.time
+    .formatToParts(nowTime)
+    .filter((part, index, parts) => part.type !== "dayPeriod" && !(part.type === "literal" && (parts[index + 1]?.type === "dayPeriod" || parts[index - 1]?.type === "dayPeriod")))
+    .map((part) => part.value)
+    .join("");
   const hourLabels = Array.from({ length: 23 }, (_, index) => index + 1).filter((hour) => !nowAt || todayIndex < 0 || Math.abs(hour * 60 - nowAt.minutes) > 20);
 
   const renderEvent = (piece: Piece, placed?: { top: number; bottom: number }) => {
@@ -541,7 +547,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         </>
       );
     const shared = {
-      "data-ouro-control": "time-grid",
       "data-ouro-event-key": piece.key,
       "data-status": status,
       "data-tone": tone,
@@ -555,12 +560,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       },
     };
     return event.href === undefined ? (
-      <button type="button" data-ouro-part="event" {...shared}>
+      <button type="button" data-ouro-control="time-grid" data-ouro-part="event" {...shared}>
         <TouchTarget />
         <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
       </button>
     ) : (
-      <RouterLink href={event.href} data-ouro-part="event-link" {...shared}>
+      <RouterLink href={event.href} data-ouro-control="time-grid" data-ouro-part="event-link" {...shared}>
         <TouchTarget />
         <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
       </RouterLink>
@@ -630,7 +635,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               <span data-ouro-time-grid-now-label="" className="absolute end-1 flex -translate-y-1/2 flex-col items-end gap-0.5" style={{ top: nowTop }}>
                 {nowAdornment ? <span className="absolute end-0 bottom-full mb-0.5">{nowAdornment}</span> : null}
                 <span className="rounded-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
-                  {formats.time.format(nowTime)}
+                  {nowText}
                 </span>
               </span>
             ) : null}

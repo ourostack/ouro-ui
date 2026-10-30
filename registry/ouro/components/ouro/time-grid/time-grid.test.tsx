@@ -1,7 +1,7 @@
 import { createRef, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { TimeGrid, type TimeGridEvent, type TimeGridProps } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import {
@@ -374,8 +374,11 @@ describe("TimeGrid", () => {
     expect(plain(named("Donnerstag").getAttribute("aria-label"))).toBe(plain(`Donnerstag, ${hourRange}, Architecture forum, needs your answer, Main auditorium`));
     expect(plain(grid.querySelector("[data-ouro-time-grid-now-label]")!.textContent)).toBe("10:41");
     expect(grid.querySelector("[data-ouro-time-grid-head]")!.textContent).toContain("Ganztägig");
+    // The now label drops AM and PM, before the time or after it.
+    await render({ locale: "ko-KR", view: "day" });
+    expect(plain(document.querySelectorAll("[data-ouro-time-grid-now-label]")[1]!.textContent)).toBe("10:41");
     await render({ locale: "ja-JP", view: "day" });
-    expect(document.querySelectorAll('[data-ouro="time-grid"]')[1]!.querySelector("[data-ouro-time-grid-head] span span")!.textContent).toBe("12");
+    expect(document.querySelectorAll('[data-ouro="time-grid"]')[2]!.querySelector("[data-ouro-time-grid-head] span span")!.textContent).toBe("12");
   });
 
   it("places each event by its times on the grid's clock, and moves it with the time zone", async () => {
@@ -530,6 +533,7 @@ describe("TimeGrid", () => {
       ],
     });
     expect(events().map((element) => plain(element.getAttribute("aria-label")))).toEqual(["Thursday, 5 PM, Deadline"]);
+    expect(warnings().filter((message: string) => message.includes('"point"'))).toEqual([]);
     expect(hours(named("Thursday"))).toEqual([17, 0.5]);
   });
 
@@ -617,6 +621,7 @@ describe("TimeGrid", () => {
     expect(link.tagName).toBe("A");
     expect(link.getAttribute("href")).toBe("#forum");
     expect(link.dataset.ouroPart).toBe("event-link");
+    expect(link.dataset.ouroControl).toBe("time-grid");
     await userEvent.click(link);
     expect(select).toHaveBeenCalledWith(expect.objectContaining({ id: "forum" }));
   });
@@ -669,7 +674,7 @@ describe("TimeGrid", () => {
     expect(line.querySelectorAll("span")).toHaveLength(1);
     expect(lines[0]!.querySelectorAll("span")).toHaveLength(0);
     const label = grid.querySelector<HTMLElement>("[data-ouro-time-grid-now-label]")!;
-    expect(plain(label.textContent)).toBe("☀10:41 AM");
+    expect(plain(label.textContent)).toBe("☀10:41");
     expect(label.closest("[aria-hidden]")).not.toBeNull();
     // The hour label the now line would cover gives way: 11 AM is 19 minutes away.
     const hours = [...grid.querySelectorAll("[data-ouro-time-grid-body] > [aria-hidden] > span:not([data-ouro-time-grid-now-label])")].map((span) => plain(span.textContent));
@@ -725,8 +730,9 @@ describe("TimeGrid", () => {
   });
 
   it("takes week as a view without a message", async () => {
-    const { grid } = await render({ view: "week" });
+    const { grid } = await render({ view: "week", workingHours: { start: 0, end: 24 } });
     expect(grid.dataset.view).toBe("week");
+    expect(grid.querySelector<HTMLElement>("[data-ouro-time-grid-off]:not(.inset-0)")!.style.height).toBe("calc(var(--ouro-time-grid-hour) * 0)");
     expect(warnings()).toEqual([]);
   });
 
@@ -786,6 +792,16 @@ describe("TimeGrid", () => {
   });
 
   it("writes UTC with no now on the server, hydrates without a mismatch, then reads the browser's zone and clock", async () => {
+    // The reader is in Tokyo, whatever zone the test browser runs in.
+    const { DateTimeFormat } = Intl;
+    Object.assign(Intl, {
+      DateTimeFormat: class extends DateTimeFormat {
+        constructor(locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions) {
+          super(locales, { ...options, timeZone: options?.timeZone ?? "Asia/Tokyo" });
+        }
+      },
+    });
+    onTestFinished(() => void Object.assign(Intl, { DateTimeFormat }));
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const props = { ...base, timeZone: undefined, now: undefined, view: "day" as const, events: [{ id: "e", title: "Sync", start: "2026-03-12T14:00:00Z", end: "2026-03-12T15:00:00Z" }] };
     const html = renderToString(<TimeGrid {...props} />);
@@ -801,8 +817,27 @@ describe("TimeGrid", () => {
     });
     roots.push(root!);
     expect(errors).not.toHaveBeenCalled();
-    const local = new Date("2026-03-12T14:00:00Z");
-    expect(hours(host.querySelector("[data-ouro-event-key]")!)).toEqual([local.getHours() + local.getMinutes() / 60, 1]);
+    // 14:00 UTC is 23:00 in Tokyo.
+    expect(hours(host.querySelector("[data-ouro-event-key]")!)).toEqual([23, 1]);
+  });
+
+  it("draws no now line before the browser knows the time, even on the first day of 1970", () => {
+    const html = renderToString(<TimeGrid {...base} now={undefined} timeZone="UTC" date="1970-01-01" view="day" events={[]} />);
+    expect(html).not.toContain("data-ouro-time-grid-now");
+    expect(html).not.toContain('aria-current="date"');
+  });
+
+  it("orders an all-day event before one at midnight, and draws an event of no length at midnight", async () => {
+    await render({
+      view: "day",
+      events: [
+        { id: "midnight", title: "Backup", start: at(12, "00:00"), end: at(12, "00:30") },
+        { id: "holiday", title: "Holiday", start: "2026-03-12" },
+        { id: "reminder", title: "Reminder", start: at(12, "00:00"), end: at(12, "00:00") },
+      ],
+    });
+    expect(events().map((element) => element.getAttribute("aria-label")!.split(", ").at(-1))).toEqual(["Holiday", "Backup", "Reminder"]);
+    expect(hours(titled("Reminder"))).toEqual([0, 0.5]);
   });
 
   describe("development messages", () => {
@@ -859,6 +894,7 @@ describe("TimeGrid", () => {
           { ...forum, tone: "danger" as never, status: "maybe" as never },
           { ...focus, tone: "brand" as never },
           { ...forum, ...({ allDay: true, color: "red" } as object) },
+          { ...forum, title: "Forum again" },
           { id: "nostart", title: "Broken", start: "soon", end: at(12, "10:00") },
           { id: "noend", title: "Open", start: at(12, "10:00") },
           { id: "backwards", title: "Backwards", start: at(12, "11:00"), end: at(12, "10:00") },
@@ -867,8 +903,10 @@ describe("TimeGrid", () => {
       expect(events().map((element) => [element.dataset.tone, element.dataset.status])).toEqual([
         ["primary", "busy"],
         ["primary", "unanswered"],
+        ["primary", "unanswered"],
         ["primary", "busy"],
       ]);
+      expect(new Set(events().map((element) => element.dataset.ouroEventKey)).size).toBe(4);
       expect(plain(events()[0]!.getAttribute("aria-label"))).toBe("Thursday, 10 – 11 AM, Architecture forum, Main auditorium");
       expect(warnings()).toEqual(
         expect.arrayContaining([
