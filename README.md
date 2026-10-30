@@ -2,6 +2,8 @@
 
 Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
+**[See it live: ourostack.github.io/ouro-ui](https://ourostack.github.io/ouro-ui/)**, with the [docs](https://ourostack.github.io/ouro-ui/docs/) and [Storybook](https://ourostack.github.io/ouro-ui/storybook/).
+
 Under construction. Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, `@ouro` namespace and install addresses are unchanged.
 
 ```sh
