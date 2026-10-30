@@ -262,7 +262,8 @@
       "TextArea/Playground",
       "TextArea/AutoGrow",
       "TextArea/States",
-      "TextArea/Composer"
+      "TextArea/Composer",
+      "TextArea/Highlights"
     ]
   },
   {
@@ -2302,7 +2303,26 @@
       "ConversationList/Playground",
       "ConversationList/Selectable",
       "ConversationList/Compact",
-      "ConversationList/Empty"
+      "ConversationList/Empty",
+      "ConversationList/Sections",
+      "ConversationList/Filtered"
+    ]
+  },
+  {
+    "item": "conversation-list",
+    "stem": "conversation-list",
+    "mode": "default",
+    "part": "section",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ConversationList/Playground",
+      "ConversationList/Selectable",
+      "ConversationList/Compact",
+      "ConversationList/Empty",
+      "ConversationList/Sections",
+      "ConversationList/Filtered"
     ]
   },
   {
@@ -2396,83 +2416,22 @@
     ]
   },
   {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
+    "item": "composer",
+    "stem": "composer",
     "mode": "default",
-    "part": "emoji",
+    "part": "send",
     "role": "button",
-    "portal": true,
+    "portal": false,
     "touch": false,
     "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
-    ]
-  },
-  {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
-    "mode": "default",
-    "part": "quick",
-    "role": "button",
-    "portal": true,
-    "touch": false,
-    "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
-    ]
-  },
-  {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
-    "mode": "default",
-    "part": "category",
-    "role": "button",
-    "portal": true,
-    "touch": false,
-    "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
-    ]
-  },
-  {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
-    "mode": "default",
-    "part": "skin-tone",
-    "role": "button",
-    "portal": true,
-    "touch": false,
-    "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
-    ]
-  },
-  {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
-    "mode": "default",
-    "part": "tone",
-    "role": "radio",
-    "portal": true,
-    "touch": false,
-    "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "Composer/Playground",
+      "Composer/Basic",
+      "Composer/Suggested",
+      "Composer/WithTools",
+      "Composer/SendingOff",
+      "Composer/Sending",
+      "Composer/ModEnter",
+      "Composer/Disabled"
     ]
   }
 ]

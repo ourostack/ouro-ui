@@ -28,6 +28,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.2.8:** the Toaster's Notifications region is no longer a live region: two live regions last inside it say each toast's message and description, the assertive one a `role="alert"`, so for its first seven seconds a toast's words are in the page twice.[^upgrade-toast-announcer] Find a toast in a test by its role and name, `getByRole("dialog", { name: "Saved" })`, or `"alertdialog"` for a destructive toast, not with `getByText`, and expect no `aria-live` on the region. Dismiss buttons and destructive toasts are no longer hidden from screen readers while the stack is collapsed.[^upgrade-toast-reachable] The `testing/axe` kit's `audit` now leaves focus, the selection and every scroll position as it found them, and throws, naming what changed, when its Tab walk closes a popup it cannot open again; audit the page before that popup opens.[^upgrade-audit-leaves]
 
+- **After v1.2.14:** Avatar's initials take a hue from the name, from the tokens `--avatar-1` to `--avatar-8`, which only a fresh `ouro-base` adds (step 1 adds it again); without them the initials show with no tint.[^upgrade-avatar-colors] Pass `color="neutral"` to keep the plain grey. Avatar's presence dot sits over its edge, so the picture now rounds its own corners instead of the avatar clipping it.[^upgrade-avatar-dot]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -113,4 +115,6 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-axe-core]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
 [^upgrade-toast-announcer]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > renders an empty Notifications landmark in a portal, which holds its own live regions)
 [^upgrade-audit-leaves]: registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again)
+[^upgrade-avatar-colors]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--avatar-8:/) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
+[^upgrade-avatar-dot]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > clips a square's picture to its corners)
 [^upgrade-toast-reachable]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
