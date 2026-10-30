@@ -156,6 +156,15 @@ jobs:
           scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"
           node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD
       - if: steps.check.outputs.new == 'true'
+        name: Start the screen-reader lane on the release commit
+        run: |
+          # Dispatched before CI, so the two run side by side; "Pass the screen-reader lane"
+          # waits for this run (SR_BEFORE marks the runs that came before it).
+          sha=$(git rev-parse HEAD)
+          before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
+          gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
+          echo "SR_BEFORE=$before" >> "$GITHUB_ENV"
+      - if: steps.check.outputs.new == 'true'
         name: Run CI on the release commit
         run: |
           sha=$(git rev-parse HEAD)
@@ -169,13 +178,17 @@ jobs:
         name: Pass the screen-reader lane on the release commit
         run: |
           # The release commit is tagged only when VoiceOver and NVDA pass on that exact commit
-          # (screen-reader.yml, dispatched on the release branch with source_sha set to it). An
-          # infrastructure failure (scripts/sr-classify.mjs) is dispatched once more; a second
-          # one, or an accessibility failure, stops the release.
+          # (screen-reader.yml, dispatched on the release branch with source_sha set to it, the
+          # first time alongside CI). An infrastructure failure (scripts/sr-classify.mjs) is
+          # dispatched once more; a second one, or an accessibility failure, stops the release.
           sha=$(git rev-parse HEAD)
           for attempt in 1 2; do
-            before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
-            gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
+            if [ "$attempt" = 1 ]; then
+              before=$SR_BEFORE
+            else
+              before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
+              gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
+            fi
             run=
             for _ in $(seq 60); do
               # The newest dispatched run for this exact commit created after this dispatch.
