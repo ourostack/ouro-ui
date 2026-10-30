@@ -533,11 +533,22 @@ describe("NavigationRail labels", () => {
     expect(text.scrollHeight).toBeLessThanOrEqual(text.clientHeight);
     await userEvent.hover(page.getByRole("link", { name: "Customer support escalations" }));
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Customer support escalations");
-    // Short words, three lines' worth: cut by its height alone.
+    // Short words, three lines' worth.
     await userEvent.hover(page.getByRole("link", { name: "Notes for the team and you" }));
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Notes for the team and you");
     await userEvent.hover(page.getByRole("link", { name: "Bots and workflows" }));
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
+  });
+
+  it("gives a label cut by its height alone a tooltip, with every line as narrow as the rail", async () => {
+    // Fonts differ in whether line-clamp's ellipsis overflows the width too, so the width reads as fitting here.
+    const width = vi.spyOn(Element.prototype, "scrollWidth", "get").mockImplementation(function (this: Element) {
+      return this.clientWidth;
+    });
+    await render(<NavigationRail label="Main" items={[{ label: "Notes for the team and you", href: "/notes", icon: icon("notes") }]} />);
+    await userEvent.hover(page.getByRole("link", { name: "Notes for the team and you" }));
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Notes for the team and you");
+    width.mockRestore();
   });
 
   it("gives a word too wide for the rail a tooltip", async () => {

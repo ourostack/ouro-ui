@@ -391,6 +391,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   const [focused, setFocused] = useState<string | null>(null);
   // The items measure moved under More. A place left over from earlier items is put right before paint.
   const moved = items.flatMap((entry, index) => (hidden.has(index) ? [{ entry: entry as NavigationRailItem, index }] : []));
+  // Stryker disable next-line ArrayDeclaration: only a key a stop has ever focused is looked up here, so an extra key is never found.
   const stops = [...items.flatMap((entry, index) => (entry.type === "separator" || hidden.has(index) ? [] : [String(index)])), ...(moved.length > 0 ? ["more"] : [])];
   const stop = stops.find((key) => key === focused) ?? (current === -1 ? stops[0] : String(current));
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
@@ -516,6 +517,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
                 const previous = moved[at - 1];
                 const separated = previous !== undefined && items.slice(previous.index, index).some((between) => between.type === "separator");
                 return [
+                  // Stryker disable next-line StringLiteral: the separator's only sibling is the item, keyed by its number, so any other key is unique.
                   separated && <MenuSeparator key={`separator-${index}`} />,
                   <MenuItem key={index} href={entry.href} onClick={entry.onClick}>
                     {entry.label}
