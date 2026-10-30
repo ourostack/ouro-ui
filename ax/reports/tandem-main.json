@@ -1,7 +1,7 @@
 {
   "tool": "ax-xray",
   "standard": "0.2.0",
-  "at": "2026-10-30T22:47:56.742Z",
+  "at": "2026-10-30T22:55:25.524Z",
   "target": {
     "cli": {
       "name": "m365tandem",
@@ -10,6 +10,9 @@
       "samples": {
         "word": "the",
         "words": "the",
+        "text": "ax-xray preview text",
+        "new": "ax-xray preview text",
+        "note": "ax-xray preview text",
         "emoji": "like",
         "<conversation>#<message id>": "1zijq8#1700001500000",
         "reply:<channel>#<message id>": "1zijq8#1700000900000",
@@ -387,7 +390,7 @@
           "claim": "cli.unknown-flag",
           "surface": "watch",
           "verdict": "fail",
-          "note": "`m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {\"type\":\"hello\",\"lastActionId\":0}"
+          "note": "`m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {\"type\":\"hello\",\"lastActionId\":8}"
         },
         {
           "claim": "cli.unknown-flag",
@@ -399,13 +402,13 @@
           "claim": "cli.unknown-flag",
           "surface": "log",
           "verdict": "fail",
-          "note": "`m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: []: the flag was ignored"
+          "note": "`m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: [: the flag was ignored"
         },
         {
           "claim": "cli.unknown-flag",
           "surface": "log --limt",
           "verdict": "fail",
-          "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: []: --limt was ignored, so the answer is not what was asked"
+          "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: [: --limt was ignored, so the answer is not what was asked"
         },
         {
           "claim": "cli.unknown-flag",
@@ -560,7 +563,7 @@
           "claim": "cli.flag-suggest",
           "surface": "log --limt",
           "verdict": "fail",
-          "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: []; does not name --limit"
+          "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: [; does not name --limit"
         },
         {
           "claim": "cli.flag-suggest",
@@ -2606,7 +2609,7 @@
       "claim": "cli.unknown-flag",
       "surface": "watch",
       "verdict": "fail",
-      "note": "`m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {\"type\":\"hello\",\"lastActionId\":0}"
+      "note": "`m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {\"type\":\"hello\",\"lastActionId\":8}"
     },
     {
       "claim": "cli.unknown-flag",
@@ -2624,19 +2627,19 @@
       "claim": "cli.unknown-flag",
       "surface": "log",
       "verdict": "fail",
-      "note": "`m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: []: the flag was ignored"
+      "note": "`m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: [: the flag was ignored"
     },
     {
       "claim": "cli.unknown-flag",
       "surface": "log --limt",
       "verdict": "fail",
-      "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: []: --limt was ignored, so the answer is not what was asked"
+      "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: [: --limt was ignored, so the answer is not what was asked"
     },
     {
       "claim": "cli.flag-suggest",
       "surface": "log --limt",
       "verdict": "fail",
-      "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: []; does not name --limit"
+      "note": "`m365tandem log --limt 2 --json` → exit 0; stdout: [; does not name --limit"
     },
     {
       "claim": "cli.unknown-flag",

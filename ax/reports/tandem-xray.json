@@ -1,15 +1,18 @@
 {
   "tool": "ax-xray",
   "standard": "0.2.0",
-  "at": "2026-10-30T22:51:24.694Z",
+  "at": "2026-10-30T22:53:41.499Z",
   "target": {
     "cli": {
       "name": "m365tandem",
-      "calls": 142,
+      "calls": 145,
       "commands": 39,
       "samples": {
         "word": "the",
         "words": "the",
+        "text": "ax-xray preview text",
+        "new": "ax-xray preview text",
+        "note": "ax-xray preview text",
         "emoji": "like",
         "<conversation>#<message id>": "1zijq8#1700001500000",
         "reply:<channel>#<message id>": "1zijq8#1700000900000",
@@ -53,9 +56,9 @@
     "must": 28,
     "mustHolding": 25,
     "checks": {
-      "pass": 516,
+      "pass": 519,
       "fail": 5,
-      "skip": 3
+      "skip": 0
     },
     "score": 99
   },
@@ -348,31 +351,12 @@
       "source": "Tandem P4; the Apple Developer AX candidate (dry-run plans)",
       "check": "When `<command> --help` mentions `--dry-run`, run it on a real target with `--why`. Pass when it exits 0, names who will see it, and nothing changes.",
       "fix": "Add `--dry-run`: resolve the target, print the preview line (\"Would send to X as the person. Everyone in X will see it.\"), exit 0, and send nothing.",
-      "pass": 5,
+      "pass": 8,
       "fail": 0,
-      "skip": 3,
+      "skip": 0,
       "holds": true,
       "failing": [],
-      "skipped": [
-        {
-          "claim": "cli.others-preview",
-          "surface": "send",
-          "verdict": "skip",
-          "note": "no sample for <text>; pass --sample text=<value>"
-        },
-        {
-          "claim": "cli.others-preview",
-          "surface": "reply",
-          "verdict": "skip",
-          "note": "no sample for <text>; pass --sample text=<value>"
-        },
-        {
-          "claim": "cli.others-preview",
-          "surface": "edit-sent",
-          "verdict": "skip",
-          "note": "no sample for <new>; pass --sample new=<value>"
-        }
-      ]
+      "skipped": []
     },
     {
       "id": "cli.text-as-argument",
@@ -2419,8 +2403,8 @@
     {
       "claim": "cli.others-preview",
       "surface": "send",
-      "verdict": "skip",
-      "note": "no sample for <text>; pass --sample text=<value>"
+      "verdict": "pass",
+      "note": "`m365tandem send 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces \"ax-xray pr…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Sending to Sam Example as the person. Sam Example will …"
     },
     {
       "claim": "cli.others-need-why",
@@ -2467,8 +2451,8 @@
     {
       "claim": "cli.others-preview",
       "surface": "reply",
-      "verdict": "skip",
-      "note": "no sample for <text>; pass --sample text=<value>"
+      "verdict": "pass",
+      "note": "`m365tandem reply 1zijq8#1700000900000 \"ax-xray preview text\" --agent ax-xray --why \"ax-xray conformance probe: nobody a…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Replying to Alex Example's thread in \"Design reviews\" a…"
     },
     {
       "claim": "cli.others-need-why",
@@ -2563,8 +2547,8 @@
     {
       "claim": "cli.others-preview",
       "surface": "edit-sent",
-      "verdict": "skip",
-      "note": "no sample for <new>; pass --sample new=<value>"
+      "verdict": "pass",
+      "note": "`m365tandem edit-sent 1zijq8#1700001500000 \"ax-xray preview text\" --agent ax-xray --why \"ax-xray conformance probe: nobo…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Editing the person's sent message in \"Design reviews\". …"
     },
     {
       "claim": "cli.others-need-why",
@@ -2760,13 +2744,13 @@
     },
     {
       "claim": "cli.no-stack-trace",
-      "surface": "all 142 calls",
+      "surface": "all 145 calls",
       "verdict": "pass",
       "note": ""
     },
     {
       "claim": "cli.exit-codes",
-      "surface": "all 142 calls",
+      "surface": "all 145 calls",
       "verdict": "pass",
       "note": "documented: 0, 1, 2, 3, 4, 5, 6, 7"
     },

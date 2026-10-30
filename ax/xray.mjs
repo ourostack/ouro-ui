@@ -327,7 +327,8 @@ async function checkCli(rec, opts) {
   }
 
   // Reads: plan each command's argument-free usage first, then those needing one harvested ref.
-  const samples = { word: "the", words: "the", ...opts.samples };
+  // Free text needs no harvesting; it is only ever passed to a --dry-run or a call that must be refused.
+  const samples = { word: "the", words: "the", text: "ax-xray preview text", new: "ax-xray preview text", note: "ax-xray preview text", ...opts.samples };
   const readPlan = (cmd) => {
     for (const u of cmd.usage) {
       const w = requiredWords(u);

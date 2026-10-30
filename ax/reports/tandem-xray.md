@@ -1,8 +1,8 @@
 # AX X-ray: m365tandem
 
-Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:51:24.694Z. Target: at teams-microsoft/tandem@26485501 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 142 calls); HTTP http://127.0.0.1:51585 (131 routes in the manifest, 100 requests).
+Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:53:41.499Z. Target: at teams-microsoft/tandem@26485501 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 145 calls); HTTP http://127.0.0.1:51585 (131 routes in the manifest, 100 requests).
 
-Claims holding: **28 of 31** (must: 25 of 28). Checks: 516 pass, 5 fail, 3 skipped. Score **99%**.
+Claims holding: **28 of 31** (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipped. Score **99%**.
 
 | | Claim | Severity | Rule | Pass | Fail | Skip |
 |---|---|---|---|---|---|---|
@@ -22,7 +22,7 @@ Claims holding: **28 of 31** (must: 25 of 28). Checks: 516 pass, 5 fail, 3 skipp
 | ✓ | `cli.ambiguous-verbs` | must | Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands. | 3 | 0 | 0 |
 | ✓ | `cli.others-need-why` | must | Every command other people see refuses to run without `--why`, and says so. | 8 | 0 | 0 |
 | ✓ | `cli.wrong-ref-first` | must | A wrong reference fails before anything reaches anyone, and the error says where to get a right one. | 8 | 0 | 0 |
-| ✓ | `cli.others-preview` | must | Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. | 5 | 0 | 3 |
+| ✓ | `cli.others-preview` | must | Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. | 8 | 0 | 0 |
 | ✓ | `cli.text-as-argument` | must | A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. | 6 | 0 | 0 |
 | ✓ | `cli.wait-on-refs` | must | A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. | 1 | 0 | 0 |
 | ✓ | `cli.reads-stay-reads` | must | Reads change nothing. | 1 | 0 | 0 |
@@ -99,10 +99,10 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · notes | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` `cli.text-as-argument` |  |
 | cli · draft | `cli.help-effects` `cli.command-help` `cli.unknown-flag` | `cli.read-json` |
 | cli · layout | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
-| cli · send | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` |  |
-| cli · reply | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` |  |
+| cli · send | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
+| cli · reply | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
 | cli · react | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
-| cli · edit-sent | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` |  |
+| cli · edit-sent | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
 | cli · delete-sent | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
 | cli · answer-invite | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
 | cli · join | `cli.help-effects` `cli.command-help` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
@@ -219,7 +219,7 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · join (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · mark-read (no --why) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · mark-read (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
-| cli · all 142 calls | `cli.no-stack-trace` `cli.exit-codes` |  |
+| cli · all 145 calls | `cli.no-stack-trace` `cli.exit-codes` |  |
 | http · GET /api | `http.index` |  |
 | http · GET /api/ax-xray-no-such-route | `http.unknown-route` `http.error-shape` `http.error-teaches` |  |
 | http · GET /api/health | `http.json` |  |

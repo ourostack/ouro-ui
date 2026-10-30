@@ -1,6 +1,6 @@
 # AX X-ray: m365tandem
 
-Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:47:56.742Z. Target: at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 137 calls); HTTP http://127.0.0.1:55325 (131 routes in the manifest, 100 requests).
+Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:55:25.524Z. Target: at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 137 calls); HTTP http://127.0.0.1:55325 (131 routes in the manifest, 100 requests).
 
 Claims holding: **21 of 31** (must: 19 of 28). Checks: 353 pass, 121 fail, 0 skipped. Score **74.5%**.
 
@@ -75,10 +75,10 @@ Fix: Check every flag against the command's declared flags before acting; refuse
 - **draft --abot**: `m365tandem draft show --abot --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".
 - **layout**: `m365tandem layout catalog --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
 - **layout --brif**: `m365tandem layout catalog --brif --json` → exit 0; stdout: {: --brif was ignored, so the answer is not what was asked
-- **watch**: `m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {"type":"hello","lastActionId":0}
+- **watch**: `m365tandem watch --ax-xray-no-such-flag --json` → timed out; stdout: {"type":"hello","lastActionId":8}
 - **watch --aftr**: `m365tandem watch --aftr 2 --json` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare "watch" streams every event
-- **log**: `m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: []: the flag was ignored
-- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: []: --limt was ignored, so the answer is not what was asked
+- **log**: `m365tandem log --ax-xray-no-such-flag --json` → exit 0; stdout: [: the flag was ignored
+- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: [: --limt was ignored, so the answer is not what was asked
 - **help**: `m365tandem help --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
 - **look**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --ax-xray-n…` → exit 0; stdout: {: the flag was ignored
 - **look --limt**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --limt 2 --…` → exit 0; stdout: {: --limt was ignored, so the answer is not what was asked
@@ -226,7 +226,7 @@ Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; d
 - **draft --abot**: `m365tandem draft show --abot --json` → exit 1; stderr: m365tandem: the person has no conversation open right now. Name one instead: its [id] from "m365tandem conversations".; does not name --about
 - **layout --brif**: `m365tandem layout catalog --brif --json` → exit 0; stdout: {; does not name --brief
 - **watch --aftr**: `m365tandem watch --aftr 2 --json` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare "watch" streams every event; does not name --after
-- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: []; does not name --limit
+- **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: [; does not name --limit
 - **look --limt**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --limt 2 --…` → exit 0; stdout: {; does not name --limit
 - **search --limt**: `m365tandem search the --limt 2 --json` → exit 0; stdout: {; does not name --limit
 - **meeting --freh**: `m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {; does not name --fresh
