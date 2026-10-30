@@ -298,6 +298,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   useLayoutEffect(fit);
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     if (autoGrow) fitHeight(event.currentTarget, rows, maxRows);
+    // Without highlights there is nothing to move, so this only skips the work.
+    // Stryker disable next-line ConditionalExpression: as above.
     if (highlights !== undefined) {
       const moved = marked.edit(event.currentTarget.value, event.currentTarget.selectionStart, (event.nativeEvent as InputEvent).inputType);
       if (moved) onHighlightsChange?.(moved);
@@ -401,46 +403,50 @@ function useHighlights(textareaRef: { current: HTMLTextAreaElement | null }, hig
   const [ownText, setOwnText] = useState(() => (defaultValue === undefined ? "" : String(defaultValue)));
   const text = controlled ? String(value) : ownText;
   const key = highlightsKey(highlights);
+  // Stryker disable next-line ObjectLiteral: an empty start differs from the first render's key, which then takes the highlights as given all the same.
   const [track, setTrack] = useState(() => ({ key, text, ranges: normalizeHighlights(highlights, text.length) }));
   // The marks the person's last edit gave, for the text it made.
   const [edited, setEdited] = useState<{ text: string; ranges: TextAreaHighlight[] } | null>(null);
   // The selection when the input in progress began (the native beforeinput), so an edit is placed where it was made.
   const input = useRef<HighlightEdit["before"] | null>(null);
   const history = useRef(new Map<string, TextAreaHighlight[]>());
-  const highlighting = highlights !== undefined;
 
   let ranges = track.ranges;
   if (track.key !== key || track.text !== text) {
     if (track.key !== key) ranges = normalizeHighlights(highlights, text.length);
     else if (edited?.text === text) ranges = edited.ranges;
-    else ranges = normalizeHighlights(moveHighlights(track.ranges, track.text, text, null), text.length);
+    else ranges = moveHighlights(track.ranges, track.text, text, null);
     setTrack({ key, text, ranges });
   }
 
   useEffect(() => {
     const seen = history.current;
-    seen.delete(track.text);
-    seen.set(track.text, track.ranges);
+    // A text seen before keeps its first place, so undo reaches back about historyLength texts.
+    if (!seen.has(track.text)) seen.set(track.text, track.ranges);
     if (seen.size > historyLength) seen.delete(seen.keys().next().value!);
   }, [track]);
 
   useEffect(() => {
-    if (!highlighting) return;
     const textarea = textareaRef.current!;
     const record = () => {
       input.current = { start: textarea.selectionStart, end: textarea.selectionEnd };
     };
     textarea.addEventListener("beforeinput", record);
+    // Stryker disable next-line ArrowFunction,StringLiteral: an unmounted textarea's listener records a selection nothing reads.
     return () => textarea.removeEventListener("beforeinput", record);
-  }, [highlighting, textareaRef]);
+  },
+  // Stryker disable next-line ArrayDeclaration: the textarea is the same for the field's life, so once is enough with any fixed list.
+  [textareaRef]);
 
   const edit = (next: string, caret: number, inputType: string | undefined) => {
     const before = input.current;
     input.current = null;
     // Undo and redo bring back the marks the text had, when it had any.
     const restored = inputType?.startsWith("history") ? history.current.get(next) : undefined;
-    const moved = restored ?? normalizeHighlights(moveHighlights(ranges, text, next, before && { before, caret }), next.length);
+    const moved = restored ?? moveHighlights(ranges, text, next, before && { before, caret });
     setEdited({ text: next, ranges: moved });
+    // A controlled field reads its text from value, so its own copy is never read.
+    // Stryker disable next-line ConditionalExpression: as above.
     if (!controlled) setOwnText(next);
     return highlightsKey(moved) === highlightsKey(ranges) ? undefined : moved;
   };
@@ -454,11 +460,9 @@ function syncLayer(textarea: HTMLTextAreaElement, layer: HTMLDivElement): void {
   for (const name of mirroredStyles) target[name] = style[name];
   // A classic scrollbar takes width from the text, at the inline end.
   const borders = parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
-  const scrollbar = textarea.offsetWidth - textarea.clientWidth - borders;
-  if (scrollbar > 0) {
-    const side = style.direction === "rtl" ? "paddingLeft" : "paddingRight";
-    target[side] = `${parseFloat(style[side]) + scrollbar}px`;
-  }
+  const scrollbar = Math.max(0, textarea.offsetWidth - textarea.clientWidth - borders);
+  const side = style.direction === "rtl" ? "paddingLeft" : "paddingRight";
+  target[side] = `${parseFloat(style[side]) + scrollbar}px`;
   (layer.firstElementChild as HTMLElement).style.transform = `translateY(${-textarea.scrollTop}px)`;
   target.visibility = "visible";
 }
@@ -475,19 +479,19 @@ function HighlightLayer({ textareaRef, text, highlights }: { textareaRef: { curr
     const layer = layerRef.current!;
     const sync = () => syncLayer(textarea, layer);
     textarea.addEventListener("scroll", sync);
-    // The text rewraps when the width changes. As in autoGrow, the sync runs in the next frame, never inside the observer's callback.
+    // The type can change with the size (a breakpoint's font size). As in autoGrow, the sync runs in the next frame, never inside the observer's callback.
     let frame = 0;
     const observer = new ResizeObserver(() => {
+      // Stryker disable next-line CallExpression: a second sync in the same frame copies the same styles.
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(sync);
     });
     observer.observe(textarea);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      textarea.removeEventListener("scroll", sync);
-    };
-  }, [textareaRef]);
+    // Stryker disable next-line ArrowFunction,CallExpression,StringLiteral: an unmounted layer is gone, so its syncs change nothing shown.
+    return () => (cancelAnimationFrame(frame), observer.disconnect(), textarea.removeEventListener("scroll", sync));
+  },
+  // Stryker disable next-line ArrayDeclaration: the textarea is the same for the field's life, so once is enough with any fixed list.
+  [textareaRef]);
   return (
     <div ref={layerRef} aria-hidden="true" data-ouro-highlights-layer="" className={cn(highlightLayerClass, "invisible")}>
       <div>

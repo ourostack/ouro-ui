@@ -2,9 +2,9 @@ import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { TextArea, type TextAreaHighlight, type TextAreaProps } from "@/registry/ouro/components/ouro/text-field/text-area";
-import { moveHighlights } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
+import { describeHighlights, highlightRuns, highlightWarnings, moveHighlights, normalizeHighlights } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -260,17 +260,61 @@ describe("TextArea highlights as the person edits", () => {
 
   it("brings the marks back when the person undoes an edit, and takes them away again on redo", async () => {
     const onHighlightsChange = vi.fn();
-    const { textarea, host } = await render(<Stored text="one two three" highlights={[{ start: 4, end: 7, label: suggested }]} onHighlightsChange={onHighlightsChange} />);
-    await typeAt(textarea, 5, "X");
+    // The app adds the "!", so the text the undo returns to is one the field saw after it mounted.
+    function Appended({ text }: { text: string }) {
+      const [value, setValue] = useState(text);
+      const [given, setGiven] = useState(text);
+      const [marks, setMarks] = useState<TextAreaHighlight[]>([{ start: 4, end: 7, label: suggested }]);
+      if (text !== given) {
+        setGiven(text);
+        setValue(text);
+      }
+      return (
+        <TextArea
+          label="Reply"
+          value={value}
+          onValueChange={setValue}
+          highlights={marks}
+          onHighlightsChange={(next) => {
+            setMarks(next);
+            onHighlightsChange(next);
+          }}
+        />
+      );
+    }
+    const { textarea, host, rerender } = await render(<Appended text="one two three" />);
+    await rerender(<Appended text="one two three!" />);
     const marks = () => [...host.querySelectorAll("[data-ouro-highlight]")].map((mark) => mark.textContent);
-    expect(marks()).toEqual(["t", "wo"]);
+    expect(textarea.value).toBe("one two three!");
+    await typeAt(textarea, 4, "{Backspace}", 7);
+    expect(textarea.value).toBe("one  three!");
+    expect(marks()).toEqual([]);
     await act(async () => void document.execCommand("undo"));
-    expect(textarea.value).toBe("one two three");
+    expect(textarea.value).toBe("one two three!");
     expect(marks()).toEqual(["two"]);
     expect(onHighlightsChange).toHaveBeenLastCalledWith([{ start: 4, end: 7, label: suggested }]);
     await act(async () => void document.execCommand("redo"));
-    expect(textarea.value).toBe("one tXwo three");
-    expect(marks()).toEqual(["t", "wo"]);
+    expect(textarea.value).toBe("one  three!");
+    expect(marks()).toEqual([]);
+  });
+
+  it("leaves a split mark split when the person deletes what they typed, which is not an undo", async () => {
+    const { textarea, marks } = await render(<Stored text="one two three" highlights={[{ start: 4, end: 7, label: suggested }]} />);
+    expect(marks).toEqual(["two"]);
+    await typeAt(textarea, 5, "X");
+    await userEvent.keyboard("{Backspace}");
+    expect(textarea.value).toBe("one two three");
+    expect([...document.querySelectorAll("[data-ouro-highlight]")].map((mark) => mark.textContent)).toEqual(["t", "wo"]);
+  });
+
+  it("moves the marks it shows by the person's edit when the app keeps passing the same highlights", async () => {
+    function Fixed() {
+      const [value, setValue] = useState("aa");
+      return <TextArea label="Reply" value={value} onValueChange={setValue} highlights={[{ start: 1, end: 2, label: "Second" }]} />;
+    }
+    const { textarea, layer } = await render(<Fixed />);
+    await typeAt(textarea, 1, "a");
+    expect([...layer.firstElementChild!.childNodes].map((node) => node.textContent)).toEqual(["aa", "a", "\n\u200b"]);
   });
 
   it("moves the marks for an undo to a text it has not seen, as for any edit", async () => {
@@ -301,15 +345,21 @@ describe("TextArea highlights as the person edits", () => {
       <>
         <TextArea label="One" defaultValue="one two" highlights={[{ start: 4, end: 7, label: "B" }]} onHighlightsChange={onHighlightsChange} />
         <TextArea label="Two" highlights={[{ start: 0, end: 3, label: "Nothing yet" }]} />
+        <TextArea label="Three" defaultValue="one two" highlights={[{ start: 4, end: 7, label: "C" }]} />
       </>,
     );
-    const [one, two] = [...host.querySelectorAll("textarea")];
+    const [one, two, three] = [...host.querySelectorAll("textarea")];
+    const layers = [...host.querySelectorAll<HTMLElement>("[data-ouro-highlights-layer]")];
+    expect(layers[1]!.textContent).toBe("\n\u200b");
     await typeAt(one!, 0, "zero ");
     expect(onHighlightsChange).toHaveBeenLastCalledWith([{ start: 9, end: 12, label: "B" }]);
-    expect(host.querySelector("[data-ouro-highlight]")!.textContent).toBe("two");
+    expect(layers[0]!.textContent).toBe(`${one!.value}\n\u200b`);
+    expect(layers[0]!.querySelector("[data-ouro-highlight]")!.textContent).toBe("two");
     await typeAt(two!, 0, "abc");
     expect(two!.value).toBe("abc");
-    expect(host.querySelectorAll("[data-ouro-highlight]")).toHaveLength(1);
+    expect(layers[1]!.querySelectorAll("[data-ouro-highlight]")).toHaveLength(0);
+    await typeAt(three!, 0, "zero ");
+    expect(layers[2]!.querySelector("[data-ouro-highlight]")!.textContent).toBe("two");
   });
 
   it("moves the marks with the text when the app changes the value, and keeps them for the same highlights in a new array", async () => {
@@ -327,16 +377,46 @@ describe("TextArea highlights as the person edits", () => {
     expect([...document.querySelectorAll("[data-ouro-highlight]")].map((mark) => mark.textContent)).toEqual(["three"]);
   });
 
-  it("keeps undo working after many edits, remembering the latest hundred texts", async () => {
-    const view = (value: string) => <TextArea label="Reply" value={value} onValueChange={() => {}} highlights={[{ start: 0, end: 1, label: "A" }]} />;
-    const { rerender, host } = await render(view("a"));
-    for (let count = 1; count <= 102; count++) await rerender(view(`a${"b".repeat(count)}`));
-    expect(host.querySelector("[data-ouro-highlight]")!.textContent).toBe("a");
+  it.each([
+    [99, true],
+    [100, false],
+  ])("remembers a hundred texts for undo: after %i more, the first is remembered: %s", async (more, remembered) => {
+    const onHighlightsChange = vi.fn();
+    const view = (value: string, highlights: TextAreaHighlight[]) => <TextArea label="Reply" value={value} onValueChange={() => {}} highlights={highlights} onHighlightsChange={onHighlightsChange} />;
+    const { rerender, textarea } = await render(view("one two", [{ start: 4, end: 7, label: "B" }]));
+    for (let count = 1; count <= more; count++) await rerender(view(`text ${count}`, []));
+    await act(async () => {
+      setNativeValue(textarea, "one two");
+      textarea.dispatchEvent(new InputEvent("input", { inputType: "historyUndo", bubbles: true }));
+    });
+    expect(onHighlightsChange.mock.calls.length > 0).toBe(remembered);
   });
 });
 
 describe("TextArea highlights' edit placement", () => {
   const mark = { start: 0, end: 1, label: "A" };
+  const at = (start: number, end: number, label = "A") => ({ start, end, label });
+
+  it("keeps a mark before an edit, moves one after it, splits one around it and drops one inside it", () => {
+    // "one two three four" -> "one TWO! three four": "two" replaced by "TWO!".
+    const before = "one two three four";
+    const after = "one TWO! three four";
+    expect(moveHighlights([at(0, 3), at(8, 13), at(4, 7), at(2, 9), at(4, 5)], before, after, null)).toEqual([at(0, 3), at(9, 14), at(2, 4), at(8, 10)]);
+  });
+
+  it("splits a mark around text inserted inside it, and leaves marks that end or start at the insertion whole", () => {
+    expect(moveHighlights([at(1, 3), at(0, 2), at(2, 3)], "aab", "aaab", null)).toEqual([at(1, 2), at(3, 4), at(0, 2), at(3, 4)]);
+  });
+
+  it("places an edit by the selection, with no selection, and when the change could be in more than one place", () => {
+    expect(moveHighlights([at(1, 2)], "aa", "aaa", { before: { start: 1, end: 1 }, caret: 2 })).toEqual([at(2, 3)]);
+    expect(moveHighlights([at(1, 2)], "aa", "aaa", null)).toEqual([at(1, 2)]);
+    expect(moveHighlights([at(0, 4)], "abab", "ab", { before: { start: 0, end: 2 }, caret: 0 })).toEqual([at(0, 2)]);
+    expect(moveHighlights([at(0, 2)], "abab", "ab", { before: { start: 0, end: 2 }, caret: 0 })).toEqual([]);
+    expect(moveHighlights([at(2, 3)], "xaay", "xaaay", { before: { start: 2, end: 2 }, caret: 3 })).toEqual([at(3, 4)]);
+    // A caret past the inserted text would place a larger edit than the texts show: the texts decide.
+    expect(moveHighlights([at(0, 1)], "a", "aa", { before: { start: 0, end: 0 }, caret: 2 })).toEqual([at(0, 1)]);
+  });
 
   it("places an edit by comparing the texts when the selection does not fit the text before it", () => {
     // A caret after "b" in "ba" cannot come from an edit after "a" in "a": the texts decide, and "b" was typed before the mark.
@@ -345,6 +425,43 @@ describe("TextArea highlights' edit placement", () => {
 
   it("places an edit by comparing the texts when the selection does not fit the text after it", () => {
     expect(moveHighlights([{ ...mark, start: 2, end: 3 }], "abc", "abXc", { before: { start: 0, end: 0 }, caret: 1 })).toEqual([{ ...mark, start: 3, end: 4 }]);
+  });
+});
+
+describe("TextArea highlights' helpers", () => {
+  const at = (start: number, end: number, label = "A") => ({ start, end, label });
+
+  it("clamps highlights into the text and leaves out the empty ones and those that are not numbers", () => {
+    expect(normalizeHighlights([at(-2, 3), at(5, 99), at(4, 4), at(3, 2), at(Number.NaN, 2), at(1.7, 2.9)], 8)).toEqual([at(0, 3), at(5, 8), at(1, 2)]);
+    expect(normalizeHighlights(undefined, 8)).toEqual([]);
+  });
+
+  it("cuts the text into runs where marks start and end, one run per stretch of the same mark", () => {
+    expect(highlightRuns("0123456789", [at(1, 2), at(4, 6, "Y"), at(3, 8, "X")])).toEqual([
+      { text: "0", mark: undefined },
+      { text: "1", mark: 0 },
+      { text: "2", mark: undefined },
+      { text: "34567", mark: 2 },
+      { text: "89", mark: undefined },
+    ]);
+    expect(highlightRuns("abc", [])).toEqual([{ text: "abc", mark: undefined }]);
+    expect(highlightRuns("abc", [at(0, 3)])).toEqual([{ text: "abc", mark: 0 }]);
+  });
+
+  it("quotes up to eight words of a mark, with spaces folded, and shortens a longer one", () => {
+    const text = "  one   two\nthree four five six seven eight  | one two three four five six seven eight nine";
+    expect(describeHighlights(text, [at(0, 45), at(46, text.length, "B")])).toBe(
+      "A: \u201cone two three four five six seven eight\u201d. B: \u201cone two three four five six seven eight\u2026\u201d.",
+    );
+  });
+
+  it("finds the first unlabelled mark, counting a label of spaces, and says nothing for marks with no tone", () => {
+    expect(highlightWarnings([at(0, 2), at(0, 2, "  ")])[0]).toEqual([
+      "highlights[1] has no label, so screen readers cannot say what it marks",
+      '<TextArea highlights={[{ start: 0, end: 5, label: "Suggested by your assistant" }]}>',
+    ]);
+    expect(highlightWarnings([at(0, 2)]).filter(Boolean)).toEqual([]);
+    expect(highlightWarnings(undefined).filter(Boolean)).toEqual([]);
   });
 });
 
@@ -359,6 +476,19 @@ describe("TextArea highlights layout", () => {
     const { textarea, layer } = await render(<TextArea label="Reply" defaultValue={text} autoGrow rows={1} maxRows={3} highlights={[{ start: text.length - 7, end: text.length, label: "Last" }]} />);
     textarea.scrollTop = 60;
     await expect.poll(() => (layer.firstElementChild as HTMLElement).style.transform).toBe(`translateY(-${textarea.scrollTop}px)`);
+  });
+
+  it("copies the textarea's type again when the window crosses a breakpoint that changes it", async () => {
+    await page.viewport(414, 896);
+    try {
+      const { textarea, layer } = await render(<TextArea label="Reply" defaultValue="A few words" highlights={[{ start: 0, end: 5, label: "A" }]} />);
+      expect(layer.style.fontSize).toBe("16px");
+      await page.viewport(1024, 768);
+      expect(getComputedStyle(textarea).fontSize).toBe("14px");
+      await expect.poll(() => layer.style.fontSize).toBe("14px");
+    } finally {
+      await page.viewport(414, 896);
+    }
   });
 
   it("follows the textarea when its width changes", async () => {

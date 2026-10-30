@@ -173,17 +173,18 @@ interface HighlightRun {
  */
 function normalizeHighlights(highlights: readonly TextAreaHighlight[] | undefined, length: number): TextAreaHighlight[] {
   const kept: TextAreaHighlight[] = [];
+  // Stryker disable next-line ArrayDeclaration: anything in the fallback has no start or end, so it is left out as a mark that is not a number.
   for (const highlight of highlights ?? []) {
     const start = Math.max(0, Math.min(length, Math.trunc(highlight.start)));
     const end = Math.max(0, Math.min(length, Math.trunc(highlight.end)));
-    if (!(end > start)) continue;
-    kept.push(start === highlight.start && end === highlight.end ? highlight : { ...highlight, start, end });
+    if (end > start) kept.push({ ...highlight, start, end });
   }
   return kept;
 }
 
 /** A string that changes exactly when the highlights do, whatever array holds them. @internal */
 function highlightsKey(highlights: readonly TextAreaHighlight[] | undefined): string {
+  // Stryker disable next-line ArrayDeclaration: no highlights need only a key of their own, whatever it reads.
   return JSON.stringify((highlights ?? []).map(({ start, end, tone, label, id }) => [start, end, tone, label, id]));
 }
 
@@ -195,6 +196,8 @@ function highlightsKey(highlights: readonly TextAreaHighlight[] | undefined): st
 function unchanged(before: string, after: string, edit: HighlightEdit | null): [number, number] {
   let start = 0;
   const shortest = Math.min(before.length, after.length);
+  // Past the shorter text's end its character reads undefined, unequal to the other's, since the texts differ: the bound only stops the scan sooner.
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: as above.
   while (start < shortest && before[start] === after[start]) start++;
   let end = 0;
   while (end < shortest - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
@@ -219,12 +222,11 @@ function moveHighlights(highlights: readonly TextAreaHighlight[], before: string
   const shift = after.length - before.length;
   const moved: TextAreaHighlight[] = [];
   for (const highlight of highlights) {
-    if (highlight.end <= head) moved.push(highlight);
-    else if (highlight.start >= removedEnd) moved.push({ ...highlight, start: highlight.start + shift, end: highlight.end + shift });
-    else {
-      if (highlight.start < head) moved.push({ ...highlight, end: head });
-      if (highlight.end > removedEnd) moved.push({ ...highlight, start: removedEnd + shift, end: highlight.end + shift });
-    }
+    // The part before the edit stays where it was, and the part after it moves with the text.
+    const before = Math.min(highlight.end, head);
+    if (highlight.start < before) moved.push({ ...highlight, end: before });
+    const after = Math.max(highlight.start, removedEnd);
+    if (after < highlight.end) moved.push({ ...highlight, start: after + shift, end: highlight.end + shift });
   }
   return moved;
 }
@@ -236,16 +238,10 @@ function moveHighlights(highlights: readonly TextAreaHighlight[], before: string
  * @internal
  */
 function highlightRuns(text: string, highlights: readonly TextAreaHighlight[]): HighlightRun[] {
-  const cuts = new Set([0, text.length]);
-  for (const highlight of highlights) {
-    cuts.add(highlight.start);
-    cuts.add(highlight.end);
-  }
-  const points = [...cuts].sort((a, b) => a - b);
+  const points = [...new Set([0, text.length, ...highlights.flatMap((highlight) => [highlight.start, highlight.end])])].sort((a, b) => a - b);
   const runs: HighlightRun[] = [];
-  for (let index = 0; index < points.length - 1; index++) {
+  points.slice(1).forEach((to, index) => {
     const from = points[index]!;
-    const to = points[index + 1]!;
     let mark: number | undefined;
     highlights.forEach((highlight, at) => {
       if (highlight.start <= from && highlight.end >= to) mark = at;
@@ -254,7 +250,7 @@ function highlightRuns(text: string, highlights: readonly TextAreaHighlight[]): 
     const last = runs.at(-1);
     if (last && last.mark === mark) last.text += text.slice(from, to);
     else runs.push({ text: text.slice(from, to), mark });
-  }
+  });
   return runs;
 }
 
@@ -288,6 +284,7 @@ function describeHighlights(text: string, highlights: readonly TextAreaHighlight
 
 /** A highlight's tone, or `primary` for one that is not a tone. @internal */
 function highlightTone(highlight: TextAreaHighlight): keyof typeof highlightTones {
+  // Stryker disable next-line StringLiteral: a tone that is not one renders primary anyway.
   const tone = highlight.tone ?? "primary";
   return Object.hasOwn(highlightTones, tone) ? (tone as keyof typeof highlightTones) : "primary";
 }

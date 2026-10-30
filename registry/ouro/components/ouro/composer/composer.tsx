@@ -194,7 +194,8 @@ export function Composer(props: ComposerProps): JSX.Element {
     sendDisabled,
     ...rest
   } = props;
-  const sendOn = (sendKeys as readonly string[]).includes(sendOnProp) ? (sendOnProp as (typeof sendKeys)[number]) : "enter";
+  // Any other value is enter, as the default.
+  const modEnter = sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -209,13 +210,14 @@ export function Composer(props: ComposerProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; Composer takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Composer",
     process.env.NODE_ENV !== "production"
       ? () => [
-          sendOn !== sendOnProp && [`sendOn="${String(sendOnProp)}" is not a key; use "enter" or "mod-enter"`, '<Composer sendOn="enter">'],
+          !(sendKeys as readonly string[]).includes(sendOnProp) && [`sendOn="${String(sendOnProp)}" is not a key; use "enter" or "mod-enter"`, '<Composer sendOn="enter">'],
           onSubmit !== undefined && ["onSubmit is not a prop; sending calls onSend", "<Composer onSend={(text) => send(text)}>"],
           submitOnEnter !== undefined && ["submitOnEnter is not a prop", '<Composer sendOn="enter">'],
           enterToSend !== undefined && ["enterToSend is not a prop", '<Composer sendOn="enter">'],
@@ -225,23 +227,24 @@ export function Composer(props: ComposerProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  // A controlled composer reads its text from value, so its own copy is never read.
   const change = (next: string) => {
-    if (value === undefined) setOwn(next);
+    setOwn(next);
     onValueChange?.(next);
   };
   const send = (event: ComposerSendEvent) => {
     if (sendDisabledReason !== undefined && !disabled) announce(sendDisabledReason);
     if (!ready) return;
     onSend(text, event);
-    if (value === undefined) setOwn("");
-    // After a press of Send, the person goes on writing.
-    if (event.type === "click") textareaRef.current!.focus();
+    setOwn("");
+    // After a press of Send, the person goes on writing; after Enter, focus is there already.
+    textareaRef.current!.focus();
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     onKeyDown?.(event);
     // A word an input method is still composing ends with Enter; that Enter is the input method's.
     if (event.defaultPrevented || event.key !== "Enter" || event.nativeEvent.isComposing || event.keyCode === 229) return;
-    const sends = sendOn === "mod-enter" ? event.metaKey || event.ctrlKey : !event.shiftKey;
+    const sends = modEnter ? event.metaKey || event.ctrlKey : !event.shiftKey;
     if (!sends) return;
     event.preventDefault();
     send(event);

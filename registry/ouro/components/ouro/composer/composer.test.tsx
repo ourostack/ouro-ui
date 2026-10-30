@@ -66,8 +66,11 @@ afterEach(async () => {
 
 describe("Composer", () => {
   it("is a message box named by its label, one line tall with the placeholder on it, and a send button", async () => {
-    const { root, textarea, send } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} />);
+    const { root, frame, textarea, send } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} />);
     expect(root.getAttribute("data-ouro")).toBe("composer");
+    expect([...root.children]).toEqual([frame]);
+    expect(root.hasAttribute("data-sending")).toBe(false);
+    expect(root.hasAttribute("data-send-disabled")).toBe(false);
     await expect.element(page.getByRole("textbox", { name: "Message Mia" })).toBeVisible();
     expect(textarea.placeholder).toBe("Write a message");
     expect(textarea.rows).toBe(1);
@@ -278,11 +281,22 @@ describe("Composer states", () => {
       const { textarea, send, rerender, root } = await render(<Composer label="Message" defaultValue="Hello" onSend={onSend} />);
       await rerender(<Composer label="Message" defaultValue="Hello" sending sendingLabel="Posting" onSend={onSend} />);
       expect(send.getAttribute("aria-busy")).toBe("true");
-      expect(root.hasAttribute("data-sending")).toBe(true);
+      expect(root.getAttribute("data-sending")).toBe("");
       textarea.focus();
       await userEvent.keyboard("{Enter}");
       expect(onSend).not.toHaveBeenCalled();
       await expect.poll(() => announced.count("Posting")).toBe(1);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it('says "Sending" when sending turns on, by default', async () => {
+    const announced = watchAnnouncements();
+    try {
+      const { rerender } = await render(<Composer label="Message" defaultValue="Hello" onSend={() => {}} />);
+      await rerender(<Composer label="Message" defaultValue="Hello" sending onSend={() => {}} />);
+      await expect.poll(() => announced.count("Sending")).toBe(1);
     } finally {
       announced.stop();
     }
@@ -294,7 +308,7 @@ describe("Composer states", () => {
     const reason = "Sending is off while you review the draft.";
     try {
       const { textarea, send, root } = await render(<Composer label="Message" defaultValue="Hello" description="Ctrl+Enter to send" sendDisabledReason={reason} onSend={onSend} />);
-      expect(root.hasAttribute("data-send-disabled")).toBe(true);
+      expect(root.getAttribute("data-send-disabled")).toBe("");
       expect(send.disabled).toBe(true);
       expect(textarea.disabled).toBe(false);
       await expect.element(page.getByText(reason)).toBeVisible();
@@ -406,6 +420,11 @@ describe("Composer development messages", () => {
   it("says that className is for layout", async () => {
     await render(<Composer label="Message" className="bg-red-500" onSend={() => {}} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Composer: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; Composer takes its colors from the theme.');
+  });
+
+  it("says nothing for the least a composer takes", async () => {
+    await render(<Composer label="Message" onSend={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("says nothing for a full, valid composer", async () => {
