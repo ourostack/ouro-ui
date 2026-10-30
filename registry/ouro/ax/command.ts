@@ -88,6 +88,8 @@ export interface CliDef {
   globalFlags?: Readonly<Record<string, FlagSpec>>;
   /** Words that could mean two effects answer with both commands instead of acting. */
   ambiguous?: Readonly<Record<string, readonly Meaning[]>>;
+  /** The overview's one line for a multi-word group ("draft"), when its first command's summary is not it. */
+  groups?: Readonly<Record<string, string>>;
 }
 
 export interface Cli {
@@ -98,6 +100,7 @@ export interface Cli {
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
   readonly ambiguous: Readonly<Record<string, readonly Meaning[]>>;
+  readonly groups: Readonly<Record<string, string>>;
 }
 
 export const BUILTIN_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
@@ -129,6 +132,7 @@ export function defineCli(def: CliDef): Cli {
     headings: def.headings ?? DEFAULT_HEADINGS,
     globalFlags: def.globalFlags ?? {},
     ambiguous: def.ambiguous ?? {},
+    groups: def.groups ?? {},
   };
   const seen = new Set<string>();
   for (const cmd of cli.commands) {
@@ -343,7 +347,7 @@ export function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
       code: name === WHY_FLAG ? "needs-why" : "missing-flag",
       exit: usage(cli),
       thing,
-      problem: name === WHY_FLAG ? `other people will see this as the person's, so it needs --why: ${WHY_PLACEHOLDER.slice(1, -1)}` : `needs --${name}: ${spec.description.replace(/[.\s]+$/, "")}`,
+      problem: name === WHY_FLAG ? whyProblem(command, "--why") : `needs --${name}: ${spec.description.replace(/[.\s]+$/, "")}`,
       fix: commandLine([cli.name, ...words, ...rest, `--${name}`, placeholderOf(name, spec).replace(/^"(.*)"$/, "$1")]),
     });
   }
@@ -447,6 +451,10 @@ export function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Jso
   return { type: "object", properties, required, additionalProperties: false };
 }
 
+/** Why --why is needed: other people will see it, or it acts on the person's own things for them. */
+const whyProblem = (cmd: CommandDef, flag: string) =>
+  cmd.effect === "others" ? `other people will see this as the person's, so it needs ${flag}: ${WHY_PLACEHOLDER.slice(1, -1)}` : `it acts on the person's own things for them, so it needs ${flag}: ${WHY_PLACEHOLDER.slice(1, -1)}`;
+
 const typeName = (value: unknown) => (Array.isArray(value) ? "array" : value === null ? "null" : typeof value);
 
 /**
@@ -491,7 +499,7 @@ export function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: strin
   for (const key of schema.required ?? []) {
     if (Object.hasOwn(input, key)) continue;
     fixed[key] = key === WHY_FLAG ? WHY_PLACEHOLDER : `<${key}>`;
-    fail(key === WHY_FLAG ? "needs-why" : "missing-arg", key === WHY_FLAG ? `other people will see this as the person's, so it needs "why": ${WHY_PLACEHOLDER.slice(1, -1)}` : `needs "${key}": ${props[key]?.description ?? ""}`);
+    fail(key === WHY_FLAG ? "needs-why" : "missing-arg", key === WHY_FLAG ? whyProblem(cmd, '"why"') : `needs "${key}": ${props[key]?.description ?? ""}`);
   }
   for (const a of cmd.args ?? []) {
     if (a.required && a.unless && !Object.hasOwn(input, a.name) && !Object.hasOwn(input, a.unless)) {

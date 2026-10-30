@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findCommand } from "./command.ts";
+import { defineCli, defineCommand, findCommand } from "./command.ts";
 import { exampleCli as cli } from "./example-cli.ts";
 import { helpJson, renderCommand, renderOverview, wrap } from "./help.ts";
 
@@ -23,6 +23,11 @@ test("the overview is the two headings, one line per command, and the exit codes
       "",
     ].join("\n"),
   );
+});
+
+test("a multi-word group shows once, with its group summary", () => {
+  const c = defineCli({ name: "t", about: ["t"], groups: { draft: "Edit the draft." }, commands: [defineCommand({ name: "draft set", summary: "Set.", effect: "private" }), defineCommand({ name: "draft show", summary: "Show.", effect: "private" })] });
+  assert.match(renderOverview(c), /\n  draft   Edit the draft\.\n\n/);
 });
 
 test("a command's help is generated from its definition, and an others command says so first", () => {

@@ -37,6 +37,8 @@ test("help is asked three ways", () => {
 
 test("every refusal names the exact command to run instead", () => {
   assert.deepEqual(refusal(["post", "abc123", "hi"]), { code: "needs-why", exit: 2, thing: "post", problem: "other people will see this as the person's, so it needs --why: who asked you, and what they said", fix: 'notes post abc123 hi --why "<who asked you, and what they said>"' });
+  const why = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "discard", summary: "D.", effect: "private", why: "required" })] });
+  assert.throws(() => parse(why, ["discard"]), /discard: it acts on the person's own things for them, so it needs --why: who asked you, and what they said\. Fix: t discard --why "<who asked you, and what they said>"\./);
   assert.equal(refusal(["rooms", "--limt", "5"]).fix, "notes rooms --limit 5");
   assert.match(refusal(["rooms", "--zzzzzz"]).problem, /there is no --zzzzzz; its flags are --limit/);
   assert.equal(refusal(["rooms", "--limit", "500"]).fix, "notes rooms --limit 1");

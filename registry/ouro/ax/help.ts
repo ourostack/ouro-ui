@@ -40,7 +40,7 @@ function rows(cli: Cli, effect: "private" | "others"): { name: string; summary: 
   for (const c of listed(cli).filter((x) => x.effect === effect)) {
     const head = c.name.split(" ")[0]!;
     if (out.some((r) => r.name === head)) continue;
-    out.push({ name: head, summary: c.summary });
+    out.push({ name: head, summary: cli.groups[head] ?? c.summary });
   }
   return out;
 }
