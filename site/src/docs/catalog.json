@@ -659,6 +659,13 @@
     "summary": "The bar of tabs at the bottom of a phone screen: two to five of the app's top-level pages, each an icon over a short label, with the current page marked `aria-current=\"page\"` and an accent wash."
   },
   {
+    "name": "navigation-rail",
+    "title": "NavigationRail",
+    "group": "Navigation",
+    "source": "registry/ouro/components/ouro/navigation-rail/navigation-rail.tsx",
+    "summary": "The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current=\"page\"`."
+  },
+  {
     "name": "table",
     "title": "Table",
     "group": "Data",

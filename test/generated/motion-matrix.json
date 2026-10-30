@@ -520,5 +520,57 @@
     "tests": [
       "registry/ouro/components/ouro/choice-card/choice-card.test.tsx::ChoiceCard > does not move when it becomes disabled"
     ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "state": "data-selected",
+    "kind": "motion",
+    "part": "link",
+    "properties": [
+      "color"
+    ],
+    "reduced": [
+      "color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
+      "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "state": "data-selected",
+    "kind": "motion",
+    "part": "button",
+    "properties": [
+      "color"
+    ],
+    "reduced": [
+      "color"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
+      "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "state": "data-selected",
+    "kind": "motion",
+    "part": "indicator",
+    "properties": [
+      "opacity",
+      "scale"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
+      "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current"
+    ]
   }
 ]

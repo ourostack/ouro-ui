@@ -2394,5 +2394,53 @@
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter"
     ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "link",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "button",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "more",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
   }
 ]
