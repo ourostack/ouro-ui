@@ -64,6 +64,12 @@ describe("holdPageScroll", () => {
 
   it("leaves a scroll that follows the wheel, a touch, the scroll bar, a key nothing handled or a click in the popup", async () => {
     const { popup } = portal();
+    // A second, closed popup: a click counts in any of them. And a popup that stops these events
+    // stops them too late: the hold sees them as they go down to it.
+    portal(false);
+    for (const type of ["wheel", "touchmove", "pointerdown", "click"]) {
+      for (const element of [page, popup]) element.addEventListener(type, (event) => event.stopPropagation());
+    }
     const intents: Array<[string, () => void]> = [
       ["wheel", () => page.dispatchEvent(new WheelEvent("wheel", { bubbles: true, deltaY: 100 }))],
       ["touch", () => page.dispatchEvent(new Event("touchmove", { bubbles: true }))],
@@ -139,6 +145,9 @@ describe("holdPageScroll", () => {
     popup.removeAttribute("data-open");
     popup.setAttribute("data-closed", "");
     expect(await scrollTo(40, 2600)).toEqual([40, 2600]);
+    // One open popup among closed ones holds the page.
+    portal();
+    expect(await scrollTo(40, 3000)).toEqual([40, 2600]);
   });
 
   it("keeps the first popup's place while a second opens over it, and holds until the last lets go", async () => {
@@ -157,10 +166,15 @@ describe("holdPageScroll", () => {
   });
 
   it("stops listening once the last popup lets go", async () => {
+    const add = vi.spyOn(document, "addEventListener");
     const remove = vi.spyOn(document, "removeEventListener");
     const removeFromWindow = vi.spyOn(window, "removeEventListener");
-    const { release } = portal();
-    release();
+    const first = portal();
+    const second = portal();
+    // One set of listeners, however many popups hold the page.
+    expect(add).toHaveBeenCalledTimes(5);
+    second.release();
+    first.release();
     expect(remove.mock.calls.map(([type, , options]) => [type, options])).toEqual([
       ["wheel", { capture: true, passive: true }],
       ["touchmove", { capture: true, passive: true }],

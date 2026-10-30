@@ -76,7 +76,11 @@ function listen(view: Window): () => void {
     }
     if (view.scrollX !== left || view.scrollY !== top) view.scrollTo({ left, top, behavior: "instant" });
   };
-  const capture = { capture: true, passive: true };
+  const capture = {
+    capture: true,
+    // Stryker disable next-line BooleanLiteral: passive only tells the browser the listener never cancels the event, which none does.
+    passive: true,
+  };
   document.addEventListener("wheel", free, capture);
   document.addEventListener("touchmove", free, capture);
   document.addEventListener("pointerdown", onPointerDown, capture);
