@@ -2362,7 +2362,8 @@
       "Lightbox/Playground",
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
-      "Lightbox/BeforeAndAfter"
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed"
     ]
   },
   {
@@ -2377,7 +2378,40 @@
       "Lightbox/Playground",
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
-      "Lightbox/BeforeAndAfter"
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed"
+    ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "zoom",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed"
+    ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "zoom-view",
+    "role": "group",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed"
     ]
   },
   {
@@ -2392,7 +2426,8 @@
       "Lightbox/Playground",
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
-      "Lightbox/BeforeAndAfter"
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed"
     ]
   }
 ]

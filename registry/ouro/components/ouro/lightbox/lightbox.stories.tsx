@@ -134,3 +134,40 @@ export const BeforeAndAfter: Story = {
   parameters: { plainOpeners: ["See before", "See after"] },
   render: () => <BeforeAndAfterPair />,
 };
+
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
+/** The viewer alone, open from the start, as an app's own layout might open it. */
+function OpenViewer() {
+  const [open, setOpen] = useState(true);
+  const [index, setIndex] = useState(0);
+  return <Lightbox label="Coast photos" images={coast} open={open} index={index} onOpenChange={setOpen} onIndexChange={setIndex} />;
+}
+
+/**
+ * Zoomed to the image's own size, as a double-tap, a pinch or the zoom button does while the image
+ * is drawn smaller than that. The story opens the viewer on the first photo and presses Zoom.
+ */
+export const Zoomed: Story = {
+  parameters: {
+    conformance: {
+      focusExit: {
+        "lightbox/close Close": "The story opens the viewer as it loads, so no element had focus for Close to give it back to; in an app, the control that opened the viewer gets it back.",
+      },
+    },
+  },
+  render: () => <OpenViewer />,
+  play: async ({ canvasElement }) => {
+    const page = canvasElement.ownerDocument;
+    (await frameUntil(() => page.querySelector<HTMLButtonElement>('[data-ouro="dialog"] [data-ouro-part="zoom"]'))).click();
+    await frameUntil(() => page.querySelector("[data-ouro-lightbox-zoom-view]"));
+  },
+};
