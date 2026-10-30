@@ -1,10 +1,12 @@
-import { type ReactNode } from "react";
+import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
-import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -218,12 +220,34 @@ describe("Message", () => {
 });
 
 describe("Message development messages", () => {
+  it("warns of nothing when the props are right", async () => {
+    await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" actions={actionsFor([])} menu={menu} footer={<span>Seen</span>}>
+          Hi
+        </Message>
+        <Message variant="post" role="assistant" name="Jonah Vale" subject="Agenda" actions={actionsFor([])}>
+          Hi
+        </Message>
+        <Message variant="reply" role="user" name="Priya Okafor" continued>
+          Hi
+        </Message>
+      </>,
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["an unknown role", { role: "bot" }, 'role="bot" is not a role; use "user", "assistant" or "system"', '<Message role="assistant" name="Ouro">'],
     ["from", { from: "user" }, "from is not a prop", '<Message role="user" name="Ada">'],
     ["sender", { sender: "Ada" }, "sender is not a prop", '<Message role="user" name="Ada">'],
     ["author", { author: "Ada" }, "author is not a prop", '<Message role="user" name="Ada">'],
     ["content", { content: "Hi" }, "content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
+    ["an unknown variant", { variant: "bubble" }, 'variant="bubble" is not a variant; use "default", "chat", "post" or "reply"', '<Message variant="chat" role="assistant" name="Grace">'],
+    ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
+    ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
+    ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
+    ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { role: "assistant", name: "Ouro", children: "Hi", ...extra } as unknown as Parameters<typeof Message>[0];
     const { message } = await render(<Message {...props} />);
@@ -255,5 +279,547 @@ describe("Message development messages", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Message: "bg-blue-500" sets appearance, and className is for layout only. Fix: remove "bg-blue-500"; the bubble color follows role.',
     );
+  });
+});
+
+const probeColor = (host: HTMLElement, value: string) => {
+  const probe = document.createElement("span");
+  probe.style.color = value;
+  host.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+};
+const headerOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-header]")!;
+const visible = (element: Element) => element.getBoundingClientRect().width > 1;
+
+describe("Message chat", () => {
+  it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+          Morning!
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM">
+          Hi Mara
+        </Message>
+      </>,
+    );
+    const [other, mine] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(other!.dataset.variant).toBe("chat");
+    const hostBox = host.getBoundingClientRect();
+    // Others: avatar, then the name and time over a card-colored bubble at the start.
+    const author = other!.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+    expect(visible(author)).toBe(true);
+    expect(author.textContent).toBe("Mara Quill");
+    const time = headerOf(other!).querySelector("time")!;
+    expect(time.textContent).toBe("9:41 AM");
+    expect(time.getAttribute("dateTime")).toBe("2026-05-04T09:41");
+    expect(time.getBoundingClientRect().top).toBeLessThan(bubbleOf(other!).getBoundingClientRect().top);
+    expect(other!.querySelector('[data-ouro="avatar"]')!.getBoundingClientRect().left).toBeLessThan(bubbleOf(other!).getBoundingClientRect().left);
+    expect(getComputedStyle(bubbleOf(other!)).backgroundColor).toBe(probeColor(host, "var(--card)"));
+    expect(bubbleOf(other!).getBoundingClientRect().left).toBeLessThan(hostBox.left + 60);
+    // Screen readers hear the name, then the time, then the message.
+    expect(headerOf(other!).textContent).toBe("Mara Quill, 9:41 AM");
+    expect(headerOf(other!).compareDocumentPosition(bubbleOf(other!)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Own: at the end, no avatar, the name hidden but read, the time shown.
+    expect(mine!.querySelector('[data-ouro="avatar"]')).toBeNull();
+    expect(bubbleOf(mine!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
+    expect(visible(mine!.querySelector("[data-ouro-message-author]")!)).toBe(false);
+    expect(visible(headerOf(mine!).querySelector("time")!)).toBe(true);
+    const tint = getComputedStyle(bubbleOf(mine!)).backgroundColor;
+    expect(tint).not.toBe(probeColor(host, "var(--card)"));
+    expect(tint).not.toBe(probeColor(host, "var(--primary)"));
+    expect(getComputedStyle(bubbleOf(mine!)).color).toBe(probeColor(host, "var(--foreground)"));
+  });
+
+  it("groups a continued message under the one before, without avatar or name, its time on hover", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
+          Morning!
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:42 AM" dateTime="2026-05-04T09:42" continued>
+          The venue confirmed.
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" continued>
+          No time on this one.
+        </Message>
+      </>,
+    );
+    const [first, second, third] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(second!.hasAttribute("data-continued")).toBe(true);
+    expect(first!.hasAttribute("data-continued")).toBe(false);
+    expect(second!.querySelector('[data-ouro="avatar"]')).toBeNull();
+    // The bubbles line up in one column.
+    expect(bubbleOf(second!).getBoundingClientRect().left).toBeCloseTo(bubbleOf(first!).getBoundingClientRect().left, 0);
+    // The name and time are read, not shown.
+    expect(visible(headerOf(second!))).toBe(false);
+    expect(headerOf(second!).textContent).toBe("Mara Quill, 9:42 AM");
+    // The time in the gutter shows on hover, and is not read twice.
+    const gutterTime = second!.querySelector<HTMLElement>("[data-ouro-message-gutter] time")!;
+    expect(gutterTime.getAttribute("aria-hidden")).toBe("true");
+    expect(gutterTime.getAttribute("dateTime")).toBe("2026-05-04T09:42");
+    expect(getComputedStyle(gutterTime).opacity).toBe("0");
+    await userEvent.hover(bubbleOf(second!));
+    await expect.poll(() => getComputedStyle(gutterTime).opacity).toBe("1");
+    expect(third!.querySelector("[data-ouro-message-gutter]")!.childElementCount).toBe(0);
+  });
+
+  it("shows an Avatar element the app passes, and no avatar on the user's own chat messages", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Theo Brandt" avatar={<Avatar name="Theo Brandt" initials="TB!" alt="" size="lg" />}>
+          Hi
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" avatar="/priya.png">
+          Hi
+        </Message>
+        <Message variant="reply" role="assistant" name="Mara Quill" avatar={false}>
+          Hi
+        </Message>
+      </>,
+    );
+    const [theo, priya, mara] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(theo!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("TB!");
+    expect(priya!.querySelector('[data-ouro="avatar"]')).toBeNull();
+    expect(mara!.querySelector("[data-ouro-message-gutter]")).toBeNull();
+  });
+
+  it("shows the footer under the bubble on the message's side, and attachments above it", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="user" name="Priya Okafor" attachments={<Attachment name="plan.pdf" />} footer={<span>Seen</span>}>
+          Here
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" footer={null} thread={false}>
+          No footer
+        </Message>
+      </>,
+    );
+    const [mine, other] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const footer = mine!.querySelector<HTMLElement>("[data-ouro-message-footer]")!;
+    const attachment = mine!.querySelector<HTMLElement>('[data-ouro="attachment"]')!;
+    expect(footer.textContent).toBe("Seen");
+    expect(bubbleOf(mine!).contains(footer)).toBe(false);
+    expect(footer.getBoundingClientRect().top).toBeGreaterThanOrEqual(attachment.getBoundingClientRect().bottom);
+    expect(footer.getBoundingClientRect().right).toBeCloseTo(bubbleOf(mine!).getBoundingClientRect().right, 0);
+    expect(other!.querySelector("[data-ouro-message-footer]")).toBeNull();
+    expect(other!.querySelector("[data-ouro-message-thread]")).toBeNull();
+  });
+
+  it("adds time, continued runs, a footer and a thread to the default layout too", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Ouro" time="9:41 AM" dateTime="2026-05-04T09:41" footer={<span>Edited</span>} thread={<span>2 replies</span>}>
+          First
+        </Message>
+        <Message role="assistant" name="Ouro" continued>
+          Second
+        </Message>
+        <Message role="user" name="Ada" continued>
+          Mine
+        </Message>
+        <Message role="system" name="Ouro" continued>
+          Ada joined
+        </Message>
+      </>,
+    );
+    const [first, second, mine, system] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const author = first!.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+    expect(author.textContent).toBe("Ouro, 9:41 AM");
+    expect(author.querySelector("time")!.getAttribute("dateTime")).toBe("2026-05-04T09:41");
+    expect(first!.querySelector("[data-ouro-message-footer]")!.textContent).toBe("Edited");
+    expect(first!.querySelector("[data-ouro-message-thread]")!.textContent).toBe("2 replies");
+    expect(second!.hasAttribute("data-continued")).toBe(true);
+    expect(second!.querySelector('[data-ouro="avatar"]')).toBeNull();
+    expect(visible(second!.querySelector("[data-ouro-message-author]")!)).toBe(false);
+    expect(bubbleOf(second!).getBoundingClientRect().left).toBeCloseTo(bubbleOf(first!).getBoundingClientRect().left, 0);
+    expect(mine!.querySelector('[data-ouro="avatar"]')).toBeNull();
+    expect(system!.hasAttribute("data-continued")).toBe(false);
+  });
+
+  it("centers a system note in every variant", async () => {
+    const { host, message } = await render(
+      <Message variant="chat" role="system" name="Ouro" time="9:40 AM">
+        Mara joined
+      </Message>,
+    );
+    expect(message.dataset.variant).toBe("chat");
+    const box = bubbleOf(message).getBoundingClientRect();
+    const hostBox = host.getBoundingClientRect();
+    expect(Math.abs(box.left - hostBox.left - (hostBox.right - box.right))).toBeLessThan(2);
+  });
+
+  it("renders an unknown variant as the default layout", async () => {
+    const props = { role: "assistant", name: "Ouro", variant: "bubble", children: "Hi" } as unknown as MessageProps;
+    const { message } = await render(<Message {...props} />);
+    expect(message.hasAttribute("data-variant")).toBe(false);
+  });
+});
+
+describe("Message post", () => {
+  it("is a card as wide as the list under the name and time, with the subject and footer inside it", async () => {
+    const { host, message } = await render(
+      <Message
+        variant="post"
+        role="user"
+        name="Jonah Vale"
+        time="7:30 AM"
+        subject="Agenda for Friday"
+        footer={<span>4 likes</span>}
+        thread={<span>3 replies</span>}
+        attachments={<Attachment name="agenda.pdf" />}
+      >
+        We start with onboarding.
+      </Message>,
+    );
+    const card = message.querySelector<HTMLElement>("[data-ouro-message-card]")!;
+    const hostBox = host.getBoundingClientRect();
+    // The user's own post sits at the start too, with their name shown.
+    expect(visible(message.querySelector("[data-ouro-message-author]")!)).toBe(true);
+    expect(message.querySelector('[data-ouro="avatar"]')).not.toBeNull();
+    expect(card.getBoundingClientRect().right).toBeCloseTo(hostBox.right, 0);
+    expect(getComputedStyle(card).backgroundColor).toBe(probeColor(host, "var(--card)"));
+    const subject = card.querySelector<HTMLElement>("[data-ouro-message-subject]")!;
+    expect(subject.textContent).toBe("Agenda for Friday");
+    expect(getComputedStyle(subject).fontWeight).toBe("600");
+    expect(bubbleOf(message).contains(subject)).toBe(true);
+    const footer = card.querySelector<HTMLElement>("[data-ouro-message-footer]")!;
+    expect(footer.textContent).toBe("4 likes");
+    // Reactions are not part of what MessageList reads out as the message.
+    expect(bubbleOf(message).contains(footer)).toBe(false);
+    const thread = message.querySelector<HTMLElement>("[data-ouro-message-thread]")!;
+    expect(card.contains(thread)).toBe(false);
+    expect(thread.getBoundingClientRect().top).toBeGreaterThanOrEqual(card.getBoundingClientRect().bottom);
+  });
+
+  it("shows no subject line without one, and no card footer without a footer", async () => {
+    const { message } = await render(
+      <Message variant="post" role="assistant" name="Jonah Vale" subject={null}>
+        Short post.
+      </Message>,
+    );
+    expect(message.querySelector("[data-ouro-message-subject]")).toBeNull();
+    expect(message.querySelector("[data-ouro-message-footer]")).toBeNull();
+  });
+
+  it("lays a reply out unboxed under its name and time, at the start for everyone", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM">
+          Can we swap?
+        </Message>
+        <Message variant="reply" role="user" name="Priya Okafor" time="7:44 AM" footer={<span>Edited</span>}>
+          Swapped.
+        </Message>
+      </>,
+    );
+    const [other, mine] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(getComputedStyle(bubbleOf(other!)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(visible(mine!.querySelector("[data-ouro-message-author]")!)).toBe(true);
+    expect(bubbleOf(mine!).getBoundingClientRect().left).toBeCloseTo(bubbleOf(other!).getBoundingClientRect().left, 0);
+    expect(mine!.querySelector("[data-ouro-message-footer]")!.textContent).toBe("Edited");
+  });
+
+  it("keeps its avatar and name when continued, since every post shows its author", async () => {
+    const props = { variant: "post", role: "assistant", name: "Jonah Vale", continued: true, children: "Hi" } as const;
+    const { message } = await render(<Message {...props} />);
+    expect(message.hasAttribute("data-continued")).toBe(false);
+    expect(message.querySelector('[data-ouro="avatar"]')).not.toBeNull();
+  });
+});
+
+const ReplyIcon = () => (
+  <svg viewBox="0 0 24 24">
+    <path d="M9 14 4 9l5-5" />
+  </svg>
+);
+
+function actionsFor(log: string[], extra: Partial<MessageAction> = {}): MessageAction[] {
+  return [
+    { key: "like", label: "Like", icon: "👍", onClick: () => void log.push("like") },
+    { key: "reply", label: "Reply", icon: <ReplyIcon />, onClick: () => void log.push("reply"), ...extra },
+  ];
+}
+const menu = [{ label: "Copy link", onClick: () => {} }];
+const barOf = (message: HTMLElement) => message.querySelector<HTMLElement>('[role="toolbar"]')!;
+
+describe("Message actions", () => {
+  it("names each action, runs it, and shows its label in a tooltip", async () => {
+    const log: string[] = [];
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor(log)}>
+        Morning!
+      </Message>,
+    );
+    const bar = barOf(message);
+    expect(bar.getAttribute("aria-label")).toBe("Message actions");
+    // The bar is not part of what MessageList reads out as the message.
+    expect(bubbleOf(message).contains(bar)).toBe(false);
+    const buttons = [...bar.querySelectorAll<HTMLElement>("button")];
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Like", "Reply"]);
+    expect(buttons.every((button) => button.dataset.ouroControl === "message" && button.dataset.ouroPart === "action")).toBe(true);
+    expect(buttons[1]!.querySelector("svg")!.closest('[aria-hidden="true"]')).not.toBeNull();
+    await userEvent.hover(bubbleOf(message));
+    await userEvent.click(buttons[1]!);
+    expect(log).toEqual(["reply"]);
+    await userEvent.hover(buttons[0]!);
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="tooltip"]')?.textContent).toBe("Like");
+    await userEvent.unhover(document.body);
+  });
+
+  it("shows the bar on hover and while focus is in the message, and hides it otherwise", async () => {
+    const { message } = await render(
+      <>
+        <button type="button">Before</button>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+          Morning!
+        </Message>
+      </>,
+    );
+    const bar = barOf(message);
+    expect(getComputedStyle(bar).opacity).toBe("0");
+    await userEvent.hover(bubbleOf(message));
+    await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
+    await userEvent.unhover(document.body);
+    await expect.poll(() => getComputedStyle(bar).opacity).toBe("0");
+    await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+    await pressTab();
+    expect(document.activeElement!.getAttribute("aria-label")).toBe("Like");
+    await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
+  });
+
+  it("is one Tab stop, and the arrow keys, Home and End move between its buttons", async () => {
+    const { message } = await render(
+      <>
+        <button type="button">Before</button>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} menu={menu}>
+          Morning!
+        </Message>
+        <button type="button">After</button>
+      </>,
+    );
+    const [like, reply, more] = [...barOf(message).querySelectorAll<HTMLElement>("button")];
+    expect([like, reply, more].map((button) => button!.tabIndex)).toEqual([0, -1, -1]);
+    await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+    await pressTab();
+    expect(document.activeElement).toBe(like);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(reply);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(more);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(like);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(more);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(like);
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(more);
+    // Other keys do nothing, and the button last focused is the Tab stop.
+    await userEvent.keyboard("x");
+    expect(document.activeElement).toBe(more);
+    expect([like, reply, more].map((button) => button!.tabIndex)).toEqual([-1, -1, 0]);
+    await pressTab();
+    expect(document.activeElement!.textContent).toBe("After");
+  });
+
+  it("moves the other way in a right-to-left page", async () => {
+    const { host } = await render(
+      <div dir="rtl">
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+          Morning!
+        </Message>
+      </div>,
+    );
+    const [like, reply] = [...host.querySelectorAll<HTMLElement>('[role="toolbar"] button')];
+    await act(async () => like!.focus());
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(reply);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(like);
+  });
+
+  it("skips a disabled action, and moves the Tab stop off one that turns disabled", async () => {
+    function Toggling() {
+      const [off, setOff] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOff(true)}>
+            Turn off
+          </button>
+          <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([], { disabled: off })}>
+            Morning!
+          </Message>
+        </>
+      );
+    }
+    const { host } = await render(<Toggling />);
+    const bar = host.querySelector<HTMLElement>('[role="toolbar"]')!;
+    const [like, reply] = [...bar.querySelectorAll<HTMLButtonElement>("button")];
+    await act(async () => reply!.focus());
+    expect(reply!.tabIndex).toBe(0);
+    await userEvent.click(page.getByRole("button", { name: "Turn off" }));
+    expect(reply!.disabled).toBe(true);
+    expect(like!.tabIndex).toBe(0);
+    await act(async () => like!.focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(like);
+  });
+
+  it("ignores keys and focus that are not on one of its buttons", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
+        Morning!
+      </Message>,
+    );
+    const bar = barOf(message);
+    await act(async () => {
+      bar.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      bar.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect([...bar.querySelectorAll("button")].map((button) => button.tabIndex)).toEqual([0, -1]);
+  });
+
+  it("opens the menu from the last button, and keeps the bar while it is open", async () => {
+    const copied = vi.fn();
+    const { message } = await render(
+      <Message variant="post" role="assistant" name="Jonah Vale" menu={[{ label: "Copy link", onClick: copied }]} menuLabel="Plus d'actions" actionsLabel="Actions du message">
+        Agenda
+      </Message>,
+    );
+    const bar = barOf(message);
+    expect(bar.getAttribute("aria-label")).toBe("Actions du message");
+    const more = bar.querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
+    expect(more.getAttribute("aria-label")).toBe("Plus d'actions");
+    expect(more.tabIndex).toBe(0);
+    await userEvent.hover(bubbleOf(message));
+    await userEvent.click(more);
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    await userEvent.unhover(document.body);
+    expect(bar.hasAttribute("data-menu-open")).toBe(true);
+    expect(getComputedStyle(bar).opacity).toBe("1");
+    await userEvent.click(page.getByRole("menuitem", { name: "Copy link" }));
+    expect(copied).toHaveBeenCalledTimes(1);
+    await expect.poll(() => bar.hasAttribute("data-menu-open")).toBe(false);
+  });
+
+  it("has no bar without actions or menu entries", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={[]} menu={[]}>
+        Morning!
+      </Message>,
+    );
+    expect(message.querySelector('[role="toolbar"]')).toBeNull();
+  });
+
+  it("puts the bar at the start of the user's own chat message, and adds it to the default layout", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="user" name="Priya Okafor" actions={actionsFor([])}>
+          Mine
+        </Message>
+        <Message role="user" name="Ada" actions={actionsFor([])}>
+          Default
+        </Message>
+        <Message role="assistant" name="Ouro" actions={actionsFor([])}>
+          Default
+        </Message>
+      </>,
+    );
+    const [mine, user, assistant] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(barOf(mine!).getBoundingClientRect().left).toBeCloseTo(bubbleOf(mine!).getBoundingClientRect().left + 8, 0);
+    expect(barOf(user!)).not.toBeNull();
+    expect(bubbleOf(user!).getBoundingClientRect().right).toBeGreaterThan(host.getBoundingClientRect().right - 60);
+    expect(barOf(assistant!)).not.toBeNull();
+  });
+
+  it("shows the bar after a tap on a touch screen, until a press lands outside the message", async () => {
+    const onPointerUp = vi.fn();
+    const { host, message } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} onPointerUp={onPointerUp}>
+          Morning! <a href="#venue">Venue</a>
+        </Message>
+        <p>Elsewhere</p>
+      </>,
+    );
+    const tap = (target: Element, type = "pointerup", pointerType = "touch") =>
+      act(async () => void target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType })));
+    // A mouse press, or a tap on a link inside, does not.
+    await tap(bubbleOf(message), "pointerup", "mouse");
+    await tap(message.querySelector("a")!);
+    expect(message.hasAttribute("data-ouro-message-active")).toBe(false);
+    expect(onPointerUp).toHaveBeenCalledTimes(2);
+    await tap(bubbleOf(message));
+    expect(message.hasAttribute("data-ouro-message-active")).toBe(true);
+    await expect.poll(() => getComputedStyle(barOf(message)).opacity).toBe("1");
+    // A press inside keeps it; one outside hides it.
+    await tap(bubbleOf(message), "pointerdown");
+    expect(message.hasAttribute("data-ouro-message-active")).toBe(true);
+    await tap(host.querySelector("p")!, "pointerdown");
+    expect(message.hasAttribute("data-ouro-message-active")).toBe(false);
+  });
+
+  it("shows the default layout's bar after a tap too", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" actions={actionsFor([])}>
+        Hi
+      </Message>,
+    );
+    await act(async () => void bubbleOf(message).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
+    expect(message.hasAttribute("data-ouro-message-active")).toBe(true);
+  });
+
+  it("ignores taps on a message with no actions", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        Morning!
+      </Message>,
+    );
+    await act(async () => void bubbleOf(message).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
+    expect(message.hasAttribute("data-ouro-message-active")).toBe(false);
+  });
+
+  it("forwards an object ref, and a function ref, to the article", async () => {
+    const ref = createRef<HTMLElement>();
+    const { message, rerender } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" ref={ref}>
+        Hi
+      </Message>,
+    );
+    expect(ref.current).toBe(message);
+    let element: HTMLElement | null = null;
+    await rerender(
+      <Message variant="chat" role="assistant" name="Mara Quill" ref={(node) => void (element = node)}>
+        Hi
+      </Message>,
+    );
+    expect(element).toBe(message);
+  });
+
+  it("renders a chat message with actions in server HTML and hydrates without a warning", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const node = (
+      <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM" subject="Agenda" actions={actionsFor([])} menu={menu} footer={<span>Edited</span>}>
+        Hello
+      </Message>
+    );
+    const html = renderToString(node);
+    expect(html).toContain('role="toolbar"');
+    expect(html).toContain("Agenda");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 });

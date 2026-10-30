@@ -2,7 +2,7 @@
 
 # Message
 
-One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. `role` places and colors it: the user's own messages at the end in the primary color, the assistant's at the start, the app's `system` notes centered. `streaming` marks a reply still being written.
+One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. `role` places and colors it: the user's own messages at the end in the primary color, the assistant's at the start, the app's `system` notes centered. `streaming` marks a reply still being written. `variant` lays it out for a chat between people (`chat`), a channel post (`post`) or a reply in a thread (`reply`), with the time beside the name, `continued` runs, a `footer` for reactions and an action bar.
 
 ```tsx
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -13,6 +13,8 @@ import { Message } from "@/registry/ouro/components/ouro/message/message";
 ```tsx
 <Message role="user" name={user.name} avatar={user.photoUrl}>How long do I rest the dough?</Message>
 <Message role="assistant" name="Ouro" streaming={!reply.done}>{reply.text}</Message>
+<Message variant="chat" role="assistant" name="Grace" time="9:41 AM" footer={<ReactionBar reactions={reactions} />} actions={[{ key: "reply", label: "Reply", icon: <ReplyIcon />, onClick: reply }]}>Lunch?</Message>
+<Message variant="post" role="assistant" name="Grace" time="9:41 AM" subject="Launch plan" thread={<ThreadSummary count={2} onOpen={open} />}>Notes inside.</Message>
 ```
 
 ## Usage
@@ -29,15 +31,26 @@ Type: `MessageProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the top corner of the bubble or card. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
+| `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
 | `attachments` | `ReactNode` |  | Files sent with the message, shown under it: `<Attachment>` elements. |
-| `avatar` | `string \| false` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. |
+| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. Pass an `Avatar` element instead to show presence or a square avatar: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
+| `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
+| `dateTime` | `string` |  | The same moment for machines, as an ISO date (`2026-05-01T09:41`): the `<time>` element's `dateTime`. |
+| `footer` | `ReactNode` |  | Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
+| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`. The bar stays while the menu is open. |
+| `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ada joined"), centered and quiet. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
+| `subject` | `ReactNode` |  | A post's subject, in bold above its text. `post` only. |
+| `thread` | `ReactNode` |  | Under a post: its thread, as a `<ThreadSummary>`. |
+| `time` | `string` |  | When it was written, already formatted for the reader ("9:41 AM"), shown after the name. Format it in the browser after hydration, so the server and the reader's clock agree. |
+| `variant` | `"default" \| "chat" \| "post" \| "reply"` | `"default"` | How the message is laid out. `default` suits a conversation with an assistant. `chat` suits people writing to each other: others' messages at the start on a raised bubble under their name and time, the user's own at the end in a tint of the primary color, with only the time. `post` is a post in a channel: a card as wide as the list, under the author's name and time, with an optional `subject` and the `footer` inside it. `reply` is a reply in a thread: the same line of name and time, with the text unboxed under it. In `post` and `reply` the user's own messages sit at the start too. |
 
 ## Native attributes
 
@@ -50,7 +63,9 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `author`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
 - `content`: Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`.
 - `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`.
+- `own`: Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`.
 - `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
+- `timestamp`: Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`.
 
 ## `className` is for layout only
 
@@ -59,5 +74,129 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `MenuCheckboxEntry`
+
+A menu entry for `items`: an on/off setting that stays in the menu when toggled.
+
+```ts
+interface MenuCheckboxEntry {
+  type: "checkbox";
+  label: string;
+  checked?: boolean | undefined;
+  defaultChecked?: boolean | undefined;
+  onCheckedChange?: ((checked: boolean) => void) | undefined;
+  shortcut?: MenuShortcut | undefined;
+  disabled?: boolean | undefined;
+}
+```
+
+### `MenuEntry`
+
+One entry in a Menu's `items`: an item (the default `type`), a checkbox, a radio group, a group, a submenu or a separator.
+
+```ts
+type MenuEntry =
+  | MenuItemEntry
+  | MenuCheckboxEntry
+  | MenuRadioEntry
+  | MenuGroupEntry
+  | MenuSubmenuEntry
+  | { type: "separator" };
+```
+
+### `MenuGroupEntry`
+
+A menu entry for `items`: entries under a label.
+
+```ts
+interface MenuGroupEntry {
+  type: "group";
+  label: string;
+  items: readonly MenuEntry[];
+}
+```
+
+### `MenuItemEntry`
+
+A menu entry for `items`: an action, or a link with `href`.
+
+```ts
+interface MenuItemEntry {
+  type?: "item" | undefined;
+  /** The item's text. */
+  label: string;
+  /** Runs when the item is chosen, by click, tap or Enter. The menu then closes. */
+  onClick?: (() => void) | undefined;
+  /** Makes the item a link, through `OuroProvider`'s router link for an internal path. */
+  href?: string | undefined;
+  /** The keys of the item's shortcut, shown at its end: `["mod", "e"]`. It does not bind them. */
+  shortcut?: MenuShortcut | undefined;
+  /** `"destructive"` for an action that deletes or cannot be undone. */
+  tone?: "destructive" | undefined;
+  /** Shown, but cannot be chosen. */
+  disabled?: boolean | undefined;
+}
+```
+
+### `MenuRadioEntry`
+
+A menu entry for `items`: one choice of several, as radio items under an optional label.
+
+```ts
+interface MenuRadioEntry {
+  type: "radio";
+  /** Names the group: "Sort by". */
+  label?: string | undefined;
+  value?: string | undefined;
+  defaultValue?: string | undefined;
+  onValueChange?: ((value: string) => void) | undefined;
+  options: ReadonlyArray<{ value: string; label: string; shortcut?: MenuShortcut | undefined; disabled?: boolean | undefined }>;
+}
+```
+
+### `MenuShortcut`
+
+Keys for a shortcut, as `Kbd` takes them: `["mod", "e"]` shows ⌘E on Apple platforms and Ctrl+E elsewhere.
+
+```ts
+type MenuShortcut = readonly string[] | (string & { 'Use an array: shortcut={["mod", "k"]}': never });
+```
+
+### `MenuSubmenuEntry`
+
+A menu entry for `items`: an item that opens a nested menu.
+
+```ts
+interface MenuSubmenuEntry {
+  type: "submenu";
+  label: string;
+  items: readonly MenuEntry[];
+  disabled?: boolean | undefined;
+  /** The text of the item that goes back from the submenu in the phone sheet. Default "Back". */
+  backLabel?: string | undefined;
+}
+```
+
+### `MessageAction`
+
+One action in a message's action bar: an icon button with a tooltip.
+
+```ts
+interface MessageAction {
+  /** Identifies the action among the message's actions ("reply"). */
+  key: string;
+  /** The button's name, which its tooltip shows too: "Reply". */
+  label: string;
+  /** What the button shows: an icon element (`<ReplyIcon />`) or an emoji. Screen readers hear `label` instead. */
+  icon: ReactNode;
+  /** Runs when the action is pressed. */
+  onClick: (event: MouseEvent<HTMLElement>) => void;
+  /** Shown, but cannot be pressed: an action the app has turned off for now. */
+  disabled?: boolean | undefined;
+}
+```
 
 [^layout-classes]: test:registry/ouro/components/ouro/message/message.test.tsx::Message > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > forwards a ref and lets app layout classes win)

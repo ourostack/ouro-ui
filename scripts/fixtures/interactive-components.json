@@ -51,6 +51,7 @@
   "carousel",
   "resizable",
   "chart",
+  "message",
   "message-list",
   "attachment",
   "inspector",
@@ -72,5 +73,6 @@
   "reaction-bar",
   "lightbox",
   "composer",
-  "time-grid"
+  "time-grid",
+  "thread-summary"
 ]

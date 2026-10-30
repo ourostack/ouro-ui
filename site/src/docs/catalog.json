@@ -702,6 +702,13 @@
     "summary": "A file attached to a chat message, or waiting to be sent with one: its icon, name and size."
   },
   {
+    "name": "thread-summary",
+    "title": "ThreadSummary",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/message/thread-summary.tsx",
+    "summary": "The line under a post that leads to its thread: who replied, \"N replies\" (a button that opens the thread) and when the last reply came."
+  },
+  {
     "name": "conversation-list",
     "title": "ConversationList",
     "group": "Chat",

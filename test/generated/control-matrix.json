@@ -1816,6 +1816,42 @@
     ]
   },
   {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "action",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "menu",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread"
+    ]
+  },
+  {
     "item": "message-list",
     "stem": "message-list",
     "mode": "default",
@@ -1869,6 +1905,19 @@
       "Attachment/Playground",
       "Attachment/Files",
       "Attachment/Removable"
+    ]
+  },
+  {
+    "item": "thread-summary",
+    "stem": "thread-summary",
+    "mode": "default",
+    "part": "open",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ThreadSummary/Playground",
+      "ThreadSummary/UnderPosts"
     ]
   },
   {
