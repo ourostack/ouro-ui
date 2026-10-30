@@ -15,6 +15,7 @@ import { inline, Markdown, parse, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
 import { latestRelease } from "../latest-release";
+import spoonjoy from "../docs/spoonjoy.json";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -70,6 +71,8 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <LiveDemo name={item.name} title={item.title} />
       </section>
 
+      <InSpoonjoy name={item.name} />
+
       <Heading level={2} size="lg" id="install" className="mt-14 mb-4">
         Install
       </Heading>
@@ -121,6 +124,48 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         </a>
       </div>
     </DocsShell>
+  );
+}
+
+const linkClass = "text-primary underline underline-offset-4";
+
+/** Where Spoonjoy uses the component: pages anyone can open that show it, and the files that render it. */
+function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
+  const use = (spoonjoy.items as Record<string, { pages: { url: string; label: string }[]; sources: string[] }>)[name];
+  if (!use) return null;
+  return (
+    <section aria-labelledby="in-spoonjoy" className="mt-10 grid gap-3">
+      <Heading level={2} size="lg" id="in-spoonjoy">
+        In Spoonjoy
+      </Heading>
+      <Text tone="muted">
+        <a href="https://spoonjoy.app/" className={linkClass}>Spoonjoy</a>, a recipe app,{" "}
+        {claim("is built with Ouro HX", { source: { spec: "https://spoonjoy.app/ouro-provenance.json" }, verify: { testExists: "site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub" } })}{" "}
+        (<a href={spoonjoy.guide} className={linkClass}>how</a>).
+      </Text>
+      {use.pages.length > 0 && (
+        <Text size="sm" tone="muted">
+          {claim("See it live, no sign-in needed", { source: { file: "site/scripts/spoonjoy.mts" }, verify: { testExists: "site/scripts/spoonjoy.test.mjs::a page counts for an item only when its HTML holds the item's root marker" } })}:{" "}
+          {use.pages.map((page, index) => (
+            <span key={page.url}>
+              {index > 0 && " · "}
+              <a href={page.url} className={linkClass}>{page.label}</a>
+            </span>
+          ))}
+        </Text>
+      )}
+      {use.sources.length > 0 && (
+        <Text size="sm" tone="muted">
+          In its source:{" "}
+          {use.sources.map((file, index) => (
+            <span key={file}>
+              {index > 0 && " · "}
+              <a href={file} className={linkClass}><InlineCode>{file.slice(file.indexOf("/blob/main/") + "/blob/main/".length)}</InlineCode></a>
+            </span>
+          ))}
+        </Text>
+      )}
+    </section>
   );
 }
 

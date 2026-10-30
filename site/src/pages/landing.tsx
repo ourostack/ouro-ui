@@ -15,6 +15,7 @@ import generated from "../generated/agent-messages.json";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, SHADCN_BADGE, SHADCN_LINE } from "../copy";
 import { latestRelease } from "../latest-release";
 import { href } from "../routes";
+import spoonjoy from "../docs/spoonjoy.json";
 
 /** A small label beside a heading: "Works with shadcn/ui", "Alpha". */
 export function Pill({ children }: { children: ReactNode }): JSX.Element {
@@ -360,6 +361,45 @@ function Switching(): JSX.Element {
   );
 }
 
+const SPOONJOY = "https://spoonjoy.app/";
+const SPOONJOY_SOURCE = "https://github.com/spoonjoy/spoonjoy-v2";
+
+function InUse(): JSX.Element {
+  return (
+    <section aria-labelledby="in-use-title" className="border-t border-border">
+      <Container className="py-20 sm:py-28">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-16">
+          <div>
+            <Eyebrow>In use</Eyebrow>
+            <Heading level={2} size="2xl" id="in-use-title">
+              Spoonjoy is built with it
+            </Heading>
+          </div>
+          <div className="grid content-start justify-items-start gap-6">
+            <Text size="lg" tone="muted">
+              <a href={SPOONJOY} className="text-primary underline underline-offset-4">Spoonjoy</a>, a recipe app, uses{" "}
+              {claim("60 Ouro HX components", { source: { spec: "https://spoonjoy.app/ouro-provenance.json" }, verify: { count: "site/src/docs/spoonjoy.json#items", is: 60 } })}, from its
+              navigation to its recipe pages, forms and cooking timers.{" "}
+              {claim("Each component's docs page links to where Spoonjoy shows it and to the files that render it.", { source: { file: "site/src/pages/docs.tsx" }, verify: { fileLine: "site/src/pages/docs.tsx", pattern: "<InSpoonjoy name=\\{item\\.name\\} />" } })}
+            </Text>
+            <div className="flex flex-wrap gap-3">
+              <Button href={SPOONJOY} endIcon={ArrowRightIcon}>
+                Open Spoonjoy
+              </Button>
+              <Button href={SPOONJOY_SOURCE} variant="outline" tone="secondary">
+                Spoonjoy's source
+              </Button>
+              <Button href={spoonjoy.guide} variant="outline" tone="secondary">
+                How Spoonjoy builds with Ouro HX
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
 function ComingSoon(): JSX.Element {
   return (
     <section aria-labelledby="coming-soon-title" className="border-t border-border">
@@ -387,6 +427,7 @@ export default function Landing(): JSX.Element {
         <LiveCatalog />
         <Agents />
         <Principles />
+        <InUse />
         <Install />
         <Switching />
         <ComingSoon />
