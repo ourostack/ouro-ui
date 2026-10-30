@@ -14,6 +14,7 @@ import {
   type TdHTMLAttributes,
   type ThHTMLAttributes,
 } from "react";
+import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
@@ -26,20 +27,27 @@ import {
   alignClasses,
   cellBase,
   cellPad,
+  directionOf,
+  directionWarning,
   headCell,
   rowLinkClass,
   sectionCell,
+  sortButtonClass,
+  sortedLabelDefault,
+  sortIconPaths,
   stickyHead,
   wrapClass,
   type TableAlign,
+  type TableSortDirection,
 } from "@/registry/ouro/components/ouro/table/table-styles";
 
-export type { TableAlign } from "@/registry/ouro/components/ouro/table/table-styles";
+export type { TableAlign, TableSortDirection } from "@/registry/ouro/components/ouro/table/table-styles";
 
 interface TableState {
   dense: boolean;
   striped: boolean;
   stickyHeader: boolean;
+  sortedLabel: (header: string, direction: TableSortDirection) => string;
 }
 type Section = "head" | "body" | "foot";
 interface RowState {
@@ -93,6 +101,7 @@ export interface TableFrameProps extends Omit<HTMLAttributes<HTMLDivElement>, "c
   striped?: boolean | undefined;
   dense?: boolean | undefined;
   stickyHeader?: boolean | undefined;
+  sortedLabel?: ((header: string, direction: TableSortDirection) => string) | undefined;
   children?: ReactNode;
   className?: string | undefined;
   style?: CSSProperties | undefined;
@@ -108,9 +117,9 @@ export interface TableFrameProps extends Omit<HTMLAttributes<HTMLDivElement>, "c
  * <TableFrame caption="Recipes"><TableBody>…</TableBody></TableFrame>
  */
 export function TableFrame(props: TableFrameProps): JSX.Element {
-  const { caption, hideCaption, striped, dense, stickyHeader, children, className, tableRef, ...rest } = props;
+  const { caption, hideCaption, striped, dense, stickyHeader, sortedLabel = sortedLabelDefault, children, className, tableRef, ...rest } = props;
   return (
-    <TableContext.Provider value={{ dense: Boolean(dense), striped: Boolean(striped), stickyHeader: Boolean(stickyHeader) }}>
+    <TableContext.Provider value={{ dense: Boolean(dense), striped: Boolean(striped), stickyHeader: Boolean(stickyHeader), sortedLabel }}>
       <div {...rest} data-ouro="table" className={cn("flex min-w-0 flex-col gap-3", className)}>
         {!hideCaption && (
           <div aria-hidden data-table-caption="" className="text-sm font-medium text-muted-foreground">
@@ -144,6 +153,12 @@ export interface TableRootProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   dense?: boolean | undefined;
   /** Keeps the header row at the top while the rows scroll, inside the height you give it (`className="max-h-96"`). */
   stickyHeader?: boolean | undefined;
+  /**
+   * What screen readers hear after a header with `onSort` is pressed, from the header's text
+   * and the new direction. Pass it to translate the message.
+   * @default (header, direction) => `Sorted by ${header}, ${direction}`
+   */
+  sortedLabel?: ((header: string, direction: TableSortDirection) => string) | undefined;
   /** `TableHeader`, `TableBody` and `TableFooter`. */
   children: ReactNode;
   /** Layout: margins, width and the height the table scrolls inside. Appearance classes warn in development. */
@@ -403,26 +418,69 @@ export interface TableHeadProps extends Omit<ThHTMLAttributes<HTMLTableCellEleme
   children: ReactNode;
   /** Hides the header visually and keeps it for screen readers, for a column of actions. */
   hideHeader?: boolean | undefined;
+  /**
+   * Which way the rows are sorted by this column. It sets `aria-sort` and shows an arrow; leave
+   * it out on the columns the rows are not sorted by.
+   */
+  sorted?: TableSortDirection | (string & { 'Use "ascending" or "descending": asc is "ascending"': never }) | undefined;
+  /**
+   * Makes the header a button that sorts the rows by this column, with an arrow that shows the
+   * direction. A press calls it with the direction to sort to (`"descending"` when this column
+   * is sorted ascending, or else `"ascending"`) and tells screen readers. Sort the rows yourself
+   * and pass `sorted` back. On a touch screen the header is at least 44px tall.
+   *
+   * @claim "A press calls it with the direction" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table parts > sorts from a TableHead with onSort, which the app sorts and marks with sorted)
+   * @claim "On a touch screen the header" registry/ouro/components/ouro/table/table.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/table/table.touch.test.tsx, /makes\sa\ssortable\sheader\sat\sleast\s44px\stall/)
+   */
+  onSort?: ((direction: TableSortDirection) => void) | undefined;
   ref?: Ref<HTMLTableCellElement> | undefined;
 }
 
 /**
- * Part: a column header (`<th scope="col">`) in a `TableHeader` row.
+ * Part: a column header (`<th scope="col">`) in a `TableHeader` row. With `onSort` it is a
+ * button that sorts the rows by its column, and `sorted` marks the column they are sorted by.
  *
  * @group Data
  * @example
  * <TableHead align="end">Serves</TableHead>
  * <TableHead hideHeader>Actions</TableHead>
+ * <TableHead sorted={sort.key === "name" ? sort.direction : undefined} onSort={(direction) => setSort({ key: "name", direction })}>
+ *   Recipe
+ * </TableHead>
  */
 export function TableHead(props: TableHeadProps): JSX.Element {
-  const { align, hideHeader, wrap, className, children, ...rest } = props;
+  const { align, hideHeader, wrap, sorted, onSort, className, children, ...rest } = props;
   const table = useTable("TableHead");
   const row = useContext(RowContext) ?? misplaced("TableHead", "TableRow");
   useAppearanceClassNameCheck("TableHead", className, cellHint(), alignHint("TableHead"));
   useAlignCheck("TableHead", align);
+  useDevWarnings(
+    "TableHead",
+    process.env.NODE_ENV !== "production"
+      ? () => [directionWarning(sorted, (direction) => `<TableHead sorted="${direction}">`)]
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
+  const direction = directionOf(sorted);
+  const label = hideHeader ? <span className="sr-only">{children}</span> : children;
+  const icon = (onSort || direction) && (
+    <svg
+      aria-hidden="true"
+      data-sort-icon={direction ?? "none"}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-3.5 shrink-0"
+    >
+      <path d={sortIconPaths[direction ?? "none"]} />
+    </svg>
+  );
   return (
     <th
       scope="col"
+      aria-sort={direction}
       {...rest}
       className={cn(
         cellBase,
@@ -431,11 +489,34 @@ export function TableHead(props: TableHeadProps): JSX.Element {
         alignClasses[alignOf(align)],
         sectionCell[row.section],
         wrap && wrapClass,
+        direction && "text-foreground",
+        onSort && "relative pointer-coarse:h-11",
         table.stickyHeader && row.section === "head" && stickyHead,
         className,
       )}
     >
-      {hideHeader ? <span className="sr-only">{children}</span> : children}
+      {onSort ? (
+        <button
+          type="button"
+          data-ouro-control="table"
+          data-ouro-part="sort"
+          // An end-aligned column keeps its name over its numbers, with the arrow before it.
+          className={cn(sortButtonClass, alignOf(align) === "end" && "flex-row-reverse")}
+          onClick={(event) => {
+            const next = direction === "ascending" ? "descending" : "ascending";
+            announce(table.sortedLabel(event.currentTarget.textContent!, next));
+            onSort(next);
+          }}
+        >
+          <span className="min-w-0">{label}</span>
+          {icon}
+        </button>
+      ) : (
+        <>
+          {label}
+          {icon && <span className="ms-1.5 inline-flex align-middle">{icon}</span>}
+        </>
+      )}
     </th>
   );
 }

@@ -1,12 +1,32 @@
 "use client";
 
-import { type CSSProperties, type HTMLAttributes, type JSX, type Key, type ReactNode, type Ref } from "react";
+import { useMemo, useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes, type JSX, type Key, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { TableBody, TableCell, TableHead, TableFrame, TableHeader, TableRow, type TableAlign } from "@/registry/ouro/components/ouro/table/table-parts";
+import { directionOf, directionWarning, type TableSortDirection } from "@/registry/ouro/components/ouro/table/table-styles";
+
+export type { TableSortDirection } from "@/registry/ouro/components/ouro/table/table-styles";
 
 /** The keys of `Row` whose values are assignable to `Value`. */
 export type TableKeysOf<Row, Value> = { [K in keyof Row]-?: Row[K] extends Value ? K : never }[keyof Row] & string;
+
+/** What a column sorts by: text, a number, a date or a boolean. An empty value sorts last. */
+export type TableSortValue = string | number | Date | boolean | null | undefined;
+
+/**
+ * Which column the rows are sorted by, and which way: what `sort`, `defaultSort` and
+ * `onSortChange` take.
+ *
+ * @example
+ * const [sort, setSort] = useState<TableSort>({ key: "name", direction: "ascending" });
+ */
+export interface TableSort {
+  /** The sorted column's `key`. */
+  key: string;
+  /** `"ascending"`: A to Z, low to high, old to new. `"descending"`: the other way. */
+  direction: TableSortDirection | (string & { 'Use "ascending" or "descending": asc is "ascending"': never });
+}
 
 /**
  * What every column takes, whichever way its cells are filled.
@@ -44,7 +64,20 @@ export interface TableColumnBase {
   wrap?: boolean | undefined;
   /** Layout only, on the header cell: a width (`w-32`). */
   className?: string | undefined;
+  /**
+   * Makes the column's header a button that sorts the rows by it; pressing it again reverses
+   * them. Table sorts by the row's `key` field, or by `sortValue`: numbers and dates as
+   * numbers and dates, text in the reader's language with the numbers in it in order ("Step 2"
+   * before "Step 10"), and rows with an empty value last. Rows with equal values keep their order.
+   *
+   * @claim "Makes the column's header a button" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > sorts by a sortable column from its header, and reverses on the next press, with aria-sort and an arrow)
+   * @claim "Table sorts by the row's `key`" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > sorts numbers, dates and text with numbers in order, and puts empty values last both ways)
+   * @claim "Rows with equal values keep their" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > keeps rows with equal values in their order, both ways)
+   */
+  sortable?: boolean | undefined;
 
+  /** Not a prop. Ouro UI uses `sortable`: `{ key: "name", header: "Recipe", sortable: true }`. */
+  enableSorting?: { "Use sortable: true": never };
   /** Not a prop. Ouro UI uses `key`: `{ key: "name", header: "Recipe" }`. */
   accessorKey?: { 'Use key: "name"': never };
   /** Not a prop. Ouro UI uses `header`: `{ key: "name", header: "Recipe" }`. */
@@ -61,8 +94,15 @@ export interface TableColumnBase {
  * `cell`, any name, and `cell` renders each row's cell.
  * @claim "`key` names a field of the" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
  */
-export type TableColumn<Row> = TableColumnBase &
-  (
+export type TableColumn<Row> = TableColumnBase & {
+  /**
+   * What the column sorts by, when its cells show something else (a `cell` renderer, a
+   * formatted date): `sortValue: (row) => row.added`. It makes the column `sortable`.
+   *
+   * @claim "It makes the column `sortable`" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > sorts a cell column by its sortValue, which makes it sortable)
+   */
+  sortValue?: ((row: Row) => TableSortValue) | undefined;
+} & (
     | {
         /**
          * The field of each row to show, and the column's React key.
@@ -125,6 +165,13 @@ export interface TableOwnProps {
   style?: CSSProperties | undefined;
   /** A ref to the `<table>` element. */
   ref?: Ref<HTMLTableElement> | undefined;
+  /**
+   * What screen readers hear after a header sorts the rows, from the column's header and the
+   * new direction. Pass it to translate the message.
+   * @default (header, direction) => `Sorted by ${header}, ${direction}`
+   * @claim "What screen readers hear after a" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > tells screen readers how the rows are sorted, once per press, in the words sortedLabel gives)
+   */
+  sortedLabel?: ((header: string, direction: TableSortDirection) => string) | undefined;
 
   /** Not a prop. Ouro UI uses `rows`: `<Table rows={recipes} columns={…}>`. */
   data?: { "Use rows={recipes}": never };
@@ -132,8 +179,8 @@ export interface TableOwnProps {
   onRowClick?: { "Use rowHref={(row) => `/recipes/${row.id}`}": never };
   /** Not a prop. Ouro UI uses `caption`: `<Table caption="Recipes">`. */
   title?: { 'Use <Table caption="Recipes">': never };
-  /** Not a prop. Table does not sort: pass the rows in the order to show them. */
-  sortable?: { "Sort the rows yourself: rows={sortedRows}": never };
+  /** Not a prop. A column sorts with `sortable`: `{ key: "name", header: "Recipe", sortable: true }`. */
+  sortable?: { "Put sortable on a column: { key, header, sortable: true }": never };
 }
 
 /** With columns and rows: the props that describe the whole table. */
@@ -144,8 +191,26 @@ export interface TableDataProps<Row> {
    * @claim "The columns, in order: each one's" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table > renders a semantic table named by its caption, with column and row headers)
    */
   columns: readonly TableColumn<NoInfer<Row>>[];
-  /** The rows, in the order to show them. Table does not sort or page them. */
+  /** The rows, in the order to show them until a `sortable` column sorts them. Table does not page them. */
   rows: readonly Row[];
+  /**
+   * The sorted column, controlled: Table marks its header and shows the rows in the order you
+   * pass them, so you sort them (on a server, say), and `onSortChange` tells you which sort to
+   * show next. Pass `null` while nothing is sorted. To let Table sort the rows itself, use
+   * `defaultSort` instead.
+   *
+   * @claim "Table marks its header and shows" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > with sort, marks the header and keeps the rows in the order passed, and asks for the next sort)
+   */
+  sort?: TableSort | null | undefined;
+  /**
+   * The column the rows are sorted by at first. Table then sorts the rows itself as the
+   * headers are pressed.
+   *
+   * @claim "The column the rows are sorted" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > starts sorted by defaultSort, and renders it on the server)
+   */
+  defaultSort?: TableSort | undefined;
+  /** Called with the new sort when a header is pressed, with `sort` or without it. */
+  onSortChange?: ((sort: { key: string; direction: TableSortDirection }) => void) | undefined;
   /**
    * Each row's React key: the name of a field (`rowKey="slug"`) or a function. Without it,
    * a row's `id` field, or else its position.
@@ -203,6 +268,12 @@ export interface TablePartsProps {
   rowExternal?: never;
   /** Only without parts. Give a row `<TableRow externalLabel="…">`. */
   externalLabel?: never;
+  /** Only without parts. Give the sorted column's header `<TableHead sorted="ascending">`. */
+  sort?: never;
+  /** Only without parts. Give the sorted column's header `<TableHead sorted="ascending">`. */
+  defaultSort?: never;
+  /** Only without parts. Give each header `<TableHead onSort={…}>`. */
+  onSortChange?: never;
 }
 
 /**
@@ -219,6 +290,68 @@ const aligns: readonly string[] = ["start", "center", "end"];
 function hasHeight(className: string | undefined, style: CSSProperties | undefined): boolean {
   if (style?.height !== undefined || style?.maxHeight !== undefined) return true;
   return (className ?? "").split(/\s+/).some((token) => /^(max-)?h-/.test(token.slice(token.lastIndexOf(":") + 1)));
+}
+
+/** What a value sorts as: a number (for numbers, dates and booleans), text, or `null` for an empty value or one that can't sort. */
+function sortKey(value: unknown): number | string | null {
+  const plain = value instanceof Date ? value.getTime() : typeof value === "boolean" ? Number(value) : value;
+  if (typeof plain === "number") return Number.isNaN(plain) ? null : plain;
+  return typeof plain === "string" && plain !== "" ? plain : null;
+}
+
+type SortColumn<Row> = TableColumnBase & { key: string; sortValue?: ((row: Row) => TableSortValue) | undefined };
+
+const isSortable = (column: { sortable?: boolean | undefined; sortValue?: unknown }) => column.sortable ?? column.sortValue !== undefined;
+
+/** The value a column sorts a row by: its `sortValue`, or else the row's field. */
+const sortValueOf = <Row,>(column: SortColumn<Row>, row: Row): unknown => (column.sortValue ? column.sortValue(row) : (row as Record<string, unknown>)[column.key]);
+
+/**
+ * The rows in the sort's order: stable, with empty values last both ways, numbers before text
+ * when a column mixes them, and text compared in `locale` with the numbers in it in order.
+ */
+function sortRows<Row>(rows: readonly Row[], column: SortColumn<Row>, direction: TableSortDirection, locale: string | undefined): readonly Row[] {
+  const collator = new Intl.Collator(locale, { numeric: true });
+  const sign = direction === "descending" ? -1 : 1;
+  const compare = (a: number | string, b: number | string) =>
+    typeof a !== typeof b ? (typeof a === "number" ? -1 : 1) : typeof a === "number" ? a - (b as number) : collator.compare(a as string, b as string);
+  const keyed = rows.map((row) => ({ row, key: sortKey(sortValueOf(column, row)) }));
+  // Array sort is stable, so rows with equal values keep their order, and so do the empty ones after them.
+  const valued = keyed.filter((entry): entry is { row: Row; key: number | string } => entry.key !== null).sort((x, y) => sign * compare(x.key, y.key));
+  return [...valued, ...keyed.filter((entry) => entry.key === null)].map((entry) => entry.row);
+}
+
+// Text sorts in the reader's language, which the server can't know: it sorts in English, and
+// the browser sorts again in its own language once the page has hydrated.
+// Stryker disable next-line ArrowFunction: the store never changes, so there is nothing to unsubscribe
+const noSubscribe = () => () => {};
+// Stryker disable next-line ArrowFunction: undefined is the browser's own locale, so the mutant is the same function
+const browserLocale = () => undefined;
+// Stryker disable next-line ArrowFunction: the test browsers' own locale is English, so they sort as the mutant does; pinning it keeps every server alike
+const serverLocale = () => "en";
+
+const none: readonly never[] = [];
+
+function sortWarnings<Row>(columns: readonly SortColumn<Row>[], rows: readonly Row[], sort: TableSort | undefined): DevWarning[] {
+  const named = sort && columns.find((column) => column.key === sort.key);
+  return [
+    sort !== undefined && directionWarning(sort.direction, (direction) => `{ key: "${sort.key}", direction: "${direction}" }`),
+    sort !== undefined &&
+      !(named && isSortable(named)) && [`the sort names "${sort.key}", which is not a sortable column`, `{ key: "${sort.key}", header: "…", sortable: true }`],
+    ...columns.map((column): DevWarning => {
+      if (!isSortable(column) || column.sortValue || rows.length === 0) return false;
+      const fields = rows as readonly Record<string, unknown>[];
+      // A `cell` column whose key is no field, or a field that holds an element.
+      const missing = fields.every((row) => !(column.key in row));
+      const element = fields.some((row) => typeof row[column.key] === "object" && row[column.key] !== null && !(row[column.key] instanceof Date));
+      return (
+        (missing || element) && [
+          `column "${column.key}" has no text, number or date to sort by`,
+          `{ key: "${column.key}", header: "…", sortable: true, sortValue: (row) => row.name }`,
+        ]
+      );
+    }),
+  ];
 }
 
 function columnWarnings(columns: readonly (TableColumnBase & { key: string })[]): DevWarning[] {
@@ -239,6 +372,7 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
       column.title !== undefined && ["a column's title is not a prop", `{ key: "…", header: "${String(column.title)}" }`],
       column.label !== undefined && ["a column's label is not a prop", `{ key: "…", header: "${String(column.label)}" }`],
       column.render !== undefined && ["a column's render is not a prop", '{ key: "…", header: "…", cell: (row) => … }'],
+      column.enableSorting !== undefined && ["a column's enableSorting is not a prop", `{ key: "${key}", header: "…", sortable: true }`],
     ];
   });
 }
@@ -247,11 +381,13 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
  * A data table: a caption, column headers, and rows, from `columns` and `rows` or from
  * parts. It scrolls sideways inside its own region on a phone, so the page never does.
  * With `rowHref` each row is one link with one tab stop, named by its row header, and the
- * buttons, links and inputs in its cells keep their own taps. `striped`, `dense` and
- * `stickyHeader` (inside a height you set) change how it reads; it does not sort or page.
+ * buttons, links and inputs in its cells keep their own taps. A `sortable` column sorts the
+ * rows when its header is pressed, and reverses them on the next press. `striped`, `dense` and
+ * `stickyHeader` (inside a height you set) change how it reads. It does not page or filter.
  *
  * Use `DescriptionList` instead for one thing's details as label and value pairs, and
- * `ItemGroup` for a list of rows that need no columns, which reads better on a phone.
+ * `ItemGroup` for a list of rows that need no columns, which reads better on a phone. To sort
+ * on a server or by more than one column, control `sort` and pass the rows in that order.
  *
  * @group Data
  * @see https://ui.ouro.bot/docs/table
@@ -267,6 +403,16 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
  *   rows={recipes}
  *   rowHref={(recipe) => `/recipes/${recipe.id}`}
  * />
+ * <Table
+ *   caption="Orders"
+ *   columns={[
+ *     { key: "customer", header: "Customer", sortable: true },
+ *     { key: "placed", header: "Placed", cell: (order) => formatDate(order.placed), sortValue: (order) => order.placed },
+ *     { key: "total", header: "Total", align: "end", sortable: true },
+ *   ]}
+ *   rows={orders}
+ *   defaultSort={{ key: "placed", direction: "descending" }}
+ * />
  * <Table caption="Pantry" hideCaption>
  *   <TableHeader>
  *     <TableRow><TableHead>Item</TableHead><TableHead align="end">Qty</TableHead></TableRow>
@@ -275,6 +421,7 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
  *     <TableRow><TableCell rowHeader>Flour</TableCell><TableCell align="end">2 kg</TableCell></TableRow>
  *   </TableBody>
  * </Table>
+ * @claim "A `sortable` column sorts the rows" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table sorting > sorts by a sortable column from its header, and reverses on the next press, with aria-sort and an arrow)
  * @claim "It scrolls sideways inside its own" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table scrolling > scrolls sideways inside its own region on a phone, named by the caption, without widening the page)
  * @claim "With `rowHref` each row is one" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > opens the row from a real tap on any cell, and buttons, links and inputs in cells keep their own taps on a phone)
  * @claim "With `rowHref` each row is one" registry/ouro/components/ouro/table/table.test.tsx verify:testExists(registry/ouro/components/ouro/table/table.test.tsx::Table with rowHref > makes each linked row one link named by its row header, with one tab stop, covering the row)
@@ -296,6 +443,10 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
     rowExternal,
     externalLabel,
     empty = "Nothing here yet.",
+    sort,
+    defaultSort,
+    onSortChange,
+    sortedLabel,
     children,
     data,
     onRowClick,
@@ -316,16 +467,34 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
           data !== undefined && ["data is not a prop", "<Table rows={recipes} columns={…}>"],
           onRowClick !== undefined && ["onRowClick is not a prop; a row opens a link", "<Table rowHref={(row) => `/recipes/${row.id}`}>"],
           title !== undefined && ["title is not a prop", `<Table caption="${String(title)}">`],
-          sortable !== undefined && ["sortable is not a prop; Table does not sort", "<Table rows={sortedRows}>"],
+          sortable !== undefined && ["sortable is not a Table prop; it goes on a column", '{ key: "name", header: "Recipe", sortable: true }'],
           children !== undefined &&
             columns !== undefined && ["pass columns and rows, or parts as children, not both", '<Table caption="…" columns={…} rows={…} />'],
           columns !== undefined && rows === undefined && ["columns need rows", "<Table columns={…} rows={recipes}>"],
           stickyHeader && !hasHeight(className, style) && ["stickyHeader needs a height to scroll inside", '<Table stickyHeader className="max-h-96">'],
           ...columnWarnings(columns ?? []),
+          ...sortWarnings(columns ?? none, rows ?? none, sort ?? defaultSort),
+          sort !== undefined &&
+            !onSortChange && ["sort needs onSortChange, or its headers can't change it", "<Table sort={sort} onSortChange={setSort}>, or defaultSort={…} for Table to sort the rows"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const list = rows ?? [];
+  const list = rows ?? none;
+  const [ownSort, setOwnSort] = useState<TableSort | null>(defaultSort ?? null);
+  const controlled = sort !== undefined;
+  const current = controlled ? sort : ownSort;
+  const sortColumn = (columns ?? none).find((column) => column.key === current?.key && isSortable(column));
+  const direction = directionOf(current?.direction);
+  const locale = useSyncExternalStore(noSubscribe, browserLocale, serverLocale);
+  const changeSort = (next: { key: string; direction: TableSortDirection }) => {
+    // Controlled, the state goes unread, so setting it is harmless.
+    setOwnSort(next);
+    onSortChange?.(next);
+  };
+  const shown = useMemo(
+    () => (controlled || !sortColumn ? list : sortRows(list, sortColumn as SortColumn<Row>, direction!, locale)),
+    [controlled, list, sortColumn, direction, locale],
+  );
   // The row header holds the row link and names it: the column marked rowHeader, or else the
   // first that shows a field's value (a `cell` renderer is often a checkbox or a badge).
   const marked = columns?.findIndex((column) => column.rowHeader) ?? -1;
@@ -339,21 +508,29 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
         <TableHeader>
           <TableRow>
             {columns.map((column) => (
-              <TableHead key={column.key} align={alignOf(column.align)} hideHeader={column.hideHeader} wrap={column.wrap} className={column.className}>
+              <TableHead
+                key={column.key}
+                align={alignOf(column.align)}
+                hideHeader={column.hideHeader}
+                wrap={column.wrap}
+                className={column.className}
+                sorted={column === sortColumn ? direction : undefined}
+                onSort={isSortable(column) ? (next) => changeSort({ key: column.key, direction: next }) : undefined}
+              >
                 {column.header}
               </TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {list.length === 0 ? (
+          {shown.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columns.length}>
                 <span className="text-muted-foreground">{empty}</span>
               </TableCell>
             </TableRow>
           ) : (
-            list.map((row, index) => {
+            shown.map((row, index) => {
               const fields = row as Record<string, unknown>;
               const key =
                 typeof rowKey === "function"
@@ -386,6 +563,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
       striped={striped}
       dense={dense}
       stickyHeader={stickyHeader}
+      sortedLabel={sortedLabel}
       className={className}
       style={style}
       tableRef={ref}

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Table, type TableColumn } from "@/registry/ouro/components/ouro/table/table";
-import { TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
+import { TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow, type TableSortDirection } from "@/registry/ouro/components/ouro/table/table-parts";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -16,15 +16,16 @@ interface Recipe {
   name: string;
   cook: string;
   time: string;
+  minutes: number;
   serves: number;
   status: "Published" | "Draft";
 }
 
 const recipes: Recipe[] = [
-  { id: "short-ribs", name: "Braised short ribs", cook: "Ari", time: "4 h", serves: 6, status: "Published" },
-  { id: "herb-salad", name: "Herb salad", cook: "Sam", time: "10 min", serves: 2, status: "Published" },
-  { id: "rye", name: "Seeded rye bread", cook: "Ari", time: "18 h", serves: 8, status: "Draft" },
-  { id: "dal", name: "Tadka dal", cook: "Priya", time: "45 min", serves: 4, status: "Published" },
+  { id: "short-ribs", name: "Braised short ribs", cook: "Ari", time: "4 h", minutes: 240, serves: 6, status: "Published" },
+  { id: "herb-salad", name: "Herb salad", cook: "Sam", time: "10 min", minutes: 10, serves: 2, status: "Published" },
+  { id: "rye", name: "Seeded rye bread", cook: "Ari", time: "18 h", minutes: 1080, serves: 8, status: "Draft" },
+  { id: "dal", name: "Tadka dal", cook: "Priya", time: "45 min", minutes: 45, serves: 4, status: "Published" },
 ];
 
 const columns: TableColumn<Recipe>[] = [
@@ -145,6 +146,70 @@ export const Parts: Story = {
       </Table>
     </Page>
   ),
+};
+
+/**
+ * Sortable columns: press a header to sort by it and again to reverse. Time sorts by minutes
+ * through `sortValue`, and the rows start sorted by Serves, most first.
+ */
+export const Sortable: Story = {
+  parameters: { screenshot: { name: "table-sortable" } },
+  render: () => (
+    <Page>
+      <Table
+        caption="Recipes"
+        columns={[
+          { key: "name", header: "Recipe", sortable: true },
+          { key: "cook", header: "Cook", sortable: true },
+          { key: "time", header: "Time", sortValue: (row) => row.minutes },
+          { key: "serves", header: "Serves", align: "end", sortable: true },
+          columns[4]!,
+        ]}
+        rows={recipes}
+        rowHref={(row) => `#${row.id}`}
+        defaultSort={{ key: "serves", direction: "descending" }}
+      />
+    </Page>
+  ),
+};
+
+const pantry = [
+  { name: "Rice", qty: 1 },
+  { name: "Flour", qty: 2 },
+  { name: "Oats", qty: 3 },
+];
+
+/** Sorting from parts: each header's `onSort` sets the app's sort, and `sorted` marks the sorted one. */
+export const SortableParts: Story = {
+  render: function Render() {
+    const [sort, setSort] = useState<{ key: "name" | "qty"; direction: TableSortDirection }>({ key: "name", direction: "ascending" });
+    const sign = sort.direction === "ascending" ? 1 : -1;
+    const rows = [...pantry].sort((a, b) => sign * (sort.key === "qty" ? a.qty - b.qty : a.name.localeCompare(b.name)));
+    return (
+      <Page>
+        <Table caption="Pantry">
+          <TableHeader>
+            <TableRow>
+              <TableHead sorted={sort.key === "name" ? sort.direction : undefined} onSort={(direction) => setSort({ key: "name", direction })}>
+                Item
+              </TableHead>
+              <TableHead align="end" sorted={sort.key === "qty" ? sort.direction : undefined} onSort={(direction) => setSort({ key: "qty", direction })}>
+                Qty
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.name}>
+                <TableCell rowHeader>{row.name}</TableCell>
+                <TableCell align="end">{row.qty} kg</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Page>
+    );
+  },
 };
 
 /** No rows yet: the empty message across every column. */

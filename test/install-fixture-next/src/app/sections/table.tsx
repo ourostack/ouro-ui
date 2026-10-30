@@ -7,6 +7,9 @@ import { TableBody, TableCell, TableRow } from "@/components/ouro/table/table-pa
 // expect: href="/recipes/short-ribs"
 // expect: Ouro parts table
 // expect: href="/pantry/flour"
+// Sortable columns and a first sort, which a Server Component can pass.
+// expect: Ouro sorted table
+// expect: aria-sort="descending"
 export default function TableSection() {
   return (
     <>
@@ -18,6 +21,18 @@ export default function TableSection() {
         ]}
         rows={[{ id: "short-ribs", name: "Braised short ribs", serves: 6, href: "/recipes/short-ribs" }]}
         rowHref="href"
+      />
+      <Table
+        caption="Ouro sorted table"
+        columns={[
+          { key: "name", header: "Recipe", sortable: true },
+          { key: "serves", header: "Serves", align: "end", sortable: true },
+        ]}
+        rows={[
+          { id: "salad", name: "Herb salad", serves: 2 },
+          { id: "rye", name: "Seeded rye bread", serves: 8 },
+        ]}
+        defaultSort={{ key: "serves", direction: "descending" }}
       />
       <Table caption="Ouro parts table">
         <TableBody>

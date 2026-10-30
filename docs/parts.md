@@ -329,7 +329,7 @@ Each part checks that it sits inside `<TableRoot>`: outside it, a part throws in
 | `TableBody` | The table's body rows (`<tbody>`). |
 | `TableCell` | A cell (`<td>`), or the row's header with `rowHeader` (`<th scope="row">`). |
 | `TableFooter` | Summary rows under the body (`<tfoot>`), such as a total, with a line above them. |
-| `TableHead` | A column header (`<th scope="col">`) in a `TableHeader` row. |
+| `TableHead` | A column header (`<th scope="col">`) in a `TableHeader` row. With `onSort` it is a button that sorts the rows by its column, and `sorted` marks the column they are sorted by. |
 | `TableHeader` | The table's header rows (`<thead>`), holding a `TableRow` of `TableHead` cells. With `stickyHeader` on the Table, they stay at the top while the rows scroll. |
 | `TableRoot` | The root of a table built from parts, with its caption and its scrolling region. `Table` takes the same parts as children (`<Table caption="Pantry">…</Table>`), so use it instead unless you are composing parts of your own; `Table` also builds the whole table from `columns` and `rows`. |
 | `TableRow` | One row (`<tr>`). With `href` a body row is one link, held by its row header cell. |

@@ -1434,6 +1434,26 @@
       "Table/InContext",
       "Table/StickyHeader",
       "Table/Parts",
+      "Table/Sortable",
+      "Table/SortableParts",
+      "Table/Empty"
+    ]
+  },
+  {
+    "item": "table",
+    "stem": "table",
+    "mode": "default",
+    "part": "sort",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Table/Playground",
+      "Table/InContext",
+      "Table/StickyHeader",
+      "Table/Parts",
+      "Table/Sortable",
+      "Table/SortableParts",
       "Table/Empty"
     ]
   },
