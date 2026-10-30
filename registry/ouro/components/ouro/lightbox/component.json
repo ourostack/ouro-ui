@@ -1,0 +1,11 @@
+{
+  "order": 2630,
+  "components": ["lightbox"],
+  "controls": {
+    "lightbox": [
+      {"part": "thumbnail", "role": "button", "portal": false},
+      {"part": "original", "role": "link", "portal": true},
+      {"part": "close", "role": "button", "portal": true}
+    ]
+  }
+}

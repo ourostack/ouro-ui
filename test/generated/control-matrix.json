@@ -2349,5 +2349,50 @@
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "thumbnail",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter"
+    ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "original",
+    "role": "link",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter"
+    ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "close",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter"
+    ]
   }
 ]
