@@ -436,17 +436,158 @@ describe("centered dialog", () => {
   });
 
   it.each([
+    ["auto", 896],
     ["sm", 384],
     ["md", 512],
     ["lg", 640],
+    ["xl", 896],
+    ["2xl", 1152],
+    ["full", 1280 - 32],
   ] as const)("caps size %s at %ipx wide", async (size, max) => {
     const element = await openUncontrolled({ size, children: <div style={{ width: 2000 }} /> } as Partial<DialogProps>);
     expect(element.getAttribute("data-size")).toBe(size);
     expect(element.getBoundingClientRect().width).toBe(max);
   });
 
-  it("defaults to md", async () => {
-    expect((await openUncontrolled()).getAttribute("data-size")).toBe("md");
+  it.each([
+    ["sm", 384],
+    ["md", 512],
+    ["lg", 640],
+  ] as const)("keeps size %s at %ipx whatever the content", async (size, width) => {
+    for (const children of ["Delete?", <div key="wide" style={{ width: 2000 }} />]) {
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      const element = await openUncontrolled({ size, children } as Partial<DialogProps>);
+      expect(element.getBoundingClientRect().width).toBe(width);
+    }
+  });
+
+  it.each([
+    ["auto", 896, 640],
+    ["xl", 896, 800 - 32],
+    ["2xl", 1152, 800 - 32],
+    ["full", 1280 - 32, 800 - 32],
+  ] as const)("fits size %s to its content, from 32rem up to %ipx", async (size, cap, capAt800) => {
+    // Short content keeps md's 512px; a 700px gallery widens the dialog to fit it and its padding.
+    const short = await openUncontrolled({ size, children: "Delete?" } as Partial<DialogProps>);
+    expect(short.getBoundingClientRect().width).toBe(512);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    const wide = await openUncontrolled({ size, children: <div data-gallery="" style={{ width: 700, height: 100 }} /> } as Partial<DialogProps>);
+    const body = wide.querySelector<HTMLElement>("[data-ouro-dialog-content]")!;
+    const padding = parseFloat(getComputedStyle(body).paddingInlineStart) + parseFloat(getComputedStyle(body).paddingInlineEnd);
+    expect(wide.getBoundingClientRect().width).toBe(700 + padding);
+    expect(wide.getBoundingClientRect().width).toBeLessThan(cap);
+    // On a narrower screen the cap gives way: auto's to 40rem, the others' to the viewport less its margins.
+    await page.viewport(800, 800);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    const capped = await openUncontrolled({ size, children: <div style={{ width: 2000 }} /> } as Partial<DialogProps>);
+    expect(capped.getBoundingClientRect().width).toBe(capAt800);
+    expect(capped.getBoundingClientRect().left).toBe((800 - capAt800) / 2);
+  });
+
+  it.each([
+    [1024, 1024 * 0.7],
+    [1280, 896],
+    [1440, 896],
+  ] as const)("follows the screen by default: a wide table makes it %ipx wide on a %ipx screen", async (screen, width) => {
+    await page.viewport(screen, 800);
+    const table = (
+      <table>
+        <tbody>
+          <tr>
+            {Array.from({ length: 12 }, (_, index) => (
+              <td key={index} style={{ whiteSpace: "nowrap" }}>Column {index + 1} of the table</td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    );
+    const element = await openUncontrolled({ children: table } as Partial<DialogProps>);
+    expect(element.getAttribute("data-size")).toBe("auto");
+    expect(element.getBoundingClientRect().width).toBeCloseTo(width, 0);
+  });
+
+  it.each(["auto", "xl", "2xl", "full"] as const)(
+    "keeps running text at a readable 65ch in size %s, so text alone does not widen it",
+    async (size) => {
+      const prose = "A sentence that runs on. ".repeat(40);
+      const element = await openUncontrolled({
+        size,
+        description: prose,
+        children: (
+          <>
+            <h3>{prose}</h3>
+            <p>{prose}</p>
+            <ul style={{ paddingInlineStart: 0 }}>
+              <li>{prose}</li>
+            </ul>
+            {/* A label lays out as a block in a form; an inline label's text joins its parent's line. */}
+            <label style={{ display: "grid" }}>
+              {prose} <input aria-label="Name" />
+            </label>
+            <div data-ouro-text="">{prose}</div>
+          </>
+        ),
+      } as Partial<DialogProps>);
+      const body = element.querySelector<HTMLElement>("[data-ouro-dialog-content]")!;
+      const padding = parseFloat(getComputedStyle(body).paddingInlineStart) + parseFloat(getComputedStyle(body).paddingInlineEnd);
+      const texts = [...element.querySelectorAll<HTMLElement>("[data-ouro-dialog-title], [data-ouro-dialog-description], h3, p, li, label, [data-ouro-text]")];
+      expect(texts).toHaveLength(7);
+      for (const text of texts) {
+        // 65ch at the element's own font size.
+        const measure = parseFloat(getComputedStyle(text).maxWidth);
+        expect(measure).toBeGreaterThan(400);
+        expect(measure).toBeLessThan(800);
+        expect(text.getBoundingClientRect().width).toBeLessThanOrEqual(measure + 0.01);
+      }
+      const widest = Math.max(...texts.map((text) => text.getBoundingClientRect().width));
+      expect(element.getBoundingClientRect().width).toBeLessThanOrEqual(Math.max(512, widest + padding) + 0.01);
+      // Beside a wide gallery the dialog grows, and the text keeps its measure.
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      const mixed = await openUncontrolled({
+        size,
+        children: (
+          <>
+            <p>{prose}</p>
+            <div style={{ width: 860, height: 40 }} />
+          </>
+        ),
+      } as Partial<DialogProps>);
+      expect(mixed.getBoundingClientRect().width).toBe(Math.min(860 + padding, size === "auto" || size === "xl" ? 896 : 1248));
+      const paragraph = mixed.querySelector("p")!;
+      expect(paragraph.getBoundingClientRect().width).toBeCloseTo(parseFloat(getComputedStyle(paragraph).maxWidth), 1);
+    },
+  );
+
+  it("leaves running text its full width in the fixed sizes", async () => {
+    const element = await openUncontrolled({ size: "lg", children: <p>{"A sentence that runs on. ".repeat(40)}</p> } as Partial<DialogProps>);
+    expect(getComputedStyle(element.querySelector("p")!).maxWidth).toBe("none");
+  });
+
+  it("lets the app's own max-width class on a paragraph win over the 65ch measure", async () => {
+    const element = await openUncontrolled({
+      children: <p className="max-w-none">{"A sentence that runs on. ".repeat(40)}</p>,
+    } as Partial<DialogProps>);
+    expect(getComputedStyle(element.querySelector("p")!).maxWidth).toBe("none");
+    expect(element.getBoundingClientRect().width).toBe(896);
+  });
+
+  it.each(["auto", "sm", "md", "lg", "xl", "2xl", "full"] as const)(
+    "keeps size %s inside a 390px phone's 16px margins when presentation is dialog",
+    async (size) => {
+      await page.viewport(390, 844);
+      for (const children of ["Delete?", <div key="wide" style={{ width: 2000 }} />]) {
+        await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+        const element = await openUncontrolled({ size, presentation: "dialog", children } as Partial<DialogProps>);
+        expect(element.getAttribute("data-size")).toBe(size);
+        const rect = element.getBoundingClientRect();
+        expect(rect.left).toBe(16);
+        expect(rect.width).toBe(390 - 32);
+      }
+    },
+  );
+
+  it("defaults to auto", async () => {
+    expect((await openUncontrolled()).getAttribute("data-size")).toBe("auto");
   });
 
   it("hides the title visually with hideTitle and describes the dialog with description", async () => {
@@ -707,6 +848,23 @@ describe("Dialog dev messages", () => {
     ]);
   });
 
+  it("says once when it mounts already open after a press, since its transitions can't run", async () => {
+    document.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse" }));
+    const { rerender } = await render(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body
+      </Dialog>,
+    );
+    await rerender(
+      <Dialog title="Edit recipe" open onOpenChange={() => {}}>
+        Body again
+      </Dialog>,
+    );
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+      "[ouro-ui] Dialog: mounted already open, so its open and close transitions don't run; mount it closed and change open. Fix: <Dialog open={open} onOpenChange={setOpen}>.",
+    ]);
+  });
+
   it("warns once about guessed props and drops them from the DOM", async () => {
     const guessed = { isOpen: true, onClose: () => {}, position: "bottom", side: "left", snapPoints: [0.5] } as object;
     const element = await openUncontrolled(guessed);
@@ -720,12 +878,12 @@ describe("Dialog dev messages", () => {
     for (const name of ["isopen", "position", "side", "snappoints"]) expect(element.hasAttribute(name)).toBe(false);
   });
 
-  it("renders the md size and auto presentation for values that are not Ouro UI's, and warns once with each fix", async () => {
-    const element = await openUncontrolled({ size: "xl", presentation: "modal" } as object);
-    expect(element.getAttribute("data-size")).toBe("md");
+  it("renders the auto size and auto presentation for values that are not Ouro UI's, and warns once with each fix", async () => {
+    const element = await openUncontrolled({ size: "xs", presentation: "modal" } as object);
+    expect(element.getAttribute("data-size")).toBe("auto");
     expect(element.getAttribute("data-ouro-presentation")).toBe("dialog");
     expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
-      '[ouro-ui] Dialog: size="xl" is not a size; use "sm", "md", "lg". Fix: <Dialog size="md">.',
+      '[ouro-ui] Dialog: size="xs" is not a size; use "auto", "sm", "md", "lg", "xl", "2xl", "full". Fix: <Dialog size="md">.',
       '[ouro-ui] Dialog: presentation="modal" is not a presentation; use "auto", "dialog", "sheet". Fix: <Dialog presentation="auto">.',
     ]);
   });
@@ -772,21 +930,21 @@ describe("Dialog parts", () => {
     expect(document.querySelector("[data-ouro-dialog-content]")!.getAttribute("data-ouro-part")).toBe("content");
   });
 
-  it("renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix", async () => {
+  it("renders the auto DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix", async () => {
     await render(
       <DialogRoot open>
         <DialogPortal>
           <DialogViewport>
-            <DialogPopup {...({ size: "xl" } as object)}>
+            <DialogPopup {...({ size: "xs" } as object)}>
               <DialogTitle>Parts</DialogTitle>
             </DialogPopup>
           </DialogViewport>
         </DialogPortal>
       </DialogRoot>,
     );
-    await expect.poll(() => dialogPopup()?.getAttribute("data-size")).toBe("md");
+    await expect.poll(() => dialogPopup()?.getAttribute("data-size")).toBe("auto");
     expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual([
-      '[ouro-ui] DialogPopup: size="xl" is not a size; use "sm", "md", "lg". Fix: <DialogPopup size="md">.',
+      '[ouro-ui] DialogPopup: size="xs" is not a size; use "auto", "sm", "md", "lg", "xl", "2xl", "full". Fix: <DialogPopup size="md">.',
     ]);
   });
 

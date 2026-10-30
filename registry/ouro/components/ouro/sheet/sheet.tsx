@@ -248,7 +248,7 @@ export interface SheetFrameProps {
  *
  * @internal Shared with `Dialog`; apps use `Sheet`.
  * @claim "The sheet's markup, without prop checks" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet dev messages > throws the exact fix when open comes without onOpenChange)
- * @claim "The sheet's markup, without prop checks" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > renders an md DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix)
+ * @claim "The sheet's markup, without prop checks" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > renders the auto DialogPopup for a size that is not one of Ouro UI's, and warns once with the fix)
  */
 export function SheetFrame({
   title,

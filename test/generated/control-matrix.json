@@ -99,6 +99,10 @@
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
+      "Dialog/ShortQuestion",
+      "Dialog/LongText",
+      "Dialog/WideTable",
+      "Dialog/WideContent",
       "Dialog/Sizes",
       "Dialog/Presentations",
       "Dialog/LongContent",
@@ -118,6 +122,10 @@
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
+      "Dialog/ShortQuestion",
+      "Dialog/LongText",
+      "Dialog/WideTable",
+      "Dialog/WideContent",
       "Dialog/Sizes",
       "Dialog/Presentations",
       "Dialog/LongContent",
@@ -137,6 +145,10 @@
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
+      "Dialog/ShortQuestion",
+      "Dialog/LongText",
+      "Dialog/WideTable",
+      "Dialog/WideContent",
       "Dialog/Sizes",
       "Dialog/Presentations",
       "Dialog/LongContent",

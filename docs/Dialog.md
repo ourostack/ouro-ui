@@ -49,7 +49,7 @@ The props the modes share. Type: `DialogProps`.
 | `footer` | `ReactNode` |  | The actions row: a row at the end on wider screens, stacked full width on phones. Put the primary action last, so it sits on the right on wider screens and at the bottom, nearest the thumb, on phones: `footer={<><Button variant="outline" tone="secondary">Cancel</Button><Button>Save</Button></>}`. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |
 | `presentation` | `"auto" \| "dialog" \| "sheet"` | `"auto"` | `auto` renders a centered dialog from the `sm` breakpoint (640px) up and a bottom sheet you can drag away below it. The server renders the dialog form and corrects it on hydration. A dialog that is closed at load shows nothing until it opens, so nothing shifts; one that is open at load (a route such as `?edit=1`) shows as the centered dialog on a phone until hydration swaps it to the sheet. |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | The centered dialog's maximum width: `sm` 24rem, `md` 32rem, `lg` 40rem. |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "auto" \| "full"` | `"auto"` | The centered dialog's width. By default (`auto`) it fits its content and the screen: at least 32rem, so a form or a short question keeps a comfortable width, and at most 70% of the screen, from 40rem up to 56rem, so a gallery or a table grows on a big screen. Running text (paragraphs, headings, list items, labels, `Text`) wraps at a readable 65ch and does not widen it; bare text in a `div` measures as one long line, so put prose in a `<p>`. `xl` (56rem), `2xl` (72rem) and `full` (the viewport) raise the cap for wide content. `sm` (24rem), `md` (32rem) and `lg` (40rem) pin a fixed width whatever the content. Every size narrows to the viewport less its 1rem margins (or the safe area). |
 | `title` (required) | `string` |  | Names the dialog for screen readers and shows at its top. Always required; hide it with `hideTitle`. |
 
 ## Modes
@@ -63,7 +63,7 @@ A controlled Dialog: you own `open` and update it in `onOpenChange`.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). |
-| `open` (required) | `boolean` | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
+| `open` (required) | `boolean` | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. Keep the Dialog mounted and change `open`: one that mounts already open after a press or a key (`{editing && <Dialog open … />}`) appears and leaves without its transitions, and says so in development. |
 
 Not in this mode (typed `never`):
 

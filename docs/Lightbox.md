@@ -64,7 +64,7 @@ A controlled Lightbox: the viewer alone, which you open from thumbnails you lay 
 | --- | --- | --- | --- |
 | `index` | `number` | `0` | The image the viewer shows, by its place in `images`. It opens on it, and moves to it when you change it while open; update it in `onIndexChange` to follow the user. |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user closes the viewer (Close, Escape, a press outside). |
-| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the viewer grows from that element. |
+| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already open after a press or a key appears and leaves without its transitions, and says so in development. |
 
 Not in this mode (typed `never`):
 
