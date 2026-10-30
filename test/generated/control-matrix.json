@@ -2331,6 +2331,7 @@
     "stories": [
       "ReactionBar/Playground",
       "ReactionBar/InMessage",
+      "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
@@ -2346,6 +2347,23 @@
     "stories": [
       "ReactionBar/Playground",
       "ReactionBar/InMessage",
+      "ReactionBar/WithPicker",
+      "ReactionBar/ReadOnly",
+      "ReactionBar/Disabled"
+    ]
+  },
+  {
+    "item": "reaction-bar",
+    "stem": "reaction-bar",
+    "mode": "default",
+    "part": "more",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ReactionBar/Playground",
+      "ReactionBar/InMessage",
+      "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]

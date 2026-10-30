@@ -3546,13 +3546,14 @@
       "type": "registry:ui",
       "title": "ReactionBar",
       "description": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press.",
-      "docs": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Import: import { ReactionBar } from \"@/components/ouro/reaction-bar/reaction-bar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/reaction-bar.md",
+      "docs": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Import: import { ReactionBar } from \"@/components/ouro/reaction-bar/reaction-bar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/reaction-bar.md",
       "registryDependencies": [
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
-        "ourostack/ouro-ui/lib-use-dev-messages"
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/tooltip"
       ],
       "files": [
         {
@@ -10346,16 +10347,29 @@
       "registryDependencies": [
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/message",
         "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/ouro-testing",
-        "ourostack/ouro-ui/reaction-bar"
+        "ourostack/ouro-ui/popover",
+        "ourostack/ouro-ui/popover-tests",
+        "ourostack/ouro-ui/reaction-bar",
+        "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
         {
