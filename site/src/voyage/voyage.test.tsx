@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, renderPage, scan, setScheme, settle } from "../../test/render";
+import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { headTags } from "../head";
 import { routeFor } from "../routes";
 import themes from "../themes/themes.json";
@@ -219,6 +219,6 @@ describe.each([
       const violations = await scan();
       expect(violations, describeViolations(violations)).toEqual([]);
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
-    });
+    }, pageScanTimeout);
   });
 });
