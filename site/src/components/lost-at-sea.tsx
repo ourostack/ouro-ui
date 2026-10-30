@@ -73,8 +73,8 @@ function Compass(): JSX.Element {
         <text x="18" y="64">W</text>
       </g>
       <g className="lost-needle">
-        <path d="M60 24 L67 60 L60 66 L53 60 Z" fill="currentColor" />
-        <path d="M60 96 L67 60 L60 54 L53 60 Z" fill="currentColor" fillOpacity="0.3" />
+        <path d="M60 30 L66 60 L60 65 L54 60 Z" fill="currentColor" />
+        <path d="M60 90 L66 60 L60 55 L54 60 Z" fill="currentColor" fillOpacity="0.3" />
       </g>
       <circle cx="60" cy="60" r="3.5" fill="var(--background)" stroke="currentColor" strokeWidth="1.5" />
     </svg>
