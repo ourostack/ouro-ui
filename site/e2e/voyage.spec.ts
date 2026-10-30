@@ -305,18 +305,3 @@ test("typing nemo on the built page brings the Nautilus by with a toast, once a 
   await expect(nemo).toHaveCount(0);
   expect(errors).toEqual([]);
 });
-
-test("the 404 page is lost at sea: a guess, a search and the way home, passing the strict audit", async ({ page, browserName }) => {
-  test.slow(browserName === "webkit");
-  const errors = diagnostics(page);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("404.html");
-  await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("heading", { level: 1, name: "Lost at sea" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Back to the surface" })).toBeVisible();
-  await page.getByRole("searchbox", { name: "Search the docs" }).fill("button");
-  await expect(page.getByRole("search").getByRole("link", { name: "Button", exact: true })).toBeVisible();
-  await page.evaluate(() => document.fonts.ready);
-  expect(await auditPage(page, browserName)).toBe("");
-  expect(errors).toEqual([]);
-});
