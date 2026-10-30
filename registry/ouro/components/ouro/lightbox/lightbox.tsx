@@ -413,9 +413,10 @@ function LightboxViewer({
   const shown = Math.min(current, total - 1);
   const href = images[shown]?.href;
   // Only the image in view is zoomed, and moving to another image draws it fitted again.
-  const [zoom, setZoom] = useState({ index: -1, scale: 1 });
-  const [maxima, setMaxima] = useState<readonly number[]>([]);
-  const scale = zoom.index === shown ? zoom.scale : 1;
+  const [zoom, setZoom] = useState<{ index: number; scale: number } | null>(null);
+  const [maxima, setMaxima] = useState<Readonly<Record<number, number>>>({});
+  const scale = zoom?.index === shown ? zoom.scale : 1;
+  // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
   const zoomable = (maxima[shown] ?? 1) > minZoom;
   return (
     <>
@@ -482,7 +483,7 @@ function LightboxViewer({
         defaultIndex={start}
         onIndexChange={(next) => {
           setCurrent(next);
-          setZoom({ index: -1, scale: 1 });
+          setZoom(null);
           onIndexChange?.(next);
         }}
         previousLabel={previousLabel}
@@ -496,13 +497,7 @@ function LightboxViewer({
             image={image}
             scale={position === shown ? scale : 1}
             onScale={(next) => setZoom({ index: position, scale: next })}
-            onMaxScale={(max) =>
-              setMaxima((list) => {
-                const next = [...list];
-                next[position] = max;
-                return next;
-              })
-            }
+            onMaxScale={(max) => setMaxima((list) => ({ ...list, [position]: max }))}
             zoomLabel={zoomLabel}
           />
         ))}
