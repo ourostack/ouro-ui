@@ -81,12 +81,13 @@ const seen = (element: Element) => element.checkVisibility({ visibilityProperty:
  * out a visually hidden child (`sr-only`, one pixel square). `null` while nothing in it shows, as in
  * a Toaster with no toast.
  * @claim "where its own box has no area" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector geometry > outlines a component whose own box has no area by the box its visible content fills, and not at all while nothing in it shows)
- * @claim "`null` while nothing in it shows" registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
+ * @claim "`null` while nothing in it shows" test/inspector-toaster.test.tsx verify:testExists(test/inspector-toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
  */
 function shownBox(element: Element): DOMRect | null {
   const box = element.getBoundingClientRect();
   if (box.width > 0 && box.height > 0) return box;
   const inside = [...element.children].filter(seen).flatMap((child) => shownBox(child) ?? []).filter((inner) => inner.width > 1 || inner.height > 1);
+  // Stryker disable next-line ConditionalExpression: with nothing inside, the box below spans from +Infinity to -Infinity, and every caller drops a box that small.
   if (inside.length === 0) return null;
   const left = Math.min(...inside.map((inner) => inner.left));
   const top = Math.min(...inside.map((inner) => inner.top));
@@ -101,7 +102,7 @@ function shownBox(element: Element): DOMRect | null {
  * @claim "Every visible Ouro component root in" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > outlines every Ouro component on the page, each tagged with its item and linked to its docs)
  * @claim "Every visible Ouro component root in" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component)
  * @claim "one no one can see" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline a component no one can see, and outlines it while hover or focus shows it)
- * @claim "or with nothing in it showing" registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
+ * @claim "or with nothing in it showing" test/inspector-toaster.test.tsx verify:testExists(test/inspector-toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
  */
 function findComponents(own: Element, modal: boolean): Found[] {
   const found: Found[] = [];
@@ -346,7 +347,7 @@ const ouroDocs = (item: string) => `https://ui.ouro.bot/docs/${item}/`;
  * @claim "Outlines follow their components through scrolling" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > follows its components as the page scrolls and resizes)
  * @claim "Outlines follow their components through scrolling" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > lets a click through an outline reach the control underneath, and only the tags take a pointer)
  * @claim "a component no one can see" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline a component no one can see, and outlines it while hover or focus shows it)
- * @claim "a component no one can see" registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
+ * @claim "a component no one can see" test/inspector-toaster.test.tsx verify:testExists(test/inspector-toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
  * @claim "X-ray never draws over the page's" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other)
  * @claim "Its bar is a landmark named" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > puts its bar in a landmark named by its label)
  */

@@ -9035,16 +9035,12 @@
         "ourostack/ouro-ui/lib-control-ref-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
-        "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
-        "ourostack/ouro-ui/lib-spring-tests",
-        "ourostack/ouro-ui/lib-toast",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
@@ -9064,9 +9060,7 @@
         "ourostack/ouro-ui/switch-tests",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-field-tests",
-        "ourostack/ouro-ui/text-tests",
-        "ourostack/ouro-ui/toaster",
-        "ourostack/ouro-ui/toaster-tests"
+        "ourostack/ouro-ui/text-tests"
       ],
       "files": [
         {
@@ -9083,11 +9077,6 @@
           "path": "registry/ouro/components/ouro/inspector/inspector.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/inspector/inspector.test.tsx"
-        },
-        {
-          "path": "registry/ouro/components/ouro/inspector/inspector.toaster.test.tsx",
-          "type": "registry:component",
-          "target": "@components/ouro/inspector/inspector.toaster.test.tsx"
         },
         {
           "path": "registry/ouro/components/ouro/inspector/inspector.touch.test.tsx",
