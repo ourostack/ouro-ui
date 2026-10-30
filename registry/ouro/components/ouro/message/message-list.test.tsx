@@ -405,6 +405,68 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Grace: See you at six."]);
   });
 
+  it("looks for messages only when one comes, goes or stops streaming, not when a streamed reply gains a formatted word", async () => {
+    const chat = (reply: ReactNode, streaming = true) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <Message role="user" name="Ada">
+          How long does the dough rest?
+        </Message>
+        <Message role="assistant" name="Ouro" streaming={streaming}>
+          {reply}
+        </Message>
+      </MessageList>
+    );
+    const { list, live, rerender } = await render(chat("Rest"));
+    const { spoken, stop } = recordAnnouncements(live);
+    // Each look for messages asks whether the list is in a closed panel.
+    const looks = vi.spyOn(list.querySelector<HTMLElement>("[data-ouro-message-list-content]")!, "closest");
+    await rerender(chat(<>Rest <b>it</b></>));
+    await act(async () => {});
+    expect(looks).not.toHaveBeenCalled();
+    await rerender(chat(<>Rest <b>it</b> an hour.</>, false));
+    await expect.poll(() => spoken.length).toBe(1);
+    expect(looks).toHaveBeenCalled();
+    stop();
+    expect(spoken).toEqual(["Ouro: Rest it an hour."]);
+  });
+
+  it("announces a reply that arrives inside a new group, such as the messages under a day's heading", async () => {
+    const Days = ({ days }: { days: Item[][] }) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        {days.map((day, index) => (
+          <section key={index} aria-label={`Day ${index + 1}`}>
+            {day.map((item) => (
+              <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+                {item.text}
+              </Message>
+            ))}
+          </section>
+        ))}
+      </MessageList>
+    );
+    const { live, rerender } = await render(<Days days={[history(2)]} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await rerender(<Days days={[history(2), [{ id: 2, role: "assistant", text: "Good morning." }]]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Good morning."]);
+  });
+
+  it("announces an app's own message set as HTML, which arrives with the text around it in one change", async () => {
+    const Feed = ({ html }: { html: string }) => (
+      <MessageList label="Team chat" style={{ height: 300 }}>
+        <div dangerouslySetInnerHTML={{ __html: html }} />
+      </MessageList>
+    );
+    const { live, rerender } = await render(<Feed html="" />);
+    const { spoken, stop } = recordAnnouncements(live);
+    const post = '<article data-ouro-message-list-item="" data-role="assistant"><span data-ouro-message-author="">Grace</span><p data-ouro-message-content="">Standup moved to ten.</p></article>';
+    await rerender(<Feed html={`\n${post}\n`} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Grace: Standup moved to ten."]);
+  });
+
   it("says nothing when a message's key changes but it stays in place, as when a temporary id becomes the server's", async () => {
     const items = history(4);
     const { live, rerender } = await render(<Chat items={items} />);
