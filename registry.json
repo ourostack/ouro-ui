@@ -10786,6 +10786,11 @@
       ],
       "files": [
         {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.mosaic.test.tsx"
+        },
+        {
           "path": "registry/ouro/components/ouro/lightbox/lightbox.stories.tsx",
           "type": "registry:component",
           "target": "@components/ouro/lightbox/lightbox.stories.tsx"
