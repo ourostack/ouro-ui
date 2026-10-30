@@ -3,24 +3,18 @@
 import {
   isValidElement,
   useEffect,
-  useLayoutEffect,
-  useRef,
   useState,
-  type FocusEvent,
   type HTMLAttributes,
   type JSX,
-  type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactElement,
   type ReactNode,
   type Ref,
-  type SVGProps,
 } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
-import { Button } from "@/registry/ouro/components/ouro/button/button";
-import type { Menu as MenuComponent, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
-import type { Tooltip as TooltipComponent } from "@/registry/ouro/components/ouro/tooltip/tooltip";
+import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
+import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -132,8 +126,9 @@ export interface MessageOwnProps {
   actions?: readonly MessageAction[] | undefined;
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
-   * entries as Menu's `items`. The bar stays while the menu is open. The code of Menu, and of
-   * the bar's Tooltips, loads the first time a pointer, focus or tap reaches a message with a bar.
+   * entries as Menu's `items`. The bar stays while the menu is open. The bar renders in the
+   * browser once its code loads, so server HTML has the message without it; Menu's code loads the
+   * first time someone opens a message's menu.
    *
    * @claim "More actions, in a menu that" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > opens the menu from the last button, and keeps the bar while it is open)
    */
@@ -192,18 +187,10 @@ const layouts = {
   reply: "px-0.5",
 } as const;
 
-// The action bar: a small raised pill above the bubble's top corner (over a post card's corner),
-// shown on hover (a mouse's only), while focus is in the message, after a tap, and while its menu
-// is open; keyboard focus shows it at once. A mouse over the hidden bar is over the message, which
-// shows it; on a touch screen the hidden bar lets taps through, so a tap on the message above
-// never lands on it.
-const barClass =
-  "absolute z-10 flex items-center gap-0.5 rounded-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
-  "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
-  "pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100 group-focus-within/message:transition-none " +
-  "group-data-ouro-message-active/message:opacity-100 data-menu-open:opacity-100 " +
-  "pointer-coarse:pointer-events-none pointer-coarse:group-focus-within/message:pointer-events-auto " +
-  "pointer-coarse:group-data-ouro-message-active/message:pointer-events-auto pointer-coarse:data-menu-open:pointer-events-auto";
+// The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
+// page whose messages have no bar never loads it, nor the Tooltip and Menu it uses.
+let barModule: Promise<typeof MessageActionBar> | undefined;
+const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageActionBar));
 
 /**
  * One message in a chat: who wrote it, their avatar and what they wrote, with any
@@ -310,7 +297,13 @@ export function Message(props: MessageProps): JSX.Element {
 
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? <Typing label={streamingLabel} /> : children;
-  const bar = hasBar ? <ActionBar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} card={variant === "post"} /> : null;
+  // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
+  const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
+  useEffect(() => {
+    if (hasBar) void loadBar().then((Loaded) => setBar(() => Loaded));
+  }, [hasBar]);
+  const bar =
+    hasBar && Bar ? <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} card={variant === "post"} /> : null;
 
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";
@@ -488,181 +481,6 @@ function Extra({ slot, end, inset = false, children }: { slot: "footer" | "threa
     >
       {children}
     </div>
-  );
-}
-
-// Menu and Tooltip, loaded together and once, the first time a pointer, focus or tap reaches a
-// message with an action bar: a page whose bars nobody reaches never loads them.
-interface Popups {
-  Menu: typeof MenuComponent;
-  Tooltip: typeof TooltipComponent;
-}
-let popupsModule: Promise<Popups> | undefined;
-const loadPopups = () =>
-  (popupsModule ??= Promise.all([import("@/registry/ouro/components/ouro/menu/menu"), import("@/registry/ouro/components/ouro/tooltip/tooltip")]).then(
-    ([menu, tooltip]) => ({ Menu: menu.Menu, Tooltip: tooltip.Tooltip }),
-  ));
-const arming = ["pointerenter", "focusin", "pointerdown"] as const;
-
-/** The bar's buttons that can take focus, in order. */
-const buttons = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLElement>("[data-ouro-message-action]:not(:disabled)")];
-
-// The menu button's key in the bar's roving focus, apart from the actions' keys by its leading space.
-// Stryker disable next-line StringLiteral: any key no action uses works the same.
-const MENU_KEY = " menu";
-
-/**
- * The action bar: a toolbar of icon buttons with tooltips, and the menu button last. One Tab
- * stop: the arrow keys, Home and End move between its buttons.
- */
-function ActionBar({
-  actions,
-  menu,
-  label,
-  menuLabel,
-  start,
-  card,
-}: {
-  actions: readonly MessageAction[];
-  menu: readonly MenuEntry[] | undefined;
-  label: string;
-  menuLabel: string;
-  start: boolean;
-  card: boolean;
-}): JSX.Element {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const barRef = useRef<HTMLDivElement>(null);
-  // Until Menu and Tooltip arrive, the buttons stand alone, named by aria-label.
-  const [popups, setPopups] = useState<Popups | undefined>(undefined);
-  // The action whose button had focus when they arrived: its new button takes focus back.
-  const refocus = useRef<string | null>(null);
-  const arm = (open: boolean) =>
-    void loadPopups().then((loaded) => {
-      const bar = barRef.current;
-      if (bar === null) return;
-      const active = document.activeElement;
-      refocus.current = bar.contains(active) ? active!.getAttribute("data-ouro-message-action") : null;
-      setPopups(loaded);
-      if (open) setMenuOpen(true);
-    });
-  useEffect(() => {
-    // Stryker disable next-line ConditionalExpression: arming again once they have arrived sets the same popups, which changes nothing.
-    if (popups) return;
-    const message = barRef.current!.closest<HTMLElement>('[data-ouro="message"]')!;
-    const listener = () => arm(false);
-    for (const type of arming) message.addEventListener(type, listener);
-    // Stryker disable next-line ArrowFunction,BlockStatement: a listener left behind only arms again, which changes nothing.
-    return () => {
-      for (const type of arming) message.removeEventListener(type, listener);
-    };
-  });
-  useLayoutEffect(() => {
-    const key = refocus.current;
-    buttons(barRef.current!)
-      .find((button) => button.getAttribute("data-ouro-message-action") === key)
-      ?.focus();
-  }, [popups]);
-  const hasMenu = menu !== undefined && menu.length > 0;
-  const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
-  if (hasMenu) keys.push(MENU_KEY);
-  const [current, setCurrent] = useState<string | undefined>(undefined);
-  const tabStop = keys.find((key) => key === current) ?? keys[0];
-  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const list = buttons(event.currentTarget);
-    const at = list.indexOf(event.target as HTMLElement);
-    if (at < 0) return;
-    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
-    const step = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1 }[event.key];
-    const next = event.key === "Home" ? 0 : event.key === "End" ? list.length - 1 : step === undefined ? undefined : (at + step + list.length) % list.length;
-    if (next === undefined) return;
-    event.preventDefault();
-    list[next]!.focus();
-  };
-  const focus = (event: FocusEvent<HTMLDivElement>) => {
-    const key = (event.target as HTMLElement).getAttribute("data-ouro-message-action");
-    // Stryker disable next-line ConditionalExpression: only the bar's buttons take focus, and a key of null falls back to the first button anyway.
-    if (key !== null) setCurrent(key);
-  };
-  const iconButton = "w-(--ouro-button-h) px-0";
-  const menuButton = {
-    "data-ouro-control": "message",
-    "data-ouro-part": "menu",
-    "data-ouro-message-action": MENU_KEY,
-    tone: "secondary",
-    variant: "plain",
-    size: "sm",
-    "aria-label": menuLabel,
-    tabIndex: tabStop === MENU_KEY ? 0 : -1,
-    className: iconButton,
-  } as const;
-  const more = <MoreIcon aria-hidden="true" className="size-4" />;
-  return (
-    <div
-      ref={barRef}
-      role="toolbar"
-      aria-label={label}
-      data-ouro-message-actions=""
-      data-menu-open={menuOpen ? "" : undefined}
-      onKeyDown={keyDown}
-      onFocus={focus}
-      className={cn(barClass, start ? "start-2" : "end-2", card ? "-top-5" : "-top-8")}
-    >
-      {actions.map((action) => {
-        const button = (
-          <Button
-            key={action.key}
-            data-ouro-control="message"
-            data-ouro-part="action"
-            data-ouro-message-action={action.key}
-            tone="secondary"
-            variant="plain"
-            size="sm"
-            aria-label={action.label}
-            disabled={action.disabled}
-            tabIndex={action.key === tabStop ? 0 : -1}
-            onClick={action.onClick}
-            className={iconButton}
-          >
-            <span aria-hidden="true" className="inline-flex size-4 items-center justify-center text-base leading-none [&>svg]:size-4">
-              {action.icon}
-            </span>
-          </Button>
-        );
-        return popups ? (
-          <popups.Tooltip key={action.key} content={action.label}>
-            {button}
-          </popups.Tooltip>
-        ) : (
-          button
-        );
-      })}
-      {hasMenu &&
-        (popups ? (
-          <popups.Menu
-            items={menu}
-            open={menuOpen}
-            onOpenChange={setMenuOpen}
-            // No tooltip here: one reopened as focus comes back from the menu would cover the bar of
-            // the message below, and the row of dots needs no words.
-            trigger={<Button {...menuButton}>{more}</Button>}
-          />
-        ) : (
-          <Button {...menuButton} aria-haspopup="menu" aria-expanded={false} onClick={() => arm(true)}>
-            {more}
-          </Button>
-        ))}
-    </div>
-  );
-}
-
-/** A row of dots: more actions. */
-function MoreIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <circle cx="5" cy="12" r="1.75" />
-      <circle cx="12" cy="12" r="1.75" />
-      <circle cx="19" cy="12" r="1.75" />
-    </svg>
   );
 }
 

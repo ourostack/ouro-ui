@@ -2984,6 +2984,11 @@
       ],
       "files": [
         {
+          "path": "registry/ouro/components/ouro/message/message-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/message/message-parts.tsx"
+        },
+        {
           "path": "registry/ouro/components/ouro/message/message.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/message/message.tsx"

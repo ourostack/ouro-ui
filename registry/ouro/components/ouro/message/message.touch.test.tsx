@@ -28,6 +28,8 @@ it("shows a message's action bar after a tap, letting taps through until then, w
     ),
   );
   const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+  // The bar's code loads in the browser.
+  await expect.poll(() => message.querySelector('[role="toolbar"]')).not.toBeNull();
   const bar = message.querySelector<HTMLElement>('[role="toolbar"]')!;
   expect(getComputedStyle(bar).opacity).toBe("0");
   // Hidden, it lets taps through to what is under it.

@@ -40,7 +40,7 @@ Type: `MessageProps`.
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
 | `dateTime` | `string` |  | The same moment for machines, as an ISO date (`2026-05-01T09:41`): the `<time>` element's `dateTime`. |
 | `footer` | `ReactNode` |  | Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
-| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`. The bar stays while the menu is open. The code of Menu, and of the bar's Tooltips, loads the first time a pointer, focus or tap reaches a message with a bar. |
+| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |

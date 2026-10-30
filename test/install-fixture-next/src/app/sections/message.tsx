@@ -5,11 +5,10 @@ import { Message } from "@/components/ouro/message/message";
 // expect: Ouro message author
 // expect: Ouro message text
 // expect: >OA<
-// A post's subject and its footer render on the server, with the action bar.
+// A post's subject and its footer render on the server; its action bar renders in the browser.
 // expect: data-variant="post"
 // expect: Ouro post subject
 // expect: Ouro post footer
-// expect: role="toolbar"
 export default function MessageSection() {
   return (
     <>
