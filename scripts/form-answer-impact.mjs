@@ -19,13 +19,14 @@ export const proofFolders = ["form", "link", "radio-group"];
 
 /**
  * Paths the proof never loads, though the plan runs everything for some of them: the scripts but
- * the modules vitest.config.ts imports (shard-timings.json only splits a sharded run, and the
+ * the modules vitest.config.ts imports, the two the browser download runs (retry.sh,
+ * browser-deps.sh) and this selection's own (shard-timings.json only splits a sharded run, and the
  * proof is not sharded), the test folder but the proof's own files and the browser commands
  * vitest.config.ts imports, the site but the proof plugin it loads, the end-to-end specs, the
  * root stories, and the workflows but this one and the browser download it uses.
  */
 export const unread = [
-  [/^scripts\/(?!motion-reporter\.mts$|vitest-shards\.mts$|shard\.mjs$)/, "a script vitest.config.ts does not import"],
+  [/^scripts\/(?!motion-reporter\.mts$|vitest-shards\.mts$|shard\.mjs$|retry\.sh$|browser-deps\.sh$|form-answer-impact\.mjs$|test-impact\.mjs$)/, "a script neither vitest.config.ts, the browser download nor this selection runs"],
   [/^test\/(?!form-answer|conformance\/commands\.ts$)/, "a test file or fixture outside the proof"],
   [/^site\/(?!scripts\/proof\.mts$)/, "the site"],
   [/^registry\/ouro\/e2e\//, "an end-to-end spec"],

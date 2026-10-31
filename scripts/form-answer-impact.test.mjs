@@ -20,7 +20,7 @@ test("the Form answer proof runs for a change that reaches form, link or radio-g
 });
 
 test("the Form answer proof runs whenever the plan runs everything, for its own files, and when the diff is empty", () => {
-  for (const path of ["registry/ouro/lib/ouro/form-answer.ts", "registry/ouro/theme/ouro-base.css", "test/form-answer.probe.tsx", "test/form-answer.config.ts", "test/form-answer-fixture/package.json", "test/conformance/commands.ts", "vitest.config.ts", "pnpm-lock.yaml", "app.css", "scripts/vitest-shards.mts", "scripts/motion-reporter.mts", "scripts/shard.mjs", "site/scripts/proof.mts", ".github/workflows/form-answer-proof.yml", ".github/actions/playwright-browsers/action.yml"]) {
+  for (const path of ["registry/ouro/lib/ouro/form-answer.ts", "registry/ouro/theme/ouro-base.css", "test/form-answer.probe.tsx", "test/form-answer.config.ts", "test/form-answer-fixture/package.json", "test/conformance/commands.ts", "vitest.config.ts", "pnpm-lock.yaml", "app.css", "scripts/vitest-shards.mts", "scripts/motion-reporter.mts", "scripts/shard.mjs", "scripts/retry.sh", "scripts/browser-deps.sh", "scripts/form-answer-impact.mjs", "scripts/test-impact.mjs", "site/scripts/proof.mts", ".github/workflows/form-answer-proof.yml", ".github/actions/playwright-browsers/action.yml"]) {
     assert.equal(run([path]), true, path);
   }
   assert.equal(run([]), true);
@@ -31,7 +31,7 @@ test("the Form answer proof skips a change to paths it never loads, which CI's p
   for (const path of files) assert.equal(run([path]), false, path);
   const { reasons } = proofImpact(files, plan, folders);
   assert.equal(reasons.length, files.length);
-  assert.match(reasons[0], /^scripts\/claims-urls\.json: a script vitest\.config\.ts does not import, which the proof does not load$/);
+  assert.match(reasons[0], /^scripts\/claims-urls\.json: a script neither vitest\.config\.ts, the browser download nor this selection runs, which the proof does not load$/);
 });
 
 test("with the repository's own plan, a change to time-grid skips the proof and one to text-field, which form imports, runs it", async () => {
