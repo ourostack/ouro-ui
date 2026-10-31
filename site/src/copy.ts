@@ -50,6 +50,6 @@ export const SHADCN_LINE =
 export const AGENTS_COMING_SOON = {
   title: "Coming soon: Ouro AX",
   intro:
-    "Ouro AX is the agent-facing direction within Ouro UI. Its scope is still being defined.",
+    "Ouro AX is the agent-facing direction within Ouro UI.",
 } as const;
 

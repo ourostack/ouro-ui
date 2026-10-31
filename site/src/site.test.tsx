@@ -105,13 +105,12 @@ describe("home page", () => {
     }
   });
 
-  it("keeps Ouro UI as the parent and AX scope undefined", async () => {
+  it("keeps Ouro UI as the parent and promises nothing about AX", async () => {
     await renderPage("/");
     await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { level: 3, name: "Coming soon: Ouro AX" })).toBeVisible();
     await expect.element(page.getByText(AGENTS_COMING_SOON.intro, { exact: true })).toBeVisible();
     const copy = Object.values(AGENTS_COMING_SOON).join(" ");
-    expect(copy).toContain("scope is still being defined");
     expect(copy).not.toMatch(/CLI|MCP|--json|registry|20\d\d|Q[1-4]/);
     expect(document.body.innerText).toContain("Ouro HX is part of Ouro UI");
     expect(routes[0]!.title).toBe("Ouro HX");
