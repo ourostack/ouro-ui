@@ -31,6 +31,10 @@
 //   gone when the check looks. Such a test holds the page's clock (vi.useFakeTimers, holdClock) or
 //   records the state as it happens (watchAnnouncements, watchToasts). A test that means to run on
 //   the real clock says why in a `// real clock: <reason>` comment.
+// - moduleScopeMerges: a `cn()` or `twMerge()` call outside any function. tailwind-merge builds its
+//   class map on its first call, about 20 ms at 4x CPU, so a call at module scope does that while
+//   the app's modules load, in the same task. A class list that needs no merging is a string; one
+//   that does is merged where the component renders.
 //
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
@@ -133,6 +137,20 @@ export function comments(path, text) {
   };
   visit(source);
   return found.sort((a, b) => a.pos - b.pos).map((comment) => comment.text);
+}
+
+/** Each `cn()` or `twMerge()` call outside every function, as "line: call". */
+export function moduleScopeMerges(path, text) {
+  const source = parse(path, text);
+  const problems = [];
+  const visit = (node, inFunction) => {
+    if (!inFunction && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && (node.expression.text === "cn" || node.expression.text === "twMerge")) {
+      problems.push(`${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}: ${node.expression.text}()`);
+    }
+    ts.forEachChild(node, (child) => visit(child, inFunction || ts.isFunctionLike(node)));
+  };
+  visit(source, false);
+  return problems;
 }
 
 /** istanbul hints without `@preserve`, as "line: comment". */

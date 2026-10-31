@@ -8,7 +8,7 @@ import { compile } from "tailwindcss";
 import postcss from "postcss";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, moduleScopeMerges, needsClientDirective, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -206,6 +206,27 @@ test("every runtime registry file that renders or calls hooks starts with \"use 
 test("comments lists every comment in order, including JSX and end-of-file comments", () => {
   const text = "// a\nimport x from 'x';\n/** b */\nexport const y = (\n  <div>{/* c */}</div>\n); // d\n// e\n";
   assert.deepEqual(comments("a.tsx", text), ["// a", "/** b */", "/* c */", "// d", "// e"]);
+});
+
+test("moduleScopeMerges flags a cn() or twMerge() call outside every function, and only there", () => {
+  const source = [
+    'const a = cn("p-1", "p-2");',
+    "const b = { size: twMerge(\"m-1\") };",
+    'const c = "p-1 p-2";',
+    'function d() { return cn("p-1"); }',
+    'const e = () => cn("p-1");',
+    'const f = { g() { return cn("p-1"); } };',
+    "export function H({ x }) { return <div className={cn(\"p-1\", x)} />; }",
+  ].join("\n");
+  assert.deepEqual(moduleScopeMerges("x.tsx", source), ["1: cn()", "2: twMerge()"]);
+});
+
+test("no registry module merges classes at module scope, so loading it leaves tailwind-merge's setup for the first render", () => {
+  const problems = tracked("registry/**/*.ts", "registry/**/*.tsx")
+    .filter((path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/e2e\//.test(path))
+    .map(read)
+    .flatMap(({ path, text }) => moduleScopeMerges(path, text).map((problem) => `${path}:${problem}`));
+  assert.deepEqual(problems, [], "Join a class list that needs no merging as a string, or merge it where the component renders.");
 });
 
 test("unpreservedHints flags an istanbul hint without @preserve", () => {

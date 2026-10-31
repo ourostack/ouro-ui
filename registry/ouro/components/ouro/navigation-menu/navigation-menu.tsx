@@ -144,28 +144,26 @@ const easeOut = "ease-(--ouro-ease-out)";
 const instantly = "data-ouro-instant:transition-none";
 
 // The chevron turns when its panel is open; with reduced motion it turns without a transition.
-const chevron = cn("inline-flex motion-safe:transition-[rotate] motion-safe:duration-(--ouro-duration-base) data-popup-open:rotate-180", easeOut, instantly);
+// These class lists are joined as strings, not with `cn`: none overrides another, and a `cn` call
+// at module scope would build tailwind-merge's class map while the app's modules load.
+const chevronClass = `inline-flex motion-safe:transition-[rotate] motion-safe:duration-(--ouro-duration-base) data-popup-open:rotate-180 ${easeOut} ${instantly}`;
 
 // The popup follows the open panel. Its box and place change at once between panels, since
 // layout does not animate; it opens with a scale and fade from its button and closes faster.
 // Reduced motion keeps only the fade.
 const positioner = "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width)";
-const popup = cn(
+const popupClass =
   "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-lg bg-popover text-popover-foreground outline-none " +
   "ring-1 ring-border/60 shadow-(--shadow-lg) " +
   "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-fast) " +
-    "motion-safe:transition-[opacity,scale] motion-safe:data-starting-style:scale-96 motion-safe:data-ending-style:scale-96",
-  easeOut,
-  instantly,
-);
+  "motion-safe:transition-[opacity,scale] motion-safe:data-starting-style:scale-96 motion-safe:data-ending-style:scale-96 " +
+  `${easeOut} ${instantly}`;
 // A panel: nearly the screen's width on a phone, as wide as its links from 640px; wider with
 // content or two columns.
-const panel = cn(
+const panelClass =
   "box-border h-full w-[calc(100vw-2rem)] p-2 sm:w-max sm:min-w-64 sm:max-w-md data-wide:sm:max-w-2xl " +
-    "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0",
-  easeOut,
-  instantly,
-);
+  "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0 " +
+  `${easeOut} ${instantly}`;
 // A link in a panel: a full-width row, which highlights while pressed instead of scaling.
 const panelLink =
   "relative m-0 box-border flex min-h-11 pointer-fine:min-h-9 flex-col justify-center gap-0.5 rounded-md px-3 py-2 text-base pointer-fine:text-sm leading-5 " +
@@ -325,7 +323,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
             <BaseNavigationMenu.Item key={index} value={index}>
               <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
                 {item.label}
-                <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
+                <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevronClass}>
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
                     <path d="m4 6 4 4 4-4" />
                   </svg>
@@ -334,7 +332,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
               <BaseNavigationMenu.Content
                 data-ouro-instant={instant ? "" : undefined}
                 data-wide={item.content !== undefined || item.columns === 2 ? "" : undefined}
-                className={panel}
+                className={panelClass}
               >
                 <div className={cn("grid gap-2", item.content !== undefined && item.links !== undefined && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]")}>
                   {item.content !== undefined && (
@@ -370,7 +368,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
       <BaseNavigationMenu.Portal {...portal} data-ouro="navigation-menu-portal" className={floatingPortalClass}>
         <PortalScope>
           <BaseNavigationMenu.Positioner sideOffset={8} collisionPadding={16} className={positioner}>
-            <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
+            <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popupClass}>
               <BaseNavigationMenu.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
             </BaseNavigationMenu.Popup>
           </BaseNavigationMenu.Positioner>

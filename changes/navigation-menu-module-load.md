@@ -1,0 +1,1 @@
+- [NavigationMenu merges no classes when its module loads](scripts/source-rules.test.mjs "verify:testExists(scripts/source-rules.test.mjs::no registry module merges classes at module scope, so loading it leaves tailwind-merge's setup for the first render)"), so importing it leaves tailwind-merge's setup for the first render.
