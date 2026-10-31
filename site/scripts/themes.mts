@@ -201,7 +201,10 @@ export function buildPreset(preset: Preset, css: string, fonts: readonly Font[])
   const used = presetFonts(fonts, preset);
   const sans = used.find((font) => font.role === "sans")!;
   const mono = used.find((font) => font.role === "mono")!;
-  const radius = all.find((line) => line.startsWith("--radius:"))!.slice("--radius:".length).trim();
+  const value = (name: string) => all.find((line) => line.startsWith(`${name}:`))?.slice(name.length + 1).trim();
+  // Shown to people as the preset's corners, so a var() alias (Cookbook's) is followed to its length.
+  let radius = value("--radius")!;
+  for (let alias = /^var\((--[\w-]+)\)$/.exec(radius); alias && value(alias[1]!); alias = /^var\((--[\w-]+)\)$/.exec(radius)) radius = value(alias[1]!)!;
 
   const site = blocks
     .map((block) => {

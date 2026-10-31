@@ -82,14 +82,6 @@
     border-radius: 999px;
     background: color-mix(in oklab, var(--foreground) 16%, transparent);
   }
-  /* The chart-grid hairlines behind a composition. */
-  .site-chart-grid {
-    background-image:
-      linear-gradient(color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px),
-      linear-gradient(90deg, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px);
-    background-size: 32px 32px;
-    background-position: -1px -1px;
-  }
   .site-mono {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
