@@ -200,7 +200,20 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     await expect(ready.first()).toBeAttached();
     // Chapter I's island loads once the page is live; wait for it, or WebKit can go network-idle
     // first and the island's files land while the next page loads, counted as that page's.
-    if (name === "nautilus") await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+    if (name === "nautilus") {
+      // PROBE (never merged): how long Chapter I takes, and what its chunks did.
+      const t0 = Date.now();
+      const took = await page.locator("#chapter-one[data-chapter-ready]").waitFor({ state: "attached", timeout: 30_000 }).then(() => Date.now() - t0, () => -1);
+      const timing = await page.evaluate(() => {
+        const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+        const chunks = performance.getEntriesByType("resource").filter((e) => /chapter-one|frame-|reorderable|checklist/.test(e.name)).map((e) => `${e.name.split("/").pop()} start ${e.startTime.toFixed(0)} end ${(e as PerformanceResourceTiming).responseEnd.toFixed(0)} ${(e as PerformanceResourceTiming).nextHopProtocol}`);
+        const top = document.getElementById("chapter-one")?.getBoundingClientRect().top;
+        return { dcl: nav?.domContentLoadedEventEnd.toFixed(0), load: nav?.loadEventEnd.toFixed(0), ready: performance.now().toFixed(0), top, inner: innerHeight, scrollY, chunks };
+      });
+      console.log(`PROBE CATALOG ch1 ${took < 0 ? "NEVER" : took > 5000 ? "SLOW" : "OK"} ${took} ms ${info.project.name} repeat ${info.repeatEachIndex} ${JSON.stringify(timing)}`);
+      expect(took, "Chapter I ready within 5 s").toBeGreaterThan(-1);
+      expect(took, "Chapter I ready within 5 s").toBeLessThanOrEqual(5000);
+    }
     await page.waitForLoadState("networkidle");
     page.off("response", listener);
     const expected = initialFiles(manifest, kind);
