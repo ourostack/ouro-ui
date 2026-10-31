@@ -146,7 +146,7 @@ In JSDoc, add `@claim "<words of the sentence>" <source> verify:<check>` to the 
 
 A component touches only its own files, so parallel pull requests do not conflict. Create:
 
-1. `registry/ouro/components/ouro/<folder>/component.json`: `{ "order": <the highest order of any folder>, "components": ["<stem>"] }`. Equal orders sort by folder name, so two new components land in different places in `registry.json` and `site/public/llms.txt` rather than both at the end, where their pull requests would conflict.[^a-component-json]
+1. `registry/ouro/components/ouro/<folder>/component.json`: `{ "order": <the highest order of any folder>, "components": ["<stem>"] }`. Equal orders sort by folder name, so new components spread across the gaps between the folders at that order in `registry.json` and `site/public/llms.txt` instead of piling up at the end. That makes conflicts rarer, not impossible: pull requests whose components fall in the same gap still conflict there, so regenerate after a rebase.[^a-component-json]
 2. `registry/ouro/components/ouro/<folder>/<stem>.tsx` (and `<stem>-parts.tsx`, `<stem>-styles.ts` as needed), with JSDoc on each export including `@example` and `@group <group>`, one of Actions, Text, Forms, Overlays, Menus, Feedback, Display, Lists, Layout, Navigation, Data or Chat (`scripts/catalog-groups.mts`).[^a-gen-docs-fails]
 3. In the same folder: `<stem>.test.tsx`, `<stem>.test-d.ts` and `<stem>.stories.tsx` (story `parameters` for `plainOpeners` and `screenshot` where they apply), plus `registry/ouro/e2e/ouro/<stem>.spec.ts`.
 4. `site/src/docs/demos/<stem>.demo.tsx`: the docs page's live demo, as its default export.
