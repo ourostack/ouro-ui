@@ -198,3 +198,33 @@ test("an unknown flag's fix drops its value once the command's words are all giv
   assert.equal(shape(["edit", "x", "y", "--intent=secret1", "--intent=secret2"]).fix, 't edit x y "--intent=<intent>"');
   assert.equal(shape(["edit", "x", "y", "--level", "high"]).problem, "--level takes a number, not the value given");
 });
+
+test("list and required flags, examples that name another tool, a shorter command after a longer one, and toArgv's forms", () => {
+  const t = defineCli({
+    name: "t",
+    about: [],
+    commands: [
+      defineCommand({ name: "draft set", summary: "Set.", effect: "private", args: [{ name: "conversation", description: "C.", required: true }], flags: { ids: { type: "list", description: "Ids." }, mode: { type: "string", description: "Mode.", required: true }, quiet: { type: "boolean", description: "Q." } }, examples: ["see also: other draft set"] }),
+      defineCommand({ name: "draft", summary: "Show the draft.", effect: "private" }),
+    ],
+  });
+  const set = findCommand(t, ["draft", "set", "x"])!;
+  assert.equal(set.used, 2);
+  assert.equal(findCommand(t, ["draft"])!.command.name, "draft");
+  assert.equal(usageOf(t, set.command), "draft set <conversation> --mode <mode> [--ids <ids,ids>] [--quiet]");
+  assert.deepEqual((parse(t, ["draft", "set", "c1", "--ids", "a,b c", "--mode", "m"]) as Parsed).input, { conversation: "c1", ids: ["a", "b", "c"], mode: "m" });
+  assert.throws(() => parse(t, ["draft", "set", "c1"]), (e: AxError) => e.shape.code === "missing-flag" && e.shape.problem === "needs --mode: Mode" && e.shape.fix === "t draft set c1 --mode <mode>");
+  const schema = inputSchema(t, set.command);
+  assert.deepEqual(schema.properties["ids"], { type: "array", description: "Ids.", items: { type: "string" } });
+  assert.deepEqual(schema.required, ["conversation", "mode"]);
+  assert.throws(() => checkInput(t, set.command, { conversation: "c", mode: "m", ids: "a" }), /"ids" is an array of strings, not string/);
+  assert.throws(() => checkInput(t, set.command, { conversation: "c", mode: "m", ids: [1] }), /"ids" is an array of strings, not array/);
+  assert.throws(() => checkInput(t, set.command, { conversation: "c" }), (e: AxError) => e.shape.code === "missing-arg" && e.shape.fix === '{"conversation":"c","mode":"<mode>"}');
+  assert.throws(() => checkInput(t, set.command, ["x"]), /needs "conversation"/);
+  assert.throws(() => checkInput(t, set.command, null), /needs "conversation"/);
+  assert.deepEqual(toArgv(t, set.command, { conversation: "c", ids: ["a", "b"], quiet: true, mode: "m" }), { argv: ["draft", "set", "c", "--ids", "a,b", "--mode", "m", "--quiet"], stdin: null });
+  assert.deepEqual(toArgv(t, set.command, { quiet: false }), { argv: ["draft", "set"], stdin: null });
+  const bare = findCommand(t, ["draft"])!.command;
+  assert.deepEqual(toArgv(t, bare, {}), { argv: ["draft"], stdin: null });
+  assert.throws(() => checkInput(t, bare, { x: 1 }), /there is no argument "x"; it takes none/);
+});

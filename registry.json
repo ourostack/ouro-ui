@@ -12062,6 +12062,7 @@
       "description": "Optional: the node:test tests for ax-mcp; run them with node --test.",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-mcp",
         "ourostack/ouro-ui/ax-outcome",
@@ -12165,6 +12166,11 @@
           "target": "@lib/ouro/ax/fixtures/bad-cli.mjs"
         },
         {
+          "path": "registry/ouro/ax/fixtures/legacy-cli.mjs",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/legacy-cli.mjs"
+        },
+        {
           "path": "registry/ouro/ax/fixtures/mcp-server.mjs",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/fixtures/mcp-server.mjs"
@@ -12178,6 +12184,11 @@
           "path": "registry/ouro/ax/fixtures/notes.mts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/fixtures/notes.mts"
+        },
+        {
+          "path": "registry/ouro/ax/fixtures/plain-cli.mjs",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/plain-cli.mjs"
         },
         {
           "path": "registry/ouro/ax/fixtures/tasks.mts",

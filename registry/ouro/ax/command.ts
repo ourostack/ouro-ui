@@ -479,7 +479,7 @@ function unknownCommand(cli: Cli, leading: readonly string[]): AxError {
     code: "unknown-command",
     exit: usage(cli),
     thing: word,
-    problem: `there is no command "${word}"`,
+    problem: `there is no command "${word}"; the commands are ${[...new Set(names)].join(", ")}`,
     fix: near ? commandLine([cli.name, near, ...leading.slice(1)]) : `${cli.name} --help`,
   });
 }
@@ -498,8 +498,8 @@ interface JsonSchema {
 }
 
 /** The command's input as a JSON Schema: its arguments and flags as properties (the MCP tool's inputSchema). */
-function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema {
-  const properties: Record<string, JsonSchema> = {};
+function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema & { properties: Record<string, JsonSchema & { type: string }>; required: string[] } {
+  const properties: Record<string, JsonSchema & { type: string }> = {};
   const required: string[] = [];
   for (const a of cmd.args ?? []) {
     const unless = unlessOf(a);
@@ -509,16 +509,12 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
   for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
     if (name in BUILTIN_FLAGS) continue;
     const unless = unlessOf(spec);
-    const s: JsonSchema = { description: spec.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
-    if (spec.type === "boolean") s.type = "boolean";
-    else if (spec.type === "number") {
-      s.type = "number";
-      if (spec.min !== undefined) s.minimum = spec.min;
-      if (spec.max !== undefined) s.maximum = spec.max;
-    } else if (spec.type === "list") s.items = { type: "string" };
-    else s.type = "string";
-    if (spec.type === "list") s.type = "array";
-    if (spec.type === "enum" && spec.values) s.enum = spec.values;
+    const type = spec.type === "boolean" ? "boolean" : spec.type === "number" ? "number" : spec.type === "list" ? "array" : "string";
+    const s: JsonSchema & { type: string } = { type, description: spec.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
+    if (spec.min !== undefined) s.minimum = spec.min;
+    if (spec.max !== undefined) s.maximum = spec.max;
+    if (spec.type === "list") s.items = { type: "string" };
+    if (spec.values) s.enum = spec.values;
     properties[name] = s;
     if (spec.required && !unlessOf(spec).length) required.push(name);
   }
@@ -529,7 +525,7 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
 const whyProblem = (cmd: CommandDef, flag: string) =>
   cmd.effect === "others" ? `other people will see this as the person's, so it needs ${flag}: ${WHY_PLACEHOLDER.slice(1, -1)}` : `it acts on the person's own things for them, so it needs ${flag}: ${WHY_PLACEHOLDER.slice(1, -1)}`;
 
-const typeName = (value: unknown) => (Array.isArray(value) ? "array" : value === null ? "null" : typeof value);
+const typeName = (value: unknown) => (Array.isArray(value) ? "array" : typeof value);
 
 /**
  * Checks an MCP call's arguments against the command, as the parser checks argv: an unknown property names the nearest,
@@ -537,7 +533,7 @@ const typeName = (value: unknown) => (Array.isArray(value) ? "array" : value ===
  */
 function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: string = cmd.name.replace(/ /g, "_")): Input {
   const schema = inputSchema(cli, cmd);
-  const props = schema.properties ?? {};
+  const props = schema.properties;
   const given = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const fixed: Record<string, unknown> = { ...given };
   const fail = (code: string, problem: string): never => {
@@ -555,7 +551,7 @@ function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: string = cmd
   for (const [key, s] of Object.entries(props)) {
     const value = given[key];
     if (value === undefined || value === null) continue;
-    const want = s.type ?? "string";
+    const want = s.type;
     if (want === "array" ? !Array.isArray(value) || value.some((v) => typeof v !== "string") : typeName(value) !== want) {
       fixed[key] = want === "array" ? [String(value)] : want === "number" ? Number(value) || 0 : want === "boolean" ? true : String(value);
       fail("bad-value", `"${key}" is ${want === "array" ? "an array of strings" : `a ${want}`}, not ${typeName(value)}`);
@@ -570,7 +566,7 @@ function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: string = cmd
     }
     input[key] = value as InputValue;
   }
-  for (const key of schema.required ?? []) {
+  for (const key of schema.required) {
     if (Object.hasOwn(input, key)) continue;
     fixed[key] = key === WHY_FLAG ? WHY_PLACEHOLDER : `<${key}>`;
     fail(key === WHY_FLAG ? "needs-why" : "missing-arg", key === WHY_FLAG ? whyProblem(cmd, '"why"') : `needs "${key}": ${props[key]?.description ?? ""}`);
