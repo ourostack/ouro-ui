@@ -135,8 +135,8 @@ describe("the header and the theme section", () => {
     const background = () => getComputedStyle(document.body).backgroundColor;
     const pearl = background();
     await userEvent.click(page.getByRole("button", { name: /Theme: Pearl/ }));
-    await userEvent.click(page.getByRole("radio", { name: "Abyss" }));
-    expect(root.getAttribute("data-theme")).toBe("abyss");
+    await userEvent.click(page.getByRole("group", { name: "Themes" }).getByRole("button", { name: "Abyss", exact: true }));
+    await expect.poll(() => root.getAttribute("data-theme")).toBe("abyss");
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
     expect(background()).not.toBe(pearl);
     await expect.element(page.getByRole("button", { name: /Theme: Abyss/ })).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe("the header and the theme section", () => {
     const presets = page.getByRole("group", { name: "Presets" });
     for (const preset of presetList) {
       await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }));
-      expect(root.getAttribute("data-theme")).toBe(preset.name);
+      await expect.poll(() => root.getAttribute("data-theme")).toBe(preset.name);
       await expect.element(presets.getByRole("button", { name: preset.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       expect(presets.getByRole("button", { pressed: true }).elements()).toHaveLength(1);
     }
@@ -161,14 +161,18 @@ describe("the header and the theme section", () => {
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
     const writes: string[] = [];
+    // The copy goes through clipboard.write with a ClipboardItem where there is one, writeText elsewhere.
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
+    const itemSpy = vi.spyOn(navigator.clipboard, "write").mockImplementation(async (items) => {
+      for (const item of items) writes.push(await (await item.getType("text/plain")).text());
+    });
     // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
     // announcements are recorded as they happen.
     const announced = watchAnnouncements();
     try {
       root.setAttribute("data-theme", "brass");
       await renderPage("/");
-      const brass = presetList.find((preset) => preset.name === "brass")!;
+      const brass = themes.find((preset) => preset.name === "brass")!;
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
       await expect.poll(() => announced.count("Copied the Brass theme")).toBe(1);
       await userEvent.click(page.getByRole("button", { name: "Copy tokens only", exact: true }));
@@ -179,11 +183,13 @@ describe("the header and the theme section", () => {
     } finally {
       announced.stop();
       spy.mockRestore();
+      itemSpy.mockRestore();
     }
   });
 
   it("says so when the clipboard is refused", async () => {
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    const itemSpy = vi.spyOn(navigator.clipboard, "write").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
     const announced = watchAnnouncements();
     try {
       await renderPage("/");
@@ -193,6 +199,7 @@ describe("the header and the theme section", () => {
     } finally {
       announced.stop();
       spy.mockRestore();
+      itemSpy.mockRestore();
     }
   });
 

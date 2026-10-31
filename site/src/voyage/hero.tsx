@@ -11,6 +11,7 @@ import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
+import { ThemeDots } from "./theme-dots";
 
 /** What the hero says the library is, before anything else: its name. */
 export const EYEBROW = VOYAGE_HERO.eyebrow;
@@ -139,8 +140,13 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
     <section aria-labelledby="hero-title" className="site-hero">
       <Container className="site-hero-grid">
         <div className="site-hero-copy">
-          <div>
-            <p className="site-eyebrow site-hero-eyebrow" data-site-eyebrow="">
+          {/*
+            On a phone the theme dots open the hero, in the eyebrow's place (the header names Ouro HX just
+            above, and the eyebrow stays for screen readers), so the first screen still reaches the stage's
+            first control.
+          */}
+          <div className="max-sm:flex max-sm:flex-col">
+            <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
               <span className="site-hero-brand">{EYEBROW}</span>
             </p>
             <h1 id="hero-title" className="site-h1 site-hero-title mt-2 sm:mt-3 lg:mt-5">
@@ -162,6 +168,10 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
               <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
                 Browse components
               </Button>
+            </div>
+            <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
+              <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
+              <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
             </div>
           </div>
         </div>

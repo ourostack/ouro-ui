@@ -372,6 +372,8 @@ export function checkCookbook(css: string): string[] {
 export interface Outputs {
   "presets.generated.css": string;
   "themes.json": string;
+  /** The presets without their CSS: what the pickers need on first load. The CSS loads when copied. */
+  "presets.json": string;
 }
 
 export function build(read: (file: string) => string = (file) => readFileSync(join(themesDir, file), "utf8")): Outputs {
@@ -385,6 +387,7 @@ export function build(read: (file: string) => string = (file) => readFileSync(jo
   return {
     "presets.generated.css": `${css}\n`,
     "themes.json": `${JSON.stringify(built.map((preset) => preset.built), null, 2)}\n`,
+    "presets.json": `${JSON.stringify(built.map(({ built: { name, label, mood, heading, radius, fonts } }) => ({ name, label, mood, heading, radius, fonts })), null, 2)}\n`,
   };
 }
 
@@ -426,7 +429,7 @@ function main(args: string[]): void {
     console.error(problems.join("\n"));
     process.exit(1);
   }
-  console.log(check ? "themes are current" : "wrote presets.generated.css and themes.json");
+  console.log(check ? "themes are current" : "wrote presets.generated.css, themes.json and presets.json");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main(process.argv.slice(2));

@@ -85,7 +85,8 @@ for (const preset of themes) {
       await expect(page.locator("html[data-site-ready]")).toBeAttached();
       // What the button copies is what the app was built with.
       await page.getByRole("button", { name: "Copy theme", exact: true }).click();
-      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(preset.css.theme);
+      // The preset CSS loads on the first copy, so the clipboard fills a moment after the click.
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(preset.css.theme);
       await page.locator("[data-site-sample]").scrollIntoViewIfNeeded();
       const expected = await measure(page);
       await site.close();

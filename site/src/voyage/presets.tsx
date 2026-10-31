@@ -1,48 +1,57 @@
-import type { JSX, ReactNode } from "react";
-import themes from "../themes/themes.json";
-import type { PresetName } from "../themes/prepaint";
+import type { CSSProperties, JSX, ReactNode } from "react";
+import presets from "../themes/presets.json";
+import type { PresetName, ThemeChoice } from "../themes/prepaint";
 
-/** One preset as site/scripts/themes.mts built it: its picker text and its copied CSS. */
+/** One choice as site/scripts/themes.mts built it, without its CSS (copy.ts loads that when copied). */
 export interface PresetInfo {
-  name: PresetName;
+  name: ThemeChoice;
   label: string;
   mood: string;
   heading: string;
   radius: string;
   fonts: string[];
-  css: { theme: string; tokens: string };
 }
 
-export const presetList = themes as PresetInfo[];
+/** The six presets, Pearl first. */
+export const presetList = presets as (PresetInfo & { name: PresetName })[];
 
-export function presetNamed(name: PresetName): PresetInfo {
-  return presetList.find((preset) => preset.name === name) ?? presetList[0]!;
+/** Live: Pearl under the reader's own sky (themes/live.ts), so Pearl's type, corners and CSS. */
+export const LIVE: PresetInfo = { ...presetList[0]!, name: "live", label: "Live", mood: "Follows your sky, from first light to moonrise" };
+
+/** Everything a reader can pick, Live first. */
+export const choiceList: readonly PresetInfo[] = [LIVE, ...presetList];
+
+export function presetNamed(name: ThemeChoice): PresetInfo {
+  return choiceList.find((preset) => preset.name === name) ?? presetList[0]!;
 }
 
 /**
- * Three dots in a preset's own colours: its page, its primary and its brass highlight. The span
- * carries `data-theme`, so the preset's variables (light or dark, with the page) apply inside it.
+ * A choice's colours as a dot: the preset's page and its primary, split on the diagonal, read from
+ * its own variables (the span carries `data-theme`, so they apply inside it, light or dark with the
+ * page). Live's dot is its four skies going round.
  */
-export function Swatch({ preset, size = "sm" }: { preset: PresetName; size?: "sm" | "lg" }): JSX.Element {
-  const dot = size === "lg" ? "size-4" : "size-3";
-  return (
-    <span data-theme={preset} aria-hidden="true" className="inline-flex shrink-0 items-center -space-x-1">
-      <span className={`${dot} rounded-full bg-background ring-1 ring-foreground/25`} />
-      <span className={`${dot} rounded-full bg-primary ring-1 ring-background`} />
-      <span className={`${dot} rounded-full bg-chart-3 ring-1 ring-background`} />
-    </span>
-  );
+const PRESET_PAINT: CSSProperties = {
+  background: "linear-gradient(135deg, var(--background) 50%, var(--primary) 50%)",
+  boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--foreground) 18%, transparent)",
+};
+const LIVE_PAINT: CSSProperties = { background: "conic-gradient(#f7a1b8, #6aa9f5, #ff8a5c, #2b2a78, #f7a1b8)" };
+const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-6 sm:size-8" } as const;
+
+export function Swatch({ preset, size = "sm" }: { preset: ThemeChoice; size?: "sm" | "md" | "lg" }): JSX.Element {
+  // A preset's dot is its page and its primary on the diagonal, with a hairline so white shows on white;
+  // Live's goes round dawn, day, dusk and night. Inline, so the paint costs the first-load CSS nothing.
+  return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`inline-block shrink-0 rounded-full ${SIZES[size]}`} style={preset === "live" ? LIVE_PAINT : PRESET_PAINT} />;
 }
 
 /**
- * Words or marks that depend on the preset, rendered for every preset; voyage.css shows the one
- * html[data-theme] names. The head script sets that attribute before paint, so the server-rendered
- * page shows the reader's preset before it hydrates, and hydration changes nothing.
+ * Words or marks that depend on the choice, rendered for every one; by-preset.css shows the one
+ * html[data-theme] (and html[data-live]) names. The head script sets those before paint, so the
+ * server-rendered page shows the reader's choice before it hydrates, and hydration changes nothing.
  */
 export function ByPreset({ children }: { children: (preset: PresetInfo) => ReactNode }): JSX.Element {
   return (
     <>
-      {presetList.map((item) => (
+      {choiceList.map((item) => (
         <span key={item.name} data-site-when={item.name}>
           {children(item)}
         </span>
