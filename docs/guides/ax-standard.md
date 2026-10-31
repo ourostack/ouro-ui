@@ -1,6 +1,6 @@
 # The Ouro AX claims
 
-The Ouro AX standard is a list of claims about the interfaces agents use. A claim is one rule that a program can check from outside, such as "an unknown flag fails before anything runs". `ax-claims` holds them as data in `lib/ouro/ax/claims.ts`, and `ax-xray` checks an interface against them ([the X-ray](ax-xray.md)). [The claims page](../ax/ax-claims.md) lists them, with their tiers and what admitted them.
+The Ouro AX standard is a list of claims about the interfaces agents use. A claim is one rule that a program can check from outside, such as "an unknown flag fails before anything runs". `ax-claims` holds them as data in `lib/ouro/ax/claims.ts`, and `ax-xray` checks an interface against them ([the X-ray](ax-conformance.md)). [The claims page](../ax/ax-claims.md) lists them, with their tiers and what admitted them.
 
 ```sh
 node lib/ouro/ax/xray.ts claims          # every claim, its tier, rule and check

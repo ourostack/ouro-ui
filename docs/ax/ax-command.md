@@ -19,7 +19,7 @@ interface ArgSpec {
   name: string;
   description: string;
   required?: boolean;
-  rest?: boolean;
+  rest?: boolean | "list";
   stdin?: boolean;
   unless?: string | readonly string[];
   source?: string;

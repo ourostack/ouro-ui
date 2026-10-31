@@ -1,6 +1,6 @@
 # The Ouro AX X-ray
 
-`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-claims.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface whether or not the kit built it.[^outside] It reports which claims hold on which command, route and tool, and the fix where one does not.
+`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface whether or not the kit built it.[^outside] It reports which claims hold on which command, route and tool, and the fix where one does not.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.2.14

@@ -31,15 +31,18 @@ switch (cmd) {
     // The X-ray's state command: how many times a read wrote.
     process.stdout.write(`${stateFile && fs.existsSync(stateFile) ? fs.readFileSync(stateFile, "utf8") : "0"}\n`);
     process.exit(0);
+    break;
   case "rooms":
     // Reading marks everything read: a read that writes.
     bump();
     process.stdout.write(json ? '{"rooms":[{"ref":"r1"}]}\n{"more":true}\n' : "r1\n");
     process.exit(0);
+    break;
   case "edit":
     bump();
     process.stdout.write("edited\n");
     process.exit(0);
+    break;
   case "send":
     if (rest[0] !== "r1") {
       process.stdout.write("Error: something went wrong\n");
@@ -48,6 +51,7 @@ switch (cmd) {
     }
     process.stdout.write("sent\n");
     process.exit(0);
+    break;
   default:
     process.stderr.write("what?\n");
     process.exit(1);
