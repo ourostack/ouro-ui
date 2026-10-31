@@ -102,11 +102,12 @@ const mosaicMoreClass =
  * @claim "How a mosaic lays out `count` pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
  * @claim "How a mosaic lays out `count` pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
  */
-function mosaicLayout(count: number, width?: number, height?: number): { ratio: number; grid: string } {
+function mosaicLayout(count: number, width?: number, height?: number): { ratio: number; grid?: string } {
   if (count === 1) {
     const [w, h] = [width ?? 0, height ?? 0];
     const own = w > 0 && h > 0 ? w / h : 4 / 3;
-    return { ratio: Math.min(3, Math.max(3 / 4, own)), grid: "grid-cols-1 grid-rows-1" };
+    // One cell needs no tracks of its own: the grid's single implicit one fills the frame.
+    return { ratio: Math.min(3, Math.max(3 / 4, own)) };
   }
   if (count === 2) return { ratio: 2, grid: "grid-cols-2 grid-rows-1" };
   if (count === 3) return { ratio: 3 / 2, grid: "grid-cols-[3fr_2fr] grid-rows-2" };
