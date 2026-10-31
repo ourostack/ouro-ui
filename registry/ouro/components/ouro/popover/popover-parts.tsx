@@ -17,7 +17,8 @@ import {
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { holdPageAtPress, PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import { popoverCloseClass } from "@/registry/ouro/components/ouro/popover/popover-styles";
 
 export type { FloatingAlign as PopoverAlign, FloatingSide as PopoverSide } from "@/registry/ouro/lib/ouro/floating";

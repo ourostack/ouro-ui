@@ -326,10 +326,12 @@ describe("holdPageAtPress", () => {
     const html = document.documentElement;
     html.style.scrollBehavior = "smooth";
     pointerDown(2);
-    keyDown("a");
-    keyDown("Tab");
     expect(html.style.scrollBehavior).toBe("smooth");
     expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+    keyDown("a");
+    keyDown("Escape");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 2500)).toEqual([40, 2500]);
   });
 
   it("leaves the page to the open popup's hold at a press on its trigger, which closes it", async () => {
