@@ -13,7 +13,7 @@ export const DIVE_CHECKS = [
   { id: "hatch", label: "Close the hatch" },
   { id: "tanks", label: "Fill the ballast tanks" },
   { id: "lights", label: "Test the lantern" },
-  { id: "ned", label: "Find Ned Land" },
+  { id: "harpooner", label: "Wake the harpooner" },
 ] as const;
 
 /** Copies text, then says so in a toast; a refusal (no clipboard, no permission) says so too. */
@@ -54,7 +54,7 @@ function DiveWindow(): JSX.Element {
         <div className="rounded-xl border border-border/70 bg-card p-4 shadow-(--shadow-sm) sm:p-5">
           <Checklist
             label="Before we dive"
-            description="Tick them off. Conseil is watching."
+            description="Tick them off. The captain is watching."
             items={DIVE_CHECKS.map((item) => ({ ...item, checked: checked.has(item.id) }))}
             onCheckedChange={(id, isChecked) =>
               setChecked((previous) => {
@@ -92,7 +92,7 @@ function DiveWindow(): JSX.Element {
             </p>
             <Dialog
               title="Dive to 300 fathoms?"
-              description="The lantern stays on. Ned Land would like it noted that he is against this."
+              description="The lantern stays on. Ned the harpooner would like it noted that he is against this."
               open={open}
               onOpenChange={setOpen}
               footer={
@@ -103,7 +103,7 @@ function DiveWindow(): JSX.Element {
                   <Button
                     onClick={() => {
                       setOpen(false);
-                      toast("Diving", { description: "Conseil: Classified. One very deep dive." });
+                      toast("Diving", { description: "Conseil, the helper: Noted. One very deep dive." });
                     }}
                   >
                     Dive

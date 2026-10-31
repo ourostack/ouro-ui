@@ -211,9 +211,13 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     // Each docs page loads only its own Markdown, so the docs do not grow with every page they add.
     if (kind === "docs") expect(modules.filter((module) => /^(?:docs\/.*\.md|UPGRADING\.md)\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
     // The Nautilus's page asks for Chapter I's island as soon as it is live, the chapter being near the top.
-    // The docs sidebar is an island too: it may load after the docs' closure, and it is not part of the ceiling.
+    // The docs sidebar and the docs' header are islands too: they may load after the docs' closure, and they are not part of the ceiling.
     const island = new Set(
-      name === "nautilus" ? islandFiles(manifest).filter((file) => !expected.includes(file)) : kind === "docs" ? lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected) : [],
+      name === "nautilus"
+        ? islandFiles(manifest).filter((file) => !expected.includes(file))
+        : kind === "docs"
+          ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
+          : [],
     );
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.has(file));
     expect(loaded.sort(), `${name} loads its closure and nothing else`).toEqual(expected);
@@ -226,8 +230,17 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     expect(css, `${name} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILINGS[kind]);
   }
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
-  // registry components and site files it never renders: it loads none of the docs' stylesheets.
-  for (const name of ["home", "nautilus"]) expect(sheets[name]!.filter((sheet) => sheets["docs"]!.includes(sheet)), `${name} shares a stylesheet with the docs`).toEqual([]);
+  // registry components and site files it never renders: it loads none of the docs' stylesheets but
+  // the theme presets (themes/presets.generated.css), which the header's picker switches on both.
+  const presetsOnly = (sheet: string) => {
+    const css = readFileSync(resolve("site/dist", sheet), "utf8");
+    return css.includes("[data-theme=sleek]") && !css.includes("--tw-") && !/\.(?:site|voyage|stage|chapter)-/.test(css);
+  };
+  for (const name of ["home", "nautilus"]) {
+    const shared = sheets[name]!.filter((sheet) => sheets["docs"]!.includes(sheet));
+    expect(shared.filter((sheet) => !presetsOnly(sheet)), `${name} shares a stylesheet with the docs`).toEqual([]);
+    expect(shared.length, `${name} shares only the presets with the docs`).toBeLessThanOrEqual(1);
+  }
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
 });

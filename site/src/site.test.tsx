@@ -13,7 +13,6 @@ import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { agentExamples } from "./agents/examples";
-import spoonjoyData from "./docs/spoonjoy.json";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
 import { siteGroups } from "../../scripts/catalog-groups.mts";
@@ -53,10 +52,18 @@ describe("home page", () => {
     expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
-  it("shows two ships, the Nautilus and Spoonjoy, each with its way in and its X-ray", async () => {
+  it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {
     await renderPage("/");
     const section = page.getByRole("region", { name: TWO_SHIPS.title });
     await expect.element(section.getByRole("heading", { level: 2, name: TWO_SHIPS.title })).toBeVisible();
+    // Showcases, not the list of what is built with HX, and open on the page: no card box, no mock app.
+    expect(section.element().textContent).toContain(TWO_SHIPS.eyebrow);
+    expect(section.element().textContent).not.toMatch(/Built with Ouro HX/i);
+    for (const article of section.element().querySelectorAll("article")) {
+      expect(getComputedStyle(article).boxShadow).toBe("none");
+      expect(getComputedStyle(article).borderBottomWidth).toBe("0px");
+    }
+    expect(section.element().querySelector("[data-theme]")).toBeNull();
     const nautilus = section.getByRole("article", { name: TWO_SHIPS.nautilus.title });
     const spoonjoy = section.getByRole("article", { name: TWO_SHIPS.spoonjoy.title });
     await expect.element(nautilus.getByText(TWO_SHIPS.nautilus.body)).toBeVisible();
@@ -70,7 +77,7 @@ describe("home page", () => {
       ["X-ray it", "https://spoonjoy.app/test-kitchen?xray"],
       ["Source", "https://github.com/spoonjoy/spoonjoy-v2"],
     ]);
-    expect(spoonjoy.element().textContent).toContain(`built with ${Object.keys(spoonjoyData.items).length} Ouro HX components.`);
+    expect(spoonjoy.element().textContent).toContain(TWO_SHIPS.spoonjoy.body);
     // Side by side on a wide screen.
     await page.viewport(1280, 800);
     const [a, b] = [nautilus.element().getBoundingClientRect(), spoonjoy.element().getBoundingClientRect()];
@@ -84,10 +91,21 @@ describe("home page", () => {
     expect(document.querySelector("[data-site-demo]")).toBeNull();
   });
 
-  it("keeps Ouro UI as the parent, HX under construction and AX scope undefined", async () => {
+  it("counts no components anywhere a visitor reads, and no longer says under construction", async () => {
+    await renderPage("/");
+    await expect.element(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const text = document.body.innerText;
+    expect(text).not.toMatch(/under construction/i);
+    expect(text).not.toMatch(/\b\d+\s+(?:Ouro HX |React )?components?\b/i);
+    expect(text).not.toMatch(/\bone of \d+/);
+    for (const route of routes.filter((entry) => entry.path === "/" || entry.path === "/nautilus/")) {
+      expect(route.description).not.toMatch(/under construction/i);
+    }
+  });
+
+  it("keeps Ouro UI as the parent and AX scope undefined", async () => {
     await renderPage("/");
     await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
-    await expect.element(page.getByText("Under construction", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { level: 3, name: "Coming soon: Ouro AX" })).toBeVisible();
     await expect.element(page.getByText(AGENTS_COMING_SOON.intro, { exact: true })).toBeVisible();
     const copy = Object.values(AGENTS_COMING_SOON).join(" ");
@@ -98,7 +116,7 @@ describe("home page", () => {
     expect(readme.startsWith("# Ouro HX\n")).toBe(true);
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
     for (const text of [readme, llms]) {
-      expect(text).toContain("Under construction");
+      expect(text).not.toMatch(/under construction/i);
       expect(text).toContain("Ouro UI");
     }
   });
@@ -239,6 +257,18 @@ describe("docs", () => {
     expect(toaster).not.toMatch(/^# toast$/m);
   });
 
+  it("keeps the header out of the way of the sidebar, which stays put as the page scrolls", async () => {
+    // The docs sidebar sticks to the top of the window, so a header that stuck there too would cover its filter.
+    await page.viewport(1280, 800);
+    await renderPage("/docs/composer/");
+    window.scrollTo({ top: 600, behavior: "instant" });
+    const field = document.querySelector<HTMLInputElement>('input[placeholder="Filter components"]')!;
+    await expect.poll(() => field.getBoundingClientRect().top).toBeLessThan(60);
+    const box = field.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + 20, box.top + box.height / 2)).toBe(field);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
   it("has the Switching from shadcn and Updating pages", async () => {
     await renderPage("/docs/switching-from-shadcn/");
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Switching from shadcn");
@@ -301,8 +331,8 @@ describe("head tags", () => {
       '<meta name="twitter:card" content="summary_large_image" />',
       '<meta name="twitter:image" content="https://ui.ouro.bot/og.png" />',
       '<meta property="og:site_name" content="Ouro HX" />',
-      '<meta property="og:image:alt" content="Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop." />',
-      '<meta name="twitter:image:alt" content="Ouro HX, part of Ouro UI. Under construction. Designed down to the last tap and the last prop." />',
+      '<meta property="og:image:alt" content="Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it." />',
+      '<meta name="twitter:image:alt" content="Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it." />',
     ]) {
       expect(tags).toContain(tag);
     }

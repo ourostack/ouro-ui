@@ -12,6 +12,9 @@ let mounted: { root: Root; host: HTMLElement } | undefined;
 export async function renderPage(path: string): Promise<HTMLElement> {
   const Page = await loadPage(path);
   const host = await renderFixture(<App path={path} Page={Page} />);
+  // The header is an island on the docs pages: the server's HTML has it, but a client render shows
+  // it once its chunk loads, and it pushes the page down then. Wait for it, so nothing moves mid-test.
+  await expect.poll(() => host.querySelector("[data-site-brand]")).not.toBeNull();
   const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
   if (name && docsItems.some((item) => item.name === name)) {
     await expect.poll(() => host.querySelector(`[data-site-demo="${name}"]`)?.childElementCount ?? 0).toBeGreaterThan(0);

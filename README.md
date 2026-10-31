@@ -4,7 +4,7 @@ Designed down to the last tap and the last prop. Interactions that feel right to
 
 **[See it live: ui.ouro.bot](https://ui.ouro.bot/)**, with the [docs](https://ui.ouro.bot/docs/) and [Storybook](https://ui.ouro.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-Under construction. Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, `@ouro` namespace and install addresses are unchanged.
+Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, `@ouro` namespace and install addresses are unchanged.
 
 ```sh
 npx shadcn@latest search 'ourostack/ouro-ui#v1.2.14'     # list the items
@@ -28,8 +28,6 @@ import { Dialog } from "@/components/ouro/dialog/dialog";
 These are the paths in your app once the CLI has installed a component, with your components alias in place of `@/components` (`aliases.components` in `components.json`). The files in this repository and the `docs/` pages use the registry source paths, `@/registry/ouro/components/ouro/button/button`, which the CLI rewrites on install. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`).[^runtime-deps] They don't depend on the Motion library[^no-motion]: motion is CSS, and reduced motion is honored in CSS.[^reduced-motion] If your app animates with Motion, wrap it in `<MotionConfig reducedMotion="user">`.
 
 ## Install
-
-Ouro HX is under construction.
 
 ### Quick start
 

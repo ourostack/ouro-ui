@@ -19,9 +19,9 @@ export interface Route {
 /** Old addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
 export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }];
 
-const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI. Under construction.`;
+const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI.`;
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
-const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret. Help him finish it. A story told with Ouro HX components: build the Nautilus, then sign on to her crew.`;
+const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, then join her crew.`;
 
 export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },

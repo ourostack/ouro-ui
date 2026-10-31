@@ -29,7 +29,12 @@ test("each claim on the hero's proof line comes from its source", () => {
   assert.equal(proof.themes, JSON.parse(files.themes).length);
   assert.equal(proof.typescript, true);
   assert.equal(proof.stage, true);
-  assert.equal(proof.line, `${ui.length} React components · TypeScript · Chromium + WebKit + touch tested · axe-clean in 6 themes · every line covered · This stage is built with HX`);
+  assert.equal(
+    proof.line,
+    "From buttons and forms to calendars and chat · Typed, so editors and agents see every prop · Tested in Chrome and Safari engines, by mouse and by touch · Passes accessibility checks in all six looks, light and dark · Every line of code runs in a test · The porthole's controls are Ouro HX too",
+  );
+  // No count of components: the line says what the kit covers.
+  assert.doesNotMatch(proof.line, new RegExp(`\\b${ui.length}\\b`));
   assert.deepEqual(
     proof.claims.map((claim) => claim.href.replace(/#L\d+$/, "")),
     [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage, EVIDENCE.stage],
@@ -48,7 +53,7 @@ test("the stage claim needs the stage built from registry components", () => {
   const files = sources();
   const stage = files.stage.replaceAll("@/registry/ouro/components/ouro/", "@/elsewhere/");
   assert.equal(deriveProof({ ...files, stage }).stage, false);
-  assert.doesNotMatch(deriveProof({ ...files, stage }).line, /This stage/);
+  assert.doesNotMatch(deriveProof({ ...files, stage }).line, /porthole/);
 });
 
 test("each claim links to evidence that exists in this repository", () => {
@@ -65,7 +70,16 @@ test("a component in a file that isn't TypeScript drops the TypeScript claim", (
   const registry = JSON.parse(files.registry);
   const item = registry.items.find((entry) => entry.type === "registry:ui");
   item.files = [...item.files, { path: "registry/ouro/components/ouro/extra.js", type: "registry:ui" }];
-  assert.doesNotMatch(deriveProof({ ...files, registry: JSON.stringify(registry) }).line, /TypeScript/);
+  assert.doesNotMatch(deriveProof({ ...files, registry: JSON.stringify(registry) }).line, /Typed/);
+});
+
+test("the first claim names buttons, forms, calendars and chat only while the registry has each", () => {
+  const files = sources();
+  const registry = JSON.parse(files.registry);
+  registry.items = registry.items.filter((entry) => entry.name !== "calendar");
+  const line = deriveProof({ ...files, registry: JSON.stringify(registry) }).line;
+  assert.doesNotMatch(line, /calendars/);
+  assert.match(line, /^React components for whole apps · /);
 });
 
 test("the install command adds a component the latest release has", () => {
@@ -139,7 +153,7 @@ test("a lower coverage threshold lowers the claim to the lowest of the four", ()
   const files = sources();
   const vitestConfig = files.vitestConfig.replace("thresholds: { lines: 100, branches: 100,", "thresholds: { lines: 100, branches: 92,");
   assert.notEqual(vitestConfig, files.vitestConfig);
-  assert.match(deriveProof({ ...files, vitestConfig }).line, /92% of lines covered/);
+  assert.match(deriveProof({ ...files, vitestConfig }).line, /92% of lines run in a test/);
 });
 
 test("losing the coverage thresholds over registry/ is an error, not a quiet claim", () => {
@@ -152,13 +166,13 @@ test("coverage that also names files beyond registry/'s sources still claims eve
   const files = sources();
   const vitestConfig = files.vitestConfig.replace(/include: \["registry\/\*\*\/\*\.\{ts,tsx\}"[^\]]*\]/, 'include: ["registry/**/*.{ts,tsx}", "a.mjs", "b.mjs"]');
   assert.match(vitestConfig, /"a\.mjs", "b\.mjs"/);
-  assert.match(deriveProof({ ...files, vitestConfig }).line, /every line covered/);
+  assert.match(deriveProof({ ...files, vitestConfig }).line, /Every line of code runs in a test/);
 });
 
 test("a single engine, or no touch project, is said as such", () => {
   const files = sources();
   const testProjects = files.testProjects.replace('browsers = ["chromium", "webkit"]', 'browsers = ["chromium"]').replace('name: "ouro-touch"', 'name: "ouro-phone"');
-  assert.match(deriveProof({ ...files, testProjects }).line, /· Chromium tested ·/);
+  assert.match(deriveProof({ ...files, testProjects }).line, /· Tested in Chrome engine ·/);
 });
 
 test("browsers overridden in vitest.config.ts are refused rather than miscounted", () => {
@@ -174,7 +188,7 @@ test("the theme claim needs each scan to pass the audit kit's strict audit", () 
   assert.notEqual(voyageSpec, files.voyageSpec);
   const proof = deriveProof({ ...files, voyageSpec });
   assert.equal(proof.themes, 0);
-  assert.doesNotMatch(proof.line, /axe-clean/);
+  assert.doesNotMatch(proof.line, /accessibility/);
 });
 
 test("the theme claim needs the axe loop over every preset in light and dark", () => {
@@ -183,5 +197,5 @@ test("the theme claim needs the axe loop over every preset in light and dark", (
   assert.notEqual(voyageSpec, files.voyageSpec);
   const proof = deriveProof({ ...files, voyageSpec });
   assert.equal(proof.themes, 0);
-  assert.doesNotMatch(proof.line, /axe-clean/);
+  assert.doesNotMatch(proof.line, /accessibility/);
 });

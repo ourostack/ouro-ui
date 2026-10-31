@@ -223,8 +223,8 @@ describe("the Nautilus's page", () => {
   it("opens the story, lists its chapters honestly, then Chapter I", async () => {
     await renderPage("/nautilus/");
     await expect.element(page.getByRole("heading", { level: 1, name: NAUTILUS_PAGE.title })).toBeVisible();
-    expect(document.querySelector("[data-site-motto]")!.textContent).toBe(NAUTILUS_PAGE.motto);
-    expect(document.querySelector("#story-title + p")!.textContent).toBe(NAUTILUS_PAGE.intro);
+    expect(document.querySelector("[data-site-story-eyebrow]")!.textContent).toBe(NAUTILUS_PAGE.eyebrow);
+    expect(document.querySelector("#story-title + p")!.textContent).toBe(`${NAUTILUS_PAGE.intro} ${NAUTILUS_PAGE.parts}`);
     expect(routeFor("/nautilus/")!.description.startsWith(NAUTILUS_PAGE.intro)).toBe(true);
     const list = page.getByRole("list", { name: NAUTILUS_PAGE.chaptersLabel });
     const items = list.getByRole("listitem").elements();
@@ -239,6 +239,16 @@ describe("the Nautilus's page", () => {
     // The porthole stage is the home page's; the Nautilus's page starts with the story.
     expect(document.querySelector("[data-stage-crew]")).toBeNull();
     expect(page.getByRole("link", { name: "Ouro HX", exact: true }).element().getAttribute("href")).toBe("/");
+  });
+
+  it("reads cold: it says who Nemo is and where he comes from, with no untranslated Latin or unexplained crew", async () => {
+    await renderPage("/nautilus/");
+    const opening = document.querySelector("#story-title")!.closest("section")!;
+    expect(opening.textContent).toContain("Captain Nemo is building a submarine in secret");
+    expect(document.querySelector("[data-site-book] cite")!.textContent).toBe("Twenty Thousand Leagues Under the Seas");
+    expect(document.querySelector("[data-site-book]")!.textContent).toContain("You don’t need to have read it.");
+    expect(opening.textContent).not.toMatch(/Mobilis|Professor|Ned Land|Aronnax|Conseil/);
+    expect(opening.querySelector("[lang='la']")).toBeNull();
   });
 
   it.each(["/", "/nautilus/"])("turns X-ray on at load on %s when the address asks with ?xray", async (path) => {

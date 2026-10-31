@@ -15,10 +15,11 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 /**
  * The voyage hero's words (site-design.md, revision 4), which replace the ones above when the voyage
  * becomes the landing page. The title is two sentences, one for the people using an app and one for
- * the agents building it; the hero sets each on its own lines.
+ * the agents building it; the hero sets each on its own lines. The eyebrow is the name alone: apps
+ * ship with HX, so it no longer says "under construction" (Ari, 2026-10-30).
  */
 export const VOYAGE_HERO = {
-  eyebrow: "Ouro HX · Under construction",
+  eyebrow: "Ouro HX",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
   subline: claim("A React component library you copy into your app and own. Its taps, motion and screen-reader announcements are tested in real browsers.", {
     source: [

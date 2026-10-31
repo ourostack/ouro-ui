@@ -15,6 +15,7 @@ import { StoryOpening } from "../voyage/nautilus";
 import { Repaint } from "../voyage/repaint";
 import { openXray, setXray, useXray } from "../voyage/xray-store";
 import "../themes/presets.generated.css";
+import "../themes/by-preset.css";
 import "../voyage/voyage.css";
 import "../voyage/chapters/chapters.css";
 

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { BELL_TOASTS, LOG, OPENING_LOG, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { BELL_TOASTS, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
@@ -214,7 +214,7 @@ test.describe("each control on the stage", () => {
     const started = await recordAnimations(page);
     const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
-    await expect.poll(toasts.titles).toContain(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`);
+    await expect.poll(toasts.titles).toContain(`${SPEAKER[BELL_TOASTS[0]!.name]}: ${BELL_TOASTS[0]!.text}`);
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
     await expect(page.locator(".stage-ripple")).toHaveCount(3);
@@ -471,7 +471,7 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    await expect.poll(toasts.titles).toContain(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`);
+    await expect.poll(toasts.titles).toContain(`${SPEAKER[BELL_TOASTS[0]!.name]}: ${BELL_TOASTS[0]!.text}`);
     await expect(lastLog(page)).toContainText(LOG.bell.text);
     await expect.poll(() => started(".stage-ripple")).toContain("stage-ripple");
     await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-a");
