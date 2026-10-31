@@ -26,8 +26,9 @@
 #         built registry.
 # github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>#<tag>` for every
 #         component in the newest release (package.json ouro.latestRelease), each item and
-#         dependency from GitHub at that tag. Type check, build and the install check only
-#         (CI runs it on push to main).
+#         dependency from GitHub at that tag, into the tag's own fixture app with the tag's
+#         shadcn pin, then type check, build and the tag's own install check (CI runs it on
+#         push to main).
 # namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
 #         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
 #         registered in components.json, then `shadcn add @ouro/ouro-base @ouro/dialog`. Every
@@ -174,6 +175,40 @@ if [ "$variant" = next ]; then
   exit 0
 fi
 
+if [ "$variant" = github ]; then
+  # The released components, checked by the release's own harness: its fixture app, shadcn pin and
+  # install check, from the tag's tree. Main's harness can move on in ways an older release does not
+  # satisfy, and release.yml needs this job to pass on main before the next release can fix that.
+  tag=$(node "$root/scripts/latest-release.mjs")
+  git -C "$root" rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null || git -C "$root" fetch --quiet --depth=1 origin "refs/tags/$tag:refs/tags/$tag"
+  harness="$registry/tag"
+  mkdir -p "$harness"
+  git -C "$root" archive "$tag" | tar -x -C "$harness"
+  # The tag's scripts import what this checkout installed (postcss, typescript).
+  ln -s "$root/node_modules" "$harness/node_modules"
+  tag_shadcn=$(grep -m1 -oE 'shadcn@[0-9]+\.[0-9]+\.[0-9]+' "$harness/scripts/install-test.sh")
+  echo "::group::Fixture app, as $tag has it"
+  cp -R "$harness/test/install-fixture/." "$app/"
+  cd "$app"
+  npm install --no-audit --no-fund
+  npx --yes "$tag_shadcn" init --base base --preset "$preset" --yes --no-monorepo
+  echo "::endgroup::"
+  echo "::group::Every component in $tag from GitHub at that tag"
+  # shellcheck disable=SC2207 # item names have no spaces
+  released=($(node -e 'for (const item of require(process.argv[1]).items) if (item.type === "registry:ui") console.log(item.name)' "$harness/registry.json"))
+  [ "${#released[@]}" -gt 0 ] || { echo "$tag's registry.json lists no component"; exit 1; }
+  addresses=("ourostack/ouro-ui/ouro-base#$tag")
+  for item in "${released[@]}"; do addresses+=("ourostack/ouro-ui/$item#$tag"); done
+  npx --yes "$tag_shadcn" add --yes "${addresses[@]}"
+  echo "::endgroup::"
+  echo "::group::Type check, build and $tag's install check"
+  npx tsc -b
+  npx vite build
+  node "$harness/scripts/install-check.mjs" "$app" shadcn runtime
+  echo "::endgroup::"
+  exit 0
+fi
+
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
 cd "$app"
@@ -181,27 +216,6 @@ npm install --no-audit --no-fund
 "${shadcn[@]}" init --base base --preset "$preset" --yes --no-monorepo
 echo "::endgroup::"
 
-if [ "$variant" = github ]; then
-  tag=$(node "$root/scripts/latest-release.mjs")
-  echo "::group::Every component in $tag from GitHub at that tag"
-  git -C "$root" rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null || git -C "$root" fetch --quiet --depth=1 origin "refs/tags/$tag:refs/tags/$tag"
-  # shellcheck disable=SC2207 # item names have no spaces
-  released=($(git -C "$root" show "$tag:registry.json" | node -e 'for (const item of JSON.parse(require("fs").readFileSync(0, "utf8")).items) if (item.type === "registry:ui") console.log(item.name)'))
-  [ "${#released[@]}" -gt 0 ] || { echo "$tag's registry.json lists no component"; exit 1; }
-  addresses=("ourostack/ouro-ui/ouro-base#$tag")
-  for item in "${released[@]}"; do addresses+=("ourostack/ouro-ui/$item#$tag"); done
-  "${shadcn[@]}" add --yes "${addresses[@]}"
-  echo "::endgroup::"
-  echo "::group::Type check and build"
-  npx tsc -b
-  npx vite build
-  # The installed files are the tag's, so they are checked against the tag's sources.
-  mkdir -p "$registry/tag"
-  git -C "$root" archive "$tag" | tar -x -C "$registry/tag"
-  OURO_SOURCE_ROOT="$registry/tag" runtime_only shadcn
-  echo "::endgroup::"
-  exit 0
-fi
 
 if [ "$variant" = namespace ]; then
   echo "::group::@ouro/dialog from the namespace, served locally"

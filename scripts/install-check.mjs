@@ -4,7 +4,6 @@
 // one the variant wants.
 //
 //   node scripts/install-check.mjs <app-dir> <shadcn|ouro|next> <runtime|tests>
-//   OURO_SOURCE_ROOT=<dir>   compare the installed files with the sources there, not this checkout's
 //
 // runtime: only the component items were added, so the app must have no Ouro test,
 //          story, spec or test kit, and no test tooling in package.json.
@@ -299,9 +298,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error("usage: install-check.mjs <app-dir> <shadcn|ouro|next> <runtime|tests>");
     process.exitCode = 2;
   } else {
-    // OURO_SOURCE_ROOT: the sources the app installed, when not this checkout's (a release tag's
-    // files, for the install from GitHub at that tag).
-    const root = process.env.OURO_SOURCE_ROOT ?? join(dirname(fileURLToPath(import.meta.url)), "..");
+    const root = join(dirname(fileURLToPath(import.meta.url)), "..");
     const { aliases } = JSON.parse(readFileSync(join(app, "components.json"), "utf8"));
     const problems = [
       ...checkInstall(app, variant, stage),
