@@ -26,11 +26,11 @@ export function StoryOpening(): JSX.Element {
           </p>
         </div>
         <nav aria-label={NAUTILUS_PAGE.chaptersLabel} className="lg:col-span-5 lg:self-end">
-          <ol aria-label={NAUTILUS_PAGE.chaptersLabel} className="m-0 grid list-none gap-2 p-0">
+          <ol aria-label={NAUTILUS_PAGE.chaptersLabel} className="m-0 grid list-none border-t border-border/70 p-0">
             {NAUTILUS_PAGE.chapters.map((chapter) => (
               <li
                 key={chapter.number}
-                className="site-story-chapter flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border/70 bg-card px-4 py-3"
+                className="site-story-chapter flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-b border-border/70 py-3"
                 data-site-chapter-ready={chapter.ready ? "" : undefined}
               >
                 <span className="site-mono shrink-0 text-xs text-muted-foreground sm:w-24">{chapter.number}</span>
