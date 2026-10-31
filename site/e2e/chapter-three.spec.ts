@@ -22,6 +22,44 @@ const alarm = (page: Page) => encounter(page).getByRole("button", { name: ENCOUN
 const playButton = (page: Page) => saloon(page).getByRole("button", { name: SALOON.play });
 const dialog = (page: Page) => page.getByRole("dialog", { name: ENCOUNTER.dialog });
 
+
+// PROBE (never merged): records focus, pointer and menu events, and dumps them when a test fails.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    const log: string[] = [];
+    (window as unknown as { __probe: string[] }).__probe = log;
+    const t = () => performance.now().toFixed(1);
+    const name = (node: EventTarget | null) => {
+      if (!(node instanceof Element)) return String(node && (node as Node).nodeName);
+      const role = node.getAttribute("role");
+      const text = (node.textContent ?? "").trim().slice(0, 24);
+      return `${node.tagName.toLowerCase()}${role ? `[role=${role}]` : ""}${node.id ? `#${node.id}` : ""} "${text}"`;
+    };
+    for (const type of ["focusin", "focusout", "pointerdown", "pointerup", "click", "keydown", "scroll"]) {
+      document.addEventListener(type, (event) => log.push(`${t()} ${type} ${name(event.target)}${type === "focusout" || type === "focusin" ? ` related=${name((event as FocusEvent).relatedTarget)}` : ""}`), true);
+    }
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) if (node instanceof Element && (node.matches("[role=menu]") || node.querySelector("[role=menu]"))) log.push(`${t()} menu added`);
+        for (const node of record.removedNodes) if (node instanceof Element && (node.matches("[role=menu]") || node.querySelector("[role=menu]"))) log.push(`${t()} menu removed`);
+        if (record.type === "attributes" && record.target instanceof Element && record.target.matches("[role=menu]")) log.push(`${t()} menu attr ${record.attributeName}=${record.target.getAttribute(record.attributeName!)}`);
+        if (record.type === "attributes" && record.target instanceof Element && record.target.matches("button[aria-haspopup=menu]")) log.push(`${t()} trigger attr ${record.attributeName}=${record.target.getAttribute(record.attributeName!)}`);
+      }
+    }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-open", "data-closed", "data-starting-style", "data-ending-style", "aria-expanded", "hidden"] });
+    document.addEventListener("DOMContentLoaded", () => log.push(`${t()} domcontentloaded`));
+    window.addEventListener("load", () => log.push(`${t()} load`));
+    new MutationObserver(() => {
+      if (document.documentElement.hasAttribute("data-site-ready")) log.push(`${t()} site-ready`);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-site-ready"] });
+  });
+});
+test.afterEach(async ({ page }, testInfo) => {
+  const log = await page.evaluate(() => (window as unknown as { __probe?: string[] }).__probe ?? []).catch(() => ["(page gone)"]);
+  const text = log.join("\n");
+  await testInfo.attach("probe-log", { body: text, contentType: "text/plain" });
+  if (testInfo.status !== testInfo.expectedStatus) console.log(`PROBE FAILED ${testInfo.title} (repeat ${testInfo.repeatEachIndex}, worker ${testInfo.workerIndex})\n${text.split("\n").slice(-80).join("\n")}`);
+});
+
 /** Gives an order from the Orders menu. */
 async function order(page: Page, name: string): Promise<void> {
   await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
