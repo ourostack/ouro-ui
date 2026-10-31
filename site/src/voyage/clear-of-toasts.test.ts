@@ -70,3 +70,36 @@ it("starts the scroll as the toast mounts, before the frame that first paints it
   expect(scrollBy).toHaveBeenCalledOnce();
   await expect.poll(() => button.getBoundingClientRect().bottom).toBeLessThanOrEqual(toastTop());
 });
+
+it("checks again once a scroll already under way when the toast mounts has come to rest", async () => {
+  const { button, stack } = setUp();
+  // The page is part-way down a scroll (the browser's own, after focus, say) that will end with the
+  // button at the foot of the screen, under the toast; when the toast mounts it is still clear.
+  window.scrollTo({ top: 300, behavior: "instant" });
+  keepClearOfToasts(button);
+  showToast(stack);
+  await new Promise<void>((resolve) => queueMicrotask(resolve));
+  for (let top = 270; top >= 0; top -= 30) {
+    window.scrollTo({ top, behavior: "instant" });
+    await frames(1);
+  }
+  await expect.poll(() => button.getBoundingClientRect().bottom).toBeLessThanOrEqual(toastTop());
+});
+
+it("leaves the page alone when a scroll under way carries the element off the screen", async () => {
+  const { button, stack } = setUp();
+  // A reader flicking back up the page: the button ends below the screen, which no toast covers.
+  button.style.top = `${innerHeight + 1000}px`;
+  window.scrollTo({ top: 1400, behavior: "instant" });
+  keepClearOfToasts(button);
+  showToast(stack);
+  await new Promise<void>((resolve) => queueMicrotask(resolve));
+  const scrollBy = vi.spyOn(window, "scrollBy");
+  for (let top = 1300; top >= 0; top -= 100) {
+    window.scrollTo({ top, behavior: "instant" });
+    await frames(1);
+  }
+  await frames(10);
+  expect(scrollBy).not.toHaveBeenCalled();
+  expect(window.scrollY).toBe(0);
+});
