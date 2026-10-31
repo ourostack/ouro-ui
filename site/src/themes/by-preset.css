@@ -1,7 +1,6 @@
 /*
  * Choice-dependent words and marks (ByPreset in presets.tsx): every choice's is in the HTML, and the
  * one html[data-theme] (or html[data-live]) names shows, so the page is right before it hydrates.
- * Also the swatch dots every picker draws; a chosen dot's ring is its Button's own pressed look.
  */
 [data-site-when] {
   display: none;
@@ -15,14 +14,4 @@ html[data-theme="cookbook"] [data-site-when="cookbook"],
 html[data-live] [data-site-when="live"],
 html:not([data-theme]) [data-site-when="pearl"] {
   display: contents;
-}
-
-/* A choice's dot: its page and its primary on the diagonal, with a hairline so white shows on white. */
-.site-swatch {
-  background: linear-gradient(135deg, var(--background) 50%, var(--primary) 50%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 18%, transparent);
-}
-/* Live: dawn, day, dusk and night going round. */
-.site-swatch-live {
-  background: conic-gradient(#f7a1b8, #6aa9f5, #ff8a5c, #2b2a78, #f7a1b8);
 }

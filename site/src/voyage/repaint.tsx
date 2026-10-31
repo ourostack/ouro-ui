@@ -260,7 +260,7 @@ export function Repaint(): JSX.Element {
           </p>
         </div>
         <div className="grid gap-8 lg:col-span-7 lg:self-start">
-          <div style={own}>
+          <div className="min-w-0" style={own}>
             <DiveWindow />
           </div>
           <div className="grid justify-items-start gap-4">

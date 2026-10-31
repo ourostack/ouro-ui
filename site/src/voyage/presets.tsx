@@ -33,7 +33,13 @@ export function presetNamed(name: ThemeChoice): PresetInfo {
 const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-6 sm:size-8" } as const;
 
 export function Swatch({ preset, size = "sm" }: { preset: ThemeChoice; size?: "sm" | "md" | "lg" }): JSX.Element {
-  return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`site-swatch inline-block shrink-0 rounded-full ${SIZES[size]}${preset === "live" ? " site-swatch-live" : ""}`} />;
+  // A preset's dot is its page and its primary on the diagonal, with a hairline so white shows on white;
+  // Live's goes round dawn, day, dusk and night.
+  const paint =
+    preset === "live"
+      ? "bg-[conic-gradient(#f7a1b8,#6aa9f5,#ff8a5c,#2b2a78,#f7a1b8)]"
+      : "bg-[linear-gradient(135deg,var(--background)_50%,var(--primary)_50%)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_18%,transparent)]";
+  return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`inline-block shrink-0 rounded-full ${paint} ${SIZES[size]}`} />;
 }
 
 /**

@@ -292,9 +292,9 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
     await pressTab(page);
     await expect(themes.getByRole("button", { name, exact: true })).toBeFocused();
   }
+  // The stored mode is light, so Tab lands on Surfaced, the checked one; one arrow on is Submerged.
   await pressTab(page);
-  await expect(page.getByRole("radio", { name: "Auto" })).toBeFocused();
-  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("radio", { name: "Surfaced" })).toBeFocused();
   await page.keyboard.press("ArrowRight");
   await expect(page.locator("html")).toHaveClass(/\bdark\b/);
   await page.keyboard.press("Escape");
