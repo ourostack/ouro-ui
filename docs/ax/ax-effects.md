@@ -61,7 +61,7 @@ type Effect = "private" | "others";
 
 ### `effectAnnotations`
 
-MCP tool annotations for an effect (https://modelcontextprotocol.io/specification/2025-06-18/server/tools).
+MCP tool annotations for an effect, as [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18/server/tools) defines them.
 
 ```ts
 function effectAnnotations(effect: Effect, readOnly: boolean): { readOnlyHint: boolean; destructiveHint: boolean; openWorldHint: boolean; }

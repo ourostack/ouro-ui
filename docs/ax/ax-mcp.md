@@ -2,7 +2,7 @@
 
 # ax-mcp
 
-The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. Spec: https://modelcontextprotocol.io/specification/2025-06-18
+The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It follows [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18).
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-mcp#v1.2.14
@@ -67,7 +67,7 @@ function mcpTools(options: McpOptions): McpTool[]
 
 ### `PROTOCOL_VERSIONS`
 
-The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. Spec: https://modelcontextprotocol.io/specification/2025-06-18
+The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It follows [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18).
 
 ```ts
 const PROTOCOL_VERSIONS: readonly ["2025-06-18", "2025-03-26", "2024-11-05"]

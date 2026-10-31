@@ -33,7 +33,7 @@ const WHY_PLACEHOLDER = "<who asked you, and what they said>";
 /** The flag that previews an "others" command's effect and audience without acting. */
 const DRY_RUN_FLAG = "dry-run";
 
-/** MCP tool annotations for an effect (https://modelcontextprotocol.io/specification/2025-06-18/server/tools). */
+/** MCP tool annotations for an effect, as [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18/server/tools) defines them. */
 function effectAnnotations(effect: Effect, readOnly: boolean): { readOnlyHint: boolean; destructiveHint: boolean; openWorldHint: boolean } {
   return { readOnlyHint: readOnly, destructiveHint: effect === "others", openWorldHint: effect === "others" };
 }
