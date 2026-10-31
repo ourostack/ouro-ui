@@ -39,7 +39,7 @@ test("probe: reflow loop navigations", async ({ page }, testInfo) => {
       try {
         await page.goto(process.env["PROBE_PAGES"] ? `https://127.0.0.1:${4300 + testInfo.workerIndex}/${path === "./" ? "" : path}` : path);
       } catch (error) {
-        console.log(`PROBE GOTO ${path} ${preset} repeat ${testInfo.repeatEachIndex}: ${String(error).split("\n")[0]}\n${events.join("\n")}`);
+        console.log(`PROBE GOTO ${path} ${preset} repeat ${testInfo.repeatEachIndex}: ${String(error).split("\n")[0]}`);
         throw error;
       }
       const loaded = Date.now() - start;
@@ -48,13 +48,13 @@ test("probe: reflow loop navigations", async ({ page }, testInfo) => {
       } catch {
         const late = await page.locator("html[data-site-ready]").waitFor({ state: "attached", timeout: 30_000 }).then(() => `ready after ${Date.now() - start} ms`, () => "never ready in 35 s");
         const doc = await page.evaluate(() => ({ gz: (document.body?.textContent ?? "").startsWith("\u001f"), scripts: performance.getEntriesByType("resource").filter((e) => /\.js/.test(e.name)).map((e) => `${e.name.split("/").pop()} ${(e as PerformanceResourceTiming).responseEnd.toFixed(0)}ms ${(e as PerformanceResourceTiming).decodedBodySize}b`), nav: (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.domContentLoadedEventEnd })).catch((e) => ({ gz: "?", scripts: [String(e)], nav: -1 }));
-        console.log(`PROBE LATE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: goto ${loaded} ms, ${late}, gzip-text=${doc.gz}, dcl=${doc.nav}\n  scripts: ${doc.scripts.slice(-12).join(" | ")}\n${events.join("\n")}`);
+        console.log(`PROBE LATE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: goto ${loaded} ms, ${late}, gzip-text=${doc.gz}, dcl=${doc.nav}, internal=${events.filter((line) => /internal error/.test(line)).length}`);
         throw new Error("late");
       }
       // Ready: did an island fall back, or did a chunk fail and load on its second try?
       const failed = await page.locator("[data-island-failed]").count();
       const loadErrors = events.filter((line) => /requestfailed|pageerror|did not load/.test(line));
-      if (failed || loadErrors.length) console.log(`PROBE READY-WITH-TROUBLE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: fallbacks=${failed}\n${loadErrors.slice(0, 12).join("\n")}`);
+      if (failed || loadErrors.length) console.log(`PROBE TROUBLE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: fallbacks=${failed} island-errors=${loadErrors.filter((line) => /did not load/.test(line)).length} internal=${loadErrors.filter((line) => /internal error/.test(line)).length}`);
     }
   }
 });

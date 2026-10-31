@@ -16,12 +16,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [pages, pages-b]
-    name: encoding (${{ matrix.mode }})
+        code: [main, fix]
+        server: [preview, pages]
+    name: encoding (${{ matrix.code }}, ${{ matrix.server }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Main's code with this probe's spec
+        if: matrix.code == 'main'
+        run: |
+          cp site/e2e/zz-encoding.spec.ts "$RUNNER_TEMP/zz.spec.ts"
+          git fetch --no-tags --depth=1 origin main
+          git checkout FETCH_HEAD -- site registry
+          cp "$RUNNER_TEMP/zz.spec.ts" site/e2e/zz-encoding.spec.ts
+          git log --oneline -1 FETCH_HEAD
+          grep -c loadWithRetry site/src/voyage/chapters/island.tsx || true
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -33,17 +43,18 @@ jobs:
           CI: "1"
           PROBE_PROXY: ''
           PROBE_MODE: ${{ matrix.mode }}
-          PROBE_PAGES: '1'
+          PROBE_PAGES: ${{ matrix.server == 'pages' && '1' || '' }}
           PROBE_SETTLE: ${{ matrix.mode == 'settle' && '1' || '' }}
           PROBE_CLOSE: ${{ matrix.mode == 'close' && '1' || '' }}
         run: |
           if [ -n "$PROBE_PROXY" ]; then node site/e2e/zz-proxy.mjs & fi
           if [ -n "$PROBE_PAGES" ]; then mkdir -p site/dist && (timeout 3 node site/scripts/serve-pages.mjs 4399 || true); ls .tmp/pages-cert; fi
-          pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list 2>&1 | grep -vE '^\s+[0-9]+ \||^\s+✓|^\s*$|^\s+at |^\s+[0-9]+\)' | head -800 || true
+          pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list > probe-out.txt 2>&1 || true
+          grep -E '^ +[0-9]+ (passed|failed|flaky)' probe-out.txt; echo "dead: LATE=$(grep -c 'PROBE LATE' probe-out.txt) GOTO=$(grep -c 'PROBE GOTO' probe-out.txt) ✘=$(grep -c '✘' probe-out.txt) TROUBLE=$(grep -c 'PROBE TROUBLE' probe-out.txt) fallback-pages=$(grep -cE 'fallbacks=[1-9]' probe-out.txt) internal-on-ready=$(grep -cE 'PROBE TROUBLE.*internal=[1-9]' probe-out.txt)"; grep -E 'PROBE (LATE|GOTO)' probe-out.txt | head -20
           if [ -f proxy-log.txt ]; then echo "proxy lines: $(wc -l < proxy-log.txt)"; grep -c '^BAD' proxy-log.txt || true; grep '^BAD' proxy-log.txt | head -20; grep -E ' (GET) /(nautilus/)? ' proxy-log.txt | awk '{print $7, $8, $9, $10}' | sort | uniq -c | head -20; fi
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: encoding-${{ strategy.job-index }}
-          path: proxy-log.txt
+          path: probe-out.txt
           if-no-files-found: ignore
