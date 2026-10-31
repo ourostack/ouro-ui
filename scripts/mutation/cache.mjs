@@ -60,14 +60,43 @@ export const testShare = 0.5;
 export function shardCost(paths, files, seconds) {
   const time = (file) => seconds[file] ?? unmeasuredSeconds;
   let total = 0;
+  let mutantCount = 0;
   const tests = new Set();
   for (const path of paths) {
     const { mutants, own, wider } = files[path];
     total += mutants * (mutantOverhead + testShare * own.reduce((sum, file) => sum + time(file), 0));
+    mutantCount += mutants;
     for (const file of [...own, ...wider]) tests.add(file);
   }
-  for (const file of tests) total += testShare * time(file);
+  let testSeconds = 0;
+  for (const file of tests) testSeconds += time(file);
+  total += testShare * testSeconds;
+  // A mutant that hangs its tests waits out Stryker's timeout, which with coverage analysis off is
+  // reckoned from the whole first run's time: every test file the shard needs.
+  total += mutantCount * timeoutRate * strykerTimeout(testSeconds);
   return total;
+}
+
+/**
+ * The share of mutants that hang their tests until Stryker's timeout: 7 of the 1004 the cold
+ * shards of CI run 41159468260 finished or reached.
+ */
+export const timeoutRate = 0.007;
+
+/** Stryker's timeout for a mutant, in seconds, from the net time of the tests it runs: its default timeoutFactor (1.5) and scripts/mutation.mjs's timeoutMS. */
+export const strykerTimeout = (netSeconds) => 1.5 * netSeconds + 10;
+
+/**
+ * How many shards a pull request's mutation run takes: the fewest from `min` that plan every shard
+ * (`planShards`) at `target` estimated seconds or under, at most `max`. More changed lines, or slower
+ * tests behind them, take more shards, so each finishes well inside the job's time limit.
+ */
+export function shardCount(files, seconds, { min, max, target }) {
+  for (let count = min; count < max; count += 1) {
+    const shards = planShards(files, count, seconds);
+    if (Math.max(0, ...shards.map((shard) => shardCost(shard, files, seconds))) <= target) return count;
+  }
+  return max;
 }
 
 /**

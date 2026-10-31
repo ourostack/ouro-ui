@@ -1246,7 +1246,7 @@ test("conformance and mutation are each one check over their shards, which passe
   }
 });
 
-test("the mutation plan keys the kept results by pull request and dependency hash, and runs five shards without them, three with", () => {
+test("the mutation plan keys the kept results by pull request and dependency hash, and plans a pull request's shards from its estimated work, at least five without kept results, three with", () => {
   const block = ciJobs()["mutation-plan"];
   const key = stepScript(block, "The cache key's prefix");
   const pull = runStep(key, { EVENT: "pull_request", PR: "139" });
@@ -1255,9 +1255,23 @@ test("the mutation plan keys the kept results by pull request and dependency has
   assert.equal(runStep(key, { EVENT: "merge_group", PR: "" }).output.key, "");
   assert.match(block, /^ {8}uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ steps\.key\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n {10}restore-keys: \$\{\{ steps\.key\.outputs\.key \}\}\n {10}lookup-only: true$/m);
   const count = stepScript(block, "How many shards");
-  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "5", shards: "[1,2,3,4,5]" });
-  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" }).output, { count: "3", shards: "[1,2,3]" });
-  assert.deepEqual(runStep(count, { KEY: "", MATCHED: "" }).output, { count: "3", shards: "[1,2,3]" });
+  // A stand-in for scripts/mutation.mjs --count: prints the larger of its minimum and $PLANNED.
+  const planned = (shards) => `node() { printf 'CALL node %s\\n' "$*" >&2; min=\${4%%/*}; echo $(( ${shards} > min ? ${shards} : min )); }\n${count}`;
+  const cold = runStep(planned(5), { KEY: "stryker-139-abc-", MATCHED: "" });
+  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/16$/m);
+  assert.deepEqual(cold.output, { count: "5", shards: "[1,2,3,4,5]" });
+  assert.deepEqual(runStep(planned(13), { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "13", shards: "[1,2,3,4,5,6,7,8,9,10,11,12,13]" });
+  const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
+  assert.match(warm.calls, /--count 3\/16$/m);
+  assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
+  // Not a pull request: nothing to mutate, three shards, and no plan.
+  const other = runStep(planned(13), { KEY: "", MATCHED: "" });
+  assert.deepEqual(other.output, { count: "3", shards: "[1,2,3]" });
+  assert.doesNotMatch(other.calls, /CALL node/);
+  // A plan that prints no count fails the job rather than guess.
+  assert.notEqual(runStep(`node() { :; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" }).status, 0);
+  // The job installs the packages the plan reads the changed lines with only on a pull request.
+  for (const step of ["uses: pnpm/action-setup@", "run: pnpm i --frozen-lockfile"]) assert.match(block, new RegExp(`- if: steps\\.key\\.outputs\\.key != ''\\n {8}${step.replace(/[.]/g, "\\.")}`), step);
 });
 
 test("the mutation shards mutate a pull request's changed runtime lines, split by file, start from the kept results, and report nothing to mutate otherwise", () => {

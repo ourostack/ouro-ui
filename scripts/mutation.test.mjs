@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, inScope, mutationRunners, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, scopeReport, shardCost, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, scopeReport, shardCost, shardCount, strykerTimeout, testSeconds, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -222,13 +223,34 @@ test("planShards weighs each mutant by its own tests' measured time and each sha
     "styles.ts": { mutants: 6, own: ["fast.test.tsx"], wider: [] },
     "handoff.ts": { mutants: 55, own: ["fast.test.tsx"], wider: ["importer.test.tsx"] },
   };
+  // Each mutant may hang until Stryker's timeout, reckoned from every test file the shard needs.
+  const hang = (mutants, testSeconds) => mutants * timeoutRate * strykerTimeout(testSeconds);
   // 16 mutants x (1 + 0.5 x 60) + 0.5 x 60: the two slow files are each a shard's worth.
-  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * 31 + 30);
-  // The importers' tests count once, in the first run, not per mutant.
-  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15);
+  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * 31 + 30 + hang(16, 60));
+  // The importers' tests count once, in the first run, not per mutant, but in every mutant's timeout.
+  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15 + hang(55, 31));
   assert.deepEqual(planShards(files, 3, seconds), [["dialog.tsx"], ["sheet.tsx"], ["handoff.ts", "styles.ts"]]);
   // A file whose tests were never timed counts as a few seconds of tests, not none.
-  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds);
+  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
+});
+
+test("shardCount takes the fewest shards from the minimum that plan each at the target or under, at most the maximum", () => {
+  const seconds = { "a.test.tsx": 10, "b.test.tsx": 10, "c.test.tsx": 10, "d.test.tsx": 10 };
+  const files = Object.fromEntries(["a", "b", "c", "d"].map((name) => [`${name}.tsx`, { mutants: 50, own: [`${name}.test.tsx`], wider: [] }]));
+  const one = shardCost(["a.tsx"], files, seconds);
+  // Each file alone is one shard's worth: four shards at that target, two at what two files cost together, and the minimum when that is more.
+  assert.equal(shardCount(files, seconds, { min: 1, max: 16, target: one }), 4);
+  assert.equal(shardCount(files, seconds, { min: 1, max: 16, target: shardCost(["a.tsx", "b.tsx"], files, seconds) }), 2);
+  assert.equal(shardCount(files, seconds, { min: 5, max: 16, target: one }), 5);
+  // A target no plan reaches stops at the maximum; a change with nothing to mutate takes the minimum.
+  assert.equal(shardCount(files, seconds, { min: 1, max: 3, target: one }), 3);
+  assert.equal(shardCount({}, seconds, { min: 3, max: 16, target: one }), 3);
+});
+
+test("the shard target leaves a shard about 20 minutes of the job's 30 at the worst ratio of measured time to estimate", () => {
+  assert.equal(SHARD_TARGET_SECONDS, 1500);
+  assert.ok(SHARD_TARGET_SECONDS * 0.72 <= 20 * 60);
+  assert.match(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../.github/workflows/ci.yml"), "utf8"), /node scripts\/mutation\.mjs HEAD\^1 --count "\$min\/16"/);
 });
 
 test("the committed test times cover the mutation runner's test files", () => {

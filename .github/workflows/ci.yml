@@ -590,9 +590,11 @@ jobs:
     # mutants run against, and what all of these and the changed files import (scripts/mutation/
     # cache.mjs key), since Stryker's incremental mode compares only a mutated file; a changed
     # file's kept results are dropped before a run when it or a changed file it imports changed
-    # since (pruneChangedFiles). With results cached
-    # under the same hash, three shards; without, five, so a cold run's mutants spread wider. On any
-    # other run, three shards that each report nothing to mutate.
+    # since (pruneChangedFiles). On a pull request, as many shards as plan each at
+    # SHARD_TARGET_SECONDS of estimated work or under (scripts/mutation.mjs --count, shardCount in
+    # cache.mjs), so a large change's shards each finish in about 20 minutes, at most 16; at least
+    # three with results cached under the same hash, five without, so a cold run's mutants spread
+    # wider. On any other run, three shards that each report nothing to mutate.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -630,6 +632,10 @@ jobs:
           key: ${{ steps.key.outputs.key }}${{ github.sha }}
           restore-keys: ${{ steps.key.outputs.key }}
           lookup-only: true
+      - if: steps.key.outputs.key != ''
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.key.outputs.key != ''
+        run: pnpm i --frozen-lockfile
       - id: count
         name: How many shards
         env:
@@ -637,11 +643,18 @@ jobs:
           MATCHED: ${{ steps.cached.outputs.cache-matched-key }}
         run: |
           if [ -n "$KEY" ] && [ -z "$MATCHED" ]; then
-            count=5
-            echo "No results cached under $KEY: $count shards."
+            min=5
+            echo "No results cached under $KEY: at least $min shards."
           else
-            count=3
-            echo "Results cached under ${MATCHED:-nothing (not a pull request)}: $count shards."
+            min=3
+            echo "Results cached under ${MATCHED:-nothing (not a pull request)}: at least $min shards."
+          fi
+          if [ -n "$KEY" ]; then
+            count=$(node scripts/mutation.mjs HEAD^1 --count "$min/16")
+            [[ "$count" =~ ^[0-9]+$ ]] || { echo "::error::Could not plan the mutation shards (got '$count')."; exit 1; }
+            echo "The changed lines' estimated work plans into $count shards."
+          else
+            count=$min
           fi
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "shards=[$(seq "$count" | paste -sd , -)]" >> "$GITHUB_OUTPUT"
