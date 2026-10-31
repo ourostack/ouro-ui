@@ -1091,4 +1091,179 @@ describe("Dialog and the page's scroll", () => {
       });
     }
   }
+
+  /** A dialog its own trigger opens, or one a Button opens that says it does (`aria-haspopup="dialog"`), as an app's controlled dialog. */
+  function Controlled({ tall }: { tall: boolean }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Button aria-haspopup="dialog" style={tall ? { height: 2500 } : undefined} onClick={() => setOpen(true)}>
+          Sound the alarm
+        </Button>
+        <Dialog title="All hands" open={open} onOpenChange={setOpen}>
+          <input aria-label="Name" />
+        </Dialog>
+      </>
+    );
+  }
+
+  for (const opener of ["trigger", "controlled"] as const) {
+    for (const reduced of [false, true]) {
+      it(`opens and leaves the page where the press found it, pressed mid-scroll, by its ${opener === "trigger" ? "trigger" : "app's Button"}${reduced ? ", with reduced motion" : ""}`, async () => {
+        // A smooth scroll is under way (a toast's, say) when the person presses the button. Had the
+        // page gone on scrolling, the release would land on what moved under the pointer, and no
+        // click would reach the button. The pointer goes to one place in the window (the fixed
+        // mark's), well inside the tall button, which shrinks a little while pressed, and the scroll
+        // starts as it arrives there, just before the press; where the scroll would end, past the
+        // button's end is under that place.
+        if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
+        await render(
+          <div style={{ height: 9000, paddingTop: 2300 }}>
+            {opener === "trigger" ? (
+              <Dialog title="All hands" trigger={<Button style={{ height: 2500 }}>Sound the alarm</Button>}>
+                <input aria-label="Name" />
+              </Dialog>
+            ) : (
+              <Controlled tall />
+            )}
+            <div data-press-here="" style={{ position: "fixed", top: 500, left: 40, width: 1, height: 1, pointerEvents: "none" }} />
+            <div data-rest-here="" style={{ position: "fixed", top: 100, left: 600, width: 10, height: 10 }} />
+          </div>,
+        );
+        await userEvent.hover(document.querySelector("[data-rest-here]")!);
+        window.scrollTo({ top: 2000, behavior: "instant" });
+        document.documentElement.style.scrollBehavior = "smooth";
+        document.addEventListener("pointermove", () => window.scrollTo({ top: 5000 }), { once: true });
+        let pressedAt = -1;
+        document.addEventListener("pointerdown", () => (pressedAt = window.scrollY), { capture: true, once: true });
+        await commands.pointerPress({ selector: "[data-press-here]", action: "down" });
+        for (let index = 0; index < 10; index++) await frame();
+        await commands.pointerPress({ action: "up" });
+        await expect.poll(() => {
+          const open = popup();
+          return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
+        }).toBe(true);
+        await frame();
+        await frame();
+        expect(window.scrollY).toBe(pressedAt);
+        expect(pressedAt).toBeLessThan(4000);
+      });
+    }
+  }
+
+  it("leaves the page free at an arrow key on a Button that opens a dialog, which opens nothing", async () => {
+    // A button opens on its click, which Enter and Space make; an arrow on it only scrolls the page.
+    await render(
+      <div style={{ height: 5000 }}>
+        <header style={{ position: "sticky", top: 0, height: 100 }}>
+          <Controlled tall={false} />
+        </header>
+      </div>,
+    );
+    window.scrollTo({ top: 2000, behavior: "instant" });
+    document.documentElement.style.scrollBehavior = "smooth";
+    document.querySelector<HTMLElement>('[data-ouro="button"]')!.focus({ preventScroll: true });
+    await userEvent.keyboard("{ArrowDown}");
+    let last = -1;
+    while (window.scrollY !== last) {
+      last = window.scrollY;
+      await frame();
+      await frame();
+    }
+    window.scrollTo({ top: 1500, behavior: "instant" });
+    await frame();
+    await frame();
+    expect(window.scrollY).toBe(1500);
+    expect(popup()).toBeNull();
+  });
+});
+
+describe("Dialog's trigger and a page scroll at the press", () => {
+  // A smooth scroll begins as the press goes down, ahead of the trigger's own handlers: the press
+  // stops it where it is, the release (or the key) clicks the trigger, and the dialog opens there.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`stops a smooth scroll where ${input === "pointer" ? "a press" : "Enter"} on its trigger found it, and opens`, async () => {
+      const pointerDown = vi.fn();
+      const keyDown = vi.fn();
+      await render(
+        <div style={{ height: 5000 }}>
+          <header style={{ position: "sticky", top: 0, height: 100 }}>
+            <Dialog title="Edit recipe" trigger={<button type="button" data-opener="" onPointerDown={pointerDown} onKeyDown={keyDown}>
+              Edit
+            </button>}>
+              <input aria-label="Name" />
+            </Dialog>
+          </header>
+        </div>,
+      );
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      document.documentElement.style.scrollBehavior = "smooth";
+      document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+      const opener = document.querySelector<HTMLElement>('[data-opener]')!;
+      if (input === "pointer") {
+        await commands.pointerPress({ selector: '[data-opener]', action: "down" });
+        for (let index = 0; index < 10; index++) await frame();
+        await commands.pointerPress({ action: "up" });
+      } else {
+        opener.focus({ preventScroll: true });
+        await userEvent.keyboard("{Enter}");
+      }
+      await expect.poll(() => opener.getAttribute("aria-expanded") === "true").toBe(true);
+      await frame();
+      await frame();
+      expect(window.scrollY).toBe(2000);
+      expect((input === "pointer" ? pointerDown : keyDown).mock.calls.length).toBe(1);
+    });
+  }
+});
+
+describe("DialogTrigger and a page scroll at the press", () => {
+  // A smooth scroll begins as the press goes down, ahead of the trigger's own handlers: the press
+  // stops it where it is, the release (or the key) clicks the trigger, and the dialog opens there.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`stops a smooth scroll where ${input === "pointer" ? "a press" : "Enter"} on the part found it, and opens`, async () => {
+      const pointerDown = vi.fn();
+      const keyDown = vi.fn();
+      await render(
+        <div style={{ height: 5000 }}>
+          <header style={{ position: "sticky", top: 0, height: 100 }}>
+            <DialogRoot>
+              <DialogTrigger onPointerDown={pointerDown} onKeyDown={keyDown}>
+                Open
+              </DialogTrigger>
+            </DialogRoot>
+          </header>
+        </div>,
+      );
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      document.documentElement.style.scrollBehavior = "smooth";
+      document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+      const opener = document.querySelector<HTMLElement>('[data-ouro-control="dialog"][data-ouro-part="trigger"]')!;
+      if (input === "pointer") {
+        await commands.pointerPress({ selector: '[data-ouro-control="dialog"][data-ouro-part="trigger"]', action: "down" });
+        for (let index = 0; index < 10; index++) await frame();
+        await commands.pointerPress({ action: "up" });
+      } else {
+        opener.focus({ preventScroll: true });
+        await userEvent.keyboard("{Enter}");
+      }
+      await expect.poll(() => opener.getAttribute("aria-expanded") === "true").toBe(true);
+      await frame();
+      await frame();
+      expect(window.scrollY).toBe(2000);
+      expect((input === "pointer" ? pointerDown : keyDown).mock.calls.length).toBe(1);
+    });
+  }
 });

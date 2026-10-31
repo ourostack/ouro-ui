@@ -1132,3 +1132,48 @@ describe("Sheet and the page's scroll", () => {
     }
   }
 });
+
+describe("SheetTrigger and a page scroll at the press", () => {
+  // A smooth scroll begins as the press goes down, ahead of the trigger's own handlers: the press
+  // stops it where it is, the release (or the key) clicks the trigger, and the dialog opens there.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`stops a smooth scroll where ${input === "pointer" ? "a press" : "Enter"} on the part found it, and opens`, async () => {
+      const pointerDown = vi.fn();
+      const keyDown = vi.fn();
+      await render(
+        <div style={{ height: 5000 }}>
+          <header style={{ position: "sticky", top: 0, height: 100 }}>
+            <SheetRoot>
+              <SheetTrigger onPointerDown={pointerDown} onKeyDown={keyDown}>
+                Open
+              </SheetTrigger>
+            </SheetRoot>
+          </header>
+        </div>,
+      );
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      document.documentElement.style.scrollBehavior = "smooth";
+      document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+      const opener = document.querySelector<HTMLElement>('[data-ouro-control="sheet"][data-ouro-part="trigger"]')!;
+      if (input === "pointer") {
+        await commands.pointerPress({ selector: '[data-ouro-control="sheet"][data-ouro-part="trigger"]', action: "down" });
+        for (let index = 0; index < 10; index++) await frame();
+        await commands.pointerPress({ action: "up" });
+      } else {
+        opener.focus({ preventScroll: true });
+        await userEvent.keyboard("{Enter}");
+      }
+      await expect.poll(() => opener.getAttribute("aria-expanded") === "true").toBe(true);
+      await frame();
+      await frame();
+      expect(window.scrollY).toBe(2000);
+      expect((input === "pointer" ? pointerDown : keyDown).mock.calls.length).toBe(1);
+    });
+  }
+});

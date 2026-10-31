@@ -650,3 +650,41 @@ describe("Lightbox motion", () => {
     expect(slideInView()).toBe(3);
   });
 });
+
+describe("Lightbox's thumbnails and a page scroll at the press", () => {
+  // A smooth scroll begins as the press goes down, ahead of the trigger's own handlers: the press
+  // stops it where it is, the release (or the key) clicks the trigger, and the dialog opens there.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`stops a smooth scroll where ${input === "pointer" ? "a press" : "Enter"} on a thumbnail found it, and opens`, async () => {
+      await render(
+        <div style={{ height: 5000 }}>
+          <header style={{ position: "sticky", top: 0, height: 100 }}>
+            {lightbox()}
+          </header>
+        </div>,
+      );
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      document.documentElement.style.scrollBehavior = "smooth";
+      document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+      const opener = document.querySelector<HTMLElement>('li:first-child [data-ouro-part="thumbnail"]')!;
+      if (input === "pointer") {
+        await commands.pointerPress({ selector: 'li:first-child [data-ouro-part="thumbnail"]', action: "down" });
+        for (let index = 0; index < 10; index++) await frame();
+        await commands.pointerPress({ action: "up" });
+      } else {
+        opener.focus({ preventScroll: true });
+        await userEvent.keyboard("{Enter}");
+      }
+      await expect.poll(() => Boolean(popup()?.hasAttribute("data-open"))).toBe(true);
+      await frame();
+      await frame();
+      expect(window.scrollY).toBe(2000);
+    });
+  }
+});
