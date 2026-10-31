@@ -31,6 +31,26 @@ const oath = (page: Page) => page.getByRole("checkbox", { name: ARTICLES.oath })
 const signButton = (page: Page) => page.getByRole("button", { name: ARTICLES.sign });
 
 /**
+ * Presses Sign once no message in the articles is still entering or leaving, two reads two frames
+ * apart agreeing. A field's error that a fill fixed fades out and is removed when the fade ends, and
+ * everything under it, Sign included, moves up then: pressed during the fade, the press lands on Sign
+ * and the release on the page beside it, so the form never submits.
+ */
+async function pressSign(page: Page): Promise<void> {
+  const moving = () =>
+    articles(page).evaluate(
+      (element) =>
+        new Promise<number>((resolve) => {
+          const count = () => element.querySelectorAll("[data-starting-style], [data-ending-style]").length + element.getAnimations({ subtree: true }).filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity).length;
+          const first = count();
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve(first + count())));
+        }),
+    );
+  await expect.poll(moving).toBe(0);
+  await signButton(page).click();
+}
+
+/**
  * Opens a composition's Code sheet: each thing HX does over its line of code, the site's part, the
  * source, and focus back on close. No line of code runs off the panel's edge.
  */
@@ -286,20 +306,20 @@ test.describe("each control in Chapter I", () => {
     const pencilled = articles(page).locator("[data-chapter-pending]");
     // Emptied: the browser's own check stops the signing, and the waiting row goes.
     await nameField(page).fill("Ada");
-    await signButton(page).click();
+    await pressSign(page);
     await expect(pencilled).toContainText("Ada");
     await nameField(page).fill("");
-    await signButton(page).click();
+    await pressSign(page);
     await expect(pencilled).toHaveCount(0);
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
     // Spaces only: the browser lets it through, the site refuses it, and the waiting row goes.
     await nameField(page).fill("Ada");
-    await signButton(page).click();
+    await pressSign(page);
     await expect(pencilled).toContainText("Ada");
     await nameField(page).fill("   ");
     await chooseTrade(page, "Cook");
     await oath(page).click();
-    await signButton(page).click();
+    await pressSign(page);
     await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.blank.replace(".", "\\.")));
     await expect(pencilled).toHaveCount(0);
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
