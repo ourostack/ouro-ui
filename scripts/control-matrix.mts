@@ -61,7 +61,7 @@ const defaultMotionOut = "test/generated/motion-matrix.json";
 /** Every row of the motion matrix: each declared state of each stem, once per part. */
 export function buildMotionMatrix(root: string = repoRoot): MotionRow[] {
   return readMotion(root).flatMap(({ name, stem, motion }) =>
-    Object.entries(motion.states).flatMap(([state, declared]) =>
+    Object.entries(motion.states).flatMap(([state, declared]): MotionRow[] =>
       declared.parts === undefined
         ? [{ item: name, stem, state, kind: declared.kind, part: null, properties: [], reduced: [], tests: declared.tests }]
         : Object.entries(declared.parts).map(([part, { properties, reduced }]) => ({ item: name, stem, state, kind: declared.kind, part, properties, reduced, tests: declared.tests })),
