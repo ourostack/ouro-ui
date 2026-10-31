@@ -1061,6 +1061,67 @@ export const touchDrag: BrowserCommand<[TouchDragOptions]> = async (ctx, { from,
   }
 };
 
+export interface DoubleTapOptions {
+  /** Viewport coordinates of both taps. */
+  at: [number, number];
+  /**
+   * Time from the first tap's lift to the second tap's touch down, as the page's event timestamps
+   * report it, in milliseconds. @default 100
+   */
+  gapMs?: number;
+}
+
+/**
+ * Two one-finger taps at the same point, in one command, with real touch input (Chromium only,
+ * through CDP `Input.dispatchTouchEvent`), so the page sees `pointerType: "touch"` pointer events
+ * and touch events, as from a phone: a double-tap to zoom. The events carry the gesture's own
+ * timestamps, each tap 50ms down and `gapMs` apart, so a busy test machine can't stretch the gap
+ * the page measures past a double-tap's window. Needs a context with `hasTouch`, as in the `touch` project.
+ * Coordinates are relative to the top-level page. It resolves once the page has handled the second
+ * touchend, and waits and throws as `touchDrag` does.
+ *
+ * @claim "Two one-finger taps at the same" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::doubleTap taps twice at one point, the gap it is given apart in the page's event timestamps)
+ * @claim "The events carry the gesture's own" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::doubleTap taps twice at one point, the gap it is given apart in the page's event timestamps)
+ * @claim "The events carry the gesture's own" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::doubleTap keeps its gap in the page's timestamps when the page is busy between the taps)
+ */
+export const doubleTap: BrowserCommand<[DoubleTapOptions]> = async (ctx, { at, gapMs = 100 }) => {
+  const { page } = ctx;
+  if (ctx.provider.name !== "playwright" || page.context().browser()?.browserType().name() !== "chromium") {
+    throw new Error("doubleTap: CDP input is Chromium only");
+  }
+  let session = cdpSessions.get(page);
+  if (!session) {
+    session = await page.context().newCDPSession(page);
+    cdpSessions.set(page, session);
+  }
+  const [x, y] = at;
+  const start = Date.now() / 1000;
+  const down = 50;
+  await releaseFinger("doubleTap", page, session);
+  // Each tap is its own touch, queued whole and waited for in the page. Its events carry the
+  // timestamps of the gesture, not of their delivery, so however late the second tap arrives, the
+  // page measures the gap asked for.
+  for (const offset of [0, down + gapMs]) {
+    let refused = false;
+    const tap = async () => {
+      const deliveries: Promise<unknown>[] = [];
+      for (const [type, ms] of [["touchStart", offset], ["touchEnd", offset + down]] as const) {
+        if (refused) return;
+        if (type === "touchEnd") fingersDown.delete(page);
+        else fingersDown.set(page, { x, y, frame: undefined });
+        deliveries.push(session.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }], timestamp: start + ms / 1000 }));
+      }
+      await Promise.all(deliveries);
+    };
+    try {
+      await sendTouch("doubleTap", page, session, { type: "touchEnd", x, y }, { point: { x, y } }, tap);
+    } catch (error) {
+      refused = true;
+      throw error;
+    }
+  }
+};
+
 export interface PointerPressOptions {
   /** CSS selector of the element to press, inside the test iframe. Not needed for `up`. */
   selector?: string;
@@ -1243,7 +1304,7 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
-export const commands = { emulateMedia, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { emulateMedia, doubleTap, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -1251,6 +1312,7 @@ declare module "vitest/browser" {
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
+    doubleTap: (options: DoubleTapOptions) => Promise<void>;
     touchDrag: (options: TouchDragOptions) => Promise<void>;
     touchStep: (options: TouchStepOptions) => Promise<void>;
     pointerPress: (options: PointerPressOptions) => Promise<void>;
