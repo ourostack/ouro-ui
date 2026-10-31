@@ -233,6 +233,26 @@ describe("Carousel navigation", () => {
     await expect.poll(() => onIndexChange).toHaveBeenLastCalledWith(1);
   });
 
+  it("hides the buttons when every slide is in view", async () => {
+    const shown = (screen: Awaited<ReturnType<typeof render>>) => [screen.button("Previous slide"), screen.button("Next slide")].map((button) => button.getClientRects().length > 0);
+    const screen = await render(<Carousel label="Recipe photos">{photos(1)}</Carousel>);
+    expect(shown(screen)).toEqual([false, false]);
+    await screen.rerender(<Carousel label="Recipe photos">{photos(2)}</Carousel>);
+    expect(shown(screen)).toEqual([true, true]);
+    await screen.rerender(
+      <Carousel label="Recipe photos" slidesPerView={3}>
+        {photos(3)}
+      </Carousel>,
+    );
+    expect(shown(screen)).toEqual([false, false]);
+    await screen.rerender(
+      <Carousel label="Recipe photos" slidesPerView={3}>
+        {photos(4)}
+      </Carousel>,
+    );
+    expect(shown(screen)).toEqual([true, true]);
+  });
+
   it("moves one slide per press when presses come faster than the scroll settles", async () => {
     const onIndexChange = vi.fn();
     const screen = await render(
