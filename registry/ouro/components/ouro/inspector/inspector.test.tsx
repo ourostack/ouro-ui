@@ -1082,7 +1082,16 @@ describe("Inspector", () => {
     expect(stroke(spotlit()[0]!).stroke).not.toBe(stroke(other).stroke);
     // Scrolling on does not bring it back, nor does a change to the page.
     // Instant even where the app scrolls smoothly, so the check below reads where the page stays.
+    // On a slow runner the smooth scroll can still be easing its last pixel; let it settle first,
+    // or it carries on past the scroll back.
+    const frames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await expect.poll(async () => {
+      const before = scrollY;
+      await frames();
+      return scrollY === before;
+    }, { timeout: 5000 }).toBe(true);
     scrollTo({ top: 0, behavior: "instant" });
+    await expect.poll(() => scrollY).toBe(0);
     await rerender(<Far spotlight="badge" extra={<Checkbox label="Added" />} />);
     await drawn(4);
     expect(into).toHaveBeenCalledTimes(1);
