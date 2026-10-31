@@ -72,7 +72,9 @@ function SeenItem({ item }: { item: Seen }): JSX.Element {
     case "ping":
       return (
         <div className="ax-card">
-          <span className="ax-card-head">Notification</span>
+          <span className="ax-card-head">
+            Notification{item.time && <span className="site-mono normal-case"> · {item.time}</span>}
+          </span>
           <span>{item.text}</span>
         </div>
       );

@@ -183,9 +183,7 @@ export function OuroAx(): JSX.Element {
         <h2 id="ax-section-title" className="site-h2 mt-4">
           {AX_SECTION.title}
         </h2>
-        <div className="mt-5 grid gap-x-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-          <p className="site-lede">{AX_SECTION.intro}</p>
-        </div>
+        <p className="site-lede mt-5">{AX_SECTION.intro}</p>
         <div className="mt-10 grid items-start gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <Screen
             label="What Sam sees"
@@ -215,7 +213,7 @@ export function OuroAx(): JSX.Element {
             })}
           </Figure>
           <Figure value="5 → 10">
-            {claim("Two rules written from those wrong turns took the same agent from 5 of 10 tasks to 10 of 10.", {
+            {claim("Two rules written from those wrong turns took the same agent from 5 of 10 runs to 10 of 10.", {
               source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" },
               verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "Fixing those two claims took the same agent from 5\\/10 to 10\\/10" },
             })}

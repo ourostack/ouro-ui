@@ -13,7 +13,7 @@ export interface Step {
   output: string;
   /** The tool refused: its one line went to stderr. */
   refused?: boolean;
-  meanwhile?: { by: string; text: string };
+  meanwhile?: { by: string; text: string; at: string };
 }
 
 /** What Sam sees: a line in their chat with the agent, a message in the room, a notification or a private note. */
@@ -21,7 +21,7 @@ export type Seen =
   | { kind: "sam"; text: string }
   | { kind: "agent"; text: string }
   | { kind: "room"; by: string; text: string; aside?: string }
-  | { kind: "ping"; text: string }
+  | { kind: "ping"; text: string; time?: string }
   | { kind: "private"; text: string };
 
 export interface Beat {
@@ -65,7 +65,7 @@ export const MORNING: Beat[] = [
       { kind: "agent", text: "Done: posted in Design sync." },
     ],
     steps: transcripts.late,
-    why: claim("The first try was refused in one line that ends with the exact command to run instead. Rules like that one, written from where agents in our runs went wrong, took the same agent from 5 of 10 tasks to 10 of 10.", {
+    why: claim("The first try was refused in one line that ends with the exact command to run instead. Rules like that one, written from where agents in our runs went wrong, took the same agent from 5 of 10 runs to 10 of 10.", {
       source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" }],
       verify: [
         { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },
@@ -74,7 +74,7 @@ export const MORNING: Beat[] = [
     }),
     figure: {
       value: "5 → 10",
-      label: claim("of 10 tasks", {
+      label: claim("of 10 runs", {
         source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" },
         verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "Fixing those two claims took the same agent from 5\\/10 to 10\\/10" },
       }),
@@ -102,7 +102,7 @@ export const MORNING: Beat[] = [
     seen: [
       { kind: "sam", text: "Let me know when someone answers." },
       { kind: "room", by: "Ana Ruiz", text: "Sounds good, we'll begin with the dates" },
-      { kind: "ping", text: "Ana answered in Design sync: “Sounds good, we'll begin with the dates”" },
+      { kind: "ping", time: "9:11", text: "Ana answered in Design sync: “Sounds good, we'll begin with the dates”" },
     ],
     steps: transcripts.reply,
     waiting: "The tool waits on the room. The agent makes one call, not a loop.",
@@ -115,7 +115,7 @@ export const MORNING: Beat[] = [
     }),
     figure: {
       value: "1 → 2",
-      label: claim("of 2 runs, in half the calls", {
+      label: claim("of 2 runs, in about half the calls", {
         source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md" },
         verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md", pattern: "T5 1\\/2->2\\/2, 8->4\\.5 calls" },
       }),
@@ -141,9 +141,3 @@ export const MORNING: Beat[] = [
     }),
   },
 ];
-
-/** The toy's clock: it stamps every message at the start of 1970, so its tests never depend on the time. */
-export const EPOCH_NOTE = claim("The toy tool stamps every message at the start of 1970, so its tests never depend on the clock.", {
-  source: { file: "registry/ouro/ax/example-cli.ts" },
-  verify: { fileLine: "registry/ouro/ax/example-cli.ts", pattern: "at: new Date\\(0\\)\\.toISOString\\(\\), by, target" },
-});

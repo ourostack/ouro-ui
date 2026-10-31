@@ -26,9 +26,10 @@
       "command": "notes watch abc123 --timeout 2m",
       "meanwhile": {
         "by": "Ana Ruiz",
-        "text": "Sounds good, we'll begin with the dates"
+        "text": "Sounds good, we'll begin with the dates",
+        "at": "2026-10-30T16:11:00.000Z"
       },
-      "output": "Happened: a message in \"Design sync\".\n1970-01-01T00:00:00.000Z Ana Ruiz: Sounds good, we'll begin with the dates"
+      "output": "Happened: a message in \"Design sync\".\n2026-10-30T16:11:00.000Z Ana Ruiz: Sounds good, we'll begin with the dates"
     }
   ],
   "edit": [

@@ -1,5 +1,5 @@
 import { runCli } from "@/registry/ouro/ax/cli";
-import { exampleCli } from "@/registry/ouro/ax/example-cli";
+import { exampleCli, rooms } from "@/registry/ouro/ax/example-cli";
 
 /** One line a command printed, and where it went: stdout, or stderr for a refusal. */
 export interface Printed {
@@ -56,4 +56,14 @@ export async function runNotes(line: string): Promise<Ran> {
   });
   const exit = await runCli(exampleCli, argv, { stdout: sink("stdout"), stderr: sink("stderr") });
   return { line: line.trim(), printed, exit };
+}
+
+/**
+ * Someone in the room says something, stamped with a real time (`at`, or the browser's now). The kit's own
+ * `postMessage` stamps the start of 1970 so the kit's tests never depend on the clock; the page wants a real one.
+ */
+export function say(ref: string, by: string, text: string, at: string = new Date().toISOString()): void {
+  const room = rooms[ref];
+  if (!room) throw new Error(`unknown room "${ref}"`);
+  room.messages.push({ cursor: String(room.messages.length + 1), type: "message", at, by, target: { kind: "room", id: ref }, summary: text });
 }

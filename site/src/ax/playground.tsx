@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { postMessage, resetRooms, rooms } from "@/registry/ouro/ax/example-cli";
+import { resetRooms, rooms } from "@/registry/ouro/ax/example-cli";
 import { CommandLine, OutputLine, Terminal } from "./parts";
-import { runNotes } from "./run";
+import { runNotes, say } from "./run";
 
 /** What the visitor can try with one press, in plain words, and the command each one runs. */
 export const TRIES = [
@@ -14,8 +14,9 @@ export const TRIES = [
   { label: "Post it", command: 'notes post abc123 "Back soon" --why "Sam asked me to say so"' },
   { label: "Wait for a reply", command: "notes watch abc123 --timeout 2m" },
   { label: "Say “edit”", command: "notes edit abc123" },
+  { label: "Add a private note", command: 'notes note abc123 "ask Ana about the dates"' },
   { label: "Misspell a flag", command: "notes rooms --limt 3" },
-  { label: "Ask for JSON", command: 'notes post abc123 "Back soon" --why "Sam asked me to say so" --json' },
+  { label: "Preview it as JSON", command: 'notes post abc123 "Back soon" --why "Sam asked me to say so" --dry-run --json' },
 ] as const;
 
 const REPLIES = [
@@ -61,7 +62,7 @@ export default function Playground(): JSX.Element {
   function reply() {
     const next = REPLIES[replies.current % REPLIES.length]!;
     replies.current += 1;
-    postMessage("abc123", next.by, next.text);
+    say("abc123", next.by, next.text);
     refresh();
   }
 
@@ -101,9 +102,16 @@ export default function Playground(): JSX.Element {
             <li className="text-sm text-muted-foreground">Quiet so far.</li>
           )}
         </ul>
-        <p className="m-0 text-sm text-muted-foreground" data-testid="ax-notes">
-          Sam's private notes here: {room ? room.notes.length : 0}
-        </p>
+        {room && room.notes.length > 0 && (
+          <div className="ax-card" data-testid="ax-notes">
+            <span className="ax-card-head">Sam's notes, only Sam sees them</span>
+            <ul className="m-0 grid list-none gap-1 p-0">
+              {room.notes.map((note, index) => (
+                <li key={index}>{note}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" tone="secondary" onClick={reply}>
             Reply as someone in the room
