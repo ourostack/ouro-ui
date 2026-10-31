@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { configDefaults, defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import { writeMatrices } from "./scripts/control-matrix.mts";
 import { MotionReporter } from "./scripts/motion-reporter.mts";
 import { shardArgument, TimedSequencer, TimingsReporter } from "./scripts/vitest-shards.mts";
 import { proofPlugin } from "./site/scripts/proof.mts";
@@ -35,6 +36,10 @@ const shard = shardArgument(process.argv);
 // The test projects are the ones the `ouro-testing` item ships to apps
 // (registry/ouro/lib/ouro/testing/vitest.ts), so the repo runs its tests the way apps do.
 const css = "./app.css";
+
+// The control and motion matrices the browser tests import (test/control-suite.tsx,
+// test/motion.ts) come from the components' manifests and source on every run, never from git.
+writeMatrices();
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

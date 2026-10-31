@@ -2,12 +2,13 @@
 // component.json (`modes`, `controls`; see scripts/components.mts) and the stories that render
 // each mode. test/controls.test.tsx imports the written JSON, never the manifests, so the browser
 // test stays free of Node modules. Beside it, the motion matrix: one row per stem, state and
-// animated part from `motion` (readMotion), which test/motion.ts imports the same way.
+// animated part from `motion` (readMotion), which test/motion.ts imports the same way. Neither file
+// is committed: every Vitest run (vitest.config.ts) and `pnpm typecheck` write them first.
 //
 //   node scripts/control-matrix.mts           write test/generated/control-matrix.json and motion-matrix.json
-//   node scripts/control-matrix.mts --check   fail when either file is stale (CI)
+//   node scripts/control-matrix.mts --check   fail when either file is missing or stale
 //   --out <file>, --motion-out <file>         write or check other files
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -225,21 +226,40 @@ export function sourceMarkers(root: string = repoRoot): { markers: SourceMarker[
   return { markers, animated, problems };
 }
 
+/**
+ * Writes both matrices from the manifests and the source, as the tests read them. They are not
+ * committed (.gitignore): vitest.config.ts and `pnpm typecheck` write them before anything reads
+ * them, so two pull requests that add components never edit the same file. A file whose text is
+ * already right is left alone, and a changed one is replaced whole, so a test run that starts
+ * beside another never reads half a file.
+ */
+export function writeMatrices(out = join(repoRoot, defaultOut), motionOut = join(repoRoot, defaultMotionOut)): void {
+  for (const { file, text } of matrixFiles(out, motionOut)) {
+    if (existsSync(file) && readFileSync(file, "utf8") === text) continue;
+    mkdirSync(dirname(file), { recursive: true });
+    const partial = `${file}.${process.pid}.tmp`;
+    writeFileSync(partial, text);
+    renameSync(partial, file);
+  }
+}
+
+function matrixFiles(out: string, motionOut: string) {
+  return [
+    { file: out, text: JSON.stringify(buildMatrix(), null, 2) + "\n" },
+    { file: motionOut, text: JSON.stringify(buildMotionMatrix(), null, 2) + "\n" },
+  ];
+}
+
 function main(argv: string[]): number {
   const option = (name: string, fallback: string) => resolve(argv.includes(name) ? argv[argv.indexOf(name) + 1]! : join(repoRoot, fallback));
-  const files = [
-    { out: option("--out", defaultOut), text: JSON.stringify(buildMatrix(), null, 2) + "\n" },
-    { out: option("--motion-out", defaultMotionOut), text: JSON.stringify(buildMotionMatrix(), null, 2) + "\n" },
-  ];
+  const out = option("--out", defaultOut);
+  const motionOut = option("--motion-out", defaultMotionOut);
   if (argv.includes("--check")) {
-    const stale = files.filter(({ out, text }) => (existsSync(out) ? readFileSync(out, "utf8") : "") !== text);
-    for (const { out } of stale) process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm controls:matrix and commit the result.\n`);
+    const stale = matrixFiles(out, motionOut).filter(({ file, text }) => (existsSync(file) ? readFileSync(file, "utf8") : "") !== text);
+    for (const { file } of stale) process.stderr.write(`${relative(process.cwd(), file)} is stale. Run pnpm controls:matrix to write it again.\n`);
     return stale.length > 0 ? 1 : 0;
   }
-  for (const { out, text } of files) {
-    mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, text);
-  }
+  writeMatrices(out, motionOut);
   return 0;
 }
 

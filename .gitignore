@@ -14,3 +14,6 @@ _site/
 test-results/
 playwright-report/
 .lighthouseci/
+# Written on every Vitest run and by `pnpm typecheck` (scripts/control-matrix.mts), never committed,
+# so pull requests that add components do not edit the same file.
+test/generated/
