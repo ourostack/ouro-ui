@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { actionsClass, actionsRowClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
+import { actionsClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -627,7 +627,7 @@ function InspectorLayer({
             {measured && (spotlit ? `Showing ${spotlight}` : `No ${spotlight} on this page`)}
           </span>
         )}
-        <span className={spotlight === undefined ? actionsClass : `${actionsClass} ${actionsRowClass}`}>
+        <span className={actionsClass}>
           <Sheet
             title={label}
             description="Every Ouro HX component on this page, in order."

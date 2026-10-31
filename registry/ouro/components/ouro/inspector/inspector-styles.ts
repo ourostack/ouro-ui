@@ -1,4 +1,4 @@
-export { actionsClass, actionsRowClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass };
+export { actionsClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass };
 
 // Class strings and names for Inspector, apart from the component so its file exports only
 // components (React Fast Refresh). Class strings are literal so the app's Tailwind finds them.
@@ -118,13 +118,12 @@ const labelClass = "shrink-0 py-1.5 font-medium whitespace-nowrap";
 const statusClass = "ms-1 me-2 min-w-0 grow truncate py-1.5 text-muted-foreground";
 
 /**
- * The list and Close buttons. On a phone, while the bar names a spotlit item, they take a row of their own below it, so the item's name has the width of the bar.
+ * The list and Close buttons, at the end of the bar. Where the spotlit item's name leaves them no room, as on a phone, they wrap to a row of their own below it, so the name has the width of the bar.
  *
  * @internal
- * @claim "On a phone, while the bar" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fits its bar on a phone as narrow as 320px: the label on one line, the spotlit item named in full, both buttons in reach)
+ * @claim "Where the spotlit item's name leaves" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fits its bar on a phone as narrow as 320px: the label on one line, the spotlit item named in full, both buttons in reach)
  */
 const actionsClass = "ms-auto flex shrink-0 items-center gap-1";
-const actionsRowClass = "max-sm:basis-full max-sm:justify-end";
 
 /** The list of components in the sheet. @internal */
 const listClass = "m-0 grid list-none gap-1 p-0";
