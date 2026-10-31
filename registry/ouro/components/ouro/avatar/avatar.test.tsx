@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -344,6 +345,62 @@ describe("Avatar shapes and icons", () => {
 });
 
 describe("Avatar presence", () => {
+  it.each(["light", "dark"] as const)("keeps the initials 4.5:1 beside every presence dot at every size, wherever the avatar lands on the pixel grid (%s)", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    const { host } = await render(
+      <>
+        {[0, 0.25, 0.5, 0.75].map((offset) => (
+          <div key={offset} style={{ display: "flex", gap: 12, alignItems: "center", paddingTop: offset, paddingLeft: offset }}>
+            {(["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const).flatMap((size) =>
+              (["available", "away", "busy", "out-of-office"] as const).map((presence) => (
+                <Avatar key={size + presence} name="Mona Example" initials="MW" idForColor="person-0101" size={size} presence={presence} presenceLabel={presence} />
+              )),
+            )}
+          </div>
+        ))}
+      </>,
+    );
+    try {
+      expect(describeFindings(await audit({ include: [host] }))).toBe("");
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
+  it.each(["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const)("keeps wide initials clear of the presence dot (%s)", async (size) => {
+    const { host } = await render(
+      <>
+        <Avatar name="Mona Example" initials="MW" size={size} data-plain="" />
+        {["MW", "WM", "ME", "WW"].map((initials) => (
+          <Avatar key={initials} name="Mona Example" initials={initials} size={size} presence="busy" presenceLabel="Busy" />
+        ))}
+      </>,
+    );
+    // Without a dot, the initials stay in the middle.
+    const plain = host.querySelector<HTMLElement>("[data-plain]")!;
+    const plainBox = plain.getBoundingClientRect();
+    const plainRange = document.createRange();
+    plainRange.selectNodeContents(plain.firstElementChild!);
+    const plainText = plainRange.getClientRects()[0]!;
+    expect(Math.abs(plainBox.left + plainBox.width / 2 - (plainText.left + plainText.width / 2))).toBeLessThan(1);
+    expect(Math.abs(plainBox.top + plainBox.height / 2 - (plainText.top + plainText.height / 2))).toBeLessThan(1.5);
+    for (const avatar of host.querySelectorAll<HTMLElement>('[data-ouro="avatar"][data-presence]')) {
+      const dot = avatar.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(avatar.firstElementChild!);
+      for (const text of range.getClientRects()) {
+        // Half a pixel clear above the dot, for this font's line and for any line up to 1.3em tall.
+        const tallest = text.top + text.height / 2 + 0.65 * parseFloat(getComputedStyle(avatar).fontSize);
+        expect(dot.top - Math.max(text.bottom, tallest), `${size} ${avatar.textContent}: text ${JSON.stringify(text)} dot ${JSON.stringify(dot)}`).toBeGreaterThanOrEqual(0.5);
+        // The small sizes lean away from the dot, toward the start.
+        const box = avatar.getBoundingClientRect();
+        const lean = box.left + box.width / 2 - (text.left + text.width / 2);
+        if (["xs", "sm", "md"].includes(size)) expect(lean).toBeGreaterThanOrEqual(1.5);
+        else expect(Math.abs(lean)).toBeLessThan(1);
+      }
+    }
+  });
+
   const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
 
   it("says the presence after the name, and alone when the name is written beside it", async () => {

@@ -101,7 +101,9 @@ export interface AvatarPresenceProps {
    * and a named tone (available: success; busy and do not disturb: destructive; away:
    * warning; offline: muted; out of office: primary). The dot's ring takes the surface's
    * color, `--ouro-avatar-ring` (default `--background`): set it on a card,
-   * `[--ouro-avatar-ring:var(--card)]`.
+   * `[--ouro-avatar-ring:var(--card)]`. The initials sit a little higher beside the dot, so
+   * even wide ones stay clear of it at every size.
+   * @claim "The initials sit a little higher" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > keeps wide initials clear of the presence dot (%s))
    * @claim "Each state has its own shape" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > draws each state in its own shape and tone)
    */
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
@@ -194,6 +196,20 @@ const presenceSizes = {
   "2xl": "size-5.5 p-0.5 end-0 bottom-0",
   "3xl": "size-7 p-0.75 end-0.5 bottom-0.5",
 } as const;
+
+// With a presence dot, the initials (or icon) sit a little higher, so a line of text up to
+// 1.3em tall, as wide initials ("MW") in any font are, ends at least half a pixel above the
+// dot, and the dot never covers the text it is measured against. The small sizes also lean
+// toward the start, so the initials look moved aside for the dot rather than just raised.
+// The largest size has room.
+const presenceLifts: Partial<Record<AvatarSize, string>> = {
+  xs: "pb-1.5 pe-1",
+  sm: "pb-[7px] pe-1",
+  md: "pb-1.5 pe-1",
+  lg: "pb-1",
+  xl: "pb-0.75",
+  "2xl": "pb-1.25",
+};
 
 // Each hue tints the surface and colors the initials, mixed toward the theme's background and
 // foreground so the pair keeps at least 4.5:1 in light and dark.
@@ -405,7 +421,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
         />
       )}
-      <BaseAvatar.Fallback className="flex size-full items-center justify-center *:size-[55%]">
+      <BaseAvatar.Fallback className={cn("box-border flex size-full items-center justify-center *:size-[55%]", presence && presenceLifts[size])}>
         {icon ?? initials ?? initialsOf(name)}
       </BaseAvatar.Fallback>
       {presence && (
