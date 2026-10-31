@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [direct, keepalive]
+        mode: [direct, settle, close]
     name: encoding (${{ matrix.mode }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,7 +33,8 @@ jobs:
           CI: "1"
           PROBE_PROXY: ''
           PROBE_MODE: ${{ matrix.mode }}
-          PROBE_KEEPALIVE: ${{ matrix.mode == 'keepalive' && '1' || '' }}
+          PROBE_SETTLE: ${{ matrix.mode == 'settle' && '1' || '' }}
+          PROBE_CLOSE: ${{ matrix.mode == 'close' && '1' || '' }}
         run: |
           if [ -n "$PROBE_PROXY" ]; then node site/e2e/zz-proxy.mjs & fi
           pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list 2>&1 | grep -vE '^\s+[0-9]+ \||^\s+✓|^\s*$|^\s+at |^\s+[0-9]+\)' | head -800 || true

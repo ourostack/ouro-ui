@@ -13,10 +13,16 @@ test("probe: reflow loop navigations", async ({ page }, testInfo) => {
   page.on("pageerror", (error) => events.push(`${t0()} pageerror ${String(error).slice(0, 200)}`));
   page.on("requestfailed", (request) => events.push(`${t0()} requestfailed ${request.url()} ${request.failure()?.errorText}`));
   page.on("response", (response) => { if (response.status() >= 400) events.push(`${t0()} status ${response.status()} ${response.url()}`); });
+  const inflight = new Map<object, string>();
+  page.on("request", (request) => inflight.set(request, request.url()));
+  page.on("requestfinished", (request) => inflight.delete(request));
+  page.on("requestfailed", (request) => inflight.delete(request));
   await page.setViewportSize({ width: 320, height: 640 });
   for (const path of PAGES) {
     for (const preset of PRESET_NAMES) {
-      events = [];
+      if (process.env["PROBE_SETTLE"]) await page.waitForLoadState("networkidle");
+      const left = [...inflight.values()].map((url) => url.split("/").pop()).join(",");
+      events = [`in flight at navigation: ${inflight.size} ${left.slice(0, 300)}`];
       await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify({ preset })] as const);
       const start = Date.now();
       try {

@@ -107,6 +107,13 @@ export default defineConfig(({ isSsrBuild }) => ({
     {
       name: "probe-keep-alive",
       configurePreviewServer(server) {
+        if (process.env["PROBE_CLOSE"]) {
+          server.middlewares.use((_request, response, next) => {
+            response.setHeader("Connection", "close");
+            next();
+          });
+          console.log("PROBE connection close");
+        }
         if (!process.env["PROBE_KEEPALIVE"]) return;
         const http = server.httpServer as import("node:http").Server;
         http.keepAliveTimeout = 120_000;
