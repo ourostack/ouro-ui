@@ -5,9 +5,9 @@ export type { Audience, Effect, EffectHeadings };
 // first statement, which would take the JSDoc below with it.
 
 /**
- * Effect classes: every command either touches only the person's own space ("private") or reaches other people
- * ("others"). Help groups commands under those two headings, an "others" command needs `--why` and previews its
- * audience before it acts, and its result says who can see it. `readOnly` marks reads, which never change anything.
+ * Effect classes: a command either touches only the person's own space ("private") or reaches other people
+ * ("others"). Help groups commands under those headings, an "others" command needs `--why` and previews its
+ * audience before it acts, and its result says who can see it. `readOnly` marks reads, which change nothing.
  */
 type Effect = "private" | "others";
 
@@ -26,11 +26,11 @@ interface Audience {
 
 const ONLY_YOU: Audience = Object.freeze({ only: true, who: "only you" });
 
-/** The flag every "others" command takes: who asked, and what they said. */
+/** The flag an "others" command takes: who asked, and what they said. */
 const WHY_FLAG = "why";
 const WHY_PLACEHOLDER = "<who asked you, and what they said>";
 
-/** The flag every "others" command takes to preview its effect and audience without acting. */
+/** The flag that previews an "others" command's effect and audience without acting. */
 const DRY_RUN_FLAG = "dry-run";
 
 /** MCP tool annotations for an effect (https://modelcontextprotocol.io/specification/2025-06-18/server/tools). */
@@ -38,7 +38,11 @@ function effectAnnotations(effect: Effect, readOnly: boolean): { readOnlyHint: b
   return { readOnlyHint: readOnly, destructiveHint: effect === "others", openWorldHint: effect === "others" };
 }
 
-/** "Sam Lee", "Sam Lee and Ana Ruiz", "Sam Lee, Ana Ruiz and 3 others". */
+/**
+ * "Sam Lee", "Sam Lee and Ana Ruiz", "Sam Lee, Ana Ruiz and 3 others".
+ *
+ * @claim "Ana Ruiz and 3 others" registry/ouro/ax/effects.test.mts verify:testExists(registry/ouro/ax/effects.test.mts::names read as a person would say them)
+ */
 function namesLine(names: readonly string[], max: number = 2): string {
   if (names.length === 0) return "nobody";
   if (names.length <= max) return names.length === 1 ? names[0]! : `${names.slice(0, -1).join(", ")} and ${names.at(-1)!}`;

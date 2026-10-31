@@ -6,10 +6,16 @@ export type { Page, Truncated };
 
 /**
  * One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data.
- * Long results are cut predictably, and lists page with a cursor, so an agent's context never fills with one answer.
+ * Long results are cut predictably, and lists page with a cursor, so an agent can read a long answer in pieces.
+ *
+ * @claim "One result, two renderings" registry/ouro/ax/output.test.mts verify:testExists(registry/ouro/ax/output.test.mts::one result renders as JSON or as its text, with one trailing newline)
  */
 
-/** What stdout gets for a result: the JSON document, or the text. Always one trailing newline. */
+/**
+ * What stdout gets for a result: the JSON document, or the text. Always one trailing newline.
+ *
+ * @claim "Always one trailing newline" registry/ouro/ax/output.test.mts verify:testExists(registry/ouro/ax/output.test.mts::one result renders as JSON or as its text, with one trailing newline)
+ */
 function render<R>(result: R, options: { json: boolean; text?: (result: R) => string }): string {
   const body = options.json || !options.text ? JSON.stringify(result, null, 2) : options.text(result);
   return body.endsWith("\n") ? body : `${body}\n`;

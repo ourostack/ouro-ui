@@ -10,7 +10,7 @@ import type { AxRef, NextStep, Validation } from "./outcome.ts";
 /**
  * A typed wait: the agent names a reference it already holds, the tool waits (polling, if it must, where the agent
  * cannot see it) until something happens or the time limit passes, and returns what happened with the cursor that
- * resumes the wait. The agent never writes a polling loop.
+ * resumes the wait. The agent waits with one call instead of a polling loop of its own.
  */
 const WAIT_VERSION = "wait/1";
 
@@ -48,9 +48,9 @@ interface Wait {
   for: string;
   target: AxRef | null;
   state: WaitState;
-  /** When the wait started (ISO 8601). */
+  /** When the wait started, as an ISO time. */
   since: string;
-  /** When it gives up (ISO 8601); null for no limit. */
+  /** When it gives up, as an ISO time; null when it waits without a limit. */
   until: string | null;
   /** Where to resume: events after this one are new. */
   cursor: string | null;
@@ -60,7 +60,7 @@ interface Wait {
   resume: NextStep | null;
   /** Why it is gone, or anything else the agent should know about how it ended; null when there is nothing to add. */
   reason: string | null;
-  /** Where an agent can subscribe instead of waiting, such as a callback URL; null when there is none. */
+  /** Where an agent can subscribe instead of waiting, such as a callback URL, or null. */
   callback: string | null;
   next: NextStep[];
 }
@@ -100,10 +100,14 @@ function validateWait(v: unknown): Validation {
   return { ok: errors.length === 0, errors, warnings };
 }
 
-/** Which exit code, by name in the tool's table, each wait state gives. */
+/** Exit code names by wait state, in the tool's table. */
 type WaitExits = Readonly<Record<WaitState, string>>;
 
-/** The default: a satisfied or open wait exits `ok`; a wait that timed out or can no longer happen exits `error`. */
+/**
+ * The default: a satisfied or open wait exits `ok`; a wait that timed out or can no longer happen exits `error`.
+ *
+ * @claim "a wait that timed out or can no longer happen exits" registry/ouro/ax/wait.test.mts verify:testExists(registry/ouro/ax/wait.test.mts::waitExit and waitText)
+ */
 const DEFAULT_WAIT_EXITS: WaitExits = Object.freeze({ satisfied: "ok", waiting: "ok", "timed-out": "error", gone: "error" });
 
 /** The exit code a wait gives, by its state's name in the tool's table. */
@@ -123,7 +127,11 @@ function waitText(w: Wait): string {
 
 const UNITS: Readonly<Record<string, number>> = Object.freeze({ ms: 1, s: 1000, m: 60_000, h: 3_600_000 });
 
-/** "90s", "2m", "1h", "500ms" or a bare number of seconds, as milliseconds; null when it is none of these. */
+/**
+ * "90s", "2m", "1h", "500ms" or a bare number of seconds, as milliseconds; null when it is none of these.
+ *
+ * @claim "or a bare number of seconds" registry/ouro/ax/wait.test.mts verify:testExists(registry/ouro/ax/wait.test.mts::parseDuration and formatDuration read and write the same durations)
+ */
 function parseDuration(text: string): number | null {
   const m = /^\s*(\d+(?:\.\d+)?)\s*(ms|s|m|h)?\s*$/.exec(text);
   if (!m) return null;
@@ -153,7 +161,7 @@ interface WaitRead {
   events: AxEvent[];
   cursor: string | null;
   fresh?: Fresh | null;
-  /** Why the awaited thing can no longer happen; null or absent while it can. */
+  /** Why the awaited thing cannot happen any more; null or absent while it still can. */
   gone?: string | null;
 }
 
@@ -176,6 +184,8 @@ interface WaitForOptions {
   intervalMs?: number;
   now?(): number;
   sleep?(ms: number): Promise<void>;
+  /** Stops the wait, such as when the caller hung up: it ends as `gone` with the reason "stopped". */
+  signal?: AbortSignal;
 }
 
 const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -199,7 +209,9 @@ async function waitFor(options: WaitForOptions): Promise<Wait> {
     cursor = first.cursor;
     fresh = first.fresh ?? null;
   }
+  const stopped = () => wait({ ...base, state: "gone", cursor, fresh, reason: "stopped", next: [] });
   for (;;) {
+    if (options.signal?.aborted) return stopped();
     const read = await options.read(cursor);
     cursor = read.cursor ?? cursor;
     fresh = read.fresh ?? fresh;
@@ -209,5 +221,6 @@ async function waitFor(options: WaitForOptions): Promise<Wait> {
     const left = deadline - now();
     if (left <= 0) return wait({ ...base, state: "timed-out", cursor, fresh, resume: options.resume(cursor) });
     await sleep(Math.min(interval, left));
+    if (options.signal?.aborted) return stopped();
   }
 }

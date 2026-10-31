@@ -7,6 +7,9 @@ export type { ExitCode, ExitTable };
 /**
  * A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read
  * it, so the numbers never drift. Codes 0, 1 and 2 mean the same thing in every Ouro AX tool.
+ *
+ * @claim "so the numbers never drift" registry/ouro/ax/help.ts verify:fileLine(registry/ouro/ax/help.ts, /cli\.exits\.line\(\)/)
+ * @claim "mean the same thing in every Ouro AX tool" registry/ouro/ax/exit-codes.test.mts verify:testExists(registry/ouro/ax/exit-codes.test.mts::a gap, a renamed base code, a short table or a repeated name fails with the fix)
  */
 interface ExitCode {
   code: number;
@@ -37,6 +40,8 @@ interface ExitTable {
 /**
  * The tool's table: the base codes (their meanings may be reworded, never their names) then its own, numbered from 3
  * with no gaps.
+ *
+ * @claim "numbered from 3 with" registry/ouro/ax/exit-codes.test.mts verify:testExists(registry/ouro/ax/exit-codes.test.mts::a gap, a renamed base code, a short table or a repeated name fails with the fix)
  */
 function defineExitCodes(codes: readonly ExitCode[] = BASE_EXIT_CODES): ExitTable {
   codes.forEach((entry, i) => {

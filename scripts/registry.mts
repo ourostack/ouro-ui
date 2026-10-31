@@ -585,10 +585,10 @@ export function buildRegistry(root: string): Registry {
       name: "ouro-ax",
       title: "Ouro AX",
       kind: "aggregate" as const,
-      description: "Ouro AX, the agent-experience kit, in one item: every ax-* item, from one command definition to the X-ray that checks an interface against the claims.",
-      docs: `Ouro AX is in lib/ouro/ax. It runs on Node 22.18 or later, which strips the types, and has no dependencies. Docs: ${AX_GUIDE_URL}`,
+      description: "Ouro AX, the agent-experience kit, in one item: the ax-* items, from one command definition to the X-ray that checks an interface against the claims.",
+      docs: `Ouro AX is in lib/ouro/ax. ${claim("It runs on Node 22.18 or later, which strips the types, and has no dependencies.", { source: [{ file: "package.json" }, { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }], verify: [{ equals: "package.json#devEngines.runtime.version", is: ">=22.18" }, { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }] })} Docs: ${AX_GUIDE_URL}`,
     },
-    { name: "ouro-ax-tests", title: "Ouro AX tests", kind: "aggregate" as const, description: "Optional: Ouro AX with every ax-* test, the X-ray's fixtures and the example tool.", docs: undefined as string | undefined },
+    { name: "ouro-ax-tests", title: "Ouro AX tests", kind: "aggregate" as const, description: "Optional: Ouro AX with the ax-* tests, the X-ray's fixtures and the example tool.", docs: undefined as string | undefined },
   ];
   const aggregates: Record<string, string[]> = {
     "ouro-ax": axRuntime.filter((name) => name !== "ax-example"),
