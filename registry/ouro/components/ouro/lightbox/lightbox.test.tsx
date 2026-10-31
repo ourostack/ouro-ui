@@ -471,7 +471,7 @@ describe("Lightbox viewer", () => {
       await act(async () => button("Close").dispatchEvent(event));
       expect(event.defaultPrevented).toBe(true);
     }
-    expect(position()).toBe("0 of 0");
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")).toBeNull();
   });
 
   it("shows no position, Previous or Next for one image", async () => {
