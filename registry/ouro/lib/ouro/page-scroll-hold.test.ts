@@ -353,8 +353,10 @@ describe("holdPageAtPress", () => {
     pointerDown(0, "dialog");
     expect(html.style.scrollBehavior).toBe("smooth");
     expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
-    // The click opens the dialog, whose scroll lock holds the page from then.
+    // The click opens the dialog, whose scroll lock holds the page from then: the hold stops listening.
+    const remove = vi.spyOn(document, "removeEventListener");
     page.click();
+    expect(remove.mock.calls.map(([type]) => type)).toContain("scroll");
     expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
     // A key: only Enter and Space click a button.
     keyDown("ArrowDown", "dialog");
