@@ -2018,14 +2018,16 @@
       "type": "registry:ui",
       "title": "Command",
       "description": "A command palette: a searchable list of every action in the app, in a dialog.",
-      "docs": "A command palette: a searchable list of every action in the app, in a dialog. Import: import { Command } from \"@/components/ouro/command/command\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: dialog, kbd, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/command.md",
+      "docs": "A command palette: a searchable list of every action in the app, in a dialog. Import: import { Command } from \"@/components/ouro/command/command\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, dialog, kbd, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/command.md",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
         "ourostack/ouro-ui/dialog",
         "ourostack/ouro-ui/kbd",
         "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-control-ref",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
@@ -6694,6 +6696,10 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/command",
