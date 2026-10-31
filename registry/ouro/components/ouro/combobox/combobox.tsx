@@ -679,7 +679,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const input = (className: string, extra: { "aria-label"?: string } = {}) => (
     <BaseCombobox.Input
       {...extra}
-      {...holdPageAtPress}
+      {...holdPageAtPress.listInput}
       ref={setInputRef}
       data-ouro-control="combobox"
       data-ouro-part="input"
@@ -847,7 +847,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
     >
       <BaseAutocomplete.InputGroup ref={markDismiss} data-ouro-input-group="" className={groupClass}>
         <BaseAutocomplete.Input
-          {...holdPageAtPress}
+          {...holdPageAtPress.listInput}
           ref={setInputRef}
           data-ouro-control="combobox"
           data-ouro-part="input"

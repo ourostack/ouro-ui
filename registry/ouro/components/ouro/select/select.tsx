@@ -209,7 +209,7 @@ function SelectControl({
       inputRef={markInput}
     >
       <BaseSelect.Trigger
-        {...holdPageAtPress}
+        {...holdPageAtPress.listButton}
         ref={ref}
         data-ouro-control="select"
         data-ouro-part="trigger"

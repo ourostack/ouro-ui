@@ -887,12 +887,47 @@ describe("Popover and the page's scroll", () => {
     const html = document.documentElement;
     html.style.scrollBehavior = "smooth";
     document.querySelector<HTMLElement>('[data-ouro-control="popover"]')!.focus();
-    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
     // The press holds the page, so its scrolls are instant, until a second passes with no popup.
     expect(html.style.scrollBehavior).toBe("auto");
     await commands.pointerPress({ selector: '[data-ouro-control="popover"][data-ouro-part="trigger"]', action: "down" });
     await commands.pointerPress({ action: "up" });
     expect([pointerDown.mock.calls.length, keyDown.mock.calls.length]).toEqual([1, 1]);
     await expect.poll(() => html.style.scrollBehavior).toBe("smooth");
+  });
+
+  it("leaves the page free at an arrow key on its trigger, which opens nothing", async () => {
+    // Base UI's Popover opens on its trigger's click only, so an arrow held down on it (an emoji
+    // picker's button, say) must not hold the page, or each repeat would hold it a second more.
+    await render(
+      <div style={{ height: 5000 }}>
+        <header style={{ position: "sticky", top: 0, height: 100 }}>
+          <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+            <input aria-label="Link" />
+          </Popover>
+        </header>
+      </div>,
+    );
+    window.scrollTo({ top: 2000, behavior: "instant" });
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    let atPress = "";
+    window.addEventListener("keydown", () => (atPress = html.style.scrollBehavior), { once: true });
+    document.querySelector<HTMLElement>('[data-ouro="button"]')!.focus({ preventScroll: true });
+    await userEvent.keyboard("{ArrowDown}");
+    expect(atPress).toBe("smooth");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    // The arrow scrolls the page a little, smoothly, as on any button; then an app's scroll still moves it.
+    let last = -1;
+    while (window.scrollY !== last) {
+      last = window.scrollY;
+      await frame();
+      await frame();
+    }
+    window.scrollTo({ top: 1500, behavior: "instant" });
+    await frame();
+    await frame();
+    expect(window.scrollY).toBe(1500);
+    expect(popoverPopup()).toBeNull();
   });
 });
