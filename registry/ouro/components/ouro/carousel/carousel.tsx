@@ -101,7 +101,8 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * points, so swiping, trackpads and arrow keys all work and a vertical swipe still
  * scrolls the page. Each child is a slide named "Slide 2 of 5", and moving to another
  * slide announces that position politely, once. It never moves on its own, and with
- * reduced motion the buttons jump instead of scrolling smoothly.
+ * reduced motion the buttons jump instead of scrolling smoothly. With every slide in view
+ * (one slide, or no more than `slidesPerView`) the buttons hide.
  *
  * Use a grid instead when every item should be visible at once, and `Tabs` when the
  * panels have names the user picks from.
@@ -120,6 +121,7 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * @claim "It is the browser's own scrolling" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
  * @claim "Each child is a slide named" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
  * @claim "It never moves on its own" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel motion > jumps instantly with reduced motion)
+ * @claim "With every slide in view" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel navigation > hides the buttons when every slide is in view)
  * @claim "It never moves on its own" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel motion > scrolls smoothly when motion is allowed)
  * @claim "It never moves on its own" registry/ouro/components/ouro/carousel/carousel.test-d.ts verify:fileLine(registry/ouro/components/ouro/carousel/carousel.test-d.ts, /autoplay:\strue\s\}>\(\)\.not\.toExtend<CarouselProps>/)
  */
@@ -339,7 +341,9 @@ export function Carousel(props: CarouselProps): JSX.Element {
           </div>
         ))}
       </div>
-      <div data-ouro-carousel-buttons="" className={buttonsClass}>
+      {/* With every slide in view there is nowhere to step. The buttons stay in the page, so a
+          keyboard handler that presses them still finds them. */}
+      <div data-ouro-carousel-buttons="" className={cn(buttonsClass, lastIndex === 0 && "hidden")}>
         <Button
           ref={previousRef}
           variant="outline"

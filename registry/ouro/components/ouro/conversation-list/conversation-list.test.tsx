@@ -89,6 +89,29 @@ describe("ConversationList", () => {
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
   });
 
+  it("keeps the open conversation highlighted under the pointer, a shade deeper", async () => {
+    const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
+    const paint = (value: string) => {
+      const probe = document.createElement("span");
+      probe.style.backgroundColor = value;
+      host.append(probe);
+      const color = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return color;
+    };
+    const settled = async (row: HTMLElement) => {
+      await Promise.allSettled(row.getAnimations().map((animation) => animation.finished));
+      return getComputedStyle(row).backgroundColor;
+    };
+    const deeper = paint("color-mix(in oklab, var(--accent) 88%, var(--foreground))");
+    expect(deeper).not.toBe(paint("var(--accent)"));
+    await userEvent.hover(rows[1]!);
+    expect(await settled(rows[1]!)).toBe(deeper);
+    await userEvent.hover(rows[0]!);
+    expect(await settled(rows[0]!)).toBe(paint("var(--muted)"));
+    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+  });
+
   it("moves focus with the arrow keys, Home and End", async () => {
     const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
     await act(async () => rows[0]!.focus());
