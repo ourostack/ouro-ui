@@ -1,8 +1,9 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
-import transcripts from "./transcripts.json";
+import { cast, castAll } from "./cast";
+import rawTranscripts from "./transcripts.json";
 
 /*
- * "A morning with an agent": Sam asks their agent for five things, and the page shows each one twice, as Sam sees it
+ * "A morning with an agent": the person asks their agent for a few things, and the page shows each one twice, as they see it
  * and as the agent sees it. The agent's side is the kit's example tool (registry/ouro/ax/example-cli.ts): each command
  * and what it printed is in transcripts.json, and ax.test.tsx runs every one through the kit and compares.
  */
@@ -16,9 +17,9 @@ export interface Step {
   meanwhile?: { by: string; text: string; at: string };
 }
 
-/** What Sam sees: a line in their chat with the agent, a message in the room, a notification or a private note. */
+/** What the person sees: a line in their chat with the agent, a message in the room, a notification or a private note. */
 export type Seen =
-  | { kind: "sam"; text: string }
+  | { kind: "person"; text: string }
   | { kind: "agent"; text: string }
   | { kind: "room"; by: string; text: string; aside?: string }
   | { kind: "ping"; text: string; time?: string }
@@ -40,17 +41,20 @@ export interface Beat {
 
 export const ROOM = "Design sync";
 
+/** Each command and what the kit printed, with the cast's names filled in. */
+export const TRANSCRIPTS = castAll(rawTranscripts);
+
 export const MORNING: Beat[] = [
   {
     id: "today",
     time: "8:58",
     title: "What have I got today?",
     seen: [
-      { kind: "sam", text: "What have I got this morning?" },
-      { kind: "agent", text: "Just Design sync, with Ana and Kim." },
+      { kind: "person", text: "What have I got this morning?" },
+      { kind: "agent", text: cast("Just Design sync, with {replier} and {other}.") },
     ],
-    steps: transcripts.today,
-    why: claim("The help sorts every command under two headings, what only Sam sees and what other people see, so the agent knows which commands reach other people before it runs one.", {
+    steps: TRANSCRIPTS.today,
+    why: claim("The help sorts every command under two headings, what only the person sees and what other people see, so the agent knows which commands reach other people before it runs one.", {
       source: { test: "registry/ouro/ax/help.test.mts::the overview is the two headings, one line per command, and the exit codes" },
       verify: { testExists: "registry/ouro/ax/help.test.mts::the overview is the two headings, one line per command, and the exit codes" },
     }),
@@ -60,11 +64,11 @@ export const MORNING: Beat[] = [
     time: "9:03",
     title: "Tell Design sync I'm running late.",
     seen: [
-      { kind: "sam", text: "Tell Design sync I'm running late." },
-      { kind: "room", by: "Sam Lee", text: "Running late, start without me", aside: "Sent by Sam's agent: Sam asked me to tell the room" },
+      { kind: "person", text: "Tell Design sync I'm running late." },
+      { kind: "room", by: cast("{person.full}"), text: "Running late, start without me", aside: cast("Sent by {person}'s agent: {person} asked me to tell the room") },
       { kind: "agent", text: "Done: posted in Design sync." },
     ],
-    steps: transcripts.late,
+    steps: TRANSCRIPTS.late,
     why: claim("The first try was refused in one line that ends with the exact command to run instead. Rules like that one, written from where agents in our runs went wrong, took the same agent from 5 of 10 runs to 10 of 10.", {
       source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" }],
       verify: [
@@ -84,8 +88,8 @@ export const MORNING: Beat[] = [
     id: "checked",
     time: "9:04",
     title: "Nothing happens, which is the point.",
-    seen: [{ kind: "agent", text: "(The agent doesn't open the room to make sure.)" }],
-    steps: transcripts.checked,
+    seen: [{ kind: "agent", text: cast("({agent} doesn't open the room to make sure.)") }],
+    steps: TRANSCRIPTS.checked,
     why: claim("The tool read its own work back and said so: Checked. When an outcome said its check held, agents in our runs stopped reading the conversation back to be sure, in 0 of 2 runs against 2 of 2 without it.", {
       source: [{ file: "registry/ouro/ax/example-cli.ts" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md" }],
       verify: [
@@ -100,12 +104,12 @@ export const MORNING: Beat[] = [
     time: "9:05",
     title: "Let me know when someone answers.",
     seen: [
-      { kind: "sam", text: "Let me know when someone answers." },
-      { kind: "room", by: "Ana Ruiz", text: "Sounds good, we'll begin with the dates" },
-      { kind: "ping", time: "9:11", text: "Ana answered in Design sync: “Sounds good, we'll begin with the dates”" },
+      { kind: "person", text: "Let me know when someone answers." },
+      { kind: "room", by: cast("{replier.full}"), text: "Sounds good, we'll begin with the dates" },
+      { kind: "ping", time: "9:11", text: cast("{replier} answered in Design sync: “Sounds good, we'll begin with the dates”") },
     ],
-    steps: transcripts.reply,
-    waiting: "The tool waits on the room. The agent makes one call, not a loop.",
+    steps: TRANSCRIPTS.reply,
+    waiting: cast("The tool waits on the room. {agent} makes one call, not a loop."),
     why: claim("Three of the four designs we tried each added a way to wait on a conversation the agent already knew. With it, “tell me when someone replies” went from 1 of 2 runs to 2 of 2, in about half the calls.", {
       source: [{ file: "docs/decisions/2026-10-30-ouro-ax.md" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md" }],
       verify: [
@@ -126,13 +130,13 @@ export const MORNING: Beat[] = [
     time: "9:20",
     title: "Actually, edit that.",
     seen: [
-      { kind: "sam", text: "Actually, edit that." },
+      { kind: "person", text: "Actually, edit that." },
       { kind: "agent", text: "A note just for you, or the message everyone in Design sync saw?" },
-      { kind: "sam", text: "Just a note for me: ask Ana about the dates." },
-      { kind: "private", text: "ask Ana about the dates" },
+      { kind: "person", text: cast("Just a note for me: ask {replier} about the dates.") },
+      { kind: "private", text: cast("ask {replier} about the dates") },
     ],
-    steps: transcripts.edit,
-    why: claim("A word that could mean two things does nothing. It answers with both meanings, so the agent asks Sam instead of guessing.", {
+    steps: TRANSCRIPTS.edit,
+    why: claim("A word that could mean two things does nothing. It answers with both meanings, so the agent asks the person instead of guessing.", {
       source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { file: "registry/ouro/ax/example-cli.ts" }],
       verify: [
         { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },

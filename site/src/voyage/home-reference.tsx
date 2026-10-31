@@ -6,7 +6,8 @@ import { CodeBlock, Command, InlineCode } from "../components/code";
 import generated from "../generated/agent-messages.json";
 import { AX_SECTION } from "../copy";
 import { Screen, Transcript } from "../ax/parts";
-import transcripts from "../ax/transcripts.json";
+import { cast } from "../ax/cast";
+import { TRANSCRIPTS } from "../ax/story";
 import { latestRelease } from "../latest-release";
 import { href } from "../paths";
 import { Container } from "./layout";
@@ -186,14 +187,14 @@ export function OuroAx(): JSX.Element {
         <p className="site-lede mt-5">{AX_SECTION.intro}</p>
         <div className="mt-10 grid items-start gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <Screen
-            label="What Sam sees"
+            label={cast("What {person} sees")}
             seen={[
-              { kind: "sam", text: "Tell Design sync I'm running late." },
-              { kind: "room", by: "Sam Lee", text: "Running late, start without me", aside: "Sent by Sam's agent: Sam asked me to tell the room" },
+              { kind: "person", text: "Tell Design sync I'm running late." },
+              { kind: "room", by: cast("{person.full}"), text: "Running late, start without me", aside: cast("Sent by {person}'s agent: {person} asked me to tell the room") },
               { kind: "agent", text: "Done: posted in Design sync." },
             ]}
           />
-          <Transcript label="What the agent sees" steps={transcripts.late} />
+          <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late} />
         </div>
         <p className="mt-4 mb-0 text-sm text-muted-foreground">
           {claim("The agent's first try is refused in one line that names the fix, and nothing reaches the room until it says who asked.", {

@@ -4,8 +4,8 @@ import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import { Mark, RuleText, Screen, Transcript } from "./parts";
 import Playground from "./playground";
-import { MORNING, type Beat } from "./story";
-import transcripts from "./transcripts.json";
+import { cast } from "./cast";
+import { MORNING, TRANSCRIPTS, type Beat } from "./story";
 import xray from "./xray-tandem.json";
 
 /*
@@ -29,11 +29,11 @@ function BeatRow({ beat }: { beat: Beat }): JSX.Element {
           {beat.title}
         </h3>
         <div className="grid items-start gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <Screen label="What Sam sees" seen={beat.seen} />
+          <Screen label={cast("What {person} sees")} seen={beat.seen} />
           {beat.steps.length > 0 ? (
-            <Transcript label="What the agent sees" steps={beat.steps} waiting={beat.waiting} />
+            <Transcript label={cast("What {agent} sees")} steps={beat.steps} waiting={beat.waiting} />
           ) : (
-            <Transcript label="What the agent sees" steps={transcripts.late.slice(1)} after="The agent moves on without reading the room back." />
+            <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late.slice(1)} after={cast("{agent} moves on without reading the room back.")} />
           )}
         </div>
         <div className="grid gap-x-8 gap-y-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline">
@@ -77,9 +77,9 @@ export default function AxPage(): JSX.Element {
       <section aria-labelledby="morning-title" className="py-16 lg:py-24">
         <Container>
           <h2 id="morning-title" className="site-h2">
-            Sam's morning
+            {cast("{person}'s morning")}
           </h2>
-          <p className="site-lede mt-5">Sam asks their agent for a few things before the first meeting. You see them twice: in Sam's app on the left, and in the agent's terminal on the right.</p>
+          <p className="site-lede mt-5">{cast("{person} asks {person.their} agent for a few things before the first meeting. You see them twice: in {person}'s app on the left, and in the terminal of {agent} on the right.")}</p>
           <ol className="m-0 mt-10 grid list-none gap-12 p-0">
             {MORNING.map((beat) => (
               <BeatRow key={beat.id} beat={beat} />
@@ -88,12 +88,12 @@ export default function AxPage(): JSX.Element {
         </Container>
       </section>
 
-      <section id="your-turn" aria-labelledby="turn-title" className="scroll-mt-20 border-t border-border/70 py-16 lg:py-24">
+      <section id="be-the-agent" aria-labelledby="turn-title" className="scroll-mt-20 border-t border-border/70 py-16 lg:py-24">
         <Container className="grid gap-10">
           <div className="grid gap-4">
             <p className="site-eyebrow">Your turn</p>
             <h2 id="turn-title" className="site-h2">
-              Be the agent
+              {cast("Be {agent}")}
             </h2>
             <p className="site-lede">
               This is the same tool, running in your browser. Type a command or press one. Then start a wait, and answer it from the room as someone else.
