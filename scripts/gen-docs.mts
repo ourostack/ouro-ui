@@ -735,7 +735,7 @@ const readmeItems = [
     verify: { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
   })} Optional: \`ouro-theme\`, the Ouro look.`,
   "",
-  `Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): \`ouro-ax\`, which is ${axItemNames.map(code).join(", ")}; the example tool \`ax-example\`; and \`ouro-ax-tests\`, with their \`<name>-tests\` items.`,
+  `Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool \`ax-example\`, \`ouro-ax-tests\` with their \`<name>-tests\` items, and \`ouro-ax\`, which is:\n${axItemNames.map(code).join(",\n")}.`,
   "",
   "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
   "",
