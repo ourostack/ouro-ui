@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 
 const regions = () => document.querySelectorAll<HTMLElement>("[data-ouro-announcer]");
-const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 
 afterEach(() => {
   vi.useRealTimers();
@@ -24,13 +23,16 @@ describe("announce", () => {
     await expect.poll(() => region!.textContent).toBe("Loading");
   });
 
-  it("waits 100ms after creating the region before writing the first message (Safari)", async () => {
+  it("waits 100ms after creating the region before writing the first message (Safari)", () => {
+    // The page's own timers are faked, so a slow frame on a busy runner cannot move the delay.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     announce("Loading");
     const region = regions()[0]!;
     // A frame is not enough: Safari drops messages added to a brand-new region that soon.
-    await nextFrame();
+    vi.advanceTimersByTime(16);
     expect(region.textContent).toBe("");
-    await expect.poll(() => region.textContent).toBe("Loading");
+    vi.advanceTimersByTime(84);
+    expect(region.textContent).toBe("Loading");
   });
 
   it("uses timers, not animation frames, so a background tab still announces", () => {
