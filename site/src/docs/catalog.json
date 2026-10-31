@@ -737,6 +737,13 @@
     "summary": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline."
   },
   {
+    "name": "emoji-picker",
+    "title": "EmojiPicker",
+    "group": "Chat",
+    "source": "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx",
+    "summary": "An emoji picker for reactions and for putting emoji into text."
+  },
+  {
     "name": "inspector",
     "title": "Inspector",
     "group": "App setup",
