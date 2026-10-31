@@ -26,6 +26,10 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: ENCOUNTER.dialog
 async function order(page: Page, name: string): Promise<void> {
   await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
   const menu = page.getByRole("menu");
+  // WebKit can drop a press on an item while the menu is still opening, so it opens fully first.
+  await expect(menu).toBeVisible();
+  await expect(menu).not.toHaveAttribute("data-starting-style");
+  await menu.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
   const checkbox = menu.getByRole("menuitemcheckbox", { name, exact: true });
   await menu.getByRole("menuitem", { name, exact: true }).or(checkbox).click();
   // A checkbox item leaves the menu open, so more can be ticked; Escape closes it.
