@@ -20,7 +20,7 @@ import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
-import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { holdPageAtPress, PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 
 export type { SelectOption, SelectOptionGroup, SelectOptions } from "@/registry/ouro/components/ouro/select/select-styles";
 
@@ -208,6 +208,7 @@ function SelectControl({
       inputRef={markInput}
     >
       <BaseSelect.Trigger
+        {...holdPageAtPress}
         ref={ref}
         data-ouro-control="select"
         data-ouro-part="trigger"

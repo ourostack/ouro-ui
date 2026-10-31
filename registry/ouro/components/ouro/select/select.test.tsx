@@ -576,4 +576,34 @@ describe("Select and the page's scroll", () => {
       });
     }
   }
+
+  it("stays open and stops the page where it is, pressed as a smooth scroll begins", async () => {
+    // A smooth scroll begins as the press goes down, ahead of the trigger's own handlers: the press
+    // stops it where it is, holding the page from then on, not only once the popup opens, and the
+    // popup opens and stays open.
+    await render(
+      <div style={{ height: 5000 }}>
+        <header style={{ position: "sticky", top: 0, height: 100 }}>
+          <Select label="Course" options={courses} />
+        </header>
+      </div>,
+    );
+    window.scrollTo({ top: 2000, behavior: "instant" });
+    document.documentElement.style.scrollBehavior = "smooth";
+    document.addEventListener("pointerdown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+    let atPress = "";
+    window.addEventListener("pointerdown", () => (atPress = document.documentElement.style.scrollBehavior), { once: true });
+    await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "down" });
+    for (let index = 0; index < 10; index++) await frame();
+    await commands.pointerPress({ action: "up" });
+    await expect.poll(() => {
+      const open = popup();
+      return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
+    }).toBe(true);
+    await frame();
+    await frame();
+    expect(popup()!.hasAttribute("data-open")).toBe(true);
+    expect(atPress).toBe("auto");
+    expect(window.scrollY).toBe(2000);
+  });
 });
