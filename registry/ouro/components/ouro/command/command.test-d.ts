@@ -34,6 +34,12 @@ expectTypeOf<{ title: "Go"; trigger: ReactElement; items: CommandEntry[]; childr
 expectTypeOf<{ label: "Home"; onClick: () => void }>().not.toExtend<CommandEntry>();
 expectTypeOf<{ label: "Home" }>().not.toExtend<CommandEntry>();
 expectTypeOf<{ label: "Home"; onSelect: () => void; keywords: ["start"]; disabled: true }>().toExtend<CommandEntry>();
+// Media: an avatar's picture or element, an icon, an unread dot and a mark.
+expectTypeOf<{ label: "Ada"; onSelect: () => void; avatar: "/ada.png"; unread: true; mark: "Draft" }>().toExtend<CommandEntry>();
+expectTypeOf<{ label: "Ada"; onSelect: () => void; avatar: ReactElement; mark: ReactElement }>().toExtend<CommandEntry>();
+expectTypeOf<{ label: "Settings"; onSelect: () => void; icon: ReactElement }>().toExtend<CommandEntry>();
+expectTypeOf<{ label: "Ada"; onSelect: () => void; avatar: 1 }>().not.toExtend<CommandEntry>();
+expectTypeOf<{ title: "Go"; trigger: ReactElement; items: CommandEntry[]; unreadLabel: "Non lu" }>().toExtend<CommandProps>();
 
 // useCommandShortcut: open state and its setter, from a string or an array.
 expectTypeOf<ReturnType<typeof useCommandShortcut>[0]>().toEqualTypeOf<boolean>();

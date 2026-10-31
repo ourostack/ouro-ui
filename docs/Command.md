@@ -2,7 +2,7 @@
 
 # Command
 
-A command palette: a searchable list of every action in the app, in a dialog. Typing filters the commands by label and keywords (ignoring case and accents), the arrow keys move the highlight, and Enter runs the highlighted command. Commands come in labelled groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px it is a full-height bottom sheet, whose search input stays put while the results filter.
+A command palette: a searchable list of every action in the app, in a dialog. Typing filters the commands by label and keywords (ignoring case and accents), the arrow keys move the highlight, and Enter runs the highlighted command. Commands come in labelled groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px it is a full-height bottom sheet, whose search input stays put while the results filter. A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`, so a palette that jumps to any chat shows who each one is with and what is new.
 
 ```tsx
 import { Command } from "@/registry/ouro/components/ouro/command/command";
@@ -20,6 +20,20 @@ const [open, setOpen] = useCommandShortcut("mod+k");
     { label: "Recipes", items: [{ label: "New recipe", onSelect: create, shortcut: ["mod", "n"] }] },
     { label: "Switch theme", onSelect: toggleTheme, keywords: ["dark mode"] },
   ]}
+/>
+
+// A palette that jumps to any chat, with each person's avatar and what is unread.
+<Command
+  title="Go to a chat"
+  open={open}
+  onOpenChange={setOpen}
+  items={chats.map((chat) => ({
+    label: chat.name,
+    onSelect: () => openChat(chat.id),
+    avatar: <Avatar name={chat.name} src={chat.picture} alt="" size="xs" idForColor={chat.id} />,
+    unread: chat.unread > 0,
+    mark: chat.unread > 0 && <Badge>{chat.unread}</Badge>,
+  }))}
 />
 ```
 
@@ -49,6 +63,7 @@ The props the modes share. Type: `CommandProps`.
 | `placeholder` | `string` | `"Type a command or search…"` | The search input's placeholder. |
 | `searchLabel` | `string` | `"Search commands"` | The search input's label for screen readers. |
 | `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. It is always required. |
+| `unreadLabel` | `string` | `"Unread"` | What screen readers hear after an `unread` command's label, for other languages. |
 
 ## Modes
 
@@ -136,6 +151,30 @@ interface CommandItem {
   keywords?: readonly string[] | undefined;
   /** The keys of the command's shortcut, shown at its end with `Kbd`: `["mod", "n"]`. It does not bind them. */
   shortcut?: readonly string[] | undefined;
+  /**
+   * A picture before the label, for a person, a chat or a team: a URL, shown in an `<Avatar>`
+   * named by the label, or an element to show instead, such as
+   * `<Avatar name={person.name} alt="" size="xs" idForColor={person.id} />` for initials in the
+   * person's color or a presence dot. Give the element `alt=""`, since the label names it.
+   */
+  avatar?: string | ReactElement | undefined;
+  /**
+   * A small icon before the label, in the muted color: a gear for settings, a page for a document.
+   * It takes an extra-small avatar's width, so labels line up in a palette that mixes the two.
+   * Screen readers skip it; the label names the command. With `avatar`, the avatar shows instead.
+   */
+  icon?: ReactNode;
+  /**
+   * Something new waits there, as in a chat with unread messages: the label is bold, a dot
+   * ends the row, and screen readers hear `unreadLabel` after the label.
+   */
+  unread?: boolean | undefined;
+  /**
+   * Something small at the end of the row, before the shortcut: an unread count's `<Badge>`, or
+   * words such as "Draft", which show small and muted. It takes the unread dot's place; screen
+   * readers still hear `unreadLabel`.
+   */
+  mark?: ReactNode;
   /** Listed, but cannot be run. */
   disabled?: boolean | undefined;
 
