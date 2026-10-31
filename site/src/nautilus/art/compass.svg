@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>A compass rose on a chart</title>
+  <!-- Original drawing for Ouro HX (manifest.json): Chapter II's vignette, a compass rose laid on
+       a corner of a sea chart, with a course line and a pair of ports pricked on it. Engraved lines
+       only; its colour comes from the theme. -->
+  <path d="M6 70 L18 10 H112 L102 70 Z" stroke-width="1.2" opacity="0.7" />
+  <path d="M30 60 C44 52 52 34 70 30 C82 27 90 22 98 16" stroke-width="1.2" stroke-dasharray="3 3" />
+  <circle cx="30" cy="60" r="2.4" fill="currentColor" stroke="none" />
+  <circle cx="98" cy="16" r="2.4" fill="currentColor" stroke="none" />
+  <g transform="translate(60 42)">
+    <circle r="17" stroke-width="1.4" />
+    <circle r="12.5" stroke-width="0.8" stroke-dasharray="1.2 2.2" />
+    <path d="M0 -26 L4 -4 L26 0 L4 4 L0 26 L-4 4 L-26 0 L-4 -4 Z" stroke-width="1.5" />
+    <path d="M0 -26 L4 -4 L0 0 Z M26 0 L4 4 L0 0 Z M0 26 L-4 4 L0 0 Z M-26 0 L-4 -4 L0 0 Z" fill="currentColor" stroke="none" opacity="0.6" />
+    <path d="M-9 -9 L9 9 M9 -9 L-9 9" stroke-width="0.9" />
+  </g>
+</svg>

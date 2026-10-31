@@ -124,8 +124,10 @@ for (const path of PAGES) test(`keeps every control's boundary under forced colo
     await page.getByRole("switch", { name: "Forward tank", exact: true }).click();
     await expect(page.locator("[data-stage-crew]")).toContainText(LOG.tankFull(TANKS[0].noun, 1).text);
   } else {
-    await page.locator("#chapter-one").scrollIntoViewIfNeeded();
-    await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+    for (const chapter of ["chapter-one", "chapter-two", "chapter-three"]) {
+      await page.locator(`#${chapter}`).scrollIntoViewIfNeeded();
+      await expect(page.locator(`#${chapter}[data-chapter-ready]`)).toBeAttached();
+    }
   }
   const bare = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("main [data-ouro-control], header [data-ouro-control]")]
@@ -140,9 +142,15 @@ for (const path of PAGES) test(`keeps every control's boundary under forced colo
           return border || (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0);
         };
         // A control's boundary may be drawn by the element itself, its visible box (a switch's
-        // track, a radio's circle) or, for an input inside it, the part that holds it (a slider's thumb).
+        // track, a radio's circle), for an input inside it, the part that holds it (a slider's thumb),
+        // or the frame just outside its own field (a Composer's frame around its plain text area).
+        const own = element.getAttribute("data-ouro-control");
         const holders: Element[] = [];
-        for (let node = element.parentElement; node && !node.hasAttribute("data-ouro"); node = node.parentElement) holders.push(node);
+        for (let node = element.parentElement; node; node = node.parentElement) {
+          const root = node.getAttribute("data-ouro");
+          if (root !== null && root !== "field" && root !== own) break;
+          holders.push(node);
+        }
         return !outlined(element) && ![...element.querySelectorAll("*")].some(outlined) && !holders.some(outlined);
       })
       .map((element) => `${element.getAttribute("data-ouro-control")}/${element.getAttribute("data-ouro-part")}`),

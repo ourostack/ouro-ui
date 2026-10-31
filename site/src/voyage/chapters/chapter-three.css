@@ -1,0 +1,242 @@
+/*
+ * Chapter III once it answers (chapter-three.tsx puts this in the page as the island hydrates).
+ *
+ * First, the drawings' colours. The squid's skin is Verne's "livid grey to reddish brown", mixed
+ * from the theme, so each preset repaints it. They come with the island, not in the page's
+ * stylesheet, which keeps the first load's CSS within its budget (catalog.spec.ts); chapters.css
+ * holds the drawings' sizes and what starts hidden. Before this arrives the porthole shows its sea,
+ * its brass ring and bolts (their colours are in the server HTML), and the squid and the organ are
+ * line drawings (their roots draw no fill).
+ *
+ * Then the motion:
+ * the squid's arm stirs at the glass a few times, then it sinks back into the deep behind its ink when the fight
+ * is won; the sky comes up when you surface, the floodlights fade on, and the organ's notes rise
+ * when the captain plays (a few times, then they rest), and the squid comes back to sway along.
+ * Under reduced motion nothing moves: the squid and the ink fade, the notes appear in place.
+ */
+.site-porthole {
+  --sq-skin: color-mix(in oklab, var(--destructive) 50%, oklch(0.58 0.05 25));
+  --sq-line: color-mix(in oklab, white 72%, var(--sq-skin));
+}
+.site-porthole .ph-sky rect {
+  fill: color-mix(in oklab, var(--primary) 28%, oklch(0.93 0.02 230));
+}
+.site-porthole .ph-squid {
+  color: var(--sq-line);
+}
+.site-porthole .sq-arm,
+.site-porthole :is(.sq-mantle, .sq-head) {
+  fill: var(--sq-skin);
+}
+.site-porthole .sq-fin {
+  fill: color-mix(in oklab, black 14%, var(--sq-skin));
+}
+.site-porthole .sq-glass-arm .sq-arm {
+  fill: color-mix(in oklab, white 14%, var(--sq-skin));
+}
+.site-porthole .sq-suckers circle {
+  fill: color-mix(in oklab, white 80%, var(--sq-skin));
+  stroke: color-mix(in oklab, black 30%, var(--sq-skin));
+}
+.site-porthole .sq-eye {
+  fill: color-mix(in oklab, var(--success) 70%, white);
+}
+.site-organ {
+  color: color-mix(in oklab, var(--primary) 65%, var(--foreground));
+}
+.site-organ .or-fill {
+  fill: color-mix(in oklab, var(--chart-3) 14%, var(--card));
+}
+.site-organ .or-keys-bed {
+  fill: var(--card);
+}
+.site-organ .or-mouth {
+  fill: currentColor;
+}
+
+.site-porthole :is(.ph-sky, .ph-beam, .ph-squid, .sq-ink),
+.site-organ :is(.or-note, .or-fill) {
+  transition:
+    opacity var(--ouro-duration-slow) ease,
+    fill var(--ouro-duration-slow) ease;
+}
+.site-porthole[data-squid="gone"] .ph-squid {
+  opacity: 0;
+}
+.site-porthole[data-squid="gone"] .sq-ink {
+  animation: sq-ink 1.8s ease-out both;
+}
+/*
+ * When the organ plays, the squid comes back to listen: smaller, peeking in from the side, and
+ * (with motion) swaying to the tune a few times.
+ */
+.site-porthole[data-squid="listening"] .ph-squid {
+  opacity: 1;
+}
+@keyframes sq-ink {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-porthole .sq-glass-arm {
+    transform-box: fill-box;
+    transform-origin: 90% 10%;
+    animation: sq-stir 2.6s ease-in-out 3;
+  }
+  /*
+   * Beaten, it sinks back to the deep it came from: small and faint, far below the glass. The squid
+   * is a drawing on a layer of its own (chapter-three.tsx), so it moves without repainting the sea
+   * or the menu that gave the order, which closes as it goes.
+   */
+  .site-porthole .ph-squid {
+    transition:
+      opacity 1.4s ease 0.3s,
+      translate 1.6s var(--ouro-ease-in-out),
+      scale 1.6s var(--ouro-ease-in-out);
+  }
+  .site-porthole[data-squid="gone"] .ph-squid {
+    translate: -25% 32.5%;
+    scale: 0.35;
+    opacity: 0.3;
+  }
+  /* With motion, it swims back small to the porthole's edge and sways; without, it only fades in. */
+  .site-porthole[data-squid="listening"] .ph-squid {
+    translate: 24% 10%;
+    scale: 0.55;
+    animation: sq-sway 1.6s ease-in-out 1.6s 4;
+  }
+  .site-organ[data-played] .or-note {
+    transform-box: fill-box;
+    animation: or-rise 2.2s var(--ouro-ease-out) 3 both;
+  }
+  .site-organ[data-played] .or-note[data-note="2"] {
+    animation-delay: 0.35s;
+  }
+  .site-organ[data-played] .or-note[data-note="3"] {
+    animation-delay: 0.7s;
+  }
+  .site-organ[data-played] .or-note[data-note="4"] {
+    animation-delay: 0.2s;
+  }
+  .site-organ[data-played] .or-note[data-note="5"] {
+    animation-delay: 0.55s;
+  }
+  .site-stamp {
+    animation: stamp 0.5s var(--ouro-ease-out) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-stamp {
+    animation: stamp-fade var(--ouro-duration-slow) ease both;
+  }
+}
+@keyframes sq-stir {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  50% {
+    rotate: -4deg;
+  }
+}
+@keyframes sq-sway {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  25% {
+    rotate: -7deg;
+  }
+  75% {
+    rotate: 7deg;
+  }
+}
+@keyframes or-rise {
+  0% {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes stamp {
+  from {
+    opacity: 0;
+    scale: 1.4;
+  }
+}
+@keyframes stamp-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * What only shows once the fight is on (kept out of the page's first stylesheet): the sky when the
+ * ship is up, the beam and the brighter squid under the floodlights, the ink, the organ playing and
+ * the log's stamp.
+ */
+.site-porthole[data-surfaced] .ph-sky {
+  opacity: 1;
+}
+.site-porthole[data-lights] .ph-beam {
+  opacity: 1;
+}
+.site-porthole .ph-beam-core {
+  stop-color: var(--chart-3);
+  stop-opacity: 0.6;
+}
+.site-porthole .ph-beam-edge {
+  stop-color: var(--chart-3);
+  stop-opacity: 0;
+}
+.site-porthole .sq-ink {
+  fill: oklch(0.16 0.02 250);
+  opacity: 0;
+}
+/* The sun, once the ship is up. */
+.site-porthole .ph-sun {
+  fill: color-mix(in oklab, var(--chart-3) 55%, white);
+}
+/* Under the floodlights the squid's skin shows paler: a colour, not a filter, which is slow to paint in WebKit. */
+.site-porthole[data-lights] {
+  --sq-skin: color-mix(in oklab, var(--destructive) 42%, oklch(0.7 0.05 25));
+}
+.site-organ[data-played] .or-note {
+  opacity: 1;
+}
+.site-organ[data-played] .or-fill {
+  fill: color-mix(in oklab, var(--chart-3) 34%, var(--card));
+}
+/* The log's stamp: inked once the organ plays. */
+.site-stamp {
+  justify-self: start;
+  padding: 0.375rem 0.875rem;
+  border: 3px double var(--primary);
+  border-radius: calc(var(--radius) * 0.6);
+  color: var(--primary);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  rotate: -3deg;
+}
+/* The encounter and the saloon set their picture beside their controls once the screen has room. */
+@media (min-width: 40rem) {
+  .site-split {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  }
+}

@@ -49,7 +49,12 @@ export default defineConfig(({ isSsrBuild }) => ({
     // Each page's chunk is imported dynamically (site/src/app.tsx), and Vite's preload helper adds a
     // modulepreload link for every chunk it imports, the entry too (it holds React). The entry is
     // already running, and WebKit fetches it again for that link, so the helper leaves it out.
-    modulePreload: { resolveDependencies: (_file, deps) => deps.filter((dep) => !/(^|\/)entry-[\w-]+\.js$/.test(dep)) },
+    // The voyage's chapter islands preload nothing: the list of what each imports would sit in the
+    // page's first load (about 700 bytes gzip for the four), and an island loads half a screen
+    // before it is seen, so its imports can follow it.
+    modulePreload: {
+      resolveDependencies: (file, deps) => (/(^|\/)(chapter-(one|two|three)|agents)-[\w-]+\.js$/.test(file) ? [] : deps.filter((dep) => !/(^|\/)entry-[\w-]+\.js$/.test(dep))),
+    },
     ...(isSsrBuild ? {} : { rollupOptions: { output: { entryFileNames: "assets/entry-[hash].js" } } }),
   },
 }));

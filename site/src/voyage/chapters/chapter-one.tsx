@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -7,25 +7,23 @@ import { Checklist } from "@/registry/ouro/components/ouro/checklist/checklist";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
-import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Progress } from "@/registry/ouro/components/ouro/progress/progress";
 import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorderable";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
-import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
 import dividersSource from "../../nautilus/art/dividers.svg?raw";
 import islandSource from "../../nautilus/art/island-yard.svg?raw";
-import { GITHUB } from "../../paths";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
 import type { CrewName } from "../stage/copy";
-import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId, type SheetLine } from "./copy";
+import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
+import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
 // the crew's cheer): it comes inside this island's script and goes into the page as the island
 // hydrates, so it costs the first paint nothing and holds up no part of the island's loading.
@@ -61,10 +59,6 @@ type VoyageStore = ReturnType<typeof createVoyage>;
 const VoyageContext = createContext<VoyageStore | null>(null);
 const useVoyageStore = () => use(VoyageContext)!;
 
-/** Where Chapter I's own source lives, for each Code sheet. */
-export const CHAPTER_SOURCE = `${GITHUB}/tree/main/site/src/voyage/chapters`;
-
-
 const partNamed = (id: PartId) => PARTS.find((part) => part.id === id)!;
 
 /**
@@ -74,26 +68,15 @@ const partNamed = (id: PartId) => PARTS.find((part) => part.id === id)!;
  * and which the site's. The page hydrates it only as it nears the screen (pages/voyage.tsx); the
  * server HTML reads the same before then.
  */
-const STYLES_ID = "chapter-one-styles";
-
 export default function ChapterOne(): JSX.Element {
   const root = useRef<HTMLElement>(null);
   const [voyage] = useState(createVoyage);
-  // Hydrated: the chapter's own styles go in, and it answers from here on (the end-to-end specs
-  // wait for it before they press).
-  useEffect(() => {
-    if (!document.getElementById(STYLES_ID)) {
-      const style = document.createElement("style");
-      style.id = STYLES_ID;
-      style.textContent = chapterStyles;
-      document.head.append(style);
-    }
-    root.current?.setAttribute("data-chapter-ready", "");
-  }, []);
+  useChapterReady(root, "chapter-one-styles", chapterStyles);
   return (
     <section ref={root} id="chapter-one" aria-labelledby="chapter-one-title" className="pb-20 lg:pb-32" data-chapter="one">
-      <Handoff />
+      <Handoff art={dividers} line={CHAPTER_ONE.handoff} />
       <VoyageContext value={voyage}>
+        <ExpeditionMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
           <header className="lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
             <p className="site-eyebrow">{CHAPTER_ONE.number}</p>
@@ -103,7 +86,7 @@ export default function ChapterOne(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_ONE.intro}</p>
             <Expedition />
           </header>
-          <div className="grid gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
             <Composition id="shipyard" title={SHIPYARD.title} intro={SHIPYARD.intro} file={SHIPYARD.file} sheet={CODE_SHEETS.shipyard}>
               <Shipyard />
             </Composition>
@@ -117,40 +100,30 @@ export default function ChapterOne(): JSX.Element {
   );
 }
 
-/** From the story's opening into the chapter: a course line with the shipwright's dividers on it, and the line that turns the page. */
-function Handoff(): JSX.Element {
-  return (
-    <Container className="flex items-center gap-4 py-12 text-muted-foreground lg:py-16" data-chapter-handoff="">
-      <span className="h-px flex-1 bg-border" aria-hidden="true" />
-      <svg
-        className="w-16 shrink-0"
-        viewBox={dividers.viewBox}
-        aria-hidden="true"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        dangerouslySetInnerHTML={{ __html: dividers.inner }}
-      />
-      <p className="m-0 text-sm italic">{CHAPTER_ONE.handoff}</p>
-      <span className="h-px flex-1 bg-border" aria-hidden="true" />
-    </Container>
-  );
+/** How the voyage stands, as steps: built, launched, signed on. */
+function useExpedition(): { voyage: Voyage; steps: Step[] } {
+  const store = useVoyageStore();
+  const voyage = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const { built, launched, you } = voyage;
+  return {
+    voyage,
+    steps: [
+      { label: EXPEDITION.build, done: built.size === PARTS.length, status: EXPEDITION.built(built.size) },
+      { label: EXPEDITION.launch, done: launched, status: EXPEDITION.afloat(launched) },
+      { label: EXPEDITION.sign, done: you !== null, status: EXPEDITION.signed(you) },
+    ],
+  };
 }
 
 /**
  * The rail beside the chapter, held in view while you work: the yard on the island, drawn in as
  * the jobs are ticked, the ship in the sea once launched and a pennant once you sign on; under it,
- * how the voyage stands in words. On a phone the chapter runs in one column and the rail is left out.
+ * how the voyage stands in words. On a phone the chapter runs in one column and the rail is left
+ * out; ExpeditionMarker keeps the count instead.
  */
 function Expedition(): JSX.Element {
-  const voyage = useVoyageStore();
-  const { built, launched, you } = useSyncExternalStore(voyage.subscribe, voyage.get, voyage.get);
-  const steps = [
-    { label: EXPEDITION.build, done: built.size === PARTS.length, status: EXPEDITION.built(built.size) },
-    { label: EXPEDITION.launch, done: launched, status: EXPEDITION.afloat(launched) },
-    { label: EXPEDITION.sign, done: you !== null, status: EXPEDITION.signed(you) },
-  ];
+  const { voyage, steps } = useExpedition();
+  const { built, launched, you } = voyage;
   return (
     <div className="mt-10 hidden lg:block" data-chapter-expedition="">
       <svg
@@ -166,127 +139,20 @@ function Expedition(): JSX.Element {
         data-signed={you ? "" : undefined}
         dangerouslySetInnerHTML={{ __html: island.inner }}
       />
-      <ol className="m-0 mt-6 grid list-none gap-4 p-0" aria-label={EXPEDITION.label}>
-        {steps.map((step) => (
-          <li key={step.label} className="flex items-start gap-3" data-done={step.done ? "" : undefined}>
-            <StepMark done={step.done} />
-            <span className="grid gap-0.5">
-              <span className="font-medium">{step.label}</span>
-              <span className="text-sm text-muted-foreground">{step.status}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
+      <Steps label={EXPEDITION.label} steps={steps} />
     </div>
   );
 }
 
-/** A step's mark: an open ring, or a ring with a tick once it is done. */
-function StepMark({ done }: { done: boolean }): JSX.Element {
-  return (
-    <svg className="site-step-mark" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="10" cy="10" r="8.5" />
-      {done ? <path d="M6 10.5l2.75 2.75L14 7.5" /> : null}
-    </svg>
-  );
-}
-
-interface SheetCopy {
-  title: string;
-  description: string;
-  hx: readonly SheetLine[];
-  site: readonly string[];
-}
-
-/**
- * One framed application: its title and line above, window chrome with a Code button, and the Code
- * sheet, where each thing HX does sits over the line of the exhibit that asks it to (wrapped, never
- * cut off at the panel's edge).
- */
-function Composition({ id, title, intro, file, sheet, children }: { id: string; title: string; intro: string; file: string; sheet: SheetCopy; children: ReactNode }): JSX.Element {
-  const [open, setOpen] = useState(false);
-  return (
-    <article aria-labelledby={`${id}-title`} data-composition={id}>
-      <h3 id={`${id}-title`} className="site-h3">
-        {title}
-      </h3>
-      <p className="mt-1 mb-4 text-muted-foreground">{intro}</p>
-      <div className="site-window">
-        <div className="site-window-bar">
-          <span className="site-window-dots" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className="site-mono truncate">{file}</span>
-          <span className="ms-auto -me-2" data-chapter-control={`${id}-code`}>
-            <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-              {CHAPTER_ONE.code}
-            </Button>
-          </span>
-        </div>
-        {children}
-      </div>
-      <Sheet title={sheet.title} description={sheet.description} side="right" open={open} onOpenChange={setOpen}>
-        <div className="grid gap-6 text-sm">
-          <section aria-labelledby={`${id}-hx`}>
-            <h4 id={`${id}-hx`} className="site-eyebrow mb-2">
-              {CODE_SHEETS.hxHeading}
-            </h4>
-            <ul className="m-0 grid list-none gap-4 p-0">
-              {sheet.hx.map((line) => (
-                <li key={line.text} className="grid gap-1.5">
-                  <span>{line.text}</span>
-                  <pre className="site-mono site-code-line m-0 rounded-lg bg-muted px-3 py-2" data-chapter-code="">
-                    <code>{line.code}</code>
-                  </pre>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <section aria-labelledby={`${id}-site`}>
-            <h4 id={`${id}-site`} className="site-eyebrow mb-2">
-              {CODE_SHEETS.siteHeading}
-            </h4>
-            <ul className="m-0 grid list-disc gap-2 ps-5">
-              {sheet.site.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </section>
-          <Link href={CHAPTER_SOURCE} external>
-            {CODE_SHEETS.source}
-          </Link>
-        </div>
-      </Sheet>
-    </article>
-  );
-}
-
-/** A crew member's line, read out when it changes; at the launch the whole crew turns out to cheer. */
-function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean }): JSX.Element {
-  return (
-    <p className="m-0 flex min-h-[2.75lh] items-center gap-2.5 text-sm" aria-live="polite" aria-atomic="true" data-chapter-crew="">
-      {cheer ? (
-        <span className="site-cheer" data-chapter-cheer="">
-          {CREW.map((member) => (
-            <Avatar key={member.name} name={member.name} alt="" size="sm" />
-          ))}
-        </span>
-      ) : (
-        <Avatar name={line.name} alt="" size="sm" />
-      )}
-      <span>
-        <span className="font-semibold">{line.name}:</span> {line.text}
-      </span>
-    </p>
-  );
+/** On a phone: the chapter and its steps done, held under the header while the chapter is on screen. */
+function ExpeditionMarker(): JSX.Element {
+  return <PhoneMarker chapter={CHAPTER_ONE.number} title={CHAPTER_ONE.title} steps={useExpedition().steps} />;
 }
 
 /** The engraved plan: each built part drawn in, and the finished ship in the sea once launched. */
 const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
-    <figure ref={ref} className="m-0 border-b border-border/70" style={{ scrollMarginTop: "5rem" }}>
+    <figure ref={ref} className="relative m-0 border-b border-border/70" style={{ scrollMarginTop: "5rem" }}>
       <svg
         className="site-blueprint"
         viewBox={blueprint.viewBox}
@@ -300,6 +166,11 @@ const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<P
         data-launched={launched ? "" : undefined}
         dangerouslySetInnerHTML={{ __html: blueprint.inner }}
       />
+      {launched ? (
+        <figcaption className="site-afloat" data-chapter-afloat="">
+          {SHIPYARD.afloat}
+        </figcaption>
+      ) : null}
     </figure>
   );
 });
@@ -378,7 +249,7 @@ function Shipyard(): JSX.Element {
   return (
     <div>
       <Plan ref={drawing} built={plan.built} launched={plan.launched} />
-      <div className="grid gap-6 p-4 sm:grid-cols-2 sm:p-6">
+      <div className="grid gap-6 py-4 sm:grid-cols-2 sm:py-6">
         <div data-chapter-control="order">
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.order}
@@ -392,7 +263,7 @@ function Shipyard(): JSX.Element {
           <JobList order={jobOrder} built={built} onTick={tick} />
         </div>
       </div>
-      <div className="grid gap-4 border-t border-border/70 p-4 sm:p-6">
+      <div className="grid gap-4 border-t border-border/70 py-4 sm:py-6">
         <Progress label={SHIPYARD.progress} value={(built.size / PARTS.length) * 100} showValue />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Crew line={line} cheer={launched} />
@@ -525,7 +396,7 @@ function Articles(): JSX.Element {
   };
   const count = CREW.length + (you ? 1 : 0);
   return (
-    <div ref={box} className="grid gap-8 p-4 sm:p-6 md:grid-cols-2">
+    <div ref={box} className="grid gap-8 py-4 sm:py-6 md:grid-cols-2">
       {/* A new Form for each signing, so the fields start empty again. */}
       <Form key={signings} aria-label={ARTICLES.form} errors={formErrors(answer, answer?.errors)} onSubmit={sign}>
         <div data-chapter-control="name">

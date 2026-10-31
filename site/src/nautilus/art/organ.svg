@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -40 260 250" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>Captain Nemo's organ</title>
+  <!-- Original drawing for Ouro HX (manifest.json): the organ in the Nautilus's saloon, which
+       Captain Nemo plays at the end of Chapter III. A case of pipes, tallest in the middle, over a
+       console with its keys; the notes over it rise when he plays. Engraved lines and flat fills;
+       colour comes from the theme. -->
+  <g class="or-notes" fill="currentColor" stroke-width="1.6">
+    <g class="or-note" data-note="1" transform="translate(60 22)"><ellipse cx="0" cy="0" rx="5.4" ry="4" transform="rotate(-20)" /><path d="M5 -1 V-22 C10 -18 14 -15 12 -8" fill="none" /></g>
+    <g class="or-note" data-note="2" transform="translate(94 4)"><ellipse cx="0" cy="0" rx="5.4" ry="4" transform="rotate(-20)" /><path d="M5 -1 V-22" fill="none" /></g>
+    <g class="or-note" data-note="3" transform="translate(130 -12)"><ellipse cx="0" cy="0" rx="5.4" ry="4" transform="rotate(-20)" /><path d="M5 -1 V-22 C10 -18 14 -15 12 -8" fill="none" /></g>
+    <g class="or-note" data-note="4" transform="translate(166 2)"><ellipse cx="0" cy="0" rx="5.4" ry="4" transform="rotate(-20)" /><path d="M5 -1 V-22" fill="none" /></g>
+    <g class="or-note" data-note="5" transform="translate(200 20)"><ellipse cx="0" cy="0" rx="5.4" ry="4" transform="rotate(-20)" /><path d="M5 -1 V-22 C10 -18 14 -15 12 -8" fill="none" /></g>
+  </g>
+  <g class="or-case" stroke-width="1.5">
+    <path class="or-fill" d="M36 152 V60 Q36 42 54 36 L130 14 L206 36 Q224 42 224 60 V152 Z" />
+    <path d="M36 152 V60 Q36 42 54 36 L130 14 L206 36 Q224 42 224 60 V152" />
+  </g>
+  <g class="or-pipes" stroke-width="1.4">
+    <path d="M46 150 V86 Q46 80 52 80 Q58 80 58 86 V150" />
+    <path class="or-mouth" d="M49 135 h6 l-3 -5 z" />
+    <path d="M64 150 V70 Q64 64 70 64 Q76 64 76 70 V150" />
+    <path class="or-mouth" d="M67 131 h6 l-3 -5 z" />
+    <path d="M82 150 V54 Q82 48 88 48 Q94 48 94 54 V150" />
+    <path class="or-mouth" d="M85 128 h6 l-3 -5 z" />
+    <path d="M100 150 V38 Q100 32 106 32 Q112 32 112 38 V150" />
+    <path class="or-mouth" d="M103 124 h6 l-3 -5 z" />
+    <path d="M118 150 V24 Q118 18 124 18 Q130 18 130 24 V150" />
+    <path class="or-mouth" d="M121 121 h6 l-3 -5 z" />
+    <path d="M136 150 V38 Q136 32 142 32 Q148 32 148 38 V150" />
+    <path class="or-mouth" d="M139 124 h6 l-3 -5 z" />
+    <path d="M154 150 V54 Q154 48 160 48 Q166 48 166 54 V150" />
+    <path class="or-mouth" d="M157 128 h6 l-3 -5 z" />
+    <path d="M172 150 V70 Q172 64 178 64 Q184 64 184 70 V150" />
+    <path class="or-mouth" d="M175 131 h6 l-3 -5 z" />
+    <path d="M190 150 V86 Q190 80 196 80 Q202 80 202 86 V150" />
+    <path class="or-mouth" d="M193 135 h6 l-3 -5 z" />
+  </g>
+  <g class="or-console" stroke-width="1.5">
+    <path class="or-fill" d="M28 152 H232 V170 H28 Z" />
+    <path d="M40 170 V200 M220 170 V200 M40 200 H220" />
+    <path class="or-keys-bed" d="M48 176 H212 V198 H48 Z" />
+    <g class="or-keys" stroke-width="0.9"><path d="M52 178 V196" /><path d="M63 178 V196" /><path d="M74 178 V196" /><path d="M85 178 V196" /><path d="M96 178 V196" /><path d="M107 178 V196" /><path d="M118 178 V196" /><path d="M129 178 V196" /><path d="M140 178 V196" /><path d="M151 178 V196" /><path d="M162 178 V196" /><path d="M173 178 V196" /><path d="M184 178 V196" /><path d="M195 178 V196" /></g>
+    <g class="or-black" fill="currentColor" stroke="none"><rect x="59" y="178" width="5" height="10" rx="1" /><rect x="70" y="178" width="5" height="10" rx="1" /><rect x="92" y="178" width="5" height="10" rx="1" /><rect x="103" y="178" width="5" height="10" rx="1" /><rect x="114" y="178" width="5" height="10" rx="1" /><rect x="136" y="178" width="5" height="10" rx="1" /><rect x="147" y="178" width="5" height="10" rx="1" /><rect x="169" y="178" width="5" height="10" rx="1" /><rect x="180" y="178" width="5" height="10" rx="1" /><rect x="191" y="178" width="5" height="10" rx="1" /></g>
+  </g>
+</svg>
