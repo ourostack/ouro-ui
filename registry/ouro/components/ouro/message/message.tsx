@@ -192,6 +192,10 @@ const layouts = {
 let barModule: Promise<typeof MessageActionBar> | undefined;
 const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageActionBar));
 
+// The ring a message shows when it has keyboard focus, as one in a MessageList takes: the focus
+// outline Ouro's controls have, with rounded corners, since the message's own box is bare.
+const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
 /**
  * One message in a chat: who wrote it, their avatar and what they wrote, with any
  * attachments under it. `role` places and colors it: the user's own messages at the end
@@ -329,6 +333,7 @@ export function Message(props: MessageProps): JSX.Element {
         onPointerUp={tap}
         className={cn(
           "group/message box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
+          focusRing,
           role === "user" && "flex-row-reverse",
           role === "system" && "justify-center",
           className,
@@ -410,7 +415,7 @@ export function Message(props: MessageProps): JSX.Element {
       data-ouro-message-active={active ? "" : undefined}
       aria-busy={streaming || rest["aria-busy"]}
       onPointerUp={tap}
-      className={cn("group/message box-border flex w-full min-w-0 items-start gap-2 text-base pointer-fine:text-sm", end && "flex-row-reverse", className)}
+      className={cn("group/message box-border flex w-full min-w-0 items-start gap-2 text-base pointer-fine:text-sm", focusRing, end && "flex-row-reverse", className)}
     >
       {!end && avatar !== false && (
         <span data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">

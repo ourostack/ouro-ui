@@ -104,15 +104,6 @@ const jumpClass =
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
 
-/**
- * The focused message's focus ring, drawn by the list on the message, Ouro's or an app's. Its
- * corners round on Ouro's `Message`, whose box is bare; an app's message keeps its own corners.
- */
-const itemRing =
-  "[&_[data-ouro-control=message-list][data-ouro-part=item]]:outline-ring [&_[data-ouro-control=message-list][data-ouro-part=item]]:outline-offset-2 " +
-  "[&_[data-ouro-control=message-list][data-ouro-part=item]:focus-visible]:outline-2 [&_[data-ouro-control=message-list][data-ouro-part=item]:focus-visible]:outline-solid " +
-  "[&_[data-ouro=message][data-ouro-part=item]]:rounded-lg";
-
 interface Spoken {
   id: number;
   text: string;
@@ -146,7 +137,8 @@ interface Spoken {
  * reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its
  * author's name and its text in elements marked `data-ouro-message-author` and
  * `data-ouro-message-content`, as `Message` does. The list keeps the reader's place among them and
- * announces them as it does `Message`s. Leave `data-ouro="message"` to Ouro's `Message`: it names
+ * announces them as it does `Message`s, and moves focus among them; give each a focus ring of its
+ * own (`focus-visible:outline-2`), as `Message` has. Leave `data-ouro="message"` to Ouro's `Message`: it names
  * the element Ouro's Message, and X-ray outlines it as one.
  *
  * Use a plain list instead for messages that do not arrive live, such as an inbox.
@@ -655,7 +647,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", itemRing, className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
       {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. */}
       <div
         ref={setScroller}
