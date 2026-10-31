@@ -10,7 +10,7 @@ import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { docsSections } from "./components/docs-sidebar";
 import { href, routes } from "./routes";
-import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
+import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { agentExamples } from "./agents/examples";
 import shipComponents from "./docs/ship-components.json";
@@ -105,14 +105,16 @@ describe("home page", () => {
     }
   });
 
-  it("keeps Ouro UI as the parent and AX scope undefined", async () => {
+  it("keeps Ouro UI as the parent, with Ouro AX as the other half and its own page, and never says AX is still being defined", async () => {
     await renderPage("/");
     await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
-    await expect.element(page.getByRole("heading", { level: 3, name: "Coming soon: Ouro AX" })).toBeVisible();
-    await expect.element(page.getByText(AGENTS_COMING_SOON.intro, { exact: true })).toBeVisible();
-    const copy = Object.values(AGENTS_COMING_SOON).join(" ");
-    expect(copy).toContain("scope is still being defined");
-    expect(copy).not.toMatch(/CLI|MCP|--json|registry|20\d\d|Q[1-4]/);
+    await expect.element(page.getByRole("heading", { level: 2, name: AX_SECTION.title })).toBeVisible();
+    await expect.element(page.getByText(AX_SECTION.intro, { exact: true })).toBeVisible();
+    expect(page.getByRole("link", { name: AX_SECTION.morning }).element().getAttribute("href")).toBe("/ax/");
+    expect(page.getByRole("link", { name: AX_SECTION.guide }).element().getAttribute("href")).toBe("/docs/ax/");
+    for (const text of [document.body.innerText, readme, llms]) {
+      expect(text).not.toMatch(/still being defined|coming soon/i);
+    }
     expect(document.body.innerText).toContain("Ouro HX is part of Ouro UI");
     expect(routes[0]!.title).toBe("Ouro HX");
     expect(readme.startsWith("# Ouro HX\n")).toBe(true);

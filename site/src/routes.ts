@@ -23,9 +23,13 @@ const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro 
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
 const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, plan her voyage, and meet a very friendly squid.`;
 
+// The Ouro AX page's description, for its head tags (ax/ax-page.tsx says the same in its hero).
+const AX_DESCRIPTION = "Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server. Spend a morning with a person and their agent, seen from both sides, then be the agent yourself.";
+
 export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
   { path: "/nautilus/", title: "The Nautilus · Ouro HX", description: NAUTILUS_DESCRIPTION },
+  { path: "/ax/", title: "A morning with an agent · Ouro AX", description: AX_DESCRIPTION },
   {
     path: "/docs/",
     title: "Docs · Ouro HX",
