@@ -51,6 +51,23 @@ describe("typing a word", () => {
   });
 });
 
+describe("Captain Nemo and the Dive", () => {
+  it("stays away while the theme sample dives, and still comes once it has surfaced", async () => {
+    await renderPage("/");
+    const dive = document.body.appendChild(document.createElement("div"));
+    dive.dataset.siteDive = "";
+    try {
+      await userEvent.keyboard("nemo");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(nemo()).toBeNull();
+    } finally {
+      dive.remove();
+    }
+    await userEvent.keyboard("nemo");
+    await expect.poll(nemo, { timeout: 10_000 }).not.toBeNull();
+  });
+});
+
 describe.each(["/", "/nautilus/"])("Captain Nemo on %s", (path) => {
   it("sails by when someone types nemo, waves hello in a toast, ends on Escape, and comes once a visit", async () => {
     await renderPage(path);

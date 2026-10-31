@@ -43,12 +43,17 @@ export function firstFind(egg: string): boolean {
   }
 }
 
+/** Whether the theme sample's Dive (site/src/voyage/dive) is playing. */
+export const diving = (): boolean => document.querySelector("[data-site-dive]") !== null;
+
 /** Hides the eggs on a page: "nemo" on both voyage pages, and on the Nautilus's page the leagues log once the reader scrolls. */
 export function useEggs(nautilus: boolean): void {
   useEffect(() => {
     let live = true;
     let stopLeagues = () => {};
     const stopNemo = watchForWord(NEMO, () => {
+      // The theme sample's Dive has the sea to itself: Nemo comes when his name is typed again after it.
+      if (diving()) return;
       if (firstFind(NEMO)) void import("./nemo").then(({ playNemo }) => live && playNemo());
     });
     const onScroll = () => {
