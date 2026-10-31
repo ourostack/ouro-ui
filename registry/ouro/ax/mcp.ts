@@ -16,7 +16,7 @@ import { isWait, waitText } from "./wait.ts";
  * The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per
  * command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape,
  * effects as tool annotations, and results cut to a size an agent's context can hold.
- * Spec: https://modelcontextprotocol.io/specification/2025-06-18
+ * It follows [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18).
  *
  * @claim "with no dependencies" registry/ouro/ax/mcp.test.mts verify:testExists(registry/ouro/ax/mcp.test.mts::initialize, ping and tools/list: one tool per command, schema and effect annotations from the definition)
  */
