@@ -113,6 +113,8 @@ type OutcomeFields = Pick<Outcome, "action" | "state" | "summary"> & {
  *   state: "queued", summary: 'Queued for "Design sync".',
  *   receipt: { id: "a1b2c3", at: new Date().toISOString(), by: "agent:planner", why: "Sam asked" },
  *   next: [nextStep("tool outcome a1b2c3 --timeout 60s", "wait until it is sent")] });
+ *
+ * @claim "Builds an outcome with honest defaults" registry/ouro/ax/outcome.test.mts verify:testExists(registry/ouro/ax/outcome.test.mts::outcome fills honest defaults: private, only you, nothing checked, no receipt; an error gets its message)
  */
 function outcome(fields: OutcomeFields): Outcome {
   const { action, state, summary, effect = "private", audience = ONLY_YOU, target = null, postcondition, receipt = null, next = [], error, human } = fields;
@@ -149,6 +151,8 @@ function isOutcome(v: unknown): v is Outcome {
  * - an effect other people see carries a receipt with a why, unless nothing happened, and an audience that is not only you.
  * - `needs-human` carries the reason and the step that resumes.
  * - a next step is an exact command with its why.
+ *
+ * @claim "never claim the effect holds" registry/ouro/ax/outcome.test.mts verify:testExists(registry/ouro/ax/outcome.test.mts::the rules: done, queued, uncertain, refused, failed, needs-human, planned and effects other people see)
  */
 function validateOutcome(v: unknown): Validation {
   const errors: string[] = [];
@@ -203,7 +207,7 @@ function validateOutcome(v: unknown): Validation {
   return { ok: errors.length === 0, errors, warnings };
 }
 
-/** Which exit code, by name in the tool's table, each state gives. */
+/** Exit code names by outcome state, in the tool's table. */
 type OutcomeExits = Readonly<Record<OutcomeState, string>>;
 
 /**
@@ -220,13 +224,18 @@ function outcomeExit(o: Outcome, exits: ExitTable, names: OutcomeExits = DEFAULT
 }
 
 /**
- * The outcome as text for a person: the summary, what was checked, what only the person can do, then the next steps.
+ * The outcome as text for a person: the summary, what was checked (or why it is not checked yet), what only the person
+ * can do, then the next steps.
  * A refusal or failure with an error is the one error line, as every Ouro AX error is.
+ *
+ * @claim "as every Ouro AX error is" registry/ouro/ax/outcome.test.mts verify:testExists(registry/ouro/ax/outcome.test.mts::outcomeText: the summary, the check, the receipt, the person's step and the next steps; a refusal is its error line)
  */
 function outcomeText(o: Outcome, tool: string): string {
   if ((o.state === "refused" || o.state === "failed") && o.error) return errorLine(tool, o.error);
   const lines = [o.summary];
-  if (o.postcondition.checked) lines.push(`Checked: ${o.postcondition.how.replace(/[.\s]+$/, "")}${o.postcondition.holds === false ? " (it does not hold)" : ""}.`);
+  const how = o.postcondition.how.replace(/[.\s]+$/, "");
+  if (o.postcondition.checked && o.postcondition.holds !== null) lines.push(`Checked: ${how}${o.postcondition.holds === false ? " (it does not hold)" : ""}.`);
+  else if (how !== "not checked") lines.push(`Not checked yet: ${how}.`);
   if (o.receipt) lines.push(`Receipt: ${o.receipt.id}`);
   if (o.human) lines.push(`Needs the person: ${o.human.reason.replace(/[.\s]+$/, "")}. Then: ${o.human.resume.command}`);
   for (const n of o.next) lines.push(`Next: ${n.command}  (${n.why})`);

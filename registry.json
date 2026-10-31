@@ -10940,7 +10940,7 @@
       "name": "ax-claims",
       "type": "registry:lib",
       "title": "ax-claims",
-      "description": "Ouro AX: the Ouro AX standard as data: each claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix.",
+      "description": "Ouro AX: the Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix.",
       "docs": "Docs: https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-claims.md",
       "files": [
         {
@@ -11002,7 +11002,7 @@
       "name": "ax-effects",
       "type": "registry:lib",
       "title": "ax-effects",
-      "description": "Ouro AX: effect classes: every command either touches only the person's own space (\"private\") or reaches other people (\"others\").",
+      "description": "Ouro AX: effect classes: a command either touches only the person's own space (\"private\") or reaches other people (\"others\").",
       "docs": "Docs: https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-effects.md",
       "files": [
         {
@@ -11177,7 +11177,7 @@
       "name": "ax-xray",
       "type": "registry:lib",
       "title": "ax-xray",
-      "description": "Ouro AX: the Ouro AX conformance checker: it runs the claims against a CLI, an HTTP API and an MCP server from outside, by calling them, never by importing their code, and reports per surface which claims hold, with the fix for each that does not.",
+      "description": "Ouro AX: the Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold.",
       "docs": "Docs: https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-xray.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-claims",
@@ -11239,6 +11239,7 @@
       "title": "ax-command tests",
       "description": "Optional: the node:test tests for ax-command; run them with node --test.",
       "registryDependencies": [
+        "ourostack/ouro-ui/ax-cli",
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-example",
@@ -11414,8 +11415,11 @@
       "registryDependencies": [
         "ourostack/ouro-ui/ax-claims",
         "ourostack/ouro-ui/ax-cli",
+        "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-mcp",
+        "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-xray"
       ],
       "files": [
@@ -11440,6 +11444,11 @@
           "target": "@lib/ouro/ax/fixtures/notes.mts"
         },
         {
+          "path": "registry/ouro/ax/fixtures/tasks.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/tasks.mts"
+        },
+        {
           "path": "registry/ouro/ax/xray.test.mts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/xray.test.mts"
@@ -11450,7 +11459,7 @@
       "name": "ouro-ax",
       "type": "registry:item",
       "title": "Ouro AX",
-      "description": "Ouro AX, the agent-experience kit, in one item: every ax-* item, from one command definition to the X-ray that checks an interface against the claims.",
+      "description": "Ouro AX, the agent-experience kit, in one item: the ax-* items, from one command definition to the X-ray that checks an interface against the claims.",
       "docs": "Ouro AX is in lib/ouro/ax. It runs on Node 22.18 or later, which strips the types, and has no dependencies. Docs: https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-claims",
@@ -11472,7 +11481,7 @@
       "name": "ouro-ax-tests",
       "type": "registry:item",
       "title": "Ouro AX tests",
-      "description": "Optional: Ouro AX with every ax-* test, the X-ray's fixtures and the example tool.",
+      "description": "Optional: Ouro AX with the ax-* tests, the X-ray's fixtures and the example tool.",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-claims-tests",
         "ourostack/ouro-ui/ax-cli-tests",

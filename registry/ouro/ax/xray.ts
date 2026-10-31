@@ -16,12 +16,15 @@ import { isWait, validateWait } from "./wait.ts";
 import { checkWorkEvent } from "./work-event.ts";
 
 /**
- * The Ouro AX conformance checker: it runs the claims against a CLI, an HTTP API and an MCP server from
- * outside, by calling them, never by importing their code, and reports per surface which claims hold, with the fix for
- * each that does not. Reads run freely; what other people see is called only on paths that must refuse (a made-up
+ * The Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports
+ * which claims hold on which surface, with the fix where a claim does not hold. It checks from outside, never by
+ * importing the interface's code. Reads run freely; what other people see is called only on paths that must refuse (a made-up
  * target, no `--why`) or that act on nothing (`--dry-run`), and only against a target that proves it is a mock.
  *
  *   node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<command>"] [options]
+ *
+ * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
+ * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
 const XRAY_VERSION = "1.0.0";
 
@@ -95,7 +98,11 @@ const CREDENTIAL = /TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_?KEY|AUTH|COOKIE
 /** What the X-ray passes on from its own environment: enough to find and run programs, nothing that signs in. */
 const PASSED_ENV = ["PATH", "Path", "PATHEXT", "SystemRoot", "COMSPEC", "LANG", "LC_ALL", "TERM", "TZ", "TMPDIR"];
 
-/** The SHA-256 of the claim set's canonical JSON: a report pins the exact standard it checked. */
+/**
+ * The SHA-256 of the claim set's canonical JSON: a report pins the exact standard it checked.
+ *
+ * @claim "a report pins the exact standard" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the claim set: its hash is stable and every claim the X-ray records exists)
+ */
 function claimSetHash(): string {
   return createHash("sha256").update(claimSetText(CLAIM_SET)).digest("hex");
 }
@@ -190,7 +197,11 @@ function requiredWords(usage: string): string[] {
   return usageWords(u);
 }
 
-/** What changed between two state snapshots, element by element: arrays compare by their members. */
+/**
+ * What changed between two state snapshots, element by element: arrays compare by their members.
+ *
+ * @claim "What changed between two state snapshots" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a refusal may leave only a record that says it was refused)
+ */
 function stateDelta(before: readonly string[], after: readonly string[]): { same: boolean; added: string[]; removed: string[] } {
   const leaves = (snap: readonly string[]) => {
     const out: string[] = [];
@@ -226,7 +237,11 @@ function refusalVerdict(delta: { same: boolean; added: string[]; removed: string
 const placeholderKey = (p: string) => (p.replace(/^<|>$/g, "").split(/[|\s.]/)[0] ?? "").toLowerCase();
 const singular = (k: string) => k.toLowerCase().replace(/ies$/, "y").replace(/s$/, "");
 
-/** Collects sample refs from a JSON answer: the first `ref` (else `id`) of each array, keyed by its name, singular. */
+/**
+ * Collects sample refs from a JSON answer: the first `ref` (else `id`) of each array, keyed by its name, singular.
+ *
+ * @claim "of each array" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::harvest takes the first ref of each named list, singular)
+ */
 function harvest(value: unknown, samples: Record<string, string>, key: string | null = null): Record<string, string> {
   if (Array.isArray(value)) {
     if (key) {
@@ -287,7 +302,7 @@ const isLoopback = (url: string) => {
   }
 };
 
-/** The environment every checked program gets: the passed-on basics, the isolated home, and the --env values. */
+/** The environment a checked program gets: the passed-on basics, the isolated home, and the --env values. */
 function childEnv(opts: XrayOptions): Record<string, string> {
   const env: Record<string, string> = {};
   for (const k of PASSED_ENV) {
@@ -309,6 +324,8 @@ const at = (value: unknown, path: string): unknown => path.split(".").reduce<unk
  * Whether the X-ray may call what other people see, failing closed: every address it can see is loopback, the home is
  * isolated, the target proves it is a mock (`--mock "<url> <key>=<value>"`, or the adopter's `--guard`, which already
  * passed), and no credential is passed to it. Any missing proof refuses those checks and says why.
+ *
+ * @claim "may call what other people see" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock)
  */
 async function checkSafety(opts: XrayOptions, guardPassed: boolean): Promise<Safety> {
   const checks: Safety["checks"] = [];
@@ -974,7 +991,11 @@ interface Report {
   safety: Safety;
   inventory: { given: boolean; surfaces: ClaimSurface[] };
   effects: { surface: string; note: string }[];
-  /** Every applicable must claim holds, none was skipped, and the inventory covered every checked surface. */
+  /**
+   * Every applicable must claim holds, none was skipped, and the inventory covered every checked surface.
+   *
+   * @claim "Every applicable must claim holds" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
+   */
   conformant: boolean;
   summary: { claims: number; holding: number; must: number; mustHolding: number; mustSkipped: number; checks: { pass: number; fail: number; skip: number }; score: number | null };
   claims: ClaimSummary[];
@@ -1187,7 +1208,7 @@ function parseArgs(argv: readonly string[]): XrayOptions {
   return o;
 }
 
-/** Runs the X-ray: the guard, the safety proof, then each surface given; returns the report. */
+/** Runs the X-ray: the guard, the safety proof, then the surfaces given; returns the report. */
 async function xray(opts: XrayOptions): Promise<Report> {
   const env = childEnv(opts);
   let guardPassed = false;

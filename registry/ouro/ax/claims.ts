@@ -5,10 +5,12 @@ export type { Claim, ClaimEvidence, ClaimScope, ClaimSet, ClaimSurface, ClaimTie
 // first statement, which would take the JSDoc below with it.
 
 /**
- * The Ouro AX standard as data: each claim is one checkable rule about an interface an agent uses, with the reason, the
+ * The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the
  * evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed
  * agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other
  * claim is `should`.
+ *
+ * @claim "agents failing without it" registry/ouro/ax/claims.test.mts verify:testExists(registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard)
  */
 const CLAIM_SET_VERSION = "1.0.0";
 
@@ -16,7 +18,8 @@ type ClaimSurface = "cli" | "http" | "mcp";
 type ClaimTier = "must" | "should";
 
 /**
- * Which surfaces a claim applies to, decided by the X-ray from what the interface says about itself, never by a waiver:
+ * Which surfaces a claim applies to. The X-ray decides it from what the interface says about itself (`help --json`, the
+ * routes manifest, tools/list), not from a hand-written waiver:
  * - `interface`: once per interface.
  * - `command`, `read`, `others`, `text`, `wait`: CLI commands, the reads among them (effect private), those other people
  *   see, those that take free text, and the wait command.
@@ -55,7 +58,7 @@ interface ClaimSet {
   claims: readonly Claim[];
 }
 
-/** Ouro AX v1's claims. Evidence paths are relative to the Ouro UI repository (https://github.com/ourostack/ouro-ui). */
+/** The claims of this version of Ouro AX. Evidence paths are relative to the Ouro UI repository (https://github.com/ourostack/ouro-ui). */
 const CLAIM_SET: ClaimSet = Object.freeze({
   version: CLAIM_SET_VERSION,
   claims: Object.freeze([
@@ -110,6 +113,8 @@ const isText = (v: unknown): v is string => typeof v === "string" && v.trim().le
  * The problems with a claim set, one line each with the fix: a missing field, a repeated id, an unknown surface, tier or
  * scope, and a `must` claim the admission rule does not allow (one that rests on a principle, an evaluation without its
  * run, or a hazard not stated).
+ *
+ * @claim "The problems with a claim set" registry/ouro/ax/claims.test.mts verify:testExists(registry/ouro/ax/claims.test.mts::checkClaimSet names each problem with its fix)
  */
 function checkClaimSet(value: unknown): string[] {
   const problems: string[] = [];
@@ -133,7 +138,11 @@ function checkClaimSet(value: unknown): string[] {
   return problems;
 }
 
-/** A claim set read from JSON (an adopter's own copy, say), checked; throws with every problem when it is not one. */
+/**
+ * A claim set read from JSON (an adopter's own copy, say), checked; throws with every problem when it is not one.
+ *
+ * @claim "throws with every problem" registry/ouro/ax/claims.test.mts verify:testExists(registry/ouro/ax/claims.test.mts::checkClaimSet names each problem with its fix)
+ */
 function loadClaimSet(value: unknown): ClaimSet {
   const problems = checkClaimSet(value);
   if (problems.length) throw new Error(`ax-claims: the claim set has ${problems.length} problem${problems.length === 1 ? "" : "s"}:\n${problems.join("\n")}`);

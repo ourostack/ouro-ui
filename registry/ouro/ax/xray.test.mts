@@ -294,3 +294,11 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
   assert.equal(await main(["--cli", "x", "--inventory", join(scratch, "nope.json")], missing.io), 1);
   assert.match(missing.o.err, /ENOENT/);
 });
+
+test("the guide's tool conforms", async () => {
+  const inventory = join(scratch, "inv-tasks.json");
+  writeFileSync(inventory, JSON.stringify({ cli: ["list", "assign"] }));
+  const report = await xray(base({ cli: fixture("tasks.mts"), name: "tasks", inventory, conformance: true }));
+  assert.deepEqual(report.claims.filter((c) => c.fail).map((c) => `${c.id}: ${c.failing.map((f) => f.note).join("; ")}`), []);
+  assert.equal(report.conformant, true);
+});

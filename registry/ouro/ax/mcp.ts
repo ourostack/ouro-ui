@@ -17,6 +17,8 @@ import { isWait, waitText } from "./wait.ts";
  * command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape,
  * effects as tool annotations, and results cut to a size an agent's context can hold.
  * Spec: https://modelcontextprotocol.io/specification/2025-06-18
+ *
+ * @claim "with no dependencies" registry/ouro/ax/mcp.test.mts verify:testExists(registry/ouro/ax/mcp.test.mts::initialize, ping and tools/list: one tool per command, schema and effect annotations from the definition)
  */
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"] as const;
 
@@ -28,9 +30,13 @@ interface McpOptions {
   cli: Cli;
   version?: string;
   call?: McpCall;
-  /** Which commands are tools; default every command that is not hidden. */
+  /** Which commands are tools; by default, the commands that are not hidden. */
   include?: (cmd: CommandDef) => boolean;
-  /** The most characters a result's text may have (default 20,000). */
+  /**
+   * The most characters a result's text may have (default 20,000).
+   *
+   * @claim "The most characters" registry/ouro/ax/mcp.ts verify:fileLine(registry/ouro/ax/mcp.ts, /maxChars \?\? 20_000/)
+   */
   maxChars?: number;
   /** Run tool calls side by side; by default one at a time, in the order they came, as an agent would type them. */
   concurrent?: boolean;
@@ -87,7 +93,11 @@ interface Message {
 
 type Reply = Record<string, unknown>;
 
-/** Handles one JSON-RPC message; null for a notification, which gets no reply. Exposed for tests. */
+/**
+ * Handles one JSON-RPC message; null for a notification, which gets no reply. Exposed for tests.
+ *
+ * @claim "which gets no reply" registry/ouro/ax/mcp.test.mts verify:testExists(registry/ouro/ax/mcp.test.mts::initialize, ping and tools/list: one tool per command, schema and effect annotations from the definition)
+ */
 function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Reply | null> {
   const { cli } = options;
   const maxChars = options.maxChars ?? 20_000;

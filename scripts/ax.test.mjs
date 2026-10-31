@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -34,4 +34,21 @@ test("the Ouro AX tests pass and cover every line, branch and function of Ouro A
   );
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /^# all files\s+\|\s+100\.00 \|\s+100\.00 \|\s+100\.00 \|/m, result.stdout);
+});
+
+test("the guide shows the tasks tool as it is, and the answers it gives", () => {
+  const guide = readFileSync(join(root, "docs/guides/ax.md"), "utf8");
+  const tool = readFileSync(join(root, dir, "fixtures/tasks.mts"), "utf8").replaceAll('from "../', 'from "./lib/ouro/ax/');
+  assert.ok(guide.includes(`\`\`\`ts\n${tool}\`\`\``), "docs/guides/ax.md shows registry/ouro/ax/fixtures/tasks.mts, with the app's import paths");
+  const shown = guide.split("```text\n")[1].split("```")[0];
+  const answers = shown.split(/^\$ tasks /m).filter(Boolean).map((block) => {
+    const [line, ...out] = block.split("\n");
+    const argv = [...line.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2]);
+    return { argv, out: out.join("\n") };
+  });
+  assert.equal(answers.length, 4);
+  for (const { argv, out } of answers) {
+    const r = spawnSync(process.execPath, [join(root, dir, "fixtures/tasks.mts"), ...argv], { encoding: "utf8" });
+    assert.equal(r.stdout + r.stderr, out, argv.join(" "));
+  }
 });
