@@ -1044,7 +1044,7 @@ describe("MessageList keyboard", () => {
     expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("0");
   });
 
-  it("moves focus to the message now in the place of a focused message that goes, and to that message when its focused control goes", async () => {
+  it("moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app", async () => {
     const extra = (index: number) => (index === 1 ? <button type="button">Save</button> : null);
     const { rerender } = await render(<Channel>{posts(4, extra)}</Channel>);
     const without = (gone: number[], save = true) => (
@@ -1060,7 +1060,9 @@ describe("MessageList keyboard", () => {
     await userEvent.keyboard("{ArrowUp}{ArrowRight}");
     expect(document.activeElement).toBe(button("Save"));
     await rerender(without([2], false));
-    await expect.poll(focusedId).toBe("post-1");
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => document.getElementById("post-1")!.focus());
 
     await rerender(without([0, 1, 2, 3]));
     expect(document.activeElement).toBe(document.body);
@@ -1238,6 +1240,64 @@ describe("MessageList keyboard", () => {
     await act(async () => inner.focus());
     await userEvent.keyboard("{ArrowDown}");
     expect(focusedId()).toBe("inner");
+  });
+
+  it("leaves focus to a message's menu, whose button is replaced as it first opens", async () => {
+    await render(
+      <Channel>
+        {posts(2)}
+        <Message variant="chat" role="assistant" name="Mara Quill" id="with-menu" menu={[{ label: "Copy link", onClick: () => {} }]}>
+          I have one.
+        </Message>
+      </Channel>,
+    );
+    const more = () => document.querySelector<HTMLElement>('#with-menu [data-ouro-part="menu"]');
+    await expect.poll(more).not.toBeNull();
+    await act(async () => more()!.focus());
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(more());
+  });
+
+  it("leaves focus where a component puts it after removing the focused control", async () => {
+    function Swap() {
+      const [swapped, setSwapped] = useState(false);
+      return (
+        <Message role="user" name="Ada" id="swap">
+          {swapped ? (
+            <button type="button" key="after">
+              After the swap
+            </button>
+          ) : (
+            <button
+              type="button"
+              key="before"
+              onClick={() => {
+                setSwapped(true);
+                setTimeout(() => document.getElementById("elsewhere")!.focus());
+              }}
+            >
+              Swap
+            </button>
+          )}
+        </Message>
+      );
+    }
+    await render(
+      <>
+        <Channel>
+          {posts(2)}
+          <Swap />
+        </Channel>
+        <input id="elsewhere" aria-label="Elsewhere" />
+      </>,
+    );
+    await act(async () => button("Swap").focus());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.activeElement!.id).toBe("elsewhere");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(document.activeElement!.id).toBe("elsewhere");
   });
 
   it("leaves focus on the page when it left the list before the message it was on goes", async () => {

@@ -187,7 +187,7 @@ interface Spoken {
  * @claim "The right arrow (the left one, right to" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > goes into the focused message's toolbar with the right arrow, else its first control, and the left arrow right to left)
  * @claim "Tab never stops on the other" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reaches a control between messages in the Tab order, and passes over the other messages' controls)
  * @claim "A new message never takes focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > keeps focus where it is when a message arrives, and the Tab stop on the message focused last while it shows)
- * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and to that message when its focused control goes)
+ * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app)
  * @claim "Each message that is an article carries" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives each message its place among them for screen readers, and keeps an app's own)
  * @claim "`onMessageKeyDown` adds keys of your own" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > hands the app a key pressed on the focused message, and not one pressed in a control inside it)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply still streaming in the first messages to fill an empty list, once it finishes)
@@ -412,8 +412,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // other messages' controls, then leaves the list; arriving by Tab lands on the first of those
   // stops, and arriving by Shift+Tab on the current message. While focus is elsewhere, the current
   // message is the one focus was last in while it is in view, else the newest wholly in view, so
-  // arriving does not scroll, and a new message never takes focus. When what has focus goes, focus goes to the
-  // message now in the focused one's place.
+  // arriving does not scroll, and a new message never takes focus. When the focused message goes,
+  // focus goes to the message now in its place.
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
@@ -422,7 +422,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The message focus was last in, and its place among the messages.
     let last: HTMLElement | null = null;
     let lastIndex = 0;
-    // What has focus in the list, until focus leaves it.
+    // The message focus is in, until focus leaves it.
     let focused: HTMLElement | null = null;
     // A Tab press in progress anywhere in the page (true for Shift+Tab), and where the list was
     // scrolled to before it: the browser scrolls to what it focuses before the list sends focus on.
@@ -518,8 +518,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           return;
         }
       }
-      focused = target;
+      // Only a message that goes moves focus: a control that goes from a message (a menu's button
+      // swapped for its trigger) is its component's to put focus back.
       const item = itemOf(target);
+      focused = item;
       if (item === null) return;
       setCurrent(item);
       last = item;
