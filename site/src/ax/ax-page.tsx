@@ -4,7 +4,7 @@ import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import { Mark, RuleText, Screen, Transcript } from "./parts";
 import Playground from "./playground";
-import { EPOCH_NOTE, MORNING, type Beat } from "./story";
+import { MORNING, type Beat } from "./story";
 import transcripts from "./transcripts.json";
 import xray from "./xray-tandem.json";
 
@@ -85,9 +85,6 @@ export default function AxPage(): JSX.Element {
               <BeatRow key={beat.id} beat={beat} />
             ))}
           </ol>
-          <p className="mt-10 mb-0 text-sm text-muted-foreground">
-            Why 1970? {EPOCH_NOTE}
-          </p>
         </Container>
       </section>
 

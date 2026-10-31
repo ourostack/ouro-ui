@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
-import { postMessage, resetRooms } from "@/registry/ouro/ax/example-cli";
+import { resetRooms } from "@/registry/ouro/ax/example-cli";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { AX_SECTION } from "../copy";
 import mainReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-main.json";
 import adoptionReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.json";
 import { routes } from "../routes";
-import { runNotes, splitArgs } from "./run";
+import { runNotes, say, splitArgs } from "./run";
 import { MORNING } from "./story";
 import transcripts from "./transcripts.json";
 import xray from "./xray-tandem.json";
@@ -48,10 +48,11 @@ describe("Ouro AX page", () => {
   it("every transcript is what the kit's example tool prints, run through the kit", async () => {
     resetRooms();
     expect(MORNING.map((beat) => beat.id)).toEqual(Object.keys(transcripts));
+    expect(JSON.stringify(transcripts), "no transcript shows the kit's start-of-1970 stamp").not.toContain("1970-01-01");
     for (const beat of MORNING) {
       for (const step of beat.steps) {
         const reply = step.meanwhile;
-        const timer = reply ? setTimeout(() => postMessage("abc123", reply.by, reply.text), 50) : undefined;
+        const timer = reply ? setTimeout(() => say("abc123", reply.by, reply.text, reply.at), 50) : undefined;
         const ran = await runNotes(step.command);
         clearTimeout(timer);
         expect(ran.printed.map((line) => line.text).join("\n"), step.command).toBe(step.output);
@@ -101,6 +102,13 @@ describe("Ouro AX page", () => {
     await page.getByRole("button", { name: "Reply as someone in the room" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/Happened: a message in "Design sync"\./);
     await expect.poll(() => page.getByTestId("ax-room").element().textContent).toMatch(/Ana Ruiz Got it, thanks for the heads-up/);
+    expect(log.element().textContent, "the reply carries the browser's clock").not.toContain("1970-01-01");
+    expect(log.element().textContent).toContain(`${new Date().toISOString().slice(0, 10)}T`);
+    expect(page.getByTestId("ax-notes").query()).toBeNull();
+    await page.getByRole("button", { name: "Add a private note" }).click();
+    await expect.poll(() => page.getByTestId("ax-notes").query()?.textContent).toMatch(/only Sam sees them.*ask Ana about the dates/);
+    await page.getByRole("button", { name: "Preview it as JSON" }).click();
+    await expect.poll(() => log.element().textContent).toMatch(/"state": "planned"/);
     const field = page.getByRole("textbox", { name: "Run a command as the agent" });
     await field.fill("notes edit abc123");
     await page.getByRole("button", { name: "Run", exact: true }).click();
