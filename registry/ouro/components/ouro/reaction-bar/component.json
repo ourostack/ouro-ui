@@ -4,7 +4,8 @@
   "controls": {
     "reaction-bar": [
       {"part": "reaction", "role": "button", "portal": false},
-      {"part": "quick", "role": "button", "portal": false}
+      {"part": "quick", "role": "button", "portal": false},
+      {"part": "more", "role": "button", "portal": false}
     ]
   }
 }

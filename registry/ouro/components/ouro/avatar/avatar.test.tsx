@@ -200,18 +200,21 @@ describe("Avatar colors", () => {
   });
 
   it("maps each name to its hue, the same in every browser and on the server", async () => {
-    // FNV-1a over the trimmed, lowercased name, scaled from its top bits to the eight hues.
+    // FNV-1a over the trimmed, lowercased name, mixed by MurmurHash3's finalizer, scaled from its top bits to the eight hues.
     const expected = [
-      ["Alan Turing", 1],
-      ["Jean Sammet", 2],
-      ["Lynn Conway", 3],
-      ["Edsger Dijkstra", 4],
+      ["Jean Sammet", 1],
+      ["Ada Lovelace", 2],
+      ["Alan Turing", 3],
+      ["Dennis Ritchie", 4],
       ["Grace Hopper", 5],
       ["Radia Perlman", 6],
-      ["Sophie Wilson", 7],
-      ["Dennis Ritchie", 8],
-      ["😀 Smile", 5],
-      ["Émile Zola", 8],
+      ["Katherine Johnson", 7],
+      ["Ken Thompson", 8],
+      ["Lynn Conway", 1],
+      ["Edsger Dijkstra", 5],
+      ["Sophie Wilson", 3],
+      ["😀 Smile", 4],
+      ["Émile Zola", 6],
     ] as const;
     const { host } = await render(
       <>
@@ -231,6 +234,21 @@ describe("Avatar colors", () => {
       expect(getComputedStyle(avatars[index]!).color).toBe(want.color);
       probe.remove();
     }
+  });
+
+  it("spreads ids that differ only in their last character across the hues", async () => {
+    const sequential = Array.from({ length: 16 }, (_, index) => `user-${String(index).padStart(4, "0")}`);
+    const hex = Array.from({ length: 16 }, (_, index) => `8f14e45f-ceea-467f-a0e6-00000000000${index.toString(16)}`);
+    const { host } = await render(
+      <>
+        {[...sequential, ...hex].map((id) => (
+          <Avatar key={id} name="Sam Example" idForColor={id} />
+        ))}
+      </>,
+    );
+    const backgrounds = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar).backgroundColor);
+    expect(new Set(backgrounds.slice(0, 16)).size).toBe(8);
+    expect(new Set(backgrounds.slice(16)).size).toBe(6);
   });
 
   it("picks the hue from idForColor when given, so one name can take two colors", async () => {

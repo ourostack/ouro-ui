@@ -1,4 +1,6 @@
 import type { JSX } from "react";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 
@@ -12,6 +14,13 @@ export default function CommandDemo(): JSX.Element {
       title="Command palette"
       trigger={<Button variant="soft">Search…</Button>}
       items={[
+        {
+          label: "Chats",
+          items: [
+            { label: "Mona Example", onSelect: noop, avatar: <Avatar name="Mona Example" alt="" size="xs" />, unread: true, mark: <Badge>2</Badge> },
+            { label: "Kai Sample", onSelect: noop, avatar: <Avatar name="Kai Sample" alt="" size="xs" /> },
+          ],
+        },
         {
           label: "Recipes",
           items: [

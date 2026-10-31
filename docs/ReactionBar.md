@@ -2,7 +2,7 @@
 
 # ReactionBar
 
-A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing.
+A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing. `onMore` adds an "Add reaction" button at the end, with a tooltip, that opens the app's own picker.
 
 ```tsx
 import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
@@ -12,6 +12,7 @@ import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reacti
 
 ```tsx
 <ReactionBar reactions={message.reactions} quick={quickReactions} onReact={(key) => toggleReaction(message.id, key)} />
+<ReactionBar reactions={message.reactions} onReact={react} onMore={(event) => openPicker(event.currentTarget)} moreOpen={pickerOpen} />
 ```
 
 ## Usage
@@ -32,6 +33,9 @@ Type: `ReactionBarProps`.
 | `disabled` | `boolean` |  | Keeps the counts but turns off reacting, for example while the app is offline. |
 | `label` | `string` | `"Reactions"` | What screen readers hear for the group, for other languages. |
 | `mineLabel` | `string` | `"including you"` | What screen readers hear after a read-only reaction that is the person's own. |
+| `moreLabel` | `string` | `"Add reaction"` | The "Add reaction" button's name and tooltip, for other languages. |
+| `moreOpen` | `boolean` |  | Whether the picker that `onMore` opens is open, so the "Add reaction" button says so (`aria-expanded`). |
+| `onMore` | `((event: MouseEvent<HTMLElement>) => void)` |  | Called when the "Add reaction" button at the end is pressed, to open the app's own reaction picker. The button shows only with `onMore`. Anchor the picker to `event.currentTarget`, and pass `moreOpen` while it is open. |
 | `onReact` | `((key: string, event: MouseEvent<HTMLElement>) => void)` |  | Called with a reaction's key when it is pressed, to add the person's reaction or take it back. The click event comes second, so the app can check `event.isTrusted` before it acts. Without it the reactions are read-only. |
 | `quick` | `readonly ReactionOption[]` |  | Reactions offered for a single press, after the counts. One that is already in `reactions` shows there instead. Shown only with `onReact`. |
 | `reactions` (required) | `readonly Reaction[]` |  | The message's reactions, in the order they show. |
@@ -46,6 +50,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `items`: Not a prop. The reactions are `reactions`: `<ReactionBar reactions={message.reactions}>`.
+- `onAddReaction`: Not a prop. The "Add reaction" button calls `onMore`: `<ReactionBar onMore={openPicker}>`.
 - `onReactionClick`: Not a prop. A pressed reaction calls `onReact`: `<ReactionBar onReact={(key) => react(key)}>`.
 
 ## `className` is for layout only

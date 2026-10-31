@@ -1,8 +1,9 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type Ref } from "react";
+import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -13,6 +14,7 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import {
@@ -52,6 +54,39 @@ export interface CommandItem {
   keywords?: readonly string[] | undefined;
   /** The keys of the command's shortcut, shown at its end with `Kbd`: `["mod", "n"]`. It does not bind them. */
   shortcut?: readonly string[] | undefined;
+  /**
+   * A picture before the label, for a person, a chat or a team: a URL, shown in an `<Avatar>`
+   * named by the label, or an element to show instead, such as
+   * `<Avatar name={person.name} alt="" size="xs" idForColor={person.id} />` for initials in the
+   * person's color or a presence dot. Give the element `alt=""`, since the label names it.
+   *
+   * @claim "A picture before the label, for" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
+   */
+  avatar?: string | ReactElement | undefined;
+  /**
+   * A small icon before the label, in the muted color: a gear for settings, a page for a document.
+   * It takes an extra-small avatar's width, so labels line up in a palette that mixes the two.
+   * Screen readers skip it; the label names the command. With `avatar`, the avatar shows instead.
+   *
+   * @claim "It takes an extra-small avatar's width" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
+   * @claim "Screen readers skip it; the label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
+   */
+  icon?: ReactNode;
+  /**
+   * Something new waits there, as in a chat with unread messages: the label is bold, a dot
+   * ends the row, and screen readers hear `unreadLabel` after the label.
+   *
+   * @claim "Something new waits there, as in" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > marks an unread command with a bold label, a dot and a spoken label)
+   */
+  unread?: boolean | undefined;
+  /**
+   * Something small at the end of the row, before the shortcut: an unread count's `<Badge>`, or
+   * words such as "Draft", which show small and muted. It takes the unread dot's place; screen
+   * readers still hear `unreadLabel`.
+   *
+   * @claim "It takes the unread dot's place" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > ends the row with a mark in the unread dot's place, before the shortcut)
+   */
+  mark?: ReactNode;
   /** Listed, but cannot be run. */
   disabled?: boolean | undefined;
 
@@ -130,6 +165,8 @@ export interface CommandBaseProps {
   loading?: boolean | undefined;
   /** What shows, and is announced, while `loading`. @default "Searching…" */
   loadingLabel?: string | undefined;
+  /** What screen readers hear after an `unread` command's label, for other languages. @default "Unread" */
+  unreadLabel?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Command open={open} onOpenChange={setOpen}>`. */
   isOpen?: { "Use <Command open={open} onOpenChange={setOpen}>": never };
@@ -208,6 +245,27 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
   return groups;
 }
 
+const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
+
+// Muted, but mixed toward the text so it keeps its contrast on the highlighted row.
+const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+
+/** The unread dot, or only its spoken label when a mark takes its place. */
+function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
+  if (!dot)
+    return (
+      <span data-ouro-command-unread="" className="sr-only">
+        {label}
+      </span>
+    );
+  return (
+    <span data-ouro-command-unread="" className="flex shrink-0 items-center">
+      <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
 /**
  * A 16px magnifier in the text color.
  *
@@ -231,6 +289,8 @@ function SearchIcon(): JSX.Element {
  * move the highlight, and Enter runs the highlighted command. Commands come in labelled
  * groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px
  * it is a full-height bottom sheet, whose search input stays put while the results filter.
+ * A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`,
+ * so a palette that jumps to any chat shows who each one is with and what is new.
  *
  * Open it with `trigger`, or control it with `open` and `onOpenChange`, usually from
  * `useCommandShortcut`, which opens it on ⌘K (Ctrl+K elsewhere):
@@ -260,6 +320,21 @@ function SearchIcon(): JSX.Element {
  *     { label: "Switch theme", onSelect: toggleTheme, keywords: ["dark mode"] },
  *   ]}
  * />
+ *
+ * // A palette that jumps to any chat, with each person's avatar and what is unread.
+ * <Command
+ *   title="Go to a chat"
+ *   open={open}
+ *   onOpenChange={setOpen}
+ *   items={chats.map((chat) => ({
+ *     label: chat.name,
+ *     onSelect: () => openChat(chat.id),
+ *     avatar: <Avatar name={chat.name} src={chat.picture} alt="" size="xs" idForColor={chat.id} />,
+ *     unread: chat.unread > 0,
+ *     mark: chat.unread > 0 && <Badge>{chat.unread}</Badge>,
+ *   }))}
+ * />
+ * @claim "A command can lead with an" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
  * @claim "Below 640px it is a full-height" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > is a full-height bottom sheet below 640px, whose search input stays put while results filter)
  * @claim "A command palette: a searchable list" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > opens a dialog named by its title, with the search input focused and every group listed)
  * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:testExists(registry/ouro/lib/ouro/use-command-shortcut.test.tsx::useCommandShortcut > does not fire while an input method is composing text)
@@ -277,6 +352,7 @@ export function Command(props: CommandProps): JSX.Element {
     onQueryChange,
     loading = false,
     loadingLabel = "Searching…",
+    unreadLabel = "Unread",
     trigger,
     open,
     onOpenChange,
@@ -314,6 +390,14 @@ export function Command(props: CommandProps): JSX.Element {
               .map(
                 (item) =>
                   [`the item "${item.label}" has onClick; a command runs onSelect`, `{ label: "${item.label}", onSelect: run }`] as const,
+              ),
+          ),
+          ...groups.flatMap((group) =>
+            group.items
+              .filter((item) => item.avatar !== undefined && shown(item.icon))
+              .map(
+                (item) =>
+                  [`the item "${item.label}" has both avatar and icon, and shows only the avatar; pass one`, `{ label: "${item.label}", avatar: picture }`] as const,
               ),
           ),
         ]
@@ -443,9 +527,26 @@ export function Command(props: CommandProps): JSX.Element {
                       className={commandItemClass}
                       {...(item.shortcut ? { "aria-keyshortcuts": ariaKeyShortcuts(item.shortcut) } : {})}
                     >
-                      <span data-ouro-command-label="" className="min-w-0 flex-1 truncate">
+                      {item.avatar !== undefined ? (
+                        <span data-ouro-command-avatar="" className="flex shrink-0">
+                          {typeof item.avatar === "string" ? <Avatar name={item.label} src={item.avatar} alt="" size="xs" /> : item.avatar}
+                        </span>
+                      ) : (
+                        shown(item.icon) && (
+                          <span data-ouro-command-icon="" aria-hidden="true" className={cn("flex w-6 shrink-0 items-center justify-center [&_svg]:size-4", quiet)}>
+                            {item.icon}
+                          </span>
+                        )
+                      )}
+                      <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
                         {item.label}
                       </span>
+                      {shown(item.mark) && (
+                        <span data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
+                          {item.mark}
+                        </span>
+                      )}
+                      {item.unread && <Unread label={unreadLabel} dot={!shown(item.mark)} />}
                       {item.shortcut && <Kbd keys={item.shortcut} aria-hidden="true" />}
                     </Autocomplete.Item>
                   )}

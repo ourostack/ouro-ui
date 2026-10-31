@@ -24,11 +24,12 @@ it("gives each ReactionBar button a target at least 44px square to a finger", as
         reactions={[{ key: "like", label: "Like", emoji: "👍", count: 2 }]}
         quick={[{ key: "heart", label: "Heart", emoji: "❤️" }]}
         onReact={() => {}}
+        onMore={() => {}}
       />,
     ),
   );
   const buttons = [...host.querySelectorAll<HTMLElement>('[data-ouro-control="reaction-bar"]')];
-  expect(buttons).toHaveLength(2);
+  expect(buttons).toHaveLength(3);
   for (const button of buttons) {
     const rect = button.querySelector<HTMLElement>("[data-ouro-touch-target]")!.getBoundingClientRect();
     expect(rect.height).toBeGreaterThanOrEqual(44);

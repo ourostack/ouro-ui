@@ -146,7 +146,7 @@ export const Colors: Story = {
   render: () => (
     <Surface>
       <div style={row}>
-        {["Alan Turing", "Jean Sammet", "Lynn Conway", "Edsger Dijkstra", "Grace Hopper", "Radia Perlman", "Sophie Wilson", "Dennis Ritchie"].map((name) => (
+        {["Jean Sammet", "Ada Lovelace", "Alan Turing", "Dennis Ritchie", "Grace Hopper", "Radia Perlman", "Katherine Johnson", "Ken Thompson"].map((name) => (
           <Avatar key={name} name={name} />
         ))}
       </div>

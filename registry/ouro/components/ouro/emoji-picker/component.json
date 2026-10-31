@@ -1,0 +1,13 @@
+{
+  "order": 2640,
+  "components": ["emoji-picker"],
+  "controls": {
+    "emoji-picker": [
+      {"part": "emoji", "role": "button", "portal": true},
+      {"part": "quick", "role": "button", "portal": true},
+      {"part": "category", "role": "button", "portal": true},
+      {"part": "skin-tone", "role": "button", "portal": true},
+      {"part": "tone", "role": "radio", "portal": true}
+    ]
+  }
+}

@@ -11,6 +11,9 @@ expectTypeOf<{
   quick: readonly ReactionOption[];
   onReact: (key: string, event: MouseEvent<HTMLElement>) => void;
   disabled: true;
+  onMore: (event: MouseEvent<HTMLElement>) => void;
+  moreOpen: false;
+  moreLabel: "Ajouter";
   label: "Réactions";
   mineLabel: "dont vous";
   className: "mt-1";
@@ -26,6 +29,7 @@ expectTypeOf<{ key: "like"; emoji: "👍"; count: 2 }>().not.toExtend<Reaction>(
 // Guessed props name the fix.
 expectTypeOf<{ reactions: Reaction[]; onReactionClick: () => void }>().not.toExtend<ReactionBarProps>();
 expectTypeOf<{ reactions: Reaction[]; items: Reaction[] }>().not.toExtend<ReactionBarProps>();
+expectTypeOf<{ reactions: Reaction[]; onAddReaction: () => void }>().not.toExtend<ReactionBarProps>();
 
 // @ts-expect-error reactions is required.
 createElement(ReactionBar, { quick });
