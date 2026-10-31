@@ -26,7 +26,7 @@ const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const SITE = "https://ui.ouro.bot/";
 
 /** Site paths that are not a docs page: fixed pages, and what Pages adds beside the site (pages.yml). */
-const fixedPages = ["", "docs", "docs/", "docs/parts.md", "docs/switching-from-shadcn/", "docs/updating/", "llms.txt", "og.png", "r/registry.json", "r/{name}.json"];
+const fixedPages = ["", "ax/", "docs", "docs/", "docs/parts.md", "docs/switching-from-shadcn/", "docs/updating/", "llms.txt", "og.png", "r/registry.json", "r/{name}.json"];
 const builtElsewhere = /^(storybook\/|r\/[a-z0-9-]+\.json$)/;
 
 /** Whether `path` (relative to `root`, with `/`) names a file or folder there in exactly that letter case. */

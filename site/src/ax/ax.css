@@ -1,0 +1,199 @@
+/*
+ * Ouro AX on the site: the home page's section and the morning at /ax/. Two surfaces side by side: the person's
+ * screen (a card, in the theme's own colours) and the agent's terminal, which is always night-dark, lit by the
+ * theme's primary colour, because that is where the agent works. Loaded with the voyage's first paint, so the
+ * server's HTML is already styled; every colour is a theme variable or mixed from one.
+ */
+@layer components {
+  .ax-term {
+    --ax-term-bg: color-mix(in oklab, var(--primary) 10%, #0b0e15);
+    --ax-term-ink: #e7e9ee;
+    --ax-term-dim: #9aa2b4;
+    --ax-term-lit: color-mix(in oklab, var(--primary) 40%, #f4f6fb);
+    --ax-term-refused: #ffb1a3;
+    --ax-term-held: #9fe3b8;
+    display: grid;
+    align-content: start;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, #000);
+    border-radius: calc(var(--radius) * 1.4);
+    background: var(--ax-term-bg);
+    color: var(--ax-term-ink);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    font-feature-settings: normal;
+  }
+  .ax-term-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 2.5rem;
+    padding-inline: 1rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--ax-term-ink) 12%, transparent);
+    color: var(--ax-term-dim);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .ax-term-bar::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--ax-term-lit);
+  }
+  .ax-term-body {
+    margin: 0;
+    padding: 0.875rem 1rem 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .ax-term-line {
+    display: block;
+    min-height: 1.6em;
+  }
+  .ax-term-command {
+    color: var(--ax-term-ink);
+    font-weight: 600;
+  }
+  .ax-term-command::before {
+    content: "$ ";
+    color: var(--ax-term-lit);
+  }
+  .ax-term-out {
+    color: var(--ax-term-dim);
+  }
+  .ax-term-refused {
+    color: var(--ax-term-refused);
+  }
+  .ax-term-held {
+    color: var(--ax-term-held);
+  }
+  .ax-term-aside {
+    color: var(--ax-term-lit);
+    font-family: var(--font-sans);
+    font-style: italic;
+  }
+  .ax-term-gap {
+    display: block;
+    height: 0.75rem;
+  }
+  .ax-term-cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.1em;
+    vertical-align: -0.2em;
+    background: var(--ax-term-lit);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ax-term-cursor {
+      animation: ax-blink 1.1s steps(1) infinite;
+    }
+    .ax-term-new {
+      animation: ax-arrive var(--ouro-duration-fast, 150ms) ease;
+    }
+  }
+  @keyframes ax-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes ax-arrive {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* The person's screen: a quiet app window in the theme's colours. */
+  .ax-screen {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    border-radius: calc(var(--radius) * 1.4);
+    background: var(--card);
+    color: var(--card-foreground);
+    font-size: 0.9375rem;
+  }
+  .ax-bubble {
+    max-width: 85%;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: calc(var(--radius) * 1.2);
+    background: var(--muted);
+    color: var(--foreground);
+    text-wrap: pretty;
+  }
+  .ax-bubble-sam {
+    justify-self: end;
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .ax-card {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    border-radius: var(--radius);
+    background: var(--background);
+  }
+  .ax-card-head {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* A figure we measured, set large beside its note. */
+  .ax-figure {
+    margin: 0;
+    color: var(--primary);
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: var(--site-heading-weight, 600);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+
+  /* The X-ray's marks: a claim that holds, fails or was not checked. */
+  .ax-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .ax-mark-holds {
+    background: color-mix(in oklab, var(--primary) 16%, transparent);
+    color: color-mix(in oklab, var(--primary) 70%, var(--foreground));
+  }
+  .ax-mark-fails {
+    background: color-mix(in oklab, var(--destructive) 14%, transparent);
+    color: color-mix(in oklab, var(--destructive) 75%, var(--foreground));
+  }
+  .ax-mark-skipped {
+    border: 1px dashed var(--border);
+    color: var(--muted-foreground);
+  }
+  @media (forced-colors: active) {
+    .ax-term,
+    .ax-screen,
+    .ax-card {
+      border-color: CanvasText;
+    }
+    .ax-mark {
+      border: 1px solid CanvasText;
+    }
+  }
+}

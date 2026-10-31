@@ -9,8 +9,8 @@
  */
 export type PageKind = "voyage" | "docs";
 
-/** The paths the voyage module renders. */
-export const VOYAGE_PATHS = ["/", "/nautilus/"] as const;
+/** The paths the voyage module renders: the home page, the Nautilus's and Ouro AX's. */
+export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/"] as const;
 
 /** A site path with a trailing slash and no `index.html`. */
 export function normalizePath(path: string): string {

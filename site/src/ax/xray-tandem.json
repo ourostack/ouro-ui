@@ -1,0 +1,156 @@
+{
+  "before": {
+    "commit": "1c72b11d4b3c08d709b0f2b2a7707ecd13e8c560",
+    "conformant": false,
+    "mustHolding": 12,
+    "must": 18,
+    "holding": 21,
+    "claims": 36,
+    "pass": 363,
+    "fail": 117,
+    "skip": 11
+  },
+  "after": {
+    "commit": "2356170dfe3ef544d14025a1c1ac31b70d5547f2",
+    "conformant": true,
+    "mustHolding": 18,
+    "must": 18,
+    "holding": 33,
+    "claims": 36,
+    "pass": 768,
+    "fail": 3,
+    "skip": 3
+  },
+  "must": [
+    {
+      "id": "cli.help-parses",
+      "rule": "`<cli> help --json` prints one JSON document that names every command.",
+      "why": "An agent learns the interface from the interface. Help that parses lets it list commands without scraping prose.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.help-effects",
+      "rule": "Help says who sees each command: only the person, or other people.",
+      "why": "The one thing an agent must know before acting is whether other people will see it.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.inventory",
+      "rule": "Every command the CLI registers is listed once in `help --json` and in the inventory the adopter generates from its command registration, and the X-ray covers exactly that set.",
+      "why": "A conformance report is only as good as its coverage: a command nobody listed is never checked.",
+      "before": "skipped",
+      "after": "holds"
+    },
+    {
+      "id": "cli.exit-codes",
+      "rule": "Exit codes are documented, and every exit code the CLI gives is one of them.",
+      "why": "Stable, documented exit codes let an agent branch without parsing prose.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.unknown-flag",
+      "rule": "An unknown flag fails before anything runs, and the error names the flag.",
+      "why": "A silently ignored flag gives an agent a wrong answer that looks right: `--limt 2` returns everything.",
+      "before": "fails",
+      "after": "holds",
+      "found": "`m365tandem today --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
+    },
+    {
+      "id": "cli.ambiguous-verbs",
+      "rule": "Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands.",
+      "why": "`edit` could mean a private draft or a message others already saw; guessing is how agents do the wrong thing.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.others-need-why",
+      "rule": "Every command other people see refuses to run without `--why`, and says so.",
+      "why": "What others see is logged with who asked and why.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.wrong-ref-first",
+      "rule": "A wrong reference fails before anything reaches anyone, and the error says where to get a right one.",
+      "why": "Checking before acting keeps a stale id from becoming a wrong message.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.others-preview",
+      "rule": "Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it.",
+      "why": "An agent, or a checker, can confirm the audience without acting; a wall it is not, because nothing waits on it.",
+      "before": "fails",
+      "after": "holds",
+      "found": "`m365tandem send --help` offers no --dry-run, so who will see it can only be learnt by doing it"
+    },
+    {
+      "id": "cli.text-as-argument",
+      "rule": "A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form.",
+      "why": "An agent allowed to run only this CLI (`shell(<cli>)`) cannot pipe into it: the pipe's first command is not the CLI, so the call is denied.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.wait-on-refs",
+      "rule": "A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave.",
+      "why": "Waiting through the interface beats polling; when the wait refuses the ref the agent holds, agents fall back to blind streams and pollers.",
+      "before": "fails",
+      "after": "holds",
+      "found": "`m365tandem watch 19:00000000bbbb0000bbbb000000000002@thread.tacv2 --timeout 1s` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare \"watch\" streams every event"
+    },
+    {
+      "id": "cli.reads-stay-reads",
+      "rule": "Reads change nothing.",
+      "why": "An agent must be able to look freely.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "cli.refusals-change-nothing",
+      "rule": "A refused call changes nothing, except an audit record that says it was refused.",
+      "why": "An agent that gets the call wrong must be able to try again safely.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "http.inventory",
+      "rule": "Every route the agent port registers is in the inventory the adopter generates from its router, once, and the X-ray's routes manifest covers exactly that set.",
+      "why": "A route nobody listed is never checked.",
+      "before": "skipped",
+      "after": "holds"
+    },
+    {
+      "id": "http.wrong-ref-first",
+      "rule": "A route given an id that does not exist fails and says where to get a right one.",
+      "why": "Checking before acting keeps a stale id from becoming a wrong write.",
+      "before": "fails",
+      "after": "holds",
+      "found": "`GET /api/conversations/axxraynoref` → 404 {\"error\":\"no such conversation\"}"
+    },
+    {
+      "id": "http.others-need-why",
+      "rule": "Every route that does what other people see refuses a request without a why, and names the field.",
+      "why": "What others see is logged with who asked and why.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "http.reads-stay-reads",
+      "rule": "GET requests change nothing.",
+      "why": "An agent must be able to look freely.",
+      "before": "holds",
+      "after": "holds"
+    },
+    {
+      "id": "http.refusals-change-nothing",
+      "rule": "A refused request changes nothing, except an audit record that says it was refused.",
+      "why": "An agent that gets the request wrong must be able to try again safely.",
+      "before": "holds",
+      "after": "holds"
+    }
+  ]
+}

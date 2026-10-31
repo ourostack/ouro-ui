@@ -40,6 +40,8 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.2.14         # the kit and th
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.2.14   # with their node:test tests
 ```
 
+The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit's example tool running in your browser: https://ui.ouro.bot/ax/
+
 ## Items
 
 - `ouro-base`: Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet. What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).
