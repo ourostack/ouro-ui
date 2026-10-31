@@ -156,6 +156,8 @@ describe("the header and the theme section", () => {
       await expect.poll(() => root.getAttribute("data-theme")).toBe(preset.name);
       await expect.element(presets.getByRole("button", { name: preset.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       expect(presets.getByRole("button", { pressed: true }).elements()).toHaveLength(1);
+      // While the circle reveal runs, its view transition takes the page's clicks; the next press waits for it.
+      await expect.poll(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition")).length).toBe(0);
     }
   });
 
