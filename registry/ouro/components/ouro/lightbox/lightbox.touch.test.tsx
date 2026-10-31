@@ -21,18 +21,25 @@ afterEach(async () => {
   for (const node of nodes.splice(0)) node.remove();
 });
 
-async function open() {
+async function open(shown: readonly LightboxImage[] = images) {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
   root = createRoot(host);
-  await act(async () => root!.render(<Lightbox label="Photos" images={images} />));
+  await act(async () => root!.render(<Lightbox label="Photos" images={shown} />));
   await userEvent.click(host.querySelector<HTMLButtonElement>('[data-ouro-part="thumbnail"]')!);
   const popup = () => document.querySelector<HTMLElement>('[data-ouro="dialog"]');
   await expect.poll(() => Boolean(popup() && !popup()!.hasAttribute("data-starting-style") && popup()!.getAnimations().length === 0)).toBe(true);
+  const first = popup()!.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+  await expect.poll(() => first.complete && first.naturalWidth > 0).toBe(true);
   return popup()!;
 }
+
+const figure = (popup: HTMLElement) => popup.querySelector<HTMLElement>("[data-ouro-lightbox-figure]")!;
+const fitted = (popup: HTMLElement) => figure(popup).querySelector<HTMLImageElement>(":scope > img")!;
+const zoomed = (popup: HTMLElement) => figure(popup).querySelector<HTMLImageElement>("[data-ouro-lightbox-zoom-view] img");
+const positionOf = (popup: HTMLElement) => popup.querySelector("[data-ouro-lightbox-position]")!.textContent;
 
 describe("Lightbox on a touch screen", () => {
   it("moves to the next image with a swipe", async () => {
@@ -57,5 +64,34 @@ describe("Lightbox on a touch screen", () => {
     }
     const thumbnail = document.querySelector<HTMLElement>('[data-ouro-part="thumbnail"]')!.getBoundingClientRect();
     expect(Math.min(thumbnail.width, thumbnail.height)).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe("Lightbox zoom on a touch screen", () => {
+  it("zooms with a real double-tap, and then pans with a swipe instead of turning the page", async () => {
+    const popup = await open();
+    // A double-tap zooms only once the viewer has measured the image as drawn smaller than its own
+    // size, which the Zoom button shows.
+    await expect.poll(() => popup.querySelector('[data-ouro-part="zoom"]')).not.toBeNull();
+    const box = fitted(popup).getBoundingClientRect();
+    const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+    // A busy runner can deliver the second tap later than a double-tap allows (500ms): such a pair is
+    // two single taps, so tap again rather than fail. A pair delivered in time must zoom.
+    for (let pair = 0; pair < 3 && !zoomed(popup); pair++) {
+      const started = performance.now();
+      for (let press = 0; press < 2; press++) {
+        await commands.touchStep({ type: "touchStart", x, y });
+        await commands.touchStep({ type: "touchEnd", x, y });
+      }
+      if (performance.now() - started < 500) break;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+    await expect.poll(() => zoomed(popup)).not.toBeNull();
+    const scroller = popup.querySelector<HTMLElement>("[data-ouro-lightbox-zoom-view]")!;
+    const before = scroller.scrollLeft;
+    await commands.touchDrag({ from: [x + 100, y], to: [x - 100, y], steps: 10, durationMs: 300 });
+    await expect.poll(() => scroller.scrollLeft).toBeGreaterThan(before);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(positionOf(popup)).toBe("1 of 3");
   });
 });

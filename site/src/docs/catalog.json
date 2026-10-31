@@ -3,35 +3,30 @@
     "name": "button",
     "title": "Button",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/button/button.tsx",
     "summary": "A button, or a link styled as one."
   },
   {
     "name": "toggle",
     "title": "Toggle",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/toggle/toggle.tsx",
     "summary": "A button that stays pressed until it is pressed again, such as Bold in a text toolbar."
   },
   {
     "name": "toggle-group",
     "title": "ToggleGroup",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/toggle/toggle-group.tsx",
     "summary": "A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar."
   },
   {
     "name": "button-group",
     "title": "ButtonGroup",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/button-group/button-group.tsx",
     "summary": "Related buttons joined into one control, such as Previous, a page number and Next, or a split button."
   },
   {
     "name": "color-scheme-toggle",
     "title": "ColorSchemeToggle",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle.tsx",
     "summary": "The control that switches the app between light, dark and the system's scheme, and keeps the choice.",
     "functions": [
       "colorSchemeScript",
@@ -42,14 +37,12 @@
     "name": "copy-button",
     "title": "CopyButton",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/copy-button/copy-button.tsx",
     "summary": "A button that puts a piece of text on the clipboard: an API key, a link, a command."
   },
   {
     "name": "share-button",
     "title": "ShareButton",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/share-button/share-button.tsx",
     "summary": "A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says \"Link copied\" for two seconds and screen readers hear it once.",
     "functions": [
       "canShare",
@@ -68,49 +61,42 @@
     "name": "text",
     "title": "Text",
     "group": "Text",
-    "source": "registry/ouro/components/ouro/text/text.tsx",
     "summary": "Body text in the theme's type scale and colors."
   },
   {
     "name": "heading",
     "title": "Heading",
     "group": "Text",
-    "source": "registry/ouro/components/ouro/text/heading.tsx",
     "summary": "A section title, `<h1>` to `<h6>`, in the theme's foreground color."
   },
   {
     "name": "link",
     "title": "Link",
     "group": "Text",
-    "source": "registry/ouro/components/ouro/link/link.tsx",
     "summary": "A text link that navigates through your router."
   },
   {
     "name": "kbd",
     "title": "Kbd",
     "group": "Text",
-    "source": "registry/ouro/components/ouro/kbd/kbd.tsx",
     "summary": "A keyboard shortcut, in the reader's platform's notation: `keys={[\"mod\", \"k\"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere."
   },
   {
     "name": "local-date",
     "title": "LocalDate",
     "group": "Text",
-    "source": "registry/ouro/components/ouro/local-date/local-date.tsx",
     "summary": "A date (and time) in the reader's own time zone and language, in a `<time>` that carries the exact instant."
   },
   {
     "name": "relative-time",
     "title": "RelativeTime",
     "group": "Text",
-    "source": "registry/ouro/components/ouro/relative-time/relative-time.tsx",
     "summary": "How long ago (or how soon) something happens, in the reader's language: \"3 days ago\", \"yesterday\", \"in 5 minutes\", \"now\", kept current while it shows."
   },
   {
     "name": "field",
     "title": "Field",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/field/field.tsx",
     "summary": "A labeled form control: the label, an optional description, the control and its error, wired together with ids that match between the server and the browser.",
     "parts": "Field"
   },
@@ -118,63 +104,54 @@
     "name": "fieldset",
     "title": "Fieldset",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/field/fieldset.tsx",
     "summary": "A titled group of related fields, such as an address, rendered as a `<fieldset>` named by its legend."
   },
   {
     "name": "text-field",
     "title": "TextField",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/text-field/text-field.tsx",
     "summary": "A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check."
   },
   {
     "name": "text-area",
     "title": "TextArea",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/text-field/text-area.tsx",
     "summary": "A labeled multi-line text field on the Field contract, a native `<textarea>`: pass `label`, and `error` from your server action or client check."
   },
   {
     "name": "checkbox",
     "title": "Checkbox",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/checkbox/checkbox.tsx",
     "summary": "A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`)."
   },
   {
     "name": "checkbox-group",
     "title": "CheckboxGroup",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/checkbox/checkbox-group.tsx",
     "summary": "A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children)."
   },
   {
     "name": "radio-group",
     "title": "RadioGroup",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/radio-group/radio-group.tsx",
     "summary": "A group of radios under one legend, on the Field contract, for picking exactly one choice: pass `legend`, and `options` (or `Radio` children)."
   },
   {
     "name": "switch",
     "title": "Switch",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/switch/switch.tsx",
     "summary": "A labeled on/off switch on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`)."
   },
   {
     "name": "form",
     "title": "Form",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/form/form.tsx",
     "summary": "A form that validates with the browser's own constraints (`required`, `type=\"email\"`, `pattern`) and shows server errors on the matching fields."
   },
   {
     "name": "select",
     "title": "Select",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/select/select.tsx",
     "summary": "A labeled list of choices on the Field contract: pass `label`, `options` (or `SelectItem` children) and `error` from your server action or client check.",
     "parts": "Select"
   },
@@ -182,84 +159,72 @@
     "name": "native-select",
     "title": "NativeSelect",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/select/native-select.tsx",
     "summary": "A labeled native `<select>` on the Field contract: pass `label`, `options` (or `<option>` children) and `error`."
   },
   {
     "name": "number-field",
     "title": "NumberField",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/number-field/number-field.tsx",
     "summary": "A labeled number input on the Field contract: pass `label`, and `error` from your server action or client check."
   },
   {
     "name": "slider",
     "title": "Slider",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/slider/slider.tsx",
     "summary": "A labeled slider on the Field contract: pass `label`, and a `defaultValue` (or `value` with `onValueChange`)."
   },
   {
     "name": "combobox",
     "title": "Combobox",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/combobox/combobox.tsx",
     "summary": "A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check."
   },
   {
     "name": "otp-field",
     "title": "OtpField",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/otp-field/otp-field.tsx",
     "summary": "A one-time code entry on the Field contract: one slot per character, with focus that moves as the person types, a whole code pasted at once, and `autoComplete=\"one-time-code\"` so phones offer the code from a text message."
   },
   {
     "name": "file-field",
     "title": "FileField",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/file-field/file-field.tsx",
     "summary": "A labeled file input with a drop zone, on the Field contract."
   },
   {
     "name": "color-field",
     "title": "ColorField",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/color-field/color-field.tsx",
     "summary": "A color on the Field contract: a swatch that opens the system color picker, next to the same color as hex text, kept in step both ways."
   },
   {
     "name": "calendar",
     "title": "Calendar",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/calendar/calendar.tsx",
     "summary": "A month grid to pick a day or a range of days, with the arrow keys or a press."
   },
   {
     "name": "date-picker",
     "title": "DatePicker",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/calendar/date-picker.tsx",
     "summary": "A labeled date field."
   },
   {
     "name": "choice-card",
     "title": "ChoiceCard",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/choice-card/choice-card.tsx",
     "summary": "A set of choices shown as cards, each with a picture, a label and a line of description, for picking exactly one: a cover photo, a plan, a layout."
   },
   {
     "name": "image-cropper",
     "title": "ImageCropper",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/image-cropper/image-cropper.tsx",
     "summary": "A dialog for cropping a photo to a shape before it is used: drag the photo (or move it the way the arrow keys point) to choose what shows in the frame, zoom with the slider (or Plus and Minus), and Save hands the cropped image to `onCrop` as a `File`, ready for a form or an upload."
   },
   {
     "name": "image-field",
     "title": "ImageField",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/image-field/image-field.tsx",
     "summary": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove."
   },
   {
@@ -273,7 +238,6 @@
     "name": "sheet",
     "title": "Sheet",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/sheet/sheet.tsx",
     "summary": "A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog.",
     "parts": "Sheet"
   },
@@ -281,7 +245,6 @@
     "name": "dialog",
     "title": "Dialog",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/dialog/dialog.tsx",
     "summary": "A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px).",
     "parts": "Dialog"
   },
@@ -289,21 +252,18 @@
     "name": "confirm-dialog",
     "title": "ConfirmDialog",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/dialog/confirm-dialog.tsx",
     "summary": "Asks the user to confirm an action, with Cancel focused first."
   },
   {
     "name": "edit-sheet",
     "title": "EditSheet",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/form/edit-sheet.tsx",
     "summary": "Edits something in a form inside a dialog: the whole interaction, done right."
   },
   {
     "name": "popover",
     "title": "Popover",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/popover/popover.tsx",
     "summary": "A small non-modal panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit.",
     "parts": "Popover"
   },
@@ -311,35 +271,30 @@
     "name": "tooltip",
     "title": "Tooltip",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/tooltip/tooltip.tsx",
     "summary": "A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut."
   },
   {
     "name": "hover-card",
     "title": "HoverCard",
     "group": "Overlays",
-    "source": "registry/ouro/components/ouro/hover-card/hover-card.tsx",
     "summary": "A preview of where a link goes, shown when a mouse rests on the link or the keyboard focuses it: a cook's profile, a recipe's summary."
   },
   {
     "name": "menu",
     "title": "Menu",
     "group": "Menus",
-    "source": "registry/ouro/components/ouro/menu/menu.tsx",
     "summary": "A list of actions that opens from a button, from a right-click or long press, or from a menubar, with one API for all three."
   },
   {
     "name": "command",
     "title": "Command",
     "group": "Menus",
-    "source": "registry/ouro/components/ouro/command/command.tsx",
     "summary": "A command palette: a searchable list of every action in the app, in a dialog."
   },
   {
     "name": "toaster",
     "title": "Toaster",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/toast/toaster.tsx",
     "summary": "Shows the toasts you send with `toast(\"Saved\")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone.",
     "functions": [
       "toast"
@@ -349,28 +304,24 @@
     "name": "spinner",
     "title": "Spinner",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/spinner/spinner.tsx",
     "summary": "A spinning ring that says something is loading."
   },
   {
     "name": "progress",
     "title": "Progress",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/progress/progress.tsx",
     "summary": "A bar that shows how far along a task is, or that it is under way when you can't tell."
   },
   {
     "name": "route-progress",
     "title": "RouteProgress",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/route-progress/route-progress.tsx",
     "summary": "The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action."
   },
   {
     "name": "timer",
     "title": "Timer",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/timer/timer.tsx",
     "summary": "A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero \"Time's up\" with Dismiss and Restart.",
     "functions": [
       "buzz",
@@ -384,28 +335,24 @@
     "name": "timer-tray",
     "title": "TimerTray",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/timer/timer-tray.tsx",
     "summary": "The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it."
   },
   {
     "name": "celebrate",
     "title": "Celebrate",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/celebrate/celebrate.tsx",
     "summary": "A small moment of celebration for something the person finished: confetti bursts from a badge with the message (\"List cleared\") and screen readers hear the message once."
   },
   {
     "name": "sync-status",
     "title": "SyncStatus",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/sync-status/sync-status.tsx",
     "summary": "One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem."
   },
   {
     "name": "install-prompt",
     "title": "InstallPrompt",
     "group": "Feedback",
-    "source": "registry/ouro/components/ouro/install-prompt/install-prompt.tsx",
     "summary": "A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now.",
     "functions": [
       "useInstallPrompt"
@@ -415,133 +362,114 @@
     "name": "skeleton",
     "title": "Skeleton",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/skeleton/skeleton.tsx",
     "summary": "A shimmering placeholder in the shape of content that is still loading."
   },
   {
     "name": "avatar",
     "title": "Avatar",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/avatar/avatar.tsx",
     "summary": "A person's picture, or their initials until it loads or when it fails, in a color picked from the name."
   },
   {
     "name": "badge",
     "title": "Badge",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/badge/badge.tsx",
     "summary": "A short label for a status, category or count: \"Draft\", \"Vegan\", \"3\"."
   },
   {
     "name": "alert",
     "title": "Alert",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/alert/alert.tsx",
     "summary": "An inline message in the page: something saved, something failed, something to know before going on."
   },
   {
     "name": "separator",
     "title": "Separator",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/separator/separator.tsx",
     "summary": "A thin line in the theme's border color between groups of content, horizontal or vertical."
   },
   {
     "name": "card",
     "title": "Card",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/card/card.tsx",
     "summary": "A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer."
   },
   {
     "name": "empty",
     "title": "Empty",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/empty/empty.tsx",
     "summary": "What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it."
   },
   {
     "name": "description-list",
     "title": "DescriptionList",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/description-list/description-list.tsx",
     "summary": "One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email."
   },
   {
     "name": "carousel",
     "title": "Carousel",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/carousel/carousel.tsx",
     "summary": "A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards."
   },
   {
     "name": "code-block",
     "title": "CodeBlock",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/code-block/code-block.tsx",
     "summary": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it."
   },
   {
     "name": "lightbox",
     "title": "Lightbox",
     "group": "Display",
-    "source": "registry/ouro/components/ouro/lightbox/lightbox.tsx",
     "summary": "Thumbnails that open a full-screen image viewer."
   },
   {
     "name": "accordion",
     "title": "Accordion",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/accordion/accordion.tsx",
     "summary": "A stack of titles that each open their own content, for FAQs and long settings pages."
   },
   {
     "name": "collapsible",
     "title": "Collapsible",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/collapsible/collapsible.tsx",
     "summary": "One section that opens and closes under its title, such as nutrition facts under a recipe."
   },
   {
     "name": "show-more",
     "title": "ShowMore",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/collapsible/show-more.tsx",
     "summary": "\"Show more\" for a long list or a long text."
   },
   {
     "name": "item",
     "title": "Item",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/item/item.tsx",
     "summary": "One row of a list: leading media, a title with a description, and trailing actions."
   },
   {
     "name": "item-group",
     "title": "ItemGroup",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/item/item-group.tsx",
     "summary": "A list of `Item` rows, with an optional label that names it, lines between the rows, and what to show when it is empty."
   },
   {
     "name": "swipe-actions",
     "title": "SwipeActions",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/swipe-actions/swipe-actions.tsx",
     "summary": "A list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin)."
   },
   {
     "name": "reorderable",
     "title": "Reorderable",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/reorderable/reorderable.tsx",
     "summary": "A list the user puts in order: recipe steps, a queue, favorites."
   },
   {
     "name": "checklist",
     "title": "Checklist",
     "group": "Lists",
-    "source": "registry/ouro/components/ouro/checklist/checklist.tsx",
     "summary": "A list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action.",
     "parts": "Checklist"
   },
@@ -549,49 +477,42 @@
     "name": "scroll-area",
     "title": "ScrollArea",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/scroll-area/scroll-area.tsx",
     "summary": "A scrolling region with a slim scrollbar that matches the theme, inside a height you set."
   },
   {
     "name": "aspect-ratio",
     "title": "AspectRatio",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/aspect-ratio/aspect-ratio.tsx",
     "summary": "A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads."
   },
   {
     "name": "stack",
     "title": "Stack",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/stack/stack.tsx",
     "summary": "Lays its children out top to bottom with an even gap."
   },
   {
     "name": "row",
     "title": "Row",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/stack/row.tsx",
     "summary": "Lays its children out side by side with an even gap, centered up and down."
   },
   {
     "name": "resizable",
     "title": "Resizable",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/resizable/resizable.tsx",
     "summary": "Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console."
   },
   {
     "name": "page-header",
     "title": "PageHeader",
     "group": "Layout",
-    "source": "registry/ouro/components/ouro/page-header/page-header.tsx",
     "summary": "The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above."
   },
   {
     "name": "tabs",
     "title": "Tabs",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/tabs/tabs.tsx",
     "summary": "Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens.",
     "parts": "Tabs"
   },
@@ -599,77 +520,66 @@
     "name": "segmented-control",
     "title": "SegmentedControl",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/segmented-control/segmented-control.tsx",
     "summary": "An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid."
   },
   {
     "name": "navbar",
     "title": "Navbar",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/navbar/navbar.tsx",
     "summary": "The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current=\"page\"` and a bar at the start edge, distinct from hover and press highlights."
   },
   {
     "name": "sidebar",
     "title": "Sidebar",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/sidebar/sidebar.tsx",
     "summary": "The column of links down the side of an app, in sections, with the current page marked `aria-current=\"page\"` and a bar at the start edge, distinct from hover and press highlights."
   },
   {
     "name": "sidebar-layout",
     "title": "SidebarLayout",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/sidebar/sidebar-layout.tsx",
     "summary": "The shell of an app with a `Sidebar`: the sidebar beside the page from 640px up, in view while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px."
   },
   {
     "name": "stacked-layout",
     "title": "StackedLayout",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/sidebar/stacked-layout.tsx",
     "summary": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column."
   },
   {
     "name": "auth-layout",
     "title": "AuthLayout",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/auth-layout/auth-layout.tsx",
     "summary": "The page for signing in, signing up or resetting a password: one `Card` in the middle of the screen, with your brand, the title as the page's `<h1>`, the form, and a line under the card."
   },
   {
     "name": "breadcrumb",
     "title": "Breadcrumb",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/breadcrumb/breadcrumb.tsx",
     "summary": "The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current=\"page\"`."
   },
   {
     "name": "pagination",
     "title": "Pagination",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/pagination/pagination.tsx",
     "summary": "Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current=\"page\"`."
   },
   {
     "name": "navigation-menu",
     "title": "NavigationMenu",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx",
     "summary": "A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar."
   },
   {
     "name": "skip-link",
     "title": "SkipLink",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/skip-link/skip-link.tsx",
     "summary": "The \"Skip to main content\" link a keyboard or screen-reader user meets first on every page, so one Tab and Enter jump past the header and navigation."
   },
   {
     "name": "tab-bar",
     "title": "TabBar",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/tab-bar/tab-bar.tsx",
     "summary": "The bar of tabs at the bottom of a phone screen: two to five of the app's top-level pages, each an icon over a short label, with the current page marked `aria-current=\"page\"` and an accent wash."
   },
   {
@@ -683,7 +593,6 @@
     "name": "table",
     "title": "Table",
     "group": "Data",
-    "source": "registry/ouro/components/ouro/table/table.tsx",
     "summary": "A data table: a caption, column headers, and rows, from `columns` and `rows` or from parts.",
     "parts": "Table"
   },
@@ -691,35 +600,30 @@
     "name": "chart",
     "title": "Chart",
     "group": "Data",
-    "source": "registry/ouro/components/ouro/chart/chart.tsx",
     "summary": "A chart drawn in the theme's colors, which people can use without seeing it: a figure named by its `title`, a summary for screen readers, and a table of every value (visible with `showTable`)."
   },
   {
     "name": "time-grid",
     "title": "TimeGrid",
     "group": "Data",
-    "source": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
     "summary": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app."
   },
   {
     "name": "message",
     "title": "Message",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/message/message.tsx",
     "summary": "One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it."
   },
   {
     "name": "message-list",
     "title": "MessageList",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/message/message-list.tsx",
     "summary": "A conversation: `Message`s in a scrolling, labeled region that opens at the newest one."
   },
   {
     "name": "attachment",
     "title": "Attachment",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/message/attachment.tsx",
     "summary": "A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size."
   },
   {
@@ -733,28 +637,24 @@
     "name": "conversation-list",
     "title": "ConversationList",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/conversation-list/conversation-list.tsx",
     "summary": "A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot."
   },
   {
     "name": "attention-card",
     "title": "AttentionCard",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/attention-card/attention-card.tsx",
     "summary": "Something that waits on the person: a mention, a question asked of them or a request still unanswered."
   },
   {
     "name": "reaction-bar",
     "title": "ReactionBar",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
     "summary": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press."
   },
   {
     "name": "composer",
     "title": "Composer",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/composer/composer.tsx",
     "summary": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline."
   },
   {
@@ -768,7 +668,6 @@
     "name": "inspector",
     "title": "Inspector",
     "group": "App setup",
-    "source": "registry/ouro/components/ouro/inspector/inspector.tsx",
     "summary": "X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users."
   }
 ]
