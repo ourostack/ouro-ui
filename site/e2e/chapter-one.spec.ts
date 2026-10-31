@@ -60,16 +60,38 @@ async function buildAll(page: Page): Promise<void> {
   for (const part of PARTS) await job(page, part.id).click();
 }
 
+/**
+ * Waits for the field messages that are going to go. A message fades before it leaves, and the
+ * fields and Sign below it move up when it does: a press that starts on one of them then can end
+ * beside it, which WebKit under load makes no click at all.
+ */
+async function settled(page: Page): Promise<void> {
+  await expect(articles(page).locator("form [id$='-error']:not([data-invalid])")).toHaveCount(0);
+}
+
 async function chooseTrade(page: Page, label: string): Promise<void> {
+  await settled(page);
   await tradeField(page).click();
   await page.getByRole("option", { name: label }).click();
+}
+
+/** Ticks the oath, once the messages above it have settled. */
+async function tickOath(page: Page): Promise<void> {
+  await settled(page);
+  await oath(page).click();
+}
+
+/** Presses Sign, once the messages above it have settled. */
+async function sign(page: Page): Promise<void> {
+  await settled(page);
+  await signButton(page).click();
 }
 
 async function signOn(page: Page, name: string, trade = "Engineer"): Promise<void> {
   await nameField(page).fill(name);
   await chooseTrade(page, trade);
-  await oath(page).click();
-  await signButton(page).click();
+  await tickOath(page);
+  await sign(page);
 }
 
 /** The jobs' rows as the checklist shows them, top to bottom: the job and its day. */
@@ -154,7 +176,7 @@ test.describe("each control in Chapter I", () => {
 
   test("control: name is required, a blank name and a name already aboard are refused under the field", async ({ page }) => {
     await open(page);
-    await signButton(page).click();
+    await sign(page);
     await expect(nameField(page)).toHaveAttribute("aria-invalid", "true");
     await expect(nameField(page)).toBeFocused();
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
@@ -165,7 +187,7 @@ test.describe("each control in Chapter I", () => {
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     await expect(page.getByRole("list", { name: ARTICLES.roster }).getByRole("listitem")).toHaveCount(CREW.length);
     await nameField(page).fill("Ned Land");
-    await signButton(page).click();
+    await sign(page);
     await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.taken("Ned Land").replace(".", "\\.")));
     await expect(nameField(page)).toBeFocused();
     await expect(signCrew(page)).toContainText(SIGN.mine("Ned Land").text);
@@ -178,8 +200,8 @@ test.describe("each control in Chapter I", () => {
   test("control: trade is required, and takes the trade you choose", async ({ page }) => {
     await open(page);
     await nameField(page).fill("Ada");
-    await oath(page).click();
-    await signButton(page).click();
+    await tickOath(page);
+    await sign(page);
     await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
     await expect(signCrew(page)).toContainText(SIGN.refuse(["trade"]).text);
     await chooseTrade(page, "Cabin boy or girl");
@@ -191,13 +213,13 @@ test.describe("each control in Chapter I", () => {
     await open(page);
     await nameField(page).fill("Ada");
     await chooseTrade(page, "Cook");
-    await signButton(page).click();
+    await sign(page);
     await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
     await expect(signCrew(page)).toContainText(SIGN.refuse(["oath"]).text);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
-    await oath(page).click();
+    await tickOath(page);
     await expect(oath(page)).toBeChecked();
-    await signButton(page).click();
+    await sign(page);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
   });
 
@@ -226,7 +248,7 @@ test.describe("each control in Chapter I", () => {
     await open(page);
     await nameField(page).fill("Ada Lovelace");
     await chooseTrade(page, "Engineer");
-    await oath(page).click();
+    await tickOath(page);
     // Records each moment the page has nothing focused: after any change to the articles (a
     // microtask, before a paint) and before every frame. And when your row's Leave comes in, whether
     // it already has focus: Sign's own commit must move it there.
@@ -252,7 +274,7 @@ test.describe("each control in Chapter I", () => {
       };
       requestAnimationFrame(frame);
     });
-    await signButton(page).click();
+    await sign(page);
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
     await expect(nameField(page)).toHaveValue("");
@@ -265,7 +287,7 @@ test.describe("each control in Chapter I", () => {
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
     await open(page);
     await nameField(page).fill("Ada");
-    await signButton(page).click();
+    await sign(page);
     await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
     await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
     await expect(signCrew(page)).toContainText(SIGN.refuse(["trade", "oath"]).text);
@@ -275,8 +297,8 @@ test.describe("each control in Chapter I", () => {
     await expect(pencilled).toContainText(ARTICLES.pending);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     await chooseTrade(page, "Cook");
-    await oath(page).click();
-    await signButton(page).click();
+    await tickOath(page);
+    await sign(page);
     await expect(pencilled).toHaveCount(0);
     await expect(signCrew(page)).toContainText(SIGN.welcome("Ada", "Cook").text);
   });
@@ -286,20 +308,20 @@ test.describe("each control in Chapter I", () => {
     const pencilled = articles(page).locator("[data-chapter-pending]");
     // Emptied: the browser's own check stops the signing, and the waiting row goes.
     await nameField(page).fill("Ada");
-    await signButton(page).click();
+    await sign(page);
     await expect(pencilled).toContainText("Ada");
     await nameField(page).fill("");
-    await signButton(page).click();
+    await sign(page);
     await expect(pencilled).toHaveCount(0);
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
     // Spaces only: the browser lets it through, the site refuses it, and the waiting row goes.
     await nameField(page).fill("Ada");
-    await signButton(page).click();
+    await sign(page);
     await expect(pencilled).toContainText("Ada");
     await nameField(page).fill("   ");
     await chooseTrade(page, "Cook");
-    await oath(page).click();
-    await signButton(page).click();
+    await tickOath(page);
+    await sign(page);
     await expect(nameField(page)).toHaveAccessibleDescription(new RegExp(ARTICLES.blank.replace(".", "\\.")));
     await expect(pencilled).toHaveCount(0);
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
