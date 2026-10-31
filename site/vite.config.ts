@@ -98,7 +98,23 @@ export function voyageSmallModules(): Rolldown.CodeSplittingGroup {
 export default defineConfig(({ isSsrBuild }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "/",
-  plugins: [react(), tailwindcss(), chunkEvidence(repo), proofPlugin()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    chunkEvidence(repo),
+    proofPlugin(),
+    // PROBE (never merged): keep idle connections open longer than any client waits.
+    {
+      name: "probe-keep-alive",
+      configurePreviewServer(server) {
+        if (!process.env["PROBE_KEEPALIVE"]) return;
+        const http = server.httpServer as import("node:http").Server;
+        http.keepAliveTimeout = 120_000;
+        http.headersTimeout = 121_000;
+        console.log("PROBE keepAliveTimeout", http.keepAliveTimeout);
+      },
+    } satisfies Plugin,
+  ],
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.
   resolve: { alias: { "@": repo } },
