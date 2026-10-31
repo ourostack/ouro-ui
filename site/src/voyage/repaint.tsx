@@ -50,26 +50,24 @@ function DiveWindow(): JSX.Element {
           </ByPreset>
         </span>
       </div>
-      <div className="site-chart-grid grid gap-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
-        <div className="rounded-xl border border-border/70 bg-card p-4 shadow-(--shadow-sm) sm:p-5">
-          <Checklist
-            label="Before we dive"
-            description="Tick them off. The captain is watching."
-            items={DIVE_CHECKS.map((item) => ({ ...item, checked: checked.has(item.id) }))}
-            onCheckedChange={(id, isChecked) =>
-              setChecked((previous) => {
-                const next = new Set(previous);
-                if (isChecked) next.add(id);
-                else next.delete(id);
-                return next;
-              })
-            }
-            onClearChecked={() => setChecked(new Set())}
-          />
-        </div>
-        <div className="grid content-between gap-6">
-          {/* On the card's own colour: muted text over the grid's hairlines would not read. */}
-          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 bg-card text-sm">
+      {/* Open on the window's own surface: a hairline between the checklist and its specs, no box inside the box. */}
+      <div className="grid gap-x-8 gap-y-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
+        <Checklist
+          label="Before we dive"
+          description="Tick them off. The captain is watching."
+          items={DIVE_CHECKS.map((item) => ({ ...item, checked: checked.has(item.id) }))}
+          onCheckedChange={(id, isChecked) =>
+            setChecked((previous) => {
+              const next = new Set(previous);
+              if (isChecked) next.add(id);
+              else next.delete(id);
+              return next;
+            })
+          }
+          onClearChecked={() => setChecked(new Set())}
+        />
+        <div className="grid content-between gap-6 border-t border-border/70 pt-6 md:border-t-0 md:border-s md:ps-8 md:pt-1">
+          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
             <dt className="text-muted-foreground">Headings</dt>
             <dd className="m-0 truncate font-[family-name:var(--font-heading)] font-semibold">
               <ByPreset>{(item) => item.heading}</ByPreset>
@@ -87,7 +85,7 @@ function DiveWindow(): JSX.Element {
             </dd>
           </dl>
           <div className="grid gap-3">
-            <p className="m-0 bg-card text-sm text-muted-foreground">
+            <p className="m-0 text-sm text-muted-foreground">
               {checked.size === DIVE_CHECKS.length ? "All set. Down we go." : `${DIVE_CHECKS.length - checked.size} left before we dive.`}
             </p>
             <Dialog
@@ -148,7 +146,7 @@ export function Repaint(): JSX.Element {
   const { preset, setPreset } = useSiteTheme();
   const current = presetNamed(preset);
   return (
-    <section aria-labelledby="repaint-title" id="themes" className="py-20 lg:py-32">
+    <section aria-labelledby="repaint-title" id="themes" className="border-t border-border/70 py-20 lg:py-28">
       <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <p className="site-eyebrow">Themes</p>
@@ -197,7 +195,7 @@ export function Repaint(): JSX.Element {
             </ByPreset>
           </p>
         </div>
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 lg:self-center">
           <DiveWindow />
         </div>
       </Container>

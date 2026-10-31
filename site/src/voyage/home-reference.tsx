@@ -24,13 +24,13 @@ const output = "m-0 font-mono text-[0.8125rem] leading-6 whitespace-pre-wrap [ov
 function AgentExample({ example }: { example: (typeof agentExamples)[number] }): JSX.Element {
   const real = generated[example.id as keyof typeof generated];
   return (
-    <li data-testid={`agent-example-${example.id}`} className="grid overflow-hidden rounded-2xl border border-border/70 bg-card lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <div className="grid content-start gap-3 p-5 sm:p-6">
+    <li data-testid={`agent-example-${example.id}`} className="grid gap-x-10 gap-y-6 border-t border-border/70 pt-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="grid content-start gap-3">
         <Label>The agent writes</Label>
         <p className="-mt-2 mb-0 text-sm text-muted-foreground">{example.habit}</p>
-        <CodeBlock code={example.code} />
+        <CodeBlock code={example.code} wrap />
       </div>
-      <div className="grid content-start gap-5 border-t border-border/70 bg-(--site-code) p-5 sm:p-6 lg:border-t-0 lg:border-l">
+      <div className="grid content-start gap-5">
         <div>
           <Label>The type check</Label>
           <p className={`${output} text-foreground`}>
@@ -135,7 +135,7 @@ export function Agents(): JSX.Element {
             ],
           })}
         </p>
-        <ol className="m-0 mt-10 grid list-none gap-5 p-0">
+        <ol className="m-0 mt-12 grid list-none gap-12 p-0">
           {agentExamples.map((example) => (
             <AgentExample key={example.id} example={example} />
           ))}
@@ -171,7 +171,7 @@ const namespace = `{
 
 function Step({ number, title, children }: { number: number; title: string; children: ReactNode }): JSX.Element {
   return (
-    <li className="grid min-w-0 gap-3 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
+    <li className="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] gap-y-3 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
       <span aria-hidden="true" className="site-mono inline-flex size-7 items-center justify-center rounded-full border border-border text-xs text-muted-foreground">
         {number}
       </span>
@@ -255,7 +255,7 @@ export function InstallSteps(): JSX.Element {
               })}{" "}
               Put this in <InlineCode>components.json</InlineCode>:
             </p>
-            <CodeBlock code={namespace} />
+            <CodeBlock code={namespace} wrap />
             <Command command="npx shadcn@latest add @ouro/ouro-base @ouro/sheet" />
           </Step>
         </ol>

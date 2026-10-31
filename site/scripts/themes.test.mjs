@@ -59,6 +59,11 @@ test("Copy theme carries @font-face for every face it names, at versioned addres
   assert.equal(built.radius, "1rem");
 });
 
+test("a preset's corners show as a length, following a var() alias to its value", () => {
+  const { built } = buildPreset(presets[1], ':root { --font-heading: "Space Grotesk"; --corner: 0.375rem; --radius: var(--corner); }', fonts);
+  assert.equal(built.radius, "0.375rem");
+});
+
 test("a preset must set its display face and a radius", () => {
   assert.throws(() => buildPreset(presets[1], ":root { --radius: 1rem; --font-heading: Arial; }", fonts), /must set --font-heading to "Space Grotesk"/);
   assert.throws(() => buildPreset(presets[1], ':root { --font-heading: "Space Grotesk"; }', fonts), /must set --radius/);

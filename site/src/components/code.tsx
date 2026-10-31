@@ -12,14 +12,17 @@ export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
   );
 }
 
-/** A block of code. It scrolls inside its own box on phones and is a tab stop so a keyboard can scroll it. */
-export function CodeBlock({ code, label, className }: { code: string; label?: string; className?: string }): JSX.Element {
+/**
+ * A block of code. It scrolls inside its own box on phones and is a tab stop so a keyboard can scroll it;
+ * `wrap` wraps long lines instead, for a short snippet whose cut-off end would look broken.
+ */
+export function CodeBlock({ code, label, wrap, className }: { code: string; label?: string; wrap?: boolean; className?: string }): JSX.Element {
   return (
     <figure className={cn("m-0 min-w-0", className)}>
       {label && <figcaption className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</figcaption>}
       <pre
         tabIndex={0}
-        className="m-0 overflow-x-auto rounded-xl border border-border bg-(--site-code) px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
+        className={cn("m-0 overflow-x-auto rounded-xl border border-border bg-(--site-code) px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
       >
         <code>{code}</code>
       </pre>

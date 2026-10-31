@@ -83,7 +83,7 @@
     "label": "Cookbook",
     "mood": "Spoonjoy's own look, synced from the app",
     "heading": "Fraunces",
-    "radius": "var(--sj-radius-control)",
+    "radius": "0.375rem",
     "fonts": [
       "Geist",
       "Geist Mono",
