@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
+import { actionsClass, actionsRowClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -351,6 +351,10 @@ const ouroDocs = (item: string) => `https://ui.ouro.bot/docs/${item}/`;
  * hides. Its bar is a landmark named by `label`. Escape or Close turns it off, once Escape has
  * closed any other overlay. It renders nothing on the server.
  *
+ * The bar floats above the bottom of the screen and above a `TabBar` that shows. To keep it clear of
+ * other chrome the app pins to the bottom, set `--ouro-inspector-bottom` to the distance to keep,
+ * such as `:root { --ouro-inspector-bottom: 6rem; }`.
+ *
  * Use your browser's developer tools instead when you need more than which component is where;
  * the `data-ouro`, `data-ouro-control` and `data-ouro-part` attributes X-ray reads are there too.
  *
@@ -369,6 +373,7 @@ const ouroDocs = (item: string) => `https://ui.ouro.bot/docs/${item}/`;
  * @claim "a component no one can see" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not outline a component no one can see, and outlines it while hover or focus shows it)
  * @claim "a component no one can see" test/inspector-toaster.test.tsx verify:testExists(test/inspector-toaster.test.tsx::Inspector over a Toaster > outlines a Toaster only while it shows a toast, around its toasts)
  * @claim "X-ray never draws over the page's" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other)
+ * @claim "The bar floats above the bottom" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > sits above a TabBar that shows, and above the distance the app sets)
  * @claim "Its bar is a landmark named" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > puts its bar in a landmark named by its label)
  */
 export function Inspector(props: InspectorProps): JSX.Element | null {
@@ -497,6 +502,12 @@ function InspectorLayer({
       const modal = modalOpen(own);
       // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
       own.toggleAttribute("data-modal", modal);
+      // The bar sits a gap above a TabBar that shows, measured from the layer, which fills the screen.
+      const tabBar = [...document.querySelectorAll('[data-ouro="tab-bar"] > [data-ouro-part="bar"]:not([data-closed])')]
+        .map((bar) => bar.getBoundingClientRect())
+        .find((box) => box.height > 0);
+      if (tabBar) own.style.setProperty("--ouro-inspector-tab-bar", `${own.getBoundingClientRect().bottom - tabBar.top + 8}px`);
+      else own.style.removeProperty("--ouro-inspector-tab-bar");
       const next = findComponents(own, modal);
       for (const component of next) {
         if (observed.has(component.element)) continue;
@@ -608,7 +619,7 @@ function InspectorLayer({
         ))}
       </div>
       <section aria-label={label} className={pillClass}>
-        <span aria-hidden="true" className="font-medium">
+        <span aria-hidden="true" className={labelClass}>
           {label}
         </span>
         {spotlight !== undefined && (
@@ -616,39 +627,41 @@ function InspectorLayer({
             {measured && (spotlit ? `Showing ${spotlight}` : `No ${spotlight} on this page`)}
           </span>
         )}
-        <Sheet
-          title={label}
-          description="Every Ouro HX component on this page, in order."
-          trigger={
-            <Button variant="plain" size="sm" data-ouro-control="inspector" data-ouro-part="list">
-              {count}
-            </Button>
-          }
-        >
-          <ol data-ouro-inspector-list="" className={listClass}>
-            {found.map((component) => {
-              const source = sourceHref?.(component.item, component.element);
-              return (
-                <li key={component.key} className="flex min-h-9 items-center justify-between gap-3">
-                  <code className="font-mono text-sm leading-5 text-foreground">{component.item}</code>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <a data-ouro-control="inspector" data-ouro-part="docs" href={docsHref(component.item)} target="_blank" rel="noreferrer" className={linkClass}>
-                      Docs<span className="sr-only"> for {component.item} (opens in a new tab)</span>
-                    </a>
-                    {source !== undefined && (
-                      <a data-ouro-control="inspector" data-ouro-part="source" href={source} target="_blank" rel="noreferrer" className={linkClass}>
-                        Source<span className="sr-only"> of {component.item} (opens in a new tab)</span>
+        <span className={spotlight === undefined ? actionsClass : `${actionsClass} ${actionsRowClass}`}>
+          <Sheet
+            title={label}
+            description="Every Ouro HX component on this page, in order."
+            trigger={
+              <Button variant="plain" size="sm" data-ouro-control="inspector" data-ouro-part="list">
+                {count}
+              </Button>
+            }
+          >
+            <ol data-ouro-inspector-list="" className={listClass}>
+              {found.map((component) => {
+                const source = sourceHref?.(component.item, component.element);
+                return (
+                  <li key={component.key} className="flex min-h-9 items-center justify-between gap-3">
+                    <code className="font-mono text-sm leading-5 text-foreground">{component.item}</code>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <a data-ouro-control="inspector" data-ouro-part="docs" href={docsHref(component.item)} target="_blank" rel="noreferrer" className={linkClass}>
+                        Docs<span className="sr-only"> for {component.item} (opens in a new tab)</span>
                       </a>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        </Sheet>
-        <Button variant="plain" size="sm" data-ouro-control="inspector" data-ouro-part="close" onClick={close}>
-          Close
-        </Button>
+                      {source !== undefined && (
+                        <a data-ouro-control="inspector" data-ouro-part="source" href={source} target="_blank" rel="noreferrer" className={linkClass}>
+                          Source<span className="sr-only"> of {component.item} (opens in a new tab)</span>
+                        </a>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </Sheet>
+          <Button variant="plain" size="sm" data-ouro-control="inspector" data-ouro-part="close" onClick={close}>
+            Close
+          </Button>
+        </span>
       </section>
     </div>
   );

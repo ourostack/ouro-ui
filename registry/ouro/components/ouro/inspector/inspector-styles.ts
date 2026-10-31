@@ -1,4 +1,4 @@
-export { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass };
+export { actionsClass, actionsRowClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass };
 
 // Class strings and names for Inspector, apart from the component so its file exports only
 // components (React Fast Refresh). Class strings are literal so the app's Tailwind finds them.
@@ -98,13 +98,33 @@ const tagClass =
   "data-covered:invisible data-crowded:invisible " +
   "outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:underline";
 
-/** The bar at the bottom of the screen, a landmark named by X-ray's label: what X-ray shows, the list and the way out. It steps aside while a dialog is open. @internal */
+/**
+ * The bar at the bottom of the screen, a landmark named by X-ray's label: what X-ray shows, the list and the way out. It steps aside while a dialog is open.
+ * It keeps clear of the phone's home indicator, of a TabBar that shows (`--ouro-inspector-tab-bar`, which X-ray measures) and of
+ * any other chrome the app pins to the bottom of the screen: set `--ouro-inspector-bottom` (on `:root` or a parent) to the distance to keep.
+ *
+ * @internal
+ * @claim "It keeps clear of the phone's" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > sits above a TabBar that shows, and above the distance the app sets)
+ */
 const pillClass =
-  "pointer-events-auto in-data-modal:invisible fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-1 " +
-  "rounded-full bg-popover p-1 ps-4 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60";
+  "pointer-events-auto in-data-modal:invisible fixed inset-x-0 mx-auto flex w-fit max-w-[calc(100%-2rem)] flex-wrap items-center gap-1 " +
+  "bottom-[max(1rem,env(safe-area-inset-bottom),var(--ouro-inspector-bottom,0px),var(--ouro-inspector-tab-bar,0px))] " +
+  "rounded-3xl bg-popover p-1 ps-4 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60";
+
+/** X-ray's label, on one line. @internal */
+const labelClass = "shrink-0 py-1.5 font-medium whitespace-nowrap";
 
 /** The bar's word on the spotlit item, cut short where the bar runs out of room. It stays in place while empty, so a screen reader hears it when it fills. @internal */
-const statusClass = "ms-1 me-2 min-w-0 truncate text-muted-foreground";
+const statusClass = "ms-1 me-2 min-w-0 grow truncate py-1.5 text-muted-foreground";
+
+/**
+ * The list and Close buttons. On a phone, while the bar names a spotlit item, they take a row of their own below it, so the item's name has the width of the bar.
+ *
+ * @internal
+ * @claim "On a phone, while the bar" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fits its bar on a phone as narrow as 320px: the label on one line, the spotlit item named in full, both buttons in reach)
+ */
+const actionsClass = "ms-auto flex shrink-0 items-center gap-1";
+const actionsRowClass = "max-sm:basis-full max-sm:justify-end";
 
 /** The list of components in the sheet. @internal */
 const listClass = "m-0 grid list-none gap-1 p-0";
