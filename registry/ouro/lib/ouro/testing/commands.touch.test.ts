@@ -599,3 +599,45 @@ test("touchDrag with durationMs spans exactly that long in the page's event time
   }
   expect(stamps["touchend"]! - stamps["touchstart"]!).toBeCloseTo(300, 0);
 });
+
+test("doubleTap taps twice at one point, the gap it is given apart in the page's event timestamps", async () => {
+  const stamps: Array<[string, number]> = [];
+  const pointers: string[] = [];
+  const listener = (event: Event) => stamps.push([event.type, event.timeStamp]);
+  const pointer = (event: PointerEvent) => pointers.push(`${event.type}:${event.pointerType}`);
+  for (const type of ["touchstart", "touchend"]) addEventListener(type, listener, true);
+  for (const type of ["pointerdown", "pointerup"] as const) addEventListener(type, pointer, true);
+  try {
+    // No wait: doubleTap resolves once the page has handled the second touchend.
+    await commands.doubleTap({ at: [100, 100], gapMs: 120 });
+  } finally {
+    for (const type of ["touchstart", "touchend"]) removeEventListener(type, listener, true);
+    for (const type of ["pointerdown", "pointerup"] as const) removeEventListener(type, pointer, true);
+  }
+  expect(stamps.map(([type]) => type)).toEqual(["touchstart", "touchend", "touchstart", "touchend"]);
+  const [, firstUp, secondDown, secondUp] = stamps.map(([, time]) => time);
+  expect(secondDown! - firstUp!).toBeCloseTo(120, 0);
+  expect(secondUp! - secondDown!).toBeCloseTo(50, 0);
+  expect(pointers).toEqual(["pointerdown:touch", "pointerup:touch", "pointerdown:touch", "pointerup:touch"]);
+});
+
+test("doubleTap keeps its gap in the page's timestamps when the page is busy between the taps", async () => {
+  const stamps: number[] = [];
+  let first = true;
+  const listener = (event: Event) => {
+    stamps.push(event.timeStamp);
+    if (event.type !== "touchend" || !first) return;
+    first = false;
+    // A page busy for 600ms after the first tap, longer than a double-tap's window.
+    const until = performance.now() + 600;
+    while (performance.now() < until);
+  };
+  for (const type of ["touchstart", "touchend"]) addEventListener(type, listener, true);
+  try {
+    await commands.doubleTap({ at: [100, 100], gapMs: 120 });
+  } finally {
+    for (const type of ["touchstart", "touchend"]) removeEventListener(type, listener, true);
+  }
+  expect(stamps).toHaveLength(4);
+  expect(stamps[2]! - stamps[1]!).toBeCloseTo(120, 0);
+});

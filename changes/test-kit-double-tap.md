@@ -1,0 +1,1 @@
+- Added: the test kit's `commands.doubleTap({ at, gapMs })` taps twice at one point with real touch input in one command, stamping the taps `gapMs` apart in the page's events however late the second arrives, so a double-tap test holds on a busy machine.
