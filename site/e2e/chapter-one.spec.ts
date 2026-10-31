@@ -303,7 +303,15 @@ test.describe("each control in Chapter I", () => {
       let last = scrollY;
       const tick = () => { if (scrollY !== last) { w.probe.push(`scroll@${Math.round(performance.now() - t0)} ${Math.round(last)}->${Math.round(scrollY)}`); last = scrollY; } if (performance.now() - t0 < 3000) requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
-      w.probe.push(`start y=${Math.round(scrollY)} active=${document.activeElement?.getAttribute("name")}`);
+      const errors = () => document.querySelectorAll("[data-composition='articles'] [data-ending-style], [data-composition='articles'] [data-starting-style]").length;
+      let leaving = errors();
+      new MutationObserver(() => { const now = errors(); if (now !== leaving) { w.probe.push(`moving@${Math.round(performance.now() - t0)} ${leaving}->${now}`); leaving = now; } }).observe(document.body, { subtree: true, childList: true, attributes: true });
+      const sign = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim().startsWith("Sign the art"));
+      let top = sign?.getBoundingClientRect().top;
+      new ResizeObserver(() => {}).observe(document.body);
+      const watchTop = () => { const now = sign?.getBoundingClientRect().top; if (now !== top) { w.probe.push(`signMoved@${Math.round(performance.now() - t0)} ${Math.round(top ?? 0)}->${Math.round(now ?? 0)}`); top = now; } if (performance.now() - t0 < 3000) requestAnimationFrame(watchTop); };
+      requestAnimationFrame(watchTop);
+      w.probe.push(`start leaving=${leaving} y=${Math.round(scrollY)} active=${document.activeElement?.getAttribute("name")}`);
     });
     await signButton(page).click();
     const seen = await pencilled.count();
