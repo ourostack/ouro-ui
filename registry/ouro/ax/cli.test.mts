@@ -2,7 +2,7 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { dispatch, printResult, runCli } from "./cli.ts";
 import { defineCli, defineCommand, parse, type Parsed, type RunContext } from "./command.ts";
-import { exampleCli as cli, exits, postMessage, resetRooms, rooms } from "./example-cli.ts";
+import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
 import { nextStep, outcome } from "./outcome.ts";
 
 async function run(argv: string[], stdin?: string) {
@@ -23,6 +23,21 @@ test("a private action says nothing was sent; an others action says who can see 
   const posted = await run(["post", "abc123", "Running late", "--why", "Sam asked"]);
   assert.equal(posted.code, 0);
   assert.equal(posted.out, 'Posted to "Design sync". Everyone in it can see it.\nChecked: read the room\'s last message back.\nReceipt: m1\nNext: notes watch abc123  (wait for a reply)\n');
+});
+
+test("messages and receipts carry the clock's time: a fixed one in tests, the real one by default", async () => {
+  setClock(() => new Date("2026-10-31T09:00:00.000Z"));
+  try {
+    const posted = JSON.parse((await run(["post", "abc123", "Running late", "--why", "Sam asked", "--json"])).out);
+    assert.equal(posted.receipt.at, "2026-10-31T09:00:00.000Z");
+    assert.equal(rooms["abc123"]!.messages[0]!.at, "2026-10-31T09:00:00.000Z");
+  } finally {
+    setClock();
+  }
+  const before = Date.now();
+  postMessage("abc123", "Sam Lee", "On my way");
+  const at = Date.parse(rooms["abc123"]!.messages[1]!.at);
+  assert.ok(at >= before && at <= Date.now());
 });
 
 test("an error is one stderr line with the fix and its exit code; --json also prints the error shape", async () => {

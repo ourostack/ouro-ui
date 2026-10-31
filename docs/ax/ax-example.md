@@ -47,3 +47,11 @@ function resetRooms(): void
 ```ts
 const rooms: Record<string, { title: string; members: string[]; notes: string[]; messages: AxEvent[] }>
 ```
+
+### `setClock`
+
+Sets the clock the toy stamps messages and receipts with: tests pass a fixed one, and `setClock()` puts back the real one.
+
+```ts
+function setClock(now?: () => Date): void
+```

@@ -1,4 +1,4 @@
-export { exampleCli, exits, postMessage, resetRooms, rooms };
+export { exampleCli, exits, postMessage, resetRooms, rooms, setClock };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
@@ -25,6 +25,13 @@ function resetRooms() {
 }
 resetRooms();
 
+let clock = () => new Date();
+
+/** Sets the clock the toy stamps messages and receipts with: tests pass a fixed one, and `setClock()` puts back the real one. */
+function setClock(now: () => Date = () => new Date()) {
+  clock = now;
+}
+
 const room = (ref: string) => {
   const r = rooms[ref];
   if (!r) throw new AxError({ code: "no-such-room", exit: exits.code("error"), thing: "room", problem: `there is no room "${ref}"`, fix: "notes rooms" });
@@ -34,7 +41,7 @@ const room = (ref: string) => {
 /** Someone posts in a room (the tests use it to answer a wait). */
 function postMessage(ref: string, by: string, text: string) {
   const r = room(ref);
-  r.messages.push({ cursor: String(r.messages.length + 1), type: "message", at: new Date(0).toISOString(), by, target: { kind: "room", id: ref }, summary: text });
+  r.messages.push({ cursor: String(r.messages.length + 1), type: "message", at: clock().toISOString(), by, target: { kind: "room", id: ref }, summary: text });
 }
 
 const everyone = (title: string) => ({ only: false, who: `everyone in "${title}"` });
@@ -104,7 +111,7 @@ const exampleCli = defineCli({
           state: "done",
           summary: `Posted to "${r.title}". Everyone in it can see it.`,
           postcondition: { checked: true, holds: seen, how: "read the room's last message back" },
-          receipt: { id: `m${r.messages.length}`, at: new Date(0).toISOString(), by: "agent", why: String(input["why"]) },
+          receipt: { id: `m${r.messages.length}`, at: clock().toISOString(), by: "agent", why: String(input["why"]) },
           next: [nextStep(`notes watch ${ref}`, "wait for a reply")],
         });
       },
