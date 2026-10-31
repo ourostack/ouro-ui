@@ -37,16 +37,16 @@ function Page({ names }: { names: string[] }): JSX.Element {
 }
 
 // The server's HTML, rendered before any test marks the page as hydrating.
-const serverHtml = new Map([["first", "second"], ["waiting", "later"]].map((names) => [names.join(), renderToString(<Page names={names} />)]));
+const serverHtml = new Map([["first", "second"], ["waiting", "later"], ["safari-a", "safari-b"]].map((names) => [names.join(), renderToString(<Page names={names} />)]));
 
-async function hydrate(names: string[]): Promise<void> {
+async function hydrate(names: string[], waits = true): Promise<void> {
   host.innerHTML = serverHtml.get(names.join())!;
   hydratingServerHtml();
   await act(() => {
     root = hydrateRoot(host, <Page names={names} />);
   });
   // Every boundary has joined the queue: the first waits for the browser to be idle.
-  await expect.poll(() => idle.length).toBeGreaterThan(0);
+  if (waits) await expect.poll(() => idle.length).toBeGreaterThan(0);
 }
 
 /** Runs the idle callbacks waiting now, as the browser does once it has nothing else to do. */
@@ -95,6 +95,15 @@ describe("hydration in turns", () => {
       .toBe(true);
     await act(() => button("second").click());
     expect(button("second").textContent).toBe("second 1");
+  });
+
+  it("hydrates every boundary at once where the browser has no requestIdleCallback, and reports the page hydrated at once", async () => {
+    vi.stubGlobal("requestIdleCallback", undefined);
+    await hydrate(["safari-a", "safari-b"], false);
+    await expect.poll(() => committed).toEqual(["safari-a", "safari-b"]);
+    await hydratedInTurn();
+    await act(() => button("safari-b").click());
+    expect(button("safari-b").textContent).toBe("safari-b 1");
   });
 
   it("answers a press on a boundary still waiting its turn, by hydrating it inside the press", async () => {

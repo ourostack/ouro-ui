@@ -19,16 +19,17 @@ const turns = new Map<string, Turn>();
 const committed = new Map<string, () => void>();
 let previous: Promise<void> | undefined;
 
-/** Called by the client entry before it hydrates the server's HTML, so boundaries wait their turn. */
+/**
+ * Called by the client entry before it hydrates the server's HTML, so boundaries wait their turn.
+ * Only where the browser says when it is idle (`requestIdleCallback`; not Safari): elsewhere the
+ * page hydrates as it did before, every boundary in one pass, rather than wait on guessed timers.
+ */
 export function hydratingServerHtml(): void {
-  hydrating = true;
+  hydrating = typeof requestIdleCallback === "function";
 }
 
 function idle(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof requestIdleCallback === "function") requestIdleCallback(() => resolve(), { timeout: 500 });
-    else setTimeout(resolve, 1);
-  });
+  return new Promise((resolve) => requestIdleCallback(() => resolve(), { timeout: 500 }));
 }
 
 function releaseAll(): void {
