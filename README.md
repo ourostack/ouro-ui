@@ -236,6 +236,7 @@ Components:
 `attachment`,
 `attention-card`,
 `auth-layout`,
+`autocomplete`,
 `avatar`,
 `badge`,
 `breadcrumb`,
@@ -264,6 +265,7 @@ Components:
 `description-list`,
 `dialog`,
 `edit-sheet`,
+`emoji-picker`,
 `empty`,
 `field`,
 `fieldset`,
@@ -287,6 +289,7 @@ Components:
 `native-select`,
 `navbar`,
 `navigation-menu`,
+`navigation-rail`,
 `number-field`,
 `otp-field`,
 `page-header`,
@@ -330,6 +333,7 @@ Components:
 `toaster`,
 `toggle`,
 `toggle-group`,
+`toolbar`,
 `tooltip`.
 
 Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.
@@ -358,6 +362,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-last-input`,
 `lib-open-mode`,
 `lib-ouro-provider`,
+`lib-page-scroll-hold`,
 `lib-portal-container`,
 `lib-refs`,
 `lib-router-link`,
@@ -414,6 +419,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ShareButton** — A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says "Link copied" for two seconds and screen readers hear it once. [Docs](docs/ShareButton.md)
 - **Toggle** — A button that stays pressed until it is pressed again, such as Bold in a text toolbar. [Docs](docs/Toggle.md)
 - **ToggleGroup** — A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar. [Docs](docs/ToggleGroup.md)
+- **Toolbar** — A row of controls for one surface, such as an editor's formatting: Button commands and Toggle states, in groups with separators. [Docs](docs/Toolbar.md)
 - **useColorScheme** — The person's color scheme, the scheme the page shows, and the setter that changes both, for a control of your own. [Docs](docs/useColorScheme.md)
 
 ### Text
@@ -428,6 +434,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Forms
 
+- **Autocomplete** — Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character. [Docs](docs/Autocomplete.md)
 - **Calendar** — A month grid to pick a day or a range of days, with the arrow keys or a press. [Docs](docs/Calendar.md)
 - **Checkbox** — A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Checkbox.md)
 - **CheckboxGroup** — A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children). [Docs](docs/CheckboxGroup.md)
@@ -540,6 +547,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Breadcrumb** — The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current="page"`. [Docs](docs/Breadcrumb.md)
 - **Navbar** — The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. [Docs](docs/Navbar.md)
 - **NavigationMenu** — A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. [Docs](docs/NavigationMenu.md)
+- **NavigationRail** — The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current="page"`. [Docs](docs/NavigationRail.md)
 - **Pagination** — Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. [Docs](docs/Pagination.md)
 - **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
 - **Sidebar** — The column of links down the side of an app, in sections, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. [Docs](docs/Sidebar.md)
@@ -564,6 +572,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **Composer** — A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. [Docs](docs/Composer.md)
 - **ConversationList** — A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. [Docs](docs/ConversationList.md)
+- **EmojiPicker** — An emoji picker for reactions and for putting emoji into text. [Docs](docs/EmojiPicker.md)
 - **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)

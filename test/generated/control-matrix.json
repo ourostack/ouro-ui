@@ -2581,6 +2581,54 @@
     ]
   },
   {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "link",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "button",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "more",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
     "item": "time-grid",
     "stem": "time-grid",
     "mode": "button",
@@ -2658,6 +2706,20 @@
       "Toolbar/Labeled",
       "Toolbar/Composer",
       "Toolbar/Disabled"
+    ]
+  },
+  {
+    "item": "autocomplete",
+    "stem": "autocomplete",
+    "mode": "default",
+    "part": "option",
+    "role": "option",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Autocomplete/Composer",
+      "Autocomplete/Open",
+      "Autocomplete/SingleLine"
     ]
   }
 ]
