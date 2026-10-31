@@ -1,6 +1,6 @@
 import { runCli } from "../cli.ts";
 import { defineCli, defineCommand } from "../command.ts";
-import { AxError } from "../errors.ts";
+import { AxError } from "../problem.ts";
 import { outcome } from "../outcome.ts";
 
 const tasks = new Map([["t1", { title: "Book the room", owner: "Sam" }]]);

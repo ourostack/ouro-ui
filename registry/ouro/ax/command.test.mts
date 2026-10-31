@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, parse, toArgv, usageOf, type Parsed } from "./command.ts";
 import { renderCommand } from "./help.ts";
-import { AxError } from "./errors.ts";
+import { AxError } from "./problem.ts";
 import { DEFAULT_OUTCOME_EXITS } from "./outcome.ts";
 import { exampleCli as cli } from "./example-cli.ts";
 

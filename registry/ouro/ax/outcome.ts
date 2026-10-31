@@ -5,7 +5,7 @@ export type { AxRef, NextStep, Outcome, OutcomeExits, OutcomeFields, OutcomeHuma
 // first statement, which would take the JSDoc below with it.
 
 import { ONLY_YOU, type Audience, type Effect } from "./effects.ts";
-import { errorLine, errorMessage, type AxErrorBody, type AxErrorShape } from "./errors.ts";
+import { errorLine, errorMessage, type AxErrorBody, type AxErrorShape } from "./problem.ts";
 import type { ExitTable } from "./exit-codes.ts";
 
 /**

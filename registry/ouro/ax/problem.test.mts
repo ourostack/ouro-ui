@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AxError, commandLine, didYouMean, errorJson, errorLine, errorMessage } from "./errors.ts";
+import { AxError, commandLine, didYouMean, errorJson, errorLine, errorMessage } from "./problem.ts";
 
 const shape = { code: "needs-why", exit: 2, thing: "send", problem: "needs --why.", fix: 'tool send abc "hi" --why "<who asked>"' };
 

@@ -6,7 +6,7 @@ export type { McpCall, McpCallResult, McpOptions, McpTool };
 
 import { checkInput, type Cli, type CommandDef, type Input } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG, WHY_PLACEHOLDER, effectAnnotations } from "./effects.ts";
-import { didYouMean, errorJson, errorLine, isAxError, type AxError, type AxErrorShape } from "./errors.ts";
+import { didYouMean, errorJson, errorLine, isAxError, type AxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest } from "./help.ts";
 import { isOutcome, outcomeText } from "./outcome.ts";
 import { truncate } from "./output.ts";

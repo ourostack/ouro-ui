@@ -1,7 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createMcpHandler, mcpTools, serveMcp } from "./mcp.ts";
-import { AxError } from "./errors.ts";
+import { AxError } from "./problem.ts";
 import { defineCli, defineCommand } from "./command.ts";
 import { exampleCli as cli, resetRooms, rooms } from "./example-cli.ts";
 import { outcome } from "./outcome.ts";

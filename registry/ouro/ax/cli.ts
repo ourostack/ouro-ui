@@ -6,7 +6,7 @@ export type { CliIo, RunOptions };
 
 import { flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
 import { DRY_RUN_FLAG } from "./effects.ts";
-import { AxError, errorJson, errorLine, isAxError, type AxErrorShape } from "./errors.ts";
+import { AxError, errorJson, errorLine, isAxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest, helpJson, renderCommand, renderOverview, type OverviewOptions } from "./help.ts";
 import { isOutcome, outcomeExit, outcomeText } from "./outcome.ts";
 import { render } from "./output.ts";
