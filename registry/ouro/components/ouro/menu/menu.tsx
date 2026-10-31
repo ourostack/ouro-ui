@@ -527,7 +527,7 @@ export function Menu(props: MenuProps): JSX.Element {
           {label}
         </BaseMenu.Trigger>
       ) : (
-        <BaseMenu.Trigger render={trigger} {...holdPageAtPress} />
+        <BaseMenu.Trigger render={trigger} {...holdPageAtPress.listButton} />
       )}
       <MenuSurface sheet={sheet} context={false} side={side} align={align} className={className} closeLabel={closeLabel}>
         {body}
