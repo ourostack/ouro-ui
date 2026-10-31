@@ -70,11 +70,21 @@ describe("Lightbox on a touch screen", () => {
 describe("Lightbox zoom on a touch screen", () => {
   it("zooms with a real double-tap, and then pans with a swipe instead of turning the page", async () => {
     const popup = await open();
+    // A double-tap zooms only once the viewer has measured the image as drawn smaller than its own
+    // size, which the Zoom button shows.
+    await expect.poll(() => popup.querySelector('[data-ouro-part="zoom"]')).not.toBeNull();
     const box = fitted(popup).getBoundingClientRect();
     const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
-    for (let press = 0; press < 2; press++) {
-      await commands.touchStep({ type: "touchStart", x, y });
-      await commands.touchStep({ type: "touchEnd", x, y });
+    // A busy runner can deliver the second tap later than a double-tap allows (500ms): such a pair is
+    // two single taps, so tap again rather than fail. A pair delivered in time must zoom.
+    for (let pair = 0; pair < 3 && !zoomed(popup); pair++) {
+      const started = performance.now();
+      for (let press = 0; press < 2; press++) {
+        await commands.touchStep({ type: "touchStart", x, y });
+        await commands.touchStep({ type: "touchEnd", x, y });
+      }
+      if (performance.now() - started < 500) break;
+      await new Promise((resolve) => setTimeout(resolve, 600));
     }
     await expect.poll(() => zoomed(popup)).not.toBeNull();
     const scroller = popup.querySelector<HTMLElement>("[data-ouro-lightbox-zoom-view]")!;
