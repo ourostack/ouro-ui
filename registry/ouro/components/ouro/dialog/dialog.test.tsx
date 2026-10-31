@@ -1,4 +1,4 @@
-import { createRef, StrictMode, useState, type ReactElement, type ReactNode } from "react";
+import { createRef, StrictMode, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1092,12 +1092,15 @@ describe("Dialog and the page's scroll", () => {
     }
   }
 
+  /** Far taller than the scroll goes, and kept at its size while pressed, so the press lands on it at any point of the scroll. */
+  const tallButton = { height: 20000, "--ouro-press-scale": 1 } as CSSProperties;
+
   /** A dialog its own trigger opens, or one a Button opens that says it does (`aria-haspopup="dialog"`), as an app's controlled dialog. */
   function Controlled({ tall }: { tall: boolean }) {
     const [open, setOpen] = useState(false);
     return (
       <>
-        <Button aria-haspopup="dialog" style={tall ? { height: 2500 } : undefined} onClick={() => setOpen(true)}>
+        <Button aria-haspopup="dialog" style={tall ? tallButton : undefined} onClick={() => setOpen(true)}>
           Sound the alarm
         </Button>
         <Dialog title="All hands" open={open} onOpenChange={setOpen}>
@@ -1111,16 +1114,16 @@ describe("Dialog and the page's scroll", () => {
     for (const reduced of [false, true]) {
       it(`opens and leaves the page where the press found it, pressed mid-scroll, by its ${opener === "trigger" ? "trigger" : "app's Button"}${reduced ? ", with reduced motion" : ""}`, async () => {
         // A smooth scroll is under way (a toast's, say) when the person presses the button. Had the
-        // page gone on scrolling, the release would land on what moved under the pointer, and no
-        // click would reach the button. The pointer goes to one place in the window (the fixed
-        // mark's), well inside the tall button, which shrinks a little while pressed, and the scroll
-        // starts as it arrives there, just before the press; where the scroll would end, past the
-        // button's end is under that place.
+        // page gone on scrolling, it would no longer be where the press found it, and the release
+        // could land on what moved under the pointer. The pointer goes to one place in the window
+        // (the fixed mark's), on a button far taller than the scroll goes, so the press lands on it
+        // however late it comes on a loaded runner, and the scroll starts as the pointer arrives
+        // there, just before the press.
         if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
         await render(
-          <div style={{ height: 9000, paddingTop: 2300 }}>
+          <div style={{ height: 30000, paddingTop: 2300 }}>
             {opener === "trigger" ? (
-              <Dialog title="All hands" trigger={<Button style={{ height: 2500 }}>Sound the alarm</Button>}>
+              <Dialog title="All hands" trigger={<Button style={tallButton}>Sound the alarm</Button>}>
                 <input aria-label="Name" />
               </Dialog>
             ) : (
@@ -1133,7 +1136,7 @@ describe("Dialog and the page's scroll", () => {
         await userEvent.hover(document.querySelector("[data-rest-here]")!);
         window.scrollTo({ top: 2000, behavior: "instant" });
         document.documentElement.style.scrollBehavior = "smooth";
-        document.addEventListener("pointermove", () => window.scrollTo({ top: 5000 }), { once: true });
+        document.addEventListener("pointermove", () => window.scrollTo({ top: 14000 }), { once: true });
         let pressedAt = -1;
         document.addEventListener("pointerdown", () => (pressedAt = window.scrollY), { capture: true, once: true });
         await commands.pointerPress({ selector: "[data-press-here]", action: "down" });
@@ -1146,7 +1149,7 @@ describe("Dialog and the page's scroll", () => {
         await frame();
         await frame();
         expect(window.scrollY).toBe(pressedAt);
-        expect(pressedAt).toBeLessThan(4000);
+        expect(pressedAt).toBeLessThan(14000);
       });
     }
   }
