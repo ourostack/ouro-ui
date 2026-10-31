@@ -111,3 +111,10 @@ test("waitFor: an aborted signal ends the wait as gone, stopped, before a read o
   const w2 = await waitFor({ for: "a reply", target: null, cursor: "1", timeoutMs: 60_000, read: s.read, resume: () => again, now: s.now, sleep: async (ms) => { await s.sleep(ms); during.abort(); }, signal: during.signal });
   assert.deepEqual([w2.state, w2.reason, s.seen.length], ["gone", "stopped", 1]);
 });
+
+test("waitFor: a source that gives no freshness leaves it null", async () => {
+  const s = scripted([{ events: [], cursor: "1" }, { events: [reply], cursor: "2" }]);
+  const w = await waitFor({ for: "a reply", target: null, timeoutMs: 10, read: s.read, resume: () => again, now: s.now, sleep: s.sleep });
+  assert.equal(w.fresh, null);
+  assert.equal(w.state, "satisfied");
+});

@@ -148,7 +148,7 @@ function run(argv: readonly string[], env: Record<string, string>, timeoutMs: nu
     let stdout = "";
     let stderr = "";
     let timedOut = false;
-    const child = spawn(argv[0] ?? "", argv.slice(1), { env, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(argv[0]!, argv.slice(1), { env, stdio: ["pipe", "pipe", "pipe"] });
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGKILL");
@@ -160,6 +160,8 @@ function run(argv: readonly string[], env: Record<string, string>, timeoutMs: nu
       clearTimeout(timer);
       done({ code: timedOut ? null : code, stdout, stderr, timedOut });
     });
+    // The program may exit before it reads its input; that is its answer, not the X-ray's error.
+    /* node:coverage ignore next */
     child.stdin.on("error", () => undefined);
     if (input !== null) child.stdin.write(input);
     child.stdin.end();
@@ -231,10 +233,10 @@ function stateDelta(before: readonly string[], after: readonly string[]): { same
 function refusalVerdict(delta: { same: boolean; added: string[]; removed: string[] }): { ok: boolean; note: string } {
   if (delta.same) return { ok: true, note: "nothing changed" };
   if (!delta.removed.length && delta.added.every((x) => /refus/i.test(x))) return { ok: true, note: `${delta.added.length} audit record${delta.added.length === 1 ? "" : "s"} of the refusal, nothing else` };
-  return { ok: false, note: `${delta.added.length} added, ${delta.removed.length} removed; first: ${clip(delta.added[0] ?? delta.removed[0] ?? "", 200)}` };
+  return { ok: false, note: `${delta.added.length} added, ${delta.removed.length} removed; first: ${clip((delta.added[0] ?? delta.removed[0])!, 200)}` };
 }
 
-const placeholderKey = (p: string) => (p.replace(/^<|>$/g, "").split(/[|\s.]/)[0] ?? "").toLowerCase();
+const placeholderKey = (p: string) => p.replace(/^<|>$/g, "").split(/[|\s.]/)[0]!.toLowerCase();
 const singular = (k: string) => k.toLowerCase().replace(/ies$/, "y").replace(/s$/, "");
 
 /**
@@ -272,7 +274,6 @@ function misspell(flag: string): string {
 class Recorder {
   readonly results: CheckResult[] = [];
   add(claim: string, surface: string, verdict: Verdict, note = "") {
-    if (!CLAIM.has(claim)) throw new Error(`ax-xray: unknown claim ${claim}`);
     this.results.push({ claim, surface, verdict, note: clip(note, 400) });
   }
 }
@@ -357,7 +358,7 @@ async function checkSafety(opts: XrayOptions, guardPassed: boolean): Promise<Saf
         const got = j.ok ? at(j.value, key) : undefined;
         identity = { ok: r.status === 200 && JSON.stringify(got) === JSON.stringify(parseJson(want).ok ? JSON.parse(want) : want), note: `${mockUrl} answers ${key}=${JSON.stringify(got)}; expected ${want}` };
       } catch (e) {
-        identity = { ok: false, note: `${mockUrl}: ${e instanceof Error ? e.message : String(e)}` };
+        identity = { ok: false, note: `${mockUrl}: ${(e as Error).message}` };
       }
     }
   } else identity = guardPassed ? { ok: true, note: "the --guard command passed" } : { ok: false, note: "no proof the target is a mock: pass --mock \"<url> <key>=<value>\" or --guard \"<command>\"" };
@@ -385,7 +386,7 @@ interface Context {
 
 /** Reads help JSON's commands: `usage` as a list or one line, with or without the tool's name in front. */
 function commandsOf(help: Record<string, unknown>, name: string): CliCommand[] {
-  const list = Array.isArray(help["commands"]) ? help["commands"].filter(isRecord) : [];
+  const list = (help["commands"] as unknown[]).filter(isRecord);
   return list.map((c) => {
     const cmd = String(c["name"]);
     const raw = Array.isArray(c["usage"]) ? c["usage"].map(String) : typeof c["usage"] === "string" ? [c["usage"]] : [cmd];
@@ -396,8 +397,8 @@ function commandsOf(help: Record<string, unknown>, name: string): CliCommand[] {
 
 async function checkCli(ctx: Context) {
   const { rec, opts, env } = ctx;
-  const base = splitCommand(opts.cli ?? "");
-  const name = opts.name ?? basename(base[base.length - 1] ?? "cli").replace(/\.[cm]?[jt]s$/, "");
+  const base = splitCommand(opts.cli!);
+  const name = opts.name ?? basename(base[base.length - 1]!).replace(/\.[cm]?[jt]s$/, "");
   const calls: (RunResult & { args: string[]; shown: string })[] = [];
   const call = async (args: string[], input: string | null = null, timeoutMs = opts.timeoutMs) => {
     const r = await run([...base, ...args], env, timeoutMs, input);
@@ -467,7 +468,7 @@ async function checkCli(ctx: Context) {
   const exitCodes = help && Array.isArray(help["exitCodes"]) ? help["exitCodes"].filter(isRecord) : null;
   if (exitCodes) {
     documented = new Set(exitCodes.map((e) => Number(e["code"])));
-    const u = exitCodes.find((e) => /usage/i.test(`${String(e["name"] ?? "")} ${String(e["short"] ?? "")} ${String(e["meaning"] ?? "")}`));
+    const u = exitCodes.find((e) => /usage/i.test(JSON.stringify([e["name"], e["short"], e["meaning"]])));
     usageCode = u ? Number(u["code"]) : null;
   } else {
     const m = /Exit codes?:([^\n]*(?:\n(?!\S*:)[^\n]*)*)/i.exec(overview.stdout);
@@ -482,7 +483,7 @@ async function checkCli(ctx: Context) {
   const width = opts.width;
   const tooWide = (text: string) => lines(text).filter((l) => [...l].length > width);
   const wide = tooWide(overview.stdout);
-  rec.add("cli.help-width", "--help", wide.length ? "fail" : "pass", wide.length ? `${wide.length} lines over ${width} columns, first: ${clip(wide[0] ?? "", 140)}` : `every line ≤ ${width} columns`);
+  rec.add("cli.help-width", "--help", wide.length ? "fail" : "pass", wide.length ? `${wide.length} lines over ${width} columns, first: ${clip(wide[0]!, 140)}` : `every line ≤ ${width} columns`);
   rec.add("cli.overview-short", "--help", overviewLines.length <= 60 ? "pass" : "fail", `${overviewLines.length} lines`);
   const helpText: Record<string, string> = {};
   for (const n of unique) {
@@ -492,7 +493,7 @@ async function checkCli(ctx: Context) {
     rec.add("cli.command-help", n, ok ? "pass" : "fail", ok ? `${lines(c.stdout).length} lines` : brief(c));
     if (ok) {
       const w = tooWide(c.stdout);
-      rec.add("cli.help-width", `${n} --help`, w.length ? "fail" : "pass", w.length ? `${w.length} lines over ${width} columns, first (${[...(w[0] ?? "")].length}): ${clip(w[0] ?? "", 140)}` : `every line ≤ ${width} columns`);
+      rec.add("cli.help-width", `${n} --help`, w.length ? "fail" : "pass", w.length ? `${w.length} lines over ${width} columns, first (${[...w[0]!].length}): ${clip(w[0]!, 140)}` : `every line ≤ ${width} columns`);
     }
   }
 
@@ -505,7 +506,7 @@ async function checkCli(ctx: Context) {
     const out = parseJson(c.stdout);
     const quiet = !c.stdout.trim() || (c.args.includes("--json") && out.ok && isRecord(out.value) && isRecord(out.value["error"]));
     const one = errLines.length === 1 && quiet;
-    rec.add("cli.one-line-error", surface, one ? "pass" : "fail", one ? clip(errLines[0] ?? "") : `${brief(c)} (${errLines.length} stderr lines, ${lines(c.stdout).filter(Boolean).length} stdout lines)`);
+    rec.add("cli.one-line-error", surface, one ? "pass" : "fail", one ? clip(errLines[0]!) : `${brief(c)} (${errLines.length} stderr lines, ${lines(c.stdout).filter(Boolean).length} stdout lines)`);
     const t = errLines.length > 0 && teaches(c.stderr);
     rec.add("cli.error-teaches", surface, t ? "pass" : "fail", t ? clip(firstLine(c.stderr)) : `${brief(c)}: names no command or flag to try`);
   };
@@ -513,7 +514,7 @@ async function checkCli(ctx: Context) {
   // An unknown command.
   {
     const c = await call([NO_SUCH_COMMAND]);
-    const heads = [...new Set(unique.map((n) => n.split(" ")[0] ?? n))];
+    const heads = [...new Set(unique.map((n) => n.split(" ")[0]!))];
     const listed = heads.filter((n) => named(c.stderr, n)).length;
     const codeOk = c.code !== 0 && !c.timedOut && (usageCode === null || c.code === usageCode);
     const pointsToHelp = c.stderr.includes(`${name} --help`) || c.stderr.includes(`${name} help`);
@@ -551,10 +552,11 @@ async function checkCli(ctx: Context) {
   };
   const readable = commands.filter((c) => c.effect === "private" && c !== waiter && (knowsReads ? c.readOnly === true : true));
   const plans = readable.map((c) => ({ cmd: c, plan: readPlan(c) }));
-  const planned = [...plans.filter((p) => p.plan && !p.plan.placeholder), ...plans.filter((p) => p.plan?.placeholder)];
+  type Planned = { cmd: CliCommand; plan: { words: string[]; placeholder: string | null } };
+  const withPlan = plans.filter((p): p is Planned => p.plan !== null);
+  const planned = [...withPlan.filter((p) => !p.plan.placeholder), ...withPlan.filter((p) => p.plan.placeholder)];
   const reads: { cmd: CliCommand; args: string[] }[] = [];
   for (const { cmd, plan } of planned) {
-    if (!plan) continue;
     let words = plan.words;
     if (plan.placeholder) {
       const v = samples[plan.placeholder];
@@ -576,7 +578,7 @@ async function checkCli(ctx: Context) {
     const j = parseJson(c.stdout);
     const ok = c.code === 0 && j.ok && !c.stderr.trim();
     rec.add("cli.read-json", cmd.name, ok ? "pass" : "fail", ok ? `\`${c.shown}\` → one JSON document` : `${brief(c)}${c.code === 0 && !j.ok ? "; stdout is not one JSON document" : ""}`);
-    if (j.ok) harvest(j.value, samples, cmd.name.split(" ").at(-1) ?? null);
+    if (j.ok) harvest(j.value, samples, cmd.name.split(" ").at(-1)!);
   }
   for (const { cmd, plan } of plans) {
     if (plan || cmd.usage.some((u) => requiredWords(u).length === cmd.name.split(" ").length)) continue;
@@ -635,7 +637,7 @@ async function checkCli(ctx: Context) {
   // Waiting: the wait command takes a conversation ref a read gave, and answers a typed wait.
   const convRef = ["conversation", "chat", "room", "channel"].map((k) => samples[k]).find(Boolean);
   if (waiter && convRef) {
-    const waitedCode = exitCodes?.find((e) => /wait|didn.t happen|timed? ?out/i.test(`${String(e["name"] ?? "")} ${String(e["short"] ?? "")} ${String(e["meaning"] ?? "")}`))?.["code"];
+    const waitedCode = exitCodes?.find((e) => /wait|didn.t happen|timed? ?out/i.test(JSON.stringify([e["name"], e["short"], e["meaning"]])))?.["code"];
     const c = await call([waiter.name, convRef, "--timeout", "1s"], null, Math.max(opts.timeoutMs, 15_000));
     const ok = !c.timedOut && c.code !== usageCode && (c.code === 0 || (waitedCode !== undefined && c.code === Number(waitedCode)) || /resume|--cursor|nothing (yet|happened)/i.test(c.stdout + c.stderr));
     rec.add("cli.wait-on-refs", `${waiter.name} <conversation>`, ok ? "pass" : "fail", brief(c));
@@ -656,20 +658,20 @@ async function checkCli(ctx: Context) {
   }
   for (const cmd of ctx.safety.ok ? others : []) {
     const head = cmd.name.split(" ");
-    const words = usageWords((cmd.usage[0] ?? cmd.name).replace(/\[[^[\]]*\]/g, " "));
+    const words = usageWords(cmd.usage[0]!.replace(/\[[^[\]]*\]/g, " "));
     let input: string | null = null;
     const target: string[] = [];
     for (let i = head.length; i < words.length; i++) {
-      const w = words[i] ?? "";
+      const w = words[i]!;
       if (w === "--why") {
         i++;
         continue;
       }
       if (w === "-") input = "ax-xray probe text";
-      target.push(w.includes("|") && !w.includes("<") ? (w.split("|")[0] ?? w) : w.replace(/\|-$/, ""));
+      target.push(w.includes("|") && !w.includes("<") ? w.split("|")[0]! : w.replace(/\|-$/, ""));
     }
-    // References are made up, so the call must be refused; values the caller supplied (an emoji) stay real.
-    const bogus = target.map((w) => fill(w, (k) => opts.samples[k]));
+    // Every reference is made up, even where a sample exists, so the call must be refused.
+    const bogus = target.map((w) => fill(w, () => undefined));
     const pre = stateBefore ? await snapshot() : null;
     const noWhy = await call([...head, ...bogus], input);
     const whyOk = noWhy.code !== 0 && !noWhy.timedOut && /--why\b|\bwhy\b/i.test(noWhy.stderr);
@@ -685,7 +687,7 @@ async function checkCli(ctx: Context) {
       rec.add("cli.refusals-change-nothing", cmd.name, v.ok ? "pass" : "fail", v.note);
       if (!d.same) ctx.effects.push({ surface: `${cmd.name} (refused)`, note: v.note });
     }
-    if (!/--dry-run\b/.test(helpText[cmd.name] ?? "")) {
+    if (!/--dry-run\b/.test(helpText[cmd.name]!)) {
       rec.add("cli.others-preview", cmd.name, "fail", `\`${name} ${cmd.name} --help\` offers no --dry-run, so who will see it can only be learnt by doing it`);
       rec.add("cli.outcome", cmd.name, "skip", "no --dry-run to read an outcome from");
       continue;
@@ -717,10 +719,12 @@ async function checkCli(ctx: Context) {
     const ok = dry.code === 0 && /\b(see|sees|seen|visible|will get|will know|notified)\b/i.test(dry.stdout) && unchanged;
     rec.add("cli.others-preview", cmd.name, ok ? "pass" : "fail", `${brief(dry)}${!unchanged ? "; the state changed" : ""}`);
     const j = parseJson(dryJson.stdout);
-    const o = j.ok && isOutcome(j.value) ? j.value : null;
-    const v = o ? validateOutcome(o) : null;
-    const planned = o?.state === "planned";
-    rec.add("cli.outcome", cmd.name, v?.ok && planned ? "pass" : "fail", o ? (planned ? (v?.ok ? `outcome/1, planned, audience: ${o.audience.who}` : (v?.errors ?? []).join("; ")) : `outcome/1 in state ${o.state}, not planned`) : `${brief(dryJson)}; not an outcome/1`);
+    if (!j.ok || !isOutcome(j.value)) rec.add("cli.outcome", cmd.name, "fail", `${brief(dryJson)}; not an outcome/1`);
+    else if (j.value.state !== "planned") rec.add("cli.outcome", cmd.name, "fail", `outcome/1 in state ${j.value.state}, not planned`);
+    else {
+      const v = validateOutcome(j.value);
+      rec.add("cli.outcome", cmd.name, v.ok ? "pass" : "fail", v.ok ? `outcome/1, planned, audience: ${j.value.audience.who}` : v.errors.join("; "));
+    }
   }
 
   // Work events, read through the interface.
@@ -749,7 +753,7 @@ async function checkCli(ctx: Context) {
   else rec.add("cli.no-stack-trace", `all ${calls.length} calls`, "pass");
   if (documented) {
     const known = documented;
-    const bad = calls.filter((c) => !c.timedOut && !known.has(c.code ?? -1));
+    const bad = calls.filter((c) => !c.timedOut && !known.has(c.code!));
     if (bad.length) for (const c of bad) rec.add("cli.exit-codes", c.shown, "fail", `exit ${c.code} is not documented (${[...known].join(", ")})`);
     else rec.add("cli.exit-codes", `all ${calls.length} calls`, "pass", `documented: ${[...known].join(", ")}`);
   } else rec.add("cli.exit-codes", "help", "fail", "no exit codes in help --json or an `Exit codes:` line");
@@ -781,10 +785,11 @@ interface HttpAnswer {
 
 async function checkHttp(ctx: Context) {
   const { rec, opts } = ctx;
-  const manifest = JSON.parse(readFileSync(opts.routes ?? "", "utf8")) as RoutesManifest;
-  const origin = (opts.http ?? "").replace(/\/$/, "");
+  const manifest = JSON.parse(readFileSync(opts.routes!, "utf8")) as RoutesManifest;
+  const origin = opts.http!.replace(/\/$/, "");
   const basePath = manifest.base ?? "/api";
   const routes = manifest.routes ?? [];
+  const stateRoutes = manifest.state ?? [];
   let count = 0;
   const req = async (method: string, p: string, body?: unknown): Promise<HttpAnswer> => {
     count++;
@@ -793,7 +798,7 @@ async function checkHttp(ctx: Context) {
       const text = await r.text();
       return { status: r.status, type: r.headers.get("content-type") ?? "", text, json: parseJson(text) };
     } catch (e) {
-      return { status: 0, type: "", text: e instanceof Error ? e.message : String(e), json: { ok: false } };
+      return { status: 0, type: "", text: (e as Error).message, json: { ok: false } };
     }
   };
   const errorOf = (r: HttpAnswer) => (r.json.ok && isRecord(r.json.value) && typeof r.json.value["error"] === "string" ? r.json.value["error"] : null);
@@ -807,14 +812,14 @@ async function checkHttp(ctx: Context) {
   };
   const snapshot = async () => {
     const out: string[] = [];
-    for (const s of manifest.state ?? []) {
+    for (const s of stateRoutes) {
       const r = await req("GET", s.split(" ")[1] ?? s);
       out.push(r.json.ok ? JSON.stringify(stripKeys(r.json.value, opts.volatile)) : r.text);
     }
     return out;
   };
   let stateBefore: string[] | null = null;
-  if ((manifest.state ?? []).length) {
+  if (stateRoutes.length) {
     const a = await snapshot();
     const b = await snapshot();
     if (JSON.stringify(a) === JSON.stringify(b)) stateBefore = b;
@@ -825,7 +830,7 @@ async function checkHttp(ctx: Context) {
   {
     const r = await req("GET", basePath);
     const text = r.json.ok ? JSON.stringify(r.json.value) : "";
-    const named = routes.filter((rt) => text.includes(rt) || text.includes(rt.split(" ")[1] ?? rt));
+    const named = routes.filter((rt) => text.includes(rt) || text.includes(rt.split(" ")[1]!));
     const ok = r.status === 200 && r.json.ok && named.length >= routes.length * 0.8;
     rec.add("http.index", `GET ${basePath}`, ok ? "pass" : "fail", `${brief("GET", basePath, r)}; names ${named.length} of ${routes.length} routes`);
   }
@@ -855,9 +860,9 @@ async function checkHttp(ctx: Context) {
   }
   if (stateBefore) {
     const d = stateDelta(stateBefore, await snapshot());
-    rec.add("http.reads-stay-reads", `${count} GET requests`, d.same ? "pass" : "fail", `${(manifest.state ?? []).join("; ")}${d.same ? " unchanged" : ` changed: ${refusalVerdict(d).note}`}`);
+    rec.add("http.reads-stay-reads", `${count} GET requests`, d.same ? "pass" : "fail", `${stateRoutes.join("; ")}${d.same ? " unchanged" : ` changed: ${refusalVerdict(d).note}`}`);
     if (!d.same) ctx.effects.push({ surface: "GET requests", note: refusalVerdict(d).note });
-  } else rec.add("http.reads-stay-reads", "state", "skip", (manifest.state ?? []).length ? "the state routes answer differently with nothing run between them" : "the manifest names no state routes");
+  } else rec.add("http.reads-stay-reads", "state", "skip", stateRoutes.length ? "the state routes answer differently with nothing run between them" : "the manifest names no state routes");
   // What other people see: refused probes only, and only against a proven mock.
   for (const probe of manifest.others ?? []) {
     const label = `${probe.route}${typeof probe.body?.["action"] === "string" ? ` (${probe.body["action"]})` : ""}`;
@@ -897,8 +902,8 @@ interface RpcReply {
 
 async function checkMcp(ctx: Context) {
   const { rec, opts } = ctx;
-  const argv = splitCommand(opts.mcp ?? "");
-  const child = spawn(argv[0] ?? "", argv.slice(1), { env: ctx.env, stdio: ["pipe", "pipe", "pipe"] });
+  const argv = splitCommand(opts.mcp!);
+  const child = spawn(argv[0]!, argv.slice(1), { env: ctx.env, stdio: ["pipe", "pipe", "pipe"] });
   let buf = "";
   const waiting = new Map<number, (v: RpcReply) => void>();
   child.stdout.on("data", (d: Buffer) => {
@@ -907,15 +912,19 @@ async function checkMcp(ctx: Context) {
     while ((i = buf.indexOf("\n")) >= 0) {
       const j = parseJson(buf.slice(0, i));
       buf = buf.slice(i + 1);
-      const id = j.ok && isRecord(j.value) ? j.value["id"] : undefined;
-      if (typeof id === "number" && waiting.has(id)) {
-        waiting.get(id)?.(j.ok ? (j.value as RpcReply) : {});
-        waiting.delete(id);
+      const reply = j.ok && isRecord(j.value) ? (j.value as RpcReply) : null;
+      const answer = typeof reply?.id === "number" ? waiting.get(reply.id) : undefined;
+      if (reply && answer) {
+        waiting.delete(reply.id as number);
+        answer(reply);
       }
     }
   });
+  // A server that cannot start answers nothing, which the requests report; its stdin may already be closed.
+  /* node:coverage disable */
   child.on("error", () => undefined);
   child.stdin.on("error", () => undefined);
+  /* node:coverage enable */
   let id = 0;
   const request = (method: string, params: unknown) =>
     new Promise<RpcReply>((done) => {
@@ -930,7 +939,7 @@ async function checkMcp(ctx: Context) {
       });
       child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: my, method, params })}\n`);
     });
-  const textOf = (r: RpcReply) => (r.error ? String(r.error.message ?? "") + JSON.stringify(r.error.data ?? "") : (r.result?.content ?? []).map((c) => c.text ?? "").join(" "));
+  const textOf = (r: RpcReply) => (r.error ? JSON.stringify(r.error) : (r.result?.content ?? []).map((c) => c.text ?? "").join(" "));
   const refused = (r: RpcReply) => Boolean(r.error) || r.result?.isError === true;
   try {
     const init = await request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "ax-xray", version: XRAY_VERSION } });
@@ -1012,7 +1021,7 @@ function summarize(results: readonly CheckResult[], parts: Pick<Report, "target"
   const count = (v: Verdict) => results.filter((r) => r.verdict === v).length;
   const must = claims.filter((c) => c.tier === "must");
   const mustSkipped = must.filter((c) => c.skip > 0).length;
-  const checked = new Set(results.map((r) => CLAIM.get(r.claim)?.surface));
+  const checked = new Set(results.map((r) => CLAIM.get(r.claim)!.surface));
   const pass = count("pass");
   const fail = count("fail");
   return {
@@ -1021,7 +1030,7 @@ function summarize(results: readonly CheckResult[], parts: Pick<Report, "target"
     claimSet: { version: CLAIM_SET.version, hash: claimSetHash() },
     at,
     ...parts,
-    conformant: must.every((c) => c.fail === 0 && c.skip === 0) && parts.inventory.given && [...checked].every((s) => s === undefined || parts.inventory.surfaces.includes(s)),
+    conformant: must.every((c) => c.fail === 0 && c.skip === 0) && parts.inventory.given && [...checked].every((s) => parts.inventory.surfaces.includes(s)),
     summary: { claims: claims.length, holding: claims.filter((c) => c.holds).length, must: must.length, mustHolding: must.filter((c) => c.holds).length, mustSkipped, checks: { pass, fail, skip: count("skip") }, score: pass + fail ? Math.round((1000 * pass) / (pass + fail)) / 10 : null },
     claims,
     results: [...results],
@@ -1033,8 +1042,13 @@ const targetLine = (t: Report["target"]) =>
 const order = (claims: readonly ClaimSummary[]) => [...claims].sort((a, b) => Number(a.holds) - Number(b.holds) || (a.tier === b.tier ? 0 : a.tier === "must" ? -1 : 1) || b.fail - a.fail);
 const mark = (c: ClaimSummary) => (c.holds ? "✓" : c.fail ? "✗" : "–");
 const pinLine = (r: Report) => `Ouro AX claim set ${r.claimSet.version} (sha256 ${r.claimSet.hash}), checked by ax-xray ${r.checker.version} at ${r.at}.`;
-const verdictLine = (r: Report) =>
-  r.conformant ? "Conforms: every applicable must claim holds, and the inventory covers every surface checked." : `Does not conform yet: ${[r.summary.mustHolding < r.summary.must ? `${r.summary.must - r.summary.mustHolding} must claim${r.summary.must - r.summary.mustHolding === 1 ? "" : "s"} not holding` : "", !r.inventory.given ? "no inventory given" : "", r.summary.mustSkipped ? `${r.summary.mustSkipped} must claim${r.summary.mustSkipped === 1 ? "" : "s"} skipped` : ""].filter(Boolean).join("; ")}.`;
+const verdictLine = (r: Report) => {
+  if (r.conformant) return "Conforms: every applicable must claim holds, and the inventory covers every surface checked.";
+  const failing = r.claims.filter((c) => c.tier === "must" && c.fail > 0).length;
+  const count = (n: number, what: string) => `${n} must claim${n === 1 ? "" : "s"} ${what}`;
+  const uncovered = r.inventory.given ? [...new Set(r.results.map((x) => CLAIM.get(x.claim)!.surface))].filter((s) => !r.inventory.surfaces.includes(s)) : [];
+  return `Does not conform yet: ${[failing ? count(failing, "not holding") : "", !r.inventory.given ? "no inventory given" : "", uncovered.length ? `the inventory names no ${uncovered.join(" or ")} surfaces` : "", r.summary.mustSkipped ? count(r.summary.mustSkipped, "skipped") : ""].filter(Boolean).join("; ")}.`;
+};
 const safetyLine = (r: Report) => `Calls to what other people see: ${r.safety.ok ? "allowed, the target is a proven mock" : "not made"} (${r.safety.checks.map((c) => `${c.name}: ${c.ok ? "yes" : "no"}`).join(", ")}).`;
 const effectsLine = (r: Report) => (r.effects.length ? `Effects the X-ray caused: ${r.effects.map((e) => `${e.surface}: ${e.note}`).join("; ")}.` : "Effects the X-ray caused: none recorded.");
 
@@ -1054,7 +1068,7 @@ const md = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 const titleOf = (r: Report) => r.target.cli?.name ?? r.target.http?.origin ?? "MCP server";
 const bySurface = (r: Report) => {
   const by: Record<string, CheckResult[]> = {};
-  for (const x of r.results) (by[`${CLAIM.get(x.claim)?.surface ?? "?"} · ${x.surface}`] ??= []).push(x);
+  for (const x of r.results) (by[`${CLAIM.get(x.claim)!.surface} · ${x.surface}`] ??= []).push(x);
   return by;
 };
 
@@ -1091,7 +1105,7 @@ function renderMarkdown(report: Report): string {
   return `${out.join("\n")}\n`;
 }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 function renderHtml(report: Report): string {
   const s = report.summary;
@@ -1169,7 +1183,7 @@ function distance(a: string, b: string): number {
 function parseArgs(argv: readonly string[]): XrayOptions {
   const o: XrayOptions = { env: {}, state: [], volatile: [], samples: {}, width: 100, timeoutMs: 20_000, json: false, conformance: false, command: null };
   for (let i = 0; i < argv.length; i++) {
-    const a = argv[i] ?? "";
+    const a = argv[i]!;
     if (!a.startsWith("--")) {
       if (o.command === null && (a === "claims" || a === "help")) {
         o.command = a;
@@ -1251,12 +1265,14 @@ async function main(argv: readonly string[], io: Io = { stdout: process.stdout, 
     if (o.conformance) return report.conformant ? 0 : 1;
     return report.claims.some((c) => c.tier === "must" && c.fail > 0) ? 1 : 0;
   } catch (e) {
-    io.stderr.write(`ax-xray: ${e instanceof Error ? e.message : String(e)}\n`);
+    io.stderr.write(`ax-xray: ${(e as Error).message}\n`);
     return e instanceof UsageError ? 2 : 1;
   }
 }
 
-/* node:coverage ignore next 3 */
+// Run as a program (`node xray.ts ...`); the tests import it instead.
+/* node:coverage disable */
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href && fileURLToPath(import.meta.url)) {
   process.exitCode = await main(process.argv.slice(2));
 }
+/* node:coverage enable */

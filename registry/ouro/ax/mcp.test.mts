@@ -1,6 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createMcpHandler, mcpTools, serveMcp } from "./mcp.ts";
+import { AxError } from "./errors.ts";
 import { defineCli, defineCommand } from "./command.ts";
 import { exampleCli as cli, resetRooms, rooms } from "./example-cli.ts";
 import { outcome } from "./outcome.ts";
@@ -92,4 +93,28 @@ test("serveMcp answers line by line over a stream", async () => {
   assert.equal(replies.length, 3);
   assert.ok(replies.some((r) => r.error?.code === -32700));
   assert.ok(replies.some((r) => r.id === 2 && /Design sync/.test(r.result.content[0].text)));
+});
+
+test("odd messages and calls: no params, no version, a name that is not text, a call that throws, blank lines and bytes", async () => {
+  const thrown = createMcpHandler({ cli, call: async (cmd) => { if (cmd.name === "rooms") throw new AxError({ code: "down", exit: 3, thing: "rooms", problem: "the service is down", fix: null }); throw "odd"; } });
+  const answer = async (h: typeof thrown, message: unknown) => (await h(message)) as { id?: unknown; result?: { content: { text: string }[]; isError: boolean; protocolVersion?: string; serverInfo?: { version: string } }; error?: { code: number } };
+  assert.equal((await answer(thrown, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "rooms" } })).result?.content[0]!.text, "notes: rooms: the service is down.");
+  assert.equal((await answer(thrown, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "note", arguments: { room: "abc123", text: "x" } } })).result?.content[0]!.text, "notes: note: odd.");
+  const init = await answer(thrown, { jsonrpc: "2.0", id: 2, method: "initialize" });
+  assert.equal(init.result?.protocolVersion, "2025-06-18");
+  assert.equal(init.result?.serverInfo?.version, "0.0.0");
+  assert.match((await answer(thrown, { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: 3 } })).result?.content[0]!.text ?? "", /tools\/call: there is no tool ""\. Fix: rooms, note, post, watch\./);
+  assert.deepEqual(await thrown(null), { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request: expected a JSON-RPC 2.0 message with a method." } });
+  assert.equal(mcpTools({ cli: defineCli({ name: "p", about: ["p"], commands: [defineCommand({ name: "go", summary: "Go.", effect: "private" })] }) })[0]!.description, "Go. Only you see these.");
+  let out = "";
+  await serveMcp({ cli, input: ["\n", new TextEncoder().encode(`${JSON.stringify({ jsonrpc: "2.0", id: 9, method: "ping" })}\n`)], output: { write: (s) => (out += s) } });
+  assert.deepEqual(JSON.parse(out.trim()), { jsonrpc: "2.0", id: 9, result: {} });
+});
+
+test("a tool's run() reads no stdin over MCP, and an Error it throws is the tool error", async () => {
+  const t = defineCli({ name: "t", about: ["t"], commands: [defineCommand({ name: "read", summary: "R.", effect: "private", run: async (_, ctx) => ({ stdin: await ctx.stdin() }) }), defineCommand({ name: "boom", summary: "B.", effect: "private", run: () => { throw new Error("disk full"); } })] });
+  const h = createMcpHandler({ cli: t });
+  const text = async (name: string) => ((await h({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: {} } })) as { result: { content: { text: string }[] } }).result.content[0]!.text;
+  assert.equal(await text("read"), '{"stdin":""}');
+  assert.equal(await text("boom"), "t: boom: disk full.");
 });

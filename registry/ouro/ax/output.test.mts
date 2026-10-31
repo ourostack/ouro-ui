@@ -25,3 +25,7 @@ test("page walks a list with a cursor and refuses a cursor it did not give", () 
   assert.deepEqual(last, { items: [3, 4, 5], total: 5, nextCursor: null });
   assert.throws(() => page([1], { limit: 1, cursor: "9" }), /Fix: start again without a cursor/);
 });
+
+test("text that already ends with a newline gets no second one", () => {
+  assert.equal(render({ a: 1 }, { json: false, text: () => "a\n" }), "a\n");
+});

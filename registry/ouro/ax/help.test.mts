@@ -55,3 +55,9 @@ test("wrap keeps long words whole and indents every line", () => {
   assert.deepEqual(wrap("aaa bbb ccc", 2, 0, 8), ["aaa bbb", "  ccc"]);
   assert.deepEqual(wrap("averyveryverylongword x", 0, 0, 5), ["averyveryverylongword", "x"]);
 });
+
+test("a flag read from stdin says so, and a command without examples has none in its manifest", () => {
+  const c = defineCli({ name: "t", about: ["t"], commands: [defineCommand({ name: "say", summary: "Say.", effect: "private", flags: { text: { type: "string", description: "The text.", stdin: true } } })] });
+  assert.match(renderCommand(c, c.commands[0]!), /The text\. "-" reads it from stdin\./);
+  assert.deepEqual(helpJson(c).commands[0]!.examples, []);
+});

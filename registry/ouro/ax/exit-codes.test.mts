@@ -16,3 +16,9 @@ test("a gap, a renamed base code, a short table or a repeated name fails with th
   assert.throws(() => defineExitCodes(BASE_EXIT_CODES.slice(0, 2)), /needs 0 ok, 1 error and 2 usage/);
   assert.throws(() => defineExitCodes([...BASE_EXIT_CODES, { code: 3, name: "usage", short: "u", meaning: "u" }]), /share a name/);
 });
+
+test("has says whether the table names a code", () => {
+  const t = defineExitCodes();
+  assert.equal(t.has("usage"), true);
+  assert.equal(t.has("unavailable"), false);
+});

@@ -199,7 +199,7 @@ type Input = Readonly<Record<string, InputValue>>;
 The command's input as a JSON Schema: its arguments and flags as properties (the MCP tool's inputSchema).
 
 ```ts
-function inputSchema(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unknown, RunContext>): JsonSchema
+function inputSchema(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unknown, RunContext>): JsonSchema & { properties: Record<string, JsonSchema & { type: string; }>; required: string[]; }
 ```
 
 ### `InputValue`
