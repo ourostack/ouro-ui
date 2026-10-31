@@ -1,9 +1,11 @@
 // Generates registry.json, the shadcn registry at the repository root, from registry/.
 //
-//   node scripts/registry.mts           write registry.json
-//   node scripts/registry.mts --check   fail when registry.json is stale (CI); a released
-//                                       registry.json (one with a version) is checked as released,
-//                                       except on main or a pull request into it, where it fails
+//   node scripts/registry.mts           write registry.json and site/public/llms.txt
+//   node scripts/registry.mts --check   on main, write both (git ignores them, scripts/generated-files.mjs)
+//                                       and fail when git tracks either; on a release commit, which
+//                                       adds them, fail when they are stale: a released registry.json
+//                                       (one with a version) is checked as released
+//   --uncommitted                       write only the ones git does not track (`pnpm i`)
 //   --out <file>                        write or check another file
 //   --release <x.y.z>                   pin same-repo registryDependencies to the tag v<x.y.z> and
 //                                       record the version (release.yml, on the release branch)
@@ -36,7 +38,9 @@
 //   already has, in any section of package.json, and hands every versioned one to the package
 //   manager on every add, which rewrites the app's range. The minimum versions are in each
 //   item's meta.requires and in the ouro-testing message.
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { isTracked, llmsSource, trackedFiles } from "./generated-files.mjs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
@@ -769,7 +773,13 @@ function main(argv: string[]): number {
     process.stderr.write("--from rewrites a registry's dependencies, so it needs --deps.\n");
     return 1;
   }
-  const version = from === undefined ? (flag("--release") ?? (check ? releasedAs() : undefined)) : undefined;
+  // The repository's own registry.json also lists its items in site/public/llms.txt.
+  const own = flag("--out") === undefined && from === undefined && deps === undefined;
+  // Main commits neither file: they are written here, as `pnpm i` writes them, and only a release
+  // commit, which adds them, holds a copy to check.
+  const outTracked = own && isTracked(root, "registry.json");
+  const llmsTracked = own && isTracked(root, "site/public/llms.txt");
+  const version = from === undefined ? (flag("--release") ?? (check && (!own || outTracked) ? releasedAs() : undefined)) : undefined;
   let registry = from === undefined ? buildRegistry(root) : (JSON.parse(readFileSync(from, "utf8")) as Registry);
   try {
     if (version) registry = release(registry, version);
@@ -782,23 +792,42 @@ function main(argv: string[]): number {
     return 1;
   }
   const text = `${JSON.stringify(registry, null, 2)}\n`;
-  // The repository's own registry.json also lists its items in site/public/llms.txt.
   const llmsPath = join(root, "site/public/llms.txt");
-  const llms = flag("--out") === undefined && from === undefined && deps === undefined ? readFileSync(llmsPath, "utf8") : undefined;
-  const llmsText = llms === undefined ? undefined : withLlmsItems(llms, buildRegistry(root));
+  const llms = own ? readText(llmsPath) : undefined;
+  const llmsText = own ? withLlmsItems(readFileSync(join(root, llmsSource), "utf8"), buildRegistry(root)) : undefined;
   const censusPath = join(root, "registry/ouro/census/census-axe-version.mjs");
-  const census = llms === undefined ? undefined : censusAxeVersion(root);
+  const census = own ? censusAxeVersion(root) : undefined;
+  if (argv.includes("--uncommitted")) {
+    if (own && !outTracked) writeFileSync(out, text);
+    if (llmsText !== undefined && !llmsTracked) writeFileSync(llmsPath, llmsText);
+    return 0;
+  }
   if (check) {
-    const onMain = process.env["GITHUB_REF"] === "refs/heads/main" || process.env["GITHUB_BASE_REF"] === "main";
-    if (onMain && (version || /"ourostack\/ouro-ui\/[\w-]+#v/.test(current))) {
+    const onMain = process.env["GITHUB_REF"] === "refs/heads/main" || process.env["GITHUB_BASE_REF"] === "main" || (process.env["GITHUB_REF"] ?? "").startsWith("refs/heads/gh-readonly-queue/main/");
+    const committed = own ? trackedFiles(root) : [];
+    if (onMain && committed.length > 0) {
+      process.stderr.write(`${committed.join(", ")} ${committed.length === 1 ? "is" : "are"} committed, but main commits no generated list of the components, so two pull requests that add components never conflict there: run git rm --cached ${committed.join(" ")}. Only a release commit adds them.\n`);
+      return 1;
+    }
+    if (own && !outTracked) writeFileSync(out, text);
+    if (llmsText !== undefined && !llmsTracked) writeFileSync(llmsPath, llmsText);
+    const written = own && !outTracked ? text : current;
+    if (onMain && (version || /"ourostack\/ouro-ui\/[\w-]+#v/.test(written))) {
       process.stderr.write(`${relative(process.cwd(), out)} is pinned to a release (a version field or #v refs), but main stays unpinned: only release tags are pinned. Run pnpm registry and commit the result.\n`);
       return 1;
     }
-    if (current !== text) {
-      process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm registry and commit the result.\n`);
+    if (written !== text) {
+      process.stderr.write(`${relative(process.cwd(), out)} is stale. Run pnpm registry${outTracked ? " and commit the result" : ""}.\n`);
       return 1;
     }
-    if (llmsText !== undefined && llmsText !== llms) {
+    if (own && !outTracked) {
+      const unreadable = unreadableOnGitHub(root, registry);
+      if (unreadable.length > 0) {
+        process.stderr.write(`A release tag's GitHub install could not read every file registry.json lists:\n${unreadable.map((line) => `  ${line}\n`).join("")}`);
+        return 1;
+      }
+    }
+    if (llmsTracked && llmsText !== llms) {
       process.stderr.write("site/public/llms.txt lists stale items. Run pnpm registry and commit the result.\n");
       return 1;
     }
@@ -806,13 +835,34 @@ function main(argv: string[]): number {
       process.stderr.write("registry/ouro/census/census-axe-version.mjs differs from the test kit's axe-version.ts. Run pnpm registry and commit the result.\n");
       return 1;
     }
-    process.stdout.write("registry.json is up to date.\n");
+    process.stdout.write(own && !outTracked ? "registry.json and site/public/llms.txt are written, and git does not track them.\n" : "registry.json is up to date.\n");
     return 0;
   }
   writeFileSync(out, text);
   if (llmsText !== undefined) writeFileSync(llmsPath, llmsText);
   if (census !== undefined) writeFileSync(censusPath, census);
   return 0;
+}
+
+/**
+ * The files `registry` lists that a GitHub install could not read at a commit made from this
+ * checkout: ones git does not track, or tracks as a Git LFS pointer. `shadcn add
+ * ourostack/ouro-ui/<item>#<tag>` fetches each from raw.githubusercontent.com at the tag, so on
+ * main, which commits no registry.json for the CLI to validate through GitHub, `--check` checks
+ * this instead.
+ */
+export function unreadableOnGitHub(root: string, registry: Registry): string[] {
+  const paths = [...new Set(registry.items.flatMap((item) => (item.files ?? []).map((file) => file.path)))].sort();
+  if (paths.length === 0) return [];
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const tracked = new Set(git("ls-files", "--", ...paths).split("\n").filter(Boolean));
+  const lfs = new Set(
+    git("check-attr", "filter", "--", ...paths)
+      .split("\n")
+      .filter((line) => line.endsWith(": filter: lfs"))
+      .map((line) => line.slice(0, -": filter: lfs".length)),
+  );
+  return paths.flatMap((path) => (!tracked.has(path) ? [`${path} is not committed`] : lfs.has(path) ? [`${path} is stored with Git LFS`] : []));
 }
 
 /** A file's text, or "" when it is missing (which counts as stale). */
