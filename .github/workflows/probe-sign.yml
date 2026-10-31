@@ -1,0 +1,46 @@
+name: Probe chapter one sign (temporary)
+# Probe branch only (probe/sign). Never merged.
+on:
+  push:
+    branches: [probe/sign]
+permissions:
+  contents: read
+jobs:
+  sign:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [main, pr307]
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - name: Sign test in WebKit, 60 times, 4 workers, 2 CPU burners
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set +e
+          if [ "$VARIANT" = pr307 ]; then git -c user.name=p -c user.email=p@p diff origin/main...origin/fix/scroll-hold-dialogs -- . ':!site/e2e' ':!.github' | git apply && echo "applied #307"; fi
+          for i in 1 2; do node -e 'for(;;){}' > /dev/null 2>&1 & echo $! >> burners.pid; done
+          pnpm exec playwright test site/e2e/chapter-one.spec.ts -g "control: sign with the name taken away again" --project site-webkit --repeat-each 60 --workers 4 --reporter=list > out.txt 2>&1
+          echo "exit $?"
+          kill $(cat burners.pid)
+          grep -E "^\s+[0-9]+ (passed|failed|flaky)" out.txt
+          echo "ok=$(grep -c 'PROBE ok' out.txt) miss=$(grep -c 'PROBE MISS' out.txt)"
+          grep "PROBE MISS" out.txt | head -10 | cut -c1-1500
+          grep "PROBE ok" out.txt | head -3 | cut -c1-1200
+          exit 0

@@ -294,7 +294,21 @@ test.describe("each control in Chapter I", () => {
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
     // Spaces only: the browser lets it through, the site refuses it, and the waiting row goes.
     await nameField(page).fill("Ada");
+    await page.evaluate(() => {
+      const w = window as unknown as { probe: string[] };
+      w.probe = [];
+      const t0 = performance.now();
+      const label = (e: Event) => { const el = e.target as Element; return `${el.tagName.toLowerCase()}${el.closest("button") ? ":" + el.closest("button")!.textContent!.trim().slice(0, 12) : ""}`; };
+      for (const type of ["pointerdown", "pointerup", "click", "invalid", "focus"]) document.addEventListener(type, (e) => w.probe.push(`${type}@${Math.round(performance.now() - t0)} y=${Math.round(scrollY)} ${label(e)}`), true);
+      let last = scrollY;
+      const tick = () => { if (scrollY !== last) { w.probe.push(`scroll@${Math.round(performance.now() - t0)} ${Math.round(last)}->${Math.round(scrollY)}`); last = scrollY; } if (performance.now() - t0 < 3000) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+      w.probe.push(`start y=${Math.round(scrollY)} active=${document.activeElement?.getAttribute("name")}`);
+    });
     await signButton(page).click();
+    const seen = await pencilled.count();
+    await page.waitForTimeout(800);
+    console.log(`PROBE ${seen ? "ok" : "MISS"} ${(await page.evaluate(() => (window as unknown as { probe: string[] }).probe)).join(" ; ")}`);
     await expect(pencilled).toContainText("Ada");
     await nameField(page).fill("   ");
     await chooseTrade(page, "Cook");
