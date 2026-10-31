@@ -11,6 +11,8 @@ export interface ToastRecord {
   settled: number;
   /** Whether the first toast covered the element in any of those frames. */
   overlapped: boolean;
+  /** The first frame the toast covered the element in, for the failure message. */
+  overlap?: string;
 }
 
 /**
@@ -26,6 +28,7 @@ export function toastWatcher(clearance?: Clearance): void {
   const record: ToastRecord = { titles: [], settled: 0, overlapped: false };
   (window as unknown as { ouroToasts: ToastRecord }).ouroToasts = record;
   let last = "";
+  let firstSeen: { at: number; scroll: number } | undefined;
   const tick = () => {
     const toasts = [...document.querySelectorAll<HTMLElement>('[data-ouro="toast"]')];
     for (const toast of toasts) {
@@ -37,13 +40,17 @@ export function toastWatcher(clearance?: Clearance): void {
     if (clearance && element && first) {
       const box = element.getBoundingClientRect();
       const toast = first.getBoundingClientRect();
+      firstSeen ??= { at: performance.now(), scroll: scrollY };
       const now = JSON.stringify([box.top, box.left, toast.top, toast.left]);
       const still = now === last && !first.hasAttribute("data-starting-style") && !first.hasAttribute("data-ending-style") && first.getAnimations().length === 0;
       last = now;
       if (still) {
         record.settled++;
         const clear = clearance.kind === "below" ? box.bottom <= toast.top : box.top + 40 <= toast.top || box.left + 200 <= toast.left;
-        if (!clear) record.overlapped = true;
+        if (!clear && !record.overlapped) {
+          record.overlapped = true;
+          record.overlap = `in settled frame ${record.settled}, ${Math.round(performance.now() - firstSeen.at)}ms after the toast was first seen: the element's box ${Math.round(box.top)}-${Math.round(box.bottom)}, the toast's ${Math.round(toast.top)}-${Math.round(toast.bottom)}, the page scrolled ${Math.round(scrollY - firstSeen.scroll)}px since (to ${Math.round(scrollY)})`;
+        }
       }
     } else last = "";
     requestAnimationFrame(tick);
@@ -58,6 +65,8 @@ interface ToastWatch {
   settled: () => Promise<number>;
   /** Whether the first toast covered the element in any settled frame. */
   overlapped: () => Promise<boolean>;
+  /** Where and when it first covered it, if it did: pass it as the assertion's message. */
+  overlap: () => Promise<string | undefined>;
 }
 
 /**
@@ -66,10 +75,10 @@ interface ToastWatch {
  * a spec that looked for the toast afterwards could miss it; the page itself does not wait on the
  * runner. To check that a toast never covers an element, wait until it has settled for a few
  * frames, then check it never overlapped: `expect.poll(toasts.settled).toBeGreaterThan(5)`, then
- * `expect(await toasts.overlapped()).toBe(false)`.
+ * `expect(await toasts.overlapped(), await toasts.overlap()).toBe(false)`.
  */
 export async function watchToasts(page: Page, clearOf?: Clearance): Promise<ToastWatch> {
   await page.evaluate(toastWatcher, clearOf);
   const read = () => page.evaluate(() => (window as unknown as { ouroToasts: ToastRecord }).ouroToasts);
-  return { titles: async () => (await read()).titles, settled: async () => (await read()).settled, overlapped: async () => (await read()).overlapped };
+  return { titles: async () => (await read()).titles, settled: async () => (await read()).settled, overlapped: async () => (await read()).overlapped, overlap: async () => (await read()).overlap };
 }

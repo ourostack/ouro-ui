@@ -569,6 +569,6 @@ test("on a phone, the bell's toast never covers the bell", async ({ browser }) =
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
   // Judged only once the toast has settled: it slides in from below its place.
   await expect.poll(toasts.settled).toBeGreaterThan(5);
-  expect(await toasts.overlapped()).toBe(false);
+  expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   await context.close();
 });
