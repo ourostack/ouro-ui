@@ -13,6 +13,9 @@
       "/nautilus/",
       "/"
     ],
+    "chart": [
+      "/nautilus/"
+    ],
     "checkbox": [
       "/nautilus/"
     ],
@@ -22,6 +25,18 @@
     ],
     "collapsible": [
       "/"
+    ],
+    "combobox": [
+      "/nautilus/"
+    ],
+    "composer": [
+      "/nautilus/"
+    ],
+    "conversation-list": [
+      "/nautilus/"
+    ],
+    "date-picker": [
+      "/nautilus/"
     ],
     "form": [
       "/nautilus/"
@@ -37,7 +52,14 @@
       "/"
     ],
     "link": [
+      "/nautilus/",
       "/"
+    ],
+    "message": [
+      "/nautilus/"
+    ],
+    "message-list": [
+      "/nautilus/"
     ],
     "navbar": [
       "/nautilus/",
@@ -50,10 +72,17 @@
     "progress": [
       "/nautilus/"
     ],
+    "reaction-bar": [
+      "/nautilus/"
+    ],
     "reorderable": [
       "/nautilus/"
     ],
+    "scroll-area": [
+      "/nautilus/"
+    ],
     "segmented-control": [
+      "/nautilus/",
       "/"
     ],
     "select": [
@@ -65,6 +94,12 @@
     "switch": [
       "/nautilus/",
       "/"
+    ],
+    "table": [
+      "/nautilus/"
+    ],
+    "text-area": [
+      "/nautilus/"
     ],
     "text-field": [
       "/nautilus/"
