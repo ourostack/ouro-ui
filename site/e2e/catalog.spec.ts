@@ -198,6 +198,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     page.on("response", listener);
     await page.goto(path);
     await expect(ready.first()).toBeAttached();
+    // Chapter I's island loads once the page is live; wait for it, or WebKit can go network-idle
+    // first and the island's files land while the next page loads, counted as that page's.
+    if (name === "nautilus") await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
     await page.waitForLoadState("networkidle");
     page.off("response", listener);
     const expected = initialFiles(manifest, kind);
