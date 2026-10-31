@@ -75,5 +75,6 @@
   "time-grid",
   "toolbar",
   "emoji-picker",
-  "navigation-rail"
+  "navigation-rail",
+  "autocomplete"
 ]
