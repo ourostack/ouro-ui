@@ -171,7 +171,8 @@
 .egg-leagues[data-done] .egg-leagues-count {
   color: var(--primary);
 }
-/* X-ray's bar sits at the bottom, so the log steps aside while it is on. */
-body:has([data-ouro="inspector"]) .egg-leagues {
+/* X-ray's bar sits at the bottom, so the log steps aside while it is on. An attribute, not
+   body:has(), which made every press on the page restyle it and doubled the chapters' latency. */
+.egg-leagues[data-xray] {
   visibility: hidden;
 }

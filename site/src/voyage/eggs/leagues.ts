@@ -1,5 +1,6 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { watchXray } from "../xray-store";
 import { firstFind } from "./listen";
 import "./eggs.css";
 
@@ -32,6 +33,7 @@ export function startLeagues(): () => void {
   words.className = "egg-leagues-words";
   words.textContent = "leagues traveled";
   document.body.append(log);
+  const unwatchXray = watchXray((on) => log.toggleAttribute("data-xray", on));
 
   let traveled = 0;
   let frame = 0;
@@ -62,6 +64,7 @@ export function startLeagues(): () => void {
   requestAnimationFrame(() => log.setAttribute("data-open", ""));
   return () => {
     cancelAnimationFrame(frame);
+    unwatchXray();
     removeEventListener("scroll", schedule);
     removeEventListener("resize", schedule);
     log.remove();

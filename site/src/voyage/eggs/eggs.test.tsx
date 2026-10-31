@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, renderPage } from "../../../test/render";
 import { firstFind, watchForWord } from "./listen";
-import { LEAGUES, leaguesAt } from "./leagues";
+import { LEAGUES, leaguesAt, startLeagues } from "./leagues";
+import { setXray } from "../xray-store";
 import { guess, search } from "../../components/lost-at-sea";
 
 const nemo = () => document.querySelector<HTMLElement>('[data-egg="nemo"]');
@@ -134,6 +135,20 @@ describe("the ship's log of leagues", () => {
     expect(leagues()!.hasAttribute("data-done")).toBe(true);
     expect(leagues()!.textContent).toContain("a distance, not a depth");
     await toasted("Twenty thousand leagues!");
+  });
+
+  it("steps aside while X-ray is on, and comes back when it is off", async () => {
+    const stop = startLeagues();
+    try {
+      expect(getComputedStyle(leagues()!).visibility).toBe("visible");
+      setXray(true);
+      expect(getComputedStyle(leagues()!).visibility).toBe("hidden");
+      setXray(false);
+      expect(getComputedStyle(leagues()!).visibility).toBe("visible");
+    } finally {
+      setXray(false);
+      stop();
+    }
   });
 
   it("keeps no log on the home page", async () => {
