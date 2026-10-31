@@ -5,7 +5,7 @@
  * (`prepare` in site/src/pages/docs.tsx, called by `loadPage`); `markdown` then reads them.
  */
 const files: Record<string, () => Promise<string>> = {
-  ...import.meta.glob<string>(["../../../docs/*.md", "../../../docs/guides/*.md"], { query: "?raw", import: "default" }),
+  ...import.meta.glob<string>(["../../../docs/*.md", "../../../docs/guides/*.md", "../../../docs/ax/*.md"], { query: "?raw", import: "default" }),
   // Keep the shared release-note formatting, but load it only for the Updating page.
   "../../../UPGRADING.md": async () => (await import("../release")).upgrading,
 };

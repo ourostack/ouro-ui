@@ -4,7 +4,7 @@ Designed down to the last tap and the last prop. Interactions that feel right to
 
 **[See it live: ui.ouro.bot](https://ui.ouro.bot/)**, with the [docs](https://ui.ouro.bot/docs/) and [Storybook](https://ui.ouro.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, `@ouro` namespace and install addresses are unchanged.
+Ouro HX is the component library within Ouro UI. [Ouro AX](#ouro-ax), its counterpart for the interfaces agents use, is the other half. The repository, `@ouro` namespace and install addresses are unchanged.
 
 ```sh
 npx shadcn@latest search 'ourostack/ouro-ui#v1.2.14'     # list the items
@@ -341,6 +341,21 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
+Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `ax-example`, `ouro-ax-tests` with their `<name>-tests` items, and `ouro-ax`, which is:
+`ax-claims`,
+`ax-cli`,
+`ax-command`,
+`ax-effects`,
+`ax-exit-codes`,
+`ax-lint`,
+`ax-mcp`,
+`ax-outcome`,
+`ax-output`,
+`ax-problem`,
+`ax-wait`,
+`ax-work-event`,
+`ax-xray`.
+
 Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
 
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):
@@ -602,6 +617,21 @@ Dark mode follows the `.dark` class, as in shadcn. To change a color, set its va
 To change any `--ouro-*` token (the spring and durations, `--ouro-press-scale`, the backdrop color and opacity, `--ouro-layer`), set it in a `:root` or `.dark` rule of your own after the Ouro tokens, outside any `@layer`, such as `:root { --ouro-press-scale: 0.98; }` at the end of your CSS file. A rule of your own survives adding `ouro-base` again, which rewrites the lines it wrote.
 
 Sheets and dialogs stack at `--ouro-layer`, a z-index of 50 by default, the level of the Base UI dialog of shadcn@4.21.1.[^ouro-layer] If your app has fixed bars above z-50, raise it the same way, such as `:root { --ouro-layer: 60; }`; no class edit is needed. At an equal z-index the open sheet or dialog still wins, because its portal is the last child of `<body>`.
+
+## Ouro AX
+
+Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses ([decision record](docs/decisions/2026-10-30-ouro-ax.md)). Its parts:
+
+- **A standard with an X-ray.** `ax-claims` holds the standard as checkable claims about agent-facing surfaces. `ax-xray` calls an interface from outside, the way an agent would, and reports which claims hold on which command, route and tool, with the fix where one does not.
+- **A kit.** With `ax-command`, one definition of a command gives its parser, its help and `help --json`, `--json` output, exit codes, one-line errors that name the fix, and the same command as an MCP tool. An action returns a typed outcome (`ax-outcome`), a wait returns a typed wait with a cursor (`ax-wait`), and `ax-work-event` records who acted for whom.
+- **The evaluation gate.** A claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.2.14         # the kit and the X-ray, in lib/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.2.14   # with their node:test tests
+```
+
+Guides: [Ouro AX](docs/guides/ax.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
 
 ## License
 

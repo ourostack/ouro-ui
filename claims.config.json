@@ -55,17 +55,29 @@
       "match": "^site/src/docs/demos/",
       "mode": "input",
       "reason": "a docs demo's sample content, not a statement about Ouro HX"
+    },
+    {
+      "match": "^docs/decisions/2026-10-30-ouro-ax/evidence/",
+      "mode": "evidence",
+      "reason": "the Ouro AX probes' and evaluation's records (runs, tables, reports), copied as they were measured"
+    },
+    {
+      "match": "^registry/ouro/ax/fixtures/",
+      "mode": "input",
+      "reason": "the X-ray's test fixtures"
     }
   ],
   "generated": [
     "^README\\.md$",
     "^site/public/llms\\.txt$",
     "^registry\\.json$",
-    "^docs/[^/]+\\.md$"
+    "^docs/[^/]+\\.md$",
+    "^docs/ax/[^/]+\\.md$"
   ],
   "generators": [
     "scripts/registry.mts",
-    "scripts/gen-docs.mts"
+    "scripts/gen-docs.mts",
+    "scripts/ax-docs.mts"
   ],
   "allowed": [
     {
@@ -274,6 +286,11 @@
       "match": "^scripts/kits/.*\\.test\\.mjs$",
       "job": "ci",
       "reason": "scripts/kits.test.mjs, in pnpm test:scripts, runs every file in scripts/kits/ with coverage"
+    },
+    {
+      "match": "^registry/ouro/ax/.*\\.test\\.mts$",
+      "job": "ci",
+      "reason": "scripts/ax.test.mjs, in pnpm test:scripts, runs every Ouro AX test with coverage"
     },
     {
       "match": "\\.test\\.m[jt]s$",
