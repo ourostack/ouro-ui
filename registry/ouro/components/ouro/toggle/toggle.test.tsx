@@ -145,6 +145,12 @@ describe("Toggle", () => {
     expect(onClick).toHaveBeenCalled();
   });
 
+  it("draws a 1px solid border and keeps its label on one line", async () => {
+    const { toggle } = await render(<Toggle label="Show completed items" />);
+    const style = getComputedStyle(toggle);
+    expect([style.borderTopWidth, style.borderTopStyle, style.whiteSpace]).toEqual(["1px", "solid", "nowrap"]);
+  });
+
   it("lets app layout classes win", async () => {
     const { toggle } = await render(<Toggle label="Bold" className="mt-6" />);
     expect(getComputedStyle(toggle).marginTop).toBe("24px");
@@ -351,6 +357,19 @@ describe("Toggle development messages", () => {
     );
     await render(<Toggle label="Bold" className="text-xs" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Toggle: "text-xs" sets appearance, and className is for layout only. Fix: <Toggle size="xs">.');
+  });
+
+  it.each([
+    ["text-xs", "xs"],
+    ["text-sm", "sm"],
+    ["text-base", "md"],
+    ["text-lg", "lg"],
+    ["text-xl", "lg"],
+    ["text-2xl", "lg"],
+    ["text-5xl", "lg"],
+  ])("maps %s to size=%s", async (token, size) => {
+    await render(<Toggle label="Bold" className={token} />);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] Toggle: "${token}" sets appearance, and className is for layout only. Fix: <Toggle size="${size}">.`);
   });
 
   it("says nothing for a full, valid toggle", async () => {

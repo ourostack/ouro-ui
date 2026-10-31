@@ -144,6 +144,14 @@ describe("ToggleGroup", () => {
     await expect.element(page.getByRole("button", { name: "Italic" })).toBeVisible();
   });
 
+  it("draws an icon-only item as a square, and a labeled one wider", async () => {
+    const items = [{ ...styles[0]!, hideLabel: true }, styles[1]!];
+    const { toggles } = await render(<ToggleGroup label="Text style" multiple items={items} />);
+    const [square, labeled] = toggles.map((toggle) => toggle.getBoundingClientRect());
+    expect(Math.round(square!.width)).toBe(Math.round(square!.height));
+    expect(labeled!.width).toBeGreaterThan(labeled!.height);
+  });
+
   it("hides the group label visually with hideLabel and keeps it as the name", async () => {
     const { root } = await render(<ToggleGroup label="Alignment" hideLabel items={align} />);
     expect(root.querySelector("span")!.className).toContain("sr-only");
