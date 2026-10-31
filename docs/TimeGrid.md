@@ -32,16 +32,20 @@ Type: `TimeGridProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allDayLabel` | `string` | `"All day"` | The all-day row's name, shown beside it and heard in each all-day event's name. Translate it with your app. |
+| `backgroundEvents` | `readonly TimeGridEvent[]` |  | Events that are not the person's own, such as a shared calendar, a colleague's or a room's. Each day draws them in a lane of their own at its start, beside the person's events: thin bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events only: those that are all day, or 24 hours or longer, are left out. |
+| `backgroundLabel` | `string` | `"Other calendars"` | What the background events are, heard before each one's title and as the name of each day's lane: `"Shared calendar"`. Translate it with your app. |
 | `className` | `string` |  | Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes warn in development. |
 | `date` (required) | `string` |  | The day to show, as an ISO date (`"2026-03-12"`). `week` and `work-week` show the week it is in. Move it with your own Today, Previous and Next buttons. |
 | `events` (required) | `readonly TimeGridEvent[]` |  | The events. Each shows on every day it covers that the grid shows; the rest are left out. |
+| `expandedId` | `string \| null` |  | The id of the event whose popover of your own is open: it says so to screen readers (`aria-expanded`) and gets an outline until you clear it. |
 | `label` (required) | `string` |  | What the grid shows, read by screen readers as its name: `"Team calendar"`. Required, because a scrolling page of hours says nothing on its own. It is not shown. |
 | `locale` | `string` | `"en-US"` | The BCP 47 locale for the day names, the hours (`"9 AM"`, `"09"`), the times and the first day of the week: `"en-GB"` starts weeks on Monday. The default is the same on the server and in the browser, so hydration matches. |
 | `now` | `Date \| string \| number` |  | The current time, when your app keeps the clock (a demo, a test, a time it shares with other views). Without it, the grid reads the browser's clock and moves the now line each minute. |
 | `nowAdornment` | `ReactNode` |  | Something small drawn where the now line meets the hours: a mascot, an avatar. Decoration only; screen readers skip it. |
-| `onEventSelect` | `((event: TimeGridEvent) => void)` |  | Called with the event when someone presses it, or presses Enter on it. |
+| `onEventSelect` | `((event: TimeGridEvent, details: TimeGridSelectDetails) => void)` |  | Called with the event when someone presses it, or presses Enter on it, and with its element and whether it is a background event, so a popover of your own can point at it. |
 | `onSlotSelect` | `((slot: TimeGridSlot) => void)` |  | Called when someone presses an empty part of a day, with the slot under the pointer, for a new event there. A mouse shows the slot before the press. Slots answer a pointer only, so give keyboards a New event button of your own as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | The grid's root element. |
+| `renderDaySummary` | `((day: string) => ReactNode)` |  | Content of your own under each day's header, such as a count or a load bar. It gets the day as an ISO date. Screen readers read it, so give a bar words of its own. |
 | `selectedId` | `string \| null` |  | The selected event's id: it gets an outline and `aria-current`. |
 | `slotMinutes` | `15 \| 30 \| 60` | `30` | How long a slot `onSlotSelect` gets is, in minutes: 15, 30 or 60. |
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
@@ -116,6 +120,19 @@ interface TimeGridEvent {
   allDay?: { 'Pass start as a date: start: "2026-03-12"': never };
   /** Not a field. Colours come from the theme: `{ tone: "success" }`. */
   color?: { 'Use tone: "success"': never };
+}
+```
+
+### `TimeGridSelectDetails`
+
+What `TimeGrid`'s `onEventSelect` gets besides the event.
+
+```ts
+interface TimeGridSelectDetails {
+  /** The event's element, to anchor a popover of your own to (`<Popover anchor={ref}>`). */
+  element: HTMLElement;
+  /** Whether it is one of `backgroundEvents`. */
+  background: boolean;
 }
 ```
 

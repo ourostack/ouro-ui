@@ -2529,6 +2529,8 @@
       "TimeGrid/Statuses",
       "TimeGrid/Locales",
       "TimeGrid/NowAdornment",
+      "TimeGrid/BackgroundEvents",
+      "TimeGrid/BackgroundEventsDay",
       "TimeGrid/WithToolbar"
     ]
   },

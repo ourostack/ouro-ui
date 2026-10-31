@@ -16,6 +16,7 @@ import {
   type Ref,
 } from "react";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
+import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
@@ -27,6 +28,10 @@ import { inBrowser, onServer, subscribeNever } from "@/registry/ouro/components/
 import {
   allDayClass,
   allDayLanes,
+  backgroundBarClass,
+  backgroundBarFillClass,
+  backgroundFillClass,
+  barStatusClass,
   dayLength,
   eventClass,
   isIsoDate,
@@ -42,11 +47,13 @@ import {
   toInstant,
   toneBarClass,
   toneFillClass,
+  toneSwatchClass,
   tones,
   viewDays,
   views,
   weekendDays,
   zonedClock,
+  type DayPlacement,
   type TimeGridStatus,
   type TimeGridTone,
   type TimeGridView,
@@ -99,6 +106,14 @@ export interface TimeGridEvent {
   allDay?: { 'Pass start as a date: start: "2026-03-12"': never };
   /** Not a field. Colours come from the theme: `{ tone: "success" }`. */
   color?: { 'Use tone: "success"': never };
+}
+
+/** What {@link TimeGrid}'s `onEventSelect` gets besides the event. */
+export interface TimeGridSelectDetails {
+  /** The event's element, to anchor a popover of your own to (`<Popover anchor={ref}>`). */
+  element: HTMLElement;
+  /** Whether it is one of `backgroundEvents`. */
+  background: boolean;
 }
 
 /** An empty stretch of time someone pressed, from {@link TimeGrid}'s `onSlotSelect`. */
@@ -170,8 +185,43 @@ export interface TimeGridOwnProps {
   workingHours?: { start: number; end: number } | undefined;
   /** The selected event's id: it gets an outline and `aria-current`. */
   selectedId?: string | null | undefined;
-  /** Called with the event when someone presses it, or presses Enter on it. */
-  onEventSelect?: ((event: TimeGridEvent) => void) | undefined;
+  /**
+   * Called with the event when someone presses it, or presses Enter on it, and with its element
+   * and whether it is a background event, so a popover of your own can point at it.
+   * @claim "and with its element" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > tells onEventSelect which element was pressed, and marks the one whose popover is open)
+   */
+  onEventSelect?: ((event: TimeGridEvent, details: TimeGridSelectDetails) => void) | undefined;
+  /**
+   * Events that are not the person's own, such as a shared calendar, a colleague's or a room's.
+   * Each day draws them in a lane of their own at its start, beside the person's events: thin
+   * bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a
+   * button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events
+   * only: those that are all day, or 24 hours or longer, are left out.
+   * @claim "Each day draws them in a lane" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
+   * @claim "thin bars that name themselves" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
+   * @claim "reached with the arrow keys" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > takes the arrow keys through background events in time order with the rest)
+   * @claim "those that are all day" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > development messages > names a background event that is all day, and leaves it out)
+   */
+  backgroundEvents?: readonly TimeGridEvent[] | undefined;
+  /**
+   * What the background events are, heard before each one's title and as the name of each
+   * day's lane: `"Shared calendar"`. Translate it with your app.
+   * @default "Other calendars"
+   * @claim "heard before each one's title" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
+   */
+  backgroundLabel?: string | undefined;
+  /**
+   * The id of the event whose popover of your own is open: it says so to screen readers
+   * (`aria-expanded`) and gets an outline until you clear it.
+   * @claim "it says so to screen readers" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > tells onEventSelect which element was pressed, and marks the one whose popover is open)
+   */
+  expandedId?: string | null | undefined;
+  /**
+   * Content of your own under each day's header, such as a count or a load bar. It gets the day
+   * as an ISO date. Screen readers read it, so give a bar words of its own.
+   * @claim "Content of your own under each day's header" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > puts the app's summary under each day's header, where screen readers read it)
+   */
+  renderDaySummary?: ((day: string) => ReactNode) | undefined;
   /**
    * Called when someone presses an empty part of a day, with the slot under the pointer, for a
    * new event there. A mouse shows the slot before the press. Slots answer a pointer only, so
@@ -255,6 +305,8 @@ interface Piece {
   name: string;
   /** Its status, `busy` for one the grid does not know. */
   status: TimeGridStatus;
+  /** Whether it is one of `backgroundEvents`. */
+  background: boolean;
 }
 
 const utcDate = (day: string) => new Date(`${day}T00:00:00Z`);
@@ -304,6 +356,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     workingHours: workingHoursProp,
     selectedId,
     onEventSelect,
+    backgroundEvents = [],
+    backgroundLabel = "Other calendars",
+    expandedId,
+    renderDaySummary,
     onSlotSelect,
     slotMinutes: slotProp = 30,
     allDayLabel = "All day",
@@ -356,7 +412,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // The events cut into what each shown day draws, in the order the arrow keys take them.
   const words = { ...defaultStatusLabels, ...statusLabels };
   const problems: DevWarning[] = [];
-  const seen = new Set<string>();
   const pieces: Piece[] = [];
   const allDaySpans: Array<{ key: string; first: number; last: number }> = [];
   const timedItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
@@ -371,63 +426,84 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const last = days.findLastIndex((day) => day <= to);
     return first === -1 || first > last ? null : { first, last };
   };
-  for (const [index, event] of events.entries()) {
-    // A repeated id still gets keys of its own, so React keeps every event.
-    const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
-    const status = oneOf(statuses, event.status, "busy");
-    if (process.env.NODE_ENV !== "production" && id !== event.id) problems.push([`two events have id "${event.id}"`, "give each event its own id"]);
-    seen.add(event.id);
-    if (isIsoDate(event.start)) {
-      const startsOn = event.start;
-      // Stryker disable next-line EqualityOperator: an end on the start day is the start day either way
-      const endsOn = isIsoDate(event.end) && event.end > startsOn ? event.end : startsOn;
-      const span = spanOf(startsOn, endsOn);
-      if (!span) continue;
-      const key = `all:${id}`;
-      pieces.push({ key, event, status, day: span.first, start: -1, end: dayLength, name: spoken([daysText(startsOn, endsOn), allDayLabel], event, words[status]) });
-      allDaySpans.push({ key, ...span });
-      continue;
+  const backgroundItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
+  const place = (list: readonly TimeGridEvent[], background: boolean) => {
+    const seen = new Set<string>();
+    const prefix = background ? "bg:" : "";
+    const title = (event: TimeGridEvent) => (background ? `${backgroundLabel}: ${event.title}` : event.title);
+    for (const [index, event] of list.entries()) {
+      // A repeated id still gets keys of its own, so React keeps every event.
+      const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
+      const status = oneOf(statuses, event.status, "busy");
+      if (process.env.NODE_ENV !== "production" && id !== event.id) problems.push([`two ${background ? "background events" : "events"} have id "${event.id}"`, "give each event its own id"]);
+      seen.add(event.id);
+      if (isIsoDate(event.start)) {
+        if (background) {
+          /* istanbul ignore else @preserve -- the else path exists only in production bundles */
+          if (process.env.NODE_ENV !== "production") problems.push([`background event "${event.id}" is all day, and background events are timed`, "pass it in events, or give it a start and end time"]);
+          continue;
+        }
+        const startsOn = event.start;
+        // Stryker disable next-line EqualityOperator: an end on the start day is the start day either way
+        const endsOn = isIsoDate(event.end) && event.end > startsOn ? event.end : startsOn;
+        const span = spanOf(startsOn, endsOn);
+        if (!span) continue;
+        const key = `all:${id}`;
+        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, name: spoken([daysText(startsOn, endsOn), allDayLabel], event.title, event, words[status]) });
+        allDaySpans.push({ key, ...span });
+        continue;
+      }
+      const start = toInstant(event.start);
+      const end = toInstant(event.end ?? Number.NaN);
+      /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+      if (process.env.NODE_ENV !== "production") {
+        if (!start) problems.push([`event "${event.id}" has start=${JSON.stringify(event.start)}, which is not a date`, '{ start: "2026-03-12T09:00:00Z" }, or start: "2026-03-12" for all day']);
+        else if (!end) problems.push([`event "${event.id}" has no end`, '{ start, end: "2026-03-12T10:00:00Z" }']);
+        else if (end < start) problems.push([`event "${event.id}" ends before it starts`, "{ start, end } with end after start"]);
+      }
+      if (!start || !end || end < start) continue;
+      const from = formats.clock.at(start.getTime());
+      const to = formats.clock.at(end.getTime());
+      // An event that ends at midnight ends on the day before.
+      const lastDay = to.minutes === 0 && end > start ? addDays(to.day, -1) : to.day;
+      // A day or more of time goes in the all-day row, across the days it covers; whole days from
+      // midnight read as all-day events do.
+      if (end.getTime() - start.getTime() >= dayLength * 60_000) {
+        if (background) {
+          /* istanbul ignore else @preserve -- the else path exists only in production bundles */
+          if (process.env.NODE_ENV !== "production") problems.push([`background event "${event.id}" lasts a day or more, and background events are shorter`, "pass it in events, or give it a start and end time"]);
+          continue;
+        }
+        const span = spanOf(from.day, lastDay);
+        if (!span) continue;
+        const key = `all:${id}`;
+        const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
+        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, name: spoken(when, event.title, event, words[status]) });
+        allDaySpans.push({ key, ...span });
+        continue;
+      }
+      const when =
+        from.day === lastDay
+          ? [formats.weekdayLong.format(utcDate(from.day)), rangeText(from.minutes % 60 === 0 && to.minutes % 60 === 0 ? formats.onTheHour : formats.time, start, end)]
+          : [formats.acrossDays.formatRange(start, end)];
+      days.forEach((day, column) => {
+        if (day < from.day || day > lastDay) return;
+        const key = `${prefix}${column}:${id}`;
+        const top = day === from.day ? from.minutes : 0;
+        const bottom = day === to.day ? to.minutes : dayLength;
+        pieces.push({ key, event, status, background, day: column, start: top, end: bottom, name: spoken(when, title(event), event, words[status]) });
+        (background ? backgroundItems : timedItems)[column]!.push({ key, start: top, end: bottom });
+      });
     }
-    const start = toInstant(event.start);
-    const end = toInstant(event.end ?? Number.NaN);
-    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-    if (process.env.NODE_ENV !== "production") {
-      if (!start) problems.push([`event "${event.id}" has start=${JSON.stringify(event.start)}, which is not a date`, '{ start: "2026-03-12T09:00:00Z" }, or start: "2026-03-12" for all day']);
-      else if (!end) problems.push([`event "${event.id}" has no end`, '{ start, end: "2026-03-12T10:00:00Z" }']);
-      else if (end < start) problems.push([`event "${event.id}" ends before it starts`, "{ start, end } with end after start"]);
-    }
-    if (!start || !end || end < start) continue;
-    const from = formats.clock.at(start.getTime());
-    const to = formats.clock.at(end.getTime());
-    // An event that ends at midnight ends on the day before.
-    const lastDay = to.minutes === 0 && end > start ? addDays(to.day, -1) : to.day;
-    // A day or more of time goes in the all-day row, across the days it covers; whole days from
-    // midnight read as all-day events do.
-    if (end.getTime() - start.getTime() >= dayLength * 60_000) {
-      const span = spanOf(from.day, lastDay);
-      if (!span) continue;
-      const key = `all:${id}`;
-      const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
-      pieces.push({ key, event, status, day: span.first, start: -1, end: dayLength, name: spoken(when, event, words[status]) });
-      allDaySpans.push({ key, ...span });
-      continue;
-    }
-    const when =
-      from.day === lastDay
-        ? [formats.weekdayLong.format(utcDate(from.day)), rangeText(from.minutes % 60 === 0 && to.minutes % 60 === 0 ? formats.onTheHour : formats.time, start, end)]
-        : [formats.acrossDays.formatRange(start, end)];
-    days.forEach((day, column) => {
-      if (day < from.day || day > lastDay) return;
-      const key = `${column}:${id}`;
-      const top = day === from.day ? from.minutes : 0;
-      const bottom = day === to.day ? to.minutes : dayLength;
-      pieces.push({ key, event, status, day: column, start: top, end: bottom, name: spoken(when, event, words[status]) });
-      timedItems[column]!.push({ key, start: top, end: bottom });
-    });
-  }
-  pieces.sort((a, b) => a.day - b.day || a.start - b.start || b.end - a.end);
+  };
+  place(events, false);
+  place(backgroundEvents, true);
+  // A background event comes after the person's own that start with it.
+  pieces.sort((a, b) => a.day - b.day || a.start - b.start || Number(a.background) - Number(b.background) || b.end - a.end);
   const allDay = allDayLanes(allDaySpans);
   const timed = timedItems.map((items) => layoutDay(items));
+  const behind = backgroundItems.map((items) => layoutDay(items));
+  const hasBackground = backgroundItems.some((items) => items.length > 0);
 
   useAppearanceClassNameCheck(
     "TimeGrid",
@@ -451,7 +527,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           ],
           slotMinutes !== slotProp && [`slotMinutes={${String(slotProp)}} is not a slot length; use 15, 30 or 60`, "<TimeGrid slotMinutes={30}>"],
           ...problems,
-          ...events.flatMap((event): DevWarning[] => [
+          ...[...events, ...backgroundEvents].flatMap((event): DevWarning[] => [
             event.tone !== undefined && !(tones as readonly string[]).includes(event.tone) && [
               `event "${event.id}": tone="${String(event.tone)}" is not a tone; use "primary", "secondary", "success", "warning" or "destructive"`,
               `{ tone: "${Object.hasOwn(renamedTones, event.tone) ? renamedTones[event.tone] : "primary"}" }`,
@@ -496,6 +572,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey]);
 
+  // The app's day summaries make the header as tall as they are, which only a measure knows;
+  // events scrolled into view stop below it.
+  useLayoutEffect(() => {
+    if (!renderDaySummary) return;
+    const head = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    rootRef.current!.style.setProperty("--ouro-time-grid-head", `${head.offsetHeight}px`);
+  });
+
   const focusPiece = (key: string) => {
     setActive(key);
     rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!.focus();
@@ -530,10 +614,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     .trim();
   const hourLabels = Array.from({ length: 23 }, (_, index) => index + 1).filter((hour) => !nowAt || todayIndex < 0 || Math.abs(hour * 60 - nowAt.minutes) > 20);
 
+  // A week's background events are bars too thin for text; a day has room to label them.
+  const labelBackground = view === "day";
   const renderEvent = (piece: Piece, placed?: { top: number; bottom: number }) => {
-    const { event } = piece;
+    const { event, status, background } = piece;
+    const bar = background && !labelBackground;
     const tone = oneOf(tones, event.tone, "primary");
-    const { status } = piece;
     const lines = placed ? lineCount(placed.bottom - placed.top) : 1;
     const start = placed ? toInstant(event.start)! : null;
     const end = placed ? toInstant(event.end!)! : null;
@@ -562,27 +648,81 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       "data-ouro-event-key": piece.key,
       "data-status": status,
       "data-tone": tone,
+      "data-background": background ? "" : undefined,
       tabIndex: piece.key === tabStop ? 0 : -1,
       "aria-label": piece.name,
       "aria-current": event.id === selectedId ? ("true" as const) : undefined,
-      className: cn(eventClass, toneBarClass[tone], status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status], placed ? timedClass : allDayClass),
-      onClick: () => {
+      "aria-expanded": event.id === expandedId ? true : undefined,
+      className: cn(
+        eventClass,
+        bar ? backgroundBarClass : [toneBarClass[tone], background ? backgroundFillClass : status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status]],
+        placed ? timedClass : allDayClass,
+        // Under the person's own events, so a background event's touch target never covers them.
+        background && "z-[9]",
+      ),
+      onClick: (click: MouseEvent<HTMLElement>) => {
         setActive(piece.key);
-        onEventSelect?.(event);
+        onEventSelect?.(event, { element: click.currentTarget, background });
       },
     };
-    return event.href === undefined ? (
-      <button type="button" data-ouro-control="time-grid" data-ouro-part="event" {...shared}>
+    const body = (
+      <>
         <TouchTarget />
-        <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
-      </button>
+        {bar ? (
+          <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
+        ) : (
+          <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
+        )}
+      </>
+    );
+    const control =
+      event.href === undefined ? (
+        <button type="button" data-ouro-control="time-grid" data-ouro-part="event" {...shared}>
+          {body}
+        </button>
+      ) : (
+        <RouterLink href={event.href} data-ouro-control="time-grid" data-ouro-part="event-link" {...shared}>
+          {body}
+        </RouterLink>
+      );
+    // A bar names itself to a mouse and to keyboard focus; screen readers hear its name.
+    return bar ? (
+      <Tooltip
+        content={
+          <>
+            <span className="block tabular-nums">{rangeText(formats.time, start!, end!)}</span>
+            <span dir="auto" className="block font-medium">
+              {event.title}
+            </span>
+          </>
+        }
+      >
+        {control}
+      </Tooltip>
     ) : (
-      <RouterLink href={event.href} data-ouro-control="time-grid" data-ouro-part="event-link" {...shared}>
-        <TouchTarget />
-        <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
-      </RouterLink>
+      control
     );
   };
+
+  // One day's events, each in its place among those it overlaps.
+  const placedItems = (placements: ReadonlyArray<DayPlacement<string>>) =>
+    placements.map((placed) => {
+      const share = 100 / placed.columns;
+      return (
+        <li
+          key={placed.key}
+          className="pointer-events-auto absolute pe-px"
+          style={{
+            top: minutesTall(placed.top),
+            height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
+            insetInlineStart: `${placed.column * share}%`,
+            width: `${placed.span * share}%`,
+          }}
+        >
+          {renderEvent(pieces.find((piece) => piece.key === placed.key)!, placed)}
+        </li>
+      );
+    });
 
   return (
     <div
@@ -595,7 +735,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:3rem] [--ouro-time-grid-tint:14%] pointer-coarse:[--ouro-time-grid-hour:3.5rem] dark:[--ouro-time-grid-tint:24%]",
         className,
       )}
-      style={{ "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem`, ...style } as CSSProperties}
+      style={
+        {
+          ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem` }),
+          "--ouro-time-grid-lane": labelBackground ? "clamp(7rem, 40%, 32rem)" : "0.75rem",
+          ...style,
+        } as CSSProperties
+      }
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
@@ -619,6 +765,16 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               </span>
             </div>
           ))}
+          {renderDaySummary ? (
+            <>
+              <div aria-hidden="true" />
+              {days.map((day) => (
+                <div key={day} role="group" aria-label={formats.fullDay.format(utcDate(day))} data-ouro-time-grid-summary="" className="min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground">
+                  {renderDaySummary(day)}
+                </div>
+              ))}
+            </>
+          ) : null}
           <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-muted-foreground">
             {allDayLabel}
           </div>
@@ -708,24 +864,27 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   </div>
                 ) : null}
                 {timed[index]!.length > 0 ? (
-                  <ul role="list" aria-label={formats.fullDay.format(utcDate(day))} aria-current={index === todayIndex ? "date" : undefined} className="pointer-events-none absolute inset-0 m-0 list-none p-0">
-                    {timed[index]!.map((placed) => {
-                      const share = 100 / placed.columns;
-                      return (
-                        <li
-                          key={placed.key}
-                          className="pointer-events-auto absolute pe-px"
-                          style={{
-                            top: minutesTall(placed.top),
-                            height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
-                            insetInlineStart: `${placed.column * share}%`,
-                            width: `${placed.span * share}%`,
-                          }}
-                        >
-                          {renderEvent(pieces.find((piece) => piece.key === placed.key)!, placed)}
-                        </li>
-                      );
-                    })}
+                  <ul
+                    role="list"
+                    aria-label={formats.fullDay.format(utcDate(day))}
+                    aria-current={index === todayIndex ? "date" : undefined}
+                    className={cn("pointer-events-none absolute inset-0 m-0 list-none p-0", hasBackground && "start-(--ouro-time-grid-lane)")}
+                  >
+                    {placedItems(timed[index]!)}
+                  </ul>
+                ) : null}
+                {behind[index]!.length > 0 ? (
+                  <ul
+                    role="list"
+                    aria-label={`${formats.fullDay.format(utcDate(day))}, ${backgroundLabel}`}
+                    data-ouro-time-grid-background=""
+                    className={cn(
+                      "pointer-events-none absolute inset-y-0 start-0 m-0 box-border w-(--ouro-time-grid-lane) list-none p-0",
+                      // A day's wide lane keeps apart from the person's own with a dashed edge.
+                      labelBackground && "border-0 border-e border-dashed border-border",
+                    )}
+                  >
+                    {placedItems(behind[index]!)}
                   </ul>
                 ) : null}
               </div>
@@ -738,6 +897,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 }
 
 /** What a screen reader hears for an event: when, the title, the status and the description. */
-function spoken(when: string[], event: TimeGridEvent, status: string): string {
-  return [...when, event.title, status, event.description].filter(Boolean).join(", ");
+function spoken(when: string[], title: string, event: TimeGridEvent, status: string): string {
+  return [...when, title, status, event.description].filter(Boolean).join(", ");
 }
