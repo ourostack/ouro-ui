@@ -984,6 +984,8 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - name: Latency tests
         run: |
+          # The runner's CPU, since the measured times scale with it.
+          grep -m1 'model name' /proc/cpuinfo || true
           mkdir -p .tmp/timings
           node scripts/shard.mjs latency-list > .tmp/timings/latency-tests.txt
           node scripts/shard.mjs latency "$SHARD" .tmp/timings/latency-tests.txt > .tmp/latency-shard.txt
