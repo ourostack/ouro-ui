@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Lightbox, type LightboxImage } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names). The photos are
@@ -147,7 +147,13 @@ async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
 
 /** The viewer alone, open from the start, as an app's own layout might open it. */
 function OpenViewer() {
-  const [open, setOpen] = useState(true);
+  // Mounted closed and opened once mounted, as an app keeps a Lightbox mounted and changes open, so the
+  // viewer runs its open transition (one mounted already open says so in development).
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const [index, setIndex] = useState(0);
   return <Lightbox label="Coast photos" images={coast} open={open} index={index} onOpenChange={setOpen} onIndexChange={setIndex} />;
 }
