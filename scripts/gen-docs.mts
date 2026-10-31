@@ -700,7 +700,9 @@ const readmeItems = [
   "<!-- items:start -->",
   GENERATED,
   "",
-  `Components: ${components.map((entry) => code(entry.name)).join(", ")}.`,
+  // One name per line, alphabetical: Markdown joins the lines into one paragraph, and pull
+  // requests that add different components or helpers change different lines, so they merge.
+  `Components:\n${components.map((entry) => entry.name).sort().map(code).join(",\n")}.`,
   "",
   `${claim(
     "Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs.",
@@ -720,7 +722,7 @@ const readmeItems = [
   "",
   "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
   "",
-  `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })} ${helperItems.map(code).join(", ")}. ${claim(
+  `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })}\n${helperItems.map(code).join(",\n")}.\n${claim(
     "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",
     { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } },
   )}`,
