@@ -1029,6 +1029,16 @@ describe("Message actions", () => {
     expect(message.getAttribute("data-ouro-message-active")).toBe("");
   });
 
+  it("shows the bar after a tap on a message that takes focus itself, as one in a MessageList does", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" tabIndex={-1} actions={actionsFor([])}>
+        Morning!
+      </Message>,
+    );
+    await act(async () => void bubbleOf(message).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
+    expect(message.getAttribute("data-ouro-message-active")).toBe("");
+  });
+
   it("ignores taps on a message with no actions", async () => {
     const { message } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill">
