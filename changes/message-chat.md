@@ -1,4 +1,4 @@
 - New: Message takes `variant` ("chat", "post" or "reply") for a chat between people, channel posts and thread replies, with `time`, `continued` runs, a `footer`, a post's `subject` and `thread`, an `Avatar` element as `avatar`, and an action bar from `actions` and `menu`.
 - New: ThreadSummary, the line under a post with who replied, a button with the reply count that opens the thread, and the last reply's time, or a Reply button before anyone replies.
 - MessageList pulls a `continued` message up under the one before it.
-- Message loads its action bar, with Tooltip, only for a message that has actions or a menu, in the browser after the server HTML, and Menu only when a message's menu first opens. A page whose messages have no bar loads neither.
+- Message loads its action bar's code, with Tooltip, in the browser for a message that has actions or a menu, and Menu's code when a message's menu first opens.

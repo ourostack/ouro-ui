@@ -66,7 +66,8 @@ export function MessageActionBar({
   // The pressed button leaves for Menu's trigger: when it had focus, the trigger takes it.
   const hadFocus = useRef(false);
   useLayoutEffect(() => {
-    if (hadFocus.current) barRef.current!.querySelector<HTMLElement>('[data-ouro-part="menu"]')!.focus();
+    // The menu button is always the bar's last.
+    if (hadFocus.current) buttons(barRef.current!).at(-1)!.focus();
   }, [LoadedMenu]);
   const hasMenu = menu !== undefined && menu.length > 0;
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
@@ -90,17 +91,6 @@ export function MessageActionBar({
     if (key !== null) setCurrent(key);
   };
   const iconButton = "w-(--ouro-button-h) px-0";
-  const menuButton = {
-    "data-ouro-control": "message",
-    "data-ouro-part": "menu",
-    "data-ouro-message-action": MENU_KEY,
-    tone: "secondary",
-    variant: "plain",
-    size: "sm",
-    "aria-label": menuLabel,
-    tabIndex: tabStop === MENU_KEY ? 0 : -1,
-    className: iconButton,
-  } as const;
   const more = <MoreIcon aria-hidden="true" className="size-4" />;
   return (
     <div
@@ -147,10 +137,36 @@ export function MessageActionBar({
             onOpenChange={setMenuOpen}
             // No tooltip here: one reopened as focus comes back from the menu would cover the bar of
             // the message below, and the row of dots needs no words.
-            trigger={<Button {...menuButton}>{more}</Button>}
+            trigger={
+              <Button
+                data-ouro-control="message"
+                data-ouro-part="menu"
+                data-ouro-message-action={MENU_KEY}
+                tone="secondary"
+                variant="plain"
+                size="sm"
+                aria-label={menuLabel}
+                tabIndex={tabStop === MENU_KEY ? 0 : -1}
+                className={iconButton}
+              >
+                {more}
+              </Button>
+            }
           />
         ) : (
-          <Button {...menuButton} aria-haspopup="menu" aria-expanded={false} onClick={(event) => {
+          <Button
+            data-ouro-control="message"
+            data-ouro-part="menu"
+            data-ouro-message-action={MENU_KEY}
+            tone="secondary"
+            variant="plain"
+            size="sm"
+            aria-label={menuLabel}
+            tabIndex={tabStop === MENU_KEY ? 0 : -1}
+            className={iconButton}
+            aria-haspopup="menu"
+            aria-expanded={false}
+            onClick={(event) => {
               hadFocus.current = document.activeElement === event.currentTarget;
               openMenu();
             }}
