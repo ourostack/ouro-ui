@@ -36,7 +36,7 @@ The props the modes share. Type: `AvatarProps`.
 | `name` (required) | `string` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
 | `shape` | `"circle" \| "square"` | `"circle"` | `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a channel, an app or a bot. |
-| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "xs" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials and the presence dot grow with it. Inside an `AvatarGroup`, the group's size applies. |
+| `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials and the presence dot grow with it. Inside an `AvatarGroup`, the group's size applies. |
 | `src` | `string` |  | The image URL. Until it loads, and if it fails, the initials show. |
 
 ## Modes

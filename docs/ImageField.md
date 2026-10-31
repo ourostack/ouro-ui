@@ -50,7 +50,7 @@ Type: `ImageFieldProps`.
 | `rejectMessage` | `((reason: ImageFieldRejection, file: File) => string)` |  | The message for a file turned away, for apps in other languages. |
 | `removeLabel` | `string` | `"Remove"` | The remove button's label. |
 | `required` | `boolean` |  | Marks the field as required: a mark after the label. Check that a photo was chosen when the form submits. |
-| `shape` | `"circle" \| "rect"` | `"rect"` | `circle` shows and crops a round photo, for a profile; `rect` a rounded rectangle. |
+| `shape` | `"rect" \| "circle"` | `"rect"` | `circle` shows and crops a round photo, for a profile; `rect` a rounded rectangle. |
 | `src` | `string \| null` |  | The photo the field shows until another is chosen, such as the one already saved. |
 
 ## Don't use
