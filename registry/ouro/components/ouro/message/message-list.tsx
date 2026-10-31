@@ -137,8 +137,8 @@ interface Spoken {
  * reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its
  * author's name and its text in elements marked `data-ouro-message-author` and
  * `data-ouro-message-content`, as `Message` does. The list keeps the reader's place among them and
- * announces them as it does `Message`s, and moves focus among them; give each a focus ring of its
- * own (`focus-visible:outline-2`), as `Message` has. Leave `data-ouro="message"` to Ouro's `Message`: it names
+ * announces them as it does `Message`s, and moves focus among them. Give your component a focus
+ * ring (`focus-visible:outline-2`), as `Message` has. Leave `data-ouro="message"` to Ouro's `Message`: it names
  * the element Ouro's Message, and X-ray outlines it as one.
  *
  * Use a plain list instead for messages that do not arrive live, such as an inbox.
@@ -659,11 +659,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         onKeyDown={(event) => keyHandler.current!(event)}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
-        <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute size-0 outline-none" />
+        <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
         <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">
           {children}
         </div>
-        <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute size-0 outline-none" />
+        <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
       </div>
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
       <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
