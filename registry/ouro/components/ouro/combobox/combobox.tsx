@@ -14,7 +14,8 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { holdPageAtPress, PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   chipClass,
   chipRemoveClass,
