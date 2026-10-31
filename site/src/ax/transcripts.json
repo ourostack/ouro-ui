@@ -16,7 +16,7 @@
       "refused": true
     },
     {
-      "command": "notes post abc123 \"Running late, start without me\" --why \"Sam asked me to tell the room\"",
+      "command": "notes post abc123 \"Running late, start without me\" --why \"{person} asked me to tell the room\"",
       "output": "Posted to \"Design sync\". Everyone in it can see it.\nChecked: read the room's last message back.\nReceipt: m1\nNext: notes watch abc123  (wait for a reply)"
     }
   ],
@@ -25,11 +25,11 @@
     {
       "command": "notes watch abc123 --timeout 2m",
       "meanwhile": {
-        "by": "Ana Ruiz",
+        "by": "{replier.full}",
         "text": "Sounds good, we'll begin with the dates",
         "at": "2026-10-30T16:11:00.000Z"
       },
-      "output": "Happened: a message in \"Design sync\".\n2026-10-30T16:11:00.000Z Ana Ruiz: Sounds good, we'll begin with the dates"
+      "output": "Happened: a message in \"Design sync\".\n2026-10-30T16:11:00.000Z {replier.full}: Sounds good, we'll begin with the dates"
     }
   ],
   "edit": [
@@ -39,7 +39,7 @@
       "refused": true
     },
     {
-      "command": "notes note abc123 \"ask Ana about the dates\"",
+      "command": "notes note abc123 \"ask {replier} about the dates\"",
       "output": "Note added in \"Design sync\". Only you see it; nothing was sent."
     }
   ]

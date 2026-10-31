@@ -3,33 +3,34 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { resetRooms, rooms } from "@/registry/ouro/ax/example-cli";
 import { CommandLine, OutputLine, Terminal } from "./parts";
+import { cast, CAST } from "./cast";
 import { runNotes, say } from "./run";
 
 /** What the visitor can try with one press, in plain words, and the command each one runs. */
-export const TRIES = [
+export const TRIES = ([
   { label: "Ask for help", command: "notes --help" },
   { label: "List the rooms", command: "notes rooms" },
   { label: "Post without a reason", command: 'notes post abc123 "Back soon"' },
-  { label: "Preview it", command: 'notes post abc123 "Back soon" --why "Sam asked me to say so" --dry-run' },
-  { label: "Post it", command: 'notes post abc123 "Back soon" --why "Sam asked me to say so"' },
+  { label: "Preview it", command: 'notes post abc123 "Back soon" --why "{person} asked me to say so" --dry-run' },
+  { label: "Post it", command: 'notes post abc123 "Back soon" --why "{person} asked me to say so"' },
   { label: "Wait for a reply", command: "notes watch abc123 --timeout 2m" },
   { label: "Say “edit”", command: "notes edit abc123" },
-  { label: "Add a private note", command: 'notes note abc123 "ask Ana about the dates"' },
+  { label: "Add a private note", command: 'notes note abc123 "ask {replier} about the dates"' },
   { label: "Misspell a flag", command: "notes rooms --limt 3" },
-  { label: "Preview it as JSON", command: 'notes post abc123 "Back soon" --why "Sam asked me to say so" --dry-run --json' },
-] as const;
+  { label: "Preview it as JSON", command: 'notes post abc123 "Back soon" --why "{person} asked me to say so" --dry-run --json' },
+] as const).map((tryIt) => ({ label: tryIt.label, command: cast(tryIt.command) }));
 
 const REPLIES = [
-  { by: "Ana Ruiz", text: "Got it, thanks for the heads-up" },
-  { by: "Kim Ito", text: "Same here, I'll join late too" },
-  { by: "Ana Ruiz", text: "Dates first, then the banner" },
+  { by: CAST.replier.full, text: "Got it, thanks for the heads-up" },
+  { by: CAST.other.full, text: "Same here, I'll join late too" },
+  { by: CAST.replier.full, text: "Dates first, then the banner" },
 ];
 
 type Entry = { kind: "command"; text: string } | { kind: "line"; text: string; refused: boolean };
 
 /**
  * "Your turn": the kit's example tool, running in this page. The visitor types or presses a command as the agent;
- * on the left, the room Sam shares changes with it, and a press of "Reply as someone in the room" is someone
+ * on the left, the room the person shares changes with it, and a press of "Reply as someone in the room" is someone
  * answering, which ends a wait the agent started.
  */
 export default function Playground(): JSX.Element {
@@ -83,19 +84,19 @@ export default function Playground(): JSX.Element {
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <div className="ax-screen" role="group" aria-label="Design sync, the room Sam shares">
+      <div className="ax-screen" role="group" aria-label={cast("Design sync, the room {person} shares")}>
         <span className="ax-card-head" aria-hidden="true">
-          Design sync, the room Sam shares
+          {cast("Design sync, the room {person} shares")}
         </span>
-        <p className="m-0 text-sm text-muted-foreground">{room ? room.members.join(", ") : ""}</p>
+        <p className="m-0 text-sm text-muted-foreground">{[CAST.person.full, CAST.replier.full, CAST.other.full].join(", ")}</p>
         <ul aria-label="Messages" className="m-0 grid list-none gap-2 p-0" data-testid="ax-room">
           {room && room.messages.length > 0 ? (
             room.messages.map((message) => (
               <li key={message.cursor} className="ax-card">
                 <span>
-                  <strong className="font-semibold">{message.by === "you" ? "Sam Lee" : message.by}</strong> {message.summary}
+                  <strong className="font-semibold">{message.by === "you" ? CAST.person.full : message.by}</strong> {message.summary}
                 </span>
-                {message.by === "you" && <span className="text-sm text-muted-foreground">Sent by Sam's agent</span>}
+                {message.by === "you" && <span className="text-sm text-muted-foreground">{cast("Sent by {person}'s agent")}</span>}
               </li>
             ))
           ) : (
@@ -104,7 +105,7 @@ export default function Playground(): JSX.Element {
         </ul>
         {room && room.notes.length > 0 && (
           <div className="ax-card" data-testid="ax-notes">
-            <span className="ax-card-head">Sam's notes, only Sam sees them</span>
+            <span className="ax-card-head">{cast("{person}'s notes, only {person} sees them")}</span>
             <ul className="m-0 grid list-none gap-1 p-0">
               {room.notes.map((note, index) => (
                 <li key={index}>{note}</li>
@@ -119,8 +120,8 @@ export default function Playground(): JSX.Element {
         </div>
       </div>
       <div className="grid min-w-0 content-start gap-4">
-        <Terminal label="The agent's terminal">
-          <pre ref={log} role="log" aria-label="The agent's terminal" tabIndex={0} className="ax-term-body max-h-[26rem] min-h-[12rem] overflow-y-auto">
+        <Terminal label={cast("What {agent} sees")}>
+          <pre ref={log} role="log" aria-label={cast("What {agent} sees")} tabIndex={0} className="ax-term-body max-h-[26rem] min-h-[12rem] overflow-y-auto">
             {entries.length === 0 && <span className="ax-term-line ax-term-out">Type a command below, or press one of the tries.</span>}
             {entries.map((entry, index) => {
               const fresh = index >= seenUpTo;
@@ -142,7 +143,7 @@ export default function Playground(): JSX.Element {
         </Terminal>
         <form onSubmit={submit} className="flex items-end gap-2">
           <TextField
-            label="Run a command as the agent"
+            label={cast("Run a command as {agent}")}
             value={line}
             onChange={(event) => setLine(event.currentTarget.value)}
             startAdornment="$"

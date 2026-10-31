@@ -52,10 +52,10 @@ export function Transcript({ label, steps, waiting, after }: { label: string; st
   );
 }
 
-/** One thing Sam sees: a line of their chat with the agent, a message in the room, a notification or a private note. */
+/** One thing the person sees: a line of their chat with the agent, a message in the room, a notification or a private note. */
 function SeenItem({ item }: { item: Seen }): JSX.Element {
   switch (item.kind) {
-    case "sam":
+    case "person":
       return <p className="ax-bubble ax-bubble-sam">{item.text}</p>;
     case "agent":
       return <p className="ax-bubble">{item.text}</p>;
