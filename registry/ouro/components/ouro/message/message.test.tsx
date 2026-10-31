@@ -837,7 +837,14 @@ describe("Message actions", () => {
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
     const copied = vi.fn();
     const { message } = await render(
-      <Message variant="post" role="assistant" name="Jonah Vale" menu={[{ label: "Copy link", onClick: copied }]} menuLabel="Plus d'actions" actionsLabel="Actions du message">
+      <Message
+        variant="post"
+        role="assistant"
+        name="Jonah Vale"
+        menu={[{ label: "Copy link", icon: <svg data-testid="link-icon" viewBox="0 0 16 16" />, onClick: copied }]}
+        menuLabel="Plus d'actions"
+        actionsLabel="Actions du message"
+      >
         Agenda
       </Message>,
     );
@@ -848,7 +855,9 @@ describe("Message actions", () => {
     expect(more.getAttribute("aria-label")).toBe("Plus d'actions");
     expect(more.tabIndex).toBe(0);
     await userEvent.click(more);
-    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    await expect.element(page.getByRole("menuitem", { name: "Copy link", exact: true })).toBeVisible();
+    // An entry's icon shows before its label, as in Menu.
+    expect(page.getByRole("menuitem", { name: "Copy link" }).element().querySelector('[data-ouro-menu-icon] [data-testid="link-icon"]')).not.toBeNull();
     await userEvent.unhover(document.body);
     expect(bar.getAttribute("data-menu-open")).toBe("");
     expect(getComputedStyle(bar).opacity).toBe("1");

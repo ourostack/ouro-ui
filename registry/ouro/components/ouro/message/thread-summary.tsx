@@ -42,6 +42,15 @@ export interface ThreadSummaryOwnProps {
    * @default (count) => count === 1 ? "1 reply" : `${count} replies`
    */
   repliesLabel?: ((count: number) => string) | undefined;
+  /**
+   * What screen readers hear for the button, when its words alone ("2 replies") would repeat
+   * from post to post: "2 replies to Riley's post Settings mockups". Start it with the words the
+   * button shows, so speech input that says them still finds it (WCAG's label in name).
+   * @claim "What screen readers hear for the" registry/ouro/components/ouro/message/thread-summary.test.tsx verify:testExists(registry/ouro/components/ouro/message/thread-summary.test.tsx::ThreadSummary > names its button for screen readers with label, keeping the words it shows)
+   * @claim "Start it with the words the" registry/ouro/components/ouro/message/thread-summary.test.tsx verify:testExists(registry/ouro/components/ouro/message/thread-summary.test.tsx::ThreadSummary development messages > says when label leaves out the words the button shows)
+   * @claim "Start it with the words the" https://www.w3.org/WAI/WCAG22/Understanding/label-in-name verify:urlOk(https://www.w3.org/WAI/WCAG22/Understanding/label-in-name)
+   */
+  label?: string | undefined;
   /** The button's words before anyone has replied, for other languages. @default "Reply" */
   replyLabel?: string | undefined;
   /**
@@ -94,6 +103,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
     replyLabel = "Reply",
     lastReplyLabel = defaultLast,
     repliersLabel = "Replied",
+    label,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     onClick,
@@ -108,17 +118,23 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
       : // Stryker disable next-line StringLiteral: production only; the check never runs there.
         /* istanbul ignore next @preserve -- production only */ "",
   );
+  const replied = count > 0;
+  const shown = replied ? repliesLabel(count) : replyLabel;
   useDevWarnings(
     "ThreadSummary",
     process.env.NODE_ENV !== "production"
       ? () => [
+          label !== undefined &&
+            !label.toLowerCase().startsWith(shown.toLowerCase()) && [
+              `label "${label}" does not start with the button's words "${shown}", so speech input that says them misses it`,
+              `<ThreadSummary count={${count}} label="${shown} to Riley's post">`,
+            ],
           onOpen === undefined && ["onOpen is missing, so the button opens nothing", "<ThreadSummary count={2} onOpen={openThread}>"],
           onClick !== undefined && ["onClick is not a prop", "<ThreadSummary count={2} onOpen={openThread}>"],
           replyCount !== undefined && ["replyCount is not a prop", "<ThreadSummary count={replies.length}>"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const replied = count > 0;
   const faces = replied && repliers !== undefined && repliers.length > 0;
   return (
     <div {...rest} data-ouro="thread-summary" className={cn("box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1", className)}>
@@ -135,11 +151,12 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         variant="plain"
         size="sm"
         startIcon={replied ? undefined : ReplyIcon}
+        aria-label={label}
         onClick={(event) => onOpen?.(event)}
         // The label lines up with the text above it, or sits just after the avatars.
         className={faces ? "-ms-1" : "-ms-(--ouro-button-px)"}
       >
-        {replied ? repliesLabel(count) : replyLabel}
+        {shown}
       </Button>
       {replied && lastReply !== undefined && (
         <time dateTime={lastReplyDateTime} className="text-xs text-muted-foreground tabular-nums">

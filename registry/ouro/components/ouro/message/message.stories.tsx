@@ -133,8 +133,8 @@ function actionsFor(react: (key: string) => void, reply: () => void): readonly M
 }
 
 const menu = [
-  { label: "Copy text", onClick: () => {} },
-  { label: "Copy link", onClick: () => {} },
+  { label: "Copy text", icon: <Icon d="M8 8h11v11H8zM5 16V5h11" />, onClick: () => {} },
+  { label: "Copy link", icon: <Icon d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1" />, onClick: () => {} },
   { type: "separator" as const },
   { label: "Edit", disabled: true },
   { label: "Delete", tone: "destructive" as const, disabled: true },

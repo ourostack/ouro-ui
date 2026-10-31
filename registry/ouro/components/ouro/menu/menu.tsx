@@ -59,6 +59,12 @@ export interface MenuItemEntry {
   type?: "item" | undefined;
   /** The item's text. */
   label: string;
+  /**
+   * An icon before the text, as a `MenuItem` shows one in its children: an `<svg>` drawn at 16px
+   * in the item's color. It is decoration: screen readers hear the label alone.
+   * @claim "An icon before the text, as a" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > shows an entry's icon before its label, at 16px, out of its name)
+   */
+  icon?: ReactNode;
   /** Runs when the item is chosen, by click, tap or Enter. The menu then closes. */
   onClick?: (() => void) | undefined;
   /** Makes the item a link, through `OuroProvider`'s router link for an internal path. */
@@ -317,6 +323,11 @@ function renderEntries(entries: readonly MenuEntry[]): ReactNode {
             tone={entry.tone}
             disabled={entry.disabled}
           >
+            {entry.icon !== undefined && (
+              <span aria-hidden="true" data-ouro-menu-icon="" className="flex shrink-0">
+                {entry.icon}
+              </span>
+            )}
             {entry.label}
           </MenuItem>
         );

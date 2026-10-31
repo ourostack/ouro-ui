@@ -12,4 +12,4 @@ export const menu04 = <Menu open={open} onOpenChange={setOpen} trigger={<Button>
 export const menu05 = <Menu trigger={<Button>Actions</Button>} options={[{ label: "Edit", onClick: edit }]} items={[]} />;
 export const menu06 = <Menu trigger={<Button>Actions</Button>} isOpen={open} items={[{ label: "Edit", onClick: edit }]} />;
 export const menu07 = <Menu contextTrigger={<div>Recipe card</div>} modal={false} items={[{ label: "Edit", onClick: edit }]} />;
-export const menuOk01 = <Menu open={open} onOpenChange={setOpen} trigger={<Button>Actions</Button>} side="top" align="end" items={[{ label: "Edit", onClick: edit, shortcut: ["mod", "e"] }, { type: "separator" }, { label: "Delete", tone: "destructive", onClick: edit }]} />;
+export const menuOk01 = <Menu open={open} onOpenChange={setOpen} trigger={<Button>Actions</Button>} side="top" align="end" items={[{ label: "Edit", icon: <svg aria-hidden="true" />, onClick: edit, shortcut: ["mod", "e"] }, { type: "separator" }, { label: "Delete", tone: "destructive", onClick: edit }]} />;

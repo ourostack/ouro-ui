@@ -72,6 +72,19 @@ describe("ThreadSummary", () => {
     expect(empty.querySelector('[role="group"]')).toBeNull();
   });
 
+  it("names its button for screen readers with label, keeping the words it shows", async () => {
+    const opened = vi.fn();
+    const { rerender } = await render(<ThreadSummary count={2} onOpen={opened} label="2 replies to Riley's post Settings mockups" />);
+    const button = page.getByRole("button", { name: "2 replies to Riley's post Settings mockups" });
+    await expect.element(button).toHaveTextContent("2 replies");
+    await userEvent.click(button);
+    expect(opened).toHaveBeenCalledTimes(1);
+    // Before a reply, in any letter case, the label still starts with the words shown.
+    await rerender(<ThreadSummary count={0} onOpen={opened} label="reply to Riley's post Settings mockups" />);
+    await expect.element(page.getByRole("button", { name: "reply to Riley's post Settings mockups" })).toHaveTextContent("Reply");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("is a single Reply button with no replies yet", async () => {
     const onOpen = vi.fn();
     const { summary } = await render(<ThreadSummary count={0} repliers={repliers} lastReply="7:44 AM" onOpen={onOpen} />);
@@ -166,6 +179,13 @@ describe("ThreadSummary development messages", () => {
     expect(summary.hasAttribute("replycount")).toBe(false);
     // A press without onOpen does nothing, and does not throw.
     await userEvent.click(summary.querySelector("button")!);
+  });
+
+  it("says when label leaves out the words the button shows", async () => {
+    await render(<ThreadSummary count={2} onOpen={() => {}} label="Open the thread on Settings mockups" />);
+    expect(warn).toHaveBeenCalledWith(
+      `[ouro-ui] ThreadSummary: label "Open the thread on Settings mockups" does not start with the button's words "2 replies", so speech input that says them misses it. Fix: <ThreadSummary count={2} label="2 replies to Riley's post">.`,
+    );
   });
 
   it("checks the className", async () => {
