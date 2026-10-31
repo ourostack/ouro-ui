@@ -27,16 +27,9 @@ export function nearScreen(id: string): Promise<void> {
 }
 
 /**
- * Loads an island's chunk, and once more if that fails: a fetch the browser drops (a flaky network,
- * or WebKit cancelling module loads) gets a second try before the island gives up.
- */
-export function loadWithRetry<T>(load: () => Promise<T>): Promise<T> {
-  return load().catch(() => load());
-}
-
-/**
- * What an island shows when its chunk still won't load: a line saying so, with a way to reload, in a
- * section with the island's own id, so links to it still land.
+ * What an island shows when its chunk won't load: a line saying so, with a way to reload (a reload
+ * starts the page's module loading afresh), in a section with the island's own id, so links to it
+ * still land.
  */
 export function IslandFallback({ id }: { id: string }): JSX.Element {
   return (
@@ -74,12 +67,12 @@ export class IslandBoundary extends Component<{ id: string; children: ReactNode 
  * Each chapter as an island (site-design.md: each chapter "hydrated when it nears the viewport"). The
  * server renders it whole, so it reads before any JavaScript; in the browser its chunk loads only
  * as the chapter nears the screen, and React hydrates the server's HTML then. Until that moment the
- * page's own closure carries none of its code. A chunk that fails to load is tried once more
- * (loadWithRetry), and one that still fails leaves the island's fallback and the rest of the page
- * working (IslandBoundary).
+ * page's own closure carries none of its code. A chunk that fails to load leaves the island's
+ * fallback and the rest of the page working (IslandBoundary). It is not tried again in place: the
+ * browser keeps a failed module fetch for the page's life, so only a reload loads it afresh.
  */
 export function island(id: string, load: () => Promise<{ default: ComponentType }>): () => JSX.Element {
-  const Chapter = lazy(() => (import.meta.env.SSR ? load() : nearScreen(id).then(() => loadWithRetry(load))));
+  const Chapter = lazy(() => (import.meta.env.SSR ? load() : nearScreen(id).then(load)));
   return function Island(): JSX.Element {
     return (
       <IslandBoundary id={id}>
