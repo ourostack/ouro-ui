@@ -110,14 +110,28 @@ describe("Command pressed and closing on a phone", () => {
     await openEntries([{ label: "Switch theme", onSelect }, { label: "Sign out", onSelect: run }]);
     await userEvent.type(input(), "swi");
     await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBe(1);
-    await userEvent.keyboard("{Enter}");
-    expect(onSelect).toHaveBeenCalledOnce();
-    const seen = new Set<number>();
-    while (popup()) {
-      seen.add(document.querySelectorAll('[role="option"]').length);
-      expect(input().value).toBe("swi");
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+    // Recorded on every frame from before the press: on a loaded runner the sheet can finish
+    // sliding out before the keyboard command returns, and a read after it would see nothing.
+    const seen = new Set<string>();
+    let closing = 0;
+    let watching = true;
+    const watch = () => {
+      if (!watching) return;
+      if (popup()) {
+        seen.add(`${document.querySelectorAll('[role="option"]').length} ${input().value}`);
+        if (onSelect.mock.calls.length > 0) closing++;
+      }
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    try {
+      await userEvent.keyboard("{Enter}");
+      expect(onSelect).toHaveBeenCalledOnce();
+      await expect.poll(() => popup()).toBeNull();
+    } finally {
+      watching = false;
     }
-    expect([...seen]).toEqual([1]);
+    expect(closing).toBeGreaterThan(0);
+    expect([...seen]).toEqual(["1 swi"]);
   });
 });
