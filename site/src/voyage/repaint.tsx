@@ -17,10 +17,18 @@ export const DIVE_CHECKS = [
   { id: "harpooner", label: "Wake the harpooner" },
 ] as const;
 
-/** Copies text, then says so in a toast; a refusal (no clipboard, no permission) says so too. */
-async function copyText(text: string, done: string, how: string): Promise<void> {
+/**
+ * Copies text, then says so in a toast; a refusal (no clipboard, no permission) says so too. Text
+ * still loading goes in a ClipboardItem as a promise, so the write starts inside the click, which
+ * Safari requires; without ClipboardItem it is written once it arrives.
+ */
+async function copyText(text: string | Promise<string>, done: string, how: string): Promise<void> {
   try {
-    await navigator.clipboard.writeText(text);
+    if (typeof text !== "string" && typeof ClipboardItem === "function") {
+      await navigator.clipboard.write([new ClipboardItem({ "text/plain": text.then((value) => new Blob([value], { type: "text/plain" })) })]);
+    } else {
+      await navigator.clipboard.writeText(await text);
+    }
     toast(done, { tone: "success", description: how });
   } catch {
     toast("Couldn't copy", { tone: "destructive", description: "Your browser kept the clipboard closed. Select the CSS on GitHub instead." });
@@ -212,7 +220,7 @@ export function Repaint(): JSX.Element {
           <h2 id="repaint-title" className="site-h2">
             Repaint the whole ship
           </h2>
-          <p className="site-lede mt-5 max-w-[36ch]">Every part reads the same handful of colours, so one change repaints the lot: this page, and your app.</p>
+          <p className="site-lede mt-5 max-w-[36ch]">The parts read a handful of shared colours, so one change repaints the ship: this page, and your app.</p>
           <div role="group" aria-label="Presets" className="site-specimens mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
             {presetList.map((item) => (
               <Button
@@ -236,13 +244,13 @@ export function Repaint(): JSX.Element {
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button onClick={() => void presetCss(name, "theme").then((css) => copyText(css, `Copied the ${presetNamed(name).label} theme`, "Paste it at the end of your global CSS. The fonts come with it."))}>
+            <Button onClick={() => void copyText(presetCss(name, "theme"), `Copied the ${presetNamed(name).label} theme`, "Paste it at the end of your global CSS. The fonts come with it.")}>
               Copy theme
             </Button>
             <Button
               variant="outline"
               tone="secondary"
-              onClick={() => void presetCss(name, "tokens").then((css) => copyText(css, `Copied the ${presetNamed(name).label} tokens`, "Paste it at the end of your global CSS. Just the variables, without the fonts."))}
+              onClick={() => void copyText(presetCss(name, "tokens"), `Copied the ${presetNamed(name).label} tokens`, "Paste it at the end of your global CSS. Just the variables, without the fonts.")}
             >
               Copy tokens only
             </Button>
@@ -267,7 +275,7 @@ export function Repaint(): JSX.Element {
                     size="sm"
                     aria-label={item.name}
                     aria-pressed={made && item === accent}
-                    className="site-maker-accent h-auto rounded-full p-1"
+                    className="site-dot h-auto p-1"
                     style={{ "--accent-dot": mode === "dark" ? item.dark[0] : item.light[0] } as CSSProperties}
                     onClick={() => {
                       setAccent(item);
@@ -291,7 +299,7 @@ export function Repaint(): JSX.Element {
             <pre className="site-mono m-0 w-full max-w-xl overflow-x-auto rounded-lg bg-muted px-5 py-4 text-[0.8125rem] leading-relaxed" data-site-maker-css="">
               <code>{makerCss(accent, radius)}</code>
             </pre>
-            <Button variant="outline" tone="secondary" onClick={() => void copyText(makerCss(accent, radius), "Copied your paint", "Paste it after your theme's CSS, and every part picks up the new colour.")}>
+            <Button variant="outline" tone="secondary" onClick={() => void copyText(makerCss(accent, radius), "Copied your paint", "Paste it after your theme's CSS, and the parts pick up the new colour.")}>
               Copy CSS
             </Button>
           </div>

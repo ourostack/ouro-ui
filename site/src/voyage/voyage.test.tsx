@@ -161,7 +161,11 @@ describe("the header and the theme section", () => {
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
     const writes: string[] = [];
+    // The copy goes through clipboard.write with a ClipboardItem where there is one, writeText elsewhere.
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
+    const itemSpy = vi.spyOn(navigator.clipboard, "write").mockImplementation(async (items) => {
+      for (const item of items) writes.push(await (await item.getType("text/plain")).text());
+    });
     // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
     // announcements are recorded as they happen.
     const announced = watchAnnouncements();
@@ -179,11 +183,13 @@ describe("the header and the theme section", () => {
     } finally {
       announced.stop();
       spy.mockRestore();
+      itemSpy.mockRestore();
     }
   });
 
   it("says so when the clipboard is refused", async () => {
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    const itemSpy = vi.spyOn(navigator.clipboard, "write").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
     const announced = watchAnnouncements();
     try {
       await renderPage("/");
@@ -193,6 +199,7 @@ describe("the header and the theme section", () => {
     } finally {
       announced.stop();
       spy.mockRestore();
+      itemSpy.mockRestore();
     }
   });
 

@@ -100,12 +100,13 @@ test.describe("every preset, light and dark", () => {
 });
 
 /** Live at each of its four skies (themes/live.ts), on a clock pinned in New York in late October. */
+const LIVE_MODES = ["light", "dark"] as const;
 const SKIES = { dawn: "2026-10-31T07:10:00-04:00", day: "2026-10-31T12:00:00-04:00", dusk: "2026-10-31T17:50:00-04:00", night: "2026-10-31T22:30:00-04:00" } as const;
 
 test.describe("Live, at every sky, light and dark", () => {
   test.use({ timezoneId: "America/New_York" });
   for (const [sky, time] of Object.entries(SKIES)) {
-    for (const mode of ["light", "dark"] as const) {
+    for (const mode of LIVE_MODES) {
       test(`Live at ${sky}, ${mode}, passes the strict audit on the built page`, async ({ page, browserName }) => {
         test.slow(browserName === "webkit");
         const errors = diagnostics(page);
@@ -117,7 +118,8 @@ test.describe("Live, at every sky, light and dark", () => {
         await expect(page.locator("html")).toHaveAttribute("data-theme", "pearl");
         await expect(page.locator('.site-hero [data-site-preset="live"]')).toHaveAttribute("aria-pressed", "true");
         await page.evaluate(() => document.fonts.ready);
-        expect(await auditPage(page, browserName)).toBe("");
+        const report = await auditPage(page, browserName);
+        expect(report).toBe("");
         expect(errors).toEqual([]);
       });
     }

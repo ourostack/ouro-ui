@@ -30,7 +30,7 @@ export function presetNamed(name: ThemeChoice): PresetInfo {
  * its own variables (the span carries `data-theme`, so they apply inside it, light or dark with the
  * page). Live's dot is its four skies going round.
  */
-const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-8" } as const;
+const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-6 sm:size-8" } as const;
 
 export function Swatch({ preset, size = "sm" }: { preset: ThemeChoice; size?: "sm" | "md" | "lg" }): JSX.Element {
   return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`site-swatch inline-block shrink-0 rounded-full ${SIZES[size]}${preset === "live" ? " site-swatch-live" : ""}`} />;

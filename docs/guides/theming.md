@@ -1,6 +1,6 @@
 # Theming
 
-Every Ouro HX part paints itself from a small set of CSS variables, the same ones a shadcn/ui theme sets. Change them once and the whole app changes coats: buttons, menus, dialogs, charts, focus rings, the lot. No component props, no rebuild.
+Ouro HX parts paint themselves from a small set of CSS variables, the ones a shadcn/ui theme sets. Change them and your app changes coats: buttons, menus, dialogs, charts and focus rings, without touching a component.
 
 You can try it on the [home page](/): pick a dot under the buttons, or open **Theme** in the header.
 
@@ -16,7 +16,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-theme#v1.2.14
 
 ## Mix your own paint
 
-Most of a theme's personality lives in a handful of lines. Put these after your theme's CSS and change the values:
+A theme's personality lives in a handful of lines. Put these after your theme's CSS and change the values:
 
 ```css
 :root {
@@ -35,7 +35,7 @@ Most of a theme's personality lives in a handful of lines. Put these after your 
 - `--primary` is your brand colour: the main button, links, the checked box, the chosen tab.
 - `--primary-foreground` is the text that sits on it. Keep it readable: at least 4.5 to 1 against `--primary`.
 - `--ring` is the focus ring that keyboard users follow.
-- `--radius` sets every corner at once. `0rem` is square; `1rem` is pebble-round.
+- `--radius` sets the corners. `0rem` is square; `1rem` is pebble-round.
 
 The maker on the home page, under **Or mix your own paint**, writes these lines for you while the sample repaints.
 

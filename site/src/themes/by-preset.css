@@ -1,7 +1,7 @@
 /*
  * Choice-dependent words and marks (ByPreset in presets.tsx): every choice's is in the HTML, and the
  * one html[data-theme] (or html[data-live]) names shows, so the page is right before it hydrates.
- * Also the swatch dots every picker draws.
+ * Also the swatch dots every picker draws; a chosen dot's ring is its Button's own pressed look.
  */
 [data-site-when] {
   display: none;
@@ -25,14 +25,4 @@ html:not([data-theme]) [data-site-when="pearl"] {
 /* Live: dawn, day, dusk and night going round. */
 .site-swatch-live {
   background: conic-gradient(#f7a1b8, #6aa9f5, #ff8a5c, #2b2a78, #f7a1b8);
-}
-
-/* The row of theme dots (theme-dots.tsx): the chosen one gets a ring in its own primary. */
-.site-dot[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--primary);
-}
-@media (forced-colors: active) {
-  .site-dot[aria-pressed="true"] {
-    outline: 3px solid Highlight;
-  }
 }

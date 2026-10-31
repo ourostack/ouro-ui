@@ -9,8 +9,8 @@ export const SKY_WORDS = {
   now: (phase: Phase, season: Season) =>
     ({
       dawn: `Dawn where you are, this ${season}. The page woke up rosy.`,
-      day: `Broad ${season} daylight where you are. Blue skies, all hands on deck.`,
-      dusk: `Dusk where you are, this ${season}. Everything's gone golden.`,
+      day: `Broad ${season} daylight where you are. Blue skies, hands on deck.`,
+      dusk: `Dusk where you are, this ${season}. The light has gone golden.`,
       night: `Night where you are, this ${season}. The page has lit its lanterns.`,
     })[phase],
 };

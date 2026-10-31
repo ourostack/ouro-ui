@@ -9,7 +9,7 @@ import { SKY_WORDS } from "./sky-words";
  * repaints the whole page, spreading out from the dot. `data-site-preset` lets the head script
  * mark the stored one pressed before the page hydrates.
  */
-export function ThemeDots({ label = "Theme", size = "lg", describe = true }: { label?: string; size?: "md" | "lg"; describe?: boolean }): JSX.Element {
+export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string }): JSX.Element {
   const { preset, sky, setPreset } = useSiteTheme();
   return (
     <div>
@@ -23,14 +23,14 @@ export function ThemeDots({ label = "Theme", size = "lg", describe = true }: { l
             aria-label={item.label}
             data-site-preset={item.name}
             onClick={(event) => setPreset(item.name, originOf(event))}
-            className="site-dot h-auto rounded-full p-1"
+            className="site-dot h-auto p-1"
           >
             <Swatch preset={item.name} size={size} />
           </Button>
         ))}
       </div>
       {describe ? (
-        <p className="mt-2.5 mb-0 text-sm text-muted-foreground [&_strong]:me-1 [&_strong]:font-semibold [&_strong]:text-foreground">
+        <p className={`mt-2.5 mb-0 text-sm ${nameClassName} text-muted-foreground [&_strong]:me-1 [&_strong]:font-semibold [&_strong]:text-foreground`}>
           <ByPreset>
             {(item) =>
               item.name === "live" ? (

@@ -510,8 +510,3 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
     min-height: 2.75rem;
   }
 }
-
-/* "Or make your own" (repaint.tsx): each accent's dot, ringed when chosen. */
-.site-maker-accent[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--accent-dot);
-}
