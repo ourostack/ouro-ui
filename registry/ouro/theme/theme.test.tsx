@@ -123,7 +123,7 @@ describe("dark mode", () => {
     const host = mount('<i class="bg-primary"></i><div class="dark"><i class="bg-primary"></i></div>');
     const [light, dark] = [...host.querySelectorAll("i")].map((element) => getComputedStyle(element).backgroundColor);
     expect(light).not.toBe(dark);
-    expect(toRgb(dark!)).toEqual([96, 165, 250]);
+    expect(toRgb(dark!)).toEqual([41, 151, 255]);
   });
 
   it("ignores the OS color scheme: only the .dark class switches", async () => {

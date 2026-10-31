@@ -9,7 +9,7 @@
 export const THEME_KEY = "ouro-site-theme";
 
 /** Every preset, the default first. themes.test.ts checks this list against themes.json. */
-export const PRESET_NAMES = ["sleek", "abyss", "brass", "chart", "coral", "cookbook"] as const;
+export const PRESET_NAMES = ["pearl", "abyss", "brass", "chart", "coral", "cookbook"] as const;
 export type PresetName = (typeof PRESET_NAMES)[number];
 export type Mode = "light" | "dark";
 

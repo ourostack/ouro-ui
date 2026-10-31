@@ -25,7 +25,7 @@ const lastLog = () => document.querySelector("[data-stage-crew] .stage-crew-word
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "reduce" });
   await page.viewport(1280, 900);
-  root.setAttribute("data-theme", "sleek");
+  root.setAttribute("data-theme", "pearl");
   setScheme("light");
 });
 afterEach(async () => {
@@ -294,7 +294,7 @@ describe("the stage's colours", () => {
       return `${sea} ${rim}`;
     };
     const seen = new Set<string>();
-    for (const preset of ["sleek", "abyss", "brass"]) {
+    for (const preset of ["pearl", "abyss", "brass"]) {
       root.setAttribute("data-theme", preset);
       seen.add(paint());
     }

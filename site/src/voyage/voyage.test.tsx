@@ -46,10 +46,10 @@ afterEach(async () => {
 });
 
 describe("the theme before first paint", () => {
-  it("defaults to Sleek and follows the OS until the reader picks Surfaced or Submerged", () => {
+  it("defaults to Pearl and follows the OS until the reader picks Surfaced or Submerged", () => {
     const fake = fakeRoot();
-    expect(applyStoredTheme(storage(null), fake, true, PRESET_NAMES)).toEqual({ preset: "sleek", mode: undefined });
-    expect(fake.attributes.get("data-theme")).toBe("sleek");
+    expect(applyStoredTheme(storage(null), fake, true, PRESET_NAMES)).toEqual({ preset: "pearl", mode: undefined });
+    expect(fake.attributes.get("data-theme")).toBe("pearl");
     expect(fake.classes.has("dark")).toBe(true);
     applyStoredTheme(storage('{"preset":"brass","mode":"light"}'), fake, true, PRESET_NAMES);
     expect(fake.attributes.get("data-theme")).toBe("brass");
@@ -61,16 +61,16 @@ describe("the theme before first paint", () => {
   it("ignores a stored value it does not know, and a refused or broken storage", () => {
     for (const value of ["{", '"abyss"', '{"preset":"neon","mode":"dusk"}', "null"]) {
       const fake = fakeRoot();
-      expect(applyStoredTheme(storage(value), fake, false, PRESET_NAMES)).toEqual({ preset: "sleek", mode: undefined });
+      expect(applyStoredTheme(storage(value), fake, false, PRESET_NAMES)).toEqual({ preset: "pearl", mode: undefined });
     }
-    expect(applyStoredTheme(null, fakeRoot(), false, PRESET_NAMES).preset).toBe("sleek");
+    expect(applyStoredTheme(null, fakeRoot(), false, PRESET_NAMES).preset).toBe("pearl");
   });
 
   it("runs from the inline script the head carries, first, on every page", () => {
     const fake = fakeRoot();
     const run = new Function("localStorage", "document", "matchMedia", prepaintScript);
     // Once the body is parsed, the stored preset's buttons read as pressed, before any hydration.
-    const buttons = ["sleek", "chart"].map((name) => {
+    const buttons = ["pearl", "chart"].map((name) => {
       const attributes = new Map([["data-site-preset", name]]);
       return { attributes, getAttribute: (key: string) => attributes.get(key) ?? null, setAttribute: (key: string, value: string) => void attributes.set(key, value) };
     });
@@ -130,15 +130,15 @@ describe("the header and the theme section", () => {
   });
 
   it("repaint the page from the header's picker, and remember it", async () => {
-    root.setAttribute("data-theme", "sleek");
+    root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     const background = () => getComputedStyle(document.body).backgroundColor;
-    const sleek = background();
-    await userEvent.click(page.getByRole("button", { name: /Theme: Sleek/ }));
+    const pearl = background();
+    await userEvent.click(page.getByRole("button", { name: /Theme: Pearl/ }));
     await userEvent.click(page.getByRole("radio", { name: "Abyss" }));
     expect(root.getAttribute("data-theme")).toBe("abyss");
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
-    expect(background()).not.toBe(sleek);
+    expect(background()).not.toBe(pearl);
     await expect.element(page.getByRole("button", { name: /Theme: Abyss/ })).toBeInTheDocument();
     await userEvent.click(page.getByRole("radio", { name: "Submerged" }));
     expect(root.classList.contains("dark")).toBe(true);
@@ -148,7 +148,7 @@ describe("the header and the theme section", () => {
   });
 
   it("repaints from the swatches, which say which preset is on", async () => {
-    root.setAttribute("data-theme", "sleek");
+    root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     const presets = page.getByRole("group", { name: "Presets" });
     for (const preset of presetList) {
@@ -209,7 +209,7 @@ describe("the header and the theme section", () => {
   });
 
   it("opens the command palette on ⌘K and repaints from it", async () => {
-    root.setAttribute("data-theme", "sleek");
+    root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     await userEvent.keyboard(/Mac|iPhone|iPad/.test(navigator.platform) ? "{Meta>}k{/Meta}" : "{Control>}k{/Control}");
     const search = page.getByRole("combobox", { name: "Search commands" });

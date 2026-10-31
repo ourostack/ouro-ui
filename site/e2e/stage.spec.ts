@@ -521,7 +521,7 @@ test("on a phone, keyboard focus on the stage always stops below the pinned port
 for (const mode of ["light", "dark"] as const) {
   test(`on a phone (${mode}), the crew's line sits between the porthole and the console, over nothing, at rest and after a dive`, async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, colorScheme: mode, baseURL: test.info().project.use.baseURL! });
-    await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "sleek", mode: m })), mode);
+    await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
     const page = await context.newPage();
     await open(page);
     /** Where the crew's line, the porthole and the console's first row are, and what is drawn on top at the first row's label and readout. */

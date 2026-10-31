@@ -5,12 +5,12 @@
 [data-site-when] {
   display: none;
 }
-html[data-theme="sleek"] [data-site-when="sleek"],
+html[data-theme="pearl"] [data-site-when="pearl"],
 html[data-theme="abyss"] [data-site-when="abyss"],
 html[data-theme="brass"] [data-site-when="brass"],
 html[data-theme="chart"] [data-site-when="chart"],
 html[data-theme="coral"] [data-site-when="coral"],
 html[data-theme="cookbook"] [data-site-when="cookbook"],
-html:not([data-theme]) [data-site-when="sleek"] {
+html:not([data-theme]) [data-site-when="pearl"] {
   display: contents;
 }

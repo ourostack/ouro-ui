@@ -1060,7 +1060,7 @@
  * grid of three rows (depth and speed, the ballast manifold, the deck) and the line that says every
  * control is HX: every label in the same small capitals on a shared baseline, every readout in the
  * same type, every control 36px tall on a mouse (44px on touch) on a shared centre line, and one
- * hairline of the same weight between rows. Each preset is its own art direction (below): Sleek is
+ * hairline of the same weight between rows. Each preset is its own art direction (below): Pearl is
  * glass and ink and opens onto the page's sea, Abyss glows, Brass is a Victorian instrument.
  */
 .stage {
@@ -1747,29 +1747,29 @@
 
 
 /*
- * Sleek: glass and ink. On a wide screen the porthole hangs in the page's own sea (voyage.css), its
+ * Pearl: glass and ink. On a wide screen the porthole hangs in the page's own sea (voyage.css), its
  * light spilling round it, and the console under it is a pane of glass: the stage belongs to the
  * page rather than sitting on it in a box. On a phone, where the porthole pins under the header,
  * the frame stays whole.
  */
-[data-theme="sleek"] .stage {
+[data-theme="pearl"] .stage {
   --panel-line: color-mix(in oklab, var(--border) 90%, transparent);
 }
-[data-theme="sleek"] .stage-frame {
+[data-theme="pearl"] .stage-frame {
   box-shadow: 0 1px 0 color-mix(in oklab, white 50%, transparent) inset, var(--shadow-sm);
 }
 @media (min-width: 64rem) {
-  [data-theme="sleek"] .stage-frame {
+  [data-theme="pearl"] .stage-frame {
     border-color: transparent;
     background: none;
     box-shadow: none;
     overflow: visible;
   }
-  [data-theme="sleek"] .stage-window {
+  [data-theme="pearl"] .stage-window {
     background: none;
   }
   /* The crew's strip is the head of the console's pane: one pane of glass under the porthole. */
-  [data-theme="sleek"] .stage-crew {
+  [data-theme="pearl"] .stage-crew {
     margin-top: 0.75rem;
     border: 1px solid var(--panel-line);
     border-bottom: 0;
@@ -1777,7 +1777,7 @@
     background: color-mix(in oklab, var(--card) 70%, transparent);
     box-shadow: 0 1px 0 color-mix(in oklab, white 55%, transparent) inset;
   }
-  [data-theme="sleek"] .stage-console {
+  [data-theme="pearl"] .stage-console {
     border: 1px solid var(--panel-line);
     border-radius: 0 0 calc(var(--radius) * 2.2) calc(var(--radius) * 2.2);
     background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 70%, transparent), color-mix(in oklab, var(--card) 92%, transparent) 40%);
@@ -1785,17 +1785,17 @@
       0 28px 56px -32px color-mix(in oklab, var(--primary) 40%, transparent),
       var(--shadow-sm);
   }
-  [data-theme="sleek"].dark .stage-console,
-  .dark[data-theme="sleek"] .stage-console {
+  [data-theme="pearl"].dark .stage-console,
+  .dark[data-theme="pearl"] .stage-console {
     box-shadow: 0 28px 56px -28px color-mix(in oklab, black 60%, transparent);
   }
-  [data-theme="sleek"].dark .stage-crew,
-  .dark[data-theme="sleek"] .stage-crew {
+  [data-theme="pearl"].dark .stage-crew,
+  .dark[data-theme="pearl"] .stage-crew {
     box-shadow: 0 1px 0 color-mix(in oklab, white 8%, transparent) inset;
   }
 }
 @media (min-width: 64rem) and ((prefers-reduced-transparency: reduce) or (prefers-contrast: more)) {
-  [data-theme="sleek"] :is(.stage-crew, .stage-console) {
+  [data-theme="pearl"] :is(.stage-crew, .stage-console) {
     background: var(--card);
   }
 }

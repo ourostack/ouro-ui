@@ -17,7 +17,7 @@ const root = document.documentElement;
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "reduce" });
   await page.viewport(1280, 900);
-  root.setAttribute("data-theme", "sleek");
+  root.setAttribute("data-theme", "pearl");
   setScheme("light");
 });
 afterEach(async () => {
