@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
+import { useState, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { Menu as MenuComponent, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageAction } from "@/registry/ouro/components/ouro/message/message";
@@ -55,7 +55,6 @@ export function MessageActionBar({
   card: boolean;
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
-  const barRef = useRef<HTMLDivElement>(null);
   // Menu, once this bar's menu button has been pressed: until then the button stands alone.
   const [LoadedMenu, setLoadedMenu] = useState<typeof MenuComponent | undefined>(undefined);
   const openMenu = () =>
@@ -63,12 +62,6 @@ export function MessageActionBar({
       setLoadedMenu(() => Loaded);
       setMenuOpen(true);
     });
-  // The pressed button leaves for Menu's trigger: when it had focus, the trigger takes it.
-  const hadFocus = useRef(false);
-  useLayoutEffect(() => {
-    // The menu button is always the bar's last.
-    if (hadFocus.current) buttons(barRef.current!).at(-1)!.focus();
-  }, [LoadedMenu]);
   const hasMenu = menu !== undefined && menu.length > 0;
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
   if (hasMenu) keys.push(MENU_KEY);
@@ -94,7 +87,6 @@ export function MessageActionBar({
   const more = <MoreIcon aria-hidden="true" className="size-4" />;
   return (
     <div
-      ref={barRef}
       role="toolbar"
       aria-label={label}
       data-ouro-message-actions=""
@@ -166,10 +158,8 @@ export function MessageActionBar({
             className={iconButton}
             aria-haspopup="menu"
             aria-expanded={false}
-            onClick={(event) => {
-              hadFocus.current = document.activeElement === event.currentTarget;
-              openMenu();
-            }}
+            // Menu's trigger takes this button's place, and Menu gives it focus when it closes.
+            onClick={openMenu}
           >
             {more}
           </Button>

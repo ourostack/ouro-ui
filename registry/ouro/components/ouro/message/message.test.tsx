@@ -886,18 +886,40 @@ describe("Message actions", () => {
 
   it("hands focus from the plain menu button to Menu's, which takes it back when the menu closes", async () => {
     const { message } = await render(
-      <Message variant="chat" role="assistant" name="Mara Quill" menu={menu}>
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} menu={menu}>
         Morning!
       </Message>,
     );
     const plain = barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
+    // Until Menu arrives, the plain button says what it opens, as Menu's trigger does.
+    expect(plain.getAttribute("aria-haspopup")).toBe("menu");
+    expect(plain.getAttribute("aria-expanded")).toBe("false");
     await act(async () => plain.focus());
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     expect(plain.isConnected).toBe(false);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.activeElement?.getAttribute("data-ouro-part")).toBe("menu");
-    expect(barOf(message).contains(document.activeElement)).toBe(true);
+    const trigger = document.activeElement as HTMLElement;
+    expect(barOf(message).contains(trigger)).toBe(true);
+    // Menu's trigger keeps the bar's one Tab stop.
+    const like = barOf(message).querySelector<HTMLElement>('[data-ouro-message-action="like"]')!;
+    expect([like.tabIndex, trigger.tabIndex]).toEqual([-1, 0]);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(like);
+    expect([like.tabIndex, trigger.tabIndex]).toEqual([0, -1]);
+  });
+
+  it("adds the bar when a message gains actions", async () => {
+    const node = (actions?: MessageAction[]) => (
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={actions}>
+        Morning!
+      </Message>
+    );
+    const { message, rerender } = await render(node());
+    expect(message.querySelector('[role="toolbar"]')).toBeNull();
+    await rerender(node(actionsFor([])));
+    await expect.poll(() => message.querySelector('[role="toolbar"]')).not.toBeNull();
   });
 
   it("has no bar without actions or menu entries", async () => {

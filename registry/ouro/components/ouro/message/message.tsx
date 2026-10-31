@@ -300,6 +300,7 @@ export function Message(props: MessageProps): JSX.Element {
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: the bar's code for a message without one renders nothing; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
     if (hasBar) void loadBar().then((Loaded) => setBar(() => Loaded));
   }, [hasBar]);
   const bar =
