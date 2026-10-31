@@ -51,3 +51,13 @@ export const NAUTILUS_PAGE = {
   jump: "Jump in",
   building: "Still being built",
 } as const;
+
+/**
+ * What an island (a chapter, or the home page's agents and install sections) says when its code
+ * would not load twice running: island.tsx shows it in place of the island, and the rest of the
+ * page still works.
+ */
+export const ISLAND_FALLBACK = {
+  text: "This part of the page did not load.",
+  reload: "Reload the page",
+} as const;
