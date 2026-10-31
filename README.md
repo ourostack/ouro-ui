@@ -237,7 +237,7 @@ Once per app: `ouro-base`, the tokens every component needs in your stylesheet. 
 
 Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
 
-Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item): `lib-announce`, `lib-appearance-hints`, `lib-claims`, `lib-class-name-check`, `lib-cn`, `lib-color-scheme`, `lib-color-scheme-script`, `lib-control-ref`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-feedback`, `lib-floating`, `lib-focus-handoff`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-portal-container`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-share`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-install-prompt`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-ouro`, `lib-use-sheet-presentation`, `lib-use-timer`. No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
+Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item): `lib-announce`, `lib-appearance-hints`, `lib-claims`, `lib-class-name-check`, `lib-cn`, `lib-color-scheme`, `lib-color-scheme-script`, `lib-control-ref`, `lib-current-path`, `lib-dev`, `lib-env`, `lib-feedback`, `lib-floating`, `lib-focus-handoff`, `lib-form-answer`, `lib-key-shortcuts`, `lib-last-input`, `lib-open-mode`, `lib-ouro-provider`, `lib-portal-container`, `lib-refs`, `lib-router-link`, `lib-server-element`, `lib-share`, `lib-spring`, `lib-stretched-link`, `lib-toast`, `lib-tones`, `lib-touch-target`, `lib-use-backdrop-anchor`, `lib-use-command-shortcut`, `lib-use-dev-messages`, `lib-use-drag`, `lib-use-field`, `lib-use-install-prompt`, `lib-use-keyboard-scrollable`, `lib-use-media-query`, `lib-use-mounted-open`, `lib-use-ouro`, `lib-use-sheet-presentation`, `lib-use-timer`. No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 <!-- items:end -->
 
 ## For agents
@@ -417,7 +417,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Chat
 
-- **Attachment** — A file attached to a chat message, or waiting to be sent with one: its icon, name and size. [Docs](docs/Attachment.md)
+- **Attachment** — A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. [Docs](docs/Attachment.md)
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **Composer** — A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. [Docs](docs/Composer.md)
 - **ConversationList** — A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. [Docs](docs/ConversationList.md)

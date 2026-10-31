@@ -384,6 +384,48 @@ describe("Inspector geometry", () => {
     await expect.poll(() => tags()[0]!.hasAttribute("data-covered")).toBe(true);
     expect(getComputedStyle(tags()[0]!).visibility).toBe("hidden");
   });
+
+  it("outlines a component whose own box has no area by the box its visible content fills, and not at all while nothing in it shows", async () => {
+    const absolute = (left: number, bottom: number, width: number, height: number) => ({ position: "absolute", left, bottom, width, height }) as const;
+    const { host } = await render(
+      <>
+        {/* No height, its content placed up from its bottom edge at 300: a box, a line, and, in a wrapper with no area, another box. */}
+        <div data-ouro="badge" style={{ position: "fixed", left: 100, top: 300, width: 200, height: 0 }}>
+          <div style={absolute(0, 0, 200, 60)} />
+          <div style={absolute(0, 120, 200, 1)} />
+          <div style={absolute(0, 0, 0, 0)}>
+            <div style={absolute(20, 50, 160, 40)} />
+          </div>
+          {/* Neither an empty box, a transparent one nor a visually hidden one counts. */}
+          <div />
+          <div style={{ ...absolute(-50, 100, 300, 100), opacity: 0 }} />
+          <span className="sr-only">Hidden</span>
+        </div>
+        {/* No width, and nothing in it. */}
+        <div data-ouro="badge" style={{ position: "fixed", left: 400, top: 100, width: 0, height: 40 }} />
+        {/* No height, and nothing in it. */}
+        <div data-ouro="badge" style={{ position: "fixed", left: 100, top: 400, width: 200, height: 0 }} />
+        {/* A one-pixel line, as a Separator draws, across or down, has area. */}
+        <div data-ouro="badge" style={{ position: "fixed", left: 100, top: 500, width: 200, height: 1 }} />
+        <div data-ouro="badge" style={{ position: "fixed", left: 500, top: 100, width: 1, height: 200 }} />
+        {/* No width, its content a line drawn down. */}
+        <div data-ouro="badge" style={{ position: "fixed", left: 600, top: 100, width: 0, height: 200 }}>
+          <div style={{ position: "absolute", left: 0, top: 0, width: 1, height: 200 }} />
+        </div>
+      </>,
+    );
+    await xray();
+    await drawn(4);
+    const box = () => {
+      const { left, top, width, height } = outlines()[0]!.getBoundingClientRect();
+      return { left, top, width, height };
+    };
+    // From the line's top at 179 to the bottom edge, and from the region's start to its end.
+    await expect.poll(box).toEqual({ left: 100, top: 179, width: 200, height: 121 });
+    for (const child of host.querySelectorAll<HTMLElement>("[data-ouro] > div")) child.style.opacity = "0";
+    await expect.poll(() => outlines().length).toBe(2);
+    expect(outlines().map((outline) => outline.getBoundingClientRect()).map(({ width, height }) => ({ width, height }))).toEqual(expect.arrayContaining([{ width: 200, height: 1 }, { width: 1, height: 200 }]));
+  });
 });
 
 describe("Inspector", () => {
@@ -473,6 +515,43 @@ describe("Inspector", () => {
     expect(host.querySelector("[hidden] [data-ouro]")).not.toBeNull();
     // A visually hidden root has nothing to outline.
     expect(host.querySelector<HTMLElement>(".sr-only[data-ouro]")!.getBoundingClientRect().width).toBe(1);
+  });
+
+  it("does not outline a component no one can see, and outlines it while hover or focus shows it", async () => {
+    const { host } = await render(
+      <Page>
+        <style>{".reveal [data-ouro] { opacity: 0 } .reveal:hover [data-ouro], .reveal:focus-within [data-ouro] { opacity: 1 }"}</style>
+        {/* A message whose action shows only on hover or focus. The page stops those events on their way up, and X-ray still hears them. */}
+        <div className="reveal" style={{ padding: 8 }} onPointerOver={(event) => event.stopPropagation()} onFocus={(event) => event.stopPropagation()} onBlur={(event) => event.stopPropagation()}>
+          <p data-testid="message">See you at six</p>
+          <Button>Reply</Button>
+        </div>
+        <div style={{ opacity: 0 }}>
+          <Badge>Faded</Badge>
+        </div>
+        <div style={{ visibility: "hidden" }}>
+          <Badge>Invisible</Badge>
+        </div>
+      </Page>,
+    );
+    const reply = host.querySelector<HTMLElement>(".reveal [data-ouro]")!;
+    const names = () => tags().map((tag) => tag.textContent);
+    await drawn(3);
+    expect(names()).toEqual(["button", "badge", "checkbox"]);
+    await settled();
+    await userEvent.hover(host.querySelector("[data-testid=message]")!);
+    await drawn(4);
+    expect(names()).toEqual(["button", "badge", "checkbox", "button"]);
+    expect(onTarget(outlines()[3]!, reply)).toBe(true);
+    await userEvent.unhover(host.querySelector("[data-testid=message]")!);
+    await drawn(3);
+    await settled();
+    await act(() => reply.focus());
+    await drawn(4);
+    // Once nothing moves, so X-ray hears the blur rather than measuring a transition's frames.
+    await settled();
+    await act(() => reply.blur());
+    await drawn(3);
   });
 
   it("follows its components as the page scrolls and resizes", async () => {

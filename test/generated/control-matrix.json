@@ -99,6 +99,10 @@
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
+      "Dialog/ShortQuestion",
+      "Dialog/LongText",
+      "Dialog/WideTable",
+      "Dialog/WideContent",
       "Dialog/Sizes",
       "Dialog/Presentations",
       "Dialog/LongContent",
@@ -118,6 +122,10 @@
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
+      "Dialog/ShortQuestion",
+      "Dialog/LongText",
+      "Dialog/WideTable",
+      "Dialog/WideContent",
       "Dialog/Sizes",
       "Dialog/Presentations",
       "Dialog/LongContent",
@@ -137,6 +145,10 @@
     "stories": [
       "Dialog/Playground",
       "Dialog/WithFooter",
+      "Dialog/ShortQuestion",
+      "Dialog/LongText",
+      "Dialog/WideTable",
+      "Dialog/WideContent",
       "Dialog/Sizes",
       "Dialog/Presentations",
       "Dialog/LongContent",
@@ -1854,7 +1866,25 @@
     "stories": [
       "Attachment/Playground",
       "Attachment/Files",
-      "Attachment/Removable"
+      "Attachment/Removable",
+      "Attachment/Kinds",
+      "Attachment/OpensInApp"
+    ]
+  },
+  {
+    "item": "attachment",
+    "stem": "attachment",
+    "mode": "default",
+    "part": "open",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Attachment/Playground",
+      "Attachment/Files",
+      "Attachment/Removable",
+      "Attachment/Kinds",
+      "Attachment/OpensInApp"
     ]
   },
   {
@@ -1868,7 +1898,9 @@
     "stories": [
       "Attachment/Playground",
       "Attachment/Files",
-      "Attachment/Removable"
+      "Attachment/Removable",
+      "Attachment/Kinds",
+      "Attachment/OpensInApp"
     ]
   },
   {

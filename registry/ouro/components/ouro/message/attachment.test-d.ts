@@ -1,6 +1,6 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type MouseEvent } from "react";
 import { expectTypeOf } from "vitest";
-import { Attachment, type AttachmentProps } from "@/registry/ouro/components/ouro/message/attachment";
+import { Attachment, type AttachmentKind, type AttachmentProps } from "@/registry/ouro/components/ouro/message/attachment";
 
 // Type tests: `pnpm typecheck` compiles this file.
 
@@ -14,7 +14,13 @@ expectTypeOf<{
   onRemove: () => void;
   removeLabel: (name: string) => string;
   formatSize: (bytes: number) => string;
+  kind: "sheet";
+  icon: null;
+  onOpen: (event: MouseEvent<HTMLElement>) => void;
 }>().toExtend<AttachmentProps>();
+expectTypeOf<AttachmentKind>().toEqualTypeOf<"doc" | "sheet" | "slides" | "pdf" | "image" | "video" | "audio" | "zip" | "code" | "file">();
+// A kind from another kit names the kinds.
+expectTypeOf<{ name: "a"; kind: "excel" }>().not.toExtend<AttachmentProps>();
 expectTypeOf<ComponentProps<typeof Attachment>>().toEqualTypeOf<AttachmentProps>();
 
 // name is required; the names agents guess for it, the link and removal name the fix.

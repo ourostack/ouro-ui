@@ -13,7 +13,7 @@ import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scr
 export interface MessageListOwnProps {
   /** What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. */
   label: string;
-  /** The `Message`s, oldest first. */
+  /** The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see {@link MessageList}). */
   children: ReactNode;
   /** The button that appears once the reader scrolls up, for other languages. @default "Jump to latest" */
   jumpLabel?: string | undefined;
@@ -38,6 +38,13 @@ export interface MessageListOwnProps {
 
 /** Props for {@link MessageList}: its own props and the `<div>` attributes it passes through. */
 export type MessageListProps = Omit<HTMLAttributes<HTMLDivElement>, keyof MessageListOwnProps | "role"> & MessageListOwnProps;
+
+/**
+ * The messages in the list: Ouro's `Message`s, and an app's own message components, each marked
+ * `data-ouro-message-list-item` on its root.
+ * @claim "and an app's own message components" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages)
+ */
+const items = '[data-ouro="message"], [data-ouro-message-list-item]';
 
 /** How close to the bottom, in pixels, counts as "at the bottom" (zoom leaves fractions). */
 const AT_BOTTOM = 4;
@@ -75,6 +82,13 @@ interface Spoken {
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  *
+ * Your own message components work too: mark each one's root `data-ouro-message-list-item`, the
+ * reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its
+ * author's name and its text in elements marked `data-ouro-message-author` and
+ * `data-ouro-message-content`, as `Message` does. The list keeps the reader's place among them and
+ * announces them as it does `Message`s. Leave `data-ouro="message"` to Ouro's `Message`: it names
+ * the element Ouro's Message, and X-ray outlines it as one.
+ *
  * Use a plain list instead for messages that do not arrive live, such as an inbox.
  *
  * @group Chat
@@ -88,6 +102,15 @@ interface Spoken {
  *     </Message>
  *   ))}
  * </MessageList>
+ * <MessageList label="Team chat" className="flex-1">
+ *   {posts.map((post) => (
+ *     <article key={post.id} data-ouro-message-list-item="" data-role={post.mine ? "user" : "assistant"}>
+ *       <span data-ouro-message-author="">{post.author}</span>
+ *       <p data-ouro-message-content="">{post.text}</p>
+ *     </article>
+ *   ))}
+ * </MessageList>
+ * @claim "Your own message components work too" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages)
  * @claim "A conversation: `Message`s in a scrolling" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > is a named, keyboard-scrollable region that opens at the newest message)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply still streaming in the first messages to fill an empty list, once it finishes)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply that was streaming when the list mounted, once it finishes)
@@ -170,7 +193,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const offsetOf = (node: Element) => node.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      anchors = [...content.querySelectorAll('[data-ouro="message"]')]
+      anchors = [...content.querySelectorAll(items)]
         .filter((message) => {
           const box = message.getBoundingClientRect();
           return box.bottom > view.top && box.top < view.bottom;
@@ -227,7 +250,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // (So does `checkVisibility()` in Chromium, so the check is the attribute.)
   useEffect(() => {
     const content = contentRef.current!;
-    const messages = () => [...content.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const messages = () => [...content.querySelectorAll<HTMLElement>(items)];
     const busy = (message: Element) => message.getAttribute("aria-busy") === "true";
     const textOf = (message: Element) => message.querySelector("[data-ouro-message-content]")!.textContent.trim();
     const spokenTextOf = (message: Element) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
@@ -285,7 +308,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Only messages coming and going, and streaming ending, matter; each streamed token
     // changes text, which is skipped without a scan.
     const matters = (record: MutationRecord) =>
-      record.type === "attributes" || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches('[data-ouro="message"]') || node.querySelector('[data-ouro="message"]') !== null));
+      record.type === "attributes" || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(items) || node.querySelector(items) !== null));
     const observer = new MutationObserver((records) => {
       if (records.some(matters)) check();
     });

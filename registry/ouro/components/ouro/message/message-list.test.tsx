@@ -366,6 +366,107 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Ouro: Preheat the oven."]);
   });
 
+  it("keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages", async () => {
+    /** An app's own message, not Ouro's Message, marked for the list. */
+    function Post({ item }: { item: Item }) {
+      return (
+        <article data-ouro-message-list-item="" data-role={item.role} aria-busy={item.streaming || undefined} style={{ padding: 8 }}>
+          <span data-ouro-message-author="">{item.role === "user" ? "Ada" : "Grace"}</span>
+          <p data-ouro-message-content="">{item.text}</p>
+        </article>
+      );
+    }
+    const Posts = ({ items }: { items: Item[] }) => (
+      <MessageList label="Team chat" style={{ height: 300 }}>
+        {items.map((item) => (
+          <Post key={item.id} item={item} />
+        ))}
+      </MessageList>
+    );
+    const items = history(20, 10);
+    const { scroller, live, rerender } = await render(<Posts items={items} />);
+    expect(scroller.querySelector('[data-ouro="message"]')).toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    const { spoken, stop } = recordAnnouncements(live);
+    await wheel(scroller, -400);
+    const viewTop = scroller.getBoundingClientRect().top;
+    const before = [...scroller.querySelectorAll("[data-ouro-message-list-item]")].find((node) => node.getBoundingClientRect().top >= viewTop)!;
+    const top = before.getBoundingClientRect().top;
+    await rerender(<Posts items={[...history(10), ...items]} />);
+    await settle(scroller);
+    expect(Math.abs(before.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    // The reader's own post is not read back; a reply is, once it finishes streaming.
+    const sent = [...history(10), ...items, { id: 30, role: "user" as const, text: "On my way." }];
+    await rerender(<Posts items={sent} />);
+    await rerender(<Posts items={[...sent, { id: 31, role: "assistant", text: "See you", streaming: true }]} />);
+    await rerender(<Posts items={[...sent, { id: 31, role: "assistant", text: "See you at six." }]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Grace: See you at six."]);
+  });
+
+  it("looks for messages only when one comes, goes or stops streaming, not when a streamed reply gains a formatted word", async () => {
+    const chat = (reply: ReactNode, streaming = true) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <Message role="user" name="Ada">
+          How long does the dough rest?
+        </Message>
+        <Message role="assistant" name="Ouro" streaming={streaming}>
+          {reply}
+        </Message>
+      </MessageList>
+    );
+    const { list, live, rerender } = await render(chat("Rest"));
+    const { spoken, stop } = recordAnnouncements(live);
+    // Each look for messages asks whether the list is in a closed panel.
+    const looks = vi.spyOn(list.querySelector<HTMLElement>("[data-ouro-message-list-content]")!, "closest");
+    await rerender(chat(<>Rest <b>it</b></>));
+    await act(async () => {});
+    expect(looks).not.toHaveBeenCalled();
+    await rerender(chat(<>Rest <b>it</b> an hour.</>, false));
+    await expect.poll(() => spoken.length).toBe(1);
+    expect(looks).toHaveBeenCalled();
+    stop();
+    expect(spoken).toEqual(["Ouro: Rest it an hour."]);
+  });
+
+  it("announces a reply that arrives inside a new group, such as the messages under a day's heading", async () => {
+    const Days = ({ days }: { days: Item[][] }) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        {days.map((day, index) => (
+          <section key={index} aria-label={`Day ${index + 1}`}>
+            {day.map((item) => (
+              <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+                {item.text}
+              </Message>
+            ))}
+          </section>
+        ))}
+      </MessageList>
+    );
+    const { live, rerender } = await render(<Days days={[history(2)]} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    await rerender(<Days days={[history(2), [{ id: 2, role: "assistant", text: "Good morning." }]]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Ouro: Good morning."]);
+  });
+
+  it("announces an app's own message set as HTML, which arrives with the text around it in one change", async () => {
+    const Feed = ({ html }: { html: string }) => (
+      <MessageList label="Team chat" style={{ height: 300 }}>
+        <div dangerouslySetInnerHTML={{ __html: html }} />
+      </MessageList>
+    );
+    const { live, rerender } = await render(<Feed html="" />);
+    const { spoken, stop } = recordAnnouncements(live);
+    const post = '<article data-ouro-message-list-item="" data-role="assistant"><span data-ouro-message-author="">Grace</span><p data-ouro-message-content="">Standup moved to ten.</p></article>';
+    await rerender(<Feed html={`\n${post}\n`} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    stop();
+    expect(spoken).toEqual(["Grace: Standup moved to ten."]);
+  });
+
   it("says nothing when a message's key changes but it stays in place, as when a temporary id becomes the server's", async () => {
     const items = history(4);
     const { live, rerender } = await render(<Chat items={items} />);

@@ -8,5 +8,5 @@ export const s15 = <Dialog hideTitle trigger={<Button>Edit</Button>}>Body</Dialo
 export const s16 = <Dialog title="Edit" size="sm" open={open} onClose={() => setOpen(false)}>Body</Dialog>;
 export const s17 = <Dialog title="Edit" size="sm" trigger={<Button>Edit</Button>} open={open} onOpenChange={setOpen}>Body</Dialog>;
 export const s22 = <Dialog title="Edit" size="sm" open={open} onOpenChange={setOpen} position="right">Body</Dialog>;
-export const s31 = <DialogRoot open><DialogPortal><DialogPopup size="xl">Body</DialogPopup></DialogPortal></DialogRoot>;
+export const s31 = <DialogRoot open><DialogPortal><DialogPopup size="xs">Body</DialogPopup></DialogPortal></DialogRoot>;
 export const ok06 = <Dialog title="Edit" size="sm" open={open} onOpenChange={setOpen}>Body</Dialog>;

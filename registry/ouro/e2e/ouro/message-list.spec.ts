@@ -5,17 +5,27 @@ import { openStory } from "./story";
 const distanceFromBottom = (scroller: Locator) => scroller.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight);
 const scrollTop = (scroller: Locator) => scroller.evaluate((el) => el.scrollTop);
 
-/** Waits until the list stops scrolling (wheel scrolling is smooth). */
+/**
+ * Waits until the list stops scrolling (wheel scrolling is smooth): until its position has held
+ * for 30 frames in a row. Counting the page's own frames, rather than reading from here at
+ * intervals, waits out a busy page that pauses a smooth scroll midway (a cold Storybook does),
+ * since a paused page draws no frames.
+ */
 async function settle(scroller: Locator) {
-  let last = -1;
-  await expect
-    .poll(async () => {
-      const now = await scrollTop(scroller);
-      const same = now === last;
-      last = now;
-      return same;
-    })
-    .toBe(true);
+  await scroller.evaluate(
+    (el) =>
+      new Promise<void>((resolve) => {
+        let last = el.scrollTop;
+        let still = 0;
+        const frame = () => {
+          still = el.scrollTop === last ? still + 1 : 0;
+          last = el.scrollTop;
+          if (still >= 30) resolve();
+          else requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+  );
 }
 
 async function wheelOver(page: Page, scroller: Locator, deltaY: number) {
