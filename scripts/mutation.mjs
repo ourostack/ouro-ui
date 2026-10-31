@@ -209,7 +209,7 @@ export function unitExclusions(ids, units) {
  * The estimated seconds (`shardCost`) a CI shard is planned to at most. A mutation shard is on the pull
  * request's critical path, which ci-budget holds to 10 minutes (scripts/ci-budget.mjs). With a 1500 s
  * target, #287's thirteen shards took up to 15.5 minutes (run 41171948948; at most 0.62 times their
- * estimates), past ci-budget's 15-minute work ceiling. At 900 s the same ratio gives about 9.3 minutes,
+ * estimates, where the cold run before took up to 0.72), past ci-budget's 15-minute work ceiling. At 900 s the same ratio gives about 9.3 minutes,
  * so the shard, plus the plan jobs before it, fits the budget.
  */
 export const SHARD_TARGET_SECONDS = 900;
