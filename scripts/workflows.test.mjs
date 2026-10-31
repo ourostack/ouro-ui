@@ -1340,6 +1340,8 @@ test("the latency shards run every latency test exactly once between them, each 
   assert.equal(
     stepScript(block, "Latency tests"),
     [
+      "# The runner's CPU, since the measured times scale with it.",
+      "grep -m1 'model name' /proc/cpuinfo || true",
       "mkdir -p .tmp/timings",
       "node scripts/shard.mjs latency-list > .tmp/timings/latency-tests.txt",
       'node scripts/shard.mjs latency "$SHARD" .tmp/timings/latency-tests.txt > .tmp/latency-shard.txt',
