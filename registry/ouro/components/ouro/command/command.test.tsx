@@ -791,3 +791,64 @@ describe("Command dev messages", () => {
     expect(warnings()).toEqual(['[ouro-ui] Command: "bg-white" sets appearance, and className is for layout only. Fix: :root { --popover: …; } .dark { --popover: …; }.']);
   });
 });
+
+describe("Command's trigger and a page scroll at the press", () => {
+  // A smooth scroll begins as the press goes down, ahead of the trigger's own handlers: the press
+  // stops it where it is, the release (or the key) clicks the trigger, and the dialog opens there.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`stops a smooth scroll where ${input === "pointer" ? "a press" : "Enter"} on its trigger found it, and opens`, async () => {
+      const pointerDown = vi.fn();
+      const keyDown = vi.fn();
+      await render(
+        <div style={{ height: 5000 }}>
+          <header style={{ position: "sticky", top: 0, height: 100 }}>
+            <Command title="Command palette" trigger={<button type="button" data-opener="" onPointerDown={pointerDown} onKeyDown={keyDown}>
+              Search
+            </button>} items={entries()} />
+          </header>
+        </div>,
+      );
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      document.documentElement.style.scrollBehavior = "smooth";
+      document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+      const opener = document.querySelector<HTMLElement>('[data-opener]')!;
+      if (input === "pointer") {
+        await commands.pointerPress({ selector: '[data-opener]', action: "down" });
+        for (let index = 0; index < 10; index++) await frame();
+        await commands.pointerPress({ action: "up" });
+      } else {
+        opener.focus({ preventScroll: true });
+        await userEvent.keyboard("{Enter}");
+      }
+      await expect.poll(() => opener.getAttribute("aria-expanded") === "true").toBe(true);
+      await frame();
+      await frame();
+      expect(window.scrollY).toBe(2000);
+      expect((input === "pointer" ? pointerDown : keyDown).mock.calls.length).toBe(1);
+    });
+  }
+});
+
+describe("Command's Button trigger and the keyboard", () => {
+  it("opens at Enter on a Button trigger that has no key handler of its own", async () => {
+    await render(<Command title="Command palette" trigger={<Button>Search</Button>} items={entries()} />);
+    const errors: string[] = [];
+    const onError = (event: ErrorEvent) => {
+      errors.push(event.message);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    document.querySelector<HTMLElement>('[data-ouro="button"]')!.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector('[data-ouro="button"]')!.getAttribute("aria-expanded")).toBe("true");
+    window.removeEventListener("error", onError);
+    expect(errors).toEqual([]);
+  });
+});
+

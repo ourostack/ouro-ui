@@ -233,7 +233,8 @@ describe("holdPageAtPress", () => {
 
   /** Presses a trigger with the primary button, or another, as React hands the press to it. */
   type Kind = keyof typeof holdPageAtPress;
-  const pointerDown = (button = 0, kind: Kind = "listButton") => holdPageAtPress[kind].onPointerDown({ button, currentTarget: page } as unknown as ReactPointerEvent<HTMLElement>);
+  const pointerDown = (button = 0, kind: Kind = "listButton", nativeEvent = new PointerEvent("pointerdown", { button })) =>
+    holdPageAtPress[kind].onPointerDown({ button, currentTarget: page, nativeEvent } as unknown as ReactPointerEvent<HTMLElement>);
   /** Presses a key on a trigger: a real keydown that reaches the window after the trigger's handler. */
   const keyDown = (key: string, kind: Kind = "listButton") => {
     const trigger = page.appendChild(document.createElement("button"));
@@ -344,6 +345,47 @@ describe("holdPageAtPress", () => {
       expect([kind, "pointer", html.style.scrollBehavior]).toEqual([kind, "pointer", "auto"]);
       vi.advanceTimersByTime(1000);
     }
+  });
+
+  it("holds the page from a dialog trigger's press until its click, leaving scroll-behavior alone", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    pointerDown(0, "dialog");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    // The click opens the dialog, whose scroll lock holds the page from then: the hold stops listening.
+    const remove = vi.spyOn(document, "removeEventListener");
+    page.click();
+    expect(remove.mock.calls.map(([type]) => type)).toContain("scroll");
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+    // A key: only Enter and Space click a button.
+    keyDown("ArrowDown", "dialog");
+    keyDown("ArrowUp", "dialog");
+    expect(await scrollTo(40, 3100)).toEqual([40, 3100]);
+    for (const key of ["Enter", " "]) {
+      keyDown(key, "dialog");
+      expect([key, html.style.scrollBehavior, await scrollTo(40, 3500)]).toEqual([key, "smooth", [40, 3100]]);
+      // No click came (the key's button is gone): the press lets go a second later.
+      vi.advanceTimersByTime(1000);
+      expect([key, await scrollTo(40, 3200)]).toEqual([key, [40, 3200]]);
+      await scrollTo(40, 3100);
+    }
+  });
+
+  it("leaves a press to the first handler that takes it, and a dialog trigger's click to its own press", async () => {
+    // An Ouro Button that opens a dialog, under a popover's trigger: one press, the popover's.
+    const event = new PointerEvent("pointerdown");
+    pointerDown(0, "listButton", event);
+    pointerDown(0, "dialog", event);
+    page.click();
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    vi.advanceTimersByTime(1000);
+    // A dialog trigger's press that no click ended leaves no click behind it to end a later press.
+    pointerDown(0, "dialog");
+    vi.advanceTimersByTime(1000);
+    pointerDown();
+    page.click();
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
   });
 
   it("does not take a press of another button, or another key, for a press that opens a popup", async () => {

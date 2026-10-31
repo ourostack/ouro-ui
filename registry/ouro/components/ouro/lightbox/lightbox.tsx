@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SVGProps } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -869,6 +870,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       aria-haspopup="dialog"
       data-ouro-control="lightbox"
       data-ouro-part="thumbnail"
+      {...holdPageAtPress.dialog}
       className={mosaic ? mosaicThumbnailClass : thumbnailClass}
       onClick={() => {
         setStart(position);

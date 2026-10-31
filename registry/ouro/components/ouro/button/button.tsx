@@ -7,7 +7,9 @@ import type {
   ButtonHTMLAttributes,
   ComponentType,
   JSX,
+  KeyboardEvent,
   MouseEvent,
+  PointerEvent,
   ReactNode,
   Ref,
   SVGProps,
@@ -16,6 +18,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -311,6 +314,10 @@ const preventDefault = (event: MouseEvent) => event.preventDefault();
  * Use `href` to navigate (it renders a link); use `type="submit"` in a form.
  * Use `Text` with an `<a>` instead when a link sits inside running text.
  *
+ * A button that opens a dialog says so with `aria-haspopup="dialog"`; pressing it (or Enter or
+ * Space on it) while the page smooth-scrolls then stops the page where it is until its click, so
+ * the release lands on the button and the dialog opens.
+ *
  * @group Actions
  * @see https://ui.ouro.bot/docs/button
  *
@@ -319,6 +326,8 @@ const preventDefault = (event: MouseEvent) => event.preventDefault();
  * <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
  * <Button tone="destructive" variant="soft" type="submit">Delete</Button>
  * @claim "The obvious name for any action" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::press feedback > scales to --ouro-press-scale while pressed)
+ * @claim "then stops the page where it is until its click" registry/ouro/components/ouro/button/button.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.test.tsx, /with aria-haspopup="dialog", stops the scroll where/)
+ * @claim "then stops the page where it is until its click" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /opens and leaves the page where the press found it, pressed mid-scroll/)
  * @claim "The obvious name for any action" registry/ouro/components/ouro/button/button.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.touch.test.tsx, /44px hit area on a coarse pointer/)
  * @claim "The obvious name for any action" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::loading > sets aria-busy, disables without losing focus, and keeps the width within 1px)
  */
@@ -442,6 +451,21 @@ export function Button(props: ButtonProps): JSX.Element {
   }
 
   const { ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  // A button that opens a dialog (its own, or a component's trigger) holds the page from the press,
+  // so a release during a smooth scroll lands on it and its click opens the dialog.
+  const holdsPage =
+    buttonProps["aria-haspopup"] === "dialog"
+      ? {
+          onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+            buttonProps.onPointerDown?.(event);
+            holdPageAtPress.dialog.onPointerDown(event);
+          },
+          onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
+            buttonProps.onKeyDown?.(event);
+            holdPageAtPress.dialog.onKeyDown(event);
+          },
+        }
+      : {};
   // A type that is not a button type would submit forms (the browser's default), so it renders "button".
   const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
   return (
@@ -449,6 +473,7 @@ export function Button(props: ButtonProps): JSX.Element {
       data-ouro-control="button"
       data-ouro-part="root"
       {...buttonProps}
+      {...holdsPage}
       ref={ref as Ref<HTMLElement> | undefined}
       type={type}
       disabled={Boolean(disabled || loading)}

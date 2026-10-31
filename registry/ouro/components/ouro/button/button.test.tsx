@@ -926,3 +926,73 @@ describe("Button state layer", () => {
     }
   });
 });
+
+describe("Button and a page scroll at the press", () => {
+  // A smooth scroll begins as the press goes down, ahead of the button's own handlers. A button that
+  // opens a dialog stops it where it is; any other leaves the page alone.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  /** Presses the button as a smooth scroll starts, and returns where the page is once the press is over. */
+  async function pressAsScrollStarts(input: "pointer" | "Enter" | "ArrowDown") {
+    window.scrollTo({ top: 2000, behavior: "instant" });
+    document.documentElement.style.scrollBehavior = "smooth";
+    document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
+    if (input === "pointer") {
+      await commands.pointerPress({ selector: '[data-ouro="button"]', action: "down" });
+      for (let index = 0; index < 10; index++) await frame();
+      await commands.pointerPress({ action: "up" });
+    } else {
+      document.querySelector<HTMLElement>('[data-ouro="button"]')!.focus({ preventScroll: true });
+      await userEvent.keyboard(`{${input}}`);
+    }
+    for (let index = 0; index < 10; index++) await frame();
+    return window.scrollY;
+  }
+
+  const page5000 = (button: ReactNode) => (
+    <div style={{ height: 5000 }}>
+      <header style={{ position: "sticky", top: 0, height: 100 }}>{button}</header>
+    </div>
+  );
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`with aria-haspopup="dialog", stops the scroll where ${input === "pointer" ? "a press" : "Enter"} found it, and keeps its own handlers`, async () => {
+      const pointerDown = vi.fn();
+      const keyDown = vi.fn();
+      await render(page5000(<Button aria-haspopup="dialog" onPointerDown={pointerDown} onKeyDown={keyDown}>Open</Button>));
+      expect(await pressAsScrollStarts(input)).toBe(2000);
+      expect((input === "pointer" ? pointerDown : keyDown).mock.calls.length).toBe(1);
+    });
+  }
+
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`with aria-haspopup="dialog" and no handlers of its own, stops the scroll where ${input === "pointer" ? "a press" : "Enter"} found it, raising no error`, async () => {
+      await render(page5000(<Button aria-haspopup="dialog">Open</Button>));
+      const errors: string[] = [];
+      const onError = (event: ErrorEvent) => {
+        errors.push(event.message);
+        event.preventDefault();
+      };
+      window.addEventListener("error", onError);
+      expect(await pressAsScrollStarts(input)).toBe(2000);
+      window.removeEventListener("error", onError);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  for (const [name, button, input] of [
+    ["without aria-haspopup", <Button key="plain">Save</Button>, "pointer"],
+    ['with aria-haspopup="menu"', <Button key="menu" aria-haspopup="menu">More</Button>, "pointer"],
+    ['with aria-haspopup="dialog", at an arrow key', <Button key="arrow" aria-haspopup="dialog">Open</Button>, "ArrowDown"],
+  ] as const) {
+    it(`${name}, leaves the scroll going`, async () => {
+      await render(page5000(button));
+      expect(await pressAsScrollStarts(input)).toBeGreaterThan(2000);
+    });
+  }
+});
+

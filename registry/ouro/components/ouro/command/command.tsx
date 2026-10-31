@@ -1,11 +1,12 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type MouseEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
@@ -210,6 +211,8 @@ export type CommandProps = CommandWithTriggerProps | CommandControlledProps;
 type TriggerProps = {
   ref?: Ref<HTMLElement> | undefined;
   onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
+  onPointerDown?: ((event: PointerEvent<HTMLElement>) => void) | undefined;
+  onKeyDown?: ((event: KeyboardEvent<HTMLElement>) => void) | undefined;
   "aria-haspopup"?: string;
   "aria-expanded"?: boolean;
 };
@@ -425,6 +428,14 @@ export function Command(props: CommandProps): JSX.Element {
       onClick: (event: MouseEvent<HTMLElement>) => {
         triggerProps.onClick?.(event);
         if (!event.defaultPrevented) setOpen(true);
+      },
+      onPointerDown: (event: PointerEvent<HTMLElement>) => {
+        triggerProps.onPointerDown?.(event);
+        holdPageAtPress.dialog.onPointerDown(event);
+      },
+      onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+        triggerProps.onKeyDown?.(event);
+        holdPageAtPress.dialog.onKeyDown(event);
       },
       "aria-haspopup": "dialog",
       "aria-expanded": isOpenNow,

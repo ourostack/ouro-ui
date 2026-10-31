@@ -29,6 +29,10 @@ let release: (() => void) | undefined;
 let pressEnds: ReturnType<typeof setTimeout> | undefined;
 /** The key that pressed a trigger: the person opening a popup with it, not scrolling. */
 let pressKey: KeyboardEvent | undefined;
+/** The event a trigger's press handled last, so a second handler on the same element (an Ouro Button's, under a component's) leaves it alone. */
+let pressedBy: Event | undefined;
+/** The trigger whose click ends its press's hold, for a dialog, which holds the page itself once open. */
+let clicked: { trigger: HTMLElement; view: Window } | undefined;
 /** The page's own inline `scroll-behavior` while the hold has made its scrolls instant, else null. */
 let behavior: string | null = null;
 
@@ -78,6 +82,15 @@ function stop(view: Window) {
 function endPress() {
   clearTimeout(pressEnds);
   pressEnds = undefined;
+  clicked?.trigger.removeEventListener("click", letGo);
+  clicked = undefined;
+}
+
+/** Ends a dialog trigger's press at its click, which opens the dialog. */
+function letGo() {
+  const { view } = clicked!;
+  endPress();
+  stop(view);
 }
 
 /**
@@ -91,7 +104,9 @@ function endPress() {
  * @claim "until the popup takes the hold over" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > hands the press's hold to the popup that opens from it, from where the press stopped the page)
  * @claim "A press on the trigger of an open popup" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > leaves the page to the open popup's hold at a press on its trigger, which closes it)
  */
-function press(trigger: HTMLElement) {
+function press(trigger: HTMLElement, event: Event, untilClick: boolean) {
+  if (event === pressedBy) return;
+  pressedBy = event;
   if (trigger.getAttribute("aria-expanded") === "true") return;
   const view = trigger.ownerDocument.defaultView!;
   // Stryker disable next-line ObjectLiteral: scrollTo({}) also scrolls to where the page is, which ends a smooth scroll in flight there too; the place and the instant behaviour are spelled out so that does not rest on the page's scroll-behavior.
@@ -99,24 +114,32 @@ function press(trigger: HTMLElement) {
   start(view);
   endPress();
   pressEnds = setTimeout(() => {
-    pressEnds = undefined;
+    endPress();
     stop(view);
   }, PRESS_MS);
   freeUntil = 0;
-  pin(view.document.documentElement);
+  // A dialog's scroll lock saves the page's inline scroll-behavior and puts it back as it closes, so
+  // a pinned "auto" would outlast the press; its press holds the page until the click instead.
+  if (untilClick) {
+    clicked = { trigger, view };
+    trigger.addEventListener("click", letGo);
+  } else pin(view.document.documentElement);
 }
 
-/** Event props that hold the page from a press on a trigger: the primary button's pointerdown, or one of `keys`. */
-function pressHandlers(keys: string[]) {
+/**
+ * Event props that hold the page from a press on a trigger: the primary button's pointerdown, or
+ * one of `keys`; with `untilClick`, only until the trigger's click.
+ */
+function pressHandlers(keys: string[], untilClick = false) {
   const opening = new Set(keys);
   return {
     onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-      if (event.button === 0) press(event.currentTarget);
+      if (event.button === 0) press(event.currentTarget, event.nativeEvent, untilClick);
     },
     onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
       if (!opening.has(event.key)) return;
       pressKey = event.nativeEvent;
-      press(event.currentTarget);
+      press(event.currentTarget, event.nativeEvent, untilClick);
     },
   };
 }
@@ -127,10 +150,14 @@ function pressHandlers(keys: string[]) {
  * pointerdown, or a key that opens that kind of trigger's popup. `button` (Popover) takes Enter
  * and Space, which click it; `listButton` (Menu's dropdown, Select) takes those and an up or down
  * arrow; `listInput` (Combobox) takes only the arrows, as Enter in its closed input submits the
- * form and opens nothing. A press during a smooth scroll stops the page where it is at once, so a
+ * form and opens nothing. `dialog` (the trigger of a Dialog, ConfirmDialog, Sheet or Command, a
+ * Lightbox's thumbnail, and a Button with `aria-haspopup="dialog"`) takes Enter and Space and
+ * holds the page only until the trigger's click opens the dialog, whose own scroll lock holds it
+ * from then; it leaves `scroll-behavior` alone. A press during a smooth scroll stops the page where it is at once, so a
  * popup that opens on pointerdown does not take the release, over whatever moved under the
- * pointer, for a press outside it and close. Spread them on the trigger, with `holdPage` on its
- * `usePortalContainer`.
+ * pointer, for a press outside it and close, and the release of a press on a dialog's trigger
+ * lands on the trigger, so its click opens the dialog. Spread them on the trigger, with `holdPage`
+ * on its `usePortalContainer` for a popup.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  *
@@ -140,12 +167,15 @@ function pressHandlers(keys: string[]) {
  * @claim "so a popup that opens on pointerdown does not take the release" registry/ouro/components/ouro/menu/menu.test.tsx verify:fileLine(registry/ouro/components/ouro/menu/menu.test.tsx, /stays open and stops the page where it is, pressed mid-scroll/)
  * @claim "takes only the arrows, as Enter in its closed input submits the form" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page only at the keys that open each kind of trigger's popup)
  * @claim "takes only the arrows, as Enter in its closed input submits the form" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.test.tsx, /leaves the page to the app at Enter in its closed input, which submits the form/)
+ * @claim "holds the page only until the trigger's click opens the dialog" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page from a dialog trigger's press until its click, leaving scroll-behavior alone)
+ * @claim "lands on the trigger, so its click opens the dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /opens and leaves the page where the press found it, pressed mid-scroll/)
  * @claim "takes Enter and Space, which click it" registry/ouro/components/ouro/popover/popover.test.tsx verify:fileLine(registry/ouro/components/ouro/popover/popover.test.tsx, /leaves the page free at an arrow key on its trigger, which opens nothing/)
  */
 const holdPageAtPress = {
   button: pressHandlers(buttonKeys),
   listButton: pressHandlers([...buttonKeys, ...listKeys]),
   listInput: pressHandlers(listKeys),
+  dialog: pressHandlers(buttonKeys, true),
 };
 
 /**
