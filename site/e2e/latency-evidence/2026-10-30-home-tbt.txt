@@ -1,0 +1,98 @@
+# Total blocking time on the home page (/), before and after hydrating in turns (pull request #292)
+#
+# CI: the lighthouse job's reports (artifact lighthouse-reports) from the CI runs listed below, all
+# after #251 made / the Nautilus look. Three Lighthouse runs per job (site/lighthouserc.json:
+# mobile, simulated throttling, 4x CPU), in order; the job keeps the best of three. The first run
+# of a job is cold. A runner whose warm runs score a benchmarkIndex under 2700 counts as slow.
+#
+# run 41099819477 2026-10-30T17:36 home TBT 826 126 153 benchmarkIndex 1937 2480 2466
+# run 41117959447 2026-10-30T19:49 home TBT 579 109 93 benchmarkIndex 1987 2620 2625
+# run 41118502779 2026-10-30T19:53 home TBT 718 156 119 benchmarkIndex 1893 2326 2353
+# run 41118898964 2026-10-30T19:57 home TBT 418 134 171 benchmarkIndex 2373 2457 2378
+# run 41118941048 2026-10-30T19:58 home TBT 279 130 102 benchmarkIndex 2445 2464 2471
+# run 41118913560 2026-10-30T20:00 home TBT 624 131 127 benchmarkIndex 1808 2465 2420
+# run 41119419632 2026-10-30T20:00 home TBT 53 12 36 benchmarkIndex 3535 4032 3894
+# run 41113461926 2026-10-30T20:12 home TBT 598 147 219 benchmarkIndex 2041 2457 2212
+# run 41120154751 2026-10-30T20:15 home TBT 784 179 112 benchmarkIndex 1955 2468 2446
+# run 41121417207 2026-10-30T20:19 home TBT 270 149 152 benchmarkIndex 2277 2428 2476
+# run 41122995121 2026-10-30T20:25 home TBT 43 39 44 benchmarkIndex 2752 3011 3120
+# run 41123463461 2026-10-30T20:32 home TBT 240 12 14 benchmarkIndex 3697 4281 3991
+# run 41123529547 2026-10-30T20:34 home TBT 439 89 94 benchmarkIndex 2307 2839 2830
+# run 41123336866 2026-10-30T20:34 home TBT 135 124 98 benchmarkIndex 2366 2471 2440
+# run 41123350306 2026-10-30T20:37 home TBT 428 53 47 benchmarkIndex 2584 2982 3017
+# run 41123739853 2026-10-30T20:47 home TBT 548 109 75 benchmarkIndex 2183 2651 2531
+# run 41124923406 2026-10-30T20:48 home TBT 1264 57 67 benchmarkIndex 2241 2985 2946
+# run 41126005515 2026-10-30T20:51 home TBT 338 100 67 benchmarkIndex 2354 2677 2681
+# run 41126617660 2026-10-30T20:56 home TBT 184 121 167 benchmarkIndex 2413 2466 2427
+# run 41127009979 2026-10-30T21:00 home TBT 499 39 55 benchmarkIndex 2724 3198 3230
+# run 41126427924 2026-10-30T21:02 home TBT 3215 154 199 benchmarkIndex 267 2117 2432
+# run 41127289408 2026-10-30T21:09 home TBT 830 166 204 benchmarkIndex 1940 2434 2390
+# run 41128786720 2026-10-30T21:19 home TBT 199 44 35 benchmarkIndex 2941 3021 3102
+# run 41128647433 2026-10-30T21:26 home TBT 672 163 117 benchmarkIndex 1993 2458 2461
+# run 41129394326 2026-10-30T21:29 home TBT 54 9 21 benchmarkIndex 3925 4304 3176
+# run 41129149012 2026-10-30T21:29 home TBT 436 38 52 benchmarkIndex 2592 2993 2982
+# run 41129900473 2026-10-30T21:37 home TBT 1581 170 95 benchmarkIndex 702 2411 2465
+# run 41131165642 2026-10-30T21:39 home TBT 846 139 116 benchmarkIndex 1886 2426 2422
+# run 41130337049 2026-10-30T21:40 home TBT 353 15 14 benchmarkIndex 3319 4258 4153
+# run 41131157679 2026-10-30T21:44 home TBT 263 22 12 benchmarkIndex 3923 4064 4175
+# run 41132968089 2026-10-30T21:59 home TBT 76 52 52 benchmarkIndex 2892 3075 2983
+# run 41131789505 2026-10-30T22:00 home TBT 548 114 121 benchmarkIndex 1898 2328 2326
+# run 41132967834 2026-10-30T22:06 home TBT 707 124 103 benchmarkIndex 2092 2452 2443
+# run 41133595360 2026-10-30T22:11 home TBT 817 90 57 benchmarkIndex 2011 2632 2682
+# run 41133328950 2026-10-30T22:11 home TBT 262 142 162 benchmarkIndex 2299 2322 2342
+# run 41134183674 2026-10-30T22:11 home TBT 608 162 210 benchmarkIndex 1661 2384 2420
+# run 41134207165 2026-10-30T22:15 home TBT 384 129 154 benchmarkIndex 2414 2467 2475
+# run 41135660824 2026-10-30T22:38 home TBT 518 136 193 benchmarkIndex 2010 2404 2392
+# run 41135801908 2026-10-30T22:41 home TBT 777 173 111 benchmarkIndex 1885 2416 2472
+# run 41135043020 2026-10-30T22:41 home TBT 787 105 98 benchmarkIndex 1916 2384 2371
+# run 41136016794 2026-10-30T22:43 home TBT 438 42 33 benchmarkIndex 2651 2919 3076
+# slow runners (warm benchmarkIndex < 2700): 27 of 41 runs; warm samples 54: median 129, p90 179, over 150: 19
+# best of three over 150: 3 of 41 runs
+#
+# Local: an M-series Mac (benchmarkIndex about 2,580, close to the slow runners' 2,400, but it runs
+# the page several times faster), site/lighthouserc.json collecting / only, before = origin/main at
+# 65a38d14, after = this pull request; the two builds alternate, three runs at a time, on a machine
+# shared with other work (load average 46 to 122 during these runs). At 4x this machine blocks
+# almost nothing either way, so 12x stands in for the slow runners: before, its median is close to
+# theirs (129 ms).
+#
+# ## 4x (site/lighthouserc.json as is)
+# before TBT, 6 runs: 14 15 15 13 14 14
+# after TBT, 6 runs: 12 13 13 12 13 12
+# before median 14 ms, p90 15 ms, over 150 ms 0 of 6; best of each three 13 14
+# after median 12 ms, p90 13 ms, over 150 ms 0 of 6; best of each three 12 12
+# LCP before median 1824 ms, after median 1824 ms
+#
+# ## 12x (cpuSlowdownMultiplier 12, standing in for the slower runners)
+# before TBT, 12 runs: 186 130 193 348 117 147 224 128 206 189 147 121
+# after TBT, 12 runs: 131 117 108 181 108 108 108 107 148 186 101 143
+# before median 147 ms, p90 224 ms, over 150 ms 6 of 12; best of each three 117 121 128 130
+# after median 108 ms, p90 181 ms, over 150 ms 2 of 12; best of each three 101 107 108 108
+# LCP before median 1844 ms, after median 1833 ms
+#
+# Where the long tasks came from: Chrome traces of / at 4x CPU (DevTools throttling, Playwright's
+# Chromium, CPU profiler on, a build without minification for names), main thread, after first
+# contentful paint, on origin/main at 20345692:
+#   page module evaluation 49 ms, of which navigation-menu's module-scope cn() building
+#     tailwind-merge's class map 22 ms, and hydrateRoot starting 4 ms
+#   one commit of the header, stage, themes and footer boundaries, with their effects, 70 to 75 ms
+#   SliderControl's render 48 to 83 ms, almost all of it the page's first new Intl.NumberFormat
+#   a full style recalculation after the Sheet module registers its CSS properties 41 to 46 ms
+#
+# Traces of the production builds, two each (a third "after" trace was dropped: a load spike put
+# its first paint at 780 ms), every task of 30 ms or more after first
+# contentful paint, in the order they ran (ms; "style" = that recalculation; "js" = the page's script):
+#   before (65a38d14): js 40 36, style 44 46, js 36 38, js 35 36, js 54 64
+#   after:             js 34 33, style 47 47, js 34 44
+# (the first js task is the page module's evaluation; tailwind-merge's 22 ms is still in it)
+#
+# The first Intl.NumberFormat in a new renderer, at 4x CPU (about:blank, Playwright's Chromium):
+#   cold: 30.0 32.4 33.6 33.9 ms; after a worker made one first: 0.1 ms
+#
+# Tried and left out: warming tailwind-merge (cn("p-0", "p-1")) in a task of its own from the client
+# entry, before the page module loads. Same machine, before = origin/main at 65a38d14:
+#   with a dynamic import of lib/ouro/cn: home initial JavaScript 277,356 bytes gzip, over the
+#     276,480 ceiling in site/e2e/catalog.spec.ts (main: 274,645; this pull request: 275,140)
+#   with a static import: 12x TBT, nine runs each, median 142 -> 85 ms, p90 186 -> 98 ms; but 4x
+#     LCP, six runs each, median 1851 -> 1980 ms (runs 1963 1970 1980 2005 2010 2034), against the
+#     2,000 ms limit; without the warm-up, 1830 ms
