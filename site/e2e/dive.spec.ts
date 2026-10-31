@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { diagnostics } from "./diagnostics";
-import { toastWatcher, type ToastRecord } from "./toasts";
+import { watchToasts } from "./toasts";
 
 // The Dive moment in the theme sample (site/src/voyage/dive/), against the production build: Dive
 // takes the sample window under and back up, the crew says how it went, and the page is as it was;
@@ -24,7 +24,7 @@ test("Dive takes the sample window down to 300 fathoms and back, says how it wen
   const errors = diagnostics(page);
   await open(page);
   // The dive's code is not in the page's first load: it comes when the dialog opens.
-  await page.evaluate(toastWatcher);
+  const toasts = await watchToasts(page);
   const before = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));
   await dive(page);
   await expect(scene(page)).toBeVisible();
@@ -32,7 +32,7 @@ test("Dive takes the sample window down to 300 fathoms and back, says how it wen
   expect(after.filter((name) => !before.includes(name) && /\/assets\/dive-[^/]+\.js$/.test(name))).toHaveLength(1);
   await expect(scene(page).locator(".dive-number")).toHaveText("300", { timeout: 10_000 });
   await expect(scene(page)).toHaveCount(0, { timeout: 10_000 });
-  await expect.poll(() => page.evaluate(() => (window as unknown as { ouroToasts: ToastRecord }).ouroToasts.titles)).toEqual(["Back from the deep"]);
+  await expect.poll(toasts.titles).toEqual(["Back from the deep"]);
   // As it was: the checklist answers, and the dialog opens again.
   await page.getByRole("checkbox", { name: "Test the lantern" }).click();
   await expect(page.getByRole("checkbox", { name: "Test the lantern" })).toBeChecked();
