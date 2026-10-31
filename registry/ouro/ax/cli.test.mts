@@ -148,3 +148,22 @@ test("dispatch runs the plan or run() with the tool's own context, and prints no
   assert.equal(printResult(t, (parsed as Parsed).command, {}, "sent", false, o.io), 0);
   assert.equal(o.o.out, '"sent"\n');
 });
+
+test("the example's reads and waits: a limit, the default time limit and a cursor", async () => {
+  assert.equal((await run(["rooms", "--limit", "1"])).out, "[abc123] Design sync\n");
+  postMessage("abc123", "Riley", "first");
+  const resumed = await run(["watch", "abc123", "--cursor", "0", "--json"]);
+  assert.equal(JSON.parse(resumed.out).events[0].summary, "first");
+  const quiet = await run(["watch", "abc123"]);
+  assert.equal(quiet.code, 1);
+});
+
+test("a failed outcome is the error line too, and a help topic that ends its own line gets no second newline", async () => {
+  const t = defineCli({ name: "t", about: ["t"], commands: [defineCommand({ name: "send", summary: "S.", effect: "others", run: () => outcome({ action: "send", state: "failed", summary: "Not sent.", error: { code: "gone", exit: 1, thing: "send", problem: "the chat is gone", fix: "t chats" } }) })] });
+  const a = io();
+  assert.equal(await runCli(t, ["send", "--why", "x"], a.io), 1);
+  assert.equal(a.o.err, "t: send: the chat is gone. Fix: t chats.\n");
+  const b = io();
+  assert.equal(await runCli(t, ["help", "refs"], b.io, { topics: { refs: "refs\n" } }), 0);
+  assert.equal(b.o.out, "refs\n");
+});

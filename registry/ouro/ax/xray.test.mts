@@ -44,7 +44,11 @@ let apiLog: { verb: string }[] = [];
 const apiRoutes = ["GET /api/rooms", "GET /api/rooms/{id}", "GET /api/log", "POST /api/act", "GET /api/html"];
 const listen = (server: Server) => new Promise<string>((done) => server.listen(0, "127.0.0.1", () => done(`http://127.0.0.1:${(server.address() as { port: number }).port}`)));
 before(async () => {
-  mock = createServer((_, res) => {
+  mock = createServer((req, res) => {
+    if (req.url === "/text") {
+      res.writeHead(200);
+      return res.end("not json");
+    }
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ mock: true, who: { name: "mock" } }));
   });
@@ -70,6 +74,26 @@ before(async () => {
       });
       return;
     }
+    if (u.pathname === "/api2") return send(200, { routes: ["GET /api2/rooms"] });
+    if (u.pathname === "/api2/rooms") {
+      apiLog = [...apiLog, { verb: "read" }];
+      return send(200, { rooms: [] });
+    }
+    if (u.pathname === "/api2/log") return send(200, { log: apiLog });
+    if (u.pathname === "/api2/tick") return send(200, { tick: process.hrtime.bigint().toString() });
+    if (u.pathname === "/api2/plain") {
+      res.writeHead(204);
+      return res.end();
+    }
+    if (u.pathname === "/api2/text") {
+      res.writeHead(200);
+      return res.end("plain words");
+    }
+    if (u.pathname === "/api2/act") {
+      apiLog = [...apiLog, { verb: "act" }];
+      return send(200, { ok: true });
+    }
+    if (u.pathname.startsWith("/api2/")) return send(404, { error: "no route; GET /api2 lists the routes" });
     if (u.pathname === "/api/html") {
       res.writeHead(500, { "content-type": "text/html" });
       return res.end("<p>oops</p>");
@@ -243,6 +267,14 @@ test("the reports: Markdown and HTML list every claim and surface", async () => 
   assert.match(renderText(many), /Effects the X-ray caused: x: y\./);
   assert.equal(many.summary.score, 0);
   assert.equal(summarize([], { target: { commit: null }, safety: { ok: true, checks: [] }, inventory: { given: true, surfaces: [] }, effects: [] }).summary.score, null);
+  const one = summarize([{ claim: "cli.help-parses", surface: "help", verdict: "fail", note: "x" }, { claim: "cli.wait-on-refs", surface: "watch", verdict: "skip", note: "y" }], { target: { commit: null }, safety: { ok: false, checks: [] }, inventory: { given: false, surfaces: [] }, effects: [] });
+  assert.match(renderText(one), /Does not conform yet: 1 must claim not holding; no inventory given; 1 must claim skipped\./);
+  const two = summarize([{ claim: "cli.help-parses", surface: "help", verdict: "skip", note: "x" }, { claim: "cli.wait-on-refs", surface: "watch", verdict: "skip", note: "y" }], { target: { commit: null }, safety: { ok: true, checks: [] }, inventory: { given: true, surfaces: ["cli"] }, effects: [] });
+  assert.match(renderText(two), /Does not conform yet: 2 must claims skipped\./);
+  const elsewhere = summarize([{ claim: "http.json", surface: "GET /x", verdict: "pass", note: "" }], { target: { commit: null }, safety: { ok: true, checks: [] }, inventory: { given: true, surfaces: ["cli"] }, effects: [] });
+  assert.match(renderText(elsewhere), /Does not conform yet: the inventory names no http surfaces\./);
+  const spawnFails = await xray(base({ cli: "ax-xray-no-such-program-anywhere", timeoutMs: 5000 }));
+  assert.equal(spawnFails.claims.find((c) => c.id === "cli.help-parses")!.holds, false);
 });
 
 test("the command: claims, help, usage errors with the fix, exit codes, written reports", async () => {
@@ -298,7 +330,108 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
 test("the guide's tool conforms", async () => {
   const inventory = join(scratch, "inv-tasks.json");
   writeFileSync(inventory, JSON.stringify({ cli: ["list", "assign"] }));
-  const report = await xray(base({ cli: fixture("tasks.mts"), name: "tasks", inventory, conformance: true }));
+  const report = await xray(base({ cli: fixture("tasks.mts"), inventory, conformance: true, samples: { task: "t1", person: "Ana" }, state: ["list --json"] }));
   assert.deepEqual(report.claims.filter((c) => c.fail).map((c) => `${c.id}: ${c.failing.map((f) => f.note).join("; ")}`), []);
   assert.equal(report.conformant, true);
+});
+
+const legacy = (over: Partial<XrayOptions> = {}) => base({ cli: fixture("legacy-cli.mjs"), name: "legacy", state: ["state"], volatile: ["at"], timeoutMs: 5000, ...over });
+const verdictOf = (report: Report, claim: string, surface: string) => report.results.find((r) => r.claim === claim && r.surface === surface)?.verdict;
+
+test("a CLI built before the kit: usage lists, a stream, refs it harvests, text on stdin, previews, and its faults", async () => {
+  const state = join(scratch, "legacy.json");
+  const inventory = join(scratch, "inv-legacy.json");
+  writeFileSync(inventory, JSON.stringify({ cli: ["conversations", "conversations", "gone"] }));
+  const report = await xray(legacy({ env: { LEGACY_STATE: state }, events: "events lines", inventory, samples: { "react:<conversation>#<message id>": "c1#m1" } }));
+  const v = (claim: string, surface: string) => verdictOf(report, claim, surface);
+  assert.deepEqual([v("cli.read-json", "tail"), v("cli.read-json", "quiet"), v("cli.read-json", "noise"), v("cli.read-json", "meeting"), v("cli.read-json", "broken"), v("cli.read-json", "draft show"), v("cli.read-json", "history")], ["pass", "skip", "fail", "skip", "fail", "pass", "pass"]);
+  assert.deepEqual([v("cli.missing-arg", "pair"), v("cli.missing-arg", "set"), v("cli.missing-arg", "find")], ["fail", "pass", "pass"]);
+  assert.deepEqual([v("cli.unknown-flag", "look"), v("cli.unknown-flag", "draft show"), v("cli.flag-suggest", "conversations --limt")], ["fail", "fail", "pass"]);
+  assert.deepEqual([v("cli.text-as-argument", "note"), v("cli.text-as-argument", "send")], ["fail", "pass"]);
+  assert.deepEqual([v("cli.wait-on-refs", "watch <conversation>"), v("cli.wait-typed", "watch <conversation> --json")], ["pass", "fail"]);
+  assert.deepEqual([v("cli.outcome", "send"), v("cli.outcome", "react"), v("cli.outcome", "rename"), v("cli.outcome", "pin"), v("cli.others-preview", "invite")], ["pass", "fail", "fail", "fail", "skip"]);
+  assert.deepEqual([v("cli.refusals-change-nothing", "react"), v("cli.refusals-change-nothing", "the whole run"), v("cli.others-preview", "rename"), v("cli.wrong-ref-first", "pin")], ["fail", "fail", "fail", "fail"]);
+  assert.deepEqual([v("cli.ambiguous-verbs", "edit"), v("cli.ambiguous-verbs", "delete"), v("cli.help-effects", "noeffect"), v("cli.command-help", "broken"), v("cli.help-width", "wide --help")], ["pass", "fail", "fail", "fail", "fail"]);
+  assert.deepEqual([v("cli.unknown-command", "ax-xray-no-such-command"), v("cli.work-events", "events lines")], ["fail", "fail"]);
+  assert.deepEqual(report.results.filter((r) => r.claim === "cli.inventory").map((r) => [r.surface, r.verdict]).slice(0, 2), [["gone", "fail"], ["draft show", "fail"]]);
+  assert.ok(report.results.some((r) => r.claim === "cli.inventory" && r.note === "listed twice"));
+  assert.ok(report.effects.some((e) => e.surface === "rename --dry-run"));
+  assert.match(renderText(report), /^ax-xray: CLI `legacy`/);
+  assert.match(renderMarkdown(report), /Does not conform yet: \d+ must claims not holding/);
+});
+
+test("help JSON only from --help --json, a state that moves on its own, a read that writes, and event lists", async () => {
+  const second = await xray(legacy({ name: undefined, env: { LEGACY_MODE: "second,nostreams", LEGACY_STATE: join(scratch, "legacy-2.json") }, events: "events array" }));
+  assert.equal(verdictOf(second, "cli.help-parses", "help"), "pass");
+  assert.equal(second.target.cli?.name, "legacy-cli");
+  assert.equal(verdictOf(second, "cli.work-events", "events array"), "pass");
+  const unstable = await xray(legacy({ env: { LEGACY_MODE: "unstable,nostreams" }, events: "events object" }));
+  assert.match(unstable.results.find((r) => r.claim === "cli.reads-stay-reads")!.note, /answer differently with nothing run between them/);
+  assert.equal(verdictOf(unstable, "cli.work-events", "events object"), "pass");
+  const writes = await xray(legacy({ env: { LEGACY_MODE: "writes,nostreams", LEGACY_STATE: join(scratch, "legacy-3.json") }, events: "events bad" }));
+  assert.equal(writes.results.find((r) => r.claim === "cli.reads-stay-reads")!.verdict, "fail");
+  assert.equal(verdictOf(writes, "cli.work-events", "events bad"), "fail");
+  const number = await xray(legacy({ events: "events number", state: ["nothing"], env: { LEGACY_MODE: "nousage,badwait,nostreams" } }));
+  assert.equal(verdictOf(number, "cli.work-events", "events number"), "fail");
+  assert.deepEqual([verdictOf(number, "cli.wait-on-refs", "watch <conversation>"), verdictOf(number, "cli.wait-typed", "watch <conversation> --json")], ["fail", "fail"]);
+  assert.match(number.results.find((r) => r.claim === "cli.wait-typed")!.note, /not a wait\/1/);
+});
+
+test("a CLI with no help JSON: commands and exit codes from the overview, a long overview, no usage code", async () => {
+  const plain = await xray(base({ cli: fixture("plain-cli.mjs") }));
+  assert.deepEqual([verdictOf(plain, "cli.help-parses", "help"), verdictOf(plain, "cli.help-effects", "help"), verdictOf(plain, "cli.wait-on-refs", "watch")], ["fail", "fail", "skip"]);
+  assert.match(plain.results.find((r) => r.claim === "cli.unknown-command")!.note, /usage exit code is 2/);
+  const long = await xray(base({ cli: fixture("plain-cli.mjs"), env: { PLAIN_MODE: "long" } }));
+  assert.equal(verdictOf(long, "cli.overview-short", "--help"), "fail");
+  const nousage = await xray(base({ cli: fixture("plain-cli.mjs"), env: { PLAIN_MODE: "nousage" } }));
+  assert.doesNotMatch(nousage.results.find((r) => r.claim === "cli.unknown-command")!.note, /usage exit code/);
+});
+
+test("an HTTP API whose reads write, whose writes need no why, and whose answers are not JSON", async () => {
+  apiLog = [];
+  const manifest = join(scratch, "routes2.json");
+  writeFileSync(manifest, JSON.stringify({ base: "/api2", routes: ["GET /api2/rooms", "GET /api2/plain", "GET /api2/text", "GET /api2/x/{id}"], state: ["/api2/log", "GET /api2/text"], others: [{ route: "POST /api2/act" }] }));
+  const report = await xray(base({ http: apiUrl, routes: manifest }));
+  assert.deepEqual(["http.unknown-route", "http.reads-stay-reads", "http.others-need-why", "http.refusals-change-nothing"].map((id) => report.results.find((r) => r.claim === id)?.verdict), ["pass", "fail", "fail", "fail"]);
+  assert.deepEqual(report.results.filter((r) => r.claim === "http.json").map((r) => r.verdict), ["pass", "fail", "fail", "pass"]);
+  assert.deepEqual(report.results.filter((r) => r.claim === "http.wrong-ref-first").map((r) => [r.surface, r.verdict]), [["GET /api2/x/{id}", "pass"], ["POST /api2/act", "fail"]]);
+  const ticking = join(scratch, "routes4.json");
+  writeFileSync(ticking, JSON.stringify({ base: "/api2", routes: [], state: ["GET /api2/tick"], others: [{ route: "POST /api2/act", why: "reason", body: { to: "{ref}" } }] }));
+  const tick = await xray(base({ http: apiUrl, routes: ticking }));
+  assert.match(tick.results.find((r) => r.claim === "http.reads-stay-reads")!.note, /answer differently/);
+  assert.equal(tick.results.some((r) => r.claim === "http.refusals-change-nothing"), false);
+  assert.match(report.results.find((r) => r.claim === "http.json" && r.verdict === "fail")!.note, /→ 204$/);
+  const bare = join(scratch, "routes3.json");
+  writeFileSync(bare, JSON.stringify({}));
+  const none = await xray(base({ http: apiUrl, routes: bare }));
+  assert.match(none.results.find((r) => r.claim === "http.index")!.note, /names 0 of 0 routes/);
+  assert.match(renderMarkdown(none), /^# AX X-ray: http:\/\/127\.0\.0\.1/);
+});
+
+test("MCP servers that refuse to start, list no tools, or have tools without a description or schema", async () => {
+  const noinit = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "noinit" } }));
+  assert.match(noinit.results[0]!.note, /"message":"not today","data":\{"why":"a fixture"\}/);
+  const notools = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "notools" } }));
+  assert.equal(notools.results[0]!.note, "no tools array");
+  const loose = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "loose" } }));
+  assert.deepEqual(loose.results.filter((r) => r.claim === "mcp.tools-list").map((r) => r.note), ["missing description", "No arguments.", "missing inputSchema"]);
+  assert.equal(loose.results.find((r) => r.claim === "mcp.unknown-tool")!.note, "ran: (no text)");
+  assert.equal(loose.results.find((r) => r.claim === "mcp.bad-call-teaches")!.note, "ran: (no text)");
+  assert.match(renderHtml(loose), /AX X-ray: MCP server/);
+});
+
+test("a mock check that answers text, a key path through a value that is not an object, and the command's last flags", async () => {
+  const names = async (over: Partial<XrayOptions>) => (await checkSafety(base(over), false)).checks.filter((c) => !c.ok).map((c) => c.note);
+  assert.match((await names({ mock: `${mockUrl}/text mock=true` }))[0]!, /answers mock=undefined; expected true/);
+  assert.match((await names({ mock: `${mockUrl}/ mock.deep=true` }))[0]!, /answers mock\.deep=undefined/);
+  const o = parseArgs(["--cli", "x", "--env", "A=b", "--timeout", "500"]);
+  assert.deepEqual([o.env, o.timeoutMs], [{ A: "b" }, 500]);
+  const t = io();
+  assert.equal(await main(["--cli", "x", "--timeout", "-1"], t.io), 2);
+  assert.match(t.o.err, /--timeout takes a positive number, not "-1"\. Fix: --timeout 20000\./);
+  const inventory = join(scratch, "inv-notes-full.json");
+  writeFileSync(inventory, JSON.stringify({ cli: ["rooms", "note", "post", "watch"] }));
+  const good = io();
+  assert.equal(await main(["--cli", fixture("notes.mts"), "--name", "notes", "--home", home, "--mock", `${mockUrl}/ mock=true`, "--inventory", inventory, "--conformance", "--state", "state", "--env", `NOTES_STATE=${join(scratch, "notes-main.json")}`], good.io), 0);
+  assert.match(good.o.out, /Conforms: every applicable must claim holds/);
 });

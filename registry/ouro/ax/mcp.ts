@@ -6,7 +6,7 @@ export type { McpCall, McpCallResult, McpOptions, McpTool };
 
 import { checkInput, type Cli, type CommandDef, type Input } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG, WHY_PLACEHOLDER, effectAnnotations } from "./effects.ts";
-import { didYouMean, errorJson, errorLine, isAxError, type AxErrorShape } from "./errors.ts";
+import { didYouMean, errorJson, errorLine, isAxError, type AxError, type AxErrorShape } from "./errors.ts";
 import { commandManifest } from "./help.ts";
 import { isOutcome, outcomeText } from "./outcome.ts";
 import { truncate } from "./output.ts";
@@ -146,8 +146,8 @@ function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Re
         try {
           input = checkInput(cli, cmd, params["arguments"] ?? {}, name);
         } catch (e) {
-          if (isAxError(e)) return ok(toolError(e.shape));
-          throw e;
+          // checkInput throws only AxErrors.
+          return ok(toolError((e as AxError).shape));
         }
         let result: McpCallResult;
         try {
@@ -190,6 +190,8 @@ async function serveMcp(options: McpOptions & { input: AsyncIterable<string | Ui
       .then((reply) => {
         if (reply) options.output.write(`${JSON.stringify(reply)}\n`);
       })
+      // handle() answers every message itself; this only guards against a bug in it.
+      /* node:coverage ignore next 4 */
       .catch((e: unknown) => {
         const id = message && typeof message === "object" ? ((message as Message).id ?? null) : null;
         options.output.write(`${JSON.stringify({ jsonrpc: "2.0", id, error: { code: -32603, message: e instanceof Error ? e.message : String(e) } })}\n`);

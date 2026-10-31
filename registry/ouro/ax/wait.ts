@@ -135,7 +135,7 @@ const UNITS: Readonly<Record<string, number>> = Object.freeze({ ms: 1, s: 1000, 
 function parseDuration(text: string): number | null {
   const m = /^\s*(\d+(?:\.\d+)?)\s*(ms|s|m|h)?\s*$/.exec(text);
   if (!m) return null;
-  return Math.round(Number(m[1]) * (UNITS[m[2] ?? "s"] ?? 1000));
+  return Math.round(Number(m[1]) * (UNITS[m[2] ?? "s"]!));
 }
 
 /** Milliseconds as the shortest exact duration {@link parseDuration} reads back: "2m", "90s", "500ms". */
