@@ -314,6 +314,10 @@ const preventDefault = (event: MouseEvent) => event.preventDefault();
  * Use `href` to navigate (it renders a link); use `type="submit"` in a form.
  * Use `Text` with an `<a>` instead when a link sits inside running text.
  *
+ * A button that opens a dialog says so with `aria-haspopup="dialog"`; pressing it (or Enter or
+ * Space on it) while the page smooth-scrolls then stops the page where it is until its click, so
+ * the release lands on the button and the dialog opens.
+ *
  * @group Actions
  * @see https://ui.ouro.bot/docs/button
  *
@@ -322,6 +326,8 @@ const preventDefault = (event: MouseEvent) => event.preventDefault();
  * <Button href="/recipes/new" startIcon={PlusIcon}>New recipe</Button>
  * <Button tone="destructive" variant="soft" type="submit">Delete</Button>
  * @claim "The obvious name for any action" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::press feedback > scales to --ouro-press-scale while pressed)
+ * @claim "then stops the page where it is until its click" registry/ouro/components/ouro/button/button.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.test.tsx, /with aria-haspopup="dialog", stops the scroll where/)
+ * @claim "then stops the page where it is until its click" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /opens and leaves the page where the press found it, pressed mid-scroll/)
  * @claim "The obvious name for any action" registry/ouro/components/ouro/button/button.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.touch.test.tsx, /44px hit area on a coarse pointer/)
  * @claim "The obvious name for any action" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::loading > sets aria-busy, disables without losing focus, and keeps the width within 1px)
  */

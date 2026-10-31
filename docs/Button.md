@@ -20,6 +20,8 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 
 Use `href` to navigate (it renders a link); use `type="submit"` in a form.
 
+A button that opens a dialog says so with `aria-haspopup="dialog"`; pressing it (or Enter or Space on it) while the page smooth-scrolls then stops the page where it is until its click, so the release lands on the button and the dialog opens.
+
 ## Use instead when
 
 - Use `Text` with an `<a>` instead when a link sits inside running text.
