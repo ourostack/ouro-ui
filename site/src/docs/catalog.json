@@ -54,7 +54,6 @@
     "name": "toolbar",
     "title": "Toolbar",
     "group": "Actions",
-    "source": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
     "summary": "A row of controls for one surface, such as an editor's formatting: Button commands and Toggle states, in groups with separators."
   },
   {
@@ -231,7 +230,6 @@
     "name": "autocomplete",
     "title": "Autocomplete",
     "group": "Forms",
-    "source": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx",
     "summary": "Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character."
   },
   {
@@ -586,7 +584,6 @@
     "name": "navigation-rail",
     "title": "NavigationRail",
     "group": "Navigation",
-    "source": "registry/ouro/components/ouro/navigation-rail/navigation-rail.tsx",
     "summary": "The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current=\"page\"`."
   },
   {
@@ -654,7 +651,6 @@
     "name": "emoji-picker",
     "title": "EmojiPicker",
     "group": "Chat",
-    "source": "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx",
     "summary": "An emoji picker for reactions and for putting emoji into text."
   },
   {

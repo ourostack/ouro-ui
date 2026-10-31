@@ -99,5 +99,9 @@
   "reaction-bar": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
   "lightbox": "registry/ouro/components/ouro/lightbox/lightbox.tsx",
   "composer": "registry/ouro/components/ouro/composer/composer.tsx",
-  "time-grid": "registry/ouro/components/ouro/time-grid/time-grid.tsx"
+  "emoji-picker": "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx",
+  "navigation-rail": "registry/ouro/components/ouro/navigation-rail/navigation-rail.tsx",
+  "time-grid": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
+  "toolbar": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
+  "autocomplete": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx"
 }
