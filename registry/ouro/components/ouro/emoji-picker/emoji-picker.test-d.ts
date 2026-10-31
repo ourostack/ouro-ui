@@ -76,3 +76,27 @@ expectTypeOf<{ label: "Add a reaction"; categories: typeof categories; trigger: 
 
 // @ts-expect-error onEmojiClick is not a prop.
 createElement(EmojiPicker, { label: "Add a reaction", categories, trigger, onSelect, onEmojiClick: () => {} });
+
+// An app's own emoji type comes back in onSelect and renderEmoji, inferred from its categories.
+interface TeamEmoji extends EmojiPickerEmoji {
+  id: string;
+}
+const teamCategories: EmojiPickerCategory<TeamEmoji>[] = [{ label: "Reactions", emoji: [{ emoji: "👍", name: "thumbs up", id: "yes" }] }];
+createElement(EmojiPicker<TeamEmoji>, {
+  label: "Add a reaction",
+  categories: teamCategories,
+  trigger,
+  renderEmoji: (item) => item.id,
+  onSelect: (selection) => expectTypeOf(selection.item).toEqualTypeOf<TeamEmoji>(),
+});
+const inferred = () =>
+  EmojiPicker({
+    label: "Add a reaction",
+    categories: teamCategories,
+    trigger,
+    onSelect: (selection) => expectTypeOf(selection.item.id).toBeString(),
+  });
+void inferred;
+expectTypeOf<EmojiPickerSelection["item"]>().toEqualTypeOf<EmojiPickerEmoji>();
+// @ts-expect-error a frequent emoji must be the categories' type.
+createElement(EmojiPicker<TeamEmoji>, { label: "Add a reaction", categories: teamCategories, trigger, onSelect: () => {}, frequent: [{ emoji: "😀", name: "grinning face" }] });

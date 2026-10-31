@@ -34,25 +34,25 @@ The search matches the start of any word in an emoji's name or keywords, ignorin
 
 ## Props
 
-The props the modes share. Type: `EmojiPickerProps`.
+The props the modes share. Type: `EmojiPickerProps<Item>`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"center"` | How the popover lines up with the trigger along that side. |
-| `categories` (required) | `readonly EmojiPickerCategory[]` |  | Every emoji the picker offers, by category, in order. The app supplies them, so it picks the set, the names and the language. |
+| `categories` (required) | `readonly EmojiPickerCategory<Item>[]` |  | Every emoji the picker offers, by category, in order. The app supplies them, so it picks the set, the names and the language. |
 | `categoriesLabel` | `string` | `"Categories"` | What screen readers hear for the category bar. |
 | `className` | `string` |  | Layout only, applied to the panel inside the popover: width (`w-96`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the popover's close button, which only screen-reader and keyboard users see. |
-| `frequent` | `readonly EmojiPickerEmoji[]` |  | The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. |
+| `frequent` | `readonly Item[]` |  | The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. |
 | `frequentLabel` | `string` | `"Frequently used"` | The heading of the frequently used emoji. |
 | `label` (required) | `string` |  | What the picker is for, which names it for screen readers: `"Add a reaction"`, `"Insert emoji"`. Required. |
 | `noResultsLabel` | `string` | `"No emoji found"` | What shows, and is announced, when nothing matches the search. |
-| `onSelect` (required) | `(selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` |  | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
+| `onSelect` (required) | `(selection: EmojiPickerSelection<Item>, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` |  | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
 | `onSkinToneChange` | `((skinTone: EmojiSkinTone) => void)` |  | Called with the new skin tone when the person picks one, so the app can keep it. |
 | `presentation` | `"popover" \| "auto" \| "sheet"` | `"auto"` | `auto`, the default, is a popover from 640px up and a bottom sheet below. `popover` stays beside the trigger at every width; `sheet` is always a bottom sheet. |
-| `quick` | `readonly EmojiPickerEmoji[]` |  | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
+| `quick` | `readonly Item[]` |  | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
 | `quickLabel` | `string` | `"Quick reactions"` | What screen readers hear for the `quick` row. |
-| `renderEmoji` | `EmojiRender` |  | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
+| `renderEmoji` | `EmojiRender<Item>` |  | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
 | `resultsLabel` | `string` | `"{count} emoji"` | The heading of the search results, also announced as they change; `{count}` is the number found. |
 | `searchLabel` | `string` | `"Search emoji"` | The search field's label and placeholder. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the popover sits on; it flips when there is no room. |
@@ -62,7 +62,7 @@ The props the modes share. Type: `EmojiPickerProps`.
 
 ## Modes
 
-`EmojiPickerProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
+`EmojiPickerProps<Item>` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
 ### Controlled: `EmojiPickerControlledProps`
 
@@ -117,13 +117,13 @@ Alignment classes (`text-center`) warn too: use the `align` prop.
 A category of emoji: its name, the icon its button shows, and its emoji in order.
 
 ```ts
-interface EmojiPickerCategory {
+interface EmojiPickerCategory<Item extends EmojiPickerEmoji = EmojiPickerEmoji> {
   /** The category's name, shown as its heading and read for its button: `"Smileys"`. Unique within the picker. */
   label: string;
   /** What its button in the category bar shows: an icon element. Defaults to its first emoji. */
   icon?: ReactNode;
   /** The category's emoji, in the order they show. */
-  emoji: readonly EmojiPickerEmoji[];
+  emoji: readonly Item[];
 }
 ```
 
@@ -153,15 +153,15 @@ interface EmojiPickerEmoji {
 What `onSelect` receives: the emoji chosen, in the skin tone it was chosen in.
 
 ```ts
-interface EmojiPickerSelection {
+interface EmojiPickerSelection<Item extends EmojiPickerEmoji = EmojiPickerEmoji> {
   /** The emoji as text, in the chosen skin tone when it has tones: `"👍🏽"`. */
   emoji: string;
   /** Its name: `"thumbs up"`. */
   name: string;
   /** The skin tone it was chosen in; `"default"` for an emoji without tones. */
   skinTone: EmojiSkinTone;
-  /** The entry from `categories`, `frequent` or `quick` that was chosen, as the app passed it. */
-  item: EmojiPickerEmoji;
+  /** The entry from `categories`, `frequent` or `quick` that was chosen, as the app passed it, with any fields of its own. */
+  item: Item;
 }
 ```
 
@@ -170,7 +170,7 @@ interface EmojiPickerSelection {
 Draws an emoji in the given skin tone: `renderEmoji`.
 
 ```ts
-type EmojiRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone) => ReactNode;
+type EmojiRender<Item extends EmojiPickerEmoji = EmojiPickerEmoji> = (item: Item, skinTone: EmojiSkinTone) => ReactNode;
 ```
 
 [^layout-classes]: test:registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker opening and closing > lets app layout classes win on the panel verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker opening and closing > lets app layout classes win on the panel)

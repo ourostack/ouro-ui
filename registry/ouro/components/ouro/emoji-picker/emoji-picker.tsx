@@ -70,32 +70,32 @@ export interface EmojiPickerEmoji {
 }
 
 /** Draws an emoji in the given skin tone: `renderEmoji`. */
-export type EmojiRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone) => ReactNode;
+export type EmojiRender<Item extends EmojiPickerEmoji = EmojiPickerEmoji> = (item: Item, skinTone: EmojiSkinTone) => ReactNode;
 
 /** A category of emoji: its name, the icon its button shows, and its emoji in order. */
-export interface EmojiPickerCategory {
+export interface EmojiPickerCategory<Item extends EmojiPickerEmoji = EmojiPickerEmoji> {
   /** The category's name, shown as its heading and read for its button: `"Smileys"`. Unique within the picker. */
   label: string;
   /** What its button in the category bar shows: an icon element. Defaults to its first emoji. */
   icon?: ReactNode;
   /** The category's emoji, in the order they show. */
-  emoji: readonly EmojiPickerEmoji[];
+  emoji: readonly Item[];
 }
 
 /** What `onSelect` receives: the emoji chosen, in the skin tone it was chosen in. */
-export interface EmojiPickerSelection {
+export interface EmojiPickerSelection<Item extends EmojiPickerEmoji = EmojiPickerEmoji> {
   /** The emoji as text, in the chosen skin tone when it has tones: `"👍🏽"`. */
   emoji: string;
   /** Its name: `"thumbs up"`. */
   name: string;
   /** The skin tone it was chosen in; `"default"` for an emoji without tones. */
   skinTone: EmojiSkinTone;
-  /** The entry from `categories`, `frequent` or `quick` that was chosen, as the app passed it. */
-  item: EmojiPickerEmoji;
+  /** The entry from `categories`, `frequent` or `quick` that was chosen, as the app passed it, with any fields of its own. */
+  item: Item;
 }
 
 /** Props shared by both ways of opening an EmojiPicker. */
-export interface EmojiPickerBaseProps {
+export interface EmojiPickerBaseProps<Item extends EmojiPickerEmoji = EmojiPickerEmoji> {
   /** What the picker is for, which names it for screen readers: `"Add a reaction"`, `"Insert emoji"`. Required. */
   label: string;
   /**
@@ -103,11 +103,11 @@ export interface EmojiPickerBaseProps {
    *
    * @claim "Every emoji the picker offers" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > shows the quick row, the frequently used emoji and every category, each emoji named for screen readers)
    */
-  categories: readonly EmojiPickerCategory[];
+  categories: readonly EmojiPickerCategory<Item>[];
   /** The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. */
-  frequent?: readonly EmojiPickerEmoji[] | undefined;
+  frequent?: readonly Item[] | undefined;
   /** A row of emoji above the categories for a single press, such as the quick reactions on a message. */
-  quick?: readonly EmojiPickerEmoji[] | undefined;
+  quick?: readonly Item[] | undefined;
   /**
    * Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art:
    * return an image 1em square, so it takes the size of the text, with an empty `alt` (the button
@@ -117,13 +117,13 @@ export interface EmojiPickerBaseProps {
    *
    * @claim "Draws an emoji in the grid, the quick row and the preview" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > draws each emoji with renderEmoji in the skin tone in use, keeping its name for screen readers)
    */
-  renderEmoji?: EmojiRender | undefined;
+  renderEmoji?: EmojiRender<Item> | undefined;
   /**
    * Called with the chosen emoji when the person presses one, or presses Enter in the search
    * for its first result; the picker then closes. The event comes second, so the app can check
    * `event.isTrusted` before it acts.
    */
-  onSelect: (selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
+  onSelect: (selection: EmojiPickerSelection<Item>, event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
   /**
    * The skin tone the emoji show in, when you keep it (in the person's settings, say). Pair it
    * with `onSkinToneChange`. Without it, the picker remembers the tone while it is mounted.
@@ -186,7 +186,7 @@ export interface EmojiPickerBaseProps {
 }
 
 /** An uncontrolled EmojiPicker: `trigger` opens and closes it. */
-export type EmojiPickerWithTriggerProps = EmojiPickerBaseProps & {
+export type EmojiPickerWithTriggerProps<Item extends EmojiPickerEmoji = EmojiPickerEmoji> = EmojiPickerBaseProps<Item> & {
   /** The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. */
   trigger: ReactElement;
   /** Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`. */
@@ -198,7 +198,7 @@ export type EmojiPickerWithTriggerProps = EmojiPickerBaseProps & {
 };
 
 /** A controlled EmojiPicker: you own `open`, update it in `onOpenChange`, and say what it points at with `anchor`. */
-export type EmojiPickerControlledProps = EmojiPickerBaseProps & {
+export type EmojiPickerControlledProps<Item extends EmojiPickerEmoji = EmojiPickerEmoji> = EmojiPickerBaseProps<Item> & {
   /** Whether the picker is open. */
   open: boolean;
   /** Called with `false` when the person dismisses the picker (Escape, an outside press, the close button) or chooses an emoji. */
@@ -210,7 +210,7 @@ export type EmojiPickerControlledProps = EmojiPickerBaseProps & {
 };
 
 /** Props for {@link EmojiPicker}: either `trigger`, or `open` with `onOpenChange` and `anchor`. */
-export type EmojiPickerProps = EmojiPickerWithTriggerProps | EmojiPickerControlledProps;
+export type EmojiPickerProps<Item extends EmojiPickerEmoji = EmojiPickerEmoji> = EmojiPickerWithTriggerProps<Item> | EmojiPickerControlledProps<Item>;
 
 type TriggerProps = {
   ref?: Ref<HTMLElement> | undefined;
@@ -260,7 +260,7 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  * @claim "Home and End go to the" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker keyboard > goes to the ends of a row with Home and End, and of the grid with Ctrl)
  * @claim "calls `onSelect` and closes the picker" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > chooses an emoji with a press: onSelect gets it, its name, its tone and the event, and the picker closes)
  */
-export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
+export function EmojiPicker<Item extends EmojiPickerEmoji = EmojiPickerEmoji>(props: EmojiPickerProps<Item>): JSX.Element {
   const {
     label,
     categories,
@@ -293,7 +293,7 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
     data,
     isOpen,
     onClose,
-  } = props as EmojiPickerBaseProps & {
+  } = props as EmojiPickerBaseProps<Item> & {
     trigger?: ReactElement;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -383,14 +383,15 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
           categories={categories ?? []}
           frequent={frequent}
           quick={quick}
-          render={renderEmoji}
+          // The panel hands back only entries the app passed, so they are the app's own type.
+          render={renderEmoji as EmojiRender | undefined}
           tone={tone}
           setTone={setTone}
           asSheet={asSheet}
           labels={{ searchLabel, frequentLabel, quickLabel, categoriesLabel, skinToneLabel, skinToneNames, resultsLabel, noResultsLabel }}
           className={className}
           onChoose={(item, event) => {
-            onSelect({ emoji: toned(item, tone), name: item.name, skinTone: item.skinTones ? tone : "default", item }, event);
+            onSelect({ emoji: toned(item, tone), name: item.name, skinTone: item.skinTones ? tone : "default", item: item as Item }, event);
             setOpen(false);
           }}
         />
