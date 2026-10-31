@@ -286,7 +286,9 @@ export function Message(props: MessageProps): JSX.Element {
   const hasBar = (actions !== undefined && actions.length > 0) || (menu !== undefined && menu.length > 0);
   const tap = (event: PointerEvent<HTMLElement>) => {
     rest.onPointerUp?.(event);
-    if (hasBar && event.pointerType === "touch" && !(event.target as Element).closest("a, button, input, textarea, select, [tabindex]")) setActive(true);
+    // A tap on a control is the control's; the message itself takes a tabindex in a MessageList, and a tap on it is the message's.
+    const control = (event.target as Element).closest("a, button, input, textarea, select, [tabindex]");
+    if (hasBar && event.pointerType === "touch" && (control === null || control === event.currentTarget)) setActive(true);
   };
   const ref = (node: HTMLElement | null) => {
     setElement(node);

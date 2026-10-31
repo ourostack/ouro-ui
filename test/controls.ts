@@ -44,6 +44,7 @@ export function controlRole(element: Element): string {
   const tag = element.localName;
   if (tag === "a" || tag === "area") return element.hasAttribute("href") ? "link" : "generic";
   if (tag === "button") return "button";
+  if (tag === "article") return "article";
   if (tag === "textarea") return "textbox";
   if (tag === "select") return (element as HTMLSelectElement).multiple || (element as HTMLSelectElement).size > 1 ? "listbox" : "combobox";
   if (tag === "input") {
