@@ -10,6 +10,7 @@ import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor"
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { PortalScope } from "@/registry/ouro/lib/ouro/portal-container";
 import { footerClass, iosBackdrop, sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 import { dialogSizes, dialogSizeWarning, type DialogSize } from "@/registry/ouro/components/ouro/dialog/dialog-styles";
@@ -128,9 +129,22 @@ export function AlertDialogRoot(props: AlertDialog.Root.Props): JSX.Element {
 }
 
 /** Part: the button that opens the dialog. Pass your button as `render={<Button>Open</Button>}`. */
-export function DialogTrigger(props: BaseDialog.Trigger.Props): JSX.Element {
+export function DialogTrigger({ onPointerDown, onKeyDown, ...props }: BaseDialog.Trigger.Props): JSX.Element {
   useDialogPart("DialogTrigger", "…");
-  return <BaseDialog.Trigger {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "dialog", "data-ouro-part": "trigger" } : {})} {...props} />;
+  return (
+    <BaseDialog.Trigger
+      {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "dialog", "data-ouro-part": "trigger" } : {})}
+      {...props}
+      onPointerDown={(event) => {
+        onPointerDown?.(event);
+        holdPageAtPress.dialog.onPointerDown(event);
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        holdPageAtPress.dialog.onKeyDown(event);
+      }}
+    />
+  );
 }
 
 /**
