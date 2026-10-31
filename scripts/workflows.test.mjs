@@ -1258,11 +1258,11 @@ test("the mutation plan keys the kept results by pull request and dependency has
   // A stand-in for scripts/mutation.mjs --count: prints the larger of its minimum and $PLANNED.
   const planned = (shards) => `node() { printf 'CALL node %s\\n' "$*" >&2; min=\${4%%/*}; echo $(( ${shards} > min ? ${shards} : min )); }\n${count}`;
   const cold = runStep(planned(5), { KEY: "stryker-139-abc-", MATCHED: "" });
-  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/16$/m);
+  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/24$/m);
   assert.deepEqual(cold.output, { count: "5", shards: "[1,2,3,4,5]" });
   assert.deepEqual(runStep(planned(13), { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "13", shards: "[1,2,3,4,5,6,7,8,9,10,11,12,13]" });
   const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
-  assert.match(warm.calls, /--count 3\/16$/m);
+  assert.match(warm.calls, /--count 3\/24$/m);
   assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
   // Not a pull request: nothing to mutate, three shards, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
