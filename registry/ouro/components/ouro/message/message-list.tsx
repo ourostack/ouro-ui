@@ -335,7 +335,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         data-ouro-part="scroller"
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
-        <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4">
+        <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">
           {children}
         </div>
       </div>

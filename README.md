@@ -327,6 +327,7 @@ Components:
 `text`,
 `text-area`,
 `text-field`,
+`thread-summary`,
 `time-grid`,
 `timer`,
 `timer-tray`,
@@ -576,6 +577,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
+- **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
 
 ### App setup
 

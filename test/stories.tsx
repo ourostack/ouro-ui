@@ -323,7 +323,10 @@ export function overlayOpeners(
   const triggers = [...new Set(roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>(popupTriggerSelector)]))]
     .filter((element) => !element.matches(':disabled, [aria-disabled="true"], [data-disabled]') && isVisible(element))
     .map((element) =>
-      clipped(element) ? { name: accessibleName(element), open: () => openFromKeyboard(element) } : { name: accessibleName(element), open: () => userEvent.click(element), element },
+      // A trigger that lets taps through until shown (a message's action bar on a touch screen) is opened from the keyboard too.
+      clipped(element) || getComputedStyle(element).pointerEvents === "none"
+        ? { name: accessibleName(element), open: () => openFromKeyboard(element) }
+        : { name: accessibleName(element), open: () => userEvent.click(element), element },
     );
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {

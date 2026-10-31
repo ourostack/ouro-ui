@@ -147,6 +147,10 @@ test("an installed file must equal its source once import paths are mapped to th
   write(root, "registry/ouro/components/ouro/a/a.tsx", 'import { cn } from "@/registry/ouro/lib/ouro/cn";\nimport { B } from "@/registry/ouro/components/ouro/b/b";\nexport const a = [cn, B];\n');
   write(dir, "src/components/ouro/a/a.tsx", 'import { cn } from "~/lib/ouro/cn";\nimport { B } from "~/components/ouro/b/b";\nexport const a = [cn, B];\n');
   assert.deepEqual(checkSources(dir, root, aliases), []);
+  // A dynamic import, as Message loads Menu.
+  write(root, "registry/ouro/components/ouro/c/c.tsx", 'export const load = () => Promise.all([import("@/registry/ouro/components/ouro/b/b"), import( "@/registry/ouro/lib/ouro/cn")]);\n');
+  write(dir, "src/components/ouro/c/c.tsx", 'export const load = () => Promise.all([import("~/components/ouro/b/b"), import( "~/lib/ouro/cn")]);\n');
+  assert.deepEqual(checkSources(dir, root, aliases), []);
   write(dir, "src/components/ouro/a/a.tsx", 'import { cn } from "~/lib/ouro/cn";\nimport { B } from "~/components/ouro/b/b";\nexport const a = [B, cn];\n');
   assert.deepEqual(checkSources(dir, root, aliases), [
     'src/components/ouro/a/a.tsx differs from registry/ouro/components/ouro/a/a.tsx at line 3: "export const a = [cn, B];" became "export const a = [B, cn];"',

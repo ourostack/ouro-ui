@@ -228,10 +228,11 @@ export function checkDirectives(app, root) {
  */
 export function checkSources(app, root, aliases) {
   const problems = [];
-  // Only module specifiers on import and export lines are rewritten: JSDoc may quote an
-  // installed import such as `from "@/components/ouro/sheet/sheet-parts"`, which an app with the
-  // @/components alias also has.
-  const specifier = (alias) => new RegExp(`^((?:import|export)\\b.*?from\\s*|\\}\\s*from\\s*|import\\s*)"${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/ouro/`, "gm");
+  // Only module specifiers on import and export lines, and in a dynamic import("..."), are
+  // rewritten: JSDoc may quote an installed import such as `from "@/components/ouro/sheet/sheet-parts"`,
+  // which an app with the @/components alias also has.
+  const specifier = (alias) =>
+    new RegExp(`(^(?:import|export)\\b.*?from\\s*|^\\}\\s*from\\s*|^import\\s*|\\bimport\\(\\s*)"${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/ouro/`, "gm");
   const toSource = (text) =>
     text
       .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')

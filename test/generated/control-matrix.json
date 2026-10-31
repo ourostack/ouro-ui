@@ -1844,6 +1844,42 @@
     ]
   },
   {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "action",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "menu",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread"
+    ]
+  },
+  {
     "item": "message-list",
     "stem": "message-list",
     "mode": "default",
@@ -1917,6 +1953,19 @@
       "Attachment/Removable",
       "Attachment/Kinds",
       "Attachment/OpensInApp"
+    ]
+  },
+  {
+    "item": "thread-summary",
+    "stem": "thread-summary",
+    "mode": "default",
+    "part": "open",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ThreadSummary/Playground",
+      "ThreadSummary/UnderPosts"
     ]
   },
   {
@@ -2448,7 +2497,11 @@
       "Lightbox/Playground",
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
-      "Lightbox/BeforeAndAfter"
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
@@ -2463,7 +2516,49 @@
       "Lightbox/Playground",
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
-      "Lightbox/BeforeAndAfter"
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
+    ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "zoom",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
+    ]
+  },
+  {
+    "item": "lightbox",
+    "stem": "lightbox",
+    "mode": "default",
+    "part": "zoom-view",
+    "role": "group",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "Lightbox/Playground",
+      "Lightbox/Photos",
+      "Lightbox/LoopWithOriginals",
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
@@ -2478,7 +2573,11 @@
       "Lightbox/Playground",
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
-      "Lightbox/BeforeAndAfter"
+      "Lightbox/BeforeAndAfter",
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
