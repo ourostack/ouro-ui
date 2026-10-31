@@ -157,7 +157,7 @@ describe("home page", () => {
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
     expect(latestRelease).toMatch(/^v\d+\.\d+\.\d+$/);
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(/Without it, the address installs/)).toBeVisible();
+    await expect.element(page.getByText(/Without it the install fails: main has no registry\.json\./)).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/ouro-base @ouro/sheet", { exact: true })).toBeVisible();
     expect(page.getByRole("link", { name: "Switching from shadcn" }).element().getAttribute("href")).toBe("/docs/switching-from-shadcn/");
   });
