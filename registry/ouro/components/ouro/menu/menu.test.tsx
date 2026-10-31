@@ -274,6 +274,27 @@ describe("Menu dropdown", () => {
 });
 
 describe("Menu items", () => {
+  it("shows an entry's icon before its label, at 16px, out of its name", async () => {
+    const icon = (
+      <svg viewBox="0 0 16 16" data-testid="pencil">
+        <path d="M2 14 14 2" />
+      </svg>
+    );
+    await render(<Menu trigger={<Button>Actions</Button>} items={[{ label: "Edit", icon, onClick: () => {} }, { label: "Copy link" }]} />);
+    await userEvent.click(page.getByRole("button", { name: "Actions" }));
+    await expect.element(page.getByRole("menuitem", { name: "Edit", exact: true })).toBeVisible();
+    const edit = item("Edit").element() as HTMLElement;
+    const svg = edit.querySelector("svg")!;
+    expect(svg.closest("[data-ouro-menu-icon]")!.getAttribute("aria-hidden")).toBe("true");
+    expect(svg.getBoundingClientRect().width).toBe(16);
+    const text = document.createRange();
+    const walker = document.createTreeWalker(edit, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode() && walker.currentNode.textContent !== "Edit");
+    text.selectNodeContents(walker.currentNode);
+    expect(svg.getBoundingClientRect().right).toBeLessThan(text.getBoundingClientRect().left);
+    expect(item("Copy link").element().querySelector("[data-ouro-menu-icon]")).toBeNull();
+  });
+
   it("shows a shortcut with Kbd at the end of the item", async () => {
     await openDropdown({}, <MenuItem shortcut={["mod", "e"]}>Edit</MenuItem>);
     const kbd = item("Edit").element().querySelector<HTMLElement>('[data-ouro="kbd"]')!;
