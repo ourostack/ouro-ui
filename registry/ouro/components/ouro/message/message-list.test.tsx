@@ -962,7 +962,7 @@ describe("MessageList keyboard", () => {
       <Channel>
         {posts(4, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
         <a href="#older">Older replies</a>
-        {posts(2, () => null).map((post, index) => (
+        {[0, 1].map((index) => (
           <Message key={`late-${index}`} role="user" name="Ada" id={`late-${index}`}>
             Late {index}
           </Message>

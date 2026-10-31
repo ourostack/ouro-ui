@@ -1029,6 +1029,28 @@ describe("Message actions", () => {
     expect(message.getAttribute("data-ouro-message-active")).toBe("");
   });
 
+  it.each(["default", "chat"] as const)("draws a rounded focus ring on a %s message that takes keyboard focus, as one in a MessageList does", async (variant) => {
+    const { host } = await render(
+      <>
+        <button type="button">Before</button>
+        <Message variant={variant} role="assistant" name="Mara Quill" tabIndex={0}>
+          Morning!
+        </Message>
+      </>,
+    );
+    const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    host.querySelector("button")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(message);
+    const style = getComputedStyle(message);
+    expect([style.outlineStyle, style.outlineWidth, style.outlineOffset]).toEqual(["solid", "2px", "2px"]);
+    const ring = document.createElement("span");
+    ring.style.color = "var(--ring)";
+    host.append(ring);
+    expect(style.outlineColor).toBe(getComputedStyle(ring).color);
+    expect(style.borderTopLeftRadius).not.toBe("0px");
+  });
+
   it("shows the bar after a tap on a message that takes focus itself, as one in a MessageList does", async () => {
     const { message } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill" tabIndex={-1} actions={actionsFor([])}>
