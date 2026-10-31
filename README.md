@@ -4,7 +4,7 @@ Designed down to the last tap and the last prop. Interactions that feel right to
 
 **[See it live: ui.ouro.bot](https://ui.ouro.bot/)**, with the [docs](https://ui.ouro.bot/docs/) and [Storybook](https://ui.ouro.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-Ouro HX is the component library within Ouro UI. Ouro AX is coming soon; its scope is still being defined. The repository, `@ouro` namespace and install addresses are unchanged.
+Ouro HX is the component library within Ouro UI. Ouro AX is coming soon. The repository, `@ouro` namespace and install addresses are unchanged.
 
 ```sh
 npx shadcn@latest search 'ourostack/ouro-ui#v1.2.14'     # list the items
