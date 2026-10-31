@@ -15,9 +15,12 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+# A push to a pull request cancels that pull request's run in progress. Every other run, a merge-queue
+# entry's or one Release dispatches on a queue branch, is in a group of its own (its run id), so it is
+# never cancelled or replaced: a dispatched run and the queue's run on the same branch used to share one.
 concurrency:
-  group: conformance-exemptions-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   exemptions:
     name: conformance exemptions
