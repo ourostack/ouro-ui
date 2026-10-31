@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -139,14 +139,51 @@ describe("ReactionBar", () => {
     expect(heart.dataset.ouroPart).toBe("quick");
   });
 
+  it("adds an Add reaction button with onMore, last, that opens the app's picker", async () => {
+    const opened: (EventTarget | null)[] = [];
+    const onMore = vi.fn((event: MouseEvent<HTMLElement>) => void opened.push(event.currentTarget));
+    const { bar, rerender } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} onMore={onMore} />);
+    const more = page.getByRole("button", { name: "Add reaction" });
+    await expect.element(more).toHaveAttribute("aria-haspopup", "dialog");
+    await expect.element(more).not.toHaveAttribute("aria-expanded");
+    const buttons = [...bar!.querySelectorAll<HTMLElement>("button")];
+    expect(buttons.at(-1)!.dataset.ouroPart).toBe("more");
+    expect(buttons.at(-1)!.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
+    await userEvent.click(more);
+    expect(onMore).toHaveBeenCalledTimes(1);
+    expect(opened).toEqual([buttons.at(-1)]);
+    await rerender(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} onMore={onMore} moreOpen />);
+    await expect.element(more).toHaveAttribute("aria-expanded", "true");
+    await rerender(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} onMore={onMore} moreOpen={false} />);
+    await expect.element(more).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows the Add reaction button alone when there is nothing else, and takes other words", async () => {
+    const onMore = vi.fn();
+    const { host } = await render(<ReactionBar reactions={[]} onMore={onMore} moreLabel="Ajouter une réaction" />);
+    expect(host.querySelectorAll("button")).toHaveLength(1);
+    await userEvent.click(page.getByRole("button", { name: "Ajouter une réaction" }));
+    expect(onMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the Add reaction button in a tooltip on hover", async () => {
+    await render(<ReactionBar reactions={reactions} onMore={() => {}} />);
+    await userEvent.hover(page.getByRole("button", { name: "Add reaction" }));
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="tooltip"]')?.textContent).toBe("Add reaction");
+    await userEvent.unhover(document.body);
+  });
+
   it("keeps the counts but turns off reacting when disabled", async () => {
     const onReact = vi.fn();
-    const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={onReact} disabled />);
+    const onMore = vi.fn();
+    const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={onReact} onMore={onMore} disabled />);
     const buttons = [...bar!.querySelectorAll<HTMLButtonElement>("button")];
-    expect(buttons).toHaveLength(3);
+    expect(buttons).toHaveLength(4);
     expect(buttons.every((button) => button.disabled)).toBe(true);
     buttons[0]!.click();
+    buttons[3]!.click();
     expect(onReact).not.toHaveBeenCalled();
+    expect(onMore).not.toHaveBeenCalled();
   });
 
   it("is read-only without onReact, and says which reaction is yours", async () => {
@@ -172,7 +209,8 @@ describe("ReactionBar", () => {
   });
 
   it("gives each button press feedback and a touch target, as Badge does", async () => {
-    const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} />);
+    const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} onMore={() => {}} />);
+    expect(bar!.querySelectorAll("button")).toHaveLength(4);
     for (const button of bar!.querySelectorAll<HTMLElement>("button")) {
       expect(button.dataset.ouroControl).toBe("reaction-bar");
       expect(button.classList.contains("press")).toBe(true);
@@ -211,6 +249,7 @@ describe("ReactionBar development messages", () => {
   it("warns of nothing when the props are right", async () => {
     await render(<ReactionBar reactions={reactions} />);
     await render(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} />);
+    await render(<ReactionBar reactions={reactions} onReact={() => {}} onMore={() => {}} moreOpen={false} moreLabel="Add" />);
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -219,6 +258,8 @@ describe("ReactionBar development messages", () => {
     ["onReactionClick", { onReactionClick: () => {} }, "onReactionClick is not a prop", "<ReactionBar onReact={(key) => react(key)}>"],
     ["items", { items: [] }, "items is not a prop", "<ReactionBar reactions={message.reactions}>"],
     ["quick without onReact", { quick, onReact: undefined }, "quick reactions need onReact, so they are hidden", "<ReactionBar quick={quick} onReact={react}>"],
+    ["onAddReaction", { onAddReaction: () => {} }, "onAddReaction is not a prop", "<ReactionBar onMore={openPicker}>"],
+    ["moreOpen without onMore", { moreOpen: true }, "moreOpen needs onMore, which opens the picker", "<ReactionBar onMore={openPicker} moreOpen={pickerOpen}>"],
   ])("names the fix for %s", async (_name, extra, problem, fix) => {
     const props = { reactions, onReact: () => {}, ...extra } as unknown as ReactionBarProps;
     const { host } = await render(<ReactionBar {...props} />);
