@@ -135,5 +135,20 @@ test("the generated stylesheet and themes.json are current, and list the six pre
   const outputs = build();
   assert.equal(outputs["presets.generated.css"], read("presets.generated.css"), "run node site/scripts/themes.mts");
   assert.equal(outputs["themes.json"], read("themes.json"), "run node site/scripts/themes.mts");
-  assert.deepEqual(JSON.parse(outputs["themes.json"]).map((preset) => preset.name), ["sleek", "abyss", "brass", "chart", "coral", "cookbook"]);
+  assert.deepEqual(JSON.parse(outputs["themes.json"]).map((preset) => preset.name), ["pearl", "abyss", "brass", "chart", "coral", "cookbook"]);
+});
+
+test("ouro-theme.css, the look apps install, is Pearl's colours and radius, light and dark", () => {
+  const values = (css) =>
+    Object.fromEntries(
+      parseBlocks(css).map((block) => [
+        block.selector,
+        block.body
+          .split(";")
+          .map((line) => line.trim())
+          .filter((line) => line && !/^--(font-|shadow-|ouro-)/.test(line)),
+      ]),
+    );
+  const shipped = readFileSync(`${themesDir}/../../../registry/ouro/theme/ouro-theme.css`, "utf8");
+  assert.deepEqual(values(shipped), values(read("pearl.css")));
 });

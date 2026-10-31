@@ -238,7 +238,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   // the theme presets (themes/presets.generated.css), which the header's picker switches on both.
   const presetsOnly = (sheet: string) => {
     const css = readFileSync(resolve("site/dist", sheet), "utf8");
-    return css.includes("[data-theme=sleek]") && !css.includes("--tw-") && !/\.(?:site|voyage|stage|chapter)-/.test(css);
+    return css.includes("[data-theme=pearl]") && !css.includes("--tw-") && !/\.(?:site|voyage|stage|chapter)-/.test(css);
   };
   for (const name of ["home", "nautilus"]) {
     const shared = sheets[name]!.filter((sheet) => sheets["docs"]!.includes(sheet));

@@ -1,0 +1,1 @@
+- `ouro-theme` is Pearl, the new default look: white and soft greys, ink text (`#1d1d1f`), one clear blue (`#0066cc`, and `#2997ff` in dark mode), a black dark mode with raised surfaces in `#1c1c1e`, and corners at `--radius: 0.75rem`. An app that installed the old `ouro-theme` keeps its colors until it adds `ouro-theme` again.

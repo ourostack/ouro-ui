@@ -65,12 +65,12 @@ test("a stored preset paints from the server HTML, before the client entry runs"
   expect(await colours(bare)).toEqual(expected);
   // The picker's label and the pressed preset are the stored one's too, before any hydration.
   await expect(bare.locator("[data-site-theme-trigger]")).toHaveAccessibleName(/Abyss/);
-  await expect(bare.locator("[data-site-theme-trigger]")).not.toHaveAccessibleName(/Sleek/);
+  await expect(bare.locator("[data-site-theme-trigger]")).not.toHaveAccessibleName(/Pearl/);
   expect(await bare.locator("[data-site-sample] .site-window-bar").innerText()).toMatch(/^before-we-dive\.tsx\s+Abyss$/);
   await expect(bare.locator('[data-site-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(bare.locator('[data-site-preset="sleek"]')).toHaveAttribute("aria-pressed", "false");
+  await expect(bare.locator('[data-site-preset="pearl"]')).toHaveAttribute("aria-pressed", "false");
   await expect(bare.locator('[data-site-preset="abyss"]')).toHaveCSS("box-shadow", /inset/);
-  await expect(bare.locator('[data-site-preset="sleek"]')).not.toHaveCSS("box-shadow", /inset/);
+  await expect(bare.locator('[data-site-preset="pearl"]')).not.toHaveCSS("box-shadow", /inset/);
   await blocked.close();
 });
 
@@ -213,7 +213,7 @@ test("loads Geist and Geist Mono, and a preset's display face only once it is ch
 
 test("the header works from the keyboard: picker, mode, X-ray and the command palette, with focus returned", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await store(page, { preset: "sleek", mode: "light" });
+  await store(page, { preset: "pearl", mode: "light" });
   await open(page);
   const trigger = page.locator("[data-site-theme-trigger]");
   await page.locator("body").focus();
@@ -229,14 +229,14 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   }
   await pressTab(page);
   await expect(trigger).toBeFocused();
-  await expect(trigger).toHaveAccessibleName(/Theme: Sleek/);
+  await expect(trigger).toHaveAccessibleName(/Theme: Pearl/);
   await page.keyboard.press("Enter");
   const popup = page.getByRole("dialog", { name: "Theme" });
   // real clock: the theme picker's popup stays open until it is closed; no timer ends it.
   await expect(popup).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await pressTab(page);
-  await expect(page.getByRole("radio", { name: "Sleek" })).toBeFocused();
+  await expect(page.getByRole("radio", { name: "Pearl" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "abyss");
   await pressTab(page);

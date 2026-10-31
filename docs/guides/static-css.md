@@ -55,7 +55,7 @@ They live in [`site/public/css/`](../../site/public/css/):
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ouro-base.css`       | The radius scale, the success and warning colors, motion durations and easings, the overlay layer and the `ouro-*` keyframes.[^base]        |
 | `ouro-theme.css`      | Ouro HX's default theme: shadcn/ui's color tokens in light and dark.[^tokens]                                                               |
-| `themes/<preset>.css` | One of the site's theme presets, with its fonts: `sleek`, `abyss`, `brass`, `chart`, `coral` or `cookbook`.[^fonts] |
+| `themes/<preset>.css` | One of the site's theme presets, with its fonts: `pearl`, `abyss`, `brass`, `chart`, `coral` or `cookbook`.[^fonts] |
 
 `ouro-base.css` leaves out the `press` utility, which needs Tailwind; its header names what it leaves out.[^base] A preset's fonts load from `../../fonts/`, so keep `css/` and `fonts/` side by side when you copy them.[^fonts]
 

@@ -11,13 +11,13 @@ export interface SiteTheme {
   mode: Mode;
 }
 
-const SERVER: SiteTheme = { preset: "sleek", mode: "light" };
+const SERVER: SiteTheme = { preset: "pearl", mode: "light" };
 let cache: { key: string; value: SiteTheme } | undefined;
 
 function read(): SiteTheme {
   const root = document.documentElement;
   const attribute = root.getAttribute("data-theme");
-  const preset = (PRESET_NAMES as readonly string[]).includes(attribute ?? "") ? (attribute as PresetName) : "sleek";
+  const preset = (PRESET_NAMES as readonly string[]).includes(attribute ?? "") ? (attribute as PresetName) : "pearl";
   const mode: Mode = root.classList.contains("dark") ? "dark" : "light";
   const key = `${preset}|${mode}`;
   if (cache?.key !== key) cache = { key, value: { preset, mode } };
@@ -52,7 +52,7 @@ export function storeTheme(change: { preset?: PresetName; mode?: Mode }): void {
   else applyStoredTheme(storage, root, matchMedia("(prefers-color-scheme: dark)").matches, PRESET_NAMES);
 }
 
-/** The current theme, and setters for the preset and the mode. The server renders Sleek, light. */
+/** The current theme, and setters for the preset and the mode. The server renders Pearl, light. */
 export function useSiteTheme(): SiteTheme & { setPreset: (preset: PresetName) => void; setMode: (mode: Mode) => void } {
   const theme = useSyncExternalStore(subscribe, read, () => SERVER);
   const setPreset = useCallback((preset: PresetName) => storeTheme({ preset }), []);
