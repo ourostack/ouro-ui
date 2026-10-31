@@ -525,6 +525,21 @@ describe("Popover server rendering", () => {
 });
 
 describe("Popover dev messages", () => {
+  it("warns when its open popover renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    await render(
+      <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+        <input aria-label="Link" />
+      </Popover>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    expect(warnings()).toEqual([
+      "[ouro-ui] Popover: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
+  });
+
   it("throws the exact fix when neither trigger nor open is passed", () => {
     // @ts-expect-error -- neither trigger nor open
     const popover = <Popover title="Share">Body</Popover>;
