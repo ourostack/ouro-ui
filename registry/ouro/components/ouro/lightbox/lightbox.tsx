@@ -24,6 +24,12 @@ import {
   gridClass,
   headerClass,
   imageClass,
+  fullScreenClass,
+  mosaicCellClass,
+  mosaicClass,
+  mosaicLayout,
+  mosaicMoreClass,
+  mosaicThumbnailClass,
   popupClass,
   stageClass,
   thumbnailClass,
@@ -52,6 +58,20 @@ export interface LightboxImage {
   caption?: ReactNode;
   /** The original file, or a page about the image: the viewer links to it in a new tab. */
   href?: string | undefined;
+  /**
+   * The image's own width and height, in any unit. With `layout="mosaic"` and one image, its
+   * thumbnail keeps this shape (between 3:4 and 3:1), so the page holds its place before it loads.
+   *
+   * @claim "its thumbnail keeps this shape" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+   */
+  width?: number | undefined;
+  /** The image's own height; see `width`. */
+  height?: number | undefined;
+  /**
+   * A still frame of an animated image (a GIF), which its thumbnail shows instead when the user
+   * asks for reduced motion. The viewer still plays the image, since opening it asks to see it.
+   */
+  still?: string | undefined;
 }
 
 /** Props shared by both ways of using a {@link Lightbox}. */
@@ -94,14 +114,38 @@ export interface LightboxBaseProps {
    */
   zoomLabel?: string | undefined;
 
+  /**
+   * The viewer covers the whole screen at every width, with no frame around it, rather than
+   * sitting in a dialog with the page around it. Use it where pictures are the point, as in a
+   * chat's photos.
+   *
+   * @claim "The viewer covers the whole screen at" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
+   */
+  fullScreen?: boolean | undefined;
+
   /** Not a prop. Pass the images as `images`: `<Lightbox images={[{ src, alt }]}>`. */
   slides?: { 'Use images={[{ src, alt }]}': never };
+  /** Not a prop. Lightbox uses `fullScreen`: `<Lightbox fullScreen>`. */
+  fullscreen?: { "Use <Lightbox fullScreen>": never };
 }
 
 /** A Lightbox that draws its own thumbnails, which open the viewer. */
 export type LightboxWithThumbnailsProps = LightboxBaseProps & {
   /** Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. */
   className?: string | undefined;
+  /**
+   * How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame,
+   * as a chat shows the pictures in a message: one picture at its own shape (`width` and
+   * `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid
+   * with "+N" on the last; the viewer still steps through them all. @default "grid"
+   *
+   * @claim "as many 4:3 thumbnails in a row" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > lays the thumbnails out in as many columns of at least 8rem as fit)
+   * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+   * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
+   * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > shows four of more pictures, the last saying how many more follow, to sight and to screen readers)
+   * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > opens the viewer on the picture pressed, steps on past the four shown, and gives focus back to the last one shown)
+   */
+  layout?: "grid" | "mosaic" | (string & { 'Use "grid" or "mosaic"': never }) | undefined;
   /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
   open?: never;
   /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
@@ -143,6 +187,12 @@ export type LightboxControlledProps = LightboxBaseProps & {
   returnFocus?: ((index: number) => HTMLElement | null | undefined) | undefined;
   /** Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone. */
   className?: never;
+  /**
+   * Not with `open`: a controlled Lightbox draws no thumbnails to lay out.
+   *
+   * @claim "a controlled Lightbox draws no thumbnails" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > draws no thumbnails, and opens on index when open)
+   */
+  layout?: never;
 };
 
 /** Props for {@link Lightbox}: thumbnails of its own, or `open` with `onOpenChange` for the viewer alone. */
@@ -607,6 +657,12 @@ function LightboxViewer({
  * size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe
  * moves around the image rather than to the next one.
  *
+ * For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its
+ * own shape, two side by side, three as one large and two small, and four or more as a 2 by 2
+ * grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no
+ * frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced
+ * motion.
+ *
  * To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a
  * map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with
  * `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to
@@ -645,6 +701,11 @@ function LightboxViewer({
  * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx::Lightbox zoom > zooms at a double-tap's point and back with another)
  * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx, /chromiumOnly\(\"pinches\sbetween\sthe\sfitted\ssize\sand\sthe\simage's\sown\ssize,\sholding\sthe\spoint\sbetween\sthe\sfingers\"/)
  * @claim "zoomed, a swipe moves around the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox zoom on a touch screen > zooms with a real double-tap, and then pans with a swipe instead of turning the page)
+ * @claim "one frame that shows one picture" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+ * @claim "two side by side, three as" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
+ * @claim "four or more as a 2 by" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > shows four of more pictures, the last saying how many more follow, to sight and to screen readers)
+ * @claim "Pass `fullScreen` for a viewer" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
+ * @claim "An animated image's `still` frame shows" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox still frames > shows an animated image's still frame in its thumbnail when the user asks for reduced motion)
  * @claim "The viewer grows from the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
  */
 export function Lightbox(props: LightboxProps): JSX.Element {
@@ -664,9 +725,13 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     index: indexProp,
     onOpenChange,
     returnFocus,
-    // A guard prop (hint type), dropped here so it never reaches the DOM.
+    fullScreen = false,
+    layout: layoutProp = "grid",
+    // Guard props (hint types), dropped here so they never reach the DOM.
     slides,
+    fullscreen,
   } = props as LightboxBaseProps & {
+    layout?: string;
     className?: string;
     open?: boolean;
     index?: number;
@@ -675,6 +740,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   };
   const controlled = openProp !== undefined;
   const mountedOpen = useMountedOpen(openProp);
+  // A layout that is not one of Ouro UI's (a type error) warns and renders the grid.
+  const mosaic = layoutProp === "mosaic";
 
   useAppearanceClassNameCheck(
     "Lightbox",
@@ -701,6 +768,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               ],
           ),
           slides !== undefined && ["slides is not a prop", '<Lightbox label="Kitchen photos" images={[{ src, alt }]}>'],
+          fullscreen !== undefined && ["fullscreen is not a prop", '<Lightbox label="Kitchen photos" images={images} fullScreen>'],
+          layoutProp !== "grid" && layoutProp !== "mosaic" && [`layout="${String(layoutProp)}" is not a layout; use "grid", "mosaic"`, '<Lightbox layout="mosaic">'],
           controlled &&
             typeof onOpenChange !== "function" && [
               "open needs onOpenChange, which closes the viewer",
@@ -758,14 +827,15 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               if (from && from !== document.body) node.style.transformOrigin = zoomOrigin(from, node);
             }}
             size="lg"
-            className={popupClass}
+            className={fullScreen ? cn(popupClass, fullScreenClass) : popupClass}
+            data-full-screen={fullScreen ? "" : undefined}
             aria-labelledby={nameId}
             initialFocus={() => popup.current!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")}
             // Focus goes to the thumbnail of the image last shown. Controlled, that is what
             // returnFocus gives, or else (true) Base UI gives focus back to what had it when the
             // viewer opened. A pressed thumbnail need not have had focus (Safari does not focus a
-            // pressed button).
-            finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[shown.current]}
+            // pressed button). A mosaic shows four: an image past them returns to the last, "+N".
+            finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[mosaic ? Math.min(shown.current, 3) : shown.current]}
             onKeyDown={stepWithKeys}
           >
             <LightboxViewer
@@ -790,27 +860,60 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   );
   if (controlled) return viewer;
 
+  const thumbnail = (image: LightboxImage, position: number, more = 0) => (
+    <button
+      ref={(node) => {
+        thumbnails.current[position] = node;
+      }}
+      type="button"
+      aria-haspopup="dialog"
+      data-ouro-control="lightbox"
+      data-ouro-part="thumbnail"
+      className={mosaic ? mosaicThumbnailClass : thumbnailClass}
+      onClick={() => {
+        setStart(position);
+        setOwnOpen(true);
+      }}
+    >
+      {/* With reduced motion an animated image's thumbnail shows its still frame, chosen by the browser. */}
+      <picture className="contents">
+        {image.still !== undefined && <source media="(prefers-reduced-motion: reduce)" srcSet={image.still} />}
+        <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
+      </picture>
+      {more > 0 && (
+        <>
+          <span aria-hidden="true" data-ouro-lightbox-more="" className={mosaicMoreClass}>{`+${more}`}</span>
+          <span className="sr-only">{`, and ${more} more`}</span>
+        </>
+      )}
+    </button>
+  );
+
+  if (mosaic) {
+    // Four at most show; the viewer steps through the rest from the last, which says how many follow.
+    const tiles = images.slice(0, 4);
+    const more = images.length - tiles.length;
+    const shape = mosaicLayout(tiles.length, images[0]?.width, images[0]?.height);
+    return (
+      <div data-ouro="lightbox" data-layout="mosaic" className={cn("min-w-0", className)}>
+        <ul role="list" aria-label={label} className={cn(mosaicClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
+          {tiles.map((image, position) => (
+            <li key={position} className={mosaicCellClass}>
+              {thumbnail(image, position, position === tiles.length - 1 ? more : 0)}
+            </li>
+          ))}
+        </ul>
+        {viewer}
+      </div>
+    );
+  }
+
   return (
     <div data-ouro="lightbox" className={cn("min-w-0", className)}>
       <ul role="list" aria-label={label} className={gridClass}>
         {images.map((image, position) => (
           <li key={position} className="m-0 p-0">
-            <button
-              ref={(node) => {
-                thumbnails.current[position] = node;
-              }}
-              type="button"
-              aria-haspopup="dialog"
-              data-ouro-control="lightbox"
-              data-ouro-part="thumbnail"
-              className={thumbnailClass}
-              onClick={() => {
-                setStart(position);
-                setOwnOpen(true);
-              }}
-            >
-              <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
-            </button>
+            {thumbnail(image, position)}
           </li>
         ))}
       </ul>
