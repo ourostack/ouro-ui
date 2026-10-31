@@ -181,14 +181,19 @@ describe("Lightbox opening and closing", () => {
     expect(document.activeElement).toBe(viewport());
   });
 
-  it("closes with Escape and gives focus back to the thumbnail that opened it", async () => {
+  it("closes with Escape and gives focus to the thumbnail of the image last shown", async () => {
     const { host } = await render(lightbox());
     await openAt(host, 1);
     await userEvent.click(button("Next image"));
     await expect.poll(position).toBe("3 of 4");
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
-    expect(document.activeElement).toBe(thumbnails(host)[1]);
+    expect(document.activeElement).toBe(thumbnails(host)[2]);
+    // Opened and closed again without a move: the thumbnail pressed.
+    await openAt(host, 0);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(thumbnails(host)[0]);
   });
 
   it("gives focus to the thumbnail pressed, and grows from it, even when focus was elsewhere as it opened", async () => {
@@ -285,6 +290,44 @@ describe("Lightbox navigation", () => {
     await expect.poll(position).toBe("3 of 4");
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(position).toBe("2 of 4");
+    // Home and End keep their meaning: the first image and the last.
+    await userEvent.keyboard("{End}");
+    await expect.poll(position).toBe("4 of 4");
+    expect(slideInView()).toBe(3);
+    await userEvent.keyboard("{Home}");
+    await expect.poll(position).toBe("1 of 4");
+    expect(slideInView()).toBe(0);
+  });
+
+  it("goes to the first and the last image with Home and End", async () => {
+    const { host } = await render(lightbox());
+    await openAt(host, 1);
+    const announced = watchAnnouncements();
+    await userEvent.keyboard("{End}");
+    // With reduced motion it jumps there at once, past the images between.
+    expect(slideInView()).toBe(3);
+    await expect.poll(position).toBe("4 of 4");
+    await expect.poll(() => announced.count("4 of 4")).toBe(1);
+    // From the close button too, and focus stays where it was.
+    button("Close").focus();
+    await userEvent.keyboard("{Home}");
+    expect(slideInView()).toBe(0);
+    await expect.poll(position).toBe("1 of 4");
+    expect(document.activeElement).toBe(button("Close"));
+    // Each move is announced once, and the images passed on the way are not.
+    await expect.poll(() => announced.count("1 of 4")).toBe(1);
+    expect([announced.count("4 of 4"), announced.count("3 of 4"), announced.count("2 of 4")]).toEqual([1, 0, 0]);
+    announced.stop();
+  });
+
+  it("glides to the last image with End, unless motion is reduced", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const { host } = await render(lightbox());
+    await openAt(host, 0);
+    await userEvent.keyboard("{End}");
+    expect(slideInView()).not.toBe(3);
+    await expect.poll(position).toBe("4 of 4");
+    expect(slideInView()).toBe(3);
   });
 
   it("leaves other keys, keys with a modifier and keys typed into a field alone", async () => {
@@ -296,10 +339,12 @@ describe("Lightbox navigation", () => {
     button("Close").focus();
     await userEvent.keyboard("{ArrowUp}");
     // Dispatched rather than typed: Alt or Command with an arrow is the browser's Back and Forward.
-    for (const modifier of ["shiftKey", "altKey", "ctrlKey", "metaKey"]) {
-      const event = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true, [modifier]: true });
-      button("Close").dispatchEvent(event);
-      expect(event.defaultPrevented, modifier).toBe(false);
+    for (const key of ["ArrowRight", "End"]) {
+      for (const modifier of ["shiftKey", "altKey", "ctrlKey", "metaKey"]) {
+        const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, [modifier]: true });
+        button("Close").dispatchEvent(event);
+        expect(event.defaultPrevented, `${modifier} ${key}`).toBe(false);
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(position()).toBe("2 of 4");
@@ -313,6 +358,19 @@ describe("Lightbox navigation", () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(position()).toBe("2 of 4");
     expect(viewport().scrollLeft).toBe(before);
+    // Home and End are the field's too, left to the browser.
+    const keys: KeyboardEvent[] = [];
+    const record = (event: KeyboardEvent) => keys.push(event);
+    addEventListener("keydown", record, true);
+    try {
+      await userEvent.keyboard("{Home}{End}");
+    } finally {
+      removeEventListener("keydown", record, true);
+    }
+    expect(keys.map((event) => [event.key, event.defaultPrevented])).toEqual([
+      ["Home", false],
+      ["End", false],
+    ]);
   });
 
   it("moves with Previous and Next, and stops at the ends", async () => {
@@ -407,6 +465,13 @@ describe("Lightbox viewer", () => {
     await rerender(lightbox({ images: [] }));
     expect(position()).toBe("0 of 0");
     expect(button("Open original")).toBeUndefined();
+    // Home and End with no image to go to change nothing.
+    for (const key of ["Home", "End"]) {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      await act(async () => button("Close").dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(true);
+    }
+    expect(position()).toBe("0 of 0");
   });
 
   it("fits the image to the screen, uncropped, with the caption right under it, on a phone and on a desktop", async () => {
@@ -443,7 +508,17 @@ describe("Lightbox viewer", () => {
 });
 
 /** An app that lays out its own thumbnails and opens the viewer from them. */
-function Controlled({ onIndexChange, initial = 0, follow = true }: { onIndexChange?: (index: number) => void; initial?: number; follow?: boolean }) {
+function Controlled({
+  onIndexChange,
+  initial = 0,
+  follow = true,
+  returnFocus,
+}: {
+  onIndexChange?: (index: number) => void;
+  initial?: number;
+  follow?: boolean;
+  returnFocus?: (index: number) => HTMLElement | null | undefined;
+}) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(initial);
   return (
@@ -473,6 +548,7 @@ function Controlled({ onIndexChange, initial = 0, follow = true }: { onIndexChan
           onIndexChange?.(next);
           if (follow) setIndex(next);
         }}
+        returnFocus={returnFocus}
       />
     </>
   );
@@ -523,6 +599,37 @@ describe("Lightbox controlled", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     expect(document.activeElement).toBe(opener);
+  });
+
+  it("gives focus to what returnFocus gives for the image last shown, or else back to what had it", async () => {
+    const shown: number[] = [];
+    let buttons: HTMLButtonElement[] = [];
+    const { host } = await render(
+      <Controlled
+        returnFocus={(index) => {
+          shown.push(index);
+          return buttons[index];
+        }}
+      />,
+    );
+    buttons = [...host.querySelectorAll("button")].slice(0, 2);
+    await userEvent.click(buttons[0]!);
+    await settled();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(position).toBe("2 of 4");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(buttons[1]);
+    // The last image has no button here: focus goes back to what had it as the viewer opened.
+    buttons[0]!.focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    await userEvent.keyboard("{End}");
+    await expect.poll(position).toBe("4 of 4");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    expect(document.activeElement).toBe(buttons[0]);
+    expect(shown).toEqual([1, 3]);
   });
 
   it("grows from the middle when it is open from the start", async () => {
@@ -584,8 +691,9 @@ describe("Lightbox controlled", () => {
 
   it.each([
     ["open without onOpenChange", { open: false }, "open needs onOpenChange, which closes the viewer"],
-    ["index without open", { index: 1 }, "index and onOpenChange need open; without it Lightbox draws its own thumbnails"],
-    ["onOpenChange without open", { onOpenChange: () => {} }, "index and onOpenChange need open; without it Lightbox draws its own thumbnails"],
+    ["index without open", { index: 1 }, "index, onOpenChange and returnFocus need open; without it Lightbox draws its own thumbnails"],
+    ["onOpenChange without open", { onOpenChange: () => {} }, "index, onOpenChange and returnFocus need open; without it Lightbox draws its own thumbnails"],
+    ["returnFocus without open", { returnFocus: () => null }, "index, onOpenChange and returnFocus need open; without it Lightbox draws its own thumbnails"],
     ["className with open", { open: false, onOpenChange: () => {}, className: "mt-4" }, "className lays out the thumbnails, and a Lightbox with open draws none"],
   ])("names %s, and only that, with the fix", async (_case, props, message) => {
     await render(<Lightbox {...({ label: "Photos", images: kitchen, ...props } as unknown as LightboxProps)} />);
