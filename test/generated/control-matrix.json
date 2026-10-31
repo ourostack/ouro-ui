@@ -1890,7 +1890,23 @@
     "stories": [
       "MessageList/Conversation",
       "MessageList/Live",
-      "MessageList/ScrolledBack"
+      "MessageList/ScrolledBack",
+      "MessageList/Keyboard"
+    ]
+  },
+  {
+    "item": "message-list",
+    "stem": "message-list",
+    "mode": "default",
+    "part": "item",
+    "role": "article",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "MessageList/Conversation",
+      "MessageList/Live",
+      "MessageList/ScrolledBack",
+      "MessageList/Keyboard"
     ]
   },
   {
@@ -1904,7 +1920,8 @@
     "stories": [
       "MessageList/Conversation",
       "MessageList/Live",
-      "MessageList/ScrolledBack"
+      "MessageList/ScrolledBack",
+      "MessageList/Keyboard"
     ]
   },
   {

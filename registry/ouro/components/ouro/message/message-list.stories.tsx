@@ -155,3 +155,48 @@ export const ScrolledBack: Story = {
     await frameUntil(() => canvasElement.querySelector("[data-ouro-message-list-jump]"));
   },
 };
+
+const launchPosts = [
+  { id: 1, author: "Grace Hopper", text: "The launch checklist is up. Have a look before Thursday." },
+  { id: 2, author: "Ada Lovelace", text: "Read it. The rollback step needs an owner." },
+  { id: 3, author: "Grace Hopper", text: "I'll take rollback. Ouro drafts the release notes." },
+  { id: 4, author: "Ouro", text: "Release notes drafted from the merged changes." },
+  { id: 5, author: "Ada Lovelace", text: "Thanks! Shipping Thursday at 10." },
+  { id: 6, author: "Grace Hopper", text: "Calendar invite sent for the launch call." },
+];
+const quickReactions = ["👍", "🎉", "❤️"];
+
+/** A channel you can read with the keyboard, with keys of its own for the focused post. */
+function KeyboardChannel() {
+  const [reactions, setReactions] = useState<Record<string, string>>({});
+  return (
+    <Surface>
+      <MessageList
+        label="Launch channel"
+        style={{ height: 420 }}
+        onMessageKeyDown={(message, event) => {
+          const reaction = quickReactions[Number(event.key) - 1];
+          if (reaction === undefined) return;
+          event.preventDefault();
+          setReactions((previous) => ({ ...previous, [message.id]: reaction }));
+        }}
+      >
+        {launchPosts.map((post) => (
+          <Message key={post.id} id={`launch-${post.id}`} role="assistant" name={post.author}>
+            {post.text}
+            {reactions[`launch-${post.id}`] ? ` ${reactions[`launch-${post.id}`]}` : ""}
+          </Message>
+        ))}
+      </MessageList>
+    </Surface>
+  );
+}
+
+/**
+ * The messages are one Tab stop. Tab in, then the arrow keys, Home and End move between posts,
+ * and 1, 2 or 3 reacts to the focused post.
+ */
+export const Keyboard: Story = {
+  args: { label: "Launch channel", children: null },
+  render: () => <KeyboardChannel />,
+};

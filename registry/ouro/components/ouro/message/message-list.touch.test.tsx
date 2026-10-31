@@ -196,3 +196,25 @@ it("keeps the message a scrolled-up reader is on in place when older history loa
   expect(Math.abs(first.getBoundingClientRect().top - before)).toBeLessThanOrEqual(1);
   await expect.element(jumpButton()).toBeVisible();
 });
+
+it("shows a message's action bar after a tap in a list, where the message itself takes keyboard focus", async () => {
+  await render(
+    <MessageList label="Channel" style={{ height: 400 }}>
+      {["Earlier", "Newest"].map((text) => (
+        <Message key={text} variant="chat" role="assistant" name="Mara Quill" id={text} actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+          {text}
+        </Message>
+      ))}
+    </MessageList>,
+  );
+  for (const id of ["Newest", "Earlier"]) {
+    const message = document.getElementById(id)!;
+    expect(message.hasAttribute("tabindex")).toBe(true);
+    await expect.poll(() => message.querySelector('[role="toolbar"]')).not.toBeNull();
+    const bar = message.querySelector<HTMLElement>('[role="toolbar"]')!;
+    expect(getComputedStyle(bar).opacity).toBe("0");
+    // A tap whose target is the message itself, as on the space beside its bubble.
+    await act(async () => void message.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
+    await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
+  }
+});
