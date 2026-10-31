@@ -592,7 +592,7 @@ jobs:
     # file's kept results are dropped before a run when it or a changed file it imports changed
     # since (pruneChangedFiles). On a pull request, as many shards as plan each at
     # SHARD_TARGET_SECONDS of estimated work or under (scripts/mutation.mjs --count, shardCount in
-    # cache.mjs), so a large change's shards each finish in about 20 minutes, at most 16; at least
+    # cache.mjs), so a large change's shards each finish in about 10 minutes, at most 24; at least
     # three with results cached under the same hash, five without, so a cold run's mutants spread
     # wider. On any other run, three shards that each report nothing to mutate.
     needs: [plan]
@@ -650,7 +650,7 @@ jobs:
             echo "Results cached under ${MATCHED:-nothing (not a pull request)}: at least $min shards."
           fi
           if [ -n "$KEY" ]; then
-            count=$(node scripts/mutation.mjs HEAD^1 --count "$min/16")
+            count=$(node scripts/mutation.mjs HEAD^1 --count "$min/24")
             [[ "$count" =~ ^[0-9]+$ ]] || { echo "::error::Could not plan the mutation shards (got '$count')."; exit 1; }
             echo "The changed lines' estimated work plans into $count shards."
           else

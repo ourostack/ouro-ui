@@ -248,9 +248,9 @@ test("shardCount takes the fewest shards from the minimum that plan each at the 
 });
 
 test("the shard target leaves a shard about 20 minutes of the job's 30 at the worst ratio of measured time to estimate", () => {
-  assert.equal(SHARD_TARGET_SECONDS, 1500);
+  assert.equal(SHARD_TARGET_SECONDS, 900);
   assert.ok(SHARD_TARGET_SECONDS * 0.72 <= 20 * 60);
-  assert.match(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../.github/workflows/ci.yml"), "utf8"), /node scripts\/mutation\.mjs HEAD\^1 --count "\$min\/16"/);
+  assert.match(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../.github/workflows/ci.yml"), "utf8"), /node scripts\/mutation\.mjs HEAD\^1 --count "\$min\/24"/);
 });
 
 test("the committed test times cover the mutation runner's test files", () => {
