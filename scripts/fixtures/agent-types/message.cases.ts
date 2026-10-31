@@ -23,7 +23,21 @@ export const agentCases: AgentCase[] = [
     dev: '<Message role="user" name="Ada">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message04",
+    habit: "an own flag for the user's messages",
+    tsc: [hint("boolean", 'Use <Message role="user" variant="chat">')],
+    dev: '<Message role="user" variant="chat">',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "message05",
+    habit: "a timestamp prop",
+    tsc: [hint("string", 'Use <Message time="9:41 AM" dateTime={iso}>')],
+    dev: '<Message time="9:41 AM" dateTime={iso}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageOk01"];
+export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03"];

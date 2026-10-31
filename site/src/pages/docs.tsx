@@ -21,6 +21,7 @@ import { latestRelease } from "../latest-release";
 import spoonjoy from "../docs/spoonjoy.json";
 import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
+import itemSources from "../docs/sources.json";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -122,7 +123,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       <Markdown blocks={body} link={(target) => siteLink(target, `docs/${item.title}.md`)} />
 
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-        <a href={`${GITHUB}/blob/main/${item.source}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+        <a href={`${GITHUB}/blob/main/${(itemSources as Record<string, string>)[item.name]}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
           Source on GitHub
         </a>
         <a href={href(`/docs/${item.name}.md`)} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">

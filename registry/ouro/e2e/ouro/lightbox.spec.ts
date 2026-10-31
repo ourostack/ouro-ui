@@ -48,3 +48,20 @@ test("opens the viewer alone from the app's own thumbnails and gives focus back 
   await expect(viewer).toBeHidden();
   await expect(after).toBeFocused();
 });
+
+test("draws a wide photo across a phone's width, and zooms it with a double-click and back", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStory(page, "display-lightbox--photos");
+  await page.getByRole("list", { name: "Coast photos" }).getByRole("button").first().click();
+  const viewer = page.getByRole("dialog", { name: "Coast photos, 1 of 4" });
+  const photo = viewer.getByRole("group", { name: "1 of 4" }).getByRole("img");
+  await expect(photo).toBeVisible();
+  // Once the viewer has grown to its full size.
+  await expect.poll(async () => (await photo.boundingBox())!.width).toBeGreaterThanOrEqual(360);
+  await photo.dblclick();
+  const zoomed = viewer.getByRole("group", { name: "Zoom" });
+  await expect(zoomed).toBeVisible();
+  await expect(viewer.getByRole("button", { name: "Zoom" })).toHaveAttribute("aria-pressed", "true");
+  await zoomed.dblclick();
+  await expect(zoomed).toBeHidden();
+});

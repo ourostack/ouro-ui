@@ -2,7 +2,7 @@
 
 # Lightbox
 
-Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe; the new position is announced politely, once. Escape, Close or a press outside closes it, and focus goes back to the thumbnail that opened it. The viewer grows from that thumbnail and slides between images; with reduced motion it fades and jumps instead.
+Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home or End; the new position is announced politely, once. Escape, Close or a press outside closes it, and focus goes to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and slides between images; with reduced motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
 
 ```tsx
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
@@ -30,7 +30,9 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 ## Usage
 
-To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it.
+For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its own shape, two side by side, three as one large and two small, and four or more as a 2 by 2 grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced motion.
+
+To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to the element `returnFocus` gives for the image last shown, such as its thumbnail.
 
 ## Use instead when
 
@@ -43,6 +45,7 @@ The props the modes share. Type: `LightboxProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `closeLabel` | `string` | `"Close"` | The close button's accessible name. |
+| `fullScreen` | `boolean` |  | The viewer covers the whole screen at every width, with no frame around it, rather than sitting in a dialog with the page around it. Use it where pictures are the point, as in a chat's photos. |
 | `images` (required) | `readonly LightboxImage[]` |  | The images, in order. The viewer steps through them, and the thumbnails show them in a grid. |
 | `label` (required) | `string` |  | Names the viewer for screen readers, with the position ("Kitchen photos, 2 of 4"), and shows at its top, such as "Kitchen photos". With thumbnails it names their list too. It is always required. |
 | `loop` | `boolean` |  | Next on the last image goes back to the first, and Previous on the first goes to the last. |
@@ -51,6 +54,7 @@ The props the modes share. Type: `LightboxProps`.
 | `originalLabel` | `string` | `"Open original"` | The text of the link to an image's `href`. |
 | `positionLabel` | `string` | `"{n} of {total}"` | The position the viewer shows and announces when it changes: `{n}` is the image's number and `{total}` the number of images. |
 | `previousLabel` | `string` | `"Previous image"` | The Previous button's accessible name. |
+| `zoomLabel` | `string` | `"Zoom"` | The zoom button's accessible name. It shows while the image is drawn smaller than its own size, and zooms it to that size, as a double-tap or a pinch does. |
 
 ## Modes
 
@@ -64,30 +68,35 @@ A controlled Lightbox: the viewer alone, which you open from thumbnails you lay 
 | --- | --- | --- | --- |
 | `index` | `number` | `0` | The image the viewer shows, by its place in `images`. It opens on it, and moves to it when you change it while open; update it in `onIndexChange` to follow the user. |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the user closes the viewer (Close, Escape, a press outside). |
-| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, and the viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already open after a press or a key appears and leaves without its transitions, and says so in development. |
+| `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, unless `returnFocus` gives another element, and the viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already open after a press or a key appears and leaves without its transitions, and says so in development. |
+| `returnFocus` | `((index: number) => HTMLElement \| null \| undefined)` |  | Where focus goes as the viewer closes, given the index of the image last shown: return that image's thumbnail in your layout, so the user is back where they were looking. Return nothing to give focus back to what had it when the viewer opened. |
 
 Not in this mode (typed `never`):
 
 - `className`: Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone.
+- `layout`: Not with `open`: a controlled Lightbox draws no thumbnails to lay out.
 
 ### With thumbnails: `LightboxWithThumbnailsProps`
 
 A Lightbox that draws its own thumbnails, which open the viewer.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `className` | `string` | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
+| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. |
 
 Not in this mode (typed `never`):
 
 - `index`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
 - `onOpenChange`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
 - `open`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
+- `returnFocus`: Not with thumbnails: focus goes to the thumbnail of the image last shown.
 
 ## Don't use
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
+- `fullscreen`: Not a prop. Lightbox uses `fullScreen`: `<Lightbox fullScreen>`.
 - `slides`: Not a prop. Pass the images as `images`: `<Lightbox images={[{ src, alt }]}>`.
 
 ## `className` is for layout only
@@ -120,5 +129,17 @@ interface LightboxImage {
   caption?: ReactNode;
   /** The original file, or a page about the image: the viewer links to it in a new tab. */
   href?: string | undefined;
+  /**
+   * The image's own width and height, in any unit. With `layout="mosaic"` and one image, its
+   * thumbnail keeps this shape (between 3:4 and 3:1), so the page holds its place before it loads.
+   */
+  width?: number | undefined;
+  /** The image's own height; see `width`. */
+  height?: number | undefined;
+  /**
+   * A still frame of an animated image (a GIF), which its thumbnail shows instead when the user
+   * asks for reduced motion. The viewer still plays the image, since opening it asks to see it.
+   */
+  still?: string | undefined;
 }
 ```

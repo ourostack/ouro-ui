@@ -119,7 +119,7 @@ const presences = [
 
 /**
  * Presence: a dot whose shape says the state, with words screen readers hear after the name.
- * On a card, `--ouro-avatar-ring` gives the dot's ring the card's color.
+ * Wide initials ("MW") stay clear of the dot at every size. On a card, `--ouro-avatar-ring` gives the dot's ring the card's color.
  */
 export const Presence: Story = {
   parameters: { screenshot: { name: "avatar-presence" } },
@@ -129,6 +129,13 @@ export const Presence: Story = {
         <div key={size} style={row}>
           {presences.map((state, index) => (
             <Avatar key={state.presence} name={people[index % people.length]!.name} src={people[index % people.length]!.src} size={size} {...state} />
+          ))}
+        </div>
+      ))}
+      {presences.slice(0, 4).map((state) => (
+        <div key={state.presence} style={row}>
+          {(["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const).map((size) => (
+            <Avatar key={size} name="Mona Wells" size={size} {...state} />
           ))}
         </div>
       ))}

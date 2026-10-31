@@ -47,7 +47,7 @@ The props the modes share. Type: `AvatarProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The person's presence, as a dot on the lower end corner. Each state has its own shape and a named tone (available: success; busy and do not disturb: destructive; away: warning; offline: muted; out of office: primary). The dot's ring takes the surface's color, `--ouro-avatar-ring` (default `--background`): set it on a card, `[--ouro-avatar-ring:var(--card)]`. |
+| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The person's presence, as a dot on the lower end corner. Each state has its own shape and a named tone (available: success; busy and do not disturb: destructive; away: warning; offline: muted; out of office: primary). The dot's ring takes the surface's color, `--ouro-avatar-ring` (default `--background`): set it on a card, `[--ouro-avatar-ring:var(--card)]`. The initials sit a little higher beside the dot, so even wide ones stay clear of it at every size. |
 | `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the name ("Ada Lovelace, Busy"). Required with `presence`, so no dot is silent. |
 
 ### With `presenceLabel`

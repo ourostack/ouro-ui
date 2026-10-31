@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Lightbox, type LightboxImage } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names). The photos are
@@ -133,4 +133,74 @@ function BeforeAndAfterPair() {
 export const BeforeAndAfter: Story = {
   parameters: { plainOpeners: ["See before", "See after"] },
   render: () => <BeforeAndAfterPair />,
+};
+
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
+/** The viewer alone, open from the start, as an app's own layout might open it. */
+function OpenViewer() {
+  // Mounted closed and opened once mounted, as an app keeps a Lightbox mounted and changes open, so the
+  // viewer runs its open transition (one mounted already open says so in development).
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const [index, setIndex] = useState(0);
+  return <Lightbox label="Coast photos" images={coast} open={open} index={index} onOpenChange={setOpen} onIndexChange={setIndex} />;
+}
+
+/**
+ * Zoomed to the image's own size, as a double-tap, a pinch or the zoom button does while the image
+ * is drawn smaller than that. The story opens the viewer on the first photo and presses Zoom.
+ */
+export const Zoomed: Story = {
+  parameters: {
+    conformance: {
+      focusExit: {
+        "lightbox/close Close": "The story opens the viewer as it loads, so no element had focus for Close to give it back to; in an app, the control that opened the viewer gets it back.",
+      },
+    },
+  },
+  render: () => <OpenViewer />,
+  play: async ({ canvasElement }) => {
+    const page = canvasElement.ownerDocument;
+    (await frameUntil(() => page.querySelector<HTMLButtonElement>('[data-ouro="dialog"] [data-ouro-part="zoom"]'))).click();
+    await frameUntil(() => page.querySelector("[data-ouro-lightbox-zoom-view]"));
+  },
+};
+
+/** A chat column: the width a message's pictures get. */
+const chatColumn: Story["render"] = (args) => (
+  <Surface>
+    <div style={{ maxWidth: 400 }}>
+      <Lightbox {...args} />
+    </div>
+  </Surface>
+);
+
+/** A chat message's pictures as one mosaic: three pictures as one large and two small, opening a viewer that covers the screen. */
+export const ChatMosaic: Story = {
+  args: { layout: "mosaic", fullScreen: true, images: coast.slice(0, 3) },
+  render: chatColumn,
+};
+
+/** Six pictures in a mosaic: four show, the last saying how many more the viewer steps on to. */
+export const MosaicWithMore: Story = {
+  args: { layout: "mosaic", images: [...coast, ...coast.slice(0, 2).map((image) => ({ ...image, alt: `${image.alt}, again` }))] },
+  render: chatColumn,
+};
+
+/** One picture at its own shape, as a chat shows a single photo. */
+export const MosaicOfOne: Story = {
+  args: { layout: "mosaic", images: [{ ...coast[2]!, width: 1800, height: 800 }] },
+  render: chatColumn,
 };

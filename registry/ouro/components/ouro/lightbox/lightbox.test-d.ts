@@ -32,7 +32,15 @@ expectTypeOf<{
   onIndexChange: (index: number) => void;
 }>().toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void }>().toExtend<LightboxProps>();
-// open needs onOpenChange; index and onOpenChange need open; a controlled Lightbox takes no className.
+expectTypeOf<{
+  label: "Kitchen photos";
+  images: typeof images;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  returnFocus: (index: number) => HTMLButtonElement | null;
+}>().toExtend<LightboxProps>();
+// open needs onOpenChange; index, onOpenChange and returnFocus need open; a controlled Lightbox takes no className.
+expectTypeOf<{ label: "Kitchen photos"; images: typeof images; returnFocus: (index: number) => HTMLElement }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; open: true }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; index: 1 }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Kitchen photos"; images: typeof images; onOpenChange: (open: boolean) => void }>().not.toExtend<LightboxProps>();
@@ -47,3 +55,13 @@ expectTypeOf<{ label: "Photos"; images: typeof images; slides: typeof images }>(
 
 // @ts-expect-error slides is not a prop.
 createElement(Lightbox, { label: "Photos", images, slides: images });
+
+// A mosaic, full screen, and the images' own size and still frame.
+expectTypeOf<{ label: "Photos"; images: typeof images; layout: "mosaic"; fullScreen: true }>().toExtend<LightboxProps>();
+expectTypeOf<{ label: "Photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void; fullScreen: true }>().toExtend<LightboxProps>();
+expectTypeOf<{ src: "/a.gif"; alt: "A rocket"; width: 300; height: 200; still: "/a.png" }>().toExtend<LightboxImage>();
+// A controlled Lightbox draws no thumbnails, so it takes no layout.
+expectTypeOf<{ label: "Photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void; layout: "mosaic" }>().not.toExtend<LightboxProps>();
+// A layout that is not one, and `fullscreen` in lower case, are type errors that name the fix.
+expectTypeOf<{ label: "Photos"; images: typeof images; layout: "masonry" }>().not.toExtend<LightboxProps>();
+expectTypeOf<{ label: "Photos"; images: typeof images; fullscreen: true }>().not.toExtend<LightboxProps>();

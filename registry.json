@@ -3006,15 +3006,23 @@
       "type": "registry:ui",
       "title": "Message",
       "description": "One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it.",
-      "docs": "One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. Import: import { Message } from \"@/components/ouro/message/message\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/message.md",
+      "docs": "One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. Import: import { Message } from \"@/components/ouro/message/message\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, button, kbd, menu, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/message.md",
       "registryDependencies": [
         "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
-        "ourostack/ouro-ui/lib-use-dev-messages"
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/tooltip"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/message-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/message/message-parts.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/message/message.tsx",
           "type": "registry:ui",
@@ -3064,6 +3072,28 @@
           "path": "registry/ouro/components/ouro/message/attachment.tsx",
           "type": "registry:ui",
           "target": "@components/ouro/message/attachment.tsx"
+        }
+      ]
+    },
+    {
+      "name": "thread-summary",
+      "type": "registry:ui",
+      "title": "ThreadSummary",
+      "description": "The line under a post that leads to its thread: who replied, \"N replies\" (a button that opens the thread) and when the last reply came.",
+      "docs": "The line under a post that leads to its thread: who replied, \"N replies\" (a button that opens the thread) and when the last reply came. Import: import { ThreadSummary } from \"@/components/ouro/message/thread-summary\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/thread-summary.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/thread-summary.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/message/thread-summary.tsx"
         }
       ]
     },
@@ -9107,15 +9137,37 @@
       "registryDependencies": [
         "ourostack/ouro-ui/attachment",
         "ourostack/ouro-ui/attachment-tests",
+        "ourostack/ouro-ui/avatar",
         "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/badge-tests",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/message-list",
+        "ourostack/ouro-ui/message-list-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/reaction-bar",
+        "ourostack/ouro-ui/reaction-bar-tests",
+        "ourostack/ouro-ui/thread-summary",
+        "ourostack/ouro-ui/thread-summary-tests",
+        "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
         {
@@ -9132,6 +9184,11 @@
           "path": "registry/ouro/components/ouro/message/message.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/message/message.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message.touch.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/message.spec.ts",
@@ -9161,16 +9218,29 @@
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
         "ourostack/ouro-ui/message-list",
         "ourostack/ouro-ui/message-tests",
-        "ourostack/ouro-ui/ouro-testing"
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
         {
@@ -9258,6 +9328,77 @@
           "path": "registry/ouro/e2e/ouro/attachment.spec.ts",
           "type": "registry:file",
           "target": "~/e2e/ouro/attachment.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "thread-summary-tests",
+      "type": "registry:item",
+      "title": "ThreadSummary tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for thread-summary, and the tests of everything it installs. Add it beside thread-summary: add thread-summary thread-summary-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "thread-summary's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/message",
+        "ourostack/ouro-ui/message-tests",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/thread-summary",
+        "ourostack/ouro-ui/tooltip-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/thread-summary.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/thread-summary.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/thread-summary.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/message/thread-summary.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/thread-summary.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/thread-summary.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/thread-summary.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/thread-summary.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/thread-summary.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/thread-summary.spec.ts"
         }
       ],
       "meta": {
@@ -10692,12 +10833,14 @@
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -10706,6 +10849,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
         "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -10786,6 +10930,11 @@
       ],
       "files": [
         {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.mosaic.test.tsx"
+        },
+        {
           "path": "registry/ouro/components/ouro/lightbox/lightbox.stories.tsx",
           "type": "registry:component",
           "target": "@components/ouro/lightbox/lightbox.stories.tsx"
@@ -10804,6 +10953,11 @@
           "path": "registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx",
           "type": "registry:component",
           "target": "@components/ouro/lightbox/lightbox.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/lightbox/lightbox.zoom.test.tsx"
         },
         {
           "path": "registry/ouro/e2e/ouro/lightbox.spec.ts",
@@ -11419,6 +11573,7 @@
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/thread-summary-tests",
         "ourostack/ouro-ui/time-grid-tests",
         "ourostack/ouro-ui/timer-tests",
         "ourostack/ouro-ui/timer-tray-tests",
