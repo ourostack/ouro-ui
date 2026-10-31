@@ -561,14 +561,17 @@ function LightboxViewer({
       <div ref={header} data-ouro-lightbox-header="" className={headerClass}>
         <div className={titleClass}>
           <DialogTitle>{label}</DialogTitle>
-          {/* The viewer's name: the label and the position, which the header shows apart. */}
+          {/* The viewer's name: the label and the position, which the header shows apart. One image
+              has no position worth naming. */}
           <span id={nameId} hidden>
-            {`${label}, ${fillTemplate(positionLabel, shown + 1, total)}`}
+            {total > 1 ? `${label}, ${fillTemplate(positionLabel, shown + 1, total)}` : label}
           </span>
         </div>
-        <span data-ouro-lightbox-position="" className={counterClass}>
-          {fillTemplate(positionLabel, shown + 1, total)}
-        </span>
+        {total > 1 && (
+          <span data-ouro-lightbox-position="" className={counterClass}>
+            {fillTemplate(positionLabel, shown + 1, total)}
+          </span>
+        )}
         {href !== undefined && (
           <Button
             href={href}
@@ -650,9 +653,10 @@ function LightboxViewer({
  * the image as large as the screen allows, uncropped, with its title and caption under it and
  * Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys,
  * the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home
- * or End; the new position is announced politely, once. Escape, Close or a press outside closes
- * it, and focus goes to the thumbnail of the image last shown. The viewer grows from the
- * thumbnail pressed and slides between images; with reduced motion it fades and jumps instead.
+ * or End; the new position is announced politely, once. With one image the viewer shows neither
+ * the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes
+ * to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and
+ * slides between images; with reduced motion it fades and jumps instead.
  * On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that
  * size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe
  * moves around the image rather than to the next one.
@@ -696,6 +700,7 @@ function LightboxViewer({
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > goes to the first and the last image with Home and End)
  * @claim "focus goes to the thumbnail of" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox opening and closing > closes with Escape and gives focus to the thumbnail of the image last shown)
  * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus to what returnFocus gives for the image last shown, or else back to what had it)
+ * @claim "With one image the viewer shows" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows no position, Previous or Next for one image)
  * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > draws no thumbnails, and opens on index when open)
  * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus back to what had it when the viewer opened, and grows from it)
  * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx::Lightbox zoom > zooms at a double-tap's point and back with another)

@@ -463,7 +463,7 @@ describe("Lightbox viewer", () => {
     expect(position()).toBe("2 of 2");
     expect(button("Open original")).toBeTruthy();
     await rerender(lightbox({ images: [] }));
-    expect(position()).toBe("0 of 0");
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")).toBeNull();
     expect(button("Open original")).toBeUndefined();
     // Home and End with no image to go to change nothing.
     for (const key of ["Home", "End"]) {
@@ -471,7 +471,27 @@ describe("Lightbox viewer", () => {
       await act(async () => button("Close").dispatchEvent(event));
       expect(event.defaultPrevented).toBe(true);
     }
-    expect(position()).toBe("0 of 0");
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")).toBeNull();
+  });
+
+  it("shows no position, Previous or Next for one image", async () => {
+    const onIndexChange = vi.fn();
+    const { host, rerender } = await render(lightbox({ images: kitchen.slice(0, 1), onIndexChange }));
+    await openAt(host, 0);
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")).toBeNull();
+    expect(page.getByRole("dialog", { name: "Kitchen photos", exact: true }).element()).toBe(popup());
+    for (const name of ["Previous image", "Next image"]) expect(button(name).getClientRects()).toHaveLength(0);
+    // The arrow keys still go nowhere, quietly.
+    viewport().focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(slideInView()).toBe(0);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    // A second image brings them back.
+    await rerender(lightbox({ images: kitchen.slice(0, 2), onIndexChange }));
+    expect(position()).toBe("1 of 2");
+    expect(page.getByRole("dialog", { name: "Kitchen photos, 1 of 2", exact: true }).element()).toBe(popup());
+    expect(button("Next image").getClientRects()).toHaveLength(1);
   });
 
   it("fits the image to the screen, uncropped, with the caption right under it, on a phone and on a desktop", async () => {
