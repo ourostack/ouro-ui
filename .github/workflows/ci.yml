@@ -6,7 +6,6 @@ permissions:
   contents: read
 jobs:
   menu-race:
-    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     container:
@@ -17,8 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workers: [1, 2]
-    name: menu-race (workers ${{ matrix.workers }})
+        workers: [1]
+        smooth: [on, off]
+    name: menu-race (workers ${{ matrix.workers }}, smooth ${{ matrix.smooth }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,15 +32,17 @@ jobs:
       - name: Chapter III's two failing tests, repeated, in WebKit
         env:
           CI: "1"
+          PROBE_NO_SMOOTH: ${{ matrix.smooth == 'off' && '1' || '' }}
         run: pnpm exec playwright test --project=site-webkit site/e2e/chapter-three.spec.ts -g "every operable element in Chapter III|squid sinks back" --repeat-each=15 --workers=${{ matrix.workers }} --trace=retain-on-failure --reporter=list,html || true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: menu-race-${{ matrix.workers }}
+          name: menu-race-${{ matrix.workers }}-${{ matrix.smooth }}
           path: |
             playwright-report/
             test-results/
           if-no-files-found: ignore
   ready-timing:
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     container:

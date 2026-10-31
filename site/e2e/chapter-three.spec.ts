@@ -25,6 +25,8 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: ENCOUNTER.dialog
 
 // PROBE (never merged): records focus, pointer and menu events, and dumps them when a test fails.
 test.beforeEach(async ({ page }) => {
+  // PROBE variant: the page scrolls instantly (no CSS smooth scrolling); nothing else changes.
+  if (process.env["PROBE_NO_SMOOTH"]) await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => { const style = document.createElement("style"); style.textContent = "html { scroll-behavior: auto !important; }"; document.head.append(style); }));
   await page.addInitScript(() => {
     const log: string[] = [];
     (window as unknown as { __probe: string[] }).__probe = log;
