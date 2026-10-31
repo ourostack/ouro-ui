@@ -1,13 +1,16 @@
 // The hero's proof line, from the sources each claim is about (site-design.md: "claims that mean
-// what they say"):
-//   - "<n> React components": the registry:ui items in registry.json, the components an app installs;
-//   - "TypeScript": every one of their files is .ts or .tsx;
-//   - "Chromium + WebKit + touch tested": the browsers ouroTestProjects runs (vitest.ts) and its
-//     touch project, a Chromium phone profile;
-//   - "axe-clean in <n> themes": the presets site/e2e/voyage.spec.ts scans in light and dark, each
-//     expected to pass the audit kit's strict audit (site/e2e/audit.ts);
-//   - "every line covered": the coverage thresholds vitest.config.ts holds over registry/, all 100;
-//   - "This stage is built with HX": the porthole stage's source imports its controls from registry/.
+// what they say"), in words a person feels rather than test-suite terms, and with no component count
+// (Ari, 2026-10-30):
+//   - "From buttons and forms to calendars and chat": the registry:ui items in registry.json, the
+//     components an app installs, include each of COVERS;
+//   - "Typed, …": every one of their files is .ts or .tsx;
+//   - "Tested in Chrome and Safari engines, by mouse and by touch": the browsers ouroTestProjects runs
+//     (vitest.ts) and its touch project, a Chromium phone profile;
+//   - "Passes accessibility checks in all six looks, …": the presets site/e2e/voyage.spec.ts scans in
+//     light and dark, each expected to pass the audit kit's strict audit (site/e2e/audit.ts);
+//   - "Every line of code runs in a test": the coverage thresholds vitest.config.ts holds over
+//     registry/, all 100;
+//   - "The porthole's controls are Ouro HX too": the stage's source imports its controls from registry/.
 // Each links to its evidence (EVIDENCE): the component inventory, CI's runs on main (the browser
 // matrix), the line of voyage.spec.ts that runs axe over every preset, the line of vitest.config.ts
 // that holds the thresholds, and the stage's own source. A line link is computed from the source it
@@ -61,10 +64,17 @@ export function lineOf(source: string, pattern: RegExp): number {
   return source.slice(0, index).split("\n").length;
 }
 
-const ENGINE_NAMES: Record<string, string> = { chromium: "Chromium", webkit: "WebKit", firefox: "Firefox" };
+/** Each engine by the browser people know it from. */
+const ENGINE_NAMES: Record<string, string> = { chromium: "Chrome", webkit: "Safari", firefox: "Firefox" };
+
+/** The parts the first claim names, by registry item: buttons, forms, calendars and chat. */
+export const COVERS = ["button", "form", "calendar", "message"] as const;
+
+const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const inWords = (n: number) => WORDS[n] ?? String(n);
 
 export function deriveProof(files: { registry: string; testProjects: string; vitestConfig: string; themes: string; voyageSpec: string; stage: string }): Proof {
-  const ui = (JSON.parse(files.registry) as { items: Array<{ type: string; files?: Array<{ path: string }> }> }).items.filter((item) => item.type === "registry:ui");
+  const ui = (JSON.parse(files.registry) as { items: Array<{ name?: string; type: string; files?: Array<{ path: string }> }> }).items.filter((item) => item.type === "registry:ui");
   const components = ui.length;
   const typescript = ui.every((item) => (item.files ?? []).length > 0 && item.files!.every((file) => /\.tsx?$/.test(file.path)));
   const browsers = /browsers = (\[[^\]]*\])/.exec(files.testProjects)?.[1];
@@ -83,14 +93,18 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
   const stage = /from "@\/registry\/ouro\/components\/ouro\//.test(files.stage);
   const themesLine = lineOf(files.voyageSpec, /test\.describe\("every preset, light and dark"/);
   const coverageLine = lineOf(files.vitestConfig, /thresholds: \{ lines:/);
-  const tested = [...engines.map((engine) => ENGINE_NAMES[engine] ?? engine), ...(touch ? ["touch"] : [])].join(" + ");
+  const names = ui.map((item) => item.name);
+  const covers = COVERS.every((name) => names.includes(name));
+  const shown = engines.map((engine) => ENGINE_NAMES[engine] ?? engine);
+  const browserList = shown.length > 1 ? `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)} engines` : `${shown[0]} engine`;
+  const tested = `Tested in ${browserList}${touch ? ", by mouse and by touch" : ""}`;
   const claims: Claim[] = [
-    { text: `${components} React components`, href: EVIDENCE.components },
-    ...(typescript ? [{ text: "TypeScript", href: EVIDENCE.typescript }] : []),
-    { text: `${tested} tested`, href: EVIDENCE.engines },
-    ...(themes ? [{ text: `axe-clean in ${themes} themes`, href: `${EVIDENCE.themes}#L${themesLine}` }] : []),
-    { text: coverage === 100 ? "every line covered" : `${coverage}% of lines covered`, href: `${EVIDENCE.coverage}#L${coverageLine}` },
-    ...(stage ? [{ text: "This stage is built with HX", href: EVIDENCE.stage }] : []),
+    { text: covers ? "From buttons and forms to calendars and chat" : "React components for whole apps", href: EVIDENCE.components },
+    ...(typescript ? [{ text: "Typed, so editors and agents see every prop", href: EVIDENCE.typescript }] : []),
+    { text: tested, href: EVIDENCE.engines },
+    ...(themes ? [{ text: `Passes accessibility checks in all ${inWords(themes)} looks, light and dark`, href: `${EVIDENCE.themes}#L${themesLine}` }] : []),
+    { text: coverage === 100 ? "Every line of code runs in a test" : `${coverage}% of lines run in a test`, href: `${EVIDENCE.coverage}#L${coverageLine}` },
+    ...(stage ? [{ text: "The porthole's controls are Ouro HX too", href: EVIDENCE.stage }] : []),
   ];
   return { components, typescript, engines, touch, coverage, themes, stage, claims, line: claims.map((claim) => claim.text).join(" · ") };
 }

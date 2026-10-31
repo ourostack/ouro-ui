@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { readmeSteps, routerAdapterFiles } from "./readme-steps.mjs";
+import { readmeSteps, routerAdapterFiles, sameSteps } from "./readme-steps.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -79,4 +79,15 @@ test("write-router writes the adapter with the app's alias in place of @/", () =
   assert.match(rootFile, /from "~\/lib\/ouro\/ouro-provider"/);
   assert.match(rootFile, /from "~\/components\/ouro-router-link"/);
   assert.doesNotMatch(rootFile + readFileSync(join(app, "src/components/ouro-router-link.tsx"), "utf8"), /"@\//);
+});
+
+test("sameSteps tells a README whose Next.js steps changed from one whose catalog or release tag did", () => {
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  assert.ok(sameSteps(readme, `${readme}\n- a catalog line a component pull request adds\n`));
+  assert.ok(sameSteps(readme, readme.replace(/#v\d+\.\d+\.\d+/g, "#v99.0.0")), "a release moves the tag, not the steps");
+  const steps = readmeSteps(readme);
+  const [first] = steps.adds[0];
+  assert.ok(!sameSteps(readme, readme.replace(`ourostack/ouro-ui/${first}#`, "ourostack/ouro-ui/other#")), "an add command's items");
+  assert.ok(!sameSteps(readme, readme.replace(steps.files["app/layout.tsx"], `${steps.files["app/layout.tsx"]}// changed\n`)), "a file");
+  assert.ok(!sameSteps(readme, readme.replace("\n### Next.js\n", "\n### Next\n")), "steps that cannot be read");
 });

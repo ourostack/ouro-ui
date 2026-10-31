@@ -12,25 +12,6 @@
     line-height: 1.6;
     font-feature-settings: "ss01" on, "cv11" on;
   }
-  .site-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 2.75rem;
-    padding-inline: 0.25rem;
-    margin-inline-start: -0.25rem;
-    border-radius: calc(var(--radius) * 0.8);
-    color: var(--foreground);
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: 1.0625rem;
-    letter-spacing: -0.015em;
-    text-decoration: none;
-  }
-  .site-brand:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
   .site-eyebrow {
     margin: 0;
     font-size: 0.75rem;
@@ -152,11 +133,11 @@
       font-size: 1rem;
       line-height: 1.45;
     }
-    /* The release sits on the caption's line; the count is in the proof under the stage. */
+    /* The release sits on the caption's line; the rest of the caption waits for a wider screen. */
     .site-install-foot {
       flex-wrap: nowrap;
     }
-    .site-install-count {
+    .site-install-more {
       display: none;
     }
   }
@@ -178,20 +159,6 @@
     letter-spacing: 0;
     text-transform: none;
     color: var(--muted-foreground);
-  }
-  .site-hero-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .site-hero-status::before {
-    /* A builder's marker: the library is under construction. */
-    content: "";
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 999px;
-    background: var(--chart-3);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--chart-3) 25%, transparent);
   }
   .site-hero-title {
     max-width: 18ch;
@@ -375,22 +342,6 @@
 }
 
 /*
- * Preset-dependent words and marks (ByPreset in presets.tsx): every preset's is in the HTML, and the
- * one html[data-theme] names shows, so the page is right before it hydrates.
- */
-[data-site-when] {
-  display: none;
-}
-html[data-theme="sleek"] [data-site-when="sleek"],
-html[data-theme="abyss"] [data-site-when="abyss"],
-html[data-theme="brass"] [data-site-when="brass"],
-html[data-theme="chart"] [data-site-when="chart"],
-html[data-theme="coral"] [data-site-when="coral"],
-html[data-theme="cookbook"] [data-site-when="cookbook"],
-html:not([data-theme]) [data-site-when="sleek"] {
-  display: contents;
-}
-/*
  * The preset specimens: six little cards of each preset's own UI, laid like paint chips on a
  * bench, each a touch askew. Each card's corners, shadow and colours are its preset's own.
  */
@@ -529,15 +480,7 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
   }
 }
 
-/* The home page's two ships (home.tsx): each card's picture, drawn in the theme's own colours. */
-.site-ship-art {
-  display: grid;
-  place-items: center;
-  height: 10rem;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  background: linear-gradient(to bottom, color-mix(in oklab, var(--primary) 6%, var(--card)), color-mix(in oklab, var(--primary) 14%, var(--card)));
-}
+/* The home page's two showcases (home.tsx): the Nautilus in profile, large, beside the heading, drawn in the theme's own colours. */
 .site-ship-nautilus {
   /* The stage's hull colours (stage.css, .stage-scene), so the profile matches the porthole's ship. */
   --sea-ink: var(--primary);
@@ -545,79 +488,12 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
   --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
   --hull-trim: color-mix(in oklab, var(--primary) 22%, oklch(0.42 0.025 250));
   --metal: color-mix(in oklab, var(--chart-3) 70%, var(--hull-trim));
-  width: min(100%, 22rem);
+  width: 100%;
   height: auto;
   overflow: visible;
 }
 [data-theme="brass"] .site-ship-nautilus {
   --sea-ink: color-mix(in oklab, var(--chart-2) 55%, var(--primary));
-}
-/* Spoonjoy's card: its Cookbook tokens (data-theme="cookbook"), as a paint chip of its own UI. */
-.site-ship-cookbook {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  border-radius: calc(var(--radius) * 1.4);
-  background: var(--background);
-  color: var(--foreground);
-}
-.site-ship-cookbook-card {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  gap: 0.5rem;
-  width: min(100%, 15rem);
-  padding: 1.25rem 1rem 0.875rem;
-  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
-  border-radius: calc(var(--radius) * 1.4);
-  background: var(--card);
-  box-shadow: var(--shadow-md);
-  rotate: -1.25deg;
-}
-.site-ship-cookbook-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 0.3125rem;
-  background: var(--ouro-action, var(--primary));
-}
-.site-ship-cookbook-name {
-  font-weight: 600;
-  font-size: 0.9375rem;
-  line-height: 1.2;
-  color: var(--foreground);
-}
-.site-ship-cookbook-ink {
-  display: block;
-  width: 78%;
-  height: 0.375rem;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--foreground) 55%, transparent);
-}
-.site-ship-cookbook-ink-short {
-  width: 48%;
-}
-.site-ship-cookbook-row {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  margin-top: 0.25rem;
-}
-.site-ship-cookbook-pill {
-  width: 3.25rem;
-  height: 1.125rem;
-  border-radius: 999px;
-  background: var(--ouro-action, var(--primary));
-}
-.site-ship-cookbook-dot {
-  width: 0.875rem;
-  height: 0.875rem;
-  border-radius: 999px;
-  background: var(--primary);
-}
-.site-ship-cookbook-dot-accent {
-  background: var(--chart-3);
 }
 /* A quiet text link beside a card's buttons ("Source"), 44px tall on touch. */
 .site-quiet-link {

@@ -5,33 +5,41 @@
  */
 
 /**
- * The home page's "two ships" section: the Nautilus, the story built to show Ouro HX off, and
- * Spoonjoy, a real app built with it. Ari approved the headings on 2026-10-30.
+ * The home page's "two ships" section: two showcases of Ouro HX, not the list of what is built with
+ * it. The Nautilus is a story made up to show the parts off; Spoonjoy is a real app you can open and
+ * X-ray. No counts (Ari, 2026-10-30). Ari approved the headings on 2026-10-30.
  */
 export const TWO_SHIPS = {
-  eyebrow: "Built with Ouro HX",
+  eyebrow: "Showcases",
   title: "Two ships, same parts.",
+  intro: "One is a story we made up to show the parts off. The other is a real recipe app you can open and X-ray.",
   nautilus: {
     title: "The Nautilus: built for the story.",
-    body: "Captain Nemo is building a submarine in secret. Help him finish it, with controls built from Ouro HX.",
+    body: "Captain Nemo is building a submarine in secret. Help him get her ready to dive, with controls built from Ouro HX.",
     open: "Come aboard",
     xray: "X-ray it",
   },
   spoonjoy: {
     title: "Spoonjoy: built for dinner.",
-    /** Before and after the component count, which is a claim (site.test.tsx compares it with spoonjoy.json). */
-    body: ["A real recipe app, in its own look, built with", "."],
+    body: "A recipe app with a look of its own. Open its Test Kitchen, then turn on X-ray to see the Ouro HX parts inside.",
     open: "Try the Test Kitchen",
     xray: "X-ray it",
     source: "Source",
   },
 } as const;
 
-/** The Nautilus's own page (/nautilus/): the story's opening and its chapters. routes.ts repeats the intro in the page's description. */
+/**
+ * The Nautilus's own page (/nautilus/): the story's opening and its chapters. routes.ts repeats the
+ * intro in the page's description. Written for someone who has never heard of the book: the one
+ * nod to it (`book`) says where Nemo comes from, in plain words (Ari, 2026-10-30).
+ */
 export const NAUTILUS_PAGE = {
   title: "The Nautilus",
-  motto: "Mobilis in mobili",
-  intro: "Captain Nemo is building a submarine in secret. Help him finish it.",
+  eyebrow: "A story in chapters",
+  intro: "Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him.",
+  parts: "The levers, lists and logbooks along the way are Ouro HX components.",
+  /** Before and after the book's title, which nautilus.tsx sets as a cited claim. */
+  book: ["Nemo and his ship come from Jules Verne’s", "A league is a distance, not a depth. You don’t need to have read it."],
   chaptersLabel: "Chapters",
   chapters: [
     { number: "Chapter I", title: "Build the ship", ready: true },

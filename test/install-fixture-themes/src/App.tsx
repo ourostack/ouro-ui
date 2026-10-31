@@ -10,7 +10,7 @@ const CHECKS = [
   { id: "hatch", label: "Close the hatch" },
   { id: "tanks", label: "Fill the ballast tanks" },
   { id: "lights", label: "Test the lantern" },
-  { id: "ned", label: "Find Ned Land" },
+  { id: "harpooner", label: "Wake the harpooner" },
 ];
 
 export function App() {
@@ -20,7 +20,7 @@ export function App() {
     <main style={{ display: "grid", gap: 24, maxWidth: 480, margin: "48px auto", padding: 16 }}>
       <Checklist
         label="Before we dive"
-        description="Tick them off. Conseil is watching."
+        description="Tick them off. The captain is watching."
         items={CHECKS.map((item) => ({ ...item, checked: checked.has(item.id) }))}
         onCheckedChange={(id, isChecked) =>
           setChecked((previous) => {
@@ -34,7 +34,7 @@ export function App() {
       />
       <Dialog
         title="Dive to 300 fathoms?"
-        description="The lantern stays on. Ned Land would like it noted that he is against this."
+        description="The lantern stays on. Ned the harpooner would like it noted that he is against this."
         open={open}
         onOpenChange={setOpen}
         footer={

@@ -1,21 +1,29 @@
 import type { JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { NAUTILUS_PAGE } from "./copy";
 import { Container } from "./layout";
 
-/** The story's opening on /nautilus/: its title, the motto on the porthole ring, and its chapters, with the ones still being built marked so. */
+/** The story's opening on /nautilus/: what it is, who Nemo is and where he comes from, and its chapters, with the ones still being built marked so. */
 export function StoryOpening(): JSX.Element {
   return (
     <section aria-labelledby="story-title" className="site-story pt-14 pb-6 lg:pt-24 lg:pb-10">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <p className="site-eyebrow" data-site-motto="">
-            <span lang="la">{NAUTILUS_PAGE.motto}</span>
+          <p className="site-eyebrow" data-site-story-eyebrow="">
+            {NAUTILUS_PAGE.eyebrow}
           </p>
           <h1 id="story-title" className="site-h1 mt-4">
             {NAUTILUS_PAGE.title}
           </h1>
-          <p className="site-lede mt-5 max-w-[40ch]">{NAUTILUS_PAGE.intro}</p>
+          <p className="site-lede mt-5 max-w-[44ch]">
+            {NAUTILUS_PAGE.intro} {NAUTILUS_PAGE.parts}
+          </p>
+          <p className="mt-4 mb-0 max-w-[52ch] text-sm text-muted-foreground" data-site-book="">
+            {NAUTILUS_PAGE.book[0]}{" "}
+            {claim("1870", { source: [{ spec: "https://www.gutenberg.org/ebooks/164" }, { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }], verify: [{ urlOk: "https://www.gutenberg.org/ebooks/164" }, { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }] })} novel,{" "}
+            <cite>{claim("Twenty Thousand Leagues Under the Seas", { source: { spec: "https://www.gutenberg.org/ebooks/164" }, verify: { urlOk: "https://www.gutenberg.org/ebooks/164" } })}</cite>. {NAUTILUS_PAGE.book[1]}
+          </p>
         </div>
         <nav aria-label={NAUTILUS_PAGE.chaptersLabel} className="lg:col-span-5 lg:self-end">
           <ol aria-label={NAUTILUS_PAGE.chaptersLabel} className="m-0 grid list-none gap-2 p-0">

@@ -91,6 +91,12 @@ test("a skipped job adds nothing, and a job no name matches is reported", () => 
   assert.deepEqual(path.unmatched, ["mystery"]);
 });
 
+test("a matrix job its if skipped, reported once under its unexpanded name, is matched and adds nothing", () => {
+  const path = criticalPath([job("plan", 0, 0, 1), job("browser (${{ matrix.shard }}/2)", 1, 1, 1, "skipped"), job("lint", 0, 0, 3)], jobGraph(workflow));
+  assert.equal(path.seconds, 3 * 60);
+  assert.deepEqual(path.unmatched, []);
+});
+
 test("a pull request with a job that no ci.yml job matches fails, so the critical path never leaves a job out, and a merge group or a push only warns, so the required check never bounces a queue entry", () => {
   const unmatched = ["install (shadcn, nova, 3/3)"];
   assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 60, workSeconds: 60, baselineWorkSeconds: 60, unmatched }), { fail: true, reason: "unmatched", warning: null });

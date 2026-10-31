@@ -61,6 +61,7 @@ test("every interactive component declares its controls, and the fixture lists e
   const missing = interactive.filter((name) => !declared.includes(name));
   assert.deepEqual(missing, [], `declare "controls" in component.json for: ${missing.join(", ")}`);
   assert.deepEqual([...interactive].sort(), [...declared].sort());
+  assert.deepEqual(interactive, [...interactive].sort(), "keep interactive-components.json alphabetical, so pull requests that add different components change different lines");
 });
 
 test("every declared mode has a story, and every story names a mode its component declares", () => {
