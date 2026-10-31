@@ -523,6 +523,7 @@
     "site/e2e/chapter-one.spec.ts": 381735,
     "site/e2e/chapter-three.spec.ts": 300000,
     "site/e2e/chapter-two.spec.ts": 300000,
+    "site/e2e/dive.spec.ts": 40000,
     "site/e2e/stage.spec.ts": 320251,
     "site/e2e/voyage.spec.ts": 129954
   }

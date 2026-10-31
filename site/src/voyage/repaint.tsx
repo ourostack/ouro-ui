@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { lazy, Suspense, useCallback, useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Checklist } from "@/registry/ouro/components/ouro/checklist/checklist";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -26,10 +26,18 @@ async function copyText(text: string, done: string, how: string): Promise<void> 
   }
 }
 
-/** The sample the presets repaint: a checklist and a dialog, in a framed window. */
+/** The dive itself (dive/dive.tsx): its code loads when the dialog opens, so the page's first load carries none of it. */
+const loadDive = () => import("./dive/dive");
+const DiveScene = lazy(loadDive);
+
+/** The sample the presets repaint: a checklist and a dialog, in a framed window. Dive takes it under. */
 function DiveWindow(): JSX.Element {
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set(["hatch"]));
   const [open, setOpen] = useState(false);
+  /** The dive under way: a new one each press, so it plays again; `ending` once it is cut short. */
+  const [dive, setDive] = useState<{ id: number; ending: boolean } | null>(null);
+  const skip = useCallback(() => setDive((current) => (current && !current.ending ? { ...current, ending: true } : current)), []);
+  const surfaced = useCallback(() => setDive(null), []);
   return (
     <div className="site-window" data-site-sample="">
       <div className="site-window-bar">
@@ -51,7 +59,7 @@ function DiveWindow(): JSX.Element {
         </span>
       </div>
       {/* Open on the window's own surface: a hairline between the checklist and its specs, no box inside the box. */}
-      <div className="grid gap-x-8 gap-y-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
+      <div className="relative grid gap-x-8 gap-y-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
         <Checklist
           label="Before we dive"
           description="Tick them off. The captain is watching."
@@ -92,7 +100,10 @@ function DiveWindow(): JSX.Element {
               title="Dive to 300 fathoms?"
               description="The lantern stays on. Ned the harpooner would like it noted that he is against this."
               open={open}
-              onOpenChange={setOpen}
+              onOpenChange={(next) => {
+                if (next) void loadDive();
+                setOpen(next);
+              }}
               footer={
                 <>
                   <Button variant="outline" tone="secondary" onClick={() => setOpen(false)}>
@@ -101,7 +112,7 @@ function DiveWindow(): JSX.Element {
                   <Button
                     onClick={() => {
                       setOpen(false);
-                      toast("Diving", { description: "Conseil, the helper: Noted. One very deep dive." });
+                      setDive({ id: Date.now(), ending: false });
                     }}
                   >
                     Dive
@@ -113,11 +124,24 @@ function DiveWindow(): JSX.Element {
                 At 300 fathoms the sea is dark and very quiet. Captain Nemo says the fish there glow.
               </p>
             </Dialog>
-            <Button onClick={() => setOpen(true)} aria-haspopup="dialog" data-site-dive-trigger="">
+            {/* Under water the button is out of sight; a press on it (Enter, say) brings her up instead. */}
+            <Button
+              onClick={() => {
+                if (dive) skip();
+                else setOpen(true);
+              }}
+              aria-haspopup="dialog"
+              data-site-dive-trigger=""
+            >
               Ready to dive?
             </Button>
           </div>
         </div>
+        {dive && (
+          <Suspense>
+            <DiveScene key={dive.id} checked={checked} ending={dive.ending} onSkip={skip} onDone={surfaced} />
+          </Suspense>
+        )}
       </div>
     </div>
   );
