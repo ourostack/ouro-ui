@@ -25,7 +25,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const PLACEHOLDER = "{{latestRelease}}";
 
 /** Files whose install commands name the tag; gen-docs keeps them in step. */
-export const syncedFiles = ["README.md", "site/public/llms.txt", "package.json", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md", "docs/guides/guardrails.md", "registry/ouro/lib/ouro/dev.ts", "registry/ouro/lib/ouro/dev.test.ts"];
+export const syncedFiles = ["README.md", "site/llms.txt", "package.json", "docs/guides/installing.md", "docs/guides/testing.md", "docs/guides/forms.md", "docs/guides/guardrails.md", "registry/ouro/lib/ouro/dev.ts", "registry/ouro/lib/ouro/dev.test.ts"];
 
 const literal = /([#@])v\d+\.\d+\.\d+\b/g;
 

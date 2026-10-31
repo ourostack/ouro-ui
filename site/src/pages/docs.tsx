@@ -459,11 +459,11 @@ export function Updating(): JSX.Element {
           <Command command={`npx shadcn@latest add ourostack/ouro-ui/sheet#${latestRelease}`} />
           <Text size="sm" tone="muted">
             {claim("A release tag pins the item and every Ouro dependency it brings", { source: { file: "scripts/registry.mts" }, verify: { testExists: "scripts/registry.test.mjs::--release pins every same-repo dependency to the release tag and records the version" } })} (such as{" "}
-            <InlineCode>button</InlineCode> and the helpers in <InlineCode>lib/ouro</InlineCode>) to the same tag. Any other ref, <InlineCode>#&lt;sha&gt;</InlineCode> or{" "}
-            <InlineCode>#&lt;branch&gt;</InlineCode>, pins only the item you name: its Ouro dependencies come from <InlineCode>main</InlineCode>.
+            <InlineCode>button</InlineCode> and the helpers in <InlineCode>lib/ouro</InlineCode>) to the same tag.{" "}
+            {claim("Every install needs that tag: without a ref, or with a branch or a commit, the CLI finds no registry.json, because only a release commit has one.", { source: { file: ".gitignore" }, verify: { testExists: "scripts/registry.test.mjs::main commits no registry.json, and a release commit adds it, so only a release tag installs from GitHub" } })}{" "}
             The <InlineCode>@ouro</InlineCode>{" "}
             {claim("namespace serves the newest release,", { source: { file: ".github/workflows/pages.yml" }, verify: { testExists: "scripts/workflows.test.mjs::Pages names GitHub's newest release before it builds, whatever main's package.json says" } })}{" "}
-            <InlineCode>{latestRelease}</InlineCode>. Without a ref, the GitHub address installs <InlineCode>main</InlineCode>, which is for contributors and can hold unreleased changes. Releases are listed on{" "}
+            <InlineCode>{latestRelease}</InlineCode>. Releases are listed on{" "}
             <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.
           </Text>
         </li>
