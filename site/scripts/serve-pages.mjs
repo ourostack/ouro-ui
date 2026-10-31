@@ -1,4 +1,5 @@
-// Serves the built site (site/dist) the way GitHub Pages does, for Lighthouse: over HTTP/2 and
+// Serves the built site (site/dist) the way GitHub Pages does, for Lighthouse and the site's
+// end-to-end specs (playwright.config.ts): over HTTP/2 and
 // TLS, gzipped, at /, with Pages' cache headers for hashed assets. Lighthouse's
 // simulated throttling models a page's requests by protocol, and over vite preview's HTTP/1.1 it
 // charges a round trip per six requests that Pages, on HTTP/2, never pays.
@@ -25,6 +26,7 @@ const types = {
   ".json": "application/json",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".webp": "image/webp",
   ".woff2": "font/woff2",
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",

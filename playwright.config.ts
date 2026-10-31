@@ -3,6 +3,9 @@ import { defineConfig, devices } from "@playwright/test";
 // End-to-end specs: registry/ouro/e2e/ouro/*.spec.ts, the specs each item installs into an
 // app's e2e/ouro/. They open stories in a Storybook (OURO_E2E_URL, default
 // http://localhost:6006); here, this repository's own.
+/** Where the site's specs find the built site (site/scripts/serve-pages.mjs). */
+const SITE = "https://127.0.0.1:4179/";
+
 export default defineConfig({
   testDir: "registry/ouro/e2e",
   // The screen-reader specs need VoiceOver or NVDA: playwright.screen-reader.config.ts runs them.
@@ -12,6 +15,9 @@ export default defineConfig({
   // others). The specs share no state between tests.
   fullyParallel: true,
   forbidOnly: !!process.env["CI"],
+  // The site's voyage pages, opened once per browser before any spec, so no spec pays a fresh
+  // runner's one-time cost of their first visit (site/e2e/warm-up.ts).
+  globalSetup: "./site/e2e/warm-up.ts",
   retries: process.env["CI"] ? 1 : 0,
   reporter: process.env["CI"]
     ? [
@@ -24,9 +30,11 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
-    // The stage's latency spec runs alone (playwright.latency.config.ts).
-    { name: "site-chromium", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4179/" } },
-    { name: "site-webkit", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Safari"], baseURL: "http://127.0.0.1:4179/" } },
+    // The stage's latency spec runs alone (playwright.latency.config.ts). The site's specs run
+    // against the build served as GitHub Pages serves it (site/scripts/serve-pages.mjs: HTTP/2, TLS,
+    // gzip with a length), so they check what people get; its certificate is self-signed.
+    { name: "site-chromium", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Chrome"], baseURL: SITE, ignoreHTTPSErrors: true } },
+    { name: "site-webkit", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Safari"], baseURL: SITE, ignoreHTTPSErrors: true } },
   ],
   webServer: [
     {
@@ -36,8 +44,13 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
-      command: "pnpm site:build && pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort",
-      url: "http://127.0.0.1:4179/",
+      // Vite preview's HTTP/1.1 server, with gzip made on the fly in chunks, left WebKit with pages
+      // whose own requests failed ("WebKit encountered an internal error") or whose HTML arrived
+      // still compressed (probe run 41191679257: 9 such runs of the 320 px reflow loop in 80 under
+      // Vite preview, 1 in 160 served this way).
+      command: "pnpm site:build && node site/scripts/serve-pages.mjs 4179",
+      url: SITE,
+      ignoreHTTPSErrors: true,
       reuseExistingServer: false,
       timeout: 180_000,
     },

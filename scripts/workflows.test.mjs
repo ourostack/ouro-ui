@@ -1620,6 +1620,22 @@ test("the screen-reader packages are pinned exactly, and test:sr runs its own co
   assert.match(pkg.scripts["test:scripts"], /scripts\/sr-classify\.test\.mjs/);
 });
 
+test("the site's end-to-end specs run against the build served as GitHub Pages serves it, over HTTP/2 and TLS", async () => {
+  const main = (await import("../playwright.config.ts")).default;
+  const site = main.projects.filter((project) => project.name.startsWith("site-"));
+  assert.deepEqual(site.map((project) => project.name), ["site-chromium", "site-webkit"]);
+  for (const project of site) {
+    assert.equal(project.use.baseURL, "https://127.0.0.1:4179/", project.name);
+    assert.equal(project.use.ignoreHTTPSErrors, true, project.name);
+  }
+  const server = main.webServer.find((entry) => entry.url === "https://127.0.0.1:4179/");
+  assert.equal(server.command, "pnpm site:build && node site/scripts/serve-pages.mjs 4179");
+  assert.equal(server.ignoreHTTPSErrors, true);
+  assert.match(readFileSync(join(root, "site/scripts/serve-pages.mjs"), "utf8"), /createSecureServer\(/);
+  // Each site browser opens the voyage pages once before any spec (site/e2e/warm-up.ts).
+  assert.equal(main.globalSetup, "./site/e2e/warm-up.ts");
+});
+
 test("the main Playwright config never runs a screen-reader spec, and the screen-reader config runs only those, one at a time", async () => {
   const main = (await import("../playwright.config.ts")).default;
   assert.ok(main.testIgnore instanceof RegExp && main.testIgnore.test("registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts"));
