@@ -2467,6 +2467,86 @@
     ]
   },
   {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "emoji",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "quick",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "category",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "skin-tone",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "tone",
+    "role": "radio",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
     "item": "time-grid",
     "stem": "time-grid",
     "mode": "button",
