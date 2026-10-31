@@ -1,6 +1,6 @@
 // First, so the page's own rules below come after Tailwind's and win.
 import "../voyage/voyage-tailwind.css";
-import { Suspense, useEffect, useState, type JSX } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore, type JSX } from "react";
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -15,7 +15,7 @@ import { Hero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
 import { StoryOpening } from "../voyage/nautilus";
 import { Repaint } from "../voyage/repaint";
-import { openXray, setXray, useXray } from "../voyage/xray-store";
+import { openXray, setXray, spotlightFrom, useXray } from "../voyage/xray-store";
 import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
 import "../voyage/voyage.css";
@@ -30,6 +30,7 @@ const docsHref = (item: string) => href(`/docs/${item}/`);
  */
 function Xray(): JSX.Element {
   const on = useXray();
+  const spotlight = useSpotlight();
   const [painted, setPainted] = useState(false);
   useEffect(() => {
     if (!on) return;
@@ -41,7 +42,7 @@ function Xray(): JSX.Element {
       setPainted(false);
     };
   }, [on]);
-  return <Inspector open={on && painted} onOpenChange={setXray} docsHref={docsHref} />;
+  return <Inspector open={on && painted} onOpenChange={setXray} docsHref={docsHref} spotlight={spotlight} />;
 }
 
 /** X-ray on at load when the address asks for it (`?xray`), as the home page's "X-ray it" link does. */
@@ -50,6 +51,22 @@ function useXrayFromAddress(): void {
     if (new URLSearchParams(window.location.search).has("xray")) setXray(true);
   }, []);
 }
+
+/**
+ * The component the address names for X-ray to point out (`?xray=Switch`), as each docs page's
+ * links do, or `undefined`. The address stays put while the page is open, and the server has none.
+ * Only X-ray reads it: a page that re-rendered with it as it hydrates would drop the server's HTML
+ * of a chapter still waiting to hydrate.
+ */
+function useSpotlight(): string | undefined {
+  return useSyncExternalStore(
+    noSubscription,
+    () => spotlightFrom(window.location.search),
+    () => undefined,
+  );
+}
+
+const noSubscription = () => () => {};
 
 /**
  * The voyage pages ("Mobilis in mobili", site-design.md), one chunk and stylesheet: the home page

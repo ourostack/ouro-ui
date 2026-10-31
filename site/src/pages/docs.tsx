@@ -19,6 +19,8 @@ import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, reposi
 import { href, routeFor } from "../routes";
 import { latestRelease } from "../latest-release";
 import spoonjoy from "../docs/spoonjoy.json";
+import shipComponents from "../docs/ship-components.json";
+import { SHIP_PAGES } from "../docs/ships";
 
 function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
   return (
@@ -74,6 +76,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <LiveDemo name={item.name} title={item.title} />
       </section>
 
+      <OnThisSite name={item.name} title={item.title} />
       <InSpoonjoy name={item.name} />
 
       <Heading level={2} size="lg" id="install" className="mt-14 mb-4">
@@ -132,6 +135,31 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
 
 const linkClass = "text-primary underline underline-offset-4";
 
+/**
+ * The site's own ship pages that show the component, each linked with X-ray on and pointed at it
+ * (`?xray=<item>`), from the list the build makes of what those pages render.
+ */
+function OnThisSite({ name, title }: { name: string; title: string }): JSX.Element | null {
+  const paths = (shipComponents.items as Record<string, string[] | undefined>)[name];
+  if (!paths) return null;
+  return (
+    <section aria-labelledby="on-this-site" className="mt-10 grid gap-3">
+      <Heading level={2} size="lg" id="on-this-site">
+        On this site
+      </Heading>
+      <Text tone="muted">
+        This site's own pages use {title} too. Open one with X-ray pointing it out:{" "}
+        {SHIP_PAGES.filter((ship) => paths.includes(ship.path)).map((ship, index) => (
+          <span key={ship.path}>
+            {index > 0 && " · "}
+            <a href={href(`${ship.path}?xray=${name}`)} className={linkClass}>{ship.label}</a>
+          </span>
+        ))}
+      </Text>
+    </section>
+  );
+}
+
 /** Where Spoonjoy uses the component: pages anyone can open that show it, and the files that render it. */
 function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
   const use = (spoonjoy.items as Record<string, { pages: { url: string; label: string }[]; sources: string[] }>)[name];
@@ -152,7 +180,8 @@ function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
           {use.pages.map((page, index) => (
             <span key={page.url}>
               {index > 0 && " · "}
-              <a href={page.url} className={linkClass}>{page.label}</a>
+              {/* X-ray on, pointed at the component where Spoonjoy's X-ray can spotlight one. */}
+              <a href={`${page.url}?xray=${name}`} className={linkClass}>{page.label}</a>
             </span>
           ))}
         </Text>

@@ -32,6 +32,7 @@ Type: `InspectorProps`.
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the person closes X-ray (its Close button, or Escape). |
 | `open` (required) | `boolean` |  | Whether X-ray is on: outlines over every Ouro component, and the bar with the list. Pair it with `onOpenChange`. |
 | `sourceHref` | `((item: string, element: Element) => string \| undefined)` |  | The address of the source that renders a component, if you publish it: the list shows a Source link where this returns one. |
+| `spotlight` | `string` |  | A registry item to point out, such as `"button"`: X-ray scrolls the first one in the page's `main` (or else the first anywhere) to the middle of the screen (at once with reduced motion) and draws its outline stronger, with its tag placed first. Its bar says which item it shows, or that the page has none, and points one out when it appears. |
 
 ## Don't use
 

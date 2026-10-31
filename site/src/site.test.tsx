@@ -13,6 +13,8 @@ import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { agentExamples } from "./agents/examples";
+import shipComponents from "./docs/ship-components.json";
+import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
 import { siteGroups } from "../../scripts/catalog-groups.mts";
@@ -260,6 +262,22 @@ describe("docs", () => {
     } finally {
       history.replaceState(null, "", before);
     }
+  });
+
+  it("links a component on the ship pages and in Spoonjoy, each opening X-ray pointed at it", async () => {
+    await renderPage("/docs/switch/");
+    const ship = page.getByRole("region", { name: "On this site" });
+    expect(ship.getByRole("link").elements().map((link) => [link.textContent, link.getAttribute("href")])).toEqual(
+      shipComponents.items.switch!.map((path) => [SHIP_PAGES.find((ship) => ship.path === path)!.label, href(`${path}?xray=switch`)]),
+    );
+    const live = page.getByRole("region", { name: "In Spoonjoy" }).getByRole("link").elements().filter((link) => link.getAttribute("href")!.startsWith("https://spoonjoy.app/") && link.textContent !== "Spoonjoy");
+    expect(live.length).toBeGreaterThan(0);
+    for (const link of live) expect(link.getAttribute("href")).toMatch(/\?xray=switch$/);
+    // A component the ship pages do not show has no line for them.
+    const absent = docsItems.find((item) => !(item.name in shipComponents.items))!;
+    await renderPage(`/docs/${absent.name}/`);
+    await expect.element(page.getByRole("heading", { name: absent.title, level: 1 })).toBeVisible();
+    expect(page.getByRole("region", { name: "On this site" }).elements()).toEqual([]);
   });
 
   it("shows the parts nesting on the Sheet and Dialog pages", async () => {

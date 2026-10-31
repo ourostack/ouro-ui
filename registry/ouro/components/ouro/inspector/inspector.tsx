@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
+import { frameClass, isPartOf, itemFor, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -27,6 +27,16 @@ export interface InspectorProps {
   sourceHref?: ((item: string, element: Element) => string | undefined) | undefined;
   /** What X-ray is called, on its bar and as its list's title. Translate it here. @default "X-ray" */
   label?: string | undefined;
+  /**
+   * A registry item to point out, such as `"button"`: X-ray scrolls the first one in the page's `main` (or else the first anywhere) to the middle of the screen (at once with reduced motion) and draws its outline stronger, with its tag placed first. Its bar says which item it shows, or that the page has none, and points one out when it appears.
+   *
+   * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > points out the spotlit item: scrolls the first one into view, draws its outline stronger and names it on the bar)
+   * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > scrolls to the spotlit item at once with reduced motion)
+   * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > prefers the first spotlit item in the page's main content to one in its header)
+   * @claim "A registry item to point out" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector geometry > places the spotlit component's tag first, so it takes the best place)
+   * @claim "Its bar says which item it" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > says when the page has no spotlit item, and points one out when it appears)
+   */
+  spotlight?: string | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Inspector open={xray} onOpenChange={setXray}>`. */
   isOpen?: { 'Use <Inspector open={xray} onOpenChange={setXray}>': never };
@@ -119,6 +129,15 @@ function findComponents(own: Element, modal: boolean): Found[] {
     found.push({ key: keyOf(element), item, element });
   }
   return found;
+}
+
+/**
+ * The component X-ray points out: the first of the item in the page's main content, so a page's
+ * own Switch comes before the one in its header, or else the first anywhere.
+ */
+function spotlitOf(components: Found[], spotlight: string | undefined): Found | undefined {
+  const all = components.filter((component) => component.item === spotlight);
+  return all.find((component) => component.element.closest("main")) ?? all[0];
 }
 
 /** A box's edges on the screen. */
@@ -359,6 +378,7 @@ export function Inspector(props: InspectorProps): JSX.Element | null {
     docsHref = ouroDocs,
     sourceHref,
     label = "X-ray",
+    spotlight,
     // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
@@ -380,14 +400,27 @@ export function Inspector(props: InspectorProps): JSX.Element | null {
     () => false,
   );
   if (!open || !client) return null;
-  return createPortal(<InspectorLayer onOpenChange={onOpenChange} docsHref={docsHref} sourceHref={sourceHref} label={label} />, document.body);
+  return createPortal(<InspectorLayer onOpenChange={onOpenChange} docsHref={docsHref} sourceHref={sourceHref} label={label} spotlight={spotlight} />, document.body);
 }
 
 /** X-ray while it is on: the outlines, the bar and its list. */
-function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<InspectorProps, "onOpenChange" | "sourceHref"> & { docsHref: (item: string) => string; label: string }): JSX.Element {
+function InspectorLayer({
+  onOpenChange,
+  docsHref,
+  sourceHref,
+  label,
+  spotlight,
+}: Pick<InspectorProps, "onOpenChange" | "sourceHref" | "spotlight"> & { docsHref: (item: string) => string; label: string }): JSX.Element {
   const layer = useRef<HTMLDivElement>(null);
   const [outlines] = useState(() => new Map<number, HTMLElement>());
   const [found, setFound] = useState<Found[]>([]);
+  // Whether X-ray has read the page once, so its bar never says a spotlit item is missing before it has looked.
+  const [measured, setMeasured] = useState(false);
+  // The spotlit item, read by `place`, which the measuring effect keeps from the first render.
+  const spotlightRef = useRef(spotlight);
+  useLayoutEffect(() => {
+    spotlightRef.current = spotlight;
+  });
   const [entering, setEntering] = useState(true);
   // Focus goes back where it was when X-ray closes from its own bar or Escape.
   const [returnFocus] = useState(() => document.activeElement);
@@ -414,12 +447,20 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
     // Each tag keeps clear of the page's text, of the tags placed before it, and of the bar.
     const bar = own.querySelector("section")!.getBoundingClientRect();
     const clear: Edges[] = [...lines, { top: bar.top, right: bar.right, bottom: bar.bottom, left: bar.left }];
-    const places = components.map((component, index) => {
-      if (!shown[index]) return null;
-      const spot = tagPlace(boxes[index]!, parts[index]!, ancestors.get(component.element)!.rtl, sizes[index]!, clear);
+    // The spotlit component's tag is placed first, so it takes the best place.
+    const chosen = spotlitOf(components, spotlightRef.current);
+    const first = components.findIndex((component) => component === chosen);
+    const order = components.map((_, index) => index);
+    // Stryker disable next-line EqualityOperator: moving the first component to the front leaves the order as it was.
+    if (first > 0) order.unshift(...order.splice(first, 1));
+    // Stryker disable next-line ArrayDeclaration: every index is written below, over anything the list starts with.
+    const places: ({ x: number; y: number; inside: boolean } | null)[] = [];
+    for (const index of order) {
+      const component = components[index]!;
+      const spot = shown[index] ? tagPlace(boxes[index]!, parts[index]!, ancestors.get(component.element)!.rtl, sizes[index]!, clear) : null;
       if (spot) clear.push({ top: spot.y, right: spot.x + sizes[index]![0], bottom: spot.y + sizes[index]![1], left: spot.x });
-      return spot;
-    });
+      places[index] = spot;
+    }
     const covers = components.map((component, index) => {
       const spot = places[index];
       return !!spot && covered(component.element, parts[index]!, ancestors.get(component.element)!.rtl, [spot.x + sizes[index]![0] / 2, spot.y + sizes[index]![1] / 2], own);
@@ -463,6 +504,7 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
         resizes.observe(component.element);
       }
       setFound((current) => (sameComponents(current, next) ? current : next));
+      setMeasured(true);
       place(next);
       if (moving(own)) schedule();
     };
@@ -493,6 +535,15 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
 
   // Outlines React has just rendered are placed before the browser paints them.
   useLayoutEffect(() => place(found));
+
+  // The first spotlit component comes to the middle of the screen once per item, when X-ray first finds it.
+  const spotlit = spotlitOf(found, spotlight);
+  const pointedAt = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!spotlit || pointedAt.current === spotlit.item) return;
+    pointedAt.current = spotlit.item;
+    spotlit.element.scrollIntoView({ block: "center", inline: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }, [spotlit]);
 
   // The layer fades in from `@starting-style` while it carries `data-starting-style`, then drops it.
   useEffect(() => {
@@ -542,6 +593,7 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
               else outlines.delete(component.key);
             }}
             data-ouro-inspector-outline=""
+            data-spotlight={component === spotlit ? "" : undefined}
             className={outlineClass}
           >
             <div data-ouro-inspector-frame="" className={frameClass}>
@@ -559,6 +611,11 @@ function InspectorLayer({ onOpenChange, docsHref, sourceHref, label }: Pick<Insp
         <span aria-hidden="true" className="font-medium">
           {label}
         </span>
+        {spotlight !== undefined && (
+          <span role="status" className={statusClass}>
+            {measured && (spotlit ? `Showing ${spotlight}` : `No ${spotlight} on this page`)}
+          </span>
+        )}
         <Sheet
           title={label}
           description="Every Ouro HX component on this page, in order."
