@@ -109,6 +109,18 @@ describe("Lightbox mosaic", () => {
     expect(ratio(list(four.host))).toBeCloseTo(4 / 3, 1);
     expect(thumbnails(four.host)).toHaveLength(4);
     expect(four.host.querySelector("[data-ouro-lightbox-more]")).toBeNull();
+    // A 2 by 2 grid: two columns and two rows of equal pictures, read in rows.
+    const grid = getComputedStyle(list(four.host));
+    expect(grid.gridTemplateColumns.split(" ")).toHaveLength(2);
+    expect(grid.gridTemplateRows.split(" ")).toHaveLength(2);
+    const [topStart, topEnd, bottomStart, bottomEnd] = thumbnails(four.host).map((thumbnail) => thumbnail.getBoundingClientRect());
+    expect(topStart!.top).toBeCloseTo(topEnd!.top, 0);
+    expect(bottomStart!.top).toBeCloseTo(bottomEnd!.top, 0);
+    expect(bottomStart!.top).toBeGreaterThan(topStart!.bottom);
+    expect(topStart!.left).toBeCloseTo(bottomStart!.left, 0);
+    expect(topEnd!.left).toBeGreaterThan(topStart!.right);
+    expect(topStart!.width).toBeCloseTo(topEnd!.width, 0);
+    expect(topStart!.height).toBeCloseTo(bottomStart!.height, 0);
   });
 
   it("shows four of more pictures, the last saying how many more follow, to sight and to screen readers", async () => {
