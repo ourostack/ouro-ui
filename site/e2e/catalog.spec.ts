@@ -196,6 +196,10 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       if (file.endsWith(".css")) styles.push(file);
     };
     page.on("response", listener);
+    await page.addInitScript(() => {
+      const look = () => (document.documentElement?.hasAttribute("data-site-ready") ? ((window as unknown as { __siteReadyAt?: number }).__siteReadyAt ??= performance.now()) : requestAnimationFrame(look));
+      look();
+    });
     await page.goto(path);
     await expect(ready.first()).toBeAttached();
     // Chapter I's island loads once the page is live; wait for it, or WebKit can go network-idle
@@ -206,9 +210,10 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       const took = await page.locator("#chapter-one[data-chapter-ready]").waitFor({ state: "attached", timeout: 30_000 }).then(() => Date.now() - t0, () => -1);
       const timing = await page.evaluate(() => {
         const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
-        const chunks = performance.getEntriesByType("resource").filter((e) => /chapter-one|frame-|reorderable|checklist/.test(e.name)).map((e) => `${e.name.split("/").pop()} start ${e.startTime.toFixed(0)} end ${(e as PerformanceResourceTiming).responseEnd.toFixed(0)} ${(e as PerformanceResourceTiming).nextHopProtocol}`);
+        const chunks = performance.getEntriesByType("resource").filter((e) => /\.js$/.test(e.name)).map((e) => `${e.name.split("/").pop()!.replace(/-[\w-]{8}\.js$/, "")} ${e.startTime.toFixed(0)}-${(e as PerformanceResourceTiming).responseEnd.toFixed(0)}`);
         const top = document.getElementById("chapter-one")?.getBoundingClientRect().top;
-        return { dcl: nav?.domContentLoadedEventEnd.toFixed(0), load: nav?.loadEventEnd.toFixed(0), ready: performance.now().toFixed(0), top, inner: innerHeight, scrollY, chunks };
+        const siteReady = (window as unknown as { __siteReadyAt?: number }).__siteReadyAt;
+        return { dcl: nav?.domContentLoadedEventEnd.toFixed(0), load: nav?.loadEventEnd.toFixed(0), siteReady: siteReady?.toFixed(0), now: performance.now().toFixed(0), top, chunks };
       });
       console.log(`PROBE CATALOG ch1 ${took < 0 ? "NEVER" : took > 5000 ? "SLOW" : "OK"} ${took} ms ${info.project.name} repeat ${info.repeatEachIndex} ${JSON.stringify(timing)}`);
       expect(took, "Chapter I ready within 5 s").toBeGreaterThan(-1);

@@ -1,5 +1,5 @@
 name: CI
-# PROBE (branch probe/catalog-ch1, never merged): catalog.spec.ts:180's Chapter I readiness, Vite preview vs Pages-style server.
+# PROBE (branch probe/catalog-ch1, never merged): catalog.spec.ts:180 in a cold WebKit, by server.
 on:
   workflow_dispatch:
 permissions:
@@ -16,32 +16,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: [preview, pages]
-    name: catalog (${{ matrix.server }})
+        server: [preview, pages, pages-cached]
+    name: catalog cold (${{ matrix.server }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Vite preview, as main serves the specs
-        if: matrix.server == 'preview'
-        run: |
-          git fetch --no-tags --depth=1 origin main
-          git checkout FETCH_HEAD -- playwright.config.ts
-          grep -n 'site:preview\|serve-pages' playwright.config.ts
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
-      - name: The whole catalog spec, repeated, both site projects, as a shard runs it
+      - run: pnpm site:build
+      - name: Cold WebKit, 15 times
         env:
-          CI: "1"
+          SERVER: ${{ matrix.server }}
         run: |
-          pnpm exec playwright test --project=site-webkit --project=site-chromium site/e2e/catalog.spec.ts --repeat-each=12 --workers=2 --reporter=list > out.txt 2>&1 || true
-          grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)' out.txt
-          grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms site-[a-z]+' out.txt | awk '{print $4, $7}' | sort | uniq -c
-          grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms site-[a-z]+' out.txt | awk '{print $7, $5}' | sort -k1,1 -k2,2n | awk '{a[$1]=a[$1]" "$2} END {for (k in a) print k":"a[k]}'
-          grep -E 'PROBE CATALOG ch1 (SLOW|NEVER)' out.txt | cut -c1-900 | head -12
-          grep -E 'PROBE CATALOG ch1 OK' out.txt | grep site-webkit | head -3 | cut -c1-900
-          grep -E '✘' out.txt | head -20
+          case "$SERVER" in
+            preview) pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort > server.log 2>&1 & export PROBE_BASE=http://127.0.0.1:4179/ ;;
+            pages) node site/scripts/serve-pages.mjs 4179 > server.log 2>&1 & export PROBE_BASE=https://127.0.0.1:4179/ ;;
+            pages-cached) PROBE_CACHED=1 node site/scripts/serve-pages.mjs 4179 > server.log 2>&1 & export PROBE_BASE=https://127.0.0.1:4179/ ;;
+          esac
+          sleep 8; cat server.log
+          for i in $(seq 1 15); do
+            pnpm exec playwright test --config zz-probe.config.ts -g "each page loads only its own JavaScript closure" --reporter=list > "out-$i.txt" 2>&1 || true
+            grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms' "out-$i.txt" | head -1
+          done
+          echo "--- summary"; cat out-*.txt | grep -oE 'PROBE CATALOG ch1 [A-Z]+' | sort | uniq -c
+          cat out-*.txt | grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms' | awk '{print $5}' | sort -n | tr '\n' ' '; echo
+          echo "--- slowest"; cat out-*.txt | grep -E 'PROBE CATALOG ch1' | sort -t' ' -k6 -n | tail -2 | cut -c1-1500

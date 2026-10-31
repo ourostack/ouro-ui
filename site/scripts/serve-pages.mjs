@@ -48,6 +48,21 @@ function resolveFile(pathname) {
   return undefined;
 }
 
+// PROBE: bodies (and their gzip) made once, before listening, when PROBE_CACHED is set.
+const cache = new Map();
+if (process.env["PROBE_CACHED"]) {
+  const { readdirSync } = await import("node:fs");
+  const started = Date.now();
+  for (const entry of readdirSync(dist, { recursive: true })) {
+    const file = join(dist, String(entry));
+    if (!statSync(file).isFile()) continue;
+    const body = readFileSync(file);
+    const type = types[extname(file)] ?? "application/octet-stream";
+    cache.set(file, { body, gzip: /text|json|svg|xml/.test(type) ? gzipSync(body) : undefined });
+  }
+  console.log(`PROBE cached ${cache.size} files in ${Date.now() - started} ms`);
+}
+
 const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")), cert: readFileSync(join(certDir, "cert.pem")), allowHTTP1: true }, (request, response) => {
   const url = new URL(request.url, "https://localhost");
   if (url.pathname === base.slice(0, -1)) {
@@ -55,12 +70,13 @@ const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")),
     return response.end();
   }
   const file = resolveFile(url.pathname);
-  const body = file ? readFileSync(file) : readFileSync(join(dist, "404.html"));
+  const cached = cache.get(file ?? join(dist, "404.html"));
+  const body = cached?.body ?? (file ? readFileSync(file) : readFileSync(join(dist, "404.html")));
   const type = types[extname(file ?? ".html")] ?? "application/octet-stream";
   const headers = { "content-type": type, "cache-control": file && url.pathname.includes("/assets/") ? "max-age=31536000, immutable" : "max-age=600" };
   const compress = /text|json|svg|xml/.test(type) && /\bgzip\b/.test(String(request.headers["accept-encoding"] ?? ""));
   response.writeHead(file ? 200 : 404, compress ? { ...headers, "content-encoding": "gzip", vary: "accept-encoding" } : headers);
-  response.end(compress ? gzipSync(body) : body);
+  response.end(compress ? (cached?.gzip ?? gzipSync(body)) : body);
 });
 
 server.listen(port, "127.0.0.1", () => console.log(`Serving site/dist over HTTP/2 at https://127.0.0.1:${port}${base}`));
