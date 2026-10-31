@@ -436,7 +436,7 @@
   }
 }
 /* The chosen one lies flat, pressed into the bench. */
-html[data-theme="pearl"] [data-site-preset="pearl"] .site-specimen,
+html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"] .site-specimen,
 html[data-theme="abyss"] [data-site-preset="abyss"] .site-specimen,
 html[data-theme="brass"] [data-site-preset="brass"] .site-specimen,
 html[data-theme="chart"] [data-site-preset="chart"] .site-specimen,
@@ -448,7 +448,7 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] .site-specimen {
 }
 
 /* The chosen preset's button: a primary ring and wash, drawn from html[data-theme] so it is right before hydration. */
-html[data-theme="pearl"] [data-site-preset="pearl"],
+html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],
 html[data-theme="abyss"] [data-site-preset="abyss"],
 html[data-theme="brass"] [data-site-preset="brass"],
 html[data-theme="chart"] [data-site-preset="chart"],
@@ -458,7 +458,7 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
   background-color: color-mix(in oklab, var(--primary) 8%, var(--background));
 }
 @media (forced-colors: active) {
-  html[data-theme="pearl"] [data-site-preset="pearl"],
+  html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],
   html[data-theme="abyss"] [data-site-preset="abyss"],
   html[data-theme="brass"] [data-site-preset="brass"],
   html[data-theme="chart"] [data-site-preset="chart"],
@@ -509,4 +509,9 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
   .site-quiet-link {
     min-height: 2.75rem;
   }
+}
+
+/* "Or make your own" (repaint.tsx): each accent's dot, ringed when chosen. */
+.site-maker-accent[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--accent-dot);
 }

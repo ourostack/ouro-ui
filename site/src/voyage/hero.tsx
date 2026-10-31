@@ -11,6 +11,7 @@ import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
+import { ThemeDots } from "./theme-dots";
 
 /** What the hero says the library is, before anything else: its name. */
 export const EYEBROW = VOYAGE_HERO.eyebrow;
@@ -162,6 +163,10 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
               <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
                 Browse components
               </Button>
+            </div>
+            <div className="mt-6 lg:mt-9">
+              <p className="mb-2.5 text-sm text-muted-foreground">Pick a coat of paint. The whole page changes with it.</p>
+              <ThemeDots label="Theme" />
             </div>
           </div>
         </div>
