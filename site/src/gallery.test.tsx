@@ -183,5 +183,7 @@ describe.each([390, 1280])("an open Sheet demo at %i px", (width) => {
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
     const violations = await scan();
     expect(violations, describeViolations(violations)).toEqual([]);
-  }, pageScanTimeout);
+    // The open dialog hides the page without making it inert, so the scan also walks the page with
+    // Tab, header included; on a loaded runner that ran past one page's limit.
+  }, 2 * pageScanTimeout);
 });
