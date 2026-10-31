@@ -8,7 +8,7 @@ One definition of a command: its words, effect, arguments and flags, examples an
 npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.2.14
 ```
 
-It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-errors`, `ax-exit-codes`, `ax-outcome`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 

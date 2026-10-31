@@ -346,12 +346,12 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-cli`,
 `ax-command`,
 `ax-effects`,
-`ax-errors`,
 `ax-exit-codes`,
 `ax-lint`,
 `ax-mcp`,
 `ax-outcome`,
 `ax-output`,
+`ax-problem`,
 `ax-wait`,
 `ax-work-event`,
 `ax-xray`.

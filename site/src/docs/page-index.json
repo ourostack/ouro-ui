@@ -144,12 +144,6 @@
     "summary": "Effect classes: a command either touches only the person's own space (\"private\") or reaches other people (\"others\")."
   },
   {
-    "name": "ax-errors",
-    "title": "ax-errors",
-    "kind": "guide",
-    "summary": "One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop."
-  },
-  {
     "name": "ax-example",
     "title": "ax-example",
     "kind": "guide",
@@ -184,6 +178,12 @@
     "title": "ax-output",
     "kind": "guide",
     "summary": "One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data."
+  },
+  {
+    "name": "ax-problem",
+    "title": "ax-problem",
+    "kind": "guide",
+    "summary": "One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop."
   },
   {
     "name": "ax-wait",

@@ -4,7 +4,7 @@ export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, I
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { AxError, commandLine, didYouMean } from "./errors.ts";
+import { AxError, commandLine, didYouMean } from "./problem.ts";
 import { BASE_EXIT_CODES, defineExitCodes, type ExitTable } from "./exit-codes.ts";
 import { DEFAULT_HEADINGS, DRY_RUN_FLAG, WHY_FLAG, WHY_PLACEHOLDER, type Effect, type EffectHeadings } from "./effects.ts";
 import { DEFAULT_OUTCOME_EXITS, type Outcome, type OutcomeExits } from "./outcome.ts";

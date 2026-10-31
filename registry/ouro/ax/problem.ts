@@ -9,7 +9,7 @@ export type { AxErrorBody, AxErrorShape };
  * the same fields, so an agent learns one repair loop. The line mirrors Ouro HX's dev message format:
  * `<tool>: <thing>: <what's wrong>. Fix: <exact code>.`
  *
- * @claim "tool error all carry" registry/ouro/ax/errors.test.mts verify:testExists(registry/ouro/ax/errors.test.mts::AxError carries the shape, its exit and the same message; errorJson adds the message)
+ * @claim "tool error all carry" registry/ouro/ax/problem.test.mts verify:testExists(registry/ouro/ax/problem.test.mts::AxError carries the shape, its exit and the same message; errorJson adds the message)
  */
 interface AxErrorShape {
   /** A stable slug an agent can branch on, such as "unknown-flag", "missing-arg" or "needs-why". */
@@ -83,7 +83,7 @@ function distance(a: string, b: string): number {
 /**
  * The candidate an agent most likely meant: a unique prefix, or the nearest within two edits; null when none is close.
  *
- * @claim "the nearest within two edits" registry/ouro/ax/errors.test.mts verify:testExists(registry/ouro/ax/errors.test.mts::didYouMean: a unique prefix, else the nearest within a couple of edits, else null)
+ * @claim "the nearest within two edits" registry/ouro/ax/problem.test.mts verify:testExists(registry/ouro/ax/problem.test.mts::didYouMean: a unique prefix, else the nearest within a couple of edits, else null)
  */
 function didYouMean(word: string, candidates: readonly string[]): string | null {
   if (word === "") return null;
@@ -110,7 +110,7 @@ function shellWord(word: string): string {
 /**
  * A command line from words, each quoted only when it needs it.
  *
- * @claim "each quoted only when" registry/ouro/ax/errors.test.mts verify:testExists(registry/ouro/ax/errors.test.mts::commandLine quotes only what a shell would split or expand)
+ * @claim "each quoted only when" registry/ouro/ax/problem.test.mts verify:testExists(registry/ouro/ax/problem.test.mts::commandLine quotes only what a shell would split or expand)
  */
 function commandLine(words: readonly string[]): string {
   return words.map(shellWord).join(" ");

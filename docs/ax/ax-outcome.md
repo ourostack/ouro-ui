@@ -8,7 +8,7 @@ The outcome of an action: what became of it, who can see it, whether that was ch
 npx shadcn@latest add ourostack/ouro-ui/ax-outcome#v1.2.14
 ```
 
-It installs `lib/ouro/ax/outcome.ts`, with `ax-effects`, `ax-errors`, `ax-exit-codes`. Its tests are `ax-outcome-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/outcome.ts`, with `ax-effects`, `ax-exit-codes`, `ax-problem`. Its tests are `ax-outcome-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 

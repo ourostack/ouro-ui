@@ -11740,9 +11740,9 @@
       "registryDependencies": [
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-effects",
-        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-output",
+        "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -11766,9 +11766,9 @@
       "docs": "Docs: https://ui.ouro.bot/docs/ax-command.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-effects",
-        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-outcome",
+        "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -11794,20 +11794,6 @@
       ]
     },
     {
-      "name": "ax-errors",
-      "type": "registry:lib",
-      "title": "ax-errors",
-      "description": "Ouro AX: one error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop.",
-      "docs": "Docs: https://ui.ouro.bot/docs/ax-errors.md",
-      "files": [
-        {
-          "path": "registry/ouro/ax/errors.ts",
-          "type": "registry:lib",
-          "target": "@lib/ouro/ax/errors.ts"
-        }
-      ]
-    },
-    {
       "name": "ax-example",
       "type": "registry:lib",
       "title": "ax-example",
@@ -11816,9 +11802,9 @@
       "registryDependencies": [
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-effects",
-        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-outcome",
+        "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -11872,9 +11858,9 @@
         "ourostack/ouro-ui/ax-cli",
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-effects",
-        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-output",
+        "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -11893,8 +11879,8 @@
       "docs": "Docs: https://ui.ouro.bot/docs/ax-outcome.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-effects",
-        "ourostack/ouro-ui/ax-errors",
-        "ourostack/ouro-ui/ax-exit-codes"
+        "ourostack/ouro-ui/ax-exit-codes",
+        "ourostack/ouro-ui/ax-problem"
       ],
       "files": [
         {
@@ -11915,6 +11901,20 @@
           "path": "registry/ouro/ax/output.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/output.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-problem",
+      "type": "registry:lib",
+      "title": "ax-problem",
+      "description": "Ouro AX: one error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-problem.md",
+      "files": [
+        {
+          "path": "registry/ouro/ax/problem.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/problem.ts"
         }
       ]
     },
@@ -12002,12 +12002,12 @@
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-command-tests",
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
       "files": [
@@ -12034,13 +12034,13 @@
         "ourostack/ouro-ui/ax-cli-tests",
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
       "files": [
@@ -12065,23 +12065,6 @@
           "path": "registry/ouro/ax/effects.test.mts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/effects.test.mts"
-        }
-      ]
-    },
-    {
-      "name": "ax-errors-tests",
-      "type": "registry:item",
-      "title": "ax-errors tests",
-      "description": "Optional: the node:test tests for ax-errors; run them with node --test.",
-      "docs": "Docs: https://ui.ouro.bot/docs/ax-errors.md",
-      "registryDependencies": [
-        "ourostack/ouro-ui/ax-errors"
-      ],
-      "files": [
-        {
-          "path": "registry/ouro/ax/errors.test.mts",
-          "type": "registry:lib",
-          "target": "@lib/ouro/ax/errors.test.mts"
         }
       ]
     },
@@ -12113,12 +12096,12 @@
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-command-tests",
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-lint",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
       "files": [
@@ -12140,14 +12123,14 @@
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-command-tests",
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-mcp",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
@@ -12167,10 +12150,10 @@
       "docs": "Docs: https://ui.ouro.bot/docs/ax-outcome.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-exit-codes-tests",
-        "ourostack/ouro-ui/ax-outcome"
+        "ourostack/ouro-ui/ax-outcome",
+        "ourostack/ouro-ui/ax-problem-tests"
       ],
       "files": [
         {
@@ -12198,6 +12181,23 @@
       ]
     },
     {
+      "name": "ax-problem-tests",
+      "type": "registry:item",
+      "title": "ax-problem tests",
+      "description": "Optional: the node:test tests for ax-problem; run them with node --test.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-problem.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-problem"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/problem.test.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/problem.test.mts"
+        }
+      ]
+    },
+    {
       "name": "ax-wait-tests",
       "type": "registry:item",
       "title": "ax-wait tests",
@@ -12205,11 +12205,11 @@
       "docs": "Docs: https://ui.ouro.bot/docs/ax-wait.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-outcome-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -12228,10 +12228,10 @@
       "docs": "Docs: https://ui.ouro.bot/docs/ax-work-event.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-outcome-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-work-event"
       ],
       "files": [
@@ -12256,8 +12256,6 @@
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-command-tests",
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-mcp",
@@ -12265,6 +12263,8 @@
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait-tests",
         "ourostack/ouro-ui/ax-work-event-tests",
         "ourostack/ouro-ui/ax-xray"
@@ -12323,12 +12323,12 @@
         "ourostack/ouro-ui/ax-cli",
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-effects",
-        "ourostack/ouro-ui/ax-errors",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-lint",
         "ourostack/ouro-ui/ax-mcp",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-output",
+        "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-wait",
         "ourostack/ouro-ui/ax-work-event",
         "ourostack/ouro-ui/ax-xray"
@@ -12345,12 +12345,12 @@
         "ourostack/ouro-ui/ax-cli-tests",
         "ourostack/ouro-ui/ax-command-tests",
         "ourostack/ouro-ui/ax-effects-tests",
-        "ourostack/ouro-ui/ax-errors-tests",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-lint-tests",
         "ourostack/ouro-ui/ax-mcp-tests",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
         "ourostack/ouro-ui/ax-wait-tests",
         "ourostack/ouro-ui/ax-work-event-tests",
         "ourostack/ouro-ui/ax-xray-tests",

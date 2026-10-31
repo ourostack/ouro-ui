@@ -22,7 +22,7 @@ This tool has a read and an action other people see. The kit gives it the rest:
 ```ts
 import { runCli } from "./lib/ouro/ax/cli.ts";
 import { defineCli, defineCommand } from "./lib/ouro/ax/command.ts";
-import { AxError } from "./lib/ouro/ax/errors.ts";
+import { AxError } from "./lib/ouro/ax/problem.ts";
 import { outcome } from "./lib/ouro/ax/outcome.ts";
 
 const tasks = new Map([["t1", { title: "Book the room", owner: "Sam" }]]);
@@ -79,7 +79,7 @@ Receipt: a-t1
 | --- | --- |
 | [`ax-command`](../ax/ax-command.md) | `defineCommand` and `defineCli`: one declaration per command, from which the parser, usage, help, input schema and MCP schema come. |
 | [`ax-cli`](../ax/ax-cli.md) | `runCli`: parse, help, run or plan, print text or `--json`, and the exit code. |
-| [`ax-errors`](../ax/ax-errors.md) | The one error shape: `<tool>: <thing>: <problem>. Fix: <command>.` |
+| [`ax-problem`](../ax/ax-problem.md) | The one error shape: `<tool>: <thing>: <problem>. Fix: <command>.` |
 | [`ax-exit-codes`](../ax/ax-exit-codes.md) | A tool's exit-code table, which starts with ok, error and usage. |
 | [`ax-effects`](../ax/ax-effects.md) | Who sees an effect: only the person, or other people; `--why` and `--dry-run`. |
 | [`ax-output`](../ax/ax-output.md) | Text and `--json` from one result; cutting long text; pages with a cursor. |

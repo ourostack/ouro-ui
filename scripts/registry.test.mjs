@@ -40,7 +40,7 @@ const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
 const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
 const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
-const axRuntime = ["ax-claims", "ax-cli", "ax-command", "ax-effects", "ax-errors", "ax-example", "ax-exit-codes", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-wait", "ax-work-event", "ax-xray"];
+const axRuntime = ["ax-claims", "ax-cli", "ax-command", "ax-effects", "ax-example", "ax-exit-codes", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-problem", "ax-wait", "ax-work-event", "ax-xray"];
 const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
@@ -297,8 +297,8 @@ test("Ouro AX items depend on the ax items they import", () => {
   assert.equal(itemForFile("registry/ouro/ax/help.test.mts"), "ax-cli-tests");
   assert.equal(itemForFile("registry/ouro/ax/example-cli.ts"), "ax-example");
   assert.equal(itemForFile("registry/ouro/ax/fixtures/notes.mts"), "ax-xray-tests");
-  assert.deepEqual(item("ax-errors").registryDependencies, undefined);
-  assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-errors", "ax-exit-codes"].map(repo));
+  assert.deepEqual(item("ax-problem").registryDependencies, undefined);
+  assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-exit-codes", "ax-problem"].map(repo));
   assert.deepEqual(item("ax-xray").registryDependencies, ["ax-claims", "ax-outcome", "ax-wait", "ax-work-event"].map(repo));
   assert.deepEqual(item("ax-cli").files.map((file) => [file.path, file.type, file.target]), [
     ["registry/ouro/ax/cli.ts", "registry:lib", "@lib/ouro/ax/cli.ts"],

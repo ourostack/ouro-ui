@@ -5,7 +5,7 @@ export { exampleCli, exits, postMessage, resetRooms, rooms };
 
 import { defineCli, defineCommand } from "./command.ts";
 import { privateResult } from "./effects.ts";
-import { AxError } from "./errors.ts";
+import { AxError } from "./problem.ts";
 import { BASE_EXIT_CODES, defineExitCodes } from "./exit-codes.ts";
 import { nextStep, outcome } from "./outcome.ts";
 import { formatDuration, parseDuration, WAIT_FLAGS, waitFor, type AxEvent } from "./wait.ts";
