@@ -597,6 +597,16 @@ test("a refusal after many rounds of asking keeps the first and last of its step
 });
 
 /**
+ * Resolves once `ms` have passed on `performance.now()`, the clock the kit times each step by.
+ * A plain `setTimeout(ms)` can end a millisecond short of it: Node starts the timer from the event
+ * loop's cached time, which can be older than the call.
+ */
+async function atLeast(ms) {
+  const start = performance.now();
+  for (let left = ms; left > 0; left = start + ms - performance.now()) await new Promise((resolve) => setTimeout(resolve, Math.ceil(left)));
+}
+
+/**
  * A page whose mouse answers each call at once, except the `hangAt`th (from 1), which answers
  * after `hangMs` (never, by default).
  */
@@ -604,7 +614,7 @@ function mousePage(hangAt = 0, hangMs = Infinity) {
   const calls = [];
   const answer = (name) => async () => {
     calls.push(name);
-    if (calls.length === hangAt) return Number.isFinite(hangMs) ? new Promise((resolve) => setTimeout(resolve, hangMs)) : new Promise(() => {});
+    if (calls.length === hangAt) return Number.isFinite(hangMs) ? atLeast(hangMs) : new Promise(() => {});
   };
   return { calls, page: { mouse: { move: answer("move"), down: answer("down"), up: answer("up") }, waitForTimeout: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } };
 }
