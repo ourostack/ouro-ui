@@ -1,0 +1,13 @@
+# Initial JavaScript, gzip bytes, as site/e2e/catalog.spec.ts counts it: the client entry's static
+# closure and the page module's (home: src/pages/voyage.tsx, ceiling 276,480; docs:
+# src/pages/docs.tsx, ceiling 168,420). Local builds with pnpm site:build.
+#
+# main at 77713b17, before: home 273,511 in 108 files; docs 126,469 in 6 files
+# main at 77713b17, after:  home 267,550 in 62 files; docs 124,981 in 7 files
+#
+# Each release wave merged with main at 77713b17 (site/src/voyage/voyage-sources.generated.css
+# regenerated with node site/scripts/page-css.mts):
+# wave 1 (#287 at 53ac23ab), before: home 276,289 in 113 files; docs 127,468 in 6 files
+# wave 1 (#287 at 53ac23ab), after:  home 269,523 in 64 files; docs 125,749 in 7 files
+# wave 2 (#289 at e9d93b03), before: home 275,854 in 108 files; docs 126,609 in 6 files
+# wave 2 (#289 at e9d93b03), after:  home 269,514 in 62 files; docs 125,113 in 7 files
