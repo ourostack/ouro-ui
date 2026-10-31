@@ -1,0 +1,1 @@
+- Changed: Lightbox's `fullScreen` viewer dims behind the image in both themes, with the theme's dark palette for its title, position and buttons, and the system's own colours in forced colours.

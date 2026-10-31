@@ -65,11 +65,19 @@ const popupClass =
 /**
  * With `fullScreen`, the viewer covers the whole screen at every width: it steps over the
  * dialog's margin and drops its corners, hairline and shadow, so only the image and its bar show.
- * The viewport keeps the safe-area insets past that margin. @internal
+ * The viewport keeps the safe-area insets past that margin. It dims behind the image in both
+ * themes, as picture viewers do: a near-opaque scrim in the backdrop colour, with the theme's dark
+ * palette inside (the `dark` class, Ouro's dark mode), so the title, the position and the buttons
+ * read on it. In forced colours it is the system's opaque Canvas. @internal
+ *
+ * @claim "It dims behind the image in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > dims behind the image in the light theme too, with readable controls)
+ * @claim "In forced colours it is the" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx, /chromiumOnly\(\"leaves forced colours to the system\"/)
  *
  * @claim "With `fullScreen`, the viewer covers the" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
  */
-const fullScreenClass = "-m-4 h-[calc(100%+2rem)] max-h-none w-[calc(100%+2rem)] max-w-none rounded-none ring-0 shadow-none";
+const fullScreenClass =
+  "dark -m-4 h-[calc(100%+2rem)] max-h-none w-[calc(100%+2rem)] max-w-none rounded-none ring-0 shadow-none " +
+  "bg-[color-mix(in_oklab,var(--ouro-backdrop-color)_94%,transparent)] text-foreground forced-colors:bg-[Canvas]";
 
 /** The mosaic's frame: rounded corners and a hairline, with the card colour in the gaps between its pictures. @internal */
 const mosaicClass =
