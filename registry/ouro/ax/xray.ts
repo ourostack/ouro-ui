@@ -185,7 +185,7 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Splits a usage line into words, keeping a placeholder with spaces (`<message id>`) in one word. */
 function usageWords(usage: string): string[] {
-  return splitCommand(usage.replace(/<[^<>]*>/g, (p) => p.replace(/ /g, "\u0000"))).map((w) => w.replace(/\u0000/g, " "));
+  return splitCommand(usage.replace(/<[^<>]*>/g, (p) => p.replace(/ /g, "\uE000"))).map((w) => w.replace(/\uE000/g, " "));
 }
 
 /** Removes `[...]` groups (nested) from a usage line and splits it into words. */

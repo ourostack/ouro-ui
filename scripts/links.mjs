@@ -150,6 +150,8 @@ export function coverageProblems(root = repo) {
     "docs/parts.md",
   ]);
   for (const file of markdownFiles(root, "docs")) {
+    // A decision record and its evidence are the repository's history, read on GitHub, not pages of the site.
+    if (file.startsWith("docs/decisions/")) continue;
     if (!shown.has(file)) problems.push(`${file} has no page on the site: no registry item, guide or export page publishes it.`);
   }
   const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));

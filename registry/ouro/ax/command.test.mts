@@ -228,3 +228,31 @@ test("list and required flags, examples that name another tool, a shorter comman
   assert.deepEqual(toArgv(t, bare, {}), { argv: ["draft"], stdin: null });
   assert.throws(() => checkInput(t, bare, { x: 1 }), /there is no argument "x"; it takes none/);
 });
+
+test("-h as a flag's value is the value, a rest list keeps its words apart, and an ambiguous phrase refuses", () => {
+  const t = defineCli({
+    name: "t",
+    about: [],
+    ambiguous: { "draft send": [{ means: "send the draft others will see", use: "send <conversation> --draft --why <why>" }] },
+    commands: [
+      defineCommand({ name: "calendar", summary: "C.", effect: "private", flags: { category: { type: "string", description: "Cat." }, all: { type: "boolean", description: "All." } } }),
+      defineCommand({ name: "tag", summary: "T.", effect: "private", args: [{ name: "ref", description: "R.", required: true }, { name: "names", description: "N.", rest: "list" }] }),
+      defineCommand({ name: "draft", summary: "D.", effect: "private", args: [{ name: "what", description: "W." }] }),
+      defineCommand({ name: "draft set", summary: "S.", effect: "private" }),
+    ],
+  });
+  assert.deepEqual((parse(t, ["calendar", "--category", "-h"]) as Parsed).input, { category: "-h" });
+  assert.deepEqual(parse(t, ["calendar", "--all", "-h"]), { kind: "help", topic: "calendar", json: false });
+  assert.deepEqual(parse(t, ["--json", "-h"]), { kind: "help", topic: undefined, json: true });
+  assert.deepEqual((parse(t, ["tag", "x", "Q&A", "launch plan", "-wip"]) as Parsed).input, { ref: "x", names: ["Q&A", "launch plan", "-wip"] });
+  const tag = findCommand(t, ["tag"])!.command;
+  assert.deepEqual(inputSchema(t, tag).properties["names"], { type: "array", items: { type: "string" }, description: "N." });
+  assert.deepEqual(toArgv(t, tag, { ref: "x", names: ["a b", "c"] }), { argv: ["tag", "x", "a b", "c"], stdin: null });
+  assert.deepEqual(checkInput(t, tag, { ref: "x", names: ["a"] }), { ref: "x", names: ["a"] });
+  assert.throws(() => parse(t, ["draft", "send", "c1"]), (e: AxError) => e.shape.code === "ambiguous" && e.shape.thing === "draft send" && e.shape.fix === "t send <conversation> --draft --why <why>");
+  assert.deepEqual((parse(t, ["draft", "other"]) as Parsed).input, { what: "other" });
+  const two = defineCli({ name: "u", about: [], ambiguous: { edit: [{ means: "a note", use: "note" }], "edit sent": [{ means: "a sent message", use: "edit-sent" }] }, commands: [defineCommand({ name: "note", summary: "N.", effect: "private" })] });
+  assert.throws(() => parse(two, ["edit", "sent", "x"]), (e: AxError) => e.shape.thing === "edit sent");
+  assert.throws(() => parse(two, ["edit", "x"]), (e: AxError) => e.shape.thing === "edit");
+  assert.throws(() => defineCli({ name: "t", about: [], ambiguous: { "draft set": [] }, commands: [defineCommand({ name: "draft set", summary: "S.", effect: "private" })] }), /"draft set" is both a command and an ambiguous word/);
+});

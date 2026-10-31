@@ -2,9 +2,9 @@
 
 Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).
 
-- **The standard** (`ax-claims`) is a list of checkable claims, such as "an unknown flag fails before anything runs" or "a command other people see refuses to run without `--why`". A claim is `must` when an agent evaluation showed agents failing without it, or when it guards against a stated hazard; the others are `should` ([the claims](ax-claims.md)).
+- **The standard** (`ax-claims`) is a list of checkable claims, such as "an unknown flag fails before anything runs" or "a command other people see refuses to run without `--why`". A claim is `must` when an agent evaluation showed agents failing without it, or when it guards against a stated hazard; the others are `should` ([the claims](ax-standard.md)).
 - **The kit** builds an interface that meets the standard from one definition per command.
-- **The X-ray** (`ax-xray`) checks any interface against the claims from outside, whether the kit built it or not ([the X-ray](ax-xray.md)).
+- **The X-ray** (`ax-xray`) checks any interface against the claims from outside, whether the kit built it or not ([the X-ray](ax-conformance.md)).
 
 ## Install
 
@@ -100,7 +100,7 @@ A wait takes a reference the agent already holds, such as a conversation id from
 
 ## Adopting it in an existing tool
 
-Declare one command at a time. A command declared `loose` passes its flags through unchecked until you declare them, and `lintCli(cli, { inventory })`, given the names your dispatcher registers, lists the commands that still run outside the kit.[^lint] The inventory compares names, so also keep a check of your own source that the command table is the only dispatch path. A tool that reads stdin or prints errors its own way calls `parse()`, then `dispatch()` with its own context, then `printResult()`, the steps `runCli` takes. Then run the X-ray in CI ([the X-ray](ax-xray.md)).
+Declare one command at a time. A command declared `loose` passes its flags through unchecked until you declare them, and `lintCli(cli, { inventory })`, given the names your dispatcher registers, lists the commands that still run outside the kit.[^lint] The inventory compares names, so also keep a check of your own source that the command table is the only dispatch path. A tool that reads stdin or prints errors its own way calls `parse()`, then `dispatch()` with its own context, then `printResult()`, the steps `runCli` takes. Then run the X-ray in CI ([the X-ray](ax-conformance.md)).
 
 [^node]: test:scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX verify:testExists(scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX)
 [^deps]: test:scripts/registry.test.mjs::Ouro AX items depend on the ax items they import verify:testExists(scripts/registry.test.mjs::Ouro AX items depend on the ax items they import)

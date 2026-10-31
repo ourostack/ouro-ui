@@ -102,14 +102,14 @@ switch (cmd) {
     break;
   case "tail":
     out(JSON.stringify({ event: 1 }));
-    setInterval(() => out(JSON.stringify({ event: 2 })), 50);
+    globalThis.setInterval(() => out(JSON.stringify({ event: 2 })), 50);
     break;
   case "noise":
     out("not json");
-    setInterval(() => out("still not json"), 50);
+    globalThis.setInterval(() => out("still not json"), 50);
     break;
   case "quiet":
-    setInterval(() => undefined, 1000);
+    globalThis.setInterval(() => undefined, 1000);
     break;
   case "pair":
     fail("pair needs two words", 1);
