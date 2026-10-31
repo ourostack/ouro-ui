@@ -27,8 +27,8 @@
 # github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>#<tag>` for every
 #         component in the newest release (package.json ouro.latestRelease), each item and
 #         dependency from GitHub at that tag, into the tag's own fixture app with the tag's
-#         shadcn pin, then type check, build and the tag's own install check (CI runs it on
-#         push to main).
+#         shadcn pin, then type check, build and the tag's own runtime checks, on the tag's own
+#         dependencies (CI runs it on push to main).
 # namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
 #         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
 #         registered in components.json, then `shadcn add @ouro/ouro-base @ouro/dialog`. Every
@@ -184,8 +184,10 @@ if [ "$variant" = github ]; then
   harness="$registry/tag"
   mkdir -p "$harness"
   git -C "$root" archive "$tag" | tar -x -C "$harness"
-  # The tag's scripts import what this checkout installed (postcss, typescript).
-  ln -s "$root/node_modules" "$harness/node_modules"
+  # The tag's scripts run on the tag's own dependencies (postcss, typescript), from its lockfile.
+  echo "::group::$tag's dependencies, from its lockfile"
+  (cd "$harness" && pnpm install --frozen-lockfile --ignore-scripts)
+  echo "::endgroup::"
   tag_shadcn=$(grep -m1 -oE 'shadcn@[0-9]+\.[0-9]+\.[0-9]+' "$harness/scripts/install-test.sh")
   echo "::group::Fixture app, as $tag has it"
   cp -R "$harness/test/install-fixture/." "$app/"
@@ -201,10 +203,17 @@ if [ "$variant" = github ]; then
   for item in "${released[@]}"; do addresses+=("ourostack/ouro-ui/$item#$tag"); done
   npx --yes "$tag_shadcn" add --yes "${addresses[@]}"
   echo "::endgroup::"
-  echo "::group::Type check, build and $tag's install check"
+  echo "::group::Type check, build and $tag's runtime checks"
   npx tsc -b
   npx vite build
-  node "$harness/scripts/install-check.mjs" "$app" shadcn runtime
+  # The tag's runtime_only, as its install-test.sh defines it, with its own Vitest pin: its install
+  # check, no test file added, and nothing for `vitest run` to find. root is the tag's tree from here.
+  unset -f runtime_only
+  # shellcheck source=/dev/null # the tag's definitions, read from its own script
+  source <(sed -n -e '/^vitest=(/p' -e '/^runtime_only() {$/,/^}$/p' "$harness/scripts/install-test.sh")
+  declare -F runtime_only >/dev/null || { echo "$tag's scripts/install-test.sh defines no runtime_only"; exit 1; }
+  root=$harness
+  runtime_only shadcn
   echo "::endgroup::"
   exit 0
 fi
