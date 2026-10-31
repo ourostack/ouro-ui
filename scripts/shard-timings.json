@@ -519,6 +519,7 @@
     "registry/ouro/e2e/ouro/toaster.spec.ts": 14700,
     "registry/ouro/e2e/ouro/toggle-group.spec.ts": 5449,
     "registry/ouro/e2e/ouro/toggle.spec.ts": 2161,
+    "registry/ouro/e2e/ouro/toolbar.spec.ts": 14000,
     "registry/ouro/e2e/ouro/tooltip.spec.ts": 13215,
     "site/e2e/catalog.spec.ts": 24338,
     "site/e2e/chapter-one.spec.ts": 381735,

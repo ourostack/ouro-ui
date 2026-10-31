@@ -58,6 +58,13 @@
     ]
   },
   {
+    "name": "toolbar",
+    "title": "Toolbar",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
+    "summary": "A row of controls for one surface, such as an editor's formatting: Button commands and Toggle states, in groups with separators."
+  },
+  {
     "name": "text",
     "title": "Text",
     "group": "Text",
