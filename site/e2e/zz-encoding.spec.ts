@@ -40,6 +40,10 @@ test("probe: reflow loop navigations", async ({ page }, testInfo) => {
         console.log(`PROBE LATE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: goto ${loaded} ms, ${late}, gzip-text=${doc.gz}, dcl=${doc.nav}\n  scripts: ${doc.scripts.slice(-12).join(" | ")}\n${events.join("\n")}`);
         throw new Error("late");
       }
+      // Ready: did an island fall back, or did a chunk fail and load on its second try?
+      const failed = await page.locator("[data-island-failed]").count();
+      const loadErrors = events.filter((line) => /requestfailed|pageerror|did not load/.test(line));
+      if (failed || loadErrors.length) console.log(`PROBE READY-WITH-TROUBLE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: fallbacks=${failed}\n${loadErrors.slice(0, 12).join("\n")}`);
     }
   }
 });
