@@ -3,6 +3,10 @@ import { addDays, firstDayOfWeek, isIsoDate } from "@/registry/ouro/components/o
 export {
   allDayClass,
   allDayLanes,
+  backgroundBarClass,
+  backgroundBarFillClass,
+  backgroundFillClass,
+  barStatusClass,
   dayLength,
   eventClass,
   isIsoDate,
@@ -19,6 +23,7 @@ export {
   toInstant,
   toneBarClass,
   toneFillClass,
+  toneSwatchClass,
   tones,
   viewDays,
   views,
@@ -293,6 +298,7 @@ const eventClass =
   "transition-colors duration-(--ouro-duration-fast) ease-(--ouro-ease-out) " +
   "outline-ring outline-offset-1 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
   "aria-[current=true]:z-20 aria-[current=true]:outline-2 aria-[current=true]:outline-solid aria-[current=true]:outline-foreground " +
+  "aria-expanded:z-20 aria-expanded:outline-2 aria-expanded:outline-solid aria-expanded:outline-primary " +
   "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 
 /** A timed event fills its place in the day's column, over the now line. */
@@ -342,6 +348,55 @@ const toneFillClass: Record<TimeGridTone, string> = {
  * @claim "The page-coloured fill of" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /status === "busy" \? toneFillClass\[tone\] : plainFillClass/)
  */
 const plainFillClass = "bg-background pointer-fine:hover:bg-accent active:bg-accent";
+
+/**
+ * A background event's fill: a step off the page whatever its tone, so it reads as secondary
+ * beside the person's own events; its tone is the bar on its start edge.
+ * @claim "A background event's fill" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
+ */
+const backgroundFillClass =
+  "bg-[color-mix(in_oklab,var(--foreground)_4%,var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_9%,var(--background))] active:bg-[color-mix(in_oklab,var(--foreground)_12%,var(--background))]";
+
+/**
+ * A background event in a week: a press target as wide as its share of the lane, with no text,
+ * around a slim bar in its tone (`backgroundBarFillClass`) that widens under a mouse.
+ * @claim "a press target as wide as" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
+ */
+const backgroundBarClass = "group/bar border-0 bg-transparent p-0";
+
+/**
+ * The slim bar a week draws for a background event: 4px, and 6px under a mouse or while its popover is open, with no motion.
+ *
+ * @claim "The slim bar a week draws" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
+ */
+const backgroundBarFillClass =
+  "pointer-events-none absolute inset-y-0 start-0.5 box-border w-1 rounded-full border-solid pointer-fine:group-hover/bar:w-1.5 group-aria-expanded/bar:w-1.5";
+
+/**
+ * Each tone as a solid swatch, the bar's colour: mixed toward the page so a column of bars stays quiet.
+ *
+ * @claim "Each tone as a solid swatch" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /primary: "border-primary bg-\[color-mix/)
+ */
+const toneSwatchClass: Record<TimeGridTone, string> = {
+  primary: "border-primary bg-[color-mix(in_oklab,var(--primary)_60%,var(--background))]",
+  secondary: "border-muted-foreground bg-[color-mix(in_oklab,var(--muted-foreground)_60%,var(--background))]",
+  success: "border-success bg-[color-mix(in_oklab,var(--success)_60%,var(--background))]",
+  warning: "border-warning bg-[color-mix(in_oklab,var(--warning)_60%,var(--background))]",
+  destructive: "border-destructive bg-[color-mix(in_oklab,var(--destructive)_60%,var(--background))]",
+};
+
+/**
+ * A bar's status: busy is filled; every other status is an outline in the tone, dashed for an
+ * answer still owed and dotted when cancelled. Under forced colours a filled bar is the text colour.
+ * @claim "every other status is an outline" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /unanswered: "border bg-transparent border-dashed"/)
+ */
+const barStatusClass: Record<TimeGridStatus, string> = {
+  busy: "border-0 forced-colors:bg-[CanvasText]",
+  tentative: "border bg-transparent",
+  free: "border bg-transparent",
+  unanswered: "border bg-transparent border-dashed",
+  cancelled: "border bg-transparent border-dotted",
+};
 
 /**
  * What each status adds. Tentative is hatched, with a dashed bar; free is outlined; an event

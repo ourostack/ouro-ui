@@ -45,3 +45,31 @@ it("gives a short event a 44px touch target, and the hours more room on a phone"
     expect(document.elementFromPoint(x, y)?.closest("[data-ouro-event-key]")).toBe(event);
   }
 });
+
+it("gives a background event's thin bar a 44px touch target that leaves the person's own events theirs", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <TimeGrid
+        label="Team calendar"
+        view="week"
+        date="2026-03-12"
+        timeZone="America/New_York"
+        now="2026-03-12T08:00:00-04:00"
+        events={[{ id: "own", title: "Design review", start: "2026-03-12T10:00:00-04:00", end: "2026-03-12T11:00:00-04:00" }]}
+        backgroundEvents={[{ id: "hands", title: "All hands", start: "2026-03-12T10:00:00-04:00", end: "2026-03-12T11:00:00-04:00" }]}
+      />,
+    ),
+  );
+  const [own, bar] = [...host.querySelectorAll<HTMLElement>("[data-ouro-event-key]")];
+  bar!.scrollIntoView({ block: "center" });
+  const target = bar!.querySelector("[data-ouro-touch-target]")!.getBoundingClientRect();
+  expect(target.width).toBeGreaterThanOrEqual(44);
+  const box = bar!.getBoundingClientRect();
+  expect(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest("[data-ouro-event-key]")).toBe(bar);
+  const ownBox = own!.getBoundingClientRect();
+  expect(document.elementFromPoint(ownBox.left + 2, ownBox.top + ownBox.height / 2)?.closest("[data-ouro-event-key]")).toBe(own);
+});

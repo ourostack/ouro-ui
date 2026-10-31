@@ -1122,6 +1122,18 @@
     ]
   },
   {
+    "item": "show-more",
+    "stem": "show-more",
+    "mode": "height",
+    "part": "toggle",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ShowMore/LongPost"
+    ]
+  },
+  {
     "item": "card",
     "stem": "card",
     "mode": "link",
@@ -1498,7 +1510,8 @@
     "stories": [
       "ToggleGroup/Playground",
       "ToggleGroup/Modes",
-      "ToggleGroup/Controlled"
+      "ToggleGroup/Controlled",
+      "ToggleGroup/Pills"
     ]
   },
   {
@@ -2568,6 +2581,54 @@
     ]
   },
   {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "link",
+    "role": "link",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "button",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
+    "mode": "default",
+    "part": "more",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
+    ]
+  },
+  {
     "item": "time-grid",
     "stem": "time-grid",
     "mode": "button",
@@ -2582,6 +2643,8 @@
       "TimeGrid/Statuses",
       "TimeGrid/Locales",
       "TimeGrid/NowAdornment",
+      "TimeGrid/BackgroundEvents",
+      "TimeGrid/BackgroundEventsDay",
       "TimeGrid/WithToolbar"
     ]
   },
