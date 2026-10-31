@@ -1,0 +1,1 @@
+- New: `Toolbar`, a row of Button commands and Toggle states with one tab stop, arrow keys, Home and End between controls, groups and separators, tooltips with the label and its `Kbd` shortcut, a More menu for the controls that do not fit, and `keepFocus` so a text editor beside it keeps its selection.
