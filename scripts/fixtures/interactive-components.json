@@ -72,5 +72,6 @@
   "timer-tray",
   "toaster",
   "toggle",
-  "toggle-group"
+  "toggle-group",
+  "toolbar"
 ]
