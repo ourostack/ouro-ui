@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from "react";
+import type { CSSProperties, JSX, ReactNode } from "react";
 import presets from "../themes/presets.json";
 import type { PresetName, ThemeChoice } from "../themes/prepaint";
 
@@ -30,16 +30,17 @@ export function presetNamed(name: ThemeChoice): PresetInfo {
  * its own variables (the span carries `data-theme`, so they apply inside it, light or dark with the
  * page). Live's dot is its four skies going round.
  */
+const PRESET_PAINT: CSSProperties = {
+  background: "linear-gradient(135deg, var(--background) 50%, var(--primary) 50%)",
+  boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--foreground) 18%, transparent)",
+};
+const LIVE_PAINT: CSSProperties = { background: "conic-gradient(#f7a1b8, #6aa9f5, #ff8a5c, #2b2a78, #f7a1b8)" };
 const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-6 sm:size-8" } as const;
 
 export function Swatch({ preset, size = "sm" }: { preset: ThemeChoice; size?: "sm" | "md" | "lg" }): JSX.Element {
   // A preset's dot is its page and its primary on the diagonal, with a hairline so white shows on white;
-  // Live's goes round dawn, day, dusk and night.
-  const paint =
-    preset === "live"
-      ? "bg-[conic-gradient(#f7a1b8,#6aa9f5,#ff8a5c,#2b2a78,#f7a1b8)]"
-      : "bg-[linear-gradient(135deg,var(--background)_50%,var(--primary)_50%)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_18%,transparent)]";
-  return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`inline-block shrink-0 rounded-full ${paint} ${SIZES[size]}`} />;
+  // Live's goes round dawn, day, dusk and night. Inline, so the paint costs the first-load CSS nothing.
+  return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`inline-block shrink-0 rounded-full ${SIZES[size]}`} style={preset === "live" ? LIVE_PAINT : PRESET_PAINT} />;
 }
 
 /**
