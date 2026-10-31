@@ -232,12 +232,13 @@ describe("holdPageAtPress", () => {
   });
 
   /** Presses a trigger with the primary button, or another, as React hands the press to it. */
-  const pointerDown = (button = 0) => holdPageAtPress.onPointerDown({ button, currentTarget: page } as unknown as ReactPointerEvent<HTMLElement>);
+  type Kind = keyof typeof holdPageAtPress;
+  const pointerDown = (button = 0, kind: Kind = "listButton") => holdPageAtPress[kind].onPointerDown({ button, currentTarget: page } as unknown as ReactPointerEvent<HTMLElement>);
   /** Presses a key on a trigger: a real keydown that reaches the window after the trigger's handler. */
-  const keyDown = (key: string) => {
+  const keyDown = (key: string, kind: Kind = "listButton") => {
     const trigger = page.appendChild(document.createElement("button"));
     trigger.setAttribute("aria-expanded", page.getAttribute("aria-expanded") ?? "false");
-    trigger.addEventListener("keydown", (event) => holdPageAtPress.onKeyDown({ key, currentTarget: trigger, nativeEvent: event } as unknown as ReactKeyboardEvent<HTMLElement>), { once: true });
+    trigger.addEventListener("keydown", (event) => holdPageAtPress[kind].onKeyDown({ key, currentTarget: trigger, nativeEvent: event } as unknown as ReactKeyboardEvent<HTMLElement>), { once: true });
     trigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key }));
     trigger.remove();
   };
@@ -320,6 +321,29 @@ describe("holdPageAtPress", () => {
     vi.advanceTimersByTime(1000);
     expect(html.style.scrollBehavior).toBe("smooth");
     expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+  });
+
+  it("holds the page only at the keys that open each kind of trigger's popup", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    for (const [kind, opening, others] of [
+      ["button", ["Enter", " "], ["ArrowDown", "ArrowUp"]],
+      ["listButton", ["Enter", " ", "ArrowDown", "ArrowUp"], []],
+      ["listInput", ["ArrowDown", "ArrowUp"], ["Enter", " "]],
+    ] as const) {
+      for (const key of others) {
+        keyDown(key, kind);
+        expect([kind, key, html.style.scrollBehavior]).toEqual([kind, key, "smooth"]);
+      }
+      for (const key of opening) {
+        keyDown(key, kind);
+        expect([kind, key, html.style.scrollBehavior]).toEqual([kind, key, "auto"]);
+        vi.advanceTimersByTime(1000);
+      }
+      pointerDown(0, kind);
+      expect([kind, "pointer", html.style.scrollBehavior]).toEqual([kind, "pointer", "auto"]);
+      vi.advanceTimersByTime(1000);
+    }
   });
 
   it("does not take a press of another button, or another key, for a press that opens a popup", async () => {

@@ -80,11 +80,11 @@ export function PopoverTrigger({ style, onPointerDown, onKeyDown, ...props }: Ba
       {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "popover", "data-ouro-part": "trigger" } : {})}
       {...props}
       onPointerDown={(event) => {
-        holdPageAtPress.onPointerDown(event);
+        holdPageAtPress.button.onPointerDown(event);
         onPointerDown?.(event);
       }}
       onKeyDown={(event) => {
-        holdPageAtPress.onKeyDown(event);
+        holdPageAtPress.button.onKeyDown(event);
         onKeyDown?.(event);
       }}
       style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)}

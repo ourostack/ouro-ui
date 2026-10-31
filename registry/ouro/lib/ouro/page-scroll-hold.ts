@@ -15,8 +15,10 @@ const SCROLLING_MS = 200;
  * @claim "How long a press on a trigger holds the page when no popup opens from it" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > makes the page's scrolls instant and holds the page from the press, until a second passes with no popup)
  */
 const PRESS_MS = 1000;
-/** The keys that open a menu, popover, select or combobox from its trigger. */
-const openingKeys = new Set(["Enter", " ", "ArrowDown", "ArrowUp"]);
+/** The keys that open a popup from a button trigger: the button's click. */
+const buttonKeys = ["Enter", " "];
+/** The keys that open a list from its trigger as Base UI's list navigation does, closed: an up or down arrow. */
+const listKeys = ["ArrowDown", "ArrowUp"];
 
 const portals = new Set<HTMLElement>();
 let left = 0;
@@ -104,30 +106,46 @@ function press(trigger: HTMLElement) {
   pin(view.document.documentElement);
 }
 
+/** Event props that hold the page from a press on a trigger: the primary button's pointerdown, or one of `keys`. */
+function pressHandlers(keys: string[]) {
+  const opening = new Set(keys);
+  return {
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button === 0) press(event.currentTarget);
+    },
+    onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
+      if (!opening.has(event.key)) return;
+      pressKey = event.nativeEvent;
+      press(event.currentTarget);
+    },
+  };
+}
+
 /**
  * Event props for the trigger of a menu, popover, select or combobox, which hold the page from
- * the press that opens it (the primary button's pointerdown, or Enter, Space or an up or down
- * arrow) rather than from when its popup opens. A press during a smooth scroll stops the page
- * where it is at once, so a popup that opens on pointerdown does not take the release, over
- * whatever moved under the pointer, for a press outside it and close. Spread them on the trigger,
- * with `holdPage` on its `usePortalContainer`.
+ * the press that opens it rather than from when its popup opens: the primary button's
+ * pointerdown, or a key that opens that kind of trigger's popup. `button` (Popover) takes Enter
+ * and Space, which click it; `listButton` (Menu's dropdown, Select) takes those and an up or down
+ * arrow; `listInput` (Combobox) takes only the arrows, as Enter in its closed input submits the
+ * form and opens nothing. A press during a smooth scroll stops the page where it is at once, so a
+ * popup that opens on pointerdown does not take the release, over whatever moved under the
+ * pointer, for a press outside it and close. Spread them on the trigger, with `holdPage` on its
+ * `usePortalContainer`.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  *
  * @example
- * <BaseMenu.Trigger render={trigger} {...holdPageAtPress} />
+ * <BaseMenu.Trigger render={trigger} {...holdPageAtPress.listButton} />
  * @claim "A press during a smooth scroll stops the page where it is at once" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > stops a smooth scroll in flight where it is, at a press of the primary button or an opening key)
  * @claim "so a popup that opens on pointerdown does not take the release" registry/ouro/components/ouro/menu/menu.test.tsx verify:fileLine(registry/ouro/components/ouro/menu/menu.test.tsx, /stays open and stops the page where it is, pressed mid-scroll/)
+ * @claim "takes only the arrows, as Enter in its closed input submits the form" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page only at the keys that open each kind of trigger's popup)
+ * @claim "takes only the arrows, as Enter in its closed input submits the form" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.test.tsx, /leaves the page to the app at Enter in its closed input, which submits the form/)
+ * @claim "takes Enter and Space, which click it" registry/ouro/components/ouro/popover/popover.test.tsx verify:fileLine(registry/ouro/components/ouro/popover/popover.test.tsx, /leaves the page free at an arrow key on its trigger, which opens nothing/)
  */
 const holdPageAtPress = {
-  onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button === 0) press(event.currentTarget);
-  },
-  onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (!openingKeys.has(event.key)) return;
-    pressKey = event.nativeEvent;
-    press(event.currentTarget);
-  },
+  button: pressHandlers(buttonKeys),
+  listButton: pressHandlers([...buttonKeys, ...listKeys]),
+  listInput: pressHandlers(listKeys),
 };
 
 /**
