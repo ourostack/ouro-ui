@@ -7,4 +7,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid show-more snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["showMoreOk01", "showMoreOk02"];
+export const validSnippets: string[] = ["showMoreOk01", "showMoreOk02", "showMoreOk03"];
