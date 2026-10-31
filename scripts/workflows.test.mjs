@@ -79,7 +79,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1327,6 +1327,54 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const gate = stepScript(jobs.e2e, "Every shard passed");
   assert.equal(runStep(gate, { SHARDS: "success" }).status, 0);
   assert.equal(runStep(gate, { SHARDS: "failure" }).status, 1);
+});
+
+test("the latency shards run every latency test exactly once between them, each one test at a time on a runner of its own, and the latency check holds them to it", async () => {
+  const jobs = ciJobs();
+  const block = jobs["latency-shard"];
+  const count = shardCount(block);
+  assert.match(block, new RegExp(`^ {4}name: latency \\(\\$\\{\\{ matrix\\.shard \\}\\}/${count}\\)$`, "m"));
+  assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
+  assert.match(block, new RegExp(`^ {6}OURO_LATENCY_TIMINGS: \\.tmp/timings/latency-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
+  // Each shard lists every test, runs only its share of the list, and uploads the list and its times.
+  assert.equal(
+    stepScript(block, "Latency tests"),
+    [
+      "mkdir -p .tmp/timings",
+      "node scripts/shard.mjs latency-list > .tmp/timings/latency-tests.txt",
+      'node scripts/shard.mjs latency "$SHARD" .tmp/timings/latency-tests.txt > .tmp/latency-shard.txt',
+      '[ -s .tmp/latency-shard.txt ] || { echo "::error::Shard $SHARD has no latency test to run."; exit 1; }',
+      "cat .tmp/latency-shard.txt",
+      "pnpm test:latency --test-list .tmp/latency-shard.txt",
+    ].join("\n"),
+  );
+  assert.match(block, /^ {10}name: timings-latency-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/timings\/\n/m);
+  // One test at a time in a shard, so no other test shares the CPU a press is measured on.
+  const config = (await import("../playwright.latency.config.ts")).default;
+  assert.equal(config.workers, 1);
+  assert.equal(config.fullyParallel, false);
+  assert.equal(config.retries, 0);
+  // Between them, the shards run every test Playwright lists exactly once, and each runs some.
+  const { latencyTests, readTimings, shardKeys } = await import("./shard.mjs");
+  const all = latencyTests();
+  assert.ok(all.length > 0);
+  assert.equal(new Set(all).size, all.length);
+  const shares = Array.from({ length: count }, (_, index) => shardKeys(all, { index: index + 1, count }, readTimings("latency")));
+  assert.deepEqual(shares.flat().sort(), [...all].sort());
+  assert.ok(shares.every((share) => share.length > 0));
+  // A test with no time weighs the median, which can unbalance the shards: refresh the times.
+  assert.deepEqual(all.filter((key) => !(key in readTimings("latency"))), [], "node scripts/shard.mjs refresh <the timings-* artifacts of a CI run>");
+  // The latency check, a required check, passes only when every shard passed, then holds their
+  // reports to every listed test exactly once.
+  assert.match(jobs.latency, new RegExp(`^ {4}needs: \\[plan, latency-shard\\]\n {4}if: ${untested.replace(/[$(){}!.]/g, "\\$&")}$`, "m"));
+  assert.doesNotMatch(jobs.latency, /^ {4}name:/m);
+  const gate = stepScript(jobs.latency, "Every shard passed");
+  assert.equal(runStep(gate, { SHARDS: "success" }).status, 0);
+  for (const result of ["failure", "cancelled", "skipped"]) assert.notEqual(runStep(gate, { SHARDS: result }).status, 0, result);
+  assert.match(jobs.latency, /^ {10}SHARDS: \$\{\{ needs\.latency-shard\.result \}\}$/m);
+  assert.match(jobs.latency, /^ {10}pattern: timings-latency-\*\n {10}path: \$\{\{ runner\.temp \}\}\/latency\n/m);
+  assert.match(jobs.latency, /^ {6}- name: Every test ran exactly once\n {8}run: node scripts\/shard\.mjs latency-check "\$RUNNER_TEMP\/latency"$/m);
+  assert.ok(requiredChecks.includes("latency"));
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
