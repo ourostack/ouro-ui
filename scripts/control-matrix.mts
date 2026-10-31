@@ -7,12 +7,14 @@
 //
 //   node scripts/control-matrix.mts           write test/generated/control-matrix.json and motion-matrix.json
 //   node scripts/control-matrix.mts --check   fail when either file is missing or stale
+//   --uncommitted                             write them unless git tracks them (`pnpm i`)
 //   --out <file>, --motion-out <file>         write or check other files
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { componentsDir, MANIFEST, pascal, readComponents, readMotion } from "./components.mts";
+import { trackedFiles } from "./generated-files.mjs";
 
 /** The mode of a component that declares none. */
 export const defaultMode = "default";
@@ -259,7 +261,9 @@ function main(argv: string[]): number {
     for (const { file } of stale) process.stderr.write(`${relative(process.cwd(), file)} is stale. Run pnpm controls:matrix to write it again.\n`);
     return stale.length > 0 ? 1 : 0;
   }
-  writeMatrices(out, motionOut);
+  // `pnpm i` (scripts/generate.mjs) leaves a release commit's copies as committed.
+  const tracked = argv.includes("--uncommitted") ? trackedFiles(repoRoot) : [];
+  if (tracked.length === 0) writeMatrices(out, motionOut);
   return 0;
 }
 

@@ -693,6 +693,24 @@ test("generated surfaces are linted: registry.json, README regions and llms.txt 
   ]);
 });
 
+test("a generated surface git ignores is still linted", async () => {
+  const root = fixture({
+    "package.json": "{}",
+    "claims.config.json": JSON.stringify({ surfaces: [{ match: "\\.(md|txt)$", mode: "markdown" }, { match: "^registry\\.json$", mode: "registry" }], generated: ["^registry\\.json$", "^site/public/llms\\.txt$"] }),
+    ".gitignore": "/registry.json\n/site/public/llms.txt\n/notes.md\n",
+    "README.md": "# R\n",
+    "registry.json": JSON.stringify({ items: [{ name: "a", type: "registry:ui", description: "It supports every theme." }] }),
+    "site/public/llms.txt": "# R\n\n- b: It works in every browser.\n",
+    // Ignored and not generated: not a surface.
+    "notes.md": "# N\n\nAll of it ships.\n",
+  });
+  const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  git("init", "-q");
+  assert.deepEqual(surfaces(root).map((entry) => entry.file).sort(), ["README.md", "registry.json", "site/public/llms.txt"]);
+  const { failures } = await checkClaims({ root });
+  assert.deepEqual(failures.map((failure) => failure.message.split(":")[0]).sort(), ["registry.json", "site/public/llms.txt"]);
+});
+
 test("exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request", () => {
   const base = { allowed: [{ file: "a.ts", sentence: "All stop.", reason: "story" }], notLinted: [{ match: "^docs/", mode: "generated", reason: "gen-docs" }], instructionVerbs: ["run", "add"] };
   const head = {
