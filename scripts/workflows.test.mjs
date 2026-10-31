@@ -466,6 +466,13 @@ test("Release opens the pull request that prepares main with a title and body th
   }
 });
 
+test("CI cancels only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
+  const text = workflow("ci.yml");
+  const block = text.split("\nconcurrency:\n")[1].split(/\n(?=\S)/)[0];
+  assert.equal(block, ["  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}", "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}"].join("\n"));
+  assert.doesNotMatch(text.split("\njobs:\n")[1], /^\s+concurrency:/m, "no job has a group of its own that could cancel it");
+});
+
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
   assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
@@ -1190,7 +1197,7 @@ test("conformance and mutation are each one check over their shards, which passe
   }
 });
 
-test("the mutation plan keys the kept results by pull request and dependency hash, and runs five shards without them, three with", () => {
+test("the mutation plan keys the kept results by pull request and dependency hash, and plans a pull request's shards from its estimated work, at least five without kept results, three with", () => {
   const block = ciJobs()["mutation-plan"];
   const key = stepScript(block, "The cache key's prefix");
   const pull = runStep(key, { EVENT: "pull_request", PR: "139" });
@@ -1199,9 +1206,23 @@ test("the mutation plan keys the kept results by pull request and dependency has
   assert.equal(runStep(key, { EVENT: "merge_group", PR: "" }).output.key, "");
   assert.match(block, /^ {8}uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ steps\.key\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n {10}restore-keys: \$\{\{ steps\.key\.outputs\.key \}\}\n {10}lookup-only: true$/m);
   const count = stepScript(block, "How many shards");
-  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "5", shards: "[1,2,3,4,5]" });
-  assert.deepEqual(runStep(count, { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" }).output, { count: "3", shards: "[1,2,3]" });
-  assert.deepEqual(runStep(count, { KEY: "", MATCHED: "" }).output, { count: "3", shards: "[1,2,3]" });
+  // A stand-in for scripts/mutation.mjs --count: prints the larger of its minimum and $PLANNED.
+  const planned = (shards) => `node() { printf 'CALL node %s\\n' "$*" >&2; min=\${4%%/*}; echo $(( ${shards} > min ? ${shards} : min )); }\n${count}`;
+  const cold = runStep(planned(5), { KEY: "stryker-139-abc-", MATCHED: "" });
+  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/16$/m);
+  assert.deepEqual(cold.output, { count: "5", shards: "[1,2,3,4,5]" });
+  assert.deepEqual(runStep(planned(13), { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "13", shards: "[1,2,3,4,5,6,7,8,9,10,11,12,13]" });
+  const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
+  assert.match(warm.calls, /--count 3\/16$/m);
+  assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
+  // Not a pull request: nothing to mutate, three shards, and no plan.
+  const other = runStep(planned(13), { KEY: "", MATCHED: "" });
+  assert.deepEqual(other.output, { count: "3", shards: "[1,2,3]" });
+  assert.doesNotMatch(other.calls, /CALL node/);
+  // A plan that prints no count fails the job rather than guess.
+  assert.notEqual(runStep(`node() { :; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" }).status, 0);
+  // The job installs the packages the plan reads the changed lines with only on a pull request.
+  for (const step of ["uses: pnpm/action-setup@", "run: pnpm i --frozen-lockfile"]) assert.match(block, new RegExp(`- if: steps\\.key\\.outputs\\.key != ''\\n {8}${step.replace(/[.]/g, "\\.")}`), step);
 });
 
 test("the mutation shards mutate a pull request's changed runtime lines, split by file, start from the kept results, and report nothing to mutate otherwise", () => {
@@ -1827,12 +1848,32 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
   assert.equal(calls[5], "issue comment 12 --body Failed again (nightly): https://github.com/o/r/actions/runs/1");
 });
 
+test("the workflows beside CI cancel only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
+  const blocks = {
+    "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
+    "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+  };
+  for (const { file, text } of workflows) {
+    if (file === "ci.yml" || !/^concurrency:$/m.test(text)) continue;
+    const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
+    const events = [...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]);
+    const block = text.split(/^concurrency:\n/m)[1].split(/\n(?=\S)/)[0];
+    assert.doesNotMatch(text.split(/^jobs:\n/m)[1], /^\s+concurrency:/m, `${file}: no job has a group of its own`);
+    if (!events.includes("pull_request")) {
+      assert.match(block, /^ {2}cancel-in-progress: false$/m, `${file} runs on no pull request, so it cancels nothing`);
+    } else if (events.length > 1) {
+      // A third run in a group replaces the one waiting there, cancel or not, so every run but a pull request's has its own group.
+      assert.equal(block, [blocks[file], "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}"].join("\n"), file);
+    } else {
+      assert.match(block, /^ {2}group: [\w-]+\$\{\{ github\.event\.pull_request\.number \}\}\n {2}cancel-in-progress: true$/, file);
+    }
+  }
+});
+
 test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {
   const { text } = workflows.find(({ file }) => file === "conformance-exemptions.yml");
   assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n {2}workflow_dispatch:\n/m);
   assert.match(text, /^ {4}name: conformance exemptions$/m);
-  // One run per pull request, and one per merge-queue entry: never one entry's run cancelling another's.
-  assert.match(text, /^ {2}group: conformance-exemptions-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}$/m);
   const steps = text.slice(text.indexOf("    steps:")).split(/\n {6}- /).slice(1);
   const queue = steps.filter((step) => /^if: github\.event_name == 'merge_group'$/m.test(step));
   assert.equal(queue.length, 1);

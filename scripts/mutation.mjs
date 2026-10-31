@@ -17,7 +17,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, runtimeSource, scopeReport, shardCost, testFilesFor, testSeconds } from "./mutation/cache.mjs";
+import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
@@ -205,6 +205,15 @@ export function unitExclusions(ids, units) {
   return excluded;
 }
 
+/**
+ * The estimated seconds (`shardCost`) a CI shard is planned to at most. CI run 41159468260's five
+ * cold shards took from 0.25 to 1.45 times their estimates without the timeouts of hanging mutants
+ * in them, and from 0.21 to 0.72 times with them; at 0.72, this target is 18 minutes, so a shard
+ * finishes its mutants in about 20 minutes or less, inside the job's 30 with room for a hanging
+ * mutant more than expected.
+ */
+export const SHARD_TARGET_SECONDS = 1500;
+
 /** `--shard 2/3` as a 1-based index and a count; null without one. */
 export function parseShard(value) {
   if (value === undefined) return null;
@@ -294,6 +303,13 @@ async function main(args) {
   const git = (paths) => spawnSync("git", ["diff", "-U0", "-M", range, "--", ...paths], { cwd: root, encoding: "utf8" });
   const whole = git([componentsDir, libDir]);
   if (whole.status !== 0) throw new Error(`git diff failed: ${whole.stderr}`);
+  // `--count <min>/<max>`: how many shards CI's mutation-plan job starts (`shardCount`).
+  const counting = option("--count");
+  if (counting) {
+    const [min, max] = counting.split("/").map(Number);
+    console.log(shardCount(shardUnits(changedLines(whole.stdout)), testSeconds(), { min, max, target: SHARD_TARGET_SECONDS }));
+    return 0;
+  }
   // Every Stryker comment the change adds says which mutator, for one line, and why; and the
   // count may only grow by the comments the change shows.
   const unreasoned = disableProblems(whole.stdout);
