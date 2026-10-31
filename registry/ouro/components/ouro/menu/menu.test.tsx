@@ -1248,4 +1248,41 @@ describe("Menu and the page's scroll", () => {
       });
     }
   }
+
+  for (const reduced of [false, true]) {
+    it(`stays open and stops the page where it is, pressed mid-scroll${reduced ? ", with reduced motion" : ""}`, async () => {
+      // A smooth scroll to an anchor is under way when the person presses the trigger. The menu opens
+      // on pointerdown and renders a little later; had the page gone on scrolling, the release would
+      // land on what moved under the pointer, a press outside the menu, which closes it. The pointer
+      // goes to one place in the window (the fixed mark's), over the tall trigger, and the scroll
+      // starts as it arrives there, just before the press; where the scroll would end, past the
+      // trigger's end is under that place. The menu opens beside the trigger, away from the pointer.
+      if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
+      await render(
+        <div style={{ height: 9000, paddingTop: 2140 }}>
+          <Menu side="right" trigger={<Button style={{ height: 2500 }}>Actions</Button>}>{basicItems}</Menu>
+          <div data-press-here="" style={{ position: "fixed", top: 310, left: 420, width: 1, height: 1, pointerEvents: "none" }} />
+          <div data-rest-here="" style={{ position: "fixed", top: 100, left: 100, width: 10, height: 10 }} />
+        </div>,
+      );
+      await userEvent.hover(document.querySelector("[data-rest-here]")!);
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      document.documentElement.style.scrollBehavior = "smooth";
+      document.addEventListener("pointermove", () => window.scrollTo({ top: 5000 }), { once: true });
+      let pressedAt = -1;
+      document.addEventListener("pointerdown", () => (pressedAt = window.scrollY), { capture: true, once: true });
+      await commands.pointerPress({ selector: "[data-press-here]", action: "down" });
+      for (let index = 0; index < 10; index++) await frame();
+      await commands.pointerPress({ action: "up" });
+      await expect.poll(() => {
+        const open = menu();
+        return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
+      }).toBe(true);
+      await frame();
+      await frame();
+      expect(menu()!.hasAttribute("data-open")).toBe(true);
+      expect(window.scrollY).toBe(pressedAt);
+      expect(pressedAt).toBeLessThan(4000);
+    });
+  }
 });

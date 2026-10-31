@@ -1,11 +1,11 @@
 "use client";
 
-export { PortalScope, usePortalContainer };
+export { holdPageAtPress, PortalScope, usePortalContainer };
 export type { PortalContainerProps };
 
 import { createContext, createElement, useContext, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
-import { holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { holdPageAtPress, holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 
 // Where a floating layer (Select, Menu, Combobox, Popover, Tooltip, HoverCard,
@@ -52,13 +52,15 @@ const landmark =
  * page that has a `<main>`. Inside another Ouro UI portal it gives neither. With
  * `holdPage`, for a layer that takes focus (Menu, Popover, Select, Combobox), the ref also
  * keeps the page where it is while the layer is open (`holdPageScroll`), inside another
- * portal too.
+ * portal too; such a layer spreads `holdPageAtPress` on its trigger, so the hold starts at the
+ * press that opens it.
  *
  * @internal
  * @claim "The props for a floating layer's" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup into OuroProvider's portalContainer, given as an element)
  * @claim "The props for a floating layer's" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > warns once, in development, when a popup opens outside every landmark of a page that has a main)
  * @claim "Inside another Ouro UI portal it" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > renders a popup opened from inside another popup into that popup's portal, not the portalContainer)
  * @claim "the ref also keeps the page where it is while the layer is open" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > holdPage > with holdPage, keeps the page where it is while the layer is open, and lets it go once it closes)
+ * @claim "so the hold starts at the press that opens it" registry/ouro/components/ouro/menu/menu.test.tsx verify:fileLine(registry/ouro/components/ouro/menu/menu.test.tsx, /stays open and stops the page where it is, pressed mid-scroll/)
  */
 function usePortalContainer(component: string, holdPage = false): PortalContainerProps {
   const { portalContainer } = useOuro();

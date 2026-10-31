@@ -31,7 +31,7 @@ import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
-import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { holdPageAtPress, PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import {
   menuBackdropClass,
@@ -526,7 +526,7 @@ export function Menu(props: MenuProps): JSX.Element {
           {label}
         </BaseMenu.Trigger>
       ) : (
-        <BaseMenu.Trigger render={trigger} />
+        <BaseMenu.Trigger render={trigger} {...holdPageAtPress} />
       )}
       <MenuSurface sheet={sheet} context={false} side={side} align={align} className={className} closeLabel={closeLabel}>
         {body}
