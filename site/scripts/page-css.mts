@@ -1,8 +1,8 @@
 // The voyage page's own Tailwind build scans only what the page can render. site/src/styles.css
 // scans every registry component and every site file, for the docs, which show them all; the
 // voyage's stylesheet (site/src/voyage/voyage-tailwind.css) imports it and leaves out, with
-// `@source not`, each registry component and each part of the site that the voyage's import graph
-// never reaches, islands included. This script follows that graph from site/src/pages/voyage.tsx
+// `@source not`, each registry component, each source file of a component it does render, and each
+// part of the site that the voyage's import graph never reaches, islands included. This script follows that graph from site/src/pages/voyage.tsx
 // and writes the list:
 //
 //   node site/scripts/page-css.mts           writes site/src/voyage/voyage-sources.generated.css
@@ -71,7 +71,22 @@ export function reachable(entries: string[], page: string): Set<string> {
 export function unreached(files: Set<string>): string[] {
   const reachedAny = (dir: string) => [...files].some((file) => inside(file, dir));
   const left: string[] = [];
-  for (const dir of children(components)) if (statSync(dir).isDirectory() && !reachedAny(dir)) left.push(dir);
+  // A component the voyage renders is followed into, so a part of it the voyage never imports (a
+  // sibling component in the same folder, a part only other layouts use) adds none of its classes.
+  const sourceOnly = (path: string) => /\.tsx?$/.test(path) && !/\.(test|stories|test-d)\.tsx?$/.test(path);
+  const within = (dir: string) => {
+    for (const path of children(dir)) {
+      if (statSync(path).isDirectory()) {
+        if (!reachedAny(path)) left.push(path);
+        else within(path);
+      } else if (sourceOnly(path) && !files.has(path)) left.push(path);
+    }
+  };
+  for (const dir of children(components)) {
+    if (!statSync(dir).isDirectory()) continue;
+    if (!reachedAny(dir)) left.push(dir);
+    else within(dir);
+  }
   for (const dir of children(registry)) {
     if (dir === components || !statSync(dir).isDirectory()) continue;
     if (!reachedAny(dir)) left.push(dir);

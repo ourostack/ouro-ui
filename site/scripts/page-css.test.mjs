@@ -21,6 +21,13 @@ test("the voyage's Tailwind build leaves out what the voyage never renders, and 
   for (const name of ["button", "menu", "reorderable", "toast", "inspector"]) assert.doesNotMatch(css, new RegExp(`components/ouro/${name}";`), name);
 });
 
+test("inside a component the voyage renders, a source file the voyage never imports is left out", () => {
+  const css = generate();
+  assert.match(css, /@source not "\.\.\/\.\.\/\.\.\/registry\/ouro\/components\/ouro\/message\/thread-summary\.tsx";/);
+  assert.doesNotMatch(css, /components\/ouro\/message\/message\.tsx";|components\/ouro\/message";/);
+  assert.doesNotMatch(css, /\.(test|stories)\.tsx";/);
+});
+
 test("an import is found however it is written", () => {
   const source = [
     'import { a } from "./a";',
