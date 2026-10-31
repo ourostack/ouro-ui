@@ -1,5 +1,5 @@
-ax-xray (Ouro AX 0.2.0): at teams-microsoft/tandem@26485501 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 145 calls); HTTP http://127.0.0.1:51585 (131 routes in the manifest, 100 requests)
-Claims holding: 28 of 31 (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipped. Score 99%.
+ax-xray (Ouro AX 0.2.0): at teams-microsoft/tandem@19ae3ae5 (branch ax-probe/xray, on main 62f53c8b); CLI `m365tandem` (39 commands, 147 calls); HTTP http://127.0.0.1:53417 (132 routes in the manifest, 100 requests)
+Claims holding: 28 of 31 (must: 25 of 28). Checks: 525 pass, 5 fail, 0 skipped. Score 99.1%.
 
 ✗ http.error-teaches [must] Every error names a next action: a route, a field, or a command. (33 of 35)
     GET /api/resolve: "link-form" names no route, flag or command
@@ -17,7 +17,7 @@ Claims holding: 28 of 31 (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipped. 
 ✓ cli.command-help [must] Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. (39 of 39)
 ✓ cli.exit-codes [must] Exit codes are documented, and every exit code the CLI gives is one of them. (1 of 1)
 ✓ cli.unknown-command [must] An unknown command fails with the usage exit code and lists the commands. (1 of 1)
-✓ cli.unknown-flag [must] An unknown flag fails before anything runs, and the error names the flag. (44 of 44)
+✓ cli.unknown-flag [must] An unknown flag fails before anything runs, and the error names the flag. (46 of 46)
 ✓ cli.missing-arg [must] A command missing a required argument fails with the usage exit code and says what to give. (4 of 4)
 ✓ cli.one-line-error [must] Every error is one line on stderr, with nothing on stdout. (51 of 51)
 ✓ cli.error-teaches [must] Every error names a next action: a command to run or a flag to add. (51 of 51)
@@ -26,7 +26,7 @@ Claims holding: 28 of 31 (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipped. 
 ✓ cli.others-need-why [must] Every command other people see refuses to run without `--why`, and says so. (8 of 8)
 ✓ cli.wrong-ref-first [must] A wrong reference fails before anything reaches anyone, and the error says where to get a right one. (8 of 8)
 ✓ cli.others-preview [must] Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. (8 of 8)
-✓ cli.text-as-argument [must] A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. (6 of 6)
+✓ cli.text-as-argument [must] A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. (8 of 8)
 ✓ cli.wait-on-refs [must] A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. (1 of 1)
 ✓ cli.reads-stay-reads [must] Reads change nothing. (1 of 1)
 ✓ cli.refusals-change-nothing [must] A refused call changes nothing, except an audit record that says it was refused. (8 of 8)
@@ -39,4 +39,4 @@ Claims holding: 28 of 31 (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipped. 
 ✓ http.refusals-change-nothing [must] A refused request changes nothing, except an audit record that says it was refused. (5 of 5)
 ✓ cli.help-width [should] No help line is wider than the width limit (100 columns by default). (40 of 40)
 ✓ cli.overview-short [should] The overview (`--help`) fits one screen: at most 60 lines. (1 of 1)
-✓ cli.flag-suggest [should] A misspelt flag's error names the closest real flag. (17 of 17)
+✓ cli.flag-suggest [should] A misspelt flag's error names the closest real flag. (19 of 19)

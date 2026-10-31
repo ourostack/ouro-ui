@@ -402,14 +402,22 @@ async function checkCli(rec, opts) {
     rec.add("cli.reads-stay-reads", `${reads.length} reads, their flag probes and the missing-argument probes`, d.same ? "pass" : "fail", d.same ? `state: ${opts.state.join("; ")}` : `${opts.state.join("; ")} changed: ${refusalVerdict(d).note}`);
   } else rec.add("cli.reads-stay-reads", "state", "skip", stateNote || "no --state command given");
 
-  // Free text: a stdin-only usage needs a sibling usage with an argument in that place.
+  // Free text: a command that reads text from stdin ("-") must also take it as an argument: a quoted placeholder, a
+  // placeholder where the "-" goes, or a text flag (--text <text>, --file <path>).
   for (const cmd of commands.filter((c) => c.effect === "private" || c.effect === "others")) {
+    const stdinRe = /(^|\s|\||\{|\[)-(?=\s|$|\}|\]|\|)/;
+    const stdin = cmd.usage.filter((u) => stdinRe.test(u));
+    if (!stdin.length) continue;
     const forms = cmd.usage.map((u) => usageWords(u.replace(/\[[^[\]]*\]/g, " ")));
-    const stdinOnly = forms.filter((w) => w.includes("-")).filter((w) => {
+    const textFlag = cmd.usage.some((u) => /--(text|file|body|message)\s+<[^>]+>/.test(u));
+    const quoted = cmd.usage.some((u) => /"<[^>]+>"/.test(u.replace(/--\w[\w-]* "<[^>]+>"/g, "")));
+    const inPlace = forms.some((w) => {
       const i = w.indexOf("-");
-      return !forms.some((v) => v !== w && v.length > i && v.slice(0, i).length === i && v[0] === w[0] && /^"?<[^>]+>"?$/.test(v[i]) && !v.includes("-"));
+      return i > 0 && forms.some((v) => v !== w && v[0] === w[0] && /^"?<[^>]+>"?$/.test(v[i] ?? "") && !v.includes("-"));
     });
-    if (forms.some((w) => w.includes("-"))) rec.add("cli.text-as-argument", cmd.name, stdinOnly.length ? "fail" : "pass", stdinOnly.length ? `only stdin: ${stdinOnly.map((w) => w.join(" ")).join("; ").slice(0, 200)}` : "an argument form is listed beside stdin");
+    const altInline = stdin.some((u) => /\|\s*<[^>]+>\s*\|/.test(u) || /<[^>]+>\s*\|\s*-/.test(u));
+    const ok = textFlag || quoted || inPlace || altInline;
+    rec.add("cli.text-as-argument", cmd.name, ok ? "pass" : "fail", ok ? "an argument form is listed beside stdin" : `only stdin: ${stdin.join("; ").slice(0, 200)}`);
   }
 
   // Waiting: a watch or wait command takes a conversation ref a read gave.

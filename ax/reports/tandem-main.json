@@ -1,7 +1,7 @@
 {
   "tool": "ax-xray",
   "standard": "0.2.0",
-  "at": "2026-10-30T22:55:25.524Z",
+  "at": "2026-10-31T00:14:00.330Z",
   "target": {
     "cli": {
       "name": "m365tandem",
@@ -17,8 +17,7 @@
         "<conversation>#<message id>": "1zijq8#1700001500000",
         "reply:<channel>#<message id>": "1zijq8#1700000900000",
         "answer-invite:<meeting>": "5rvwe6",
-        "meeting": "s5wqme",
-        "next": "jpkf7d",
+        "next": "1akyt8",
         "top": "1zijq8#1700004200000",
         "poster": "8:orgid:00000000-0000-4000-8000-000000000002",
         "folder": "00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001~Favorites",
@@ -29,11 +28,12 @@
         "section": "pinned",
         "team": "19:00000000dddd0000dddd000000000001@thread.tacv2",
         "channel": "19:00000000dddd0000dddd000000000002@thread.tacv2",
-        "entry": "shxx1y",
+        "entry": "snkaij",
         "committed": "mock-event-weekly|2026-10-30T20:00:00.000Z",
         "invite": "mock-event-standup|2026-10-30T19:00:00.000Z",
         "declined": "mock-event-vendor|2026-10-30T23:00:00.000Z",
         "allday": "mock-event-allday|2026-10-30T07:00:00.000Z",
+        "meeting": "mock-event-allday|2026-10-30T07:00:00.000Z",
         "category": "mock-category-0001",
         "recording": "by8i9a",
         "view": "customer-chats",
@@ -44,7 +44,7 @@
       }
     },
     "http": {
-      "origin": "http://127.0.0.1:55325",
+      "origin": "http://127.0.0.1:53420",
       "routes": 131,
       "requests": 100
     },
@@ -450,19 +450,19 @@
           "claim": "cli.unknown-flag",
           "surface": "meeting",
           "verdict": "fail",
-          "note": "`m365tandem meeting s5wqme --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
+          "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
         },
         {
           "claim": "cli.unknown-flag",
           "surface": "meeting --freh",
           "verdict": "fail",
-          "note": "`m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {: --freh was ignored, so the answer is not what was asked"
+          "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --freh --json` → exit 0; stdout: {: --freh was ignored, so the answer is not what was asked"
         },
         {
           "claim": "cli.unknown-flag",
           "surface": "notes",
           "verdict": "fail",
-          "note": "`m365tandem notes s5wqme --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
+          "note": "`m365tandem notes \"mock-event-allday|2026-10-30T07:00:00.000Z\" --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
         }
       ],
       "skipped": []
@@ -581,7 +581,7 @@
           "claim": "cli.flag-suggest",
           "surface": "meeting --freh",
           "verdict": "fail",
-          "note": "`m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {; does not name --fresh"
+          "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --freh --json` → exit 0; stdout: {; does not name --fresh"
         }
       ],
       "skipped": []
@@ -793,25 +793,25 @@
           "claim": "cli.text-as-argument",
           "surface": "notes",
           "verdict": "fail",
-          "note": "only stdin: notes <meeting> set -; notes <meeting> append -"
+          "note": "only stdin: notes <meeting> set - [--agent <name>]; notes <meeting> append - [--agent <name>]"
         },
         {
           "claim": "cli.text-as-argument",
           "surface": "send",
           "verdict": "fail",
-          "note": "only stdin: send <conversation> - --agent <name> --why <reason>; send notes - --agent <name> --why ..."
+          "note": "only stdin: send <conversation> - --agent <name> --why \"<reason>\" [--markdown] [--intent <token>]; send notes - --agent <name> --why ..."
         },
         {
           "claim": "cli.text-as-argument",
           "surface": "reply",
           "verdict": "fail",
-          "note": "only stdin: reply <channel>#<message id> - --agent <name> --why <reason>"
+          "note": "only stdin: reply <channel>#<message id> - --agent <name> --why \"<reason>\" [--markdown] [--intent <token>]"
         },
         {
           "claim": "cli.text-as-argument",
           "surface": "edit-sent",
           "verdict": "fail",
-          "note": "only stdin: edit-sent <conversation>#<message id> - --agent <name> --why <reason>"
+          "note": "only stdin: edit-sent <conversation>#<message id> - --agent <name> --why \"<reason>\""
         }
       ],
       "skipped": []
@@ -2243,13 +2243,13 @@
       "claim": "cli.read-json",
       "surface": "meeting",
       "verdict": "pass",
-      "note": "`m365tandem meeting s5wqme --json` → one JSON document"
+      "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --json` → one JSON document"
     },
     {
       "claim": "cli.read-json",
       "surface": "notes",
       "verdict": "pass",
-      "note": "`m365tandem notes s5wqme --json` → one JSON document"
+      "note": "`m365tandem notes \"mock-event-allday|2026-10-30T07:00:00.000Z\" --json` → one JSON document"
     },
     {
       "claim": "cli.missing-arg",
@@ -2693,25 +2693,25 @@
       "claim": "cli.unknown-flag",
       "surface": "meeting",
       "verdict": "fail",
-      "note": "`m365tandem meeting s5wqme --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
+      "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
     },
     {
       "claim": "cli.unknown-flag",
       "surface": "meeting --freh",
       "verdict": "fail",
-      "note": "`m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {: --freh was ignored, so the answer is not what was asked"
+      "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --freh --json` → exit 0; stdout: {: --freh was ignored, so the answer is not what was asked"
     },
     {
       "claim": "cli.flag-suggest",
       "surface": "meeting --freh",
       "verdict": "fail",
-      "note": "`m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {; does not name --fresh"
+      "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --freh --json` → exit 0; stdout: {; does not name --fresh"
     },
     {
       "claim": "cli.unknown-flag",
       "surface": "notes",
       "verdict": "fail",
-      "note": "`m365tandem notes s5wqme --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
+      "note": "`m365tandem notes \"mock-event-allday|2026-10-30T07:00:00.000Z\" --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
     },
     {
       "claim": "cli.reads-stay-reads",
@@ -2735,25 +2735,25 @@
       "claim": "cli.text-as-argument",
       "surface": "notes",
       "verdict": "fail",
-      "note": "only stdin: notes <meeting> set -; notes <meeting> append -"
+      "note": "only stdin: notes <meeting> set - [--agent <name>]; notes <meeting> append - [--agent <name>]"
     },
     {
       "claim": "cli.text-as-argument",
       "surface": "send",
       "verdict": "fail",
-      "note": "only stdin: send <conversation> - --agent <name> --why <reason>; send notes - --agent <name> --why ..."
+      "note": "only stdin: send <conversation> - --agent <name> --why \"<reason>\" [--markdown] [--intent <token>]; send notes - --agent <name> --why ..."
     },
     {
       "claim": "cli.text-as-argument",
       "surface": "reply",
       "verdict": "fail",
-      "note": "only stdin: reply <channel>#<message id> - --agent <name> --why <reason>"
+      "note": "only stdin: reply <channel>#<message id> - --agent <name> --why \"<reason>\" [--markdown] [--intent <token>]"
     },
     {
       "claim": "cli.text-as-argument",
       "surface": "edit-sent",
       "verdict": "fail",
-      "note": "only stdin: edit-sent <conversation>#<message id> - --agent <name> --why <reason>"
+      "note": "only stdin: edit-sent <conversation>#<message id> - --agent <name> --why \"<reason>\""
     },
     {
       "claim": "cli.wait-on-refs",

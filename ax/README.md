@@ -42,8 +42,13 @@ cd <tandem checkout> && node probe/ax-xray/run.ts <this checkout> <mock TANDEM_U
 
 [`reports/`](reports/) holds the X-ray of Tandem main at the probe's branch point and of the probe's fixes.
 
+## Does it predict outcomes?
+
+Only partly, and only once the claims came from agent failures: [agent-evidence.md](reports/agent-evidence.md). Standard 0.1's failures on Tandem main predicted none of the baseline's wrong turns, and fixing them changed no outcome. Two claims added from the baseline's failures (`cli.text-as-argument`, `cli.wait-on-refs`) named most of them, and fixing those took the same agent from 5 of 10 tasks to 10 of 10. The X-ray says exactly whether a claim holds; an agent evaluation says whether the claim matters.
+
 ## How it would ship
 
 - `ax-claims`: the standard, as a registry item an app copies in or reads by tag.
 - `ax-xray`: the checker, a zero-dependency Node script, as a registry item like `lib-claims`, plus a CI step that fails on a `must` claim.
+- A rule for the standard: a claim enters when an agent evaluation shows the failure it names, and leaves when it never moves an outcome.
 - The report page, published beside the HX docs, one per adopter.

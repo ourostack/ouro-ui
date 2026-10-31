@@ -1,6 +1,6 @@
 # AX X-ray: m365tandem
 
-Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:55:25.524Z. Target: at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 137 calls); HTTP http://127.0.0.1:55325 (131 routes in the manifest, 100 requests).
+Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-31T00:14:00.330Z. Target: at teams-microsoft/tandem@ffdecc01 (main at the probe branch point); CLI `m365tandem` (39 commands, 137 calls); HTTP http://127.0.0.1:53420 (131 routes in the manifest, 100 requests).
 
 Claims holding: **21 of 31** (must: 19 of 28). Checks: 353 pass, 121 fail, 0 skipped. Score **74.5%**.
 
@@ -85,9 +85,9 @@ Fix: Check every flag against the command's declared flags before acting; refuse
 - **people**: `m365tandem people 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --ax-xray…` → exit 0; stdout: [: the flag was ignored
 - **search**: `m365tandem search the --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
 - **search --limt**: `m365tandem search the --limt 2 --json` → exit 0; stdout: {: --limt was ignored, so the answer is not what was asked
-- **meeting**: `m365tandem meeting s5wqme --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
-- **meeting --freh**: `m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {: --freh was ignored, so the answer is not what was asked
-- **notes**: `m365tandem notes s5wqme --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
+- **meeting**: `m365tandem meeting "mock-event-allday\|2026-10-30T07:00:00.000Z" --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
+- **meeting --freh**: `m365tandem meeting "mock-event-allday\|2026-10-30T07:00:00.000Z" --freh --json` → exit 0; stdout: {: --freh was ignored, so the answer is not what was asked
+- **notes**: `m365tandem notes "mock-event-allday\|2026-10-30T07:00:00.000Z" --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored
 
 ### `http.error-teaches`: Every error names a next action: a route, a field, or a command.
 
@@ -170,10 +170,10 @@ Fix: Accept the text as an argument and list that usage first; keep `-` for stdi
 
 - **prep**: only stdin: prep note <meeting> -
 - **note**: only stdin: note <meeting> -
-- **notes**: only stdin: notes <meeting> set -; notes <meeting> append -
-- **send**: only stdin: send <conversation> - --agent <name> --why <reason>; send notes - --agent <name> --why ...
-- **reply**: only stdin: reply <channel>#<message id> - --agent <name> --why <reason>
-- **edit-sent**: only stdin: edit-sent <conversation>#<message id> - --agent <name> --why <reason>
+- **notes**: only stdin: notes <meeting> set - [--agent <name>]; notes <meeting> append - [--agent <name>]
+- **send**: only stdin: send <conversation> - --agent <name> --why "<reason>" [--markdown] [--intent <token>]; send notes - --agent <name> --why ...
+- **reply**: only stdin: reply <channel>#<message id> - --agent <name> --why "<reason>" [--markdown] [--intent <token>]
+- **edit-sent**: only stdin: edit-sent <conversation>#<message id> - --agent <name> --why "<reason>"
 
 ### `cli.read-json`: Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr.
 
@@ -229,7 +229,7 @@ Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; d
 - **log --limt**: `m365tandem log --limt 2 --json` → exit 0; stdout: [; does not name --limit
 - **look --limt**: `m365tandem look 19:00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002@unq.gbl.spaces --limt 2 --…` → exit 0; stdout: {; does not name --limit
 - **search --limt**: `m365tandem search the --limt 2 --json` → exit 0; stdout: {; does not name --limit
-- **meeting --freh**: `m365tandem meeting s5wqme --freh --json` → exit 0; stdout: {; does not name --fresh
+- **meeting --freh**: `m365tandem meeting "mock-event-allday\|2026-10-30T07:00:00.000Z" --freh --json` → exit 0; stdout: {; does not name --fresh
 
 ## Every surface
 

@@ -1,8 +1,8 @@
 # AX X-ray: m365tandem
 
-Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-30T22:53:41.499Z. Target: at teams-microsoft/tandem@26485501 (branch ax-probe/xray); CLI `m365tandem` (39 commands, 145 calls); HTTP http://127.0.0.1:51585 (131 routes in the manifest, 100 requests).
+Ouro AX standard 0.2.0, checked by ax-xray at 2026-10-31T00:12:32.165Z. Target: at teams-microsoft/tandem@19ae3ae5 (branch ax-probe/xray, on main 62f53c8b); CLI `m365tandem` (39 commands, 147 calls); HTTP http://127.0.0.1:53417 (132 routes in the manifest, 100 requests).
 
-Claims holding: **28 of 31** (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipped. Score **99%**.
+Claims holding: **28 of 31** (must: 25 of 28). Checks: 525 pass, 5 fail, 0 skipped. Score **99.1%**.
 
 | | Claim | Severity | Rule | Pass | Fail | Skip |
 |---|---|---|---|---|---|---|
@@ -14,7 +14,7 @@ Claims holding: **28 of 31** (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipp
 | ✓ | `cli.command-help` | must | Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. | 39 | 0 | 0 |
 | ✓ | `cli.exit-codes` | must | Exit codes are documented, and every exit code the CLI gives is one of them. | 1 | 0 | 0 |
 | ✓ | `cli.unknown-command` | must | An unknown command fails with the usage exit code and lists the commands. | 1 | 0 | 0 |
-| ✓ | `cli.unknown-flag` | must | An unknown flag fails before anything runs, and the error names the flag. | 44 | 0 | 0 |
+| ✓ | `cli.unknown-flag` | must | An unknown flag fails before anything runs, and the error names the flag. | 46 | 0 | 0 |
 | ✓ | `cli.missing-arg` | must | A command missing a required argument fails with the usage exit code and says what to give. | 4 | 0 | 0 |
 | ✓ | `cli.one-line-error` | must | Every error is one line on stderr, with nothing on stdout. | 51 | 0 | 0 |
 | ✓ | `cli.error-teaches` | must | Every error names a next action: a command to run or a flag to add. | 51 | 0 | 0 |
@@ -23,7 +23,7 @@ Claims holding: **28 of 31** (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipp
 | ✓ | `cli.others-need-why` | must | Every command other people see refuses to run without `--why`, and says so. | 8 | 0 | 0 |
 | ✓ | `cli.wrong-ref-first` | must | A wrong reference fails before anything reaches anyone, and the error says where to get a right one. | 8 | 0 | 0 |
 | ✓ | `cli.others-preview` | must | Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. | 8 | 0 | 0 |
-| ✓ | `cli.text-as-argument` | must | A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. | 6 | 0 | 0 |
+| ✓ | `cli.text-as-argument` | must | A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. | 8 | 0 | 0 |
 | ✓ | `cli.wait-on-refs` | must | A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. | 1 | 0 | 0 |
 | ✓ | `cli.reads-stay-reads` | must | Reads change nothing. | 1 | 0 | 0 |
 | ✓ | `cli.refusals-change-nothing` | must | A refused call changes nothing, except an audit record that says it was refused. | 8 | 0 | 0 |
@@ -36,7 +36,7 @@ Claims holding: **28 of 31** (must: 25 of 28). Checks: 519 pass, 5 fail, 0 skipp
 | ✓ | `http.refusals-change-nothing` | must | A refused request changes nothing, except an audit record that says it was refused. | 5 | 0 | 0 |
 | ✓ | `cli.help-width` | should | No help line is wider than the width limit (100 columns by default). | 40 | 0 | 0 |
 | ✓ | `cli.overview-short` | should | The overview (`--help`) fits one screen: at most 60 lines. | 1 | 0 | 0 |
-| ✓ | `cli.flag-suggest` | should | A misspelt flag's error names the closest real flag. | 17 | 0 | 0 |
+| ✓ | `cli.flag-suggest` | should | A misspelt flag's error names the closest real flag. | 19 | 0 | 0 |
 
 ## What fails, and the fix
 
@@ -88,7 +88,7 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · attention | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
 | cli · agenda | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
 | cli · calendar | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
-| cli · matters | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
+| cli · matters | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` `cli.text-as-argument` |  |
 | cli · categories | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
 | cli · categorize | `cli.help-effects` `cli.command-help` `cli.missing-arg` |  |
 | cli · meeting | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
@@ -97,7 +97,7 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · prep | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` `cli.text-as-argument` |  |
 | cli · note | `cli.help-effects` `cli.command-help` `cli.missing-arg` `cli.text-as-argument` |  |
 | cli · notes | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` `cli.text-as-argument` |  |
-| cli · draft | `cli.help-effects` `cli.command-help` `cli.unknown-flag` | `cli.read-json` |
+| cli · draft | `cli.help-effects` `cli.command-help` `cli.unknown-flag` `cli.text-as-argument` | `cli.read-json` |
 | cli · layout | `cli.help-effects` `cli.command-help` `cli.read-json` `cli.unknown-flag` |  |
 | cli · send | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
 | cli · reply | `cli.help-effects` `cli.command-help` `cli.text-as-argument` `cli.others-need-why` `cli.wrong-ref-first` `cli.refusals-change-nothing` `cli.others-preview` |  |
@@ -184,8 +184,9 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · recordings --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · recordings --sine | `cli.unknown-flag` `cli.flag-suggest` |  |
 | cli · prep --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
+| cli · prep --tex | `cli.unknown-flag` `cli.flag-suggest` |  |
 | cli · draft --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
-| cli · draft --abot | `cli.unknown-flag` `cli.flag-suggest` |  |
+| cli · draft --tex | `cli.unknown-flag` `cli.flag-suggest` |  |
 | cli · layout --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · layout --brif | `cli.unknown-flag` `cli.flag-suggest` |  |
 | cli · watch --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
@@ -201,6 +202,7 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · meeting --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · meeting --freh | `cli.unknown-flag` `cli.flag-suggest` |  |
 | cli · notes --ax-xray-no-such-flag | `cli.one-line-error` `cli.error-teaches` |  |
+| cli · notes --tex | `cli.unknown-flag` `cli.flag-suggest` |  |
 | cli · 27 reads, their flag probes and the missing-argument probes | `cli.reads-stay-reads` |  |
 | cli · watch <conversation> | `cli.wait-on-refs` |  |
 | cli · send (no --why) | `cli.one-line-error` `cli.error-teaches` |  |
@@ -219,7 +221,7 @@ Fix: Give the read a `--json` that prints the same data the text shows, as one d
 | cli · join (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · mark-read (no --why) | `cli.one-line-error` `cli.error-teaches` |  |
 | cli · mark-read (wrong ref) | `cli.one-line-error` `cli.error-teaches` |  |
-| cli · all 145 calls | `cli.no-stack-trace` `cli.exit-codes` |  |
+| cli · all 147 calls | `cli.no-stack-trace` `cli.exit-codes` |  |
 | http · GET /api | `http.index` |  |
 | http · GET /api/ax-xray-no-such-route | `http.unknown-route` `http.error-shape` `http.error-teaches` |  |
 | http · GET /api/health | `http.json` |  |

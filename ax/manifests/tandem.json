@@ -101,6 +101,7 @@
     "POST /api/sync/conversations",
     "POST /api/sync/messages",
     "POST /api/sync/status",
+    "POST /api/window/away",
     "POST /api/sync/push",
     "GET /api/sync/fresh-work",
     "POST /api/sync/artifacts",

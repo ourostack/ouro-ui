@@ -1,11 +1,11 @@
 {
   "tool": "ax-xray",
   "standard": "0.2.0",
-  "at": "2026-10-30T22:53:41.499Z",
+  "at": "2026-10-31T00:12:32.165Z",
   "target": {
     "cli": {
       "name": "m365tandem",
-      "calls": 145,
+      "calls": 147,
       "commands": 39,
       "samples": {
         "word": "the",
@@ -17,8 +17,7 @@
         "<conversation>#<message id>": "1zijq8#1700001500000",
         "reply:<channel>#<message id>": "1zijq8#1700000900000",
         "answer-invite:<meeting>": "5rvwe6",
-        "meeting": "s5wqme",
-        "next": "jpkf7d",
+        "next": "1akyt8",
         "top": "1zijq8#1700004200000",
         "poster": "8:orgid:00000000-0000-4000-8000-000000000002",
         "folder": "00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001~Favorites",
@@ -29,11 +28,12 @@
         "section": "pinned",
         "team": "19:00000000dddd0000dddd000000000001@thread.tacv2",
         "channel": "19:00000000dddd0000dddd000000000002@thread.tacv2",
-        "entry": "shxx1y",
+        "entry": "snkaij",
         "committed": "mock-event-weekly|2026-10-30T20:00:00.000Z",
         "invite": "mock-event-standup|2026-10-30T19:00:00.000Z",
         "declined": "mock-event-vendor|2026-10-30T23:00:00.000Z",
         "allday": "mock-event-allday|2026-10-30T07:00:00.000Z",
+        "meeting": "mock-event-allday|2026-10-30T07:00:00.000Z",
         "category": "mock-category-0001",
         "recording": "by8i9a",
         "view": "customer-chats",
@@ -44,11 +44,11 @@
       }
     },
     "http": {
-      "origin": "http://127.0.0.1:51585",
-      "routes": 131,
+      "origin": "http://127.0.0.1:53417",
+      "routes": 132,
       "requests": 100
     },
-    "commit": "teams-microsoft/tandem@26485501 (branch ax-probe/xray)"
+    "commit": "teams-microsoft/tandem@19ae3ae5 (branch ax-probe/xray, on main 62f53c8b)"
   },
   "summary": {
     "claims": 31,
@@ -56,11 +56,11 @@
     "must": 28,
     "mustHolding": 25,
     "checks": {
-      "pass": 519,
+      "pass": 525,
       "fail": 5,
       "skip": 0
     },
-    "score": 99
+    "score": 99.1
   },
   "claims": [
     {
@@ -207,7 +207,7 @@
       "source": "Tandem P8 (check before you act)",
       "check": "Run a read with a flag no command has, and with a misspelt real flag.",
       "fix": "Check every flag against the command's declared flags before acting; refuse an unknown one with the usage exit code.",
-      "pass": 44,
+      "pass": 46,
       "fail": 0,
       "skip": 0,
       "holds": true,
@@ -223,7 +223,7 @@
       "source": "Ouro UI 2026-10-11 CLI kit: errors that name the fix",
       "check": "Run a read with one of its flags misspelt (a letter dropped).",
       "fix": "Suggest the declared flag nearest by edit distance: `unknown flag --limt; did you mean --limit?`.",
-      "pass": 17,
+      "pass": 19,
       "fail": 0,
       "skip": 0,
       "holds": true,
@@ -367,7 +367,7 @@
       "source": "ax-eval baseline of Tandem main, 2026-10-30: every T3 and T4 run's `printf … | m365tandem send/edit-sent … -` was denied",
       "check": "For each usage that reads text from stdin (`-`), look for a usage of the same command with a placeholder in that place. For a command others see that offers --dry-run, the preview probe passes the text as an argument.",
       "fix": "Accept the text as an argument and list that usage first; keep `-` for stdin.",
-      "pass": 6,
+      "pass": 8,
       "fail": 0,
       "skip": 0,
       "holds": true,
@@ -862,7 +862,7 @@
       "claim": "cli.command-help",
       "surface": "activity",
       "verdict": "pass",
-      "note": "44 lines"
+      "note": "45 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1006,7 +1006,7 @@
       "claim": "cli.command-help",
       "surface": "search",
       "verdict": "pass",
-      "note": "15 lines"
+      "note": "16 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1018,7 +1018,7 @@
       "claim": "cli.command-help",
       "surface": "attention",
       "verdict": "pass",
-      "note": "60 lines"
+      "note": "62 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1054,7 +1054,7 @@
       "claim": "cli.command-help",
       "surface": "matters",
       "verdict": "pass",
-      "note": "43 lines"
+      "note": "47 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1078,7 +1078,7 @@
       "claim": "cli.command-help",
       "surface": "categorize",
       "verdict": "pass",
-      "note": "43 lines"
+      "note": "44 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1126,7 +1126,7 @@
       "claim": "cli.command-help",
       "surface": "prep",
       "verdict": "pass",
-      "note": "54 lines"
+      "note": "53 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1138,7 +1138,7 @@
       "claim": "cli.command-help",
       "surface": "note",
       "verdict": "pass",
-      "note": "20 lines"
+      "note": "22 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1150,7 +1150,7 @@
       "claim": "cli.command-help",
       "surface": "notes",
       "verdict": "pass",
-      "note": "38 lines"
+      "note": "37 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1162,7 +1162,7 @@
       "claim": "cli.command-help",
       "surface": "draft",
       "verdict": "pass",
-      "note": "73 lines"
+      "note": "79 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1174,7 +1174,7 @@
       "claim": "cli.command-help",
       "surface": "layout",
       "verdict": "pass",
-      "note": "68 lines"
+      "note": "69 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1186,7 +1186,7 @@
       "claim": "cli.command-help",
       "surface": "send",
       "verdict": "pass",
-      "note": "77 lines"
+      "note": "84 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1198,7 +1198,7 @@
       "claim": "cli.command-help",
       "surface": "reply",
       "verdict": "pass",
-      "note": "52 lines"
+      "note": "54 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1222,7 +1222,7 @@
       "claim": "cli.command-help",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "27 lines"
+      "note": "31 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1246,7 +1246,7 @@
       "claim": "cli.command-help",
       "surface": "answer-invite",
       "verdict": "pass",
-      "note": "26 lines"
+      "note": "33 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1258,7 +1258,7 @@
       "claim": "cli.command-help",
       "surface": "join",
       "verdict": "pass",
-      "note": "34 lines"
+      "note": "35 lines"
     },
     {
       "claim": "cli.help-width",
@@ -1336,37 +1336,37 @@
       "claim": "cli.ambiguous-verbs",
       "surface": "edit",
       "verdict": "pass",
-      "note": "`m365tandem edit` → exit 2; stderr: m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>.; names people, draft, edit-sent"
+      "note": "`m365tandem edit` → exit 2; stderr: m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> --text \"...\". A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>.; names people, draft, edit-sent"
     },
     {
       "claim": "cli.one-line-error",
       "surface": "edit",
       "verdict": "pass",
-      "note": "m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>."
+      "note": "m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> --text \"...\". A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "edit",
       "verdict": "pass",
-      "note": "m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>."
+      "note": "m365tandem: edit what? A draft only you see: m365tandem draft set <conversation> --text \"...\". A message already sent, which other people see: m365tandem edit-sent <conversation>#<message id>."
     },
     {
       "claim": "cli.ambiguous-verbs",
       "surface": "delete",
       "verdict": "pass",
-      "note": "`m365tandem delete` → exit 2; stderr: m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>.; names people, draft, delete-sent"
+      "note": "`m365tandem delete` → exit 2; stderr: m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> --text \"...\". A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>.; names people, draft, delete-sent"
     },
     {
       "claim": "cli.one-line-error",
       "surface": "delete",
       "verdict": "pass",
-      "note": "m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>."
+      "note": "m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> --text \"...\". A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "delete",
       "verdict": "pass",
-      "note": "m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> -. A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>."
+      "note": "m365tandem: delete what? A draft only you see: m365tandem draft set <conversation> --text \"...\". A message already sent, which other people see: m365tandem delete-sent <conversation>#<message id>."
     },
     {
       "claim": "cli.ambiguous-verbs",
@@ -1540,13 +1540,13 @@
       "claim": "cli.read-json",
       "surface": "meeting",
       "verdict": "pass",
-      "note": "`m365tandem meeting s5wqme --json` → one JSON document"
+      "note": "`m365tandem meeting \"mock-event-allday|2026-10-30T07:00:00.000Z\" --json` → one JSON document"
     },
     {
       "claim": "cli.read-json",
       "surface": "notes",
       "verdict": "pass",
-      "note": "`m365tandem notes s5wqme --json` → one JSON document"
+      "note": "`m365tandem notes \"mock-event-allday|2026-10-30T07:00:00.000Z\" --json` → one JSON document"
     },
     {
       "claim": "cli.missing-arg",
@@ -1606,19 +1606,19 @@
       "claim": "cli.missing-arg",
       "surface": "note",
       "verdict": "pass",
-      "note": "`m365tandem note` → exit 2; stderr: m365tandem: which meeting? m365tandem prep note <meeting> - (the note on stdin), for example: \"...\" | m365tandem prep note next -"
+      "note": "`m365tandem note` → exit 2; stderr: m365tandem: which meeting? m365tandem prep note <meeting> --text \"...\" (or --file <path>), for example: m365tandem prep note next --text \"Sam asks for the rollout numbers.\""
     },
     {
       "claim": "cli.one-line-error",
       "surface": "note (no argument)",
       "verdict": "pass",
-      "note": "m365tandem: which meeting? m365tandem prep note <meeting> - (the note on stdin), for example: \"...\" | m365tandem prep note next -"
+      "note": "m365tandem: which meeting? m365tandem prep note <meeting> --text \"...\" (or --file <path>), for example: m365tandem prep note next --text \"Sam asks for the rollout numbers.\""
     },
     {
       "claim": "cli.error-teaches",
       "surface": "note (no argument)",
       "verdict": "pass",
-      "note": "m365tandem: which meeting? m365tandem prep note <meeting> - (the note on stdin), for example: \"...\" | m365tandem prep note next -"
+      "note": "m365tandem: which meeting? m365tandem prep note <meeting> --text \"...\" (or --file <path>), for example: m365tandem prep note next --text \"Sam asks for the rollout numbers.\""
     },
     {
       "claim": "cli.unknown-flag",
@@ -1876,31 +1876,31 @@
       "claim": "cli.unknown-flag",
       "surface": "attention",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --why-file, --json. Details: m365tandem attention --help."
     },
     {
       "claim": "cli.one-line-error",
       "surface": "attention --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --why-file, --json. Details: m365tandem attention --help."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "attention --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for attention. Its flags: --all, --about, --why, --ask, --message, --agent, --why-file, --json. Details: m365tandem attention --help."
     },
     {
       "claim": "cli.unknown-flag",
       "surface": "attention --allx",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --allx for attention. Did you mean --all? Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+      "note": "m365tandem: unknown flag --allx for attention. Did you mean --all? Its flags: --all, --about, --why, --ask, --message, --agent, --why-file, --json. Details: m365tandem attention --help."
     },
     {
       "claim": "cli.flag-suggest",
       "surface": "attention --allx",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --allx for attention. Did you mean --all? Its flags: --all, --about, --why, --ask, --message, --agent, --json. Details: m365tandem attention --help."
+      "note": "m365tandem: unknown flag --allx for attention. Did you mean --all? Its flags: --all, --about, --why, --ask, --message, --agent, --why-file, --json. Details: m365tandem attention --help."
     },
     {
       "claim": "cli.unknown-flag",
@@ -1954,31 +1954,31 @@
       "claim": "cli.unknown-flag",
       "surface": "matters",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --text, --file, --matters, --json. Details: m365tandem matters --help."
     },
     {
       "claim": "cli.one-line-error",
       "surface": "matters --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --text, --file, --matters, --json. Details: m365tandem matters --help."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "matters --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for matters. Its flags: --series, --why, --agent, --text, --file, --matters, --json. Details: m365tandem matters --help."
     },
     {
       "claim": "cli.unknown-flag",
       "surface": "matters --seris",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --seris for matters. Did you mean --series? Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+      "note": "m365tandem: unknown flag --seris for matters. Did you mean --series? Its flags: --series, --why, --agent, --text, --file, --matters, --json. Details: m365tandem matters --help."
     },
     {
       "claim": "cli.flag-suggest",
       "surface": "matters --seris",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --seris for matters. Did you mean --series? Its flags: --series, --why, --agent, --matters, --json. Details: m365tandem matters --help."
+      "note": "m365tandem: unknown flag --seris for matters. Did you mean --series? Its flags: --series, --why, --agent, --text, --file, --matters, --json. Details: m365tandem matters --help."
     },
     {
       "claim": "cli.unknown-flag",
@@ -2032,49 +2032,61 @@
       "claim": "cli.unknown-flag",
       "surface": "prep",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --reads, --agent, --json. Details: m365tandem prep --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --text, --file, --reads, --agent, --json. Details: m365tandem prep --help."
     },
     {
       "claim": "cli.one-line-error",
       "surface": "prep --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --reads, --agent, --json. Details: m365tandem prep --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --text, --file, --reads, --agent, --json. Details: m365tandem prep --help."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "prep --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --reads, --agent, --json. Details: m365tandem prep --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for prep. Its flags: --ids, --transcript, --turns, --text, --file, --reads, --agent, --json. Details: m365tandem prep --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "prep --tex",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --tex for prep. Did you mean --text? Its flags: --ids, --transcript, --turns, --text, --file, --reads, --agent, --json. Details: m365tandem prep --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "prep --tex",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --tex for prep. Did you mean --text? Its flags: --ids, --transcript, --turns, --text, --file, --reads, --agent, --json. Details: m365tandem prep --help."
     },
     {
       "claim": "cli.unknown-flag",
       "surface": "draft",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --text, --about, --if-version, --file, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
     },
     {
       "claim": "cli.one-line-error",
       "surface": "draft --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --text, --about, --if-version, --file, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "draft --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for draft. Its flags: --text, --about, --if-version, --file, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
     },
     {
       "claim": "cli.unknown-flag",
-      "surface": "draft --abot",
+      "surface": "draft --tex",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --abot for draft. Did you mean --about? Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+      "note": "m365tandem: unknown flag --tex for draft. Did you mean --text? Its flags: --text, --about, --if-version, --file, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
     },
     {
       "claim": "cli.flag-suggest",
-      "surface": "draft --abot",
+      "surface": "draft --tex",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --abot for draft. Did you mean --about? Its flags: --about, --if-version, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
+      "note": "m365tandem: unknown flag --tex for draft. Did you mean --text? Its flags: --text, --about, --if-version, --file, --why, --note, --agent, --draft, --reads, --json. Details: m365tandem draft --help."
     },
     {
       "claim": "cli.unknown-flag",
@@ -2296,25 +2308,43 @@
       "claim": "cli.unknown-flag",
       "surface": "notes",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --agent, --json. Details: m365tandem notes --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --text, --file, --agent, --json. Details: m365tandem notes --help."
     },
     {
       "claim": "cli.one-line-error",
       "surface": "notes --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --agent, --json. Details: m365tandem notes --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --text, --file, --agent, --json. Details: m365tandem notes --help."
     },
     {
       "claim": "cli.error-teaches",
       "surface": "notes --ax-xray-no-such-flag",
       "verdict": "pass",
-      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --agent, --json. Details: m365tandem notes --help."
+      "note": "m365tandem: unknown flag --ax-xray-no-such-flag for notes. Its flags: --text, --file, --agent, --json. Details: m365tandem notes --help."
+    },
+    {
+      "claim": "cli.unknown-flag",
+      "surface": "notes --tex",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --tex for notes. Did you mean --text? Its flags: --text, --file, --agent, --json. Details: m365tandem notes --help."
+    },
+    {
+      "claim": "cli.flag-suggest",
+      "surface": "notes --tex",
+      "verdict": "pass",
+      "note": "m365tandem: unknown flag --tex for notes. Did you mean --text? Its flags: --text, --file, --agent, --json. Details: m365tandem notes --help."
     },
     {
       "claim": "cli.reads-stay-reads",
       "surface": "27 reads, their flag probes and the missing-argument probes",
       "verdict": "pass",
       "note": "state: log --json; draft status --json"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "matters",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
     },
     {
       "claim": "cli.text-as-argument",
@@ -2331,6 +2361,12 @@
     {
       "claim": "cli.text-as-argument",
       "surface": "notes",
+      "verdict": "pass",
+      "note": "an argument form is listed beside stdin"
+    },
+    {
+      "claim": "cli.text-as-argument",
+      "surface": "draft",
       "verdict": "pass",
       "note": "an argument form is listed beside stdin"
     },
@@ -2410,7 +2446,7 @@
       "claim": "cli.others-need-why",
       "surface": "reply",
       "verdict": "pass",
-      "note": "`m365tandem reply axxraynoref#axxraynoref axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+      "note": "`m365tandem reply axxraynoref#axxraynoref --text axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: reply needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
     },
     {
       "claim": "cli.one-line-error",
@@ -2428,7 +2464,7 @@
       "claim": "cli.wrong-ref-first",
       "surface": "reply",
       "verdict": "pass",
-      "note": "`m365tandem reply axxraynoref#axxraynoref axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+      "note": "`m365tandem reply axxraynoref#axxraynoref --text axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody as…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
     },
     {
       "claim": "cli.one-line-error",
@@ -2452,7 +2488,7 @@
       "claim": "cli.others-preview",
       "surface": "reply",
       "verdict": "pass",
-      "note": "`m365tandem reply 1zijq8#1700000900000 \"ax-xray preview text\" --agent ax-xray --why \"ax-xray conformance probe: nobody a…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Replying to Alex Example's thread in \"Design reviews\" a…"
+      "note": "`m365tandem reply 1zijq8#1700000900000 --text \"ax-xray preview text\" --agent ax-xray --why \"ax-xray conformance probe: n…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Replying to Alex Example's thread in \"Design reviews\" a…"
     },
     {
       "claim": "cli.others-need-why",
@@ -2506,7 +2542,7 @@
       "claim": "cli.others-need-why",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "`m365tandem edit-sent axxraynoref#axxraynoref axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
+      "note": "`m365tandem edit-sent axxraynoref#axxraynoref --text axxraynoref --agent ax-xray` → exit 2; stderr: m365tandem: edit-sent needs --why \"<who asked you, and what they said>\": other people will see this as the person's, so it is logged with your reason."
     },
     {
       "claim": "cli.one-line-error",
@@ -2524,7 +2560,7 @@
       "claim": "cli.wrong-ref-first",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "`m365tandem edit-sent axxraynoref#axxraynoref axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobody asked…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
+      "note": "`m365tandem edit-sent axxraynoref#axxraynoref --text axxraynoref --agent ax-xray --why \"ax-xray conformance probe: nobod…` → exit 1; stderr: m365tandem: no conversation matches \"axxraynoref\". Try \"m365tandem conversations\"."
     },
     {
       "claim": "cli.one-line-error",
@@ -2548,7 +2584,7 @@
       "claim": "cli.others-preview",
       "surface": "edit-sent",
       "verdict": "pass",
-      "note": "`m365tandem edit-sent 1zijq8#1700001500000 \"ax-xray preview text\" --agent ax-xray --why \"ax-xray conformance probe: nobo…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Editing the person's sent message in \"Design reviews\". …"
+      "note": "`m365tandem edit-sent 1zijq8#1700001500000 --text \"ax-xray preview text\" --agent ax-xray --why \"ax-xray conformance prob…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Editing the person's sent message in \"Design reviews\". …"
     },
     {
       "claim": "cli.others-need-why",
@@ -2692,7 +2728,7 @@
       "claim": "cli.others-preview",
       "surface": "join",
       "verdict": "pass",
-      "note": "`m365tandem join meeting:s5wqme --agent ax-xray --why \"ax-xray conformance probe: nobody asked, so this must not reach a…` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Opening \"Design review\" in the Teams app on the person'…"
+      "note": "`m365tandem join \"meeting:mock-event-allday|2026-10-30T07:00:00.000Z\" --agent ax-xray --why \"ax-xray conformance probe: …` → exit 0; stdout: Dry run: nothing was sent, queued or logged. Without --dry-run: Opening \"Team offsite week\" in the Teams app on the per…"
     },
     {
       "claim": "cli.others-need-why",
@@ -2744,13 +2780,13 @@
     },
     {
       "claim": "cli.no-stack-trace",
-      "surface": "all 145 calls",
+      "surface": "all 147 calls",
       "verdict": "pass",
       "note": ""
     },
     {
       "claim": "cli.exit-codes",
-      "surface": "all 145 calls",
+      "surface": "all 147 calls",
       "verdict": "pass",
       "note": "documented: 0, 1, 2, 3, 4, 5, 6, 7"
     },
@@ -2758,7 +2794,7 @@
       "claim": "http.index",
       "surface": "GET /api",
       "verdict": "pass",
-      "note": "`GET /api` → 200 {\"routes\":[\"GET /api\",\"GET /api/health\",\"GET /api/update\",\"POST /api/update/check\",\"POST /api/update/restart\",\"GET /api/state\",\"GET /api/freshness\",\"GET /api/c…; names 131 of 131 routes"
+      "note": "`GET /api` → 200 {\"routes\":[\"GET /api\",\"GET /api/health\",\"GET /api/update\",\"POST /api/update/check\",\"POST /api/update/restart\",\"GET /api/state\",\"GET /api/freshness\",\"GET /api/c…; names 132 of 132 routes"
     },
     {
       "claim": "http.unknown-route",
@@ -3739,5 +3775,5 @@
       "note": "nothing changed"
     }
   ],
-  "surfaces": 230
+  "surfaces": 232
 }
