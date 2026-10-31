@@ -97,10 +97,30 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
-          # PROBE (never merge): plan #321's change as a reduced pull request run would, though this
-          # branch also changes ci.yml (which would otherwise run everything).
-          printf 'full=false\ncomponents=emoji-picker\ninstalls=queue\n' >> "$GITHUB_OUTPUT"
-
+          # PROBE (never merge): plan #321's change as its reduced pull request run did, though this
+          # branch also changes ci.yml, which would otherwise run everything.
+          if [ "$HEAD_REF" = probe/fallback-321 ]; then printf 'full=false\ncomponents=emoji-picker\ninstalls=queue\n' >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            node scripts/test-impact.mjs plan HEAD^1 HEAD || {
+              echo "::warning::Could not plan the tests, so everything runs."
+              echo "full=true" >> "$GITHUB_OUTPUT"
+            }
+            # The install test's own files: scripts/install-test.sh, what it runs and reads, and the
+            # jobs here that run it. README.md counts when its Next.js steps change (the quick start's
+            # and the Next.js section's add commands and files, scripts/readme-steps.mjs same), not
+            # when a component adds itself to the catalog.
+            installPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|UPGRADING\.md|docs/OuroProvider\.md|test/install-fixture[^/]*/.+|scripts/(install-test\.sh|install-check\.mjs|source-rules\.mjs|readme-steps\.mjs|upgrade-note\.mjs|latest-release\.mjs|namespace\.sh|registry\.mts|components\.mts|shard\.mjs|shard-timings\.json|vitest-shards\.mts|test-impact\.mjs))$'
+            if git diff --name-only HEAD^1 HEAD | grep -qE "$installPaths" || ! node scripts/readme-steps.mjs same HEAD^1; then
+              echo "This pull request changes the install test, so it runs here too."
+              echo "installs=here" >> "$GITHUB_OUTPUT"
+            else
+              echo "The install test runs in the merge queue: its checks pass here with a notice."
+              echo "installs=queue" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
+            echo "full=true" >> "$GITHUB_OUTPUT"
+          fi
   checks:
     # The checks that need no browser: the generated docs, the types, the lint, the site as Pages
     # builds it with every internal link in it, in exact letter case (scripts/links.mjs; the
