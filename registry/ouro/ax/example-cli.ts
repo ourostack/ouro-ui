@@ -43,7 +43,9 @@ const exampleCli = defineCli({
   name: "notes",
   about: ["notes: a toy tool built from Ouro AX definitions."],
   exits,
-  ambiguous: { edit: [{ means: "a note only you see", use: "note <room> <text>" }, { means: "a message other people see", use: "post <room> <text> --why <why>" }] },
+  ambiguous: Object.fromEntries(
+    ["edit", "delete", "remove"].map((word) => [word, [{ means: "a note only you see", use: "note <room> <text>" }, { means: "a message other people see", use: "post <room> <text> --why <why>" }]]),
+  ),
   commands: [
     defineCommand({
       name: "rooms",
