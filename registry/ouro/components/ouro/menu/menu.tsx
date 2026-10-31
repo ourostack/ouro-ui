@@ -348,7 +348,7 @@ function MenuSurface({
   closeLabel?: string | undefined;
 }): JSX.Element {
   const Positioner = context ? ContextMenu.Positioner : BaseMenu.Positioner;
-  const portal = usePortalContainer("Menu");
+  const portal = usePortalContainer("Menu", true);
   return (
     <BaseMenu.Portal {...portal} data-ouro="menu-portal" className={floatingPortalClass}>
       <PortalScope>

@@ -22,6 +22,19 @@ import { ToggleGroup } from "@/registry/ouro/components/ouro/toggle/toggle-group
   value={styles}
   onValueChange={setStyles}
 />
+<ToggleGroup
+  label="Show"
+  hideLabel
+  variant="outline"
+  shape="pill"
+  size="xs"
+  items={[
+    { value: "all", label: "All" },
+    { value: "unread", label: "Unread" },
+  ]}
+  value={filter}
+  onValueChange={(next) => setFilter(next ?? "all")}
+/>
 ```
 
 ## Use instead when
@@ -41,7 +54,8 @@ The props the modes share. Type: `ToggleGroupProps`.
 | `items` (required) | `readonly ToggleGroupItem[]` |  | The toggles, in order. |
 | `label` (required) | `string` |  | Names the group ("Text style"). Shown above it unless `hideLabel` is set; screen readers always hear it. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the group element (`role="group"`). |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Every toggle's size, as Button's. shadcn's `default` is `md`. |
+| `shape` | `"rect" \| "pill"` | `"rect"` | Every toggle's shape: `rect` has the theme's corners and medium text; `pill` is fully rounded with regular-weight text, for filter chips such as All, Unread and Mentions. |
+| `size` | `"sm" \| "md" \| "lg" \| "xs"` | `"md"` | Every toggle's size, as Button's, plus `xs` for a row of filter chips: 24px with a fine pointer, with a 44px touch target on phones. shadcn's `default` is `md`. |
 | `variant` | `"outline" \| "plain"` | `"plain"` | `plain` toggles have no border until pressed; `outline` ones always have one. shadcn's `default` is `plain`. |
 
 ## Modes

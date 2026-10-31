@@ -1,0 +1,1 @@
+- New: ShowMore folds content of any kind to a height with `maxHeight`, under a fade, and unfolds when keyboard focus moves below the fold.

@@ -191,7 +191,7 @@ function SelectControl({
     onValueChange?.(next);
   };
 
-  const portal = usePortalContainer("Select");
+  const portal = usePortalContainer("Select", true);
   return (
     <BaseSelect.Root<string, boolean>
       items={items}

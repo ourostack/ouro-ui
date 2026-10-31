@@ -1,12 +1,13 @@
 "use client";
 
-import { isValidElement, useEffect, useRef, useState, type CSSProperties, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { isValidElement, useEffect, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
+  foldClass,
   itemClass,
   listClass,
   showMoreHint,
@@ -49,6 +50,8 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & {
    * @claim "The button's text while everything shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
    */
   showLessLabel?: string | undefined;
+  /** Not with `lines`: fold by height or by lines, not both. */
+  maxHeight?: never;
   /** List modes only: not with `lines`. */
   items?: never;
   /**
@@ -58,6 +61,57 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & {
    */
   initialCount?: never;
   /** List modes only: not with `lines`. */
+  ordered?: never;
+  /** Only for a list that loads more: with `items`, without `initialCount` or `lines`. */
+  onShowMore?: never;
+  /** Only with `onShowMore`. */
+  hasMore?: never;
+  /** Only with `onShowMore`. */
+  loading?: never;
+  /** Only with `onShowMore`. */
+  loadingLabel?: never;
+  /** Only with `onShowMore`. */
+  loadedLabel?: never;
+  /** Only with `onShowMore`. */
+  noMoreLabel?: never;
+  /** Only with `onShowMore`. */
+  href?: never;
+};
+
+/** Long content of any kind folded to `maxHeight` pixels under a fade, with "Show more" and "Show less". */
+export type ShowMoreHeightProps = ShowMoreBaseProps & {
+  /**
+   * How tall the content shows while folded, in CSS pixels, with its last part fading out.
+   * Content at most a fifth taller shows whole, since a button that reveals a line or two
+   * helps nobody. The button appears only when the content is folded.
+   *
+   * @claim "Content at most a fifth taller" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > shows content a little taller than maxHeight whole, with no button)
+   */
+  maxHeight: number;
+  /**
+   * The content: rich text, pictures, cards. Screen readers always read all of it, and
+   * moving keyboard focus into the folded part unfolds it, so nothing focusable is out of sight.
+   *
+   * @claim "moving keyboard focus into the folded" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > unfolds when keyboard focus moves into the folded part)
+   */
+  children: ReactNode;
+  /**
+   * The button's text while everything shows. Translate it here. @default "Show less"
+   *
+   * @claim "The button's text while everything shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > unfolds when keyboard focus moves into the folded part)
+   */
+  showLessLabel?: string | undefined;
+  /** Not with `maxHeight`: fold by height or by lines, not both. */
+  lines?: never;
+  /** List modes only: not with `maxHeight`. */
+  items?: never;
+  /**
+   * Only with `items` and no `onShowMore`.
+   *
+   * @claim "Only with `items` and no `onShowMore`" registry/ouro/components/ouro/collapsible/show-more.test-d.ts verify:fileLine(registry/ouro/components/ouro/collapsible/show-more.test-d.ts, /initialCount:\s3;\sonShowMore:\s\(\)\s=>\svoid;\shasMore:\strue\s\}>\(\)\.not\.toExtend/)
+   */
+  initialCount?: never;
+  /** List modes only: not with `maxHeight`. */
   ordered?: never;
   /** Only for a list that loads more: with `items`, without `initialCount` or `lines`. */
   onShowMore?: never;
@@ -89,6 +143,8 @@ export interface ShowMoreListProps extends ShowMoreBaseProps {
   ordered?: boolean | undefined;
   /** Text mode only: not with `items`. */
   lines?: never;
+  /** Height mode only: not with `items`. */
+  maxHeight?: never;
   /** Text mode only: a list takes `items`. */
   children?: never;
 }
@@ -161,8 +217,11 @@ export type ShowMoreLoadProps = ShowMoreListProps & {
   showLessLabel?: never;
 };
 
-/** Props for {@link ShowMore}: clamp text with `lines`, cut a list with `items`, or grow it from the server with `onShowMore`. */
-export type ShowMoreProps = ShowMoreLinesProps | ShowMoreItemsProps | ShowMoreLoadProps;
+/**
+ * Props for {@link ShowMore}: clamp text with `lines`, fold any content with `maxHeight`, cut a
+ * list with `items`, or grow it from the server with `onShowMore`.
+ */
+export type ShowMoreProps = ShowMoreLinesProps | ShowMoreHeightProps | ShowMoreItemsProps | ShowMoreLoadProps;
 
 const DEFAULT_COUNT = 5;
 const DEFAULT_LINES = 3;
@@ -197,10 +256,13 @@ function rowKey(item: ReactNode, index: number): string | number {
 }
 
 const isCount = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
+const isHeight = (value: unknown): value is number => Number.isFinite(value) && (value as number) > 0;
+const DEFAULT_HEIGHT = 240;
 
 /**
  * "Show more" for a long list or a long text. It cuts a list to its first items, clamps text
- * to a number of lines, or grows a list a page at a time from the server, and moves focus to
+ * to a number of lines, folds content of any kind (a long post with pictures) to a height
+ * under a fade, or grows a list a page at a time from the server, and moves focus to
  * the first newly shown item, so keyboard and screen reader users land on what they asked
  * for. A list that loads more also says how many items now show. The visible items are in
  * the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping
@@ -215,12 +277,14 @@ const isCount = (value: unknown): value is number => typeof value === "number" &
  * @example
  * <ShowMore items={reviews.map((review) => <Review key={review.id} {...review} />)} initialCount={3} />
  * <ShowMore lines={3}>{recipe.description}</ShowMore>
+ * <ShowMore maxHeight={180}><Post body={post.body} /></ShowMore>
  * <ShowMore items={rows} hasMore={Boolean(nextCursor)} loading={loading} onShowMore={loadNext} href={nextHref} />
+ * @claim "folds content of any kind" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > folds long content to maxHeight under a fade, with Show more)
  * @claim "ShowMore draws the list itself: put" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)
  */
 export function ShowMore(props: ShowMoreProps): JSX.Element {
   const { showMoreLabel = "Show more", className, ref, maxLines, limit } = props;
-  const { lines, initialCount, items } = props;
+  const { lines, initialCount, items, maxHeight } = props;
   useAppearanceClassNameCheck(
     "ShowMore",
     className,
@@ -239,9 +303,25 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
             ],
           lines !== undefined &&
             !isCount(lines) && [`lines={${String(lines)}} is not a whole number above 0`, `<ShowMore lines={${DEFAULT_LINES}}>`],
+          maxHeight !== undefined &&
+            !isHeight(maxHeight) && [`maxHeight={${String(maxHeight)}} is not a number of pixels above 0`, `<ShowMore maxHeight={${DEFAULT_HEIGHT}}>`],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  if (items === undefined && maxHeight !== undefined) {
+    const { children, showLessLabel = "Show less" } = props as ShowMoreHeightProps;
+    return (
+      <ShowMoreHeight
+        maxHeight={isHeight(maxHeight) ? maxHeight : DEFAULT_HEIGHT}
+        showMoreLabel={showMoreLabel}
+        showLessLabel={showLessLabel}
+        className={className}
+        rootRef={ref}
+      >
+        {children}
+      </ShowMoreHeight>
+    );
+  }
   if (items === undefined) {
     // Text mode. A guessed maxLines (a type error) still clamps, as lines would.
     const { children, showLessLabel = "Show less" } = props as ShowMoreLinesProps;
@@ -302,6 +382,76 @@ function ShowMoreText({
       </div>
       {overflowing && (
         <Button variant="plain" size="sm" className="-ms-(--ouro-button-px)" data-ouro-show-more-toggle="" data-ouro-control="show-more" data-ouro-part="toggle" onClick={() => setExpanded(!expanded)}>
+          {expanded ? showLessLabel : showMoreLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ShowMoreHeight({
+  maxHeight,
+  children,
+  showMoreLabel,
+  showLessLabel,
+  className,
+  rootRef,
+}: {
+  maxHeight: number;
+  children: ReactNode;
+  showMoreLabel: string;
+  showLessLabel: string;
+  className: string | undefined;
+  rootRef: Ref<HTMLDivElement> | undefined;
+}): JSX.Element {
+  const [expanded, setExpanded] = useState(false);
+  // Unknown until measured after mount, so server HTML is folded with no button and hydration
+  // matches; content that turns out to fit then shows whole.
+  const [fits, setFits] = useState<boolean | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const content = contentRef.current!;
+    // The observer measures once as it starts, and again on every change of size.
+    const observer = new ResizeObserver(() => setFits(content.scrollHeight <= maxHeight * 1.2));
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [maxHeight]);
+  const folded = !expanded && fits !== true;
+  const toggle = () => {
+    if (expanded) {
+      setExpanded(false);
+      // The content shrinks above the button; keep the button on screen.
+      requestAnimationFrame(() => buttonRef.current?.scrollIntoView({ block: "nearest" }));
+    } else setExpanded(true);
+  };
+  // Focus that lands below the fold (a link, a button in a card) unfolds the content.
+  const reveal = (event: FocusEvent<HTMLDivElement>) => {
+    // Unfolded, nothing is below the box's bottom, so this is folded content only.
+    const fold = event.currentTarget;
+    // The browser may already have scrolled the clipped box to the focused element, so measure
+    // from the box's unscrolled top.
+    const bottom = (event.target as HTMLElement).getBoundingClientRect().bottom - fold.getBoundingClientRect().top + fold.scrollTop;
+    if (bottom > fold.clientHeight) {
+      fold.scrollTop = 0;
+      setExpanded(true);
+    }
+  };
+  return (
+    <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
+      <div
+        data-ouro-show-more-fold=""
+        data-folded={folded && fits === false ? "" : undefined}
+        onFocus={reveal}
+        className={cn(foldClass, folded && "max-h-(--ouro-show-more-height) overflow-hidden")}
+        style={{ "--ouro-show-more-height": `${maxHeight}px` } as CSSProperties}
+      >
+        <div ref={contentRef} className="flow-root">
+          {children}
+        </div>
+      </div>
+      {fits === false && (
+        <Button ref={buttonRef} variant="plain" size="sm" className="-ms-(--ouro-button-px)" data-ouro-show-more-toggle="" data-ouro-control="show-more" data-ouro-part="toggle" onClick={toggle}>
           {expanded ? showLessLabel : showMoreLabel}
         </Button>
       )}

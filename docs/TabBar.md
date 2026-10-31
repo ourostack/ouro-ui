@@ -31,7 +31,7 @@ Tabs render through `OuroProvider`'s `linkComponent`, so your router navigates. 
 
 ## Use instead when
 
-- Use `Navbar` instead for the links across the top of a wider screen, `Sidebar` for many destinations, and `Tabs` for views of one page.
+- Use `Navbar` instead for the links across the top of a wider screen, `NavigationRail` for the same pages down the side of a wider screen, `Sidebar` for many destinations, and `Tabs` for views of one page.
 
 ## Props
 

@@ -14,6 +14,8 @@ export default function ToggleGroupSection() {
         { value: "right", label: "Ouro right" },
       ]}
       defaultValue="left"
+      shape="pill"
+      size="xs"
     />
   );
 }

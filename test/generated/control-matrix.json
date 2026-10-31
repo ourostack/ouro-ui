@@ -1122,6 +1122,18 @@
     ]
   },
   {
+    "item": "show-more",
+    "stem": "show-more",
+    "mode": "height",
+    "part": "toggle",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ShowMore/LongPost"
+    ]
+  },
+  {
     "item": "card",
     "stem": "card",
     "mode": "link",
@@ -1498,7 +1510,8 @@
     "stories": [
       "ToggleGroup/Playground",
       "ToggleGroup/Modes",
-      "ToggleGroup/Controlled"
+      "ToggleGroup/Controlled",
+      "ToggleGroup/Pills"
     ]
   },
   {
@@ -2488,83 +2501,51 @@
     ]
   },
   {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
     "mode": "default",
-    "part": "emoji",
-    "role": "button",
-    "portal": true,
+    "part": "link",
+    "role": "link",
+    "portal": false,
     "touch": false,
     "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
     ]
   },
   {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
     "mode": "default",
-    "part": "quick",
+    "part": "button",
     "role": "button",
-    "portal": true,
+    "portal": false,
     "touch": false,
     "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
     ]
   },
   {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
+    "item": "navigation-rail",
+    "stem": "navigation-rail",
     "mode": "default",
-    "part": "category",
+    "part": "more",
     "role": "button",
-    "portal": true,
+    "portal": false,
     "touch": false,
     "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
-    ]
-  },
-  {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
-    "mode": "default",
-    "part": "skin-tone",
-    "role": "button",
-    "portal": true,
-    "touch": false,
-    "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
-    ]
-  },
-  {
-    "item": "emoji-picker",
-    "stem": "emoji-picker",
-    "mode": "default",
-    "part": "tone",
-    "role": "radio",
-    "portal": true,
-    "touch": false,
-    "stories": [
-      "EmojiPicker/Reactions",
-      "EmojiPicker/InsertIntoText",
-      "EmojiPicker/SkinTone",
-      "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "NavigationRail/Playground",
+      "NavigationRail/Views",
+      "NavigationRail/IconsOnly",
+      "NavigationRail/Overflow",
+      "NavigationRail/LongLabels"
     ]
   },
   {
@@ -2582,6 +2563,8 @@
       "TimeGrid/Statuses",
       "TimeGrid/Locales",
       "TimeGrid/NowAdornment",
+      "TimeGrid/BackgroundEvents",
+      "TimeGrid/BackgroundEventsDay",
       "TimeGrid/WithToolbar"
     ]
   },

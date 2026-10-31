@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type CSSProperties, type JSX } from "react";
+import { useRef, useState, type CSSProperties, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { TimeGrid, type TimeGridEvent, type TimeGridView } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import { addDays } from "@/registry/ouro/components/ouro/calendar/calendar-styles";
@@ -138,6 +139,72 @@ export const NowAdornment: Story = {
       </svg>
     ),
   },
+};
+
+/** A made-up design team's shared calendar, drawn beside the person's own week. */
+const shared: TimeGridEvent[] = [
+  { id: "crit-9", title: "Design crit", start: at(9, "11:00"), end: at(9, "12:00"), tone: "secondary", description: "Studio 2" },
+  { id: "research", title: "Research readout", start: at(10, "10:00"), end: at(10, "11:30"), description: "18 people" },
+  { id: "crit-11", title: "Design crit", start: at(11, "11:00"), end: at(11, "12:00"), tone: "secondary", description: "Studio 2" },
+  { id: "portfolio", title: "Portfolio review", start: at(12, "10:00"), end: at(12, "11:00"), description: "Studio 2" },
+  { id: "hands", title: "All hands", start: at(12, "10:30"), end: at(12, "11:30"), tone: "success", description: "412 people" },
+  { id: "tokens", title: "Design tokens sync", start: at(12, "14:00"), end: at(12, "14:30"), tone: "secondary" },
+  { id: "showcase", title: "Friday showcase", start: at(13, "15:00"), end: at(13, "16:00"), tone: "success", description: "Atrium" },
+];
+
+/** A load bar with words of its own: how many of a day's working hours are taken. */
+function DayLoad({ day, events }: { day: string; events: TimeGridEvent[] }): JSX.Element {
+  const mine = events.filter((event) => typeof event.start === "string" && event.start.startsWith(`${day}T`) && event.end !== undefined);
+  const hours = mine.reduce((sum, event) => sum + (Date.parse(String(event.end)) - Date.parse(String(event.start))) / 3_600_000, 0);
+  const share = Math.min(1, hours / 9);
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ flex: "1 1 auto", height: 4, borderRadius: 2, background: "var(--muted)", overflow: "hidden" }} aria-hidden="true">
+        <span style={{ display: "block", width: `${share * 100}%`, height: "100%", background: "var(--primary)" }} />
+      </span>
+      <span style={{ whiteSpace: "nowrap" }}>{hours === 0 ? "Free" : `${Math.round(hours * 10) / 10} h`}</span>
+    </span>
+  );
+}
+
+/**
+ * The design team's shared calendar beside the person's own week: thin bars that name
+ * themselves in a tooltip, each opening a popover of the app's own, anchored to the bar. Under
+ * each date the app shows how full the day is.
+ */
+export const BackgroundEvents: Story = {
+  render: function Render(args): JSX.Element {
+    const anchor = useRef<HTMLElement | null>(null);
+    const [open, setOpen] = useState<TimeGridEvent | null>(null);
+    return (
+      <div>
+        <TimeGrid
+          {...args}
+          view="work-week"
+          backgroundEvents={shared}
+          backgroundLabel="Design team"
+          expandedId={open?.id ?? null}
+          onEventSelect={(event, { element, background }) => {
+            if (!background) return;
+            anchor.current = element;
+            setOpen(event);
+          }}
+          renderDaySummary={(day) => <DayLoad day={day} events={week} />}
+        />
+        <Popover title={open?.title ?? "Event"} open={open !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={anchor} side="right" align="start">
+          <p style={{ margin: 0, fontSize: "14px", lineHeight: "20px" }}>{open?.description ?? "On the design team's calendar"}</p>
+          <Button size="sm" variant="outline" onClick={() => setOpen(null)}>
+            Add to my calendar
+          </Button>
+        </Popover>
+      </div>
+    );
+  },
+};
+
+/** A day has room to label the shared calendar's events, in a lane beside the person's own. */
+export const BackgroundEventsDay: Story = {
+  args: { view: "day", backgroundEvents: shared, backgroundLabel: "Design team" },
 };
 
 /** A chevron drawn in the text colour, mirrored in a right-to-left page. */

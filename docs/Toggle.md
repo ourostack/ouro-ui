@@ -13,6 +13,7 @@ import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 ```tsx
 <Toggle label="Bold" icon={BoldIcon} hideLabel pressed={bold} onPressedChange={setBold} />
 <Toggle label="Show completed" variant="outline" defaultPressed />
+<Toggle label="Unread" variant="outline" shape="pill" size="xs" />
 ```
 
 ## Use instead when
@@ -26,7 +27,7 @@ Type: `ToggleProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development; use `variant` and `size` instead. |
+| `className` | `string` |  | Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development; use `variant`, `size` and `shape` instead. |
 | `defaultPressed` | `boolean` | `false` | Whether the toggle starts on, when it keeps its own state. |
 | `disabled` | `boolean` |  | Keeps the toggle from being pressed, and fades it. |
 | `hideLabel` | `boolean` |  | Shows only the icon; the label stays the toggle's name for screen readers. Pass `icon` with it. |
@@ -35,7 +36,8 @@ Type: `ToggleProps`.
 | `onPressedChange` | `((pressed: boolean) => void)` |  | Called with the new state when the person presses the toggle. |
 | `pressed` | `boolean` |  | Whether the toggle is on, when you control it. Pair it with `onPressedChange`. |
 | `ref` | `Ref<HTMLButtonElement>` |  | The button element. |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Control size, as Button's: each is taller on phones and steps down to desktop density from the `sm` breakpoint with a fine pointer. shadcn's `default` is `md`. |
+| `shape` | `"rect" \| "pill"` | `"rect"` | `rect` has the theme's corners and medium text; `pill` is fully rounded with regular-weight text, for filter chips. With `hideLabel` a pill is a circle. |
+| `size` | `"sm" \| "md" \| "lg" \| "xs"` | `"md"` | Control size, as Button's, plus `xs` for dense rows of filter chips: each is taller on phones and steps down to desktop density from the `sm` breakpoint with a fine pointer. `xs` is 24px there and keeps a 44px touch target on phones. shadcn's `default` is `md`. |
 | `variant` | `"outline" \| "plain"` | `"plain"` | `plain` has no border until pressed; `outline` always has one. Either way a pressed toggle gets the primary tint. shadcn's `default` is `plain`. |
 
 ## Native attributes

@@ -184,8 +184,8 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
  * the links are in the server HTML from 640px up.
  *
  * Put it in a `SidebarLayout`, which places it beside the page and in the phone's top bar.
- * Use `Navbar` instead for a handful of links across the top, and `Tabs` for views of one
- * page.
+ * Use `Navbar` instead for a handful of links across the top, `NavigationRail` for a narrow bar
+ * of the app's top-level pages, each an icon over its label, and `Tabs` for views of one page.
  *
  * @group Navigation
  * @see https://ui.ouro.bot/docs/sidebar

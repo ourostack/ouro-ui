@@ -30,7 +30,7 @@ Type: `SkeletonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: size, margins and placement (`h-32`, `w-1/2`, `size-12`). The color and corners come from the theme and `shape`. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `shape` | `"text" \| "circle" \| "rect"` | `"rect"` | The outline of what is loading: `rect` for a block such as an image or a card, `text` for a line of text, `circle` for an avatar. Size it with layout classes: `className="h-32"`, `className="w-1/2"`, `className="size-12"`. |
+| `shape` | `"text" \| "rect" \| "circle"` | `"rect"` | The outline of what is loading: `rect` for a block such as an image or a card, `text` for a line of text, `circle` for an avatar. Size it with layout classes: `className="h-32"`, `className="w-1/2"`, `className="size-12"`. |
 
 ## Native attributes
 

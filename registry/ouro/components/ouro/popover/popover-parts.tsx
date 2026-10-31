@@ -86,7 +86,7 @@ export function PopoverTrigger({ style, ...props }: BasePopover.Trigger.Props): 
  */
 export function PopoverPortal(props: Omit<BasePopover.Portal.Props, "className">): JSX.Element {
   usePopoverPart("PopoverPortal", "…");
-  const portal = usePortalContainer("Popover");
+  const portal = usePortalContainer("Popover", true);
   return (
     <BasePopover.Portal {...portal} {...props} data-ouro="popover-portal" className={floatingPortalClass}>
       <PortalScope>{props.children}</PortalScope>

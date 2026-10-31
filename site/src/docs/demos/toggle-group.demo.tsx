@@ -19,6 +19,7 @@ const UnderlineIcon = icon(<path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14" />);
 export default function ToggleGroupDemo(): JSX.Element {
   const [styles, setStyles] = useState<string[]>(["bold"]);
   const [align, setAlign] = useState<string | null>("left");
+  const [filter, setFilter] = useState("all");
   return (
     <div className="grid justify-items-center gap-4">
       <ToggleGroup
@@ -43,6 +44,20 @@ export default function ToggleGroupDemo(): JSX.Element {
         ]}
         value={align}
         onValueChange={setAlign}
+      />
+      <ToggleGroup
+        label="Show"
+        hideLabel
+        variant="outline"
+        shape="pill"
+        size="xs"
+        items={[
+          { value: "all", label: "All" },
+          { value: "unread", label: "Unread" },
+          { value: "mentions", label: "Mentions" },
+        ]}
+        value={filter}
+        onValueChange={(next) => setFilter(next ?? "all")}
       />
     </div>
   );

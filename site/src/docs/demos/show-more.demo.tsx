@@ -15,6 +15,13 @@ export default function ShowMoreDemo(): JSX.Element {
           cover with stock and braise for three hours, until the meat falls from the bone.
         </Text>
       </ShowMore>
+      <ShowMore maxHeight={120}>
+        <div className="grid gap-2">
+          <Text><strong>Menu for the harvest supper</strong></Text>
+          <Text>Charred broccoli with tahini and a tomato and white bean soup, then braised short ribs over polenta.</Text>
+          <Text>Bring a dish if you like: we are short on salads and bread. Pear and ginger crumble closes the night.</Text>
+        </div>
+      </ShowMore>
       <ShowMore initialCount={3} items={recipes.map((title) => <Text key={title}>{title}</Text>)} />
     </div>
   );

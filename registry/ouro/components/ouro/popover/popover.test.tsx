@@ -525,6 +525,21 @@ describe("Popover server rendering", () => {
 });
 
 describe("Popover dev messages", () => {
+  it("warns when its open popover renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    await render(
+      <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+        <input aria-label="Link" />
+      </Popover>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    expect(warnings()).toEqual([
+      "[ouro-ui] Popover: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
+  });
+
   it("throws the exact fix when neither trigger nor open is passed", () => {
     // @ts-expect-error -- neither trigger nor open
     const popover = <Popover title="Share">Body</Popover>;
@@ -767,4 +782,65 @@ describe("Popover trigger press", () => {
     expect(seen.length).toBeLessThanOrEqual(2);
     expect(seen.at(-1)!.left).toBeCloseTo(restLeft, 1);
   });
+});
+
+describe("Popover and the page's scroll", () => {
+  // A long page with smooth scrolling and a scroll padding under its sticky header (a docs site's,
+  // say), scrolled to 2000px, with the trigger in that header. Opening focuses and scrolls to what
+  // the popup holds, which the browser did for the page too, as far as its end.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const reduced of [false, true]) {
+    for (const input of ["pointer", "keyboard"] as const) {
+      it(`leaves the page where it is as it opens and closes, by ${input}${reduced ? ", with reduced motion" : ""}`, async () => {
+        if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
+        await render(
+          <div style={{ height: 5000 }}>
+            <header style={{ position: "sticky", top: 0, height: 100 }}>
+              <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+                <input aria-label="Link" />
+              </Popover>
+            </header>
+          </div>,
+        );
+        window.scrollTo({ top: 2000, behavior: "instant" });
+        Object.assign(document.documentElement.style, { scrollBehavior: "smooth", scrollPaddingTop: "120px" });
+        const painted: number[] = [];
+        let reading = true;
+        const read = () => {
+          painted.push(window.scrollY);
+          if (reading) requestAnimationFrame(read);
+        };
+        requestAnimationFrame(read);
+        const opener = document.querySelector<HTMLElement>('[data-ouro="button"]')!;
+        if (input === "pointer") {
+          await commands.pointerPress({ selector: '[data-ouro="button"]', action: "down" });
+          await commands.pointerPress({ action: "up" });
+        } else {
+          opener.focus({ preventScroll: true });
+          await userEvent.keyboard("{Enter}");
+        }
+        await expect.poll(() => {
+          const open = popoverPopup();
+          return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
+        }).toBe(true);
+        await frame();
+        await frame();
+        await userEvent.keyboard("{Escape}");
+        await expect.poll(() => {
+          const open = popoverPopup();
+          return !open || (open.hasAttribute("data-closed") && open.getAnimations().length === 0);
+        }).toBe(true);
+        await frame();
+        await frame();
+        reading = false;
+        expect(painted.length).toBeGreaterThan(2);
+        expect(new Set(painted)).toEqual(new Set([2000]));
+      });
+    }
+  }
 });

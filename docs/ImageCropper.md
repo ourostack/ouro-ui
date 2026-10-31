@@ -32,7 +32,7 @@ Type: `ImageCropperProps`.
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called when it opens or closes: after Save, Cancel, Escape or the close button. |
 | `open` (required) | `boolean` |  | Whether the cropper's dialog is open. |
 | `outputWidth` | `number` | `1024` | The saved image's width in pixels; its height follows `aspect`. |
-| `shape` | `"circle" \| "rect"` | `"rect"` | `circle` shows a round frame for a profile photo; the saved image is still the square around it. |
+| `shape` | `"rect" \| "circle"` | `"rect"` | `circle` shows a round frame for a profile photo; the saved image is still the square around it. |
 | `title` | `string` | `"Crop photo"` | The dialog's title. |
 | `type` | `"image/jpeg" \| "image/png" \| "image/webp"` | `"image/jpeg"` | The saved image's format. |
 
