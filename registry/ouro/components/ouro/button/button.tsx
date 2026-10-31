@@ -7,7 +7,9 @@ import type {
   ButtonHTMLAttributes,
   ComponentType,
   JSX,
+  KeyboardEvent,
   MouseEvent,
+  PointerEvent,
   ReactNode,
   Ref,
   SVGProps,
@@ -16,6 +18,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -442,6 +445,21 @@ export function Button(props: ButtonProps): JSX.Element {
   }
 
   const { ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  // A button that opens a dialog (its own, or a component's trigger) holds the page from the press,
+  // so a release during a smooth scroll lands on it and its click opens the dialog.
+  const holdsPage =
+    buttonProps["aria-haspopup"] === "dialog"
+      ? {
+          onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+            buttonProps.onPointerDown?.(event);
+            holdPageAtPress.dialog.onPointerDown(event);
+          },
+          onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
+            buttonProps.onKeyDown?.(event);
+            holdPageAtPress.dialog.onKeyDown(event);
+          },
+        }
+      : {};
   // A type that is not a button type would submit forms (the browser's default), so it renders "button".
   const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
   return (
@@ -449,6 +467,7 @@ export function Button(props: ButtonProps): JSX.Element {
       data-ouro-control="button"
       data-ouro-part="root"
       {...buttonProps}
+      {...holdsPage}
       ref={ref as Ref<HTMLElement> | undefined}
       type={type}
       disabled={Boolean(disabled || loading)}

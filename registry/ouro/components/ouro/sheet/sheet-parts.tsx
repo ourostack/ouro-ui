@@ -9,6 +9,7 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useBackdropAnchor } from "@/registry/ouro/lib/ouro/use-backdrop-anchor";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { PortalScope } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   iosBackdrop,
@@ -214,9 +215,22 @@ export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: S
 }
 
 /** Part: the button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. */
-export function SheetTrigger(props: Drawer.Trigger.Props): JSX.Element {
+export function SheetTrigger({ onPointerDown, onKeyDown, ...props }: Drawer.Trigger.Props): JSX.Element {
   useSheetPart("SheetTrigger", "…");
-  return <Drawer.Trigger {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "sheet", "data-ouro-part": "trigger" } : {})} {...props} />;
+  return (
+    <Drawer.Trigger
+      {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "sheet", "data-ouro-part": "trigger" } : {})}
+      {...props}
+      onPointerDown={(event) => {
+        onPointerDown?.(event);
+        holdPageAtPress.dialog.onPointerDown(event);
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        holdPageAtPress.dialog.onKeyDown(event);
+      }}
+    />
+  );
 }
 
 /**
