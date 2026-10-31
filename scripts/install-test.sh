@@ -195,7 +195,10 @@ if [ "$variant" = github ]; then
   echo "::group::Type check and build"
   npx tsc -b
   npx vite build
-  runtime_only shadcn
+  # The installed files are the tag's, so they are checked against the tag's sources.
+  mkdir -p "$registry/tag"
+  git -C "$root" archive "$tag" | tar -x -C "$registry/tag"
+  OURO_SOURCE_ROOT="$registry/tag" runtime_only shadcn
   echo "::endgroup::"
   exit 0
 fi
