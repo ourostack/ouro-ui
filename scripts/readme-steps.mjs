@@ -9,6 +9,10 @@
 //                                                 writes the React Router adapter from
 //                                                 docs/OuroProvider.md under <app-dir>/src,
 //                                                 with "@/" replaced by the app's alias
+//   node scripts/readme-steps.mjs same <git-ref>  exits 0 when README.md at <git-ref> has the same
+//                                                 steps (CI's plan: a pull request that changes
+//                                                 them runs the install test itself)
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,9 +66,26 @@ export function routerAdapterFiles(markdown) {
   return files;
 }
 
+/**
+ * Whether two READMEs tell a Next.js app the same steps (`readmeSteps`): the same items in each add
+ * command, whatever release tag they pin, and the same two files. A README whose steps cannot be
+ * read differs.
+ */
+export function sameSteps(before, after) {
+  try {
+    return JSON.stringify(readmeSteps(before)) === JSON.stringify(readmeSteps(after));
+  } catch {
+    return false;
+  }
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const steps = readmeSteps(readFileSync(join(root, "README.md"), "utf8"));
   const [mode, app, alias = "@/"] = process.argv.slice(2);
+  if (mode === "same") {
+    const before = execFileSync("git", ["show", `${app}:README.md`], { cwd: root, encoding: "utf8" });
+    process.exit(sameSteps(before, readFileSync(join(root, "README.md"), "utf8")) ? 0 : 1);
+  }
+  const steps = readmeSteps(readFileSync(join(root, "README.md"), "utf8"));
   if (mode === "write-router") {
     for (const [path, content] of Object.entries(routerAdapterFiles(readFileSync(join(root, "docs/OuroProvider.md"), "utf8")))) {
       mkdirSync(dirname(join(app, "src", path)), { recursive: true });

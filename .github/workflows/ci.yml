@@ -44,6 +44,12 @@ jobs:
     #
     # A push to main whose commit the merge queue already tested (the queue fast-forwards main to
     # the commit its group's CI passed on) runs nothing more than install-github: `tested=true`.
+    #
+    # The install test (install-shard and its variants' checks, install, install-upgrade), about
+    # half of a run's runner time, runs in the merge queue, not on a pull request into main:
+    # `installs=queue`, unless the pull request changes the install test itself (`installPaths`
+    # below). Its required checks still report on the pull request, passing with a notice; every
+    # merge-queue entry, push to main, dispatched run and release branch runs it in full.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -53,6 +59,7 @@ jobs:
       full: ${{ steps.plan.outputs.full }}
       components: ${{ steps.plan.outputs.components }}
       tested: ${{ steps.tested.outputs.tested }}
+      installs: ${{ steps.plan.outputs.installs }}
     steps:
       - id: tested
         name: Did the merge queue test this commit?
@@ -95,6 +102,18 @@ jobs:
               echo "::warning::Could not plan the tests, so everything runs."
               echo "full=true" >> "$GITHUB_OUTPUT"
             }
+            # The install test's own files: scripts/install-test.sh, what it runs and reads, and the
+            # jobs here that run it. README.md counts when its Next.js steps change (the quick start's
+            # and the Next.js section's add commands and files, scripts/readme-steps.mjs same), not
+            # when a component adds itself to the catalog.
+            installPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|UPGRADING\.md|docs/OuroProvider\.md|test/install-fixture[^/]*/.+|scripts/(install-test\.sh|install-check\.mjs|source-rules\.mjs|readme-steps\.mjs|upgrade-note\.mjs|latest-release\.mjs|namespace\.sh|registry\.mts|components\.mts|shard\.mjs|shard-timings\.json|vitest-shards\.mts|test-impact\.mjs))$'
+            if git diff --name-only HEAD^1 HEAD | grep -qE "$installPaths" || ! node scripts/readme-steps.mjs same HEAD^1; then
+              echo "This pull request changes the install test, so it runs here too."
+              echo "installs=here" >> "$GITHUB_OUTPUT"
+            else
+              echo "The install test runs in the merge queue: its checks pass here with a notice."
+              echo "installs=queue" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
@@ -984,7 +1003,7 @@ jobs:
     # shipped tests, and none when it selected none (OURO_COMPONENTS). Each shard that passes
     # leaves a marker, which its variant's install check counts.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -1063,7 +1082,8 @@ jobs:
             preset: vega
     name: install (${{ matrix.variant }}, ${{ matrix.preset }})
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-*
           path: ${{ runner.temp }}/passed
@@ -1073,7 +1093,12 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           PRESET: ${{ matrix.preset }}
           SHARDS: ${{ needs.install-shard.result }}
+          INSTALLS: ${{ needs.plan.outputs.installs }}
         run: |
+          if [ "$INSTALLS" = queue ]; then
+            echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
+            exit 0
+          fi
           failed=0
           if [ "$SHARDS" != success ]; then
             echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/4) jobs."
@@ -1104,17 +1129,25 @@ jobs:
     env:
       OURO_PRESET: ${{ matrix.preset }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: needs.plan.outputs.installs == 'queue'
+        name: The install test runs in the merge queue
+        run: echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
-      - run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
-      - if: failure()
+      - if: needs.plan.outputs.installs != 'queue'
+        run: pnpm i --frozen-lockfile
+      - if: needs.plan.outputs.installs != 'queue'
+        run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
+      - if: failure() && needs.plan.outputs.installs != 'queue'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: install-${{ matrix.variant }}-${{ matrix.preset }}
@@ -1159,17 +1192,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: needs.plan.outputs.installs == 'queue'
+        name: The install test runs in the merge queue
+        run: echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: needs.plan.outputs.installs != 'queue'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
-      - run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
-      - if: failure()
+      - if: needs.plan.outputs.installs != 'queue'
+        run: pnpm i --frozen-lockfile
+      - if: needs.plan.outputs.installs != 'queue'
+        run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
+      - if: failure() && needs.plan.outputs.installs != 'queue'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: install-upgrade

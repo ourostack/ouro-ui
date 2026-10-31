@@ -952,10 +952,54 @@ for (const [event, ref, baseRef, headRef, expected] of [
       assert.doesNotMatch(calls, /CALL node/);
     } else {
       assert.match(calls, /^CALL node scripts\/test-impact\.mjs plan HEAD\^1 HEAD$/m);
-      assert.deepEqual(output, { full: "false", components: "checkbox" });
+      const { installs, ...planned } = output;
+      assert.deepEqual(planned, { full: "false", components: "checkbox" });
+      assert.ok(["queue", "here"].includes(installs), installs);
     }
   });
 }
+
+test("a pull request into main leaves the install test to the merge queue, unless it changes the install test, and its install checks still report", () => {
+  const plan = stepScript(ciJobs().plan, "Plan the tests");
+  const changed = (files) => `git() { printf '%s\\n' ${files.map((file) => `'${file}'`).join(" ")}; }\n${plan}`;
+  const pr = { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" };
+  // A component pull request: its folder, its registry entry and its README catalog line. The
+  // stand-in node exits 0, as `readme-steps.mjs same` does when the README's steps did not change.
+  const component = ["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"];
+  assert.equal(runStep(changed(component), pr).output.installs, "queue");
+  const readme = runStep(changed(component), pr, { nodeStatus: 1 });
+  assert.equal(readme.output.installs, "here", "a README whose Next.js steps changed");
+  assert.match(readme.calls, /^CALL node scripts\/readme-steps\.mjs same HEAD\^1$/m);
+  // Every file the install test runs or reads, each one alone, and the jobs that run it.
+  const installFiles = [".github/workflows/ci.yml", "package.json", "pnpm-lock.yaml", "UPGRADING.md", "docs/OuroProvider.md", "test/install-fixture/package.json", "test/install-fixture-tests/vitest.config.ts", "test/install-fixture-next/src/app/page.tsx", "test/install-fixture-upgrade/vitest.config.ts"];
+  const script = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
+  const used = [...new Set([...script.matchAll(/\$root\/(scripts\/[\w.-]+)/g)].map((match) => match[1]))];
+  // ...and the local modules those scripts import.
+  const imported = used.flatMap((file) => [...readFileSync(join(root, file), "utf8").matchAll(/from "\.\/([\w.-]+)"/g)].map((match) => `scripts/${match[1]}`)).filter((file) => existsSync(join(root, file)));
+  for (const file of ["scripts/registry.mts", "scripts/latest-release.mjs", "scripts/shard.mjs", "scripts/readme-steps.mjs"]) assert.ok(used.includes(file), `${file} among ${used.join(", ")}`);
+  assert.ok(imported.includes("scripts/source-rules.mjs"), imported.join(", "));
+  for (const file of new Set(["scripts/install-test.sh", "scripts/shard-timings.json", ...used, ...imported, ...installFiles])) {
+    assert.equal(runStep(changed([file]), pr).output.installs, "here", file);
+  }
+  // Everything else runs the install test: the merge queue, main, dispatched runs and release branches (no installs output).
+  for (const env of [{ EVENT: "merge_group", REF: "refs/heads/gh-readonly-queue/main/pr-9-abc" }, { EVENT: "push", REF: "refs/heads/main" }, { ...pr, HEAD_REF: "release/v1.1.0" }]) {
+    assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx"]), env).output.installs, undefined, env.EVENT);
+  }
+  const jobs = ciJobs();
+  assert.match(jobs.plan, /^ {6}installs: \$\{\{ steps\.plan\.outputs\.installs \}\}$/m);
+  // The shards, which no rule requires, skip; each check the rules require runs and passes with a notice.
+  assert.match(jobs["install-shard"], new RegExp(`^ {4}if: ${queuedInstalls.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  const gate = stepScript(jobs["install-gate"], "Every shard passed");
+  const deferred = runStep(gate, { INSTALLS: "queue", SHARDS: "skipped", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") });
+  assert.equal(deferred.status, 0);
+  assert.match(deferred.stdout, /^::notice::The install test runs in the merge queue/m);
+  assert.equal(runStep(gate, { INSTALLS: "", SHARDS: "skipped", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") }).status, 1, "with the install test due here, a skipped shard fails the check");
+  for (const id of ["install", "install-upgrade"]) {
+    const steps = jobs[id].split("\n    steps:\n")[1].split(/\n(?= {6}- )/);
+    assert.equal(steps[0].split("\n")[0], "      - if: needs.plan.outputs.installs == 'queue'", id);
+    for (const step of steps.slice(1)) assert.match(step.split("\n")[0], /^ {6}- if: (failure\(\) && )?needs\.plan\.outputs\.installs != 'queue'$/, `${id}: ${step.split("\n")[1]}`);
+  }
+});
 
 test("CI's plan runs everything when planning fails", () => {
   const { status, stdout, output } = runStep(stepScript(ciJobs().plan, "Plan the tests"), { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" }, { nodeStatus: 1 });
@@ -997,7 +1041,7 @@ test("a push to main whose commit the merge queue already tested runs only insta
   // Every job but the plan, the GitHub install and the release-only install skips on it, gates
   // included; motion-coverage waits on ci. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  const skipping = Object.keys(jobs).filter((id) => condition(jobs[id]) === untested);
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1013,7 +1057,9 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   const readers = Object.keys(jobs).filter((name) => /^ {6}FULL: \$\{\{ needs\.plan\.outputs\.full/m.test(jobs[name]));
   assert.deepEqual(readers.sort(), ["browser", "ci", "conformance-shard", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
-    const needs = jobs[name].match(/^ {4}needs: \[([^\]]*)\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.plan\.outputs\.tested != 'true' \}\}$/m)?.[1].split(",").map((need) => need.trim());
+    // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
+    const condition = name === "install-shard" ? queuedInstalls : untested;
+    const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
     assert.equal(full, "needs.plan.outputs.full != 'false'", name);
@@ -1041,6 +1087,9 @@ function checkNames(block, id) {
 /** The condition of every job a push the merge queue already tested skips (the plan's `tested`). */
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
+/** install-shard's: it also skips on a pull request whose install test waits for the merge queue (the plan's `installs`). */
+const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}";
+
 /** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
 const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
 
@@ -1055,7 +1104,7 @@ test("every required check is still a job that reports, under the name the rules
     // A job a required check names never skips itself on a pull request or in the merge queue: at
     // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
-    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === untested, `${id} has if: ${condition}`);
+    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {

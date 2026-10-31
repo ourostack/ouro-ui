@@ -65,7 +65,7 @@ export function jobGraph(text) {
       const values = block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
       return values ? `(?:${values.map(escape).join("|")})` : "[^,()]+";
     });
-    return { id, pattern: new RegExp(`^${source.join("")}$`), needs };
+    return { id, pattern: new RegExp(`^${source.join("")}$`), template: name, needs };
   });
 }
 
@@ -88,7 +88,8 @@ export function criticalPath(jobs, graph, { work = false } = {}) {
   const slowest = new Map();
   const unmatched = [];
   for (const job of jobs) {
-    const node = nodes.find((candidate) => candidate.pattern.test(job.name));
+    // A matrix job its `if` skipped reports once, under its name with the expressions unexpanded.
+    const node = nodes.find((candidate) => candidate.pattern.test(job.name) || candidate.template === job.name);
     if (!node) {
       if (!graph.some((candidate) => candidate.id === self && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
