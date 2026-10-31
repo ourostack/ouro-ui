@@ -255,6 +255,8 @@ describe("SwipeActions on a phone", () => {
       try {
         await commands.touchStep({ type: "touchStart", x, y });
         for (const dx of [12, 20]) await commands.touchStep({ type: "touchMove", x: x + dx, y });
+        // Past the long press's half second on the held clock: a move that failed to cancel it opens the menu here.
+        await act(async () => vi.advanceTimersByTime(600));
       } finally {
         vi.useRealTimers();
       }
@@ -301,6 +303,8 @@ describe("SwipeActions on a phone", () => {
       try {
         await commands.touchStep({ type: "touchStart", x, y });
         await commands.touchStep({ type: "touchMove", x: x - 15, y });
+        // Past the long press's half second on the held clock: a move that failed to cancel it opens the menu here.
+        await act(async () => vi.advanceTimersByTime(600));
       } finally {
         vi.useRealTimers();
       }
@@ -447,6 +451,8 @@ describe("SwipeActions on a phone", () => {
       try {
         await commands.touchStep({ type: "touchStart", x, y });
         await commands.touchStep({ type: "touchMove", x: x - 15, y });
+        // Past the long press's half second on the held clock: a move that failed to cancel it opens the menu here.
+        await act(async () => vi.advanceTimersByTime(600));
       } finally {
         vi.useRealTimers();
       }
