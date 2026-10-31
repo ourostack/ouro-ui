@@ -287,6 +287,7 @@ Components:
 `native-select`,
 `navbar`,
 `navigation-menu`,
+`navigation-rail`,
 `number-field`,
 `otp-field`,
 `page-header`,
@@ -358,6 +359,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-last-input`,
 `lib-open-mode`,
 `lib-ouro-provider`,
+`lib-page-scroll-hold`,
 `lib-portal-container`,
 `lib-refs`,
 `lib-router-link`,
@@ -540,6 +542,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Breadcrumb** — The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current="page"`. [Docs](docs/Breadcrumb.md)
 - **Navbar** — The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. [Docs](docs/Navbar.md)
 - **NavigationMenu** — A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. [Docs](docs/NavigationMenu.md)
+- **NavigationRail** — The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current="page"`. [Docs](docs/NavigationRail.md)
 - **Pagination** — Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. [Docs](docs/Pagination.md)
 - **SegmentedControl** — An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. [Docs](docs/SegmentedControl.md)
 - **Sidebar** — The column of links down the side of an app, in sections, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. [Docs](docs/Sidebar.md)
