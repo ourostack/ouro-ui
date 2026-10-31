@@ -1,4 +1,4 @@
-import { Suspense, type JSX } from "react";
+import type { JSX } from "react";
 import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -7,6 +7,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
 import { VOYAGE_HERO } from "../copy";
 import { GITHUB, href } from "../paths";
+import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
 import { Stage } from "./stage/stage";
@@ -165,9 +166,9 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
           </div>
         </div>
         <div className="site-hero-stage">
-          <Suspense>
+          <HydrateInTurn name="stage">
             <Stage onXray={onXray} />
-          </Suspense>
+          </HydrateInTurn>
         </div>
         {/* After the stage on a phone; on a wide screen, at the foot of the copy, level with the console's. */}
         <Proof />

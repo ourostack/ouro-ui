@@ -5,6 +5,7 @@ import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { Popups, PopupsProvider } from "../components/popups";
+import { HydrateInTurn } from "../hydrate";
 import { href, normalizePath } from "../paths";
 import { ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland } from "../voyage/chapters/island";
 import { VoyageHeader } from "../voyage/header";
@@ -79,16 +80,16 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
             <main>
               <Hero onXray={openXray} />
               <TwoShips />
-              <Suspense>
+              <HydrateInTurn name="themes">
                 <Repaint />
-              </Suspense>
+              </HydrateInTurn>
               <HomeReferenceIsland />
               <Popups />
             </main>
           )}
-          <Suspense>
+          <HydrateInTurn name="footer">
             <VoyageFooter />
-          </Suspense>
+          </HydrateInTurn>
         </div>
         <Xray />
         <Toaster />
