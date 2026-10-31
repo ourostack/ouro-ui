@@ -132,6 +132,9 @@ const toolingNote = claim(
 );
 
 const TESTING_URL = `${DOCS_URL}/testing.md`;
+/** Ouro AX's pages: one per ax item (docs/ax/, generated from the JSDoc by scripts/ax-docs.mts) and the guides. */
+const AX_DOCS_URL = `https://github.com/${REPO}/blob/main/docs/ax`;
+const AX_GUIDE_URL = `https://github.com/${REPO}/blob/main/docs/guides/ax.md`;
 const INSTALLING_URL = `${DOCS_URL}/installing.md`;
 
 /**
@@ -304,6 +307,18 @@ const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
 const censusDir = "registry/ouro/census/";
 const sourceRulesDir = "registry/ouro/source-rules/";
+// Ouro AX: the agent-experience kit, Node TypeScript with no dependencies, one item per file (ax-<stem>), its node:test
+// tests as ax-<stem>-tests, the X-ray's fixtures with its tests, and the example tool as ax-example.
+const axDir = "registry/ouro/ax/";
+
+/** The item that ships an ax file. help.ts is part of ax-cli, which renders it. */
+function axItem(rest: string): string {
+  if (rest.startsWith("fixtures/")) return "ax-xray-tests";
+  if (rest === "example-cli.ts") return "ax-example";
+  const stem = rest.replace(/\.test\.mts$|\.ts$/, "");
+  const owner = stem === "help" ? "cli" : stem;
+  return rest.endsWith(".test.mts") ? `ax-${owner}-tests` : `ax-${owner}`;
+}
 
 /** Test-runner packages, which only the -tests items and ouro-testing may import. */
 const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
@@ -336,6 +351,8 @@ export function itemForFile(path: string): string | null {
   if (path.startsWith(themeDir)) {
     const css = foundation.find((entry) => entry.css === path);
     if (css) return css.name;
+  } else if (path.startsWith(axDir)) {
+    return axItem(path.slice(axDir.length));
   } else if (path.startsWith(censusDir)) {
     return "ouro-census";
   } else if (path.startsWith(sourceRulesDir)) {
@@ -368,6 +385,7 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
+  if (path.startsWith(axDir)) return { path, type: "registry:lib", target: `@lib/ouro/ax/${path.slice(axDir.length)}` };
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
   return { path, type: devFile.test(file) ? "registry:component" : "registry:ui", target };
 }
@@ -485,6 +503,18 @@ export function buildRegistry(root: string): Registry {
     ...components.map((entry) => ({ name: `${entry.name}-tests`, title: `${entry.title} tests`, of: entry.name })),
   ];
   const libTests = testsItems.filter((entry) => entry.name.startsWith("lib-")).map((entry) => entry.name);
+  const axNames = [...new Set(all.map((file) => owner.get(file)).filter((name): name is string => Boolean(name?.startsWith("ax-"))))].sort();
+  const axRuntime = axNames.filter((name) => !name.endsWith("-tests"));
+  const axTests = axNames.filter((name) => name.endsWith("-tests"));
+  /** An ax item's purpose: the first sentence of the first JSDoc comment in its main file. */
+  const axPurpose = (name: string) => {
+    const main = shipped(name).find((path) => path.endsWith(`/${name.slice(3)}.ts`)) ?? shipped(name)[0]!;
+    const comment = readFileSync(join(root, main), "utf8").match(/\/\*\*([\s\S]*?)\*\//)?.[1] ?? "";
+    const text = comment.replace(/^\s*\* ?/gm, " ").replace(/\s+/g, " ").trim();
+    const sentence = text.match(/^(.+?[.!?])(\s|$)/)?.[1];
+    if (!sentence) throw new Error(`${main} has no purpose sentence: give it a /** ... */ comment.`);
+    return sentence;
+  };
   const entries = [
     ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const, ...(entry.name === "ouro-testing" ? { docs: testingDocs() } : {}) })),
     ...libs.map((name) => ({
@@ -543,8 +573,26 @@ export function buildRegistry(root: string): Registry {
       docs: `${claim("Every Ouro UI component and its tests are installed.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     },
     ...kits.map((entry) => ({ ...entry, kind: "kit" as const })),
+    ...axRuntime.map((name) => ({
+      name,
+      title: name,
+      kind: "ax" as const,
+      description: name === "ax-example" ? "Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it." : `Ouro AX: ${axPurpose(name).replace(/^[A-Z](?=[a-z])/, (c) => c.toLowerCase())}`,
+      docs: `Docs: ${AX_DOCS_URL}/${name}.md`,
+    })),
+    ...axTests.map((name) => ({ name, title: `${name.slice(0, -6)} tests`, of: name.slice(0, -6), kind: "ax-tests" as const, description: `Optional: the node:test tests for ${name.slice(0, -6)}; run them with node --test.`, docs: undefined as string | undefined })),
+    {
+      name: "ouro-ax",
+      title: "Ouro AX",
+      kind: "aggregate" as const,
+      description: "Ouro AX, the agent-experience kit, in one item: every ax-* item, from one command definition to the X-ray that checks an interface against the claims.",
+      docs: `Ouro AX is in lib/ouro/ax. It runs on Node 22.18 or later, which strips the types, and has no dependencies. Docs: ${AX_GUIDE_URL}`,
+    },
+    { name: "ouro-ax-tests", title: "Ouro AX tests", kind: "aggregate" as const, description: "Optional: Ouro AX with every ax-* test, the X-ray's fixtures and the example tool.", docs: undefined as string | undefined },
   ];
   const aggregates: Record<string, string[]> = {
+    "ouro-ax": axRuntime.filter((name) => name !== "ax-example"),
+    "ouro-ax-tests": ["ouro-ax", ...axTests],
     "ouro-lib": libs,
     "ouro-lib-tests": ["ouro-lib", ...libTests],
     "ouro-tests": testsItems.map((tests) => tests.name),
@@ -558,7 +606,7 @@ export function buildRegistry(root: string): Registry {
       type:
         entry.name === "ouro-theme"
           ? "registry:theme"
-          : "css" in entry || entry.kind === "tests" || entry.kind === "aggregate" || entry.kind === "kit"
+          : "css" in entry || entry.kind === "tests" || entry.kind === "ax-tests" || entry.kind === "aggregate" || entry.kind === "kit"
             ? "registry:item"
             : entry.kind === "component"
               ? "registry:ui"
@@ -571,19 +619,27 @@ export function buildRegistry(root: string): Registry {
     const runtime = new Set<string>();
     const dev = new Set<string>();
     // No item depends on ouro-base or ouro-theme (see the header): an app adds ouro-base once.
-    const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : (aggregates[entry.name] ?? []));
+    const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : entry.kind === "ax-tests" ? [entry.of] : (aggregates[entry.name] ?? []));
     for (const path of paths) {
       const source = readFileSync(join(root, path), "utf8");
       // A helper's .mjs file is a Node script the app runs (lib-claims' checker), not code its
       // bundle loads, so what it imports is a devDependency, named without a version.
-      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "kit" || path.endsWith(".mjs");
+      const isDev = entry.name === "ouro-testing" || entry.kind === "tests" || entry.kind === "ax-tests" || entry.kind === "kit" || path.endsWith(".mjs");
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
-      if (!isDev && entry.name !== "lib-env" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
+      // An ax file runs in Node, whose types declare process.env.
+      if (!isDev && entry.name !== "lib-env" && entry.kind !== "ax" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
       // OuroProvider is the one helper only the app imports. It comes with what it serves: a
       // component that renders links reads the app's router link from it, and it groups
       // tooltips. Any other app adds it by name (the README's Next.js steps do).
       if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
+        // An ax file imports its siblings relatively, so Node runs the copied files as they are.
+        if (path.startsWith(axDir) && specifier.startsWith(".")) {
+          const dependency = owner.get(join(dirname(path), specifier).split("\\").join("/"));
+          if (!dependency) throw new Error(`${path} imports ${specifier}, which no item ships.`);
+          if (dependency !== entry.name) registryDeps.add(dependency);
+          continue;
+        }
         if (specifier.startsWith("@/")) {
           if (path.startsWith(e2eDir) || entry.kind === "kit") throw new Error(`${path}: e2e files and kits ship as registry:file, which the CLI does not rewrite; use relative imports.`);
           const dependency = owner.get(resolveRegistryImport(specifier, all));
@@ -718,7 +774,7 @@ export function withLlmsItems(llms: string, registry: Registry): string {
   const helpers = registry.items.filter((item) => helper(item.name) && !item.name.endsWith("-tests")).map((item) => `\`${item.name}\``);
   const lines = registry.items
     .filter((item) => !helper(item.name))
-    .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`);
+    .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : /^ax-(?!.*-tests$)/.test(item.name) ? ` Docs: ${AX_DOCS_URL}/${item.name}.md` : ""}`);
   lines.push(
     `- ${claim("Helpers, one item per file in lib/ouro, each installed with the components that import it", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })} (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}. ${claim(
       "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",

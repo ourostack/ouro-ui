@@ -6,5 +6,5 @@
     "paths": { "@/*": ["../../../*"] }
   },
   "include": ["../../../registry/**/*.ts", "../../../registry/**/*.tsx"],
-  "exclude": ["../../../registry/**/*.test.ts", "../../../registry/**/*.test.tsx", "../../../registry/**/*.test-d.ts", "../../../registry/**/*.stories.tsx", "../../../registry/ouro/lib/ouro/testing/**", "../../../registry/ouro/e2e/**"]
+  "exclude": ["../../../registry/**/*.test.ts", "../../../registry/**/*.test.tsx", "../../../registry/**/*.test-d.ts", "../../../registry/**/*.stories.tsx", "../../../registry/ouro/lib/ouro/testing/**", "../../../registry/ouro/e2e/**", "../../../registry/ouro/ax/xray.ts"]
 }
