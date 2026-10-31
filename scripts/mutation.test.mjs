@@ -247,9 +247,11 @@ test("shardCount takes the fewest shards from the minimum that plan each at the 
   assert.equal(shardCount({}, seconds, { min: 3, max: 16, target: one }), 3);
 });
 
-test("the shard target leaves a shard about 20 minutes of the job's 30 at the worst ratio of measured time to estimate", () => {
+test("the shard target keeps a shard within ci-budget's 10-minute pull request budget at the worst measured ratio of time to estimate", () => {
   assert.equal(SHARD_TARGET_SECONDS, 900);
-  assert.ok(SHARD_TARGET_SECONDS * 0.72 <= 20 * 60);
+  // #287's thirteen shards at a 1500 s target took at most 0.62 times their estimates (run 41171948948).
+  assert.ok(SHARD_TARGET_SECONDS * 0.62 <= 10 * 60);
+  assert.ok(1500 * 0.62 > 15 * 60, "the old target's worst shard was past ci-budget's 15-minute ceiling");
   assert.match(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../.github/workflows/ci.yml"), "utf8"), /node scripts\/mutation\.mjs HEAD\^1 --count "\$min\/24"/);
 });
 
