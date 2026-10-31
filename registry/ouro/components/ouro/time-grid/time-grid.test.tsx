@@ -648,11 +648,11 @@ describe("TimeGrid", () => {
     await render({ events: [forum, focus], onEventSelect: select, view: "day" });
     await userEvent.click(titled("Focus time"));
     await act(async () => {});
-    expect(select).toHaveBeenLastCalledWith(focus);
+    expect(select).toHaveBeenLastCalledWith(focus, { element: titled("Focus time"), background: false });
     expect(titled("Focus time").tabIndex).toBe(0);
     titled("Architecture forum").focus();
     await press("{Enter}");
-    expect(select).toHaveBeenLastCalledWith(forum);
+    expect(select).toHaveBeenLastCalledWith(forum, { element: titled("Architecture forum"), background: false });
     expect(titled("Architecture forum").tagName).toBe("BUTTON");
     expect(titled("Architecture forum").getAttribute("type")).toBe("button");
     expect(titled("Architecture forum").dataset.ouroControl).toBe("time-grid");
@@ -675,7 +675,7 @@ describe("TimeGrid", () => {
     expect(link.dataset.ouroPart).toBe("event-link");
     expect(link.dataset.ouroControl).toBe("time-grid");
     await userEvent.click(link);
-    expect(select).toHaveBeenCalledWith(expect.objectContaining({ id: "forum" }));
+    expect(select).toHaveBeenCalledWith(expect.objectContaining({ id: "forum" }), { element: link, background: false });
   });
 
   it("presses an empty slot with onSlotSelect, and shows a mouse the slot first", async () => {
@@ -1034,6 +1034,25 @@ describe("TimeGrid", () => {
       expect(warnings()).toHaveLength(9);
     });
 
+    it("names a background event that is all day, and leaves it out", async () => {
+      await render({
+        backgroundEvents: [
+          { id: "away", title: "Away", start: "2026-03-12" },
+          { id: "trip", title: "Trip", start: at(10, "09:00"), end: at(11, "09:00") },
+          { id: "hands", title: "All hands", start: at(12, "10:00"), end: at(12, "11:00"), tone: "danger" as never },
+          { id: "hands", title: "All hands again", start: at(12, "13:00"), end: at(12, "14:00") },
+        ],
+        events: [{ id: "hands", title: "Own", start: at(12, "09:00"), end: at(12, "09:30") }],
+      });
+      expect(events().map((element) => element.dataset.ouroEventKey)).toEqual(["4:hands", "bg:4:hands", "bg:4:hands#3"]);
+      expect(warnings()).toEqual([
+        '[ouro-ui] TimeGrid: background event "away" is all day, and background events are timed. Fix: pass it in events, or give it a start and end time.',
+        '[ouro-ui] TimeGrid: background event "trip" lasts a day or more, and background events are shorter. Fix: pass it in events, or give it a start and end time.',
+        '[ouro-ui] TimeGrid: two background events have id "hands". Fix: give each event its own id.',
+        '[ouro-ui] TimeGrid: event "hands": tone="danger" is not a tone; use "primary", "secondary", "success", "warning" or "destructive". Fix: { tone: "destructive" }.',
+      ]);
+    });
+
     it("names the real prop for the props agents guess, and the layout class for appearance", async () => {
       await render({
         ...({ defaultView: "week", defaultDate: "2026-03-12", onSelectEvent: () => {}, onSelectSlot: () => {}, scrollToTime: new Date() } as object),
@@ -1051,5 +1070,175 @@ describe("TimeGrid", () => {
       );
       expect(document.querySelector('[data-ouro="time-grid"]')!.hasAttribute("defaultView")).toBe(false);
     });
+  });
+});
+
+describe("TimeGrid background events", () => {
+  const hands: TimeGridEvent = { id: "hands", title: "All hands", start: at(12, "10:00"), end: at(12, "11:00"), tone: "success", description: "412 people" };
+  const review: TimeGridEvent = { id: "review", title: "Budget review", start: at(12, "10:30"), end: at(12, "11:30") };
+  const early: TimeGridEvent = { id: "early", title: "Early sync", start: at(10, "09:00"), end: at(10, "09:30") };
+  /** The element of the event whose name has `words`. */
+  const spokenAs = (words: string) => events().find((element) => plain(element.getAttribute("aria-label")).includes(words))!;
+  const lanes = () => [...document.querySelectorAll<HTMLElement>("[data-ouro-time-grid-background]")];
+
+  it("draws background events in a lane at each day's start, beside the person's own", async () => {
+    const { rerender } = await render({ events: [forum, standup], backgroundEvents: [hands, review, early] });
+    expect(lanes().map((lane) => lane.getAttribute("aria-label"))).toEqual(["Tuesday, March 10, Other calendars", "Thursday, March 12, Other calendars"]);
+    expect(lanes().map((lane) => [lane.offsetWidth, getComputedStyle(lane).borderInlineEndWidth])).toEqual([
+      [12, "0px"],
+      [12, "0px"],
+    ]);
+    expect(events().map((element) => plain(element.getAttribute("aria-label")))).toEqual([
+      "Tuesday, 9:00 – 9:30 AM, Other calendars: Early sync",
+      "Wednesday, 9:30 – 9:45 AM, Standup",
+      "Thursday, 10 – 11 AM, Architecture forum, needs your answer, Main auditorium",
+      "Thursday, 10 – 11 AM, Other calendars: All hands, 412 people",
+      "Thursday, 10:30 – 11:30 AM, Other calendars: Budget review",
+    ]);
+    expect(spokenAs("All hands").dataset.background).toBe("");
+    // Under the person's own, so a background event's touch target never covers them.
+    expect([getComputedStyle(spokenAs("All hands")).zIndex, getComputedStyle(titled("Standup")).zIndex]).toEqual(["9", "10"]);
+    expect(titled("Standup").dataset.background).toBeUndefined();
+    // Overlapping background events share their lane; the person's own start after it, on every day.
+    expect(["All hands", "Budget review"].map((title) => spokenAs(title).closest("li")!.style.width)).toEqual(["50%", "50%"]);
+    const column = (element: Element) => element.closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect().left;
+    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(13);
+    expect(titled("Architecture forum").getBoundingClientRect().left - column(titled("Architecture forum"))).toBe(13);
+    // In a week each is a slim bar in its tone, on no fill of its own.
+    const swatch = (title: string) => getComputedStyle(spokenAs(title).querySelector("[data-ouro-time-grid-bar]")!).backgroundColor;
+    expect(swatch("All hands")).not.toBe(swatch("Budget review"));
+    expect(getComputedStyle(spokenAs("All hands")).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    // The lane's name follows backgroundLabel; with no background events there is no lane.
+    await rerender({ events: [forum, standup], backgroundEvents: [hands], backgroundLabel: "In the crowd" });
+    expect(lanes().map((lane) => lane.getAttribute("aria-label"))).toEqual(["Thursday, March 12, In the crowd"]);
+    expect(plain(spokenAs("All hands").getAttribute("aria-label"))).toBe("Thursday, 10 – 11 AM, In the crowd: All hands, 412 people");
+    await rerender({ events: [forum, standup], backgroundEvents: [] });
+    expect(lanes()).toEqual([]);
+    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
+  });
+
+  it("names a week's thin bars in a tooltip, and labels them in a day", async () => {
+    const { rerender } = await render({ events: [forum], backgroundEvents: [hands, { ...review, href: "#review" }] });
+    const bar = spokenAs("All hands");
+    expect(bar.tagName).toBe("BUTTON");
+    expect(bar.textContent).toBe("");
+    expect(bar.offsetWidth).toBeLessThanOrEqual(6);
+    expect(spokenAs("Budget review").tagName).toBe("A");
+    expect(spokenAs("Budget review").getAttribute("href")).toBe("#review");
+    expect(spokenAs("Budget review").textContent).toBe("");
+    // A slim bar in the event's tone, which widens under a mouse.
+    const swatch = bar.querySelector<HTMLElement>("[data-ouro-time-grid-bar]")!;
+    expect([swatch.getAttribute("aria-hidden"), swatch.offsetWidth]).toEqual(["true", 4]);
+    await userEvent.hover(bar);
+    expect(swatch.offsetWidth).toBe(6);
+    await expect.poll(() => plain(document.querySelector('[data-ouro="tooltip"]')?.textContent)).toBe("10:00 – 11:00 AMAll hands");
+    expect([...document.querySelector('[data-ouro="tooltip"]')!.children].map((line) => plain(line.textContent))).toEqual(["10:00 – 11:00 AM", "All hands"]);
+    await userEvent.unhover(bar);
+    // A day has room: each shows its title and time like the person's own, in a wider lane.
+    await rerender({ view: "day", events: [forum], backgroundEvents: [hands] });
+    const parts = [...spokenAs("All hands").querySelectorAll(":scope > span:not([data-ouro-touch-target]) > span")].map((part) => plain(part.textContent));
+    expect(parts).toEqual(["All hands", "10:00 – 11:00 AM"]);
+    // A step off the page whatever its tone, with the tone on its start edge.
+    const fill = getComputedStyle(spokenAs("All hands")).backgroundColor;
+    expect([fill === getComputedStyle(titled("Architecture forum")).backgroundColor, fill === "rgba(0, 0, 0, 0)"]).toEqual([false, false]);
+    expect(getComputedStyle(spokenAs("All hands")).borderInlineStartWidth).toBe("3px");
+    expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["dashed", "1px"]);
+    const lane = lanes()[0]!;
+    // 40% of the day's column, from 7rem to 32rem.
+    expect(Math.abs(lane.getBoundingClientRect().width - lane.parentElement!.clientWidth * 0.4)).toBeLessThan(1);
+    await render({ view: "day", events: [forum], backgroundEvents: [hands], className: "h-[30rem] w-[20rem]" });
+    expect(lanes()[1]!.offsetWidth).toBe(112);
+    expect(titled("Architecture forum").getBoundingClientRect().left).toBeGreaterThanOrEqual(lane.getBoundingClientRect().right);
+  });
+
+  it("takes the arrow keys through background events in time order with the rest", async () => {
+    await render({ view: "day", events: [forum, focus], backgroundEvents: [hands, { ...review, start: at(12, "09:00") }] });
+    // The person's own events come first in the page, each day's background lane after them.
+    expect(events().map((element) => element.dataset.ouroEventKey)).toEqual(["0:forum", "0:focus", "bg:0:review", "bg:0:hands"]);
+    expect(events().filter((element) => element.tabIndex === 0)).toEqual([spokenAs("Budget review")]);
+    spokenAs("Budget review").focus();
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(titled("Architecture forum"));
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(spokenAs("All hands"));
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(titled("Focus time"));
+  });
+
+  it("takes the person's own event first, then background events longest first, when they start together", async () => {
+    const short: TimeGridEvent = { id: "short", title: "Quick sync", start: at(12, "10:00"), end: at(12, "10:30") };
+    const long: TimeGridEvent = { id: "long", title: "Offsite prep", start: at(12, "10:00"), end: at(12, "11:30") };
+    await render({ view: "day", events: [forum], backgroundEvents: [short, long] });
+    const order = [titled("Architecture forum")];
+    titled("Architecture forum").focus();
+    for (let step = 0; step < 2; step++) {
+      await press("{ArrowDown}");
+      order.push(document.activeElement as HTMLElement);
+    }
+    expect(order).toEqual([titled("Architecture forum"), spokenAs("Offsite prep"), spokenAs("Quick sync")]);
+  });
+
+  it("draws a bar filled when busy, and outlined in its tone for every other status", async () => {
+    const statuses = ["busy", "tentative", "free", "unanswered", "cancelled"] as const;
+    await render({
+      backgroundEvents: statuses.map((status, index) => ({ id: status, title: status, status, start: at(9 + index, "10:00"), end: at(9 + index, "11:00") })),
+    });
+    const looks = statuses.map((status) => {
+      const swatch = getComputedStyle(spokenAs(`Other calendars: ${status}`).querySelector("[data-ouro-time-grid-bar]")!);
+      return [swatch.backgroundColor === "rgba(0, 0, 0, 0)", swatch.borderTopWidth, swatch.borderTopStyle];
+    });
+    expect(looks).toEqual([
+      [false, "0px", "solid"],
+      [true, "1px", "solid"],
+      [true, "1px", "solid"],
+      [true, "1px", "dashed"],
+      [true, "1px", "dotted"],
+    ]);
+  });
+
+  it("tells onEventSelect which element was pressed, and marks the one whose popover is open", async () => {
+    const select = vi.fn();
+    const { rerender } = await render({ events: [forum], backgroundEvents: [hands], onEventSelect: select });
+    await userEvent.click(spokenAs("All hands"));
+    expect(select).toHaveBeenLastCalledWith(hands, { element: spokenAs("All hands"), background: true });
+    expect(spokenAs("All hands").tabIndex).toBe(0);
+    expect(events().map((element) => element.getAttribute("aria-expanded"))).toEqual([null, null]);
+    const before = getComputedStyle(spokenAs("All hands")).outlineStyle;
+    await rerender({ events: [forum], backgroundEvents: [hands], onEventSelect: select, expandedId: "hands" });
+    expect(events().map((element) => element.getAttribute("aria-expanded"))).toEqual([null, "true"]);
+    expect([before, getComputedStyle(spokenAs("All hands")).outlineStyle]).toEqual(["none", "solid"]);
+    expect(spokenAs("All hands").querySelector<HTMLElement>("[data-ouro-time-grid-bar]")!.offsetWidth).toBe(6);
+    await rerender({ events: [forum], backgroundEvents: [hands], onEventSelect: select, expandedId: null });
+    expect(events().map((element) => element.getAttribute("aria-expanded"))).toEqual([null, null]);
+  });
+
+  it("puts the app's summary under each day's header, where screen readers read it", async () => {
+    const { grid, rerender } = await render({
+      view: "work-week",
+      events: [forum],
+      renderDaySummary: (day) => (
+        <span style={{ display: "block", height: day === "2026-03-12" ? 40 : 16 }}>{day === "2026-03-12" ? "3 meetings" : "Free"}</span>
+      ),
+    });
+    const summaries = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-summary]")];
+    expect(summaries.map((cell) => [cell.getAttribute("role"), cell.getAttribute("aria-label"), cell.textContent, cell.closest("[aria-hidden]")])).toEqual([
+      ["group", "Monday, March 9", "Free", null],
+      ["group", "Tuesday, March 10", "Free", null],
+      ["group", "Wednesday, March 11", "Free", null],
+      ["group", "Thursday, March 12", "3 meetings", null],
+      ["group", "Friday, March 13", "Free", null],
+    ]);
+    // Each sits in its day's column, under the date.
+    const heads = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-head] > [aria-hidden][class*='group/day']")];
+    expect(summaries.map((cell, index) => [Math.round(cell.getBoundingClientRect().left), cell.getBoundingClientRect().top >= heads[index]!.getBoundingClientRect().bottom])).toEqual(
+      heads.map((head) => [Math.round(head.getBoundingClientRect().left), true]),
+    );
+    const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
+    const tall = head.offsetHeight;
+    await rerender({ view: "work-week", events: [forum] });
+    expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
+    expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
   });
 });
