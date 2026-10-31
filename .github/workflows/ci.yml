@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [direct, pages]
+        mode: [pages, pages-b]
     name: encoding (${{ matrix.mode }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,12 +33,12 @@ jobs:
           CI: "1"
           PROBE_PROXY: ''
           PROBE_MODE: ${{ matrix.mode }}
-          PROBE_PAGES: ${{ matrix.mode == 'pages' && '1' || '' }}
+          PROBE_PAGES: '1'
           PROBE_SETTLE: ${{ matrix.mode == 'settle' && '1' || '' }}
           PROBE_CLOSE: ${{ matrix.mode == 'close' && '1' || '' }}
         run: |
           if [ -n "$PROBE_PROXY" ]; then node site/e2e/zz-proxy.mjs & fi
-          if [ -n "$PROBE_PAGES" ]; then mkdir -p site/dist && (timeout 3 node site/scripts/serve-pages.mjs 4199 || true); ls .tmp/pages-cert; fi
+          if [ -n "$PROBE_PAGES" ]; then mkdir -p site/dist && (timeout 3 node site/scripts/serve-pages.mjs 4399 || true); ls .tmp/pages-cert; fi
           pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list 2>&1 | grep -vE '^\s+[0-9]+ \||^\s+✓|^\s*$|^\s+at |^\s+[0-9]+\)' | head -800 || true
           if [ -f proxy-log.txt ]; then echo "proxy lines: $(wc -l < proxy-log.txt)"; grep -c '^BAD' proxy-log.txt || true; grep '^BAD' proxy-log.txt | head -20; grep -E ' (GET) /(nautilus/)? ' proxy-log.txt | awk '{print $7, $8, $9, $10}' | sort | uniq -c | head -20; fi
       - if: ${{ !cancelled() }}

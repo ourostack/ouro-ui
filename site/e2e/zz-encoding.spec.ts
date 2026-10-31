@@ -11,7 +11,7 @@ let server: ChildProcess | undefined;
 test.use({ ignoreHTTPSErrors: true });
 test.beforeAll(async ({}, workerInfo) => {
   if (!process.env["PROBE_PAGES"]) return;
-  server = spawn(process.execPath, ["site/scripts/serve-pages.mjs", String(4190 + workerInfo.workerIndex)], { stdio: "inherit" });
+  server = spawn(process.execPath, ["site/scripts/serve-pages.mjs", String(4300 + workerInfo.workerIndex)], { stdio: "inherit" });
   await new Promise((resolve) => setTimeout(resolve, 1500));
 });
 test.afterAll(() => server?.kill());
@@ -37,7 +37,7 @@ test("probe: reflow loop navigations", async ({ page }, testInfo) => {
       await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify({ preset })] as const);
       const start = Date.now();
       try {
-        await page.goto(process.env["PROBE_PAGES"] ? `https://127.0.0.1:${4190 + testInfo.workerIndex}/${path === "./" ? "" : path}` : path);
+        await page.goto(process.env["PROBE_PAGES"] ? `https://127.0.0.1:${4300 + testInfo.workerIndex}/${path === "./" ? "" : path}` : path);
       } catch (error) {
         console.log(`PROBE GOTO ${path} ${preset} repeat ${testInfo.repeatEachIndex}: ${String(error).split("\n")[0]}\n${events.join("\n")}`);
         throw error;
