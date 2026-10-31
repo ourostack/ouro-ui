@@ -14,7 +14,7 @@ export default async function warmUp(config: FullConfig): Promise<void> {
     const type = project.name.endsWith("webkit") ? webkit : chromium;
     const browser = await type.launch();
     try {
-      const page = await browser.newPage({ baseURL: project.use.baseURL, ignoreHTTPSErrors: project.use.ignoreHTTPSErrors });
+      const page = await browser.newPage({ baseURL: project.use.baseURL!, ignoreHTTPSErrors: project.use.ignoreHTTPSErrors ?? false });
       for (const path of ["./", "nautilus/"]) {
         await page.goto(path);
         await page.locator("html[data-site-ready]").waitFor({ state: "attached", timeout: 60_000 });
