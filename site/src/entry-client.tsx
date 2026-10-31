@@ -14,7 +14,6 @@ followSystemScheme();
 const path = pathFromLocation(location.pathname, import.meta.env.BASE_URL);
 const host = document.getElementById("root")!;
 void afterFirstPaint()
-  .then(warmClassMerging)
   .then(() => loadPage(path))
   .then(nextTask)
   .then((Page) => {
@@ -74,17 +73,6 @@ function warmNumberFormatting(): void {
   } catch {
     // No worker here: the page formats its first number itself, as before.
   }
-}
-
-/**
- * tailwind-merge builds its class map the first time `cn` runs, about 20 ms at 4× CPU, and a
- * component that calls `cn` at module scope (NavigationMenu, in the header) did that inside the
- * page module's evaluation. Building it first, in a task of its own, keeps that task short.
- */
-async function warmClassMerging(): Promise<void> {
-  const { cn } = await import("@/registry/ouro/lib/ouro/cn");
-  cn("p-0", "p-1");
-  await nextTask();
 }
 
 /** Resolves in a later task, so what follows doesn't add to the task that is running. */
