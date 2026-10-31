@@ -503,7 +503,7 @@ function InspectorLayer({
       // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
       own.toggleAttribute("data-modal", modal);
       // The bar sits a gap above a TabBar that shows, measured from the layer, which fills the screen.
-      const tabBar = [...document.querySelectorAll('[data-ouro="tab-bar"] > [data-ouro-part="bar"]:not([data-closed])')]
+      const tabBar = [...document.querySelectorAll('[data-ouro="tab-bar"] > nav:not([data-closed])')]
         .map((bar) => bar.getBoundingClientRect())
         .find((box) => box.height > 0);
       if (tabBar) own.style.setProperty("--ouro-inspector-tab-bar", `${own.getBoundingClientRect().bottom - tabBar.top + 8}px`);
