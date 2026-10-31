@@ -77,7 +77,7 @@
     "kind": "guide",
     "group": "Guides",
     "markdown": "docs/guides/theming.md",
-    "summary": "Every Ouro HX part paints itself from a small set of CSS variables, the same ones a shadcn/ui theme sets."
+    "summary": "Ouro HX parts paint themselves from a small set of CSS variables, the ones a shadcn/ui theme sets."
   },
   {
     "name": "why-no-skill-app-shell",
