@@ -1,15 +1,22 @@
 {
   "order": 2010,
-  "components": ["message", "message-list", "attachment"],
+  "components": ["message", "message-list", "attachment", "thread-summary"],
   "controls": {
     "attachment": [
       {"part": "link", "role": "link", "portal": false},
       {"part": "open", "role": "button", "portal": false},
       {"part": "remove", "role": "button", "portal": false}
     ],
+    "message": [
+      {"part": "action", "role": "button", "portal": false},
+      {"part": "menu", "role": "button", "portal": false}
+    ],
     "message-list": [
       {"part": "scroller", "role": "region", "portal": false},
       {"part": "jump", "role": "button", "portal": false}
+    ],
+    "thread-summary": [
+      {"part": "open", "role": "button", "portal": false}
     ]
   }
 }

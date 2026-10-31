@@ -609,7 +609,8 @@ for (const file of componentFiles) {
 // Catalog order: by group, then by name.
 pages.sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group) || a.name.localeCompare(b.name, "en"));
 
-const partFamilies = pages.map((page) => page.name).filter((name) => partFiles[name] !== undefined);
+// A part file whose exports are all @internal (Message's action bar) has no parts to document.
+const partFamilies = pages.map((page) => page.name).filter((name) => partFiles[name] !== undefined && exportsOf(partFiles[name]).length > 0);
 
 const outputs = new Map<string, string>();
 for (const page of pages) {
@@ -637,7 +638,7 @@ const siteItems = components
     group: groupOf.get(entry.title)!,
     source: `${componentsDir}${entry.folder}/${entry.stem}.tsx`,
     summary: summary(outputs.get(`docs/${entry.title}.md`)!),
-    ...(partFiles[entry.title] ? { parts: entry.title } : {}),
+    ...(partFamilies.includes(entry.title) ? { parts: entry.title } : {}),
     ...(pageFunctions(entry.name).length > 0 ? { functions: pageFunctions(entry.name) } : {}),
   }))
   .sort((a, b) => catalogGroups.indexOf(a.group) - catalogGroups.indexOf(b.group));

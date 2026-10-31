@@ -512,6 +512,7 @@
     "registry/ouro/e2e/ouro/text-area.spec.ts": 6800,
     "registry/ouro/e2e/ouro/text-field.spec.ts": 13421,
     "registry/ouro/e2e/ouro/text.spec.ts": 8000,
+    "registry/ouro/e2e/ouro/thread-summary.spec.ts": 2400,
     "registry/ouro/e2e/ouro/time-grid.spec.ts": 8000,
     "registry/ouro/e2e/ouro/timer-tray.spec.ts": 5300,
     "registry/ouro/e2e/ouro/timer.spec.ts": 35200,
