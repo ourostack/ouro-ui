@@ -13,7 +13,6 @@ import { href, routes } from "./routes";
 import { AGENTS_COMING_SOON, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { agentExamples } from "./agents/examples";
-import spoonjoyData from "./docs/spoonjoy.json";
 import shipComponents from "./docs/ship-components.json";
 import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
