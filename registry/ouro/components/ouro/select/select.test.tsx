@@ -593,8 +593,9 @@ describe("Select and the page's scroll", () => {
     document.addEventListener("pointerdown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
     let atPress = "";
     window.addEventListener("pointerdown", () => (atPress = document.documentElement.style.scrollBehavior), { once: true });
+    // Released at once: the list opens over the trigger with the chosen option under the pointer, and
+    // a release there a moment later would choose it and close the list.
     await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "down" });
-    for (let index = 0; index < 10; index++) await frame();
     await commands.pointerPress({ action: "up" });
     await expect.poll(() => {
       const open = popup();
