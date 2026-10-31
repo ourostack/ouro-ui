@@ -51,13 +51,17 @@ describe("Inspector over a Toaster", () => {
       toast("Shopping list shared", { duration: Infinity });
     });
     await expect.poll(names).toEqual(["button", "toaster"]);
+    // A toast's entry transition starts only once data-starting-style is gone, and until then
+    // getAnimations() has nothing running, so wait for both before reading where the toasts are.
+    await expect.poll(() => toasts().filter((item) => item.hasAttribute("data-starting-style")).length).toBe(0);
     await expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
+    // The outline and the toasts are read together in each poll, so neither is a snapshot taken before the other settled.
     await expect
       .poll(() => {
         const { left, top, width, height } = outlines()[1]!.getBoundingClientRect();
-        return [left, top, width, height].map(Math.round);
+        return { outline: [left, top, width, height].map(Math.round), around: stack() };
       })
-      .toEqual(stack());
+      .toSatisfy(({ outline, around }) => outline.join() === around.join());
     await act(async () => {
       toast.dismiss();
     });
