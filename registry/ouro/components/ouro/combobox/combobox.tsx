@@ -14,7 +14,7 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePickerSheet } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
-import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { holdPageAtPress, PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   chipClass,
   chipRemoveClass,
@@ -678,6 +678,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const input = (className: string, extra: { "aria-label"?: string } = {}) => (
     <BaseCombobox.Input
       {...extra}
+      {...holdPageAtPress}
       ref={setInputRef}
       data-ouro-control="combobox"
       data-ouro-part="input"
@@ -845,6 +846,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
     >
       <BaseAutocomplete.InputGroup ref={markDismiss} data-ouro-input-group="" className={groupClass}>
         <BaseAutocomplete.Input
+          {...holdPageAtPress}
           ref={setInputRef}
           data-ouro-control="combobox"
           data-ouro-part="input"
