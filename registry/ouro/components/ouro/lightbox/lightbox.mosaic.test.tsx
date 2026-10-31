@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Lightbox, type LightboxImage, type LightboxProps, type LightboxWithThumbnailsProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { mosaicLayout } from "@/registry/ouro/components/ouro/lightbox/lightbox-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 
 // Runs in Chromium and WebKit: the mosaic layout, the still frame and the full-screen viewer.
 
@@ -56,6 +57,9 @@ async function settled() {
     })
     .toBe(true);
 }
+
+// Only Chromium emulates forced colours.
+const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
@@ -226,6 +230,47 @@ describe("Lightbox full screen", () => {
     await render(<Lightbox label="Offsite photos" images={offsite} open index={1} onOpenChange={() => {}} fullScreen />);
     await settled();
     expect(popup()!.getBoundingClientRect().width).toBe(1280);
+  });
+
+  it("dims behind the image in the light theme too, with readable controls", async () => {
+    const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
+    await userEvent.click(thumbnails(host)[0]!);
+    await settled();
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    // A near-black scrim: the page's light theme stays outside the viewer.
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const paint = canvas.getContext("2d")!;
+    paint.fillStyle = getComputedStyle(popup()!).backgroundColor;
+    paint.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = paint.getImageData(0, 0, 1, 1).data;
+    expect(Math.max(r!, g!, b!)).toBeLessThan(40);
+    expect(a!).toBeGreaterThan(230);
+    // The title, the position and Close read on it.
+    for (const text of [popup()!.querySelector("[data-ouro-dialog-title]")!, popup()!.querySelector("[data-ouro-lightbox-position]")!]) {
+      expect(await measureTextContrast(text, 4.5), text.textContent!).toEqual({ pass: true });
+    }
+    const close = popup()!.querySelector<HTMLElement>('[data-ouro-part="close"]')!;
+    expect(getComputedStyle(close).color).not.toBe(getComputedStyle(popup()!).backgroundColor);
+    expect(popup()!.classList.contains("dark")).toBe(true);
+  });
+
+  chromiumOnly("leaves forced colours to the system", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
+      await userEvent.click(thumbnails(host)[0]!);
+      await settled();
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "Canvas";
+      probe.style.color = "CanvasText";
+      document.body.append(probe);
+      mounted.push(probe);
+      expect(getComputedStyle(popup()!).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+      expect(getComputedStyle(popup()!.querySelector("[data-ouro-dialog-title]")!).color).toBe(getComputedStyle(probe).color);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("keeps the dialog's frame without it", async () => {
