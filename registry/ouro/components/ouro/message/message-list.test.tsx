@@ -1068,6 +1068,13 @@ describe("MessageList keyboard", () => {
     expect(document.activeElement).toBe(document.body);
   });
 
+  it("moves focus to the one message now in a focused message's place, not past it", async () => {
+    const { rerender } = await render(<Channel>{posts(6)}</Channel>);
+    await act(async () => document.getElementById("post-2")!.focus());
+    await rerender(<Channel>{posts(6).filter((_, index) => index !== 2)}</Channel>);
+    await expect.poll(focusedId).toBe("post-3");
+  });
+
   it("moves focus to the message before when the focused newest message goes", async () => {
     const { rerender } = await render(<Channel>{posts(3)}</Channel>);
     button("Before").focus();
