@@ -47,3 +47,30 @@
     scroll-margin-top: 1.5rem;
   }
 }
+
+/* The 404 page's compass (components/lost-at-sea.tsx): its needle hunts for north, then settles. */
+.lost-needle {
+  transform-origin: 60px 60px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lost-needle {
+    animation: lost-needle 2.4s cubic-bezier(0.3, 0, 0.2, 1) both;
+  }
+}
+@keyframes lost-needle {
+  0% {
+    transform: rotate(140deg);
+  }
+  35% {
+    transform: rotate(-50deg);
+  }
+  60% {
+    transform: rotate(22deg);
+  }
+  80% {
+    transform: rotate(-8deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

@@ -289,3 +289,19 @@ test("the home page's Nautilus card leads to the Nautilus's page, with X-ray on 
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("switch", { name: "X-ray" })).toBeChecked();
 });
+
+test("typing nemo on the built page brings the Nautilus by with a toast, once a visit", async ({ page }) => {
+  const errors = diagnostics(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "nautilus/");
+  await page.keyboard.type("nemo");
+  const nemo = page.locator('[data-egg="nemo"]');
+  await expect(nemo.locator(".egg-ship svg")).toBeVisible();
+  await expect(page.locator("[data-ouro-toast-title]", { hasText: "Captain Nemo waves hello!" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(nemo).toHaveCount(0);
+  await page.keyboard.type("nemo");
+  await page.waitForTimeout(300);
+  await expect(nemo).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

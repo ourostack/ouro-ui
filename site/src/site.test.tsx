@@ -242,6 +242,26 @@ describe("docs", () => {
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
   });
 
+  it("is lost at sea at an address with no page: the way home, a guess at what it meant, and a search", async () => {
+    const before = location.href;
+    history.replaceState(null, "", "/docs/buton/");
+    try {
+      await renderPage("/docs/buton/");
+      await expect.element(page.getByRole("heading", { level: 1, name: "Lost at sea" })).toBeVisible();
+      await expect.element(page.getByRole("link", { name: "Back to the surface" })).toHaveAttribute("href", href("/"));
+      await expect.element(page.getByRole("link", { name: "Button", exact: true }).last()).toHaveAttribute("href", href("/docs/button/"));
+      const main = page.getByRole("search");
+      const field = main.getByRole("searchbox", { name: "Search the docs" });
+      await userEvent.fill(field, "text field");
+      await expect.element(main.getByRole("status")).toHaveTextContent("One page by that name.");
+      await expect.element(main.getByRole("link", { name: "TextField", exact: true })).toHaveAttribute("href", href("/docs/text-field/"));
+      await userEvent.fill(field, "zzz");
+      await expect.element(main.getByRole("status")).toHaveTextContent("Nothing on our charts by that name. Try a component, like Button.");
+    } finally {
+      history.replaceState(null, "", before);
+    }
+  });
+
   it("shows the parts nesting on the Sheet and Dialog pages", async () => {
     for (const name of ["sheet", "dialog"]) {
       await renderPage(`/docs/${name}/`);

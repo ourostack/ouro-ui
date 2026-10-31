@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
+import { auditPage } from "./audit";
 import { diagnostics } from "./diagnostics";
 
 interface BuildEntry {
@@ -197,6 +198,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     page.on("response", listener);
     await page.goto(path);
     await expect(ready.first()).toBeAttached();
+    // Chapter I's island loads once the page is live; wait for it, or WebKit can go network-idle
+    // first and the island's files land while the next page loads, counted as that page's.
+    if (name === "nautilus") await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
     await page.waitForLoadState("networkidle");
     page.off("response", listener);
     const expected = initialFiles(manifest, kind);
@@ -318,3 +322,18 @@ for (const island of ISLANDS) {
     expect(gzip, `${island.chapter}'s island, gzip bytes: ${breakdown}`).toBeLessThanOrEqual(ISLAND_CEILING);
   });
 }
+
+test("the 404 page is lost at sea: a guess, a search and the way home, passing the strict audit", async ({ page, browserName }) => {
+  test.slow(browserName === "webkit");
+  const errors = diagnostics(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("404.html");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("heading", { level: 1, name: "Lost at sea" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to the surface" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search the docs" }).fill("button");
+  await expect(page.getByRole("search").getByRole("link", { name: "Button", exact: true })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  expect(await auditPage(page, browserName)).toBe("");
+  expect(errors).toEqual([]);
+});

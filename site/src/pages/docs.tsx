@@ -443,12 +443,14 @@ export function Updating(): JSX.Element {
   );
 }
 
+/**
+ * The Lost at sea page, which `prepare` loads only for an address with no page, so no other docs
+ * page carries its search in its first load.
+ */
+let LostAtSea: (() => JSX.Element) | undefined;
+
 export function NotFound(): JSX.Element {
-  return (
-    <DocsShell current="">
-      <PageTitle eyebrow="404" title="Page not found" lead={<>That page isn't here. The <a href={href("/docs/")} className="text-primary underline underline-offset-4">docs</a> {claim("list every component.", { source: { file: "site/src/site.test.tsx" }, verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" } })}</>} />
-    </DocsShell>
-  );
+  return <DocsShell current="">{LostAtSea && <LostAtSea />}</DocsShell>;
 }
 
 /** The component's or the page's entry for a path, if it is one's page. */
@@ -465,6 +467,13 @@ export async function prepare(path: string): Promise<void> {
   if (routeFor(path)?.path === "/docs/updating/") return loadMarkdown(["UPGRADING.md"]);
   const doc = docFor(path);
   if (doc) await loadMarkdown("item" in doc ? itemFiles(doc.item) : [doc.page.file]);
+  else if (lost(path)) LostAtSea ??= (await import("../components/lost-at-sea")).LostAtSea;
+}
+
+/** Whether the docs module has no page for a path, so it shows Not found. */
+function lost(path: string): boolean {
+  const route = routeFor(path)?.path;
+  return route !== "/docs/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && !docFor(path);
 }
 
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
@@ -473,7 +482,7 @@ export default function DocsRoute({ path }: { path: string }): JSX.Element {
   if (route === "/docs/") return <DocsIndex />;
   if (route === "/docs/switching-from-shadcn/") return <Switching />;
   if (route === "/docs/updating/") return <Updating />;
-  const doc = docFor(path);
-  if (doc && "item" in doc) return <DocsComponent item={doc.item} />;
-  return doc ? <DocsPageView page={doc.page} /> : <NotFound />;
+  if (lost(path)) return <NotFound />;
+  const doc = docFor(path)!;
+  return "item" in doc ? <DocsComponent item={doc.item} /> : <DocsPageView page={doc.page} />;
 }

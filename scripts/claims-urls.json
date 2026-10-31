@@ -75,6 +75,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site": {
+    "status": 200,
+    "checked": "2026-10-30"
+  },
   "https://docs.github.com/en/rest/actions/workflow-runs#approve-a-workflow-run-for-a-fork-pull-request": {
     "status": 200,
     "checked": "2026-10-30"

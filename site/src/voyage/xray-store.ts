@@ -18,6 +18,12 @@ export function setXray(next: boolean): void {
   for (const listener of listeners) listener();
 }
 
+/** Calls `onChange` with X-ray's state now and each time it changes, for code outside React; returns the unsubscribe. */
+export function watchXray(onChange: (on: boolean) => void): () => void {
+  onChange(on);
+  return subscribe(() => onChange(on));
+}
+
 export const openXray = (): void => setXray(true);
 
 export function useXray(): boolean {
