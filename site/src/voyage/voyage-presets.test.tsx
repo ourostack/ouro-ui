@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
-import { sliced } from "../../test/slice";
+import { sliced } from "../../../test/slice";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { PRESET_NAMES, THEME_KEY } from "../themes/prepaint";
 
