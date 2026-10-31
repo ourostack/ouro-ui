@@ -30,6 +30,8 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 ## Usage
 
+For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its own shape, two side by side, three as one large and two small, and four or more as a 2 by 2 grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced motion.
+
 To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to the element `returnFocus` gives for the image last shown, such as its thumbnail.
 
 ## Use instead when
@@ -43,6 +45,7 @@ The props the modes share. Type: `LightboxProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `closeLabel` | `string` | `"Close"` | The close button's accessible name. |
+| `fullScreen` | `boolean` |  | The viewer covers the whole screen at every width, with no frame around it, rather than sitting in a dialog with the page around it. Use it where pictures are the point, as in a chat's photos. |
 | `images` (required) | `readonly LightboxImage[]` |  | The images, in order. The viewer steps through them, and the thumbnails show them in a grid. |
 | `label` (required) | `string` |  | Names the viewer for screen readers, with the position ("Kitchen photos, 2 of 4"), and shows at its top, such as "Kitchen photos". With thumbnails it names their list too. It is always required. |
 | `loop` | `boolean` |  | Next on the last image goes back to the first, and Previous on the first goes to the last. |
@@ -71,14 +74,16 @@ A controlled Lightbox: the viewer alone, which you open from thumbnails you lay 
 Not in this mode (typed `never`):
 
 - `className`: Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone.
+- `layout`: Not with `open`: a controlled Lightbox draws no thumbnails to lay out.
 
 ### With thumbnails: `LightboxWithThumbnailsProps`
 
 A Lightbox that draws its own thumbnails, which open the viewer.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `className` | `string` | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
+| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. |
 
 Not in this mode (typed `never`):
 
@@ -91,6 +96,7 @@ Not in this mode (typed `never`):
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
+- `fullscreen`: Not a prop. Lightbox uses `fullScreen`: `<Lightbox fullScreen>`.
 - `slides`: Not a prop. Pass the images as `images`: `<Lightbox images={[{ src, alt }]}>`.
 
 ## `className` is for layout only
@@ -123,5 +129,17 @@ interface LightboxImage {
   caption?: ReactNode;
   /** The original file, or a page about the image: the viewer links to it in a new tab. */
   href?: string | undefined;
+  /**
+   * The image's own width and height, in any unit. With `layout="mosaic"` and one image, its
+   * thumbnail keeps this shape (between 3:4 and 3:1), so the page holds its place before it loads.
+   */
+  width?: number | undefined;
+  /** The image's own height; see `width`. */
+  height?: number | undefined;
+  /**
+   * A still frame of an animated image (a GIF), which its thumbnail shows instead when the user
+   * asks for reduced motion. The viewer still plays the image, since opening it asks to see it.
+   */
+  still?: string | undefined;
 }
 ```

@@ -177,3 +177,30 @@ export const Zoomed: Story = {
     await frameUntil(() => page.querySelector("[data-ouro-lightbox-zoom-view]"));
   },
 };
+
+/** A chat column: the width a message's pictures get. */
+const chatColumn: Story["render"] = (args) => (
+  <Surface>
+    <div style={{ maxWidth: 400 }}>
+      <Lightbox {...args} />
+    </div>
+  </Surface>
+);
+
+/** A chat message's pictures as one mosaic: three pictures as one large and two small, opening a viewer that covers the screen. */
+export const ChatMosaic: Story = {
+  args: { layout: "mosaic", fullScreen: true, images: coast.slice(0, 3) },
+  render: chatColumn,
+};
+
+/** Six pictures in a mosaic: four show, the last saying how many more the viewer steps on to. */
+export const MosaicWithMore: Story = {
+  args: { layout: "mosaic", images: [...coast, ...coast.slice(0, 2).map((image) => ({ ...image, alt: `${image.alt}, again` }))] },
+  render: chatColumn,
+};
+
+/** One picture at its own shape, as a chat shows a single photo. */
+export const MosaicOfOne: Story = {
+  args: { layout: "mosaic", images: [{ ...coast[2]!, width: 1800, height: 800 }] },
+  render: chatColumn,
+};

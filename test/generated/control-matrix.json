@@ -2464,7 +2464,10 @@
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter",
-      "Lightbox/Zoomed"
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
@@ -2480,7 +2483,10 @@
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter",
-      "Lightbox/Zoomed"
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
@@ -2496,7 +2502,10 @@
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter",
-      "Lightbox/Zoomed"
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
@@ -2512,7 +2521,10 @@
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter",
-      "Lightbox/Zoomed"
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
@@ -2528,7 +2540,10 @@
       "Lightbox/Photos",
       "Lightbox/LoopWithOriginals",
       "Lightbox/BeforeAndAfter",
-      "Lightbox/Zoomed"
+      "Lightbox/Zoomed",
+      "Lightbox/ChatMosaic",
+      "Lightbox/MosaicWithMore",
+      "Lightbox/MosaicOfOne"
     ]
   },
   {
