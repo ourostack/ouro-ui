@@ -1177,3 +1177,28 @@ describe("SheetTrigger and a page scroll at the press", () => {
     });
   }
 });
+
+describe("SheetTrigger with no handlers of its own", () => {
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`opens from ${input === "pointer" ? "a press" : "Enter"}, and the press hold raises no error`, async () => {
+      await render(<SheetRoot><SheetTrigger>Open</SheetTrigger></SheetRoot>);
+      const errors: string[] = [];
+      const onError = (event: ErrorEvent) => {
+        errors.push(event.message);
+        event.preventDefault();
+      };
+      window.addEventListener("error", onError);
+      const opener = document.querySelector<HTMLElement>('[data-ouro-control="sheet"][data-ouro-part="trigger"]')!;
+      if (input === "pointer") {
+        await commands.pointerPress({ selector: '[data-ouro-control="sheet"][data-ouro-part="trigger"]', action: "down" });
+        await commands.pointerPress({ action: "up" });
+      } else {
+        opener.focus();
+        await userEvent.keyboard("{Enter}");
+      }
+      await expect.poll(() => opener.getAttribute("aria-expanded")).toBe("true");
+      window.removeEventListener("error", onError);
+      expect(errors).toEqual([]);
+    });
+  }
+});

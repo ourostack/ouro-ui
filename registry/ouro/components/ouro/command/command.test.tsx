@@ -834,3 +834,21 @@ describe("Command's trigger and a page scroll at the press", () => {
     });
   }
 });
+
+describe("Command's Button trigger and the keyboard", () => {
+  it("opens at Enter on a Button trigger that has no key handler of its own", async () => {
+    await render(<Command title="Command palette" trigger={<Button>Search</Button>} items={entries()} />);
+    const errors: string[] = [];
+    const onError = (event: ErrorEvent) => {
+      errors.push(event.message);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    document.querySelector<HTMLElement>('[data-ouro="button"]')!.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector('[data-ouro="button"]')!.getAttribute("aria-expanded")).toBe("true");
+    window.removeEventListener("error", onError);
+    expect(errors).toEqual([]);
+  });
+});
+

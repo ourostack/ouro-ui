@@ -969,6 +969,21 @@ describe("Button and a page scroll at the press", () => {
     });
   }
 
+  for (const input of ["pointer", "Enter"] as const) {
+    it(`with aria-haspopup="dialog" and no handlers of its own, stops the scroll where ${input === "pointer" ? "a press" : "Enter"} found it, raising no error`, async () => {
+      await render(page5000(<Button aria-haspopup="dialog">Open</Button>));
+      const errors: string[] = [];
+      const onError = (event: ErrorEvent) => {
+        errors.push(event.message);
+        event.preventDefault();
+      };
+      window.addEventListener("error", onError);
+      expect(await pressAsScrollStarts(input)).toBe(2000);
+      window.removeEventListener("error", onError);
+      expect(errors).toEqual([]);
+    });
+  }
+
   for (const [name, button, input] of [
     ["without aria-haspopup", <Button key="plain">Save</Button>, "pointer"],
     ['with aria-haspopup="menu"', <Button key="menu" aria-haspopup="menu">More</Button>, "pointer"],
