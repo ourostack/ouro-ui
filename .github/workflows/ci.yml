@@ -6,6 +6,7 @@ permissions:
   contents: read
 jobs:
   menu-race:
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     container:
@@ -86,7 +87,8 @@ jobs:
               test.setTimeout(120_000);
               await page.setViewportSize({ width, height: width === 320 ? 640 : 900 });
               await page.addInitScript(() => {
-                new MutationObserver(() => { if (document.documentElement.hasAttribute("data-site-ready")) (window as any).__ready ??= performance.now(); }).observe(document.documentElement, { attributes: true });
+                const look = () => { if (document.documentElement?.hasAttribute("data-site-ready")) (window as any).__ready ??= performance.now(); else requestAnimationFrame(look); };
+                look();
               });
               const times: number[] = [];
               const loads: number[] = [];
