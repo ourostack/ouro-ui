@@ -57,9 +57,12 @@ test("generating is deterministic and matches the committed files", () => {
   const out = scratchDir("ouro-docs-");
   assert.equal(run("--out", out).status, 0);
   const files = readdirSync(join(out, "docs")).filter((name) => name.endsWith(".md")).sort();
-  // docs/guides is hand-written; everything else in docs/ is generated.
+  // docs/guides and docs/decisions are hand-written; everything else in docs/ is generated, docs/ax too.
   const committed = readdirSync(join(root, "docs"), { withFileTypes: true });
-  assert.deepEqual(committed.filter((entry) => entry.isDirectory()).map((entry) => entry.name), ["guides"]);
+  assert.deepEqual(committed.filter((entry) => entry.isDirectory()).map((entry) => entry.name), ["ax", "decisions", "guides"]);
+  const ax = readdirSync(join(out, "docs/ax")).sort();
+  assert.deepEqual(ax, readdirSync(join(root, "docs/ax")).sort());
+  for (const file of ax) assert.equal(readFileSync(join(out, "docs/ax", file), "utf8"), readFileSync(join(root, "docs/ax", file), "utf8"), file);
   assert.deepEqual(files, committed.filter((entry) => entry.isFile()).map((entry) => entry.name).sort());
   for (const file of files) {
     assert.equal(readFileSync(join(out, "docs", file), "utf8"), doc(file), file);

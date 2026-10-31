@@ -127,48 +127,48 @@ function loadClaimSet(value: unknown): ClaimSet
 
 ## The claims
 
-Must claims first. `node lib/ouro/ax/xray.ts claims` prints them, with their checks; [the claims guide](../guides/ax-claims.md) says how a claim is admitted.
+Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and checks; [the standard](../guides/ax-standard.md) says how a claim is admitted.
 
-| Claim | Tier | Rule | Admitted by |
-| --- | --- | --- | --- |
-| `cli.help-parses` | must | `<cli> help --json` prints one JSON document that names every command. | hazard |
-| `cli.help-effects` | must | Help says who sees each command: only the person, or other people. | hazard |
-| `cli.inventory` | must | Every command the CLI registers is listed once in `help --json` and in the inventory the adopter generates from its command registration, and the X-ray covers exactly that set. | hazard |
-| `cli.exit-codes` | must | Exit codes are documented, and every exit code the CLI gives is one of them. | hazard |
-| `cli.unknown-flag` | must | An unknown flag fails before anything runs, and the error names the flag. | hazard |
-| `cli.ambiguous-verbs` | must | Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands. | hazard |
-| `cli.others-need-why` | must | Every command other people see refuses to run without `--why`, and says so. | hazard |
-| `cli.wrong-ref-first` | must | A wrong reference fails before anything reaches anyone, and the error says where to get a right one. | hazard |
-| `cli.others-preview` | must | Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. | hazard |
-| `cli.text-as-argument` | must | A command that takes free text accepts it as one argument, not only on stdin, and its help shows that form. | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
-| `cli.wait-on-refs` | must | A wait command accepts the refs the reads list: `watch <ref>` waits on the conversation a list gave. | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
-| `cli.reads-stay-reads` | must | Reads change nothing. | hazard |
-| `cli.refusals-change-nothing` | must | A refused call changes nothing, except an audit record that says it was refused. | hazard |
-| `http.inventory` | must | Every route the agent port registers is in the inventory the adopter generates from its router, once, and the X-ray's routes manifest covers exactly that set. | hazard |
-| `http.wrong-ref-first` | must | A route given an id that does not exist fails and says where to get a right one. | hazard |
-| `http.others-need-why` | must | Every route that does what other people see refuses a request without a why, and names the field. | hazard |
-| `http.reads-stay-reads` | must | GET requests change nothing. | hazard |
-| `http.refusals-change-nothing` | must | A refused request changes nothing, except an audit record that says it was refused. | hazard |
-| `mcp.effect-annotated` | must | Every tool says whether it only reads or changes something (`readOnlyHint` or `destructiveHint`). | hazard |
-| `mcp.inventory` | must | Every tool the server registers is in tools/list once and in the adopter's inventory. | hazard |
-| `cli.command-help` | should | Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
-| `cli.help-width` | should | No help line is wider than the width limit (100 columns by default). | principle: Tandem docs/ax-principles.md; Tandem src/cli/help.ts WIDTH |
-| `cli.overview-short` | should | The overview (`--help`) fits one screen: at most 60 lines. | principle: Tandem src/cli/help.ts OVERVIEW_MAX_LINES |
-| `cli.read-json` | should | Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines), exits 0 and writes nothing to stderr. | principle: Ouro UI design record of 2026-10-11 (CLI kit); Tandem help: --json on every read |
-| `cli.unknown-command` | should | An unknown command fails with the usage exit code and lists the commands, or names the help that lists them. | principle: Tandem docs/ax-principles.md P7 |
-| `cli.flag-suggest` | should | A misspelt flag's error names the closest real flag. | evaluation: [xray-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md) |
-| `cli.missing-arg` | should | A command missing a required argument fails with the usage exit code and says what to give. | principle: Tandem docs/ax-principles.md P7 |
-| `cli.one-line-error` | should | Every error is one line on stderr; stdout stays empty, or with `--json` holds the same error as one JSON document. | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
-| `cli.error-teaches` | should | Every error names a next action: a command to run or a flag to add. | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
-| `cli.no-stack-trace` | should | No call prints a stack trace. | principle: Tandem docs/ax-principles.md P7 |
-| `cli.outcome` | should | An action's `--json` result is an outcome (`outcome/1`) that validates: its state, who can see it, a postcondition, a receipt and the next commands. | evaluation: [outcomes-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md) |
-| `cli.wait-typed` | should | A wait's `--json` answer is a wait (`wait/1`): what happened, or, when nothing did in time, the cursor and the exact command that resumes. | evaluation: [outcomes-results.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-results.md) |
-| `cli.work-events` | should | The interface records an attributed work event (`work-event/1`) for each action, handoff and wait, and an agent can read them through the interface. | evaluation: [flow-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/flow-probe.md) |
-| `http.json` | should | Every route answers JSON, with a JSON content type. | principle: Ouro UI design record of 2026-10-11: one error shape |
-| `http.error-shape` | should | Every error is a JSON object with a string `error`. | principle: Ouro UI design record of 2026-10-11 (MCP kit): one error shape |
-| `http.error-teaches` | should | Every error names a next action: a route, a field, or a command. | principle: Tandem docs/ax-principles.md P7 |
-| `http.index` | should | The API's base path answers an index of its routes. | principle: Tandem docs/ax-principles.md P15 |
-| `http.unknown-route` | should | An unknown route answers 404 and says where the routes are listed. | principle: Tandem docs/ax-principles.md P7 |
-| `mcp.tools-list` | should | The server lists its tools, each with a description and an input schema. | evaluation: [kit-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/kit-probe.md) |
-| `mcp.bad-call-teaches` | should | A call missing a required argument is refused, and the error names the argument. | principle: Ouro UI design record of 2026-10-11 (MCP kit) |
-| `mcp.unknown-tool` | should | An unknown tool is refused, and the error names the tools or tools/list. | principle: Tandem docs/ax-principles.md P7 |
+| Claim | Tier | Admitted by |
+| --- | --- | --- |
+| `cli.help-parses` | must | hazard |
+| `cli.help-effects` | must | hazard |
+| `cli.inventory` | must | hazard |
+| `cli.exit-codes` | must | hazard |
+| `cli.unknown-flag` | must | hazard |
+| `cli.ambiguous-verbs` | must | hazard |
+| `cli.others-need-why` | must | hazard |
+| `cli.wrong-ref-first` | must | hazard |
+| `cli.others-preview` | must | hazard |
+| `cli.text-as-argument` | must | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
+| `cli.wait-on-refs` | must | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
+| `cli.reads-stay-reads` | must | hazard |
+| `cli.refusals-change-nothing` | must | hazard |
+| `http.inventory` | must | hazard |
+| `http.wrong-ref-first` | must | hazard |
+| `http.others-need-why` | must | hazard |
+| `http.reads-stay-reads` | must | hazard |
+| `http.refusals-change-nothing` | must | hazard |
+| `mcp.effect-annotated` | must | hazard |
+| `mcp.inventory` | must | hazard |
+| `cli.command-help` | should | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
+| `cli.help-width` | should | principle |
+| `cli.overview-short` | should | principle |
+| `cli.read-json` | should | principle |
+| `cli.unknown-command` | should | principle |
+| `cli.flag-suggest` | should | evaluation: [xray-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md) |
+| `cli.missing-arg` | should | principle |
+| `cli.one-line-error` | should | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
+| `cli.error-teaches` | should | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
+| `cli.no-stack-trace` | should | principle |
+| `cli.outcome` | should | evaluation: [outcomes-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md) |
+| `cli.wait-typed` | should | evaluation: [outcomes-results.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-results.md) |
+| `cli.work-events` | should | evaluation: [flow-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/flow-probe.md) |
+| `http.json` | should | principle |
+| `http.error-shape` | should | principle |
+| `http.error-teaches` | should | principle |
+| `http.index` | should | principle |
+| `http.unknown-route` | should | principle |
+| `mcp.tools-list` | should | evaluation: [kit-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/kit-probe.md) |
+| `mcp.bad-call-teaches` | should | principle |
+| `mcp.unknown-tool` | should | principle |

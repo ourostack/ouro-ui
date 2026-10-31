@@ -1,6 +1,6 @@
 # The Ouro AX evaluation
 
-The X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters ([the claims](ax-claims.md)). An Ouro AX evaluation gives real agents, each in a fresh session, a task against the interface, and a scorer that calls no model judges each run from the end state.[^method] It is how a claim enters `must`. Ouro HX's agent-usability test measures components the same way: fresh agents, a fixed task, and a scorer that makes no model calls.[^hx]
+The X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters ([the claims](ax-standard.md)). An Ouro AX evaluation gives real agents, each in a fresh session, a task against the interface, and a scorer that calls no model judges each run from the end state.[^method] It is how a claim enters `must`. Ouro HX's agent-usability test measures components the same way: fresh agents, a fixed task, and a scorer that makes no model calls.[^hx]
 
 ## The method
 

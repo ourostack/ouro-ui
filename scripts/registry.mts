@@ -132,9 +132,8 @@ const toolingNote = claim(
 );
 
 const TESTING_URL = `${DOCS_URL}/testing.md`;
-/** Ouro AX's pages: one per ax item (docs/ax/, generated from the JSDoc by scripts/ax-docs.mts) and the guides. */
-const AX_DOCS_URL = `https://github.com/${REPO}/blob/main/docs/ax`;
-const AX_GUIDE_URL = `https://github.com/${REPO}/blob/main/docs/guides/ax.md`;
+/** Ouro AX's guide; each ax item's own page is ${DOCS_URL}/<item>.md, as a component's is. */
+const AX_GUIDE_URL = `${DOCS_URL}/ax.md`;
 const INSTALLING_URL = `${DOCS_URL}/installing.md`;
 
 /**
@@ -465,6 +464,8 @@ function resolveRegistryImport(specifier: string, files: string[]): string {
 function listFiles(root: string): string[] {
   return (readdirSync(join(root, "registry"), { recursive: true, withFileTypes: true }) as import("node:fs").Dirent[])
     .filter((entry) => entry.isFile() && entry.name !== ".DS_Store" && entry.name !== MANIFEST)
+    // A test's scratch folder (registry/ouro/ax/.tmp/) is no registry file.
+    .filter((entry) => !relative(root, entry.parentPath).split(/[\\/]/).includes(".tmp"))
     .map((entry) => relative(root, join(entry.parentPath, entry.name)).split("\\").join("/"))
     .sort();
 }
@@ -578,9 +579,9 @@ export function buildRegistry(root: string): Registry {
       title: name,
       kind: "ax" as const,
       description: name === "ax-example" ? "Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it." : `Ouro AX: ${axPurpose(name).replace(/^[A-Z](?=[a-z])/, (c) => c.toLowerCase())}`,
-      docs: `Docs: ${AX_DOCS_URL}/${name}.md`,
+      docs: `Docs: ${DOCS_URL}/${name}.md`,
     })),
-    ...axTests.map((name) => ({ name, title: `${name.slice(0, -6)} tests`, of: name.slice(0, -6), kind: "ax-tests" as const, description: `Optional: the node:test tests for ${name.slice(0, -6)}; run them with node --test.`, docs: undefined as string | undefined })),
+    ...axTests.map((name) => ({ name, title: `${name.slice(0, -6)} tests`, of: name.slice(0, -6), kind: "ax-tests" as const, description: `Optional: the node:test tests for ${name.slice(0, -6)}; run them with node --test.`, docs: `Docs: ${DOCS_URL}/${name.slice(0, -6)}.md` })),
     {
       name: "ouro-ax",
       title: "Ouro AX",
@@ -588,7 +589,7 @@ export function buildRegistry(root: string): Registry {
       description: "Ouro AX, the agent-experience kit, in one item: the ax-* items, from one command definition to the X-ray that checks an interface against the claims.",
       docs: `Ouro AX is in lib/ouro/ax. ${claim("It runs on Node 22.18 or later, which strips the types, and has no dependencies.", { source: [{ file: "package.json" }, { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }], verify: [{ equals: "package.json#devEngines.runtime.version", is: ">=22.18" }, { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }] })} Docs: ${AX_GUIDE_URL}`,
     },
-    { name: "ouro-ax-tests", title: "Ouro AX tests", kind: "aggregate" as const, description: "Optional: Ouro AX with the ax-* tests, the X-ray's fixtures and the example tool.", docs: undefined as string | undefined },
+    { name: "ouro-ax-tests", title: "Ouro AX tests", kind: "aggregate" as const, description: "Optional: Ouro AX with the ax-* tests, the X-ray's fixtures and the example tool.", docs: `Docs: ${AX_GUIDE_URL}` },
   ];
   const aggregates: Record<string, string[]> = {
     "ouro-ax": axRuntime.filter((name) => name !== "ax-example"),
@@ -718,8 +719,8 @@ export function buildRegistry(root: string): Registry {
   // tests covers every file it brought: link-tests brings text (its stories import it), so it
   // brings text-tests too. A helper without tests of its own breaks no chain: the closure is
   // taken over everything the item installs.
-  const hasTests = new Set(testsItems.map((tests) => tests.name));
-  for (const tests of testsItems) {
+  const hasTests = new Set([...testsItems.map((tests) => tests.name), ...axTests]);
+  for (const tests of [...testsItems, ...axTests.map((name) => ({ name }))]) {
     const item = byName.get(tests.name)!;
     const more = [...installedWith(tests.name)].filter((name) => hasTests.has(`${name}-tests`) && `${name}-tests` !== tests.name).map((name) => `${prefix}${name}-tests`);
     item.registryDependencies = [...new Set([...(item.registryDependencies ?? []), ...more])].sort();
@@ -774,7 +775,7 @@ export function withLlmsItems(llms: string, registry: Registry): string {
   const helpers = registry.items.filter((item) => helper(item.name) && !item.name.endsWith("-tests")).map((item) => `\`${item.name}\``);
   const lines = registry.items
     .filter((item) => !helper(item.name))
-    .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : /^ax-(?!.*-tests$)/.test(item.name) ? ` Docs: ${AX_DOCS_URL}/${item.name}.md` : ""}`);
+    .map((item) => `- \`${item.name}\`: ${item.description}${names.has(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : /^ax-(?!.*-tests$)/.test(item.name) ? ` Docs: ${DOCS_URL}/${item.name}.md` : ""}`);
   lines.push(
     `- ${claim("Helpers, one item per file in lib/ouro, each installed with the components that import it", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })} (and \`<name>-tests\` for a helper with tests): ${helpers.join(", ")}. ${claim(
       "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",

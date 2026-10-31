@@ -237,7 +237,7 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
-Ouro AX, for the interfaces agents use: `ouro-ax` and its `ax-*` items, and `ouro-ax-tests` ([Ouro AX](#ouro-ax)).
+Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): `ouro-ax`, which is `ax-claims`, `ax-cli`, `ax-command`, `ax-effects`, `ax-errors`, `ax-exit-codes`, `ax-lint`, `ax-mcp`, `ax-outcome`, `ax-output`, `ax-wait`, `ax-work-event`, `ax-xray`; the example tool `ax-example`; and `ouro-ax-tests`, with their `<name>-tests` items.
 
 Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
 
@@ -466,7 +466,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.2.14         # the kit and th
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.2.14   # with their node:test tests
 ```
 
-Guides: [Ouro AX](docs/guides/ax.md), [the claims](docs/guides/ax-claims.md), [the X-ray](docs/guides/ax-xray.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
+Guides: [Ouro AX](docs/guides/ax.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
 
 ## License
 

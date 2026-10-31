@@ -45,8 +45,8 @@ interface ArgSpec {
   name: string;
   description: string;
   required?: boolean;
-  /** Takes the remaining words, joined by spaces (free text). */
-  rest?: boolean;
+  /** Takes the remaining words: joined by spaces (free text), or with "list", as a list of words. */
+  rest?: boolean | "list";
   /** Whether "-" reads it from stdin. */
   stdin?: boolean;
   /** Not required when one of these flags is given, as `send <conversation> --draft` sends the draft instead. */
@@ -196,7 +196,7 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
       try {
         parse(cli, argv);
       } catch (e) {
-        throw new Error(`${def.name} ${cmd.name}: the example "${example}" does not parse: ${(e as Error).message}`);
+        throw new Error(`${def.name} ${cmd.name}: the example "${example}" does not parse: ${(e as Error).message}`, { cause: e });
       }
     }
   }
@@ -290,7 +290,13 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   }
   const tokens = [...argv.slice(lead), ...argv.slice(0, lead)];
   const json = tokens.includes("--json");
-  const helpFlag = tokens.includes("--help") || tokens.includes("-h");
+  /** Whether --help or -h is asked, and not as the value of a flag before it (`--category -h`). */
+  const helpIn = (flags: Readonly<Record<string, FlagSpec>>) =>
+    tokens.some((t, i) => {
+      const prev = i > 0 ? tokens[i - 1]! : "";
+      const spec = prev.startsWith("--") && !prev.includes("=") ? flags[prev.slice(2)] : undefined;
+      return (t === "--help" || t === "-h") && !(spec && spec.type !== "boolean");
+    });
   const leading: string[] = [];
   for (const t of tokens) {
     if (t.startsWith("-")) break;
@@ -298,13 +304,15 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   }
   if (leading[0] === "help") return { kind: "help", topic: leading.slice(1).join(" ") || undefined, json };
   if (leading.length === 0) {
-    if (helpFlag) return { kind: "help", topic: undefined, json };
+    if (helpIn(globals)) return { kind: "help", topic: undefined, json };
     throw new AxError({ code: "no-command", exit: usage(cli), thing: cli.name, problem: "no command given", fix: `${cli.name} --help` });
   }
   const found = findCommand(cli, leading);
+  const refused = ambiguousWord(cli, leading);
+  if (refused && (!found || wordsOf(refused).length > found.used)) throw ambiguousError(cli, refused);
   if (!found) throw unknownCommand(cli, leading);
   const { command, used } = found;
-  if (helpFlag) return { kind: "help", topic: command.name, json };
+  if (helpIn(flagsOf(cli, command))) return { kind: "help", topic: command.name, json };
   const words = tokens.slice(0, used);
   const rest = tokens.slice(used);
   const flags = flagsOf(cli, command);
@@ -387,7 +395,7 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   const given = [...positional];
   for (const a of args) {
     if (given.length === 0) break;
-    input[a.name] = a.rest ? given.splice(0).join(" ") : given.shift()!;
+    input[a.name] = a.rest === "list" ? given.splice(0) : a.rest ? given.splice(0).join(" ") : given.shift()!;
   }
   if (given.length && !command.loose) {
     const last = args.at(-1);
@@ -449,18 +457,25 @@ function valueOf(cli: Cli, thing: string, name: string, spec: FlagSpec, raw: str
   return raw;
 }
 
+/** The longest ambiguous word or phrase (`edit`, `draft send`) the leading words start with, or null. */
+function ambiguousWord(cli: Cli, leading: readonly string[]): string | null {
+  const matches = Object.keys(cli.ambiguous).filter((key) => wordsOf(key).every((w, i) => leading[i] === w));
+  return matches.sort((a, b) => wordsOf(b).length - wordsOf(a).length)[0] ?? null;
+}
+
+function ambiguousError(cli: Cli, word: string): AxError {
+  const meanings = cli.ambiguous[word]!;
+  return new AxError({
+    code: "ambiguous",
+    exit: usage(cli),
+    thing: word,
+    problem: `"${word}" could mean ${meanings.length} things, so it does nothing: ${meanings.map((m) => m.means).join("; or ")}`,
+    fix: meanings.map((m) => `${cli.name} ${m.use}`).join(" or "),
+  });
+}
+
 function unknownCommand(cli: Cli, leading: readonly string[]): AxError {
   const word = leading[0]!;
-  const meanings = cli.ambiguous[word];
-  if (meanings) {
-    return new AxError({
-      code: "ambiguous",
-      exit: usage(cli),
-      thing: word,
-      problem: `"${word}" could mean ${meanings.length} things, so it does nothing: ${meanings.map((m) => m.means).join("; or ")}`,
-      fix: meanings.map((m) => `${cli.name} ${m.use}`).join(" or "),
-    });
-  }
   const group = cli.commands.filter((c) => !c.hidden && wordsOf(c.name)[0] === word && wordsOf(c.name).length > 1);
   if (group.length) {
     const sub = leading[1];
@@ -503,7 +518,8 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
   const required: string[] = [];
   for (const a of cmd.args ?? []) {
     const unless = unlessOf(a);
-    properties[a.name] = { type: "string", description: a.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
+    const description = a.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "");
+    properties[a.name] = a.rest === "list" ? { type: "array", items: { type: "string" }, description } : { type: "string", description };
     if (a.required && !unless.length) required.push(a.name);
   }
   for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
@@ -598,6 +614,10 @@ function toArgv(cli: Pick<Cli, "globalFlags">, cmd: CommandDef, input: Input): {
   for (const a of cmd.args ?? []) {
     const value = input[a.name];
     if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      argv.push(...value);
+      continue;
+    }
     const text = String(value);
     if (a.stdin && stdin === null) {
       stdin = text;

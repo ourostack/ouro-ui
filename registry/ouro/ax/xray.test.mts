@@ -1,6 +1,6 @@
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -30,11 +30,14 @@ import {
 } from "./xray.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-// Inside this folder, never the system temp folder; removed after the tests.
-const scratch = join(here, `.tmp-xray-${process.pid}`);
+// Inside this folder (in .tmp/, which git and the registry ignore), never the system temp folder; removed after the tests.
+const scratch = join(here, ".tmp", `xray-${process.pid}`);
 const home = join(scratch, "home");
 mkdirSync(home, { recursive: true });
-after(() => rmSync(scratch, { recursive: true, force: true }));
+after(() => {
+  rmSync(scratch, { recursive: true, force: true });
+  if (readdirSync(join(here, ".tmp")).length === 0) rmSync(join(here, ".tmp"), { recursive: true });
+});
 
 let mock: Server;
 let mockUrl = "";

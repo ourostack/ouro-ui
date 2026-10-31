@@ -1,11 +1,11 @@
 [
   {
-    "name": "ax-claims",
-    "title": "The Ouro AX claims",
+    "name": "ax-conformance",
+    "title": "The Ouro AX X-ray",
     "kind": "guide",
     "group": "Guides",
-    "markdown": "docs/guides/ax-claims.md",
-    "summary": "The Ouro AX standard is a list of claims about the interfaces agents use."
+    "markdown": "docs/guides/ax-conformance.md",
+    "summary": "`ax-xray` checks an interface an agent uses against the Ouro AX claims (the claims)."
   },
   {
     "name": "ax-eval",
@@ -16,12 +16,12 @@
     "summary": "The X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters (the claims)."
   },
   {
-    "name": "ax-xray",
-    "title": "The Ouro AX X-ray",
+    "name": "ax-standard",
+    "title": "The Ouro AX claims",
     "kind": "guide",
     "group": "Guides",
-    "markdown": "docs/guides/ax-xray.md",
-    "summary": "`ax-xray` checks an interface an agent uses against the Ouro AX claims (the claims)."
+    "markdown": "docs/guides/ax-standard.md",
+    "summary": "The Ouro AX standard is a list of claims about the interfaces agents use."
   },
   {
     "name": "ax",
@@ -150,6 +150,118 @@
     "group": "Guides",
     "markdown": "docs/guides/why-no-skill.md",
     "summary": "Ouro HX puts component guidance in the source an agent already reads: required props, compiler hints and development messages."
+  },
+  {
+    "name": "ax-claims",
+    "title": "ax-claims",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-claims.md",
+    "summary": "The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix."
+  },
+  {
+    "name": "ax-cli",
+    "title": "ax-cli",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-cli.md",
+    "summary": "The whole front door for a tool built on the kit: parse, help, run (or, on `--dry-run`, plan), print the result as text or `--json`, and turn every failure into the one error line and its exit code."
+  },
+  {
+    "name": "ax-command",
+    "title": "ax-command",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-command.md",
+    "summary": "One definition of a command: its words, effect, arguments and flags, examples and output."
+  },
+  {
+    "name": "ax-effects",
+    "title": "ax-effects",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-effects.md",
+    "summary": "Effect classes: a command either touches only the person's own space (\"private\") or reaches other people (\"others\")."
+  },
+  {
+    "name": "ax-errors",
+    "title": "ax-errors",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-errors.md",
+    "summary": "One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop."
+  },
+  {
+    "name": "ax-example",
+    "title": "ax-example",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-example.md",
+    "summary": "A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word and a tool-specific exit code."
+  },
+  {
+    "name": "ax-exit-codes",
+    "title": "ax-exit-codes",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-exit-codes.md",
+    "summary": "A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift."
+  },
+  {
+    "name": "ax-lint",
+    "title": "ax-lint",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-lint.md",
+    "summary": "The kit's check of a tool's declarations: what an agent needs from every declared command (a summary, an example, described arguments and flags, `--why` and a preview where other people see it, help that fits the width), and, against the tool's own command inventory, that every command it registers runs through its declaration."
+  },
+  {
+    "name": "ax-mcp",
+    "title": "ax-mcp",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-mcp.md",
+    "summary": "The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold."
+  },
+  {
+    "name": "ax-outcome",
+    "title": "ax-outcome",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-outcome.md",
+    "summary": "The outcome of an action: what became of it, who can see it, whether that was checked, how to find it again and what to run next, in one shape over a CLI's `--json`, an HTTP route and an MCP tool."
+  },
+  {
+    "name": "ax-output",
+    "title": "ax-output",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-output.md",
+    "summary": "One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data."
+  },
+  {
+    "name": "ax-wait",
+    "title": "ax-wait",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-wait.md",
+    "summary": "A typed wait: the agent names a reference it already holds, the tool waits (polling, if it must, where the agent cannot see it) until something happens or the time limit passes, and returns what happened with the cursor that resumes the wait."
+  },
+  {
+    "name": "ax-work-event",
+    "title": "ax-work-event",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-work-event.md",
+    "summary": "An attributed work event: who acted and for whom, on what, why, with which receipt, when."
+  },
+  {
+    "name": "ax-xray",
+    "title": "ax-xray",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-xray.md",
+    "summary": "The Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold."
   },
   {
     "name": "can-share",

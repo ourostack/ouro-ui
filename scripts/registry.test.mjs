@@ -477,7 +477,7 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
     const line = components.includes(entry.name)
       ? `- \`${entry.name}\`: ${entry.description} Docs: https://ui.ouro.bot/docs/${entry.name}.md\n`
       : axRuntime.includes(entry.name)
-        ? `- \`${entry.name}\`: ${entry.description} Docs: https://github.com/ourostack/ouro-ui/blob/main/docs/ax/${entry.name}.md\n`
+        ? `- \`${entry.name}\`: ${entry.description} Docs: https://ui.ouro.bot/docs/${entry.name}.md\n`
         : `- \`${entry.name}\`: ${entry.description}\n`;
     assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; run pnpm registry`);
   }
