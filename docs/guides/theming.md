@@ -2,11 +2,11 @@
 
 Ouro HX parts paint themselves from a small set of CSS variables, the ones a shadcn/ui theme sets. Change them and your app changes coats: buttons, menus, dialogs, charts and focus rings, without touching a component.
 
-You can try it on the [home page](/): pick a dot under the buttons, or open **Theme** in the header.
+You can try it on the [home page](/): pick one of the coloured dots near the top, or open "Theme" in the header.
 
 ## Start from a preset
 
-On the home page, choose a preset under **Repaint the whole ship**, then press **Copy theme**. Paste what you copied at the end of your global CSS. It brings `:root`, `.dark`, `@theme inline` and the preset's fonts. **Copy tokens only** brings just the variables, if you already load your own fonts.
+On the home page, choose a preset under "Repaint the whole ship", then press "Copy theme". Paste what you copied at the end of your global CSS. It brings `:root`, `.dark`, `@theme inline` and the preset's fonts. "Copy tokens only" brings just the variables, if you already load your own fonts.
 
 The default look, Pearl, is what `ouro-theme` installs:
 
@@ -37,7 +37,7 @@ A theme's personality lives in a handful of lines. Put these after your theme's 
 - `--ring` is the focus ring that keyboard users follow.
 - `--radius` sets the corners. `0rem` is square; `1rem` is pebble-round.
 
-The maker on the home page, under **Or mix your own paint**, writes these lines for you while the sample repaints.
+The maker on the home page, under "Or mix your own paint", writes these lines for you while the sample repaints.
 
 ## Go further
 
@@ -47,4 +47,4 @@ Set light values in `:root` and dark values in `.dark`. Ouro HX switches with th
 
 ## Live
 
-The site's **Live** theme is Pearl under your own sky. It reads only your device's clock and time zone, so nothing asks for your location. At dawn the page turns rosy, by day it is Pearl's blue, at dusk it goes golden and at night it lights indigo lanterns. The porthole's sky, sun and sea follow along. Your own app can do the same by swapping a few of the variables above on a timer.
+The site's Live theme is Pearl under your own sky. It reads only your device's clock and time zone, so nothing asks for your location. At dawn the page turns rosy, by day it is Pearl's blue, at dusk it goes golden and at night it lights indigo lanterns. The porthole's sky, sun and sea follow along. Your own app can do the same by swapping a few of the variables above on a timer.
