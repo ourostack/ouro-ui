@@ -1,0 +1,11 @@
+{
+  "order": 2640,
+  "components": ["toolbar"],
+  "controls": {
+    "toolbar": [
+      {"part": "button", "role": "button", "portal": false},
+      {"part": "toggle", "role": "button", "portal": false},
+      {"part": "more", "role": "button", "portal": false}
+    ]
+  }
+}

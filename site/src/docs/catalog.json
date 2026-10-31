@@ -58,6 +58,13 @@
     ]
   },
   {
+    "name": "toolbar",
+    "title": "Toolbar",
+    "group": "Actions",
+    "source": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
+    "summary": "A row of controls for one surface, such as an editor's formatting: Button commands and Toggle states, in groups with separators."
+  },
+  {
     "name": "text",
     "title": "Text",
     "group": "Text",
@@ -254,6 +261,13 @@
     "group": "Forms",
     "source": "registry/ouro/components/ouro/image-field/image-field.tsx",
     "summary": "A field for one photo, shown large: the photo already saved (`src`) or the one just chosen, with Choose photo (Change photo once one shows) and Remove."
+  },
+  {
+    "name": "autocomplete",
+    "title": "Autocomplete",
+    "group": "Forms",
+    "source": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx",
+    "summary": "Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character."
   },
   {
     "name": "sheet",
