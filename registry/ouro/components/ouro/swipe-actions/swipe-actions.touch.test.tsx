@@ -296,8 +296,16 @@ describe("SwipeActions on a phone", () => {
     const row = rows[1]!;
     const [x, y] = middle(row);
     try {
-      await commands.touchStep({ type: "touchStart", x, y });
-      for (let step = 1; step <= 6; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
+      // Command latency is not a held finger: keep the long-press clock still until movement cancels it.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await commands.touchStep({ type: "touchStart", x, y });
+        await commands.touchStep({ type: "touchMove", x: x - 15, y });
+      } finally {
+        vi.useRealTimers();
+      }
+      noMenu();
+      for (let step = 2; step <= 6; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
       // 90px in: the row is under the finger, with no transition behind it.
       await expect.poll(() => offset(row)).toBe(-90);
       expect(track(row).getAnimations().length).toBe(0);
@@ -434,8 +442,16 @@ describe("SwipeActions on a phone", () => {
     // The actions are in sight as soon as the row uncovers them: nothing fades in.
     expect(getComputedStyle(strip(row, "trailing")).opacity).toBe("1");
     try {
-      await commands.touchStep({ type: "touchStart", x, y });
-      for (let step = 1; step <= 8; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
+      // Command latency is not a held finger: keep the long-press clock still until movement cancels it.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await commands.touchStep({ type: "touchStart", x, y });
+        await commands.touchStep({ type: "touchMove", x: x - 15, y });
+      } finally {
+        vi.useRealTimers();
+      }
+      noMenu();
+      for (let step = 2; step <= 8; step++) await commands.touchStep({ type: "touchMove", x: x - step * 15, y });
       // Following a finger is not an animation: the row is under it, 120px along.
       await expect.poll(() => offset(row)).toBe(-120);
       expect(track(row).getAnimations({ subtree: true }).length).toBe(0);
