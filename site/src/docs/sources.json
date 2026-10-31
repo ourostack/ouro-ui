@@ -74,6 +74,7 @@
   "message": "registry/ouro/components/ouro/message/message.tsx",
   "message-list": "registry/ouro/components/ouro/message/message-list.tsx",
   "attachment": "registry/ouro/components/ouro/message/attachment.tsx",
+  "thread-summary": "registry/ouro/components/ouro/message/thread-summary.tsx",
   "checklist": "registry/ouro/components/ouro/checklist/checklist.tsx",
   "inspector": "registry/ouro/components/ouro/inspector/inspector.tsx",
   "skip-link": "registry/ouro/components/ouro/skip-link/skip-link.tsx",
@@ -99,5 +100,9 @@
   "reaction-bar": "registry/ouro/components/ouro/reaction-bar/reaction-bar.tsx",
   "lightbox": "registry/ouro/components/ouro/lightbox/lightbox.tsx",
   "composer": "registry/ouro/components/ouro/composer/composer.tsx",
-  "time-grid": "registry/ouro/components/ouro/time-grid/time-grid.tsx"
+  "emoji-picker": "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx",
+  "navigation-rail": "registry/ouro/components/ouro/navigation-rail/navigation-rail.tsx",
+  "time-grid": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
+  "toolbar": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
+  "autocomplete": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx"
 }
