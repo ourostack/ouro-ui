@@ -225,17 +225,24 @@ function initialsOf(name: string): string {
 }
 
 /**
- * One of the hues for a key, the same on the server and in the browser: an FNV hash, scaled
- * from its top bits, which mix the whole of each character (its low bits see only the low bits).
- * @claim "an FNV hash, scaled from its top bits" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > maps each name to its hue, the same in every browser and on the server)
+ * One of the hues for a key, the same on the server and in the browser: an FNV hash, mixed by
+ * MurmurHash3's finalizer and scaled from its top bits. Without the mix, keys that differ only
+ * in their last character (sequential ids) barely move the top bits, and all take one hue.
+ * @claim "an FNV hash, mixed by MurmurHash3's" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > maps each name to its hue, the same in every browser and on the server)
+ * @claim "Without the mix, keys that differ" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > spreads ids that differ only in their last character across the hues)
  */
 function hueOf(key: string): string {
   let hash = 0x811c9dc5;
   for (const char of key.trim().toLowerCase()) {
     hash ^= char.codePointAt(0)!;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
+    hash = Math.imul(hash, 0x01000193);
   }
-  return hues[Math.floor((hash / 2 ** 32) * hues.length)]!;
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+  return hues[Math.floor(((hash >>> 0) / 2 ** 32) * hues.length)]!;
 }
 
 function checkSize(size: unknown): AvatarSize | undefined {

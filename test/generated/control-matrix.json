@@ -965,7 +965,8 @@
       "Command/Playground",
       "Command/Shortcut",
       "Command/Empty",
-      "Command/ServerSearch"
+      "Command/ServerSearch",
+      "Command/Media"
     ]
   },
   {
@@ -980,7 +981,8 @@
       "Command/Playground",
       "Command/Shortcut",
       "Command/Empty",
-      "Command/ServerSearch"
+      "Command/ServerSearch",
+      "Command/Media"
     ]
   },
   {
@@ -995,7 +997,8 @@
       "Command/Playground",
       "Command/Shortcut",
       "Command/Empty",
-      "Command/ServerSearch"
+      "Command/ServerSearch",
+      "Command/Media"
     ]
   },
   {
@@ -2383,6 +2386,7 @@
     "stories": [
       "ReactionBar/Playground",
       "ReactionBar/InMessage",
+      "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
@@ -2398,6 +2402,23 @@
     "stories": [
       "ReactionBar/Playground",
       "ReactionBar/InMessage",
+      "ReactionBar/WithPicker",
+      "ReactionBar/ReadOnly",
+      "ReactionBar/Disabled"
+    ]
+  },
+  {
+    "item": "reaction-bar",
+    "stem": "reaction-bar",
+    "mode": "default",
+    "part": "more",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "ReactionBar/Playground",
+      "ReactionBar/InMessage",
+      "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
       "ReactionBar/Disabled"
     ]
@@ -2464,6 +2485,86 @@
       "Composer/Sending",
       "Composer/ModEnter",
       "Composer/Disabled"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "emoji",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "quick",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "category",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "skin-tone",
+    "role": "button",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
+    ]
+  },
+  {
+    "item": "emoji-picker",
+    "stem": "emoji-picker",
+    "mode": "default",
+    "part": "tone",
+    "role": "radio",
+    "portal": true,
+    "touch": false,
+    "stories": [
+      "EmojiPicker/Reactions",
+      "EmojiPicker/InsertIntoText",
+      "EmojiPicker/SkinTone",
+      "EmojiPicker/Sheet",
+      "EmojiPicker/ChoosingSkinTone"
     ]
   },
   {
