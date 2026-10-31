@@ -1632,6 +1632,8 @@ test("the site's end-to-end specs run against the build served as GitHub Pages s
   assert.equal(server.command, "pnpm site:build && node site/scripts/serve-pages.mjs 4179");
   assert.equal(server.ignoreHTTPSErrors, true);
   assert.match(readFileSync(join(root, "site/scripts/serve-pages.mjs"), "utf8"), /createSecureServer\(/);
+  // Each site browser opens the voyage pages once before any spec (site/e2e/warm-up.ts).
+  assert.equal(main.globalSetup, "./site/e2e/warm-up.ts");
 });
 
 test("the main Playwright config never runs a screen-reader spec, and the screen-reader config runs only those, one at a time", async () => {

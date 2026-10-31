@@ -15,6 +15,9 @@ export default defineConfig({
   // others). The specs share no state between tests.
   fullyParallel: true,
   forbidOnly: !!process.env["CI"],
+  // The site's voyage pages, opened once per browser before any spec, so no spec pays a fresh
+  // runner's one-time cost of their first visit (site/e2e/warm-up.ts).
+  globalSetup: "./site/e2e/warm-up.ts",
   retries: process.env["CI"] ? 1 : 0,
   reporter: process.env["CI"]
     ? [
