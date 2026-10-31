@@ -219,7 +219,7 @@ test.describe("each control in Chapter I", () => {
     await expect(leave).toBeFocused();
     // Judged only once the toast has settled: it slides in from below its place.
     await expect.poll(toasts.settled).toBeGreaterThan(5);
-    expect(await toasts.overlapped()).toBe(false);
+    expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   });
 
   test("Sign hands focus straight to your row's Leave, with nothing unfocused in between", async ({ page }) => {
@@ -394,7 +394,7 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
   // Judged only once the toast has settled: it slides in from below its place.
   await expect.poll(toasts.settled).toBeGreaterThan(5);
-  expect(await toasts.overlapped()).toBe(false);
+  expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await context.close();
