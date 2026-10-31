@@ -1,9 +1,20 @@
+import { spawn, type ChildProcess } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 
 // PROBE (never merged): voyage.spec.ts's 320 px reflow loop. When data-site-ready is late, keeps
 // waiting (up to 30 s more) to tell slow from never, and prints what went wrong on the page.
 const PAGES = ["./", "nautilus/"] as const;
+// PROBE_PAGES: serve site/dist as GitHub Pages does (site/scripts/serve-pages.mjs: HTTP/2, TLS,
+// gzip with a length), instead of vite preview's HTTP/1.1 with chunked on-the-fly gzip.
+let server: ChildProcess | undefined;
+test.use({ ignoreHTTPSErrors: true });
+test.beforeAll(async ({}, workerInfo) => {
+  if (!process.env["PROBE_PAGES"]) return;
+  server = spawn(process.execPath, ["site/scripts/serve-pages.mjs", String(4190 + workerInfo.workerIndex)], { stdio: "inherit" });
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+});
+test.afterAll(() => server?.kill());
 
 test("probe: reflow loop navigations", async ({ page }, testInfo) => {
   test.setTimeout(240_000);
@@ -26,7 +37,7 @@ test("probe: reflow loop navigations", async ({ page }, testInfo) => {
       await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify({ preset })] as const);
       const start = Date.now();
       try {
-        await page.goto(path);
+        await page.goto(process.env["PROBE_PAGES"] ? `https://127.0.0.1:${4190 + testInfo.workerIndex}/${path === "./" ? "" : path}` : path);
       } catch (error) {
         console.log(`PROBE GOTO ${path} ${preset} repeat ${testInfo.repeatEachIndex}: ${String(error).split("\n")[0]}\n${events.join("\n")}`);
         throw error;
