@@ -2,7 +2,7 @@
 
 # ShowMore
 
-"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
+"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
 
 ```tsx
 import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more";
@@ -13,6 +13,7 @@ import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more"
 ```tsx
 <ShowMore items={reviews.map((review) => <Review key={review.id} {...review} />)} initialCount={3} />
 <ShowMore lines={3}>{recipe.description}</ShowMore>
+<ShowMore maxHeight={180}><Post body={post.body} /></ShowMore>
 <ShowMore items={rows} hasMore={Boolean(nextCursor)} loading={loading} onShowMore={loadNext} href={nextHref} />
 ```
 
@@ -35,6 +36,30 @@ The props the modes share. Type: `ShowMoreProps`.
 
 `ShowMoreProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
+### Height: `ShowMoreHeightProps`
+
+Long content of any kind folded to `maxHeight` pixels under a fade, with "Show more" and "Show less".
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `children` (required) | `ReactNode` |  | The content: rich text, pictures, cards. Screen readers always read all of it, and moving keyboard focus into the folded part unfolds it, so nothing focusable is out of sight. |
+| `maxHeight` (required) | `number` |  | How tall the content shows while folded, in CSS pixels, with its last part fading out. Content at most a fifth taller shows whole, since a button that reveals a line or two helps nobody. The button appears only when the content is folded. |
+| `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
+
+Not in this mode (typed `never`):
+
+- `hasMore`: Only with `onShowMore`.
+- `href`: Only with `onShowMore`.
+- `initialCount`: Only with `items` and no `onShowMore`.
+- `items`: List modes only: not with `maxHeight`.
+- `lines`: Not with `maxHeight`: fold by height or by lines, not both.
+- `loadedLabel`: Only with `onShowMore`.
+- `loading`: Only with `onShowMore`.
+- `loadingLabel`: Only with `onShowMore`.
+- `noMoreLabel`: Only with `onShowMore`.
+- `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
+- `ordered`: List modes only: not with `maxHeight`.
+
 ### Items: `ShowMoreItemsProps`
 
 A list cut to its first `initialCount` items, with "Show more" and "Show less".
@@ -55,6 +80,7 @@ Not in this mode (typed `never`):
 - `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
+- `maxHeight`: Height mode only: not with `items`.
 - `noMoreLabel`: Only with `onShowMore`.
 - `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
 
@@ -77,6 +103,7 @@ Not in this mode (typed `never`):
 - `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
+- `maxHeight`: Not with `lines`: fold by height or by lines, not both.
 - `noMoreLabel`: Only with `onShowMore`.
 - `onShowMore`: Only for a list that loads more: with `items`, without `initialCount` or `lines`.
 - `ordered`: List modes only: not with `lines`.
@@ -102,6 +129,7 @@ Not in this mode (typed `never`):
 - `children`: Text mode only: a list takes `items`.
 - `initialCount`: Only with `items` and no `onShowMore`.
 - `lines`: Text mode only: not with `items`.
+- `maxHeight`: Height mode only: not with `items`.
 - `showLessLabel`: A list that loads more never shrinks, so it has no "Show less".
 
 ## Don't use
