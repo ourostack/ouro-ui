@@ -21,11 +21,13 @@
 #         a tests item, and check that the stylesheet and package.json are byte for byte what
 #         they were: a later add never undoes an app's setup.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
-#         which must be pushed).
-# github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
-#         every item and dependency comes from the default branch. Type check, build and
-#         the install check only. Meaningful once main has this registry (CI runs it on
-#         push to main).
+#         which must be pushed) when <ref> commits registry.json, as a release commit does;
+#         main commits none (scripts/generated-files.mjs), so elsewhere from this commit's
+#         built registry.
+# github: what a user runs today: `shadcn add ourostack/ouro-ui/<item>#<tag>` for every
+#         component in the newest release (package.json ouro.latestRelease), each item and
+#         dependency from GitHub at that tag. Type check, build and the install check only
+#         (CI runs it on push to main).
 # namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
 #         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
 #         registered in components.json, then `shadcn add @ouro/ouro-base @ouro/dialog`. Every
@@ -180,8 +182,15 @@ npm install --no-audit --no-fund
 echo "::endgroup::"
 
 if [ "$variant" = github ]; then
-  echo "::group::Every item from GitHub, no ref"
-  "${shadcn[@]}" add --yes ourostack/ouro-ui/ouro-base "${items[@]/#/ourostack/ouro-ui/}"
+  tag=$(node "$root/scripts/latest-release.mjs")
+  echo "::group::Every component in $tag from GitHub at that tag"
+  git -C "$root" rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null || git -C "$root" fetch --quiet --depth=1 origin "refs/tags/$tag:refs/tags/$tag"
+  # shellcheck disable=SC2207 # item names have no spaces
+  released=($(git -C "$root" show "$tag:registry.json" | node -e 'for (const item of JSON.parse(require("fs").readFileSync(0, "utf8")).items) if (item.type === "registry:ui") console.log(item.name)'))
+  [ "${#released[@]}" -gt 0 ] || { echo "$tag's registry.json lists no component"; exit 1; }
+  addresses=("ourostack/ouro-ui/ouro-base#$tag")
+  for item in "${released[@]}"; do addresses+=("ourostack/ouro-ui/$item#$tag"); done
+  "${shadcn[@]}" add --yes "${addresses[@]}"
   echo "::endgroup::"
   echo "::group::Type check and build"
   npx tsc -b
@@ -384,8 +393,13 @@ if [ "$variant" = upgrade ]; then
 fi
 
 if [ "$variant" = ouro ]; then
-  echo "::group::ouro-theme from GitHub at $ref"
-  "${shadcn[@]}" add --yes "ourostack/ouro-ui/ouro-theme#$ref"
+  if git -C "$root" cat-file -e "$ref:registry.json" 2>/dev/null; then
+    echo "::group::ouro-theme from GitHub at $ref"
+    "${shadcn[@]}" add --yes "ourostack/ouro-ui/ouro-theme#$ref"
+  else
+    echo "::group::ouro-theme from this commit's registry ($ref commits no registry.json, as main does not)"
+    "${shadcn[@]}" add --yes "$registry/r/ouro-theme.json"
+  fi
   echo "::endgroup::"
 fi
 

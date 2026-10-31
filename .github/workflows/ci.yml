@@ -106,7 +106,7 @@ jobs:
             # jobs here that run it. README.md counts when its Next.js steps change (the quick start's
             # and the Next.js section's add commands and files, scripts/readme-steps.mjs same), not
             # when a component adds itself to the catalog.
-            installPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|UPGRADING\.md|docs/OuroProvider\.md|test/install-fixture[^/]*/.+|scripts/(install-test\.sh|install-check\.mjs|source-rules\.mjs|readme-steps\.mjs|upgrade-note\.mjs|latest-release\.mjs|namespace\.sh|registry\.mts|components\.mts|shard\.mjs|shard-timings\.json|vitest-shards\.mts|test-impact\.mjs))$'
+            installPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|UPGRADING\.md|docs/OuroProvider\.md|test/install-fixture[^/]*/.+|scripts/(install-test\.sh|install-check\.mjs|source-rules\.mjs|readme-steps\.mjs|upgrade-note\.mjs|latest-release\.mjs|namespace\.sh|registry\.mts|generated-files\.mjs|generate\.mjs|components\.mts|shard\.mjs|shard-timings\.json|vitest-shards\.mts|test-impact\.mjs))$'
             if git diff --name-only HEAD^1 HEAD | grep -qE "$installPaths" || ! node scripts/readme-steps.mjs same HEAD^1; then
               echo "This pull request changes the install test, so it runs here too."
               echo "installs=here" >> "$GITHUB_OUTPUT"
@@ -812,8 +812,11 @@ jobs:
             .vitest/attachments/
           if-no-files-found: ignore
   registry:
-    # registry.json is generated (scripts/registry.mts) and valid for the pinned shadcn CLI,
-    # both from the checkout and through the GitHub path at this commit.
+    # registry.json is generated (scripts/registry.mts) and valid for the pinned shadcn CLI, from
+    # the checkout, and on a release commit, the only kind that commits it, through the GitHub
+    # path at this commit. Main commits none (scripts/generated-files.mjs): there, `pnpm registry
+    # --check` fails when git tracks it, and when a file it lists is not committed or is a Git LFS
+    # pointer, which the GitHub path at a release tag could not read.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -836,10 +839,16 @@ jobs:
       # controls, modes and motion against the source, and the browser tests read what it wrote.
       - run: pnpm controls:matrix
       - run: npx --yes $SHADCN registry validate ./registry.json
-      # The registry as GitHub serves it at this commit: the CLI fetches each of its few hundred
-      # files, and now and then one fetch fails (a different file each time), so the fetch is
-      # tried again (scripts/retry.sh). A missing file fails every try.
-      - run: scripts/retry.sh npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
+      # The registry as GitHub serves it at this commit, when the commit has one: the CLI fetches
+      # each of its few hundred files, and now and then one fetch fails (a different file each
+      # time), so the fetch is tried again (scripts/retry.sh). A missing file fails every try.
+      - name: Validate the registry through GitHub, on a commit that has one
+        run: |
+          if git cat-file -e HEAD:registry.json 2>/dev/null; then
+            scripts/retry.sh npx --yes $SHADCN registry validate "ourostack/ouro-ui#$REF"
+          else
+            echo "This commit has no registry.json (main commits none): pnpm registry --check checked that every file it lists is committed."
+          fi
       - run: npx --yes $SHADCN build --output "$RUNNER_TEMP/r"
   e2e-shard:
     # The end-to-end specs each item ships, against this repository's Storybook, and the site's, in
@@ -1245,9 +1254,11 @@ jobs:
             ${{ runner.temp }}/app-without-tests/package.json
           if-no-files-found: ignore
   install-github:
-    # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>` with no ref, so
-    # every item and its Ouro dependencies come from main. Runs on main pushes and manual
-    # dispatches, including Release's CI after its prepare-main merge; type check and build.
+    # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>#<tag>` for every
+    # component in the newest release, each item and its Ouro dependencies from GitHub at that tag
+    # (main commits no registry.json, so an address without a tag cannot install). Runs on main
+    # pushes and manual dispatches, including Release's CI after its prepare-main merge, which
+    # names the new tag; type check and build.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 10

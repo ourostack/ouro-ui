@@ -1,0 +1,77 @@
+# Ouro HX
+
+> Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). It is not an npm package: the shadcn CLI copies the components you add into your app.
+
+Ouro HX is the component library within Ouro UI. Ouro AX, its counterpart for the interfaces agents use, is the other half (see "Ouro AX" below). The repository, @ouro namespace and install addresses are unchanged.
+
+## Install
+
+In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, then add items:
+
+```sh
+npx shadcn@latest init --base base --preset nova --yes --no-monorepo
+npx shadcn@latest search 'ourostack/ouro-ui#v1.3.0'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.0'  # read one item
+# Once per app, before the first component: the tokens every component needs.
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.0     # install a component
+```
+
+- Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it, overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.[^theme-check]
+
+- A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
+- --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.0, github: and /tree/ URLs do not work.
+- A release tag (#v1.3.0) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
+- Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each.[^lands] Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.[^not-ui]
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.0 ourostack/ouro-ui/dialog-tests#v1.3.0), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
+- The @ouro namespace serves the newest release (the same code as #v1.3.0)[^namespace]: add "registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
+
+## Ouro AX
+
+Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses. Its parts:
+
+- A standard with an X-ray: `ax-claims` holds the standard as checkable claims about agent-facing surfaces. `ax-xray` calls an interface from outside, the way an agent would, and reports which claims hold on which command, route and tool, with the fix where one does not.
+- A kit: with `ax-command`, one definition of a command gives its parser, its help and `help --json`, `--json` output, exit codes, one-line errors that name the fix, and the same command as an MCP tool. An action returns a typed outcome (`ax-outcome`), a wait returns a typed wait with a cursor (`ax-wait`), and `ax-work-event` records who acted for whom.
+- The evaluation gate: a claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.0         # the kit and the X-ray, in lib/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.0   # with their node:test tests
+```
+
+The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit's example tool running in your browser: https://ui.ouro.bot/ax/
+
+## Items
+
+<!-- scripts/registry.mts lists every item here when it writes site/public/llms.txt, which the site serves. -->
+
+## Docs
+
+- [Docs](https://ui.ouro.bot/docs/): one page per component, with props and examples. Each page is also Markdown at https://ui.ouro.bot/docs/<item>.md, the URL each item above ends with.[^docs-md]
+- [Installing](https://ui.ouro.bot/docs/installing.md): what ouro-base writes, what an add changes in package.json, and the "use client" notice in Vite builds.
+- [Testing](https://ui.ouro.bot/docs/testing.md): what the shipped tests need, Vitest 4, and how to find Ouro UI's fields in an app's own tests.[^testing-guide]
+- [Forms](https://ui.ouro.bot/docs/forms.md): which component shows which message, and how the controls post their values.
+- [OuroProvider](https://ui.ouro.bot/docs/ouro-provider.md): routing every href through the app's router, with the React Router adapter and the Next.js provider file in full.[^provider-page] It installs with every component that renders links and with tooltip; otherwise add lib-ouro-provider by name (v0.7.0 has no such item: there it comes with every component).[^provider-deps][^v0.7.0]
+- [Parts](https://ui.ouro.bot/docs/parts.md): the building-block parts of Sheet, Dialog and Field, for layouts the props do not cover.
+- [README](https://github.com/ourostack/ouro-ui#readme)
+
+## Sources
+
+[^tailwind-4]: test/install-fixture/package.json verify:fileLine(test/install-fixture/package.json, /"tailwindcss": "\^4\./) verify:ciJob(install)
+[^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them)
+[^v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)
+[^vite-app]: test/install-fixture/package.json; test/install-fixture/tsconfig.json; test/install-fixture/tsconfig.app.json verify:fileLine(test/install-fixture/package.json, /"typescript": "~6\./) verify:fileLine(test/install-fixture/tsconfig.app.json, /"paths"/) verify:fileLine(test/install-fixture/vite.config.ts, /tailwindcss\(\)/) verify:ciJob(install)
+[^release-pins]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::--release pins every same-repo dependency to the release tag and records the version)
+[^main-no-registry]: .gitignore; scripts/release-commit.sh verify:testExists(scripts/registry.test.mjs::main commits no registry.json, and a release commit adds it, so only a release tag installs from GitHub)
+[^ouro-tests]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command)
+[^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
+[^vitest-5]: package.json verify:fileLine(package.json, /"vitest": "5\./) verify:fileLine(.github/workflows/ci.yml, /pnpm test/)
+[^namespace]: .github/workflows/pages.yml verify:testExists(scripts/workflows.test.mjs::Pages names GitHub's newest release before it builds, whatever main's package.json says)
+[^testing-guide]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /Vitest 4/)
+[^provider-page]: docs/OuroProvider.md verify:testExists(site/src/site.test.tsx::guides and exports without an item > renders the OuroProvider page with the React Router adapter and the Next.js provider file)
+[^provider-deps]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::a component that renders links brings OuroProvider, which only the app imports)
+[^theme-check]: test:registry/ouro/lib/ouro/dev.test.ts::checkTheme > names the command that adds ouro-base, once per page, when the token is unset verify:testExists(registry/ouro/lib/ouro/dev.test.ts::checkTheme > names the command that adds ouro-base, once per page, when the token is unset)
+[^lands]: test:scripts/registry.test.mjs::helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro; test:scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports verify:testExists(scripts/registry.test.mjs::helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro) verify:testExists(scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports)
+[^not-ui]: scripts/install-check.mjs; .github/workflows/ci.yml verify:fileLine(scripts/install-check.mjs, /an Ouro item landed in components\/ui/) verify:ciJob(ci.yml#install)
+[^docs-md]: test:scripts/links.test.mjs::every registry item has a docs page, and every docs file is published; test:scripts/registry.test.mjs::every item's docs message names a docs page the site publishes verify:testExists(scripts/links.test.mjs::every registry item has a docs page, and every docs file is published) verify:testExists(scripts/registry.test.mjs::every item's docs message names a docs page the site publishes)

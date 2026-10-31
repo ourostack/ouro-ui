@@ -323,7 +323,10 @@ export function InstallSteps(): JSX.Element {
                 source: { file: "scripts/latest-release.mjs" },
                 verify: { testExists: "scripts/workflows.test.mjs::Scheduled install fails when main's ouro.latestRelease is not GitHub's newest release" },
               })}{" "}
-              Without it, the address installs <InlineCode>main</InlineCode>, which is for contributors.
+              {claim("Without it the install fails: main has no registry.json.", {
+                source: { file: ".gitignore" },
+                verify: { testExists: "scripts/registry.test.mjs::main commits no registry.json, and a release commit adds it, so only a release tag installs from GitHub" },
+              })}
             </p>
           </Step>
           <Step number={2} title="Or add the @ouro namespace once">

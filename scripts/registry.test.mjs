@@ -6,7 +6,8 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readComponents } from "./components.mts";
 import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
-import { buildRegistry, censusAxeVersion, cssToItem, itemForFile, rewriteDependencies, testingSetup, toolingMinimum } from "./registry.mts";
+import { buildRegistry, censusAxeVersion, cssToItem, itemForFile, rewriteDependencies, testingSetup, toolingMinimum, unreadableOnGitHub } from "./registry.mts";
+import { uncommitted } from "./generated-files.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -21,6 +22,23 @@ const repo = (name) => `ourostack/ouro-ui/${name}`;
 test("the committed registry.json is up to date", () => {
   const result = run("--check");
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("main commits no registry.json, and a release commit adds it, so only a release tag installs from GitHub", () => {
+  const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  for (const path of uncommitted) assert.equal(git("check-ignore", "-q", "--no-index", path).status, 0, `${path} is not in .gitignore`);
+  const tracked = git("ls-files", "--", ...uncommitted).stdout.split("\n").filter(Boolean);
+  // Only a release commit, whose registry.json has a version, commits them, and then all of them.
+  if (tracked.length > 0) {
+    assert.deepEqual(tracked.sort(), [...uncommitted].sort());
+    assert.ok(JSON.parse(readFileSync(join(root, "registry.json"), "utf8")).version, "registry.json is committed without a release version");
+  }
+  assert.match(readFileSync(join(root, "scripts/release-commit.sh"), "utf8"), /\ngit add --force -- \$\(node --input-type=module -e 'import \{ uncommitted \} from "\.\/scripts\/generated-files\.mjs";/);
+  assert.match(readFileSync(join(root, "package.json"), "utf8"), /"postinstall": "node scripts\/generate\.mjs"/);
+  // What a GitHub install at a tag reads must be committed, and not as a Git LFS pointer.
+  assert.deepEqual(unreadableOnGitHub(root, registry), []);
+  const probe = { ...registry, items: [{ name: "probe", type: "registry:ui", files: [{ path: "registry.json", type: "registry:ui" }, { path: "registry/ouro/components/ouro/button/button.tsx", type: "registry:ui" }] }] };
+  assert.deepEqual(unreadableOnGitHub(root, probe), tracked.length > 0 ? [] : ["registry.json is not committed"]);
 });
 
 test("--check fails when registry.json is stale, and names the fix", () => {
