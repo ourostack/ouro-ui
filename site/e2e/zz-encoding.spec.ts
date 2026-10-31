@@ -1,31 +1,39 @@
 import { expect, test } from "@playwright/test";
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 
-// PROBE (never merged): voyage.spec.ts's 320 px reflow loop, recording each navigation's response.
-const base = process.env["PROBE_PROXY"] ? "http://127.0.0.1:4180/" : "";
+// PROBE (never merged): voyage.spec.ts's 320 px reflow loop. When data-site-ready is late, keeps
+// waiting (up to 30 s more) to tell slow from never, and prints what went wrong on the page.
 const PAGES = ["./", "nautilus/"] as const;
 
 test("probe: reflow loop navigations", async ({ page }, testInfo) => {
-  const records: string[] = [];
-  page.on("response", async (response) => {
-    if (!response.request().isNavigationRequest() || response.frame() !== page.mainFrame()) return;
-    const headers = await response.allHeaders().catch(() => ({}) as Record<string, string>);
-    const request = await response.request().allHeaders().catch(() => ({}) as Record<string, string>);
-    records.push(`${performance.now().toFixed(0)} ${response.status()} ${response.url()} enc=${headers["content-encoding"]} len=${headers["content-length"]} te=${headers["transfer-encoding"]} type=${headers["content-type"]} etag=${headers["etag"]} cache=${headers["cache-control"]} vary=${headers["vary"]} | req ae=${request["accept-encoding"]} inm=${request["if-none-match"]} fromSW=${response.fromServiceWorker()}`);
-  });
+  test.setTimeout(240_000);
+  let events: string[] = [];
+  const t0 = () => performance.now().toFixed(0);
+  page.on("console", (message) => { if (message.type() === "error" || message.type() === "warning") events.push(`${t0()} console.${message.type()} ${message.text().slice(0, 200)}`); });
+  page.on("pageerror", (error) => events.push(`${t0()} pageerror ${String(error).slice(0, 200)}`));
+  page.on("requestfailed", (request) => events.push(`${t0()} requestfailed ${request.url()} ${request.failure()?.errorText}`));
+  page.on("response", (response) => { if (response.status() >= 400) events.push(`${t0()} status ${response.status()} ${response.url()}`); });
   await page.setViewportSize({ width: 320, height: 640 });
   for (const path of PAGES) {
     for (const preset of PRESET_NAMES) {
+      events = [];
       await page.addInitScript(([key, json]) => localStorage.setItem(key, json), [THEME_KEY, JSON.stringify({ preset })] as const);
-      await page.goto(base + path);
+      const start = Date.now();
+      try {
+        await page.goto(path);
+      } catch (error) {
+        console.log(`PROBE GOTO ${path} ${preset} repeat ${testInfo.repeatEachIndex}: ${String(error).split("\n")[0]}\n${events.join("\n")}`);
+        throw error;
+      }
+      const loaded = Date.now() - start;
       try {
         await expect(page.locator("html[data-site-ready]")).toBeAttached();
-      } catch (error) {
-        const doc = await page.evaluate(() => ({ type: document.contentType, start: (document.documentElement?.outerHTML ?? "").slice(0, 120) })).catch((e) => ({ type: "?", start: String(e) }));
-        console.log(`PROBE BAD ${path} ${preset} repeat ${testInfo.repeatEachIndex}\ncontentType=${doc.type} start=${JSON.stringify(doc.start)}\n${records.slice(-4).join("\n")}`);
-        throw error;
+      } catch {
+        const late = await page.locator("html[data-site-ready]").waitFor({ state: "attached", timeout: 30_000 }).then(() => `ready after ${Date.now() - start} ms`, () => "never ready in 35 s");
+        const doc = await page.evaluate(() => ({ gz: (document.body?.textContent ?? "").startsWith("\u001f"), scripts: performance.getEntriesByType("resource").filter((e) => /\.js/.test(e.name)).map((e) => `${e.name.split("/").pop()} ${(e as PerformanceResourceTiming).responseEnd.toFixed(0)}ms ${(e as PerformanceResourceTiming).decodedBodySize}b`), nav: (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.domContentLoadedEventEnd })).catch((e) => ({ gz: "?", scripts: [String(e)], nav: -1 }));
+        console.log(`PROBE LATE ${path} ${preset} repeat ${testInfo.repeatEachIndex}: goto ${loaded} ms, ${late}, gzip-text=${doc.gz}, dcl=${doc.nav}\n  scripts: ${doc.scripts.slice(-12).join(" | ")}\n${events.join("\n")}`);
+        throw new Error("late");
       }
     }
   }
-  console.log(`PROBE OK repeat ${testInfo.repeatEachIndex} first: ${records[0]}`);
 });

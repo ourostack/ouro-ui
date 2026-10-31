@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [direct, identity, buffered]
+        mode: [direct, direct-b]
     name: encoding (${{ matrix.mode }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,11 +31,11 @@ jobs:
       - name: Reflow loop, repeated, in WebKit and Chromium
         env:
           CI: "1"
-          PROBE_PROXY: ${{ matrix.mode != 'direct' && '1' || '' }}
+          PROBE_PROXY: ''
           PROBE_MODE: ${{ matrix.mode }}
         run: |
           if [ -n "$PROBE_PROXY" ]; then node site/e2e/zz-proxy.mjs & fi
-          pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list 2>&1 | grep -E 'PROBE|contentType|^\s*[0-9]+ (passed|failed)|enc=|✘' | grep -vE '^\s+[0-9]+ \|' | head -400 || true
+          pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list 2>&1 | grep -vE '^\s+[0-9]+ \||^\s+✓|^\s*$|at |^\s+[0-9]+\)' | head -600 || true
           if [ -f proxy-log.txt ]; then echo "proxy lines: $(wc -l < proxy-log.txt)"; grep -c '^BAD' proxy-log.txt || true; grep '^BAD' proxy-log.txt | head -20; grep -E ' (GET) /(nautilus/)? ' proxy-log.txt | awk '{print $7, $8, $9, $10}' | sort | uniq -c | head -20; fi
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
