@@ -60,7 +60,7 @@ for (const viewport of [
     await page.getByRole("button", { name: "Jump to latest" }).click();
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     await expect(page.getByRole("button", { name: "Jump to latest" })).toHaveCount(0);
-    await expect(scroller).toBeFocused();
+    await expect(page.getByRole("article").last()).toBeFocused();
   });
 }
 
@@ -72,4 +72,20 @@ test("each finished reply is announced once, politely", async ({ page }) => {
   await expect(page.getByRole("article").last()).not.toHaveAttribute("aria-busy");
   await expect(live.locator("p")).toHaveCount(1);
   await expect(live.locator("p")).toHaveText(/^Ouro: /);
+});
+
+test("the posts are one Tab stop: the arrow keys move between them, and a key of the app's reacts to the focused one", async ({ page }) => {
+  await openStory(page, "chat-messagelist--keyboard");
+  const posts = page.getByRole("article");
+  await expect(posts).toHaveCount(6);
+  await posts.last().focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(posts.nth(4)).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(posts.first()).toBeFocused();
+  await page.keyboard.press("2");
+  await expect(posts.first()).toContainText("🎉");
+  await page.keyboard.press("End");
+  await expect(posts.last()).toBeFocused();
+  await expect(posts.last()).toHaveAttribute("aria-posinset", "6");
 });

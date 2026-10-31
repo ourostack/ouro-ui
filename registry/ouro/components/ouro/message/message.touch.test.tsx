@@ -66,3 +66,24 @@ it("sets a system note in smaller text than a message on a touch screen", async 
   const [message, note] = [...host.querySelectorAll("[data-ouro-message-content]")].map((content) => parseFloat(getComputedStyle(content).fontSize));
   expect(note).toBeLessThan(message!);
 });
+
+it("shows the action bar after a tap on the message itself when the message takes keyboard focus, as in a MessageList", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <div style={{ paddingTop: 48 }}>
+        <Message variant="chat" role="assistant" name="Mara Quill" tabIndex={-1} actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+          Morning!
+        </Message>
+      </div>,
+    ),
+  );
+  const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+  await expect.poll(() => message.querySelector('[role="toolbar"]')).not.toBeNull();
+  const bar = message.querySelector<HTMLElement>('[role="toolbar"]')!;
+  await act(async () => void message.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
+  await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
+});

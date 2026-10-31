@@ -19,4 +19,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid message-list snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageListOk01"];
+export const validSnippets: string[] = ["messageListOk01", "messageListOk02"];
