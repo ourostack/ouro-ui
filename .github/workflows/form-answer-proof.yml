@@ -18,13 +18,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      # A pull request runs the proof only when its change can reach it: CI's plan selects form, link
+      # or radio-group, or runs everything for a path the proof loads (scripts/form-answer-impact.mjs).
+      # Otherwise the job passes here, before the fixture, the browsers and the tests.
+      - id: impact
+        name: Does the change reach the proof?
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            node scripts/form-answer-impact.mjs HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The proof runs: $EVENT."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Restore repo-only fixture into owned CI scratch
+        if: steps.impact.outputs.run == 'true'
         run: |
           mkdir -p .tmp/adopt-a-form-value
           cp test/form-answer-fixture/package.json test/form-answer-fixture/package-lock.json .tmp/adopt-a-form-value/
@@ -32,11 +48,14 @@ jobs:
           ln -s ../.tmp/adopt-a-form-value/node_modules/jsdom node_modules/jsdom
           echo "Owned fixture: $GITHUB_WORKSPACE/.tmp/adopt-a-form-value; jsdom link: $GITHUB_WORKSPACE/node_modules/jsdom" >> "$GITHUB_STEP_SUMMARY"
       - name: Actual Router, privacy, mask and hydration regressions
+        if: steps.impact.outputs.run == 'true'
         run: pnpm exec vitest run --config test/form-answer.config.ts --coverage | tee .tmp/adopt-a-form-value/node-proof.log
-      - uses: ./.github/actions/playwright-browsers
+      - if: steps.impact.outputs.run == 'true'
+        uses: ./.github/actions/playwright-browsers
         with:
           browsers: chromium webkit
       - name: Shipped Form, constructor and Link regressions with focused coverage
+        if: steps.impact.outputs.run == 'true'
         run: |
           pnpm exec vitest run --project ouro-chromium --project ouro-webkit --project ouro-touch \
             registry/ouro/components/ouro/form registry/ouro/components/ouro/link registry/ouro/components/ouro/radio-group registry/ouro/lib/ouro/form-answer.test.ts \
@@ -44,7 +63,7 @@ jobs:
             --coverage.include=registry/ouro/lib/ouro/form-answer.ts \
             --coverage.reporter=text --coverage.reporter=json \
             --coverage.reportsDirectory=.tmp/adopt-a-form-value/browser-coverage | tee .tmp/adopt-a-form-value/browser-proof.log
-      - if: always()
+      - if: always() && steps.impact.outputs.run == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: form-answer-proof
