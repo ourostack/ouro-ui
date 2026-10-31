@@ -10,10 +10,17 @@ import { DRY_RUN_FLAG, WHY_FLAG } from "./effects.ts";
 /**
  * Help from the definitions: a one-screen overview under the two effect headings, each command's details, and the same
  * as JSON (`help --json`), which an agent parses instead of scraping text. Every line is wrapped to `width` columns.
+ *
+ * @claim "a one-screen overview under the two effect headings" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::the overview is the two headings, one line per command, and the exit codes)
+ * @claim "Every line is wrapped" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::a command's help is generated from its definition, and an others command says so first)
  */
 const DEFAULT_WIDTH = 100;
 
-/** Wraps text to `width` columns, every line indented; a word longer than a line stays whole. */
+/**
+ * Wraps text to `width` columns, every line indented; a word longer than a line stays whole.
+ *
+ * @claim "every line indented" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::wrap keeps long words whole and indents every line)
+ */
 function wrap(text: string, indent: number, first: number = indent, width: number = DEFAULT_WIDTH): [...string[], string] {
   const lines: string[] = [];
   let line = " ".repeat(first);
@@ -32,7 +39,7 @@ function wrap(text: string, indent: number, first: number = indent, width: numbe
 
 interface OverviewOptions {
   width?: number;
-  /** Added after the "others" heading, such as " (only when a human asked you to; each needs --why)". */
+  /** Added after the "others" heading, such as " (only when a human asked you to, with --why)". */
   othersNote?: string;
   /** Lines after the command lists; defaults to where details are, --json and the exit codes. */
   footer?: readonly string[];
@@ -64,7 +71,11 @@ function renderOverview(cli: Cli, options: OverviewOptions = {}): string {
 
 const COL = 34;
 
-/** `left` from column 2, `text` from column 34, wrapped. */
+/**
+ * `left` from column 2, `text` from column 34, wrapped.
+ *
+ * @claim "from column 34" registry/ouro/ax/help.ts verify:fileLine(registry/ouro/ax/help.ts, /const COL = 34;/)
+ */
 function columns(left: string, text: string, width: number): string[] {
   if (left.length + 4 < COL) {
     const [head, ...more] = wrap(text, COL, COL, width);
@@ -77,7 +88,7 @@ function columns(left: string, text: string, width: number): string[] {
 function flagLines(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDTH): string[] {
   return Object.entries(flagsOf(cli, cmd))
     .filter(([name]) => !(name in BUILTIN_FLAGS) && !(name in cli.globalFlags))
-    .flatMap(([name, spec]) => columns(flagUsage(name, spec), `${spec.description}${spec.required ? " Required." : ""}${spec.stdin ? ' "-" reads it from stdin.' : ""}`, width));
+    .flatMap(([name, spec]) => columns(flagUsage(name, spec), `${spec.description}${spec.required ? (spec.unless === undefined ? " Required." : ` Required unless ${(typeof spec.unless === "string" ? [spec.unless] : spec.unless).map((u) => `--${u}`).join(" or ")}.`) : ""}${spec.stdin ? ' "-" reads it from stdin.' : ""}`, width));
 }
 
 /** The generated part of a command's help: its usage from the definition, its arguments and its flags. */
@@ -140,7 +151,7 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
   };
 }
 
-/** The help as data: the tool, its headings, every command, the exit codes and the one error shape. */
+/** The help as data: the tool, its headings, the commands, the exit codes and the one error shape. */
 function helpJson(cli: Cli) {
   return {
     tool: cli.name,

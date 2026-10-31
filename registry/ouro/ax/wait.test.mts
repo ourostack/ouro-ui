@@ -100,3 +100,14 @@ test("waitFor: a target that is gone ends the wait with the reason; the real clo
   const negative = await waitFor({ for: "x", target: null, cursor: "1", timeoutMs: -5, read: async () => ({ events: [], cursor: "1" }), resume: () => again });
   assert.equal(negative.state, "timed-out");
 });
+
+test("waitFor: an aborted signal ends the wait as gone, stopped, before a read or after a sleep", async () => {
+  const before = new AbortController();
+  before.abort();
+  const w = await waitFor({ for: "a reply", target: null, cursor: "1", timeoutMs: 1000, read: async () => ({ events: [], cursor: "1" }), resume: () => again, signal: before.signal });
+  assert.deepEqual([w.state, w.reason], ["gone", "stopped"]);
+  const during = new AbortController();
+  const s = scripted([]);
+  const w2 = await waitFor({ for: "a reply", target: null, cursor: "1", timeoutMs: 60_000, read: s.read, resume: () => again, now: s.now, sleep: async (ms) => { await s.sleep(ms); during.abort(); }, signal: during.signal });
+  assert.deepEqual([w2.state, w2.reason, s.seen.length], ["gone", "stopped", 1]);
+});

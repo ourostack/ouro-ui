@@ -12,12 +12,18 @@ import { DEFAULT_WIDTH, renderCommand, renderOverview } from "./help.ts";
  * The kit's check of a tool's declarations: what an agent needs from every declared command (a summary, an example,
  * described arguments and flags, `--why` and a preview where other people see it, help that fits the width), and,
  * against the tool's own command inventory, that every command it registers runs through its declaration.
+ *
+ * @claim "what an agent needs from every declared command" registry/ouro/ax/lint.test.mts verify:testExists(registry/ouro/ax/lint.test.mts::each missing piece is one line with its fix, and loose commands are counted)
  */
 interface LintOptions {
   width?: number;
   /**
    * The command names the tool actually registers, generated from its own registration (its dispatcher's table), not
-   * written by hand. Every one must be declared with a run(); a declaration with no registered command is stale.
+   * written by hand. Every one must be declared with a run(); a declaration with no registered command is stale. The
+   * inventory compares names: a run() that hands the call to a second dispatch path still passes, so keep a check of
+   * your own source that the command table is the only one.
+   *
+   * @claim "Every one must be declared" registry/ouro/ax/lint.test.mts verify:testExists(registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command)
    */
   inventory?: readonly string[];
 }
@@ -27,15 +33,15 @@ interface LintReport {
   typed: string[];
   /** Declared commands that still pass flags through unchecked. */
   loose: string[];
-  /** Declared commands with no run(): the kit documents them, but another path executes them. */
+  /** Declared commands without a run(): the kit documents them, but another path executes them. */
   bypassed: string[];
-  /** Inventory commands with no declaration at all. */
+  /** Inventory commands that nothing declares. */
   undeclared: string[];
   /** Declarations the inventory does not have. */
   stale: string[];
-  /** One line each, in the dev message format: `<tool> <command>: <what's wrong>. Fix: <what to add>.` */
+  /** A line per problem, in the dev message format: `<tool> <command>: <what's wrong>. Fix: <what to add>.` */
   problems: string[];
-  /** No problems and nothing loose. */
+  /** True when `problems` and `loose` are empty. */
   ok: boolean;
 }
 

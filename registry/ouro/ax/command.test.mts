@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, parse, toArgv, usageOf, type Parsed } from "./command.ts";
+import { renderCommand } from "./help.ts";
 import { AxError } from "./errors.ts";
 import { DEFAULT_OUTCOME_EXITS } from "./outcome.ts";
 import { exampleCli as cli } from "./example-cli.ts";
@@ -126,4 +127,74 @@ test("checkInput refuses a bad MCP call with the arguments to send instead", () 
   const rooms = findCommand(cli, ["rooms"])!.command;
   assert.throws(() => checkInput(cli, rooms, { limit: 0 }), /out of range/);
   assert.deepEqual(checkInput(cli, post, { room: "abc123", text: "hi", why: "x", tone: null }), { room: "abc123", text: "hi", why: "x" });
+});
+
+test("an argument and a flag of one name are refused when the tool is built", () => {
+  assert.throws(() => defineCli({ name: "t", about: [], commands: [defineCommand({ name: "send", summary: "S.", effect: "private", args: [{ name: "text", description: "T." }], flags: { text: { type: "string", description: "T." } } })] }), /send: <text> and --text share one input key\. Fix: rename one\./);
+});
+
+test("a flag's value may start with -- unless it is one of the command's flags", () => {
+  const t = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "say", summary: "S.", effect: "private", flags: { text: { type: "string", description: "T." }, loud: { type: "boolean", description: "L." } } })] });
+  assert.deepEqual((parse(t, ["say", "--text", "--- Running late"]) as Parsed).input, { text: "--- Running late" });
+  assert.throws(() => parse(t, ["say", "--text", "--loud"]), /--text needs a value/);
+  assert.throws(() => parse(t, ["say", "--text", "--loud=true"]), /--text needs a value/);
+});
+
+test("unless takes several flags, for an argument and for a flag; help and the schema say so", () => {
+  const t = defineCli({
+    name: "t",
+    about: [],
+    commands: [
+      defineCommand({
+        name: "send",
+        summary: "S.",
+        effect: "others",
+        args: [{ name: "words", description: "W.", required: true, rest: true, unless: ["text", "draft"] }],
+        flags: { text: { type: "string", description: "T." }, draft: { type: "boolean", description: "D." }, why: { type: "string", description: "Why.", required: true, unless: "why-file" }, "why-file": { type: "string", description: "F." } },
+      }),
+    ],
+  });
+  assert.deepEqual((parse(t, ["send", "--draft", "--why-file", "w.txt"]) as Parsed).input, { draft: true, "why-file": "w.txt" });
+  assert.throws(() => parse(t, ["send", "--why", "x"]), /needs <words> \(or --text, --draft\)/);
+  assert.throws(() => parse(t, ["send", "hi"]), /so it needs --why: .* Fix: t send hi --why <why>\./);
+  const send = findCommand(t, ["send"])!.command;
+  const schema = inputSchema(t, send);
+  assert.deepEqual(schema.required, []);
+  assert.equal(schema.properties?.["why"]?.description, "Why. Not needed with why-file.");
+  assert.equal(schema.properties?.["words"]?.description, "W. Not needed with text or draft.");
+  assert.match(renderCommand(t, send), /Why\. Required unless --why-file\./);
+  assert.throws(() => checkInput(t, send, { why: "x" }), /needs "words" \(or "text", "draft"\)/);
+  assert.throws(() => checkInput(t, send, { text: "x" }), /needs "why" \(or "why-file"\)/);
+  assert.deepEqual(checkInput(t, send, { text: "x", "why-file": "w" }), { text: "x", "why-file": "w" });
+  const h = defineCli({ name: "h", about: [], commands: [defineCommand({ name: "a", summary: "A.", effect: "private", flags: { b: { type: "string", description: "B.", required: true, unless: ["c", "d"] }, c: { type: "boolean", description: "C." } } })] });
+  assert.match(renderCommand(h, h.commands[0]!), /B\. Required unless --c or --d\./);
+  assert.throws(() => checkInput(h, h.commands[0]!, {}), /needs "b" \(or "c", "d"\)/);
+});
+
+test("global flags may come before the command's words", () => {
+  const t = defineCli({ name: "t", about: [], globalFlags: { agent: { type: "string", description: "A." }, quiet: { type: "boolean", description: "Q." } }, commands: [defineCommand({ name: "look", summary: "L.", effect: "private", readOnly: true })] });
+  assert.deepEqual((parse(t, ["--json", "--agent", "a1", "--quiet", "look"]) as Parsed).input, { json: true, agent: "a1", quiet: true });
+  assert.deepEqual((parse(t, ["--agent=a1", "look"]) as Parsed).input, { agent: "a1" });
+  assert.deepEqual(parse(t, ["--json", "--help"]), { kind: "help", topic: undefined, json: true });
+});
+
+test("an unknown flag's fix drops its value once the command's words are all given; a sensitive value is never printed back", () => {
+  const t = defineCli({
+    name: "t",
+    about: [],
+    commands: [defineCommand({ name: "edit", summary: "E.", effect: "private", args: [{ name: "ref", description: "R." }, { name: "text", description: "T." }], flags: { intent: { type: "string", description: "I.", sensitive: true }, level: { type: "number", description: "L.", sensitive: true } } })],
+  });
+  const shape = (argv: string[]) => {
+    try {
+      parse(t, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    throw new Error("parsed");
+  };
+  assert.equal(shape(["edit", "x", "y", "--again", "a3fd4e"]).fix, "t edit x y");
+  assert.equal(shape(["edit", "x", "--again", "a3fd4e"]).fix, "t edit x a3fd4e");
+  assert.equal(shape(["edit", "x", "y", "--intent", "secret1", "--intent", "secret2"]).fix, "t edit x y --intent <intent>");
+  assert.equal(shape(["edit", "x", "y", "--intent=secret1", "--intent=secret2"]).fix, 't edit x y "--intent=<intent>"');
+  assert.equal(shape(["edit", "x", "y", "--level", "high"]).problem, "--level takes a number, not the value given");
 });

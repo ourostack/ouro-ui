@@ -14,6 +14,8 @@ import { DEFAULT_WAIT_EXITS, type WaitExits } from "./wait.ts";
  * One definition of a command: its words, effect, arguments and flags, examples and output. From it come the parser
  * (whose refusals name the exact fix), the usage and help, `help --json` and the MCP tool's input schema, so the CLI
  * and the MCP server can never disagree.
+ *
+ * @claim "the CLI and the MCP server can never disagree" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::usage, the input schema and toArgv come from the same definition)
  */
 type FlagType = "boolean" | "string" | "number" | "enum" | "list";
 
@@ -29,25 +31,33 @@ interface FlagSpec {
   max?: number;
   /** Whether "-" reads the value from stdin. */
   stdin?: boolean;
+  /** A required flag that is not needed when one of these flags or arguments is given (`--why` unless `--why-file`). */
+  unless?: string | readonly string[];
+  /**
+   * A value errors and fixes never print back (a token): they show the placeholder instead.
+   *
+   * @claim "errors and fixes never print back" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::an unknown flag's fix drops its value once the command's words are all given; a sensitive value is never printed back)
+   */
+  sensitive?: boolean;
 }
 
 interface ArgSpec {
   name: string;
   description: string;
   required?: boolean;
-  /** Takes every remaining word, joined by spaces (free text). */
+  /** Takes the remaining words, joined by spaces (free text). */
   rest?: boolean;
   /** Whether "-" reads it from stdin. */
   stdin?: boolean;
-  /** Not required when this flag is given (`send <conversation> --draft` needs no text). */
-  unless?: string;
+  /** Not required when one of these flags is given, as `send <conversation> --draft` sends the draft instead. */
+  unless?: string | readonly string[];
   /** The command that lists valid values, as the fix names it ("conversations"). */
   source?: string;
   /** The problem a missing value reports; defaults to "needs <name>". */
   missing?: string;
 }
 
-/** What an ambiguous word could mean, and the command for each meaning. */
+/** One meaning of an ambiguous word, and the command for it. */
 interface Meaning {
   means: string;
   use: string;
@@ -62,15 +72,16 @@ interface RunContext {
   json: boolean;
 }
 
-interface CommandDef<R = unknown> {
+/** A command's definition. `C` is the context run() and plan() get: RunContext, or an adopter's own that extends it. */
+interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   /** One or more words: "today", "draft set". */
   name: string;
   aliases?: readonly string[];
   summary: string;
   effect: Effect;
-  /** A read never changes anything, for anyone. */
+  /** Marks a read, which changes nothing for anyone. */
   readOnly?: boolean;
-  /** Whether --why is asked for: required on every "others" command by default. */
+  /** Whether --why is asked for; by default it is required where other people see the effect. */
   why?: "required" | "optional" | "none";
   args?: readonly ArgSpec[];
   flags?: Readonly<Record<string, FlagSpec>>;
@@ -81,38 +92,44 @@ interface CommandDef<R = unknown> {
   hidden?: boolean;
   /** Flags and extra words pass through unchecked: a command adopted before its flags were declared. */
   loose?: boolean;
-  run?(input: Input, ctx: RunContext): R | Promise<R>;
+  run?(input: Input, ctx: C): R | Promise<R>;
   /**
-   * The preview `--dry-run` runs instead of run(): what it would do and who would see it, as a `planned` outcome. Every
-   * "others" command has one; the kit never calls run() on a dry run.
+   * The preview `--dry-run` runs instead of run(): what it would do and who would see it, as a `planned` outcome. ax-lint
+   * reports an "others" command without one. The kit never calls run() on a dry run.
+   *
+   * @claim "never calls run() on a dry run" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted)
    */
-  plan?(input: Input, ctx: RunContext): Outcome | Promise<Outcome>;
+  plan?(input: Input, ctx: C): Outcome | Promise<Outcome>;
   text?(result: R, input: Input): string;
 }
 
-interface CliDef {
+interface CliDef<C extends RunContext = RunContext> {
   name: string;
   /** The overview's first lines: what the tool is and when to use it. */
   about: readonly string[];
-  commands: readonly CommandDef[];
+  commands: readonly CommandDef<unknown, C>[];
   exits?: ExitTable;
   headings?: EffectHeadings;
-  /** Flags every command takes, besides --json and --help. */
+  /** The tool's global flags, besides --json and --help. */
   globalFlags?: Readonly<Record<string, FlagSpec>>;
-  /** Words that could mean two effects answer with both commands instead of acting. */
+  /**
+   * Words that could mean two effects answer with both commands instead of acting.
+   *
+   * @claim "could mean two effects" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead)
+   */
   ambiguous?: Readonly<Record<string, readonly Meaning[]>>;
   /** The overview's one line for a multi-word group ("draft"), when its first command's summary is not it. */
   groups?: Readonly<Record<string, string>>;
-  /** The exit code, by name, of each outcome state; defaults to DEFAULT_OUTCOME_EXITS. */
+  /** Exit code names by outcome state; defaults to DEFAULT_OUTCOME_EXITS. */
   outcomeExits?: OutcomeExits;
-  /** The exit code, by name, of each wait state; defaults to DEFAULT_WAIT_EXITS. */
+  /** Exit code names by wait state; defaults to DEFAULT_WAIT_EXITS. */
   waitExits?: WaitExits;
 }
 
-interface Cli {
+interface Cli<C extends RunContext = RunContext> {
   readonly name: string;
   readonly about: readonly string[];
-  readonly commands: readonly CommandDef[];
+  readonly commands: readonly CommandDef<unknown, C>[];
   readonly exits: ExitTable;
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
@@ -127,13 +144,14 @@ const BUILTIN_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   help: { type: "boolean", description: "This command's help." },
 });
 
-function defineCommand<R>(def: CommandDef<R>): CommandDef<R> {
+function defineCommand<R, C extends RunContext = RunContext>(def: CommandDef<R, C>): CommandDef<R, C> {
   return def;
 }
 
 const wordsOf = (name: string) => name.split(" ");
+const unlessOf = (spec: { unless?: string | readonly string[] }): readonly string[] => (spec.unless === undefined ? [] : typeof spec.unless === "string" ? [spec.unless] : spec.unless);
 
-/** Every flag a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own. */
+/** The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own. */
 function flagsOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Record<string, FlagSpec> {
   const why = cmd.why ?? (cmd.effect === "others" ? "required" : "none");
   const whyFlag: Record<string, FlagSpec> =
@@ -143,8 +161,8 @@ function flagsOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Record<string,
 }
 
 /** Builds the tool and checks its definitions: unique names, a valid exit table, examples that parse. */
-function defineCli(def: CliDef): Cli {
-  const cli: Cli = {
+function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
+  const cli: Cli<C> = {
     name: def.name,
     about: def.about,
     commands: def.commands,
@@ -164,8 +182,10 @@ function defineCli(def: CliDef): Cli {
       seen.add(n);
     }
     const args = cmd.args ?? [];
+    const flags = flagsOf(cli, cmd);
     args.forEach((a, i) => {
       if (a.rest && i !== args.length - 1) throw new Error(`${def.name} ${cmd.name}: <${a.name}> takes the rest of the words, so it must be the last argument. Fix: move it last.`);
+      if (Object.hasOwn(flags, a.name)) throw new Error(`${def.name} ${cmd.name}: <${a.name}> and --${a.name} share one input key. Fix: rename one.`);
     });
   }
   for (const word of Object.keys(cli.ambiguous)) if (seen.has(word)) throw new Error(`${def.name}: "${word}" is both a command and an ambiguous word. Fix: remove one.`);
@@ -255,9 +275,20 @@ const usage = (cli: Cli) => cli.exits.code("usage");
  * Parses argv against the definitions. Throws an AxError (exit "usage") whose fix is the corrected command line: an
  * unknown flag names the nearest one, a missing argument shows where it goes and where to get it, a missing --why is
  * appended, an ambiguous word lists each meaning's command.
+ *
+ * @claim "whose fix is the corrected command line" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead)
  */
 function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
-  const tokens = [...argv];
+  // Global flags may come before the command's words (`tool --json send ...`); they move after them.
+  const globals: Readonly<Record<string, FlagSpec>> = { ...BUILTIN_FLAGS, ...cli.globalFlags };
+  let lead = 0;
+  while (lead < argv.length) {
+    const t = argv[lead]!;
+    const spec = t.startsWith("--") ? globals[t.slice(2).split("=")[0]!] : undefined;
+    if (!spec) break;
+    lead += spec.type !== "boolean" && !t.includes("=") ? 2 : 1;
+  }
+  const tokens = [...argv.slice(lead), ...argv.slice(0, lead)];
   const json = tokens.includes("--json");
   const helpFlag = tokens.includes("--help") || tokens.includes("-h");
   const leading: string[] = [];
@@ -282,8 +313,19 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   const unchecked: Record<string, string | true> = {};
   const positional: string[] = [];
   const positionalAt: number[] = [];
+  // What a fix shows of the words: a sensitive flag's value as its placeholder.
+  const shown = rest.map((t, j) => {
+    const prev = rest[j - 1];
+    const prevSpec = prev?.startsWith("--") && !prev.includes("=") ? flags[prev.slice(2)] : undefined;
+    if (prevSpec?.sensitive && prevSpec.type !== "boolean") return placeholderOf(prev!.slice(2), prevSpec);
+    const eq = t.indexOf("=");
+    const own = t.startsWith("--") && eq !== -1 ? flags[t.slice(2, eq)] : undefined;
+    return own?.sensitive ? `${t.slice(0, eq)}=${placeholderOf(t.slice(2, eq), own)}` : t;
+  });
   /** The command line with `count` tokens from `start` replaced: the fix an error prints. */
-  const at = (start: number, replacement: readonly string[], count: number = 1) => commandLine([cli.name, ...words, ...rest.slice(0, start), ...replacement, ...rest.slice(start + count)]);
+  const at = (start: number, replacement: readonly string[], count: number = 1) => commandLine([cli.name, ...words, ...shown.slice(0, start), ...replacement, ...shown.slice(start + count)]);
+  /** Whether a token is one of this command's flags, so it cannot be the value of the flag before it. */
+  const isFlag = (t: string) => t.startsWith("--") && Object.hasOwn(flags, t.slice(2).split("=")[0]!);
   for (let i = 0; i < rest.length; i++) {
     const t = rest[i]!;
     if (t === "--") {
@@ -311,13 +353,18 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
     }
     if (!spec) {
       const near = didYouMean(name, Object.keys(flags));
+      // An unknown flag's value goes with it when the command's words are already all given.
+      const next = rest[i + 1];
+      const args = command.args ?? [];
+      const full = !args.at(-1)?.rest && positional.length >= args.length;
+      const span = inline === undefined && next !== undefined && !next.startsWith("-") && full ? 2 : 1;
       const own = Object.keys(command.flags ?? {}).concat(command.effect === "others" || command.why ? [WHY_FLAG] : []);
       throw new AxError({
         code: "unknown-flag",
         exit: usage(cli),
         thing,
         problem: `there is no --${name}${own.length ? `; its flags are ${own.map((f) => `--${f}`).join(", ")}` : "; it takes no flags of its own"}`,
-        fix: near ? at(i, [`--${near}${inline === undefined ? "" : `=${inline}`}`]) : at(i, []),
+        fix: near ? at(i, [`--${near}${inline === undefined ? "" : `=${inline}`}`]) : at(i, [], span),
       });
     }
     if (Object.hasOwn(input, name)) throw new AxError({ code: "duplicate-flag", exit: usage(cli), thing, problem: `--${name} is given twice`, fix: at(i, [], spec.type === "boolean" || inline !== undefined ? 1 : 2) });
@@ -330,7 +377,7 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
     let raw = inline;
     if (raw === undefined) {
       const next = rest[i + 1];
-      if (next === undefined || (next.startsWith("--") && next.length > 2)) throw new AxError({ code: "missing-value", exit: usage(cli), thing, problem: `--${name} needs a value`, fix: at(i, [`--${name}`, placeholderOf(name, spec)]) });
+      if (next === undefined || isFlag(next)) throw new AxError({ code: "missing-value", exit: usage(cli), thing, problem: `--${name} needs a value`, fix: at(i, [`--${name}`, placeholderOf(name, spec)]) });
       raw = next;
       i++;
     }
@@ -354,37 +401,39 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   }
   if (given.length) unchecked["_"] = given.join(" ");
   for (const a of args) {
-    if (!a.required || Object.hasOwn(input, a.name) || (a.unless && Object.hasOwn(input, a.unless))) continue;
-    const filled = commandLine([cli.name, ...words, ...positional, `<${a.name}>`, ...rest.filter((_, j) => !positionalAt.includes(j))]);
+    const unless = unlessOf(a);
+    if (!a.required || Object.hasOwn(input, a.name) || unless.some((u) => Object.hasOwn(input, u))) continue;
+    const filled = commandLine([cli.name, ...words, ...positional, `<${a.name}>`, ...shown.filter((_, j) => !positionalAt.includes(j))]);
     throw new AxError({
       code: "missing-arg",
       exit: usage(cli),
       thing,
-      problem: a.missing ?? `needs <${a.name}>${a.unless ? ` (or --${a.unless})` : ""}`,
+      problem: a.missing ?? `needs <${a.name}>${unless.length ? ` (or ${unless.map((u) => `--${u}`).join(", ")})` : ""}`,
       fix: a.source ? `${cli.name} ${a.source}, then ${filled}` : filled,
     });
   }
   for (const [name, spec] of Object.entries(flags)) {
-    if (!spec.required || Object.hasOwn(input, name)) continue;
+    if (!spec.required || Object.hasOwn(input, name) || unlessOf(spec).some((u) => Object.hasOwn(input, u))) continue;
     throw new AxError({
       code: name === WHY_FLAG ? "needs-why" : "missing-flag",
       exit: usage(cli),
       thing,
       problem: name === WHY_FLAG ? whyProblem(command, "--why") : `needs --${name}: ${spec.description.replace(/[.\s]+$/, "")}`,
-      fix: commandLine([cli.name, ...words, ...rest, `--${name}`, placeholderOf(name, spec).replace(/^"(.*)"$/, "$1")]),
+      fix: commandLine([cli.name, ...words, ...shown, `--${name}`, placeholderOf(name, spec).replace(/^"(.*)"$/, "$1")]),
     });
   }
   return { kind: "run", command, input, json, unchecked };
 }
 
 function valueOf(cli: Cli, thing: string, name: string, spec: FlagSpec, raw: string, fixWith: (replacement: string) => string): InputValue {
+  const said = spec.sensitive ? "the value given" : `"${raw}"`;
   if (spec.stdin && raw === "-") return raw;
   if (spec.type === "number") {
     const n = Number(raw);
     const inRange = raw.trim() !== "" && Number.isFinite(n) && (spec.min === undefined || n >= spec.min) && (spec.max === undefined || n <= spec.max);
     if (!inRange) {
       const range = spec.min !== undefined && spec.max !== undefined ? ` from ${spec.min} to ${spec.max}` : spec.min !== undefined ? ` of at least ${spec.min}` : "";
-      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes a number${range}, not "${raw}"`, fix: fixWith(String(spec.min ?? 1)) });
+      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes a number${range}, not ${said}`, fix: fixWith(String(spec.min ?? 1)) });
     }
     return n;
   }
@@ -392,7 +441,7 @@ function valueOf(cli: Cli, thing: string, name: string, spec: FlagSpec, raw: str
     const values = spec.values ?? [];
     if (!values.includes(raw)) {
       const near = didYouMean(raw, values);
-      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} is one of ${values.join(", ")}, not "${raw}"`, fix: fixWith(near ?? values.join("|")) });
+      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} is one of ${values.join(", ")}, not ${said}`, fix: fixWith(near ?? values.join("|")) });
     }
     return raw;
   }
@@ -435,7 +484,7 @@ function unknownCommand(cli: Cli, leading: readonly string[]): AxError {
   });
 }
 
-/** A JSON Schema (draft 2020-12) object. */
+/** A JSON Schema object, as an MCP tool's inputSchema takes. */
 interface JsonSchema {
   type?: string;
   description?: string;
@@ -453,12 +502,14 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
   const properties: Record<string, JsonSchema> = {};
   const required: string[] = [];
   for (const a of cmd.args ?? []) {
-    properties[a.name] = { type: "string", description: a.description + (a.unless ? ` Not needed with ${a.unless}.` : "") };
-    if (a.required && !a.unless) required.push(a.name);
+    const unless = unlessOf(a);
+    properties[a.name] = { type: "string", description: a.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
+    if (a.required && !unless.length) required.push(a.name);
   }
   for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
     if (name in BUILTIN_FLAGS) continue;
-    const s: JsonSchema = { description: spec.description };
+    const unless = unlessOf(spec);
+    const s: JsonSchema = { description: spec.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
     if (spec.type === "boolean") s.type = "boolean";
     else if (spec.type === "number") {
       s.type = "number";
@@ -469,7 +520,7 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
     if (spec.type === "list") s.type = "array";
     if (spec.type === "enum" && spec.values) s.enum = spec.values;
     properties[name] = s;
-    if (spec.required) required.push(name);
+    if (spec.required && !unlessOf(spec).length) required.push(name);
   }
   return { type: "object", properties, required, additionalProperties: false };
 }
@@ -525,9 +576,17 @@ function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: string = cmd
     fail(key === WHY_FLAG ? "needs-why" : "missing-arg", key === WHY_FLAG ? whyProblem(cmd, '"why"') : `needs "${key}": ${props[key]?.description ?? ""}`);
   }
   for (const a of cmd.args ?? []) {
-    if (a.required && a.unless && !Object.hasOwn(input, a.name) && !Object.hasOwn(input, a.unless)) {
+    const unless = unlessOf(a);
+    if (a.required && unless.length && !Object.hasOwn(input, a.name) && !unless.some((u) => Object.hasOwn(input, u))) {
       fixed[a.name] = `<${a.name}>`;
-      fail("missing-arg", `needs "${a.name}" (or "${a.unless}")`);
+      fail("missing-arg", `needs "${a.name}" (or ${unless.map((u) => `"${u}"`).join(", ")})`);
+    }
+  }
+  for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
+    const unless = unlessOf(spec);
+    if (spec.required && unless.length && !Object.hasOwn(input, name) && !unless.some((u) => Object.hasOwn(input, u))) {
+      fixed[name] = name === WHY_FLAG ? WHY_PLACEHOLDER : `<${name}>`;
+      fail(name === WHY_FLAG ? "needs-why" : "missing-arg", `needs "${name}" (or ${unless.map((u) => `"${u}"`).join(", ")})`);
     }
   }
   return input;

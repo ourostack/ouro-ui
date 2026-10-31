@@ -8,6 +8,8 @@ export type { AxErrorBody, AxErrorShape };
  * One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry
  * the same fields, so an agent learns one repair loop. The line mirrors Ouro HX's dev message format:
  * `<tool>: <thing>: <what's wrong>. Fix: <exact code>.`
+ *
+ * @claim "tool error all carry" registry/ouro/ax/errors.test.mts verify:testExists(registry/ouro/ax/errors.test.mts::AxError carries the shape, its exit and the same message; errorJson adds the message)
  */
 interface AxErrorShape {
   /** A stable slug an agent can branch on, such as "unknown-flag", "missing-arg" or "needs-why". */
@@ -22,7 +24,7 @@ interface AxErrorShape {
   fix: string | null;
 }
 
-/** The error every AX primitive throws: its message is the one line, its shape the data. */
+/** The error the kit's primitives throw: its message is the one line, its shape the data. */
 class AxError extends Error {
   readonly shape: AxErrorShape;
   constructor(shape: AxErrorShape) {
@@ -52,7 +54,11 @@ function errorLine(tool: string, shape: Pick<AxErrorShape, "thing" | "problem" |
   return `${tool}: ${errorMessage(shape)}`.replace(/\s*[\r\n]+\s*/g, " ");
 }
 
-/** The error as data: its shape plus the one-line message. Outcomes, `--json` and MCP all carry this. */
+/**
+ * The error as data: its shape plus the one-line message. Outcomes, `--json` and MCP all carry this.
+ *
+ * @claim "and MCP all carry this" registry/ouro/ax/outcome.test.mts verify:testExists(registry/ouro/ax/outcome.test.mts::outcome fills honest defaults: private, only you, nothing checked, no receipt; an error gets its message)
+ */
 type AxErrorBody = AxErrorShape & { message: string };
 
 /** The `--json` and MCP form: `{ error: { code, exit, thing, problem, fix, message } }`. */
@@ -74,7 +80,11 @@ function distance(a: string, b: string): number {
   return row[b.length]!;
 }
 
-/** The candidate an agent most likely meant: a unique prefix, or the nearest within two edits; null when none is close. */
+/**
+ * The candidate an agent most likely meant: a unique prefix, or the nearest within two edits; null when none is close.
+ *
+ * @claim "the nearest within two edits" registry/ouro/ax/errors.test.mts verify:testExists(registry/ouro/ax/errors.test.mts::didYouMean: a unique prefix, else the nearest within a couple of edits, else null)
+ */
 function didYouMean(word: string, candidates: readonly string[]): string | null {
   if (word === "") return null;
   const prefixed = candidates.filter((c) => c.startsWith(word) || word.startsWith(c));
@@ -97,7 +107,11 @@ function shellWord(word: string): string {
   return `"${word.replace(/(["\\$`])/g, "\\$1")}"`;
 }
 
-/** A command line from words, each quoted only when it needs it. */
+/**
+ * A command line from words, each quoted only when it needs it.
+ *
+ * @claim "each quoted only when" registry/ouro/ax/errors.test.mts verify:testExists(registry/ouro/ax/errors.test.mts::commandLine quotes only what a shell would split or expand)
+ */
 function commandLine(words: readonly string[]): string {
   return words.map(shellWord).join(" ");
 }

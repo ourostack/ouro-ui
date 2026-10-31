@@ -1,7 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { runCli } from "./cli.ts";
-import { defineCli, defineCommand } from "./command.ts";
+import { dispatch, printResult, runCli } from "./cli.ts";
+import { defineCli, defineCommand, parse, type Parsed, type RunContext } from "./command.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms } from "./example-cli.ts";
 import { nextStep, outcome } from "./outcome.ts";
 
@@ -125,4 +125,26 @@ test("a wait prints what happened or how to resume, with its state's exit code",
   const bad = await run(["watch", "abc123", "--timeout", "soon"]);
   assert.equal(bad.code, 2);
   assert.match(bad.err, /Fix: notes watch abc123 --timeout 2m\./);
+});
+
+test("dispatch runs the plan or run() with the tool's own context, and prints nothing", async () => {
+  interface Ctx extends RunContext {
+    who: string;
+  }
+  const t = defineCli<Ctx>({
+    name: "t",
+    about: ["t"],
+    commands: [
+      defineCommand({ name: "send", summary: "S.", effect: "others", run: (_, ctx: Ctx) => `sent by ${ctx.who}`, plan: (_, ctx: Ctx) => outcome({ action: "send", effect: "others", audience: { only: false, who: "all" }, state: "planned", summary: `would send as ${ctx.who}` }) }),
+    ],
+  });
+  const ctx: Ctx = { who: "agent:a", json: false, stdin: async () => "" };
+  const parsed = parse(t, ["send", "--why", "x"]);
+  assert.equal(parsed.kind, "run");
+  assert.equal(await dispatch(t, parsed as Parsed, ctx), "sent by agent:a");
+  const dry = (await dispatch(t, parse(t, ["send", "--why", "x", "--dry-run"]) as Parsed, ctx)) as { summary: string };
+  assert.equal(dry.summary, "would send as agent:a");
+  const o = io();
+  assert.equal(printResult(t, (parsed as Parsed).command, {}, "sent", false, o.io), 0);
+  assert.equal(o.o.out, '"sent"\n');
 });

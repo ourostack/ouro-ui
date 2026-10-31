@@ -1,5 +1,29 @@
 [
   {
+    "name": "ax-claims",
+    "title": "The Ouro AX claims",
+    "kind": "guide",
+    "summary": "The Ouro AX standard is a list of claims about the interfaces agents use."
+  },
+  {
+    "name": "ax-eval",
+    "title": "The Ouro AX evaluation",
+    "kind": "guide",
+    "summary": "The X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters (the claims)."
+  },
+  {
+    "name": "ax-xray",
+    "title": "The Ouro AX X-ray",
+    "kind": "guide",
+    "summary": "`ax-xray` checks an interface an agent uses against the Ouro AX claims (the claims)."
+  },
+  {
+    "name": "ax",
+    "title": "Ouro AX",
+    "kind": "guide",
+    "summary": "Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server."
+  },
+  {
     "name": "claims",
     "title": "Claims",
     "kind": "guide",

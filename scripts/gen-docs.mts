@@ -15,7 +15,8 @@
 // - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
 //   copied from UPGRADING.md with its {{latestRelease}} placeholder filled in;
 // - the release tag in the install commands of README.md, site/public/llms.txt and
-//   package.json's description: package.json's ouro.latestRelease (scripts/latest-release.mjs).
+//   package.json's description: package.json's ouro.latestRelease (scripts/latest-release.mjs);
+// - docs/ax/<item>.md, Ouro AX's page per ax item, from registry/ouro/ax/ (scripts/ax-docs.mts).
 //
 // `--check` exits 1 when a committed file differs from what would be generated.
 // `--out <dir>` writes (or checks) under another root, for tests. Output is deterministic:
@@ -31,6 +32,7 @@ import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
 import { summary } from "./docs-summary.mts";
+import { axDocs } from "./ax-docs.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -726,6 +728,8 @@ const readmeItems = [
     verify: { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
   })} Optional: \`ouro-theme\`, the Ouro look.`,
   "",
+  "Ouro AX, for the interfaces agents use: `ouro-ax` and its `ax-*` items, and `ouro-ax-tests` ([Ouro AX](#ouro-ax)).",
+  "",
   "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
   "",
   `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })}\n${helperItems.map(code).join(",\n")}.\n${claim(
@@ -760,6 +764,8 @@ outputs.set(
     release,
   ),
 );
+// Ouro AX's reference pages, one per ax item (scripts/ax-docs.mts).
+for (const [path, content] of axDocs(root, release)) outputs.set(path, content);
 // The other files whose install commands name the release.
 for (const path of syncedFiles.filter((file) => file !== "README.md")) {
   outputs.set(path, withRelease(readFileSync(join(root, path), "utf8"), release));
@@ -769,11 +775,13 @@ for (const path of syncedFiles.filter((file) => file !== "README.md")) {
 // Write or check
 
 const docsDir = join(outRoot, "docs");
-const stray = existsSync(docsDir)
-  ? readdirSync(docsDir)
-      .filter((file) => file.endsWith(".md") && !outputs.has(`docs/${file}`))
-      .map((file) => `docs/${file}`)
-  : [];
+const strayIn = (dir: string) =>
+  existsSync(join(outRoot, dir))
+    ? readdirSync(join(outRoot, dir))
+        .filter((file) => file.endsWith(".md") && !outputs.has(`${dir}/${file}`))
+        .map((file) => `${dir}/${file}`)
+    : [];
+const stray = existsSync(docsDir) ? [...strayIn("docs"), ...strayIn("docs/ax")] : [];
 
 if (check) {
   const stale = [...outputs]

@@ -98,3 +98,8 @@ test("outcomeText: the summary, the check, the receipt, the person's step and th
   assert.equal(outcomeText(outcome({ action: "x", state: "refused", summary: "No.", error: { ...err, fix: "tool send --why x" } }), "tool"), "tool: send: say why. Fix: tool send --why x.");
   assert.equal(outcomeText(sent({ state: "failed", postcondition: { checked: true, holds: false, how: "not there." } }), "tool").split("\n")[1], "Checked: not there (it does not hold).");
 });
+
+test("outcomeText says when the effect is not checked yet, and why", () => {
+  assert.equal(outcomeText(sent({ postcondition: { checked: false, holds: null, how: "the window has not sent it yet" } }), "tool").split("\n")[1], "Not checked yet: the window has not sent it yet.");
+  assert.equal(outcomeText(sent({ postcondition: { checked: true, holds: null, how: "not readable until the next sync" } }), "tool").split("\n")[1], "Not checked yet: not readable until the next sync.");
+});

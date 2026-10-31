@@ -341,6 +341,8 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
+Ouro AX, for the interfaces agents use: `ouro-ax` and its `ax-*` items, and `ouro-ax-tests` ([Ouro AX](#ouro-ax)).
+
 Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
 
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):

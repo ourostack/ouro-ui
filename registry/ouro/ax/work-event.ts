@@ -9,7 +9,7 @@ import type { AxRef, Outcome } from "./outcome.ts";
 
 /**
  * An attributed work event: who acted and for whom, on what, why, with which receipt, when. An agent interface emits
- * one for each action, handoff, wait and return, so the person sees what their agents did and a value stream can be
+ * them for its actions, handoffs, waits and returns, so the person sees what their agents did and a value stream can be
  * measured from it.
  */
 const WORK_EVENT_VERSION = "work-event/1";
@@ -83,6 +83,8 @@ function checkWorkEvent(v: unknown): { ok: true; event: WorkEvent } | { ok: fals
 /**
  * The work event an outcome makes: an action, attributed to the actor, with the outcome's target, effect, why and
  * receipt. A planned or refused outcome changed nothing, so it makes none.
+ *
+ * @claim "so it makes none" registry/ouro/ax/work-event.test.mts verify:testExists(registry/ouro/ax/work-event.test.mts::workEventOf: an action or handoff from an outcome, attributed; nothing for a plan or a refusal)
  */
 function workEventOf(o: Outcome, who: { id: string; actor: string; onBehalfOf: string | null; correlation?: string | null; at?: string }): WorkEvent | null {
   if (o.state === "planned" || o.state === "refused") return null;
@@ -106,6 +108,8 @@ function workEventOf(o: Outcome, who: { id: string; actor: string; onBehalfOf: s
 /**
  * One target's work, counted from its own events: actions, handoffs, returns, attention asked, waits and how long the
  * finished ones lasted. A figure nothing measured is null, never 0.
+ *
+ * @claim "is null, never 0" registry/ouro/ax/work-event.test.mts verify:testExists(registry/ouro/ax/work-event.test.mts::foldWork keeps an open wait and an open handoff apart per target; a wait end with no start counts nothing)
  */
 interface WorkFold {
   target: AxRef | null;
@@ -117,7 +121,11 @@ interface WorkFold {
   returns: number;
   attention: number;
   waits: number;
-  /** Time spent in finished waits, from paired start and end events; null when no wait ended. */
+  /**
+   * Time spent in finished waits, from paired start and end events; null when no wait ended.
+   *
+   * @claim "null when no wait ended" registry/ouro/ax/work-event.test.mts verify:testExists(registry/ouro/ax/work-event.test.mts::foldWork keeps an open wait and an open handoff apart per target; a wait end with no start counts nothing)
+   */
   waitedMs: number | null;
   /** A wait still open at the last event: when it started. */
   waitingSince: string | null;
@@ -126,7 +134,11 @@ interface WorkFold {
   lastAt: string;
 }
 
-/** Work events folded per target, in the order each target first appears. */
+/**
+ * Work events folded per target, in the order each target first appears.
+ *
+ * @claim "in the order each target first appears" registry/ouro/ax/work-event.test.mts verify:testExists(registry/ouro/ax/work-event.test.mts::foldWork keeps an open wait and an open handoff apart per target; a wait end with no start counts nothing)
+ */
 function foldWork(events: readonly WorkEvent[]): WorkFold[] {
   const folds = new Map<string, WorkFold & { open: Map<string, number> }>();
   const sorted = [...events].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
