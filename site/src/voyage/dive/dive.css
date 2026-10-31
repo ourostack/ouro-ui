@@ -1,0 +1,504 @@
+/*
+ * The Dive moment in the theme sample (dive.tsx). Loaded with the scene's code, when Dive is first
+ * pressed. Every colour is the chosen preset's own dark one: the scene carries `.dark` and the
+ * preset's `data-theme`, so the presets' `.dark [data-theme]` values apply inside it. The timings
+ * come from plan.ts, as custom properties on the scene. With reduced motion nothing moves: only
+ * opacity changes, and the deep fades in still.
+ */
+/*
+ * The sea is made from the page's own primary, taken on the sample before the scene's dark values
+ * apply (a custom property resolves where it is declared), darkened so the dark ink reads on it.
+ */
+[data-site-sample] {
+  --dive-ink: var(--primary);
+}
+.dive {
+  --dive-surface: color-mix(
+    in oklab,
+    var(--dive-ink) 42%,
+    oklch(0.2 0.035 250)
+  );
+  --dive-deep: color-mix(in oklab, var(--dive-ink) 16%, oklch(0.14 0.03 250));
+  --dive-abyss: color-mix(in oklab, var(--dive-ink) 6%, oklch(0.09 0.02 255));
+  /* What the stage's creature colours (stage.css) are made from, in this sea. */
+  --ink: color-mix(in oklab, var(--foreground) 60%, transparent);
+  --glow: var(--chart-3);
+  --sea-deep: var(--dive-deep);
+  --sea-abyss: var(--dive-abyss);
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  container-type: size;
+  color: var(--foreground);
+  /* Under water the sample is out of reach: a press here only brings her up. */
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.dive-water {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--dive-surface),
+    var(--dive-deep) 70%
+  );
+}
+/* The waterline: a brighter band where the sea meets the air. */
+.dive-water::before {
+  content: "";
+  position: absolute;
+  inset: -14px 0 auto;
+  height: 14px;
+  background: radial-gradient(
+      14px 8px at 50% 0%,
+      var(--dive-surface) 96%,
+      transparent 100%
+    )
+    0 100% / 28px 14px repeat-x;
+}
+/* The deep: darkness that comes on as she goes down. */
+.dive-dark {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 50% 40%,
+    var(--dive-deep),
+    var(--dive-abyss) 75%
+  );
+  opacity: 0;
+}
+/* The lantern: a soft beam from above, sweeping slowly across the dark. */
+.dive-beam {
+  position: absolute;
+  top: -8%;
+  right: 18%;
+  width: 90cqw;
+  height: 120cqh;
+  opacity: 0;
+}
+.dive-beam::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform-origin: 100% 0;
+  clip-path: polygon(100% 0, 22% 100%, 62% 100%);
+  background: linear-gradient(
+    to bottom left,
+    color-mix(in oklab, var(--glow) 45%, transparent),
+    transparent 85%
+  );
+}
+
+.dive-creature {
+  position: absolute;
+  top: var(--top);
+  left: var(--rest);
+  width: var(--width);
+  min-width: 26px;
+}
+.dive-creature svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.dive-creature .dive-glow {
+  position: absolute;
+  inset: 0;
+}
+.dive .c-body {
+  fill: color-mix(in oklab, var(--dive-deep) 55%, var(--foreground) 22%);
+  stroke: color-mix(in oklab, var(--glow) 35%, transparent);
+}
+.dive .c-glow,
+.dive .c-glow-body {
+  fill: color-mix(in oklab, var(--glow) 85%, white);
+}
+.dive-angler {
+  top: auto;
+  left: auto;
+  right: 6%;
+  bottom: 8%;
+  width: 20%;
+  min-width: 72px;
+  max-width: 132px;
+  opacity: 0;
+}
+
+.dive-bubble {
+  position: absolute;
+  left: var(--left);
+  bottom: var(--rest);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in oklab, var(--dive-ink) 40%, white);
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in oklab, white 55%, transparent),
+    transparent 65%
+  );
+  opacity: 0.7;
+}
+
+/* The words over the water, in the preset's dark ink on the deep. */
+.dive-gauge {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  width: min(15rem, calc(100% - 2.5rem));
+  display: grid;
+  gap: 0.5rem;
+  opacity: 0;
+}
+.dive-reading {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.dive-number {
+  font-family: var(--font-heading, inherit);
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.dive-hint {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 1rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  opacity: 0;
+}
+.dive-sleeper {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  margin: 0;
+  display: grid;
+  justify-items: end;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  opacity: 0;
+}
+.dive-z {
+  font-family: var(--font-heading, inherit);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.dive-z:nth-child(2) {
+  margin-inline-end: 0.75rem;
+  font-size: 1rem;
+}
+.dive-z:nth-child(3) {
+  margin-inline-end: 1.5rem;
+  font-size: 0.8125rem;
+}
+.dive-sleeper-name {
+  margin-top: 0.375rem;
+}
+/* On a narrow window the gauge takes the top's width, so Ned sleeps below it. */
+@container (max-width: 32rem) {
+  .dive-sleeper {
+    top: 7.25rem;
+  }
+}
+
+/* An open hatch: the sea comes in with a splash. */
+.dive-splash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dive-drop {
+  position: absolute;
+  left: var(--left);
+  bottom: calc(var(--up) * 1%);
+  width: var(--size);
+  height: calc(var(--size) * 1.3);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: color-mix(in oklab, var(--dive-ink) 55%, white);
+}
+.dive-splash-word {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  translate: -50% -50%;
+  font-family: var(--font-heading, inherit);
+  font-size: clamp(2rem, 10cqw, 3.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--foreground);
+  opacity: 0;
+}
+
+@keyframes dive-show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dive-hide {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dive-water {
+    animation:
+      dive-flood var(--flood) cubic-bezier(0.3, 0.7, 0.4, 1) both,
+      dive-drain var(--surface) cubic-bezier(0.6, 0, 0.7, 0.4) var(--drain-at)
+        forwards;
+  }
+  .dive-dark {
+    animation:
+      dive-show var(--descend) ease-in-out var(--flood) both,
+      dive-hide var(--surface) ease-in var(--drain-at) forwards;
+  }
+  .dive-gauge,
+  .dive-hint,
+  .dive-sleeper,
+  .dive-beam {
+    animation:
+      dive-show 300ms ease-out var(--flood) both,
+      dive-hide 250ms ease-in var(--drain-at) forwards;
+  }
+  .dive-beam::before {
+    animation: dive-sweep 2.4s ease-in-out infinite alternate;
+  }
+  .dive[data-flicker] .dive-beam::before {
+    animation:
+      dive-sweep 2.4s ease-in-out infinite alternate,
+      dive-flicker 1.3s steps(1, end) infinite;
+  }
+  .dive-fish {
+    left: 0;
+    animation: dive-swim var(--swim) linear var(--delay) both;
+  }
+  .dive-jelly {
+    animation: dive-drift var(--swim) ease-in-out var(--delay) both;
+  }
+  .dive-glow {
+    animation: dive-pulse 0.9s ease-in-out infinite alternate;
+  }
+  .dive-angler {
+    animation:
+      dive-lurk 900ms ease-out calc(var(--flood) + var(--descend) - 300ms) both,
+      dive-hide 250ms ease-in var(--drain-at) forwards;
+  }
+  .dive-bubble {
+    bottom: -24px;
+    animation: dive-rise 2.6s ease-in calc(var(--flood) + var(--delay)) infinite
+      both;
+  }
+  .dive-z {
+    animation: dive-snore 1.8s ease-in-out infinite both;
+  }
+  .dive-z:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+  .dive-z:nth-child(3) {
+    animation-delay: 0.6s;
+  }
+  .dive-drop {
+    bottom: 0;
+    animation: dive-throw 1s cubic-bezier(0.2, 0.7, 0.4, 1) var(--delay) both;
+  }
+  .dive-splash-word {
+    animation: dive-pop 1.3s cubic-bezier(0.3, 1.4, 0.5, 1) 120ms both;
+  }
+}
+
+@keyframes dive-flood {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes dive-drain {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(102%);
+  }
+}
+@keyframes dive-sweep {
+  from {
+    transform: rotate(-16deg);
+  }
+  to {
+    transform: rotate(20deg);
+  }
+}
+@keyframes dive-flicker {
+  0%,
+  30%,
+  38%,
+  64%,
+  100% {
+    opacity: 1;
+  }
+  26%,
+  34% {
+    opacity: 0.15;
+  }
+  60% {
+    opacity: 0.35;
+  }
+}
+@keyframes dive-swim {
+  from {
+    transform: translateX(105cqw);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-20cqw);
+    opacity: 0;
+  }
+}
+@keyframes dive-drift {
+  from {
+    transform: translateY(30cqh);
+    opacity: 0;
+  }
+  20%,
+  80% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-20cqh);
+    opacity: 0;
+  }
+}
+@keyframes dive-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dive-lurk {
+  from {
+    transform: translateX(30%) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes dive-rise {
+  from {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  to {
+    transform: translate(1.5cqw, -110cqh);
+    opacity: 0;
+  }
+}
+@keyframes dive-snore {
+  from {
+    transform: translate(0, 4px);
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-4px, -8px);
+    opacity: 0.3;
+  }
+}
+@keyframes dive-throw {
+  from {
+    transform: translateY(0) scale(0.4);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  45% {
+    transform: translateY(calc(var(--up) * -1cqh)) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(10cqh) scale(0.8);
+    opacity: 0;
+  }
+}
+@keyframes dive-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  32% {
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* With reduced motion: the still deep fades in, holds, and fades out. Nothing moves. */
+@media (prefers-reduced-motion: reduce) {
+  .dive {
+    animation:
+      dive-show var(--fade-in) ease-out both,
+      dive-hide var(--fade-out) ease-in var(--fade-out-at) forwards;
+  }
+  .dive-dark,
+  .dive-gauge,
+  .dive-hint,
+  .dive-sleeper,
+  .dive-beam,
+  .dive-angler {
+    opacity: 1;
+  }
+  .dive[data-flicker] .dive-beam {
+    opacity: 0.4;
+  }
+  .dive-splash-word {
+    opacity: 1;
+  }
+  .dive-splash-word {
+    top: 22%;
+  }
+}
+
+/* Cut short: the window clears at once, whatever was under way. */
+.dive[data-leaving] {
+  animation: dive-hide var(--leave) ease-out forwards;
+}
