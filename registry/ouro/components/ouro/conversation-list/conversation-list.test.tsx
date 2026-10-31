@@ -79,6 +79,12 @@ describe("ConversationList", () => {
   it("marks the open conversation current and highlights it", async () => {
     const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
     expect(rows.map((row) => row.getAttribute("aria-current"))).toEqual([null, "true", null]);
+    // A pointer an earlier test left over the row would show its hover shade instead.
+    const away = document.createElement("div");
+    away.style.height = "40px";
+    host.append(away);
+    await userEvent.hover(away);
+    await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
     const probe = document.createElement("span");
     probe.style.color = "var(--accent)";
     host.append(probe);
