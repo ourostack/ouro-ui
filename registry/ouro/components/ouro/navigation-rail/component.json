@@ -1,0 +1,29 @@
+{
+  "order": 2640,
+  "components": ["navigation-rail"],
+  "controls": {
+    "navigation-rail": [
+      {"part": "link", "role": "link", "portal": false},
+      {"part": "button", "role": "button", "portal": false},
+      {"part": "more", "role": "button", "portal": false}
+    ]
+  },
+  "motion": {
+    "navigation-rail": {
+      "states": {
+        "data-selected": {
+          "kind": "motion",
+          "parts": {
+            "link": {"properties": ["color"], "reduced": ["color"]},
+            "button": {"properties": ["color"], "reduced": ["color"]},
+            "indicator": {"properties": ["opacity", "scale"], "reduced": ["opacity"]}
+          },
+          "tests": [
+            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
+            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -30,7 +30,7 @@ Put it in a `SidebarLayout`, which places it beside the page and in the phone's 
 
 ## Use instead when
 
-- Use `Navbar` instead for a handful of links across the top, and `Tabs` for views of one page.
+- Use `Navbar` instead for a handful of links across the top, `NavigationRail` for a narrow bar of the app's top-level pages, each an icon over its label, and `Tabs` for views of one page.
 
 ## Props
 
