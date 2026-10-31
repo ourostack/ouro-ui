@@ -2497,6 +2497,54 @@
     ]
   },
   {
+    "item": "toolbar",
+    "stem": "toolbar",
+    "mode": "default",
+    "part": "button",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Toolbar/Playground",
+      "Toolbar/Overflow",
+      "Toolbar/Labeled",
+      "Toolbar/Composer",
+      "Toolbar/Disabled"
+    ]
+  },
+  {
+    "item": "toolbar",
+    "stem": "toolbar",
+    "mode": "default",
+    "part": "toggle",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Toolbar/Playground",
+      "Toolbar/Overflow",
+      "Toolbar/Labeled",
+      "Toolbar/Composer",
+      "Toolbar/Disabled"
+    ]
+  },
+  {
+    "item": "toolbar",
+    "stem": "toolbar",
+    "mode": "default",
+    "part": "more",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Toolbar/Playground",
+      "Toolbar/Overflow",
+      "Toolbar/Labeled",
+      "Toolbar/Composer",
+      "Toolbar/Disabled"
+    ]
+  },
+  {
     "item": "autocomplete",
     "stem": "autocomplete",
     "mode": "default",
