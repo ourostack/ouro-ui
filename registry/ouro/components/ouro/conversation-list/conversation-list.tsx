@@ -122,11 +122,10 @@ const controlClass =
   "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:hover:bg-muted active:bg-muted";
-// The open row keeps its highlight under the pointer and while pressed, a shade deeper: the plain
-// rows' muted hover would make it look closed.
-const rowClass =
-  "gap-3 aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2 " +
-  "aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--accent)_88%,var(--foreground))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--accent)_88%,var(--foreground))]";
+const rowClass = "gap-3 aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
+// The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
+// hover would make it look closed. These replace controlClass's hover and press colours.
+const currentClass = "pointer-fine:hover:bg-accent active:bg-accent";
 const headerClass = "gap-1.5 py-1.5 text-sm";
 const listClass = "m-0 flex list-none flex-col gap-0.5 p-0";
 
@@ -168,8 +167,8 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
 /**
  * A list of conversations to choose from: each row shows the avatar, the title, when the
  * latest message arrived and a line of it, and marks unread conversations with a bold title
- * and a dot. The open conversation's row is highlighted, a shade deeper under the pointer, and
- * marked `aria-current`. The list
+ * and a dot. The open conversation's row is highlighted, under the pointer too, and marked
+ * `aria-current`. The list
  * is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows
  * move between rows, Home and End jump to the first and last, and Enter, Space or a click
  * calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
@@ -186,7 +185,7 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is a named list of buttons, one per conversation, in order)
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows unread conversations with a bold title, a dot and a spoken label)
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > marks the open conversation current and highlights it)
- * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation highlighted under the pointer, a shade deeper)
+ * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation highlighted under the pointer)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is one Tab stop, which lands on the open conversation)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > moves focus with the arrow keys, Home and End)
  * @claim "Rows can group under" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList sections > groups rows under headers that open and close them)
@@ -301,7 +300,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
           onClick={(event) => (onSelect.length > 1 ? onSelect(item.id, event) : (onSelect as (id: string) => void)(item.id))}
           onKeyDown={move}
           onFocus={() => setActive(key)}
-          className={cn(controlClass, rowClass, density === "compact" ? "py-1.5" : "py-2")}
+          className={cn(controlClass, rowClass, item.id === selectedId && currentClass, density === "compact" ? "py-1.5" : "py-2")}
         >
           {item.avatar === false ? null : typeof item.avatar === "object" ? (
             <span data-ouro-conversation-avatar="" className="flex shrink-0">

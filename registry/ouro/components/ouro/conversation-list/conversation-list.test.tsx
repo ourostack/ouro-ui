@@ -95,7 +95,7 @@ describe("ConversationList", () => {
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
   });
 
-  it("keeps the open conversation highlighted under the pointer, a shade deeper", async () => {
+  it("keeps the open conversation highlighted under the pointer", async () => {
     const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
     const paint = (value: string) => {
       const probe = document.createElement("span");
@@ -109,10 +109,9 @@ describe("ConversationList", () => {
       await Promise.allSettled(row.getAnimations().map((animation) => animation.finished));
       return getComputedStyle(row).backgroundColor;
     };
-    const deeper = paint("color-mix(in oklab, var(--accent) 88%, var(--foreground))");
-    expect(deeper).not.toBe(paint("var(--accent)"));
+    expect(paint("var(--accent)")).not.toBe(paint("var(--muted)"));
     await userEvent.hover(rows[1]!);
-    expect(await settled(rows[1]!)).toBe(deeper);
+    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
     await userEvent.hover(rows[0]!);
     expect(await settled(rows[0]!)).toBe(paint("var(--muted)"));
     expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
