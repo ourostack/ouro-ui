@@ -206,13 +206,13 @@ export function unitExclusions(ids, units) {
 }
 
 /**
- * The estimated seconds (`shardCost`) a CI shard is planned to at most. CI run 41159468260's five
- * cold shards took from 0.25 to 1.45 times their estimates without the timeouts of hanging mutants
- * in them, and from 0.21 to 0.72 times with them; at 0.72, this target is 18 minutes, so a shard
- * finishes its mutants in about 20 minutes or less, inside the job's 30 with room for a hanging
- * mutant more than expected.
+ * The estimated seconds (`shardCost`) a CI shard is planned to at most. A mutation shard is on the pull
+ * request's critical path, which ci-budget holds to 10 minutes (scripts/ci-budget.mjs). With a 1500 s
+ * target, #287's thirteen shards took up to 15.5 minutes (run 41171948948; at most 0.62 times their
+ * estimates), past ci-budget's 15-minute work ceiling. At 900 s the same ratio gives about 9.3 minutes,
+ * so the shard, plus the plan jobs before it, fits the budget.
  */
-export const SHARD_TARGET_SECONDS = 1500;
+export const SHARD_TARGET_SECONDS = 900;
 
 /** `--shard 2/3` as a 1-based index and a count; null without one. */
 export function parseShard(value) {
