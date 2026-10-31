@@ -9511,6 +9511,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-control-ref-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
@@ -9538,6 +9539,8 @@
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/switch",
         "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/tab-bar",
+        "ourostack/ouro-ui/tab-bar-tests",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/text-tests"

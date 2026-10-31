@@ -17,6 +17,10 @@ const [xray, setXray] = useState(false);
 <Inspector open={xray} onOpenChange={setXray} sourceHref={(item) => sourceOf(item)} />
 ```
 
+## Usage
+
+The bar floats above the bottom of the screen and above a `TabBar` that shows. To keep it clear of other chrome the app pins to the bottom, set `--ouro-inspector-bottom` to the distance to keep, such as `:root { --ouro-inspector-bottom: 6rem; }`.
+
 ## Use instead when
 
 - Use your browser's developer tools instead when you need more than which component is where; the `data-ouro`, `data-ouro-control` and `data-ouro-part` attributes X-ray reads are there too.

@@ -15,6 +15,7 @@ import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
+import { TabBar } from "@/registry/ouro/components/ouro/tab-bar/tab-bar";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -464,6 +465,63 @@ describe("Inspector", () => {
     await drawn(3);
     const bar = page.getByRole("region", { name: "Röntgen" });
     await expect.element(bar.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
+
+  it("fits its bar on a phone as narrow as 320px: the label on one line, the spotlit item named in full, both buttons in reach", async () => {
+    for (const width of [390, 320]) {
+      await page.viewport(width, 700);
+      const { host } = await render(<Page inspector={{ spotlight: "navigation-menu" }} />);
+      const region = page.getByRole("region", { name: "X-ray" });
+      await expect.element(region.getByRole("status")).toHaveTextContent("No navigation-menu on this page");
+      const bar = region.element().getBoundingClientRect();
+      expect(bar.left, `${width}px: inside the screen`).toBeGreaterThanOrEqual(16);
+      expect(bar.right, `${width}px: inside the screen`).toBeLessThanOrEqual(width - 16);
+      const label = region.element().querySelector('[aria-hidden="true"]')!;
+      expect(label.getBoundingClientRect().height, `${width}px: "X-ray" on one line`).toBe(Number.parseFloat(getComputedStyle(label).lineHeight) + 12);
+      const status = region.getByRole("status").element() as HTMLElement;
+      expect(status.scrollWidth, `${width}px: the status is not cut short`).toBeLessThanOrEqual(status.clientWidth);
+      for (const name of [/components$/, "Close"]) {
+        const button = region.getByRole("button", { name }).element().getBoundingClientRect();
+        expect(button.top, `${width}px: ${String(name)} below the status`).toBeGreaterThanOrEqual(status.getBoundingClientRect().bottom);
+        expect(button.right).toBeLessThanOrEqual(bar.right);
+      }
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      host.remove();
+    }
+  });
+
+  it("keeps its bar on one row on a phone with no spotlight, and on a wider screen", async () => {
+    for (const [width, spotlight] of [[390, undefined], [800, "navigation-menu"]] as const) {
+      await page.viewport(width, 700);
+      const { host } = await render(<Page inspector={{ spotlight }} />);
+      await drawn(3);
+      const region = page.getByRole("region", { name: "X-ray" }).element();
+      const close = page.getByRole("button", { name: "Close" }).element().getBoundingClientRect();
+      expect(region.getBoundingClientRect().height, `${width}px`).toBe(close.height + 8);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      host.remove();
+    }
+  });
+
+  it("sits above a TabBar that shows, and above the distance the app sets", async () => {
+    await page.viewport(390, 844);
+    const icon = <svg viewBox="0 0 24 24"><path d="M3 10 12 3l9 7v11H3z" /></svg>;
+    const items = ["Home", "Recipes", "Shopping"].map((label, index) => ({ label, href: `/${index}`, icon }));
+    const { rerender } = await render(<Page><TabBar label="Main" items={items} currentPath="/0" hideFrom="sm" /></Page>);
+    const region = () => page.getByRole("region", { name: "X-ray" }).element().getBoundingClientRect();
+    const tabs = () => document.querySelector('[data-ouro="tab-bar"] > [data-ouro-part="bar"]')!.getBoundingClientRect();
+    await expect.poll(() => tabs().top - region().bottom).toBe(8);
+    // Where the TabBar hides, the bar goes back to the bottom of the screen.
+    await page.viewport(800, 844);
+    await expect.poll(() => innerHeight - region().bottom).toBe(16);
+    // An app with chrome of its own pinned to the bottom sets the distance to keep.
+    document.documentElement.style.setProperty("--ouro-inspector-bottom", "100px");
+    try {
+      await rerender(<Page />);
+      await expect.poll(() => innerHeight - region().bottom).toBe(100);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-inspector-bottom");
+    }
   });
 
   it("leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other", async () => {
