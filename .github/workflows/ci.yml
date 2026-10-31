@@ -16,8 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: [preview, pages, pages-cached]
-    name: catalog cold (${{ matrix.server }})
+        server: [pages-cold, pages-warm]
+        rep: [1, 2, 3]
+    name: catalog first visit (${{ matrix.server }}, ${{ matrix.rep }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,14 +35,14 @@ jobs:
           SERVER: ${{ matrix.server }}
         run: |
           case "$SERVER" in
-            preview) pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort > server.log 2>&1 & export PROBE_BASE=http://127.0.0.1:4179/ ;;
-            pages) node site/scripts/serve-pages.mjs 4179 > server.log 2>&1 & export PROBE_BASE=https://127.0.0.1:4179/ ;;
-            pages-cached) PROBE_CACHED=1 node site/scripts/serve-pages.mjs 4179 > server.log 2>&1 & export PROBE_BASE=https://127.0.0.1:4179/ ;;
+            preview-warm) export PROBE_WARM=1; pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort > server.log 2>&1 & export PROBE_BASE=http://127.0.0.1:4179/ ;;
+            pages-cold) node site/scripts/serve-pages.mjs 4179 > server.log 2>&1 & export PROBE_BASE=https://127.0.0.1:4179/ ;;
+            pages-warm) export PROBE_WARM=1; node site/scripts/serve-pages.mjs 4179 > server.log 2>&1 & export PROBE_BASE=https://127.0.0.1:4179/ ;;
           esac
           sleep 8; cat server.log
-          for i in $(seq 1 15); do
+          for i in 1 2; do
             pnpm exec playwright test --config zz-probe.config.ts -g "each page loads only its own JavaScript closure" --reporter=list > "out-$i.txt" 2>&1 || true
-            grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms' "out-$i.txt" | head -1
+            echo "run $i: $(grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms' "out-$i.txt" | head -1)"
           done
           echo "--- summary"; cat out-*.txt | grep -oE 'PROBE CATALOG ch1 [A-Z]+' | sort | uniq -c
           cat out-*.txt | grep -oE 'PROBE CATALOG ch1 [A-Z]+ -?[0-9]+ ms' | awk '{print $5}' | sort -n | tr '\n' ' '; echo

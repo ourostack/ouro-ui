@@ -6,5 +6,6 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "list",
+  globalSetup: process.env["PROBE_WARM"] ? "./site/e2e/warm-up.ts" : undefined,
   projects: [{ name: "site-webkit", use: { ...devices["Desktop Safari"], baseURL: process.env["PROBE_BASE"], ignoreHTTPSErrors: true } }],
 });
