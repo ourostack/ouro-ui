@@ -424,6 +424,7 @@
     "registry/ouro/e2e/ouro/attachment.spec.ts": 7800,
     "registry/ouro/e2e/ouro/attention-card.spec.ts": 2510,
     "registry/ouro/e2e/ouro/auth-layout.spec.ts": 7200,
+    "registry/ouro/e2e/ouro/autocomplete.spec.ts": 9000,
     "registry/ouro/e2e/ouro/avatar.spec.ts": 5700,
     "registry/ouro/e2e/ouro/badge.spec.ts": 7100,
     "registry/ouro/e2e/ouro/breadcrumb.spec.ts": 9700,
