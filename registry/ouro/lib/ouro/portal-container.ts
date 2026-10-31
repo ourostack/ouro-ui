@@ -1,11 +1,11 @@
 "use client";
 
-export { holdPageAtPress, PortalScope, usePortalContainer };
+export { PortalScope, usePortalContainer };
 export type { PortalContainerProps };
 
 import { createContext, createElement, useContext, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
-import { holdPageAtPress, holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 
 // Where a floating layer (Select, Menu, Combobox, Popover, Tooltip, HoverCard,

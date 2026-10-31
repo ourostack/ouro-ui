@@ -92,6 +92,7 @@ function endPress() {
 function press(trigger: HTMLElement) {
   if (trigger.getAttribute("aria-expanded") === "true") return;
   const view = trigger.ownerDocument.defaultView!;
+  // Stryker disable next-line ObjectLiteral: scrollTo({}) also scrolls to where the page is, which ends a smooth scroll in flight there too; the place and the instant behaviour are spelled out so that does not rest on the page's scroll-behavior.
   view.scrollTo({ left: view.scrollX, top: view.scrollY, behavior: "instant" });
   start(view);
   endPress();
