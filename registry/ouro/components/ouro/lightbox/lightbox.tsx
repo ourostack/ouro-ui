@@ -218,8 +218,11 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>): void {
 
 /** Below this, zooming in would show almost nothing more. */
 const minZoom = 1.05;
-/** How long a double-tap's second tap may follow the first, in milliseconds. */
-const doubleTapTime = 300;
+/**
+ * How long a double-tap's second tap may follow the first, in milliseconds: the longest of the
+ * platforms' defaults, so an unhurried tapper and a busy device still double-tap.
+ */
+const doubleTapTime = 500;
 /** How far a tap may drift, and how far apart a double-tap's taps may be, in pixels. */
 const tapSlop = 24;
 

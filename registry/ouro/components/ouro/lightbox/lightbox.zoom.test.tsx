@@ -227,7 +227,7 @@ describe("Lightbox zoom", () => {
       expect(view()).toBeNull();
     };
     tap(x, y);
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await new Promise((resolve) => setTimeout(resolve, 550));
     tap(x, y);
     await unzoomed();
     tap(x + 40, y);
