@@ -24,7 +24,8 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: ENCOUNTER.dialog
 
 /** Gives an order from the Orders menu. */
 async function order(page: Page, name: string): Promise<void> {
-  await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
+  const trigger = encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true });
+  await trigger.click();
   const menu = page.getByRole("menu");
   // WebKit can drop a press on an item while the menu is still opening, so it opens fully first.
   await expect(menu).toBeVisible();
@@ -35,6 +36,8 @@ async function order(page: Page, name: string): Promise<void> {
   // A checkbox item leaves the menu open, so more can be ticked; Escape closes it.
   if (await checkbox.count()) await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
+  // The menu hands focus back to Orders a moment after it closes; a menu opened before then would lose it and close.
+  await expect(trigger).toBeFocused();
 }
 
 /** Up, and the feathers: the squid lets go. */
