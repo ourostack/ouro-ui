@@ -146,7 +146,7 @@ describe("pressing Dive", () => {
       await expect.element(trigger).toHaveFocus();
       await userEvent.keyboard("{Enter}");
       await expect.poll(scene, { timeout: 2000 }).toBeNull();
-      await expect.element(page.getByRole("dialog", { name: "Dive to 300 fathoms?" })).not.toBeInTheDocument();
+      await expect.element(page.getByRole("button", { name: "Not yet" })).not.toBeInTheDocument();
     } finally {
       announced.stop();
     }
