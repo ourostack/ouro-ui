@@ -167,6 +167,18 @@ describe("ToggleGroup", () => {
     }
   });
 
+  it("passes shape pill and size xs to every item", async () => {
+    await page.viewport(1280, 800);
+    const { toggles } = await render(<ToggleGroup label="Show" items={align} variant="outline" shape="pill" size="xs" defaultValue="left" />);
+    for (const toggle of toggles) {
+      expect(toggle.getAttribute("data-shape")).toBe("pill");
+      expect(getComputedStyle(toggle).fontWeight).toBe("400");
+      expect(parseFloat(getComputedStyle(toggle).borderTopLeftRadius)).toBeGreaterThanOrEqual(12);
+      expect(toggle.getBoundingClientRect().height).toBe(24);
+    }
+    expect(getComputedStyle(toggles[0]!).backgroundColor).not.toBe(getComputedStyle(toggles[1]!).backgroundColor);
+  });
+
   it("forwards its ref to the group and lets layout classes win on the root", async () => {
     const ref = createRef<HTMLDivElement>();
     const { group, root } = await render(<ToggleGroup label="Alignment" items={align} ref={ref} className="mt-6" />);
@@ -229,12 +241,14 @@ describe("ToggleGroup development messages", () => {
     error.mockRestore();
   });
 
-  it("warns for an unknown variant or size and renders the default", async () => {
-    const props = { label: "Alignment", items: align, variant: "default", size: "lg2" } as unknown as ToggleGroupProps;
+  it("warns for an unknown variant, size or shape and renders the default", async () => {
+    const props = { label: "Alignment", items: align, variant: "default", size: "lg2", shape: "round" } as unknown as ToggleGroupProps;
     const { toggles } = await render(<ToggleGroup {...props} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: variant="default" is not a variant. Fix: <ToggleGroup>.');
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: size="lg2" is not a size. Fix: <ToggleGroup size="md">.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: shape="round" is not a shape. Fix: <ToggleGroup shape="pill">.');
     expect(toggles[0]!.className).toContain("border-transparent");
+    expect(toggles[0]!.getAttribute("data-shape")).toBe("rect");
   });
 
   it("warns for appearance classes and an empty label", async () => {
@@ -249,6 +263,7 @@ describe("ToggleGroup development messages", () => {
     await render(
       <>
         <ToggleGroup label="Alignment" hideLabel items={align} defaultValue="left" variant="outline" size="lg" className="mt-2" />
+        <ToggleGroup label="Show" hideLabel items={align} defaultValue="left" variant="outline" shape="pill" size="xs" />
         <ToggleGroup label="Text style" multiple items={styles.map((item) => ({ ...item, hideLabel: true }))} value={["bold"]} />
       </>,
     );
