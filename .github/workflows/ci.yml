@@ -18,7 +18,7 @@ jobs:
       matrix:
         workers: [1]
         smooth: [on]
-        ref: [probe/webkit-e2e, probe/webkit-e2e-301]
+        ref: [probe/webkit-e2e-301-rebased, probe/webkit-e2e-hold]
     name: menu-race (${{ matrix.ref }}, workers ${{ matrix.workers }}, smooth ${{ matrix.smooth }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
