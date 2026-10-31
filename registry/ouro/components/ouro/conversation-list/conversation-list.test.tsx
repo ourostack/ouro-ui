@@ -2,7 +2,7 @@ import { useState, type MouseEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { ConversationList, type ConversationListItem, type ConversationListProps } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -109,9 +109,19 @@ describe("ConversationList", () => {
       await Promise.allSettled(row.getAnimations().map((animation) => animation.finished));
       return getComputedStyle(row).backgroundColor;
     };
-    expect(paint("var(--accent)")).not.toBe(paint("var(--muted)"));
+    // The open row stays exactly --accent under the pointer and while pressed, where the other rows
+    // take --muted. A theme that draws the two alike (shadcn's stock themes) cannot show the
+    // difference, but the row is still --accent there.
     await userEvent.hover(rows[1]!);
+    expect(rows[1]!.matches(":hover")).toBe(true);
     expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    await commands.pointerPress({ selector: '[data-ouro-control="conversation-list"][aria-current="true"]', action: "down" });
+    try {
+      expect(rows[1]!.matches(":active")).toBe(true);
+      expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
     await userEvent.hover(rows[0]!);
     expect(await settled(rows[0]!)).toBe(paint("var(--muted)"));
     expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
