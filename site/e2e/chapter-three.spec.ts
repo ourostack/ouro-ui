@@ -40,6 +40,18 @@ async function order(page: Page, name: string): Promise<void> {
   await expect(trigger).toBeFocused();
 }
 
+/** The focused element's text once two reads two frames apart agree, so a focus move a key started has landed. */
+async function settledFocus(page: Page): Promise<string> {
+  const read = () =>
+    page.evaluate(() => new Promise<string>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(document.activeElement?.textContent?.trim() ?? "")))));
+  let last = await read();
+  for (;;) {
+    const now = await read();
+    if (now === last) return now;
+    last = now;
+  }
+}
+
 /** Gives an order from the Orders menu by keys: the arrows walk to it, and Enter gives it. */
 async function orderByKeys(page: Page, name: string): Promise<void> {
   const trigger = encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true });
@@ -47,7 +59,10 @@ async function orderByKeys(page: Page, name: string): Promise<void> {
   await page.keyboard.press("Enter");
   const item = page.getByRole("menu").getByRole("menuitem", { name, exact: true });
   await expect(page.getByRole("menu")).toBeVisible();
-  for (let step = 0; step < 6 && !(await item.evaluate((element) => element === document.activeElement)); step++) await page.keyboard.press("ArrowDown");
+  // The menu moves focus a frame after the key (and after it opens), so each press waits for the
+  // focus to land before the next: read at once, the old item looks current and the walk overshoots.
+  await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[role="menu"]') != null)).toBe(true);
+  for (let step = 0; step < 6 && (await settledFocus(page)) !== name; step++) await page.keyboard.press("ArrowDown");
   await expect(item).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeHidden();
