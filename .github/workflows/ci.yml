@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job: [a, b]
+        job: [pages, preview]
     name: encoding (${{ matrix.job }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,13 +34,14 @@ jobs:
           PROBE_PROXY: ''
           PROBE_MODE: ${{ matrix.mode }}
           PROBE_PAGES: ''
+          PROBE_SERVER: ${{ matrix.job }}
           PROBE_SETTLE: ${{ matrix.mode == 'settle' && '1' || '' }}
           PROBE_CLOSE: ${{ matrix.mode == 'close' && '1' || '' }}
         run: |
           if [ -n "$PROBE_PROXY" ]; then node site/e2e/zz-proxy.mjs & fi
           if [ -n "$PROBE_PAGES" ]; then mkdir -p site/dist && (timeout 3 node site/scripts/serve-pages.mjs 4399 || true); ls .tmp/pages-cert; fi
-          pnpm exec playwright test --project=site-webkit site/e2e/zz-encoding.spec.ts --repeat-each=80 --workers=2 --reporter=list > probe-out.txt 2>&1 || true
-          grep -E '^ +[0-9]+ (passed|failed|flaky)' probe-out.txt; echo "dead: LATE=$(grep -c 'PROBE LATE' probe-out.txt) GOTO=$(grep -c 'PROBE GOTO' probe-out.txt) ✘=$(grep -c '✘' probe-out.txt) TROUBLE=$(grep -c 'PROBE TROUBLE' probe-out.txt) fallback-pages=$(grep -cE 'fallbacks=[1-9]' probe-out.txt) internal-on-ready=$(grep -cE 'PROBE TROUBLE.*internal=[1-9]' probe-out.txt)"; grep -E 'PROBE (LATE|GOTO)' probe-out.txt | head -20
+          pnpm exec playwright test --project=site-webkit site/e2e/zz-chapter.spec.ts --repeat-each=60 --workers=2 --reporter=list > probe-out.txt 2>&1 || true
+          grep -E '^ +[0-9]+ (passed|failed|flaky)' probe-out.txt; grep -oE 'PROBE CH1 [A-Z]+' probe-out.txt | sort | uniq -c; grep -E 'PROBE CH1 (NEVER|SLOW)' probe-out.txt | head -20; grep -oE 'PROBE CH1 OK [0-9]+' probe-out.txt | awk '{print $4}' | sort -n | awk '{a[NR]=$1} END {print "ok ms median", a[int(NR/2)+1], "max", a[NR]}'; echo "dead: LATE=$(grep -c 'PROBE LATE' probe-out.txt) GOTO=$(grep -c 'PROBE GOTO' probe-out.txt) ✘=$(grep -c '✘' probe-out.txt) TROUBLE=$(grep -c 'PROBE TROUBLE' probe-out.txt) fallback-pages=$(grep -cE 'fallbacks=[1-9]' probe-out.txt) internal-on-ready=$(grep -cE 'PROBE TROUBLE.*internal=[1-9]' probe-out.txt)"; grep -E 'PROBE (LATE|GOTO)' probe-out.txt | head -20
           if [ -f proxy-log.txt ]; then echo "proxy lines: $(wc -l < proxy-log.txt)"; grep -c '^BAD' proxy-log.txt || true; grep '^BAD' proxy-log.txt | head -20; grep -E ' (GET) /(nautilus/)? ' proxy-log.txt | awk '{print $7, $8, $9, $10}' | sort | uniq -c | head -20; fi
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
