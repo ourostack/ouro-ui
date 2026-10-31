@@ -3703,6 +3703,36 @@
       ]
     },
     {
+      "name": "navigation-rail",
+      "type": "registry:ui",
+      "title": "NavigationRail",
+      "description": "The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current=\"page\"`.",
+      "docs": "The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current=\"page\"`. Import: import { NavigationRail } from \"@/components/ouro/navigation-rail/navigation-rail\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: kbd, menu, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/navigation-rail.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-current-path",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/menu",
+        "ourostack/ouro-ui/tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/navigation-rail/navigation-rail-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/navigation-rail/navigation-rail.tsx"
+        }
+      ]
+    },
+    {
       "name": "time-grid",
       "type": "registry:ui",
       "title": "TimeGrid",
@@ -10670,6 +10700,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
@@ -10880,6 +10911,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -10927,6 +10959,80 @@
       }
     },
     {
+      "name": "navigation-rail-tests",
+      "type": "registry:item",
+      "title": "NavigationRail tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for navigation-rail, and the tests of everything it installs. Add it beside navigation-rail: add navigation-rail navigation-rail-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "navigation-rail's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/kbd-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-current-path-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
+        "ourostack/ouro-ui/navigation-rail",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text",
+        "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/tooltip",
+        "ourostack/ouro-ui/tooltip-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-rail/navigation-rail.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-rail/navigation-rail.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-rail/navigation-rail.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/navigation-rail/navigation-rail.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/navigation-rail/navigation-rail.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/navigation-rail.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/navigation-rail.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "time-grid-tests",
       "type": "registry:item",
       "title": "TimeGrid tests",
@@ -10950,6 +11056,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
@@ -11025,6 +11132,7 @@
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
@@ -11094,6 +11202,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
@@ -11272,6 +11381,7 @@
         "ourostack/ouro-ui/native-select-tests",
         "ourostack/ouro-ui/navbar-tests",
         "ourostack/ouro-ui/navigation-menu-tests",
+        "ourostack/ouro-ui/navigation-rail-tests",
         "ourostack/ouro-ui/number-field-tests",
         "ourostack/ouro-ui/otp-field-tests",
         "ourostack/ouro-ui/page-header-tests",
