@@ -1498,7 +1498,8 @@
     "stories": [
       "ToggleGroup/Playground",
       "ToggleGroup/Modes",
-      "ToggleGroup/Controlled"
+      "ToggleGroup/Controlled",
+      "ToggleGroup/Pills"
     ]
   },
   {
