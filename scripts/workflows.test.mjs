@@ -956,9 +956,23 @@ test("a pull request into main leaves the install test to the merge queue, unles
   const plan = stepScript(ciJobs().plan, "Plan the tests");
   const changed = (files) => `git() { printf '%s\\n' ${files.map((file) => `'${file}'`).join(" ")}; }\n${plan}`;
   const pr = { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" };
-  assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"]), pr).output.installs, "queue");
-  for (const file of ["scripts/install-test.sh", "scripts/install-check.mjs", "scripts/readme-steps.mjs", "scripts/upgrade-note.mjs", "scripts/namespace.sh", "UPGRADING.md"]) {
-    assert.equal(runStep(changed([".github/workflows/ci.yml", file]), pr).output.installs, "here", file);
+  // A component pull request: its folder, its registry entry and its README catalog line. The
+  // stand-in node exits 0, as `readme-steps.mjs same` does when the README's steps did not change.
+  const component = ["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"];
+  assert.equal(runStep(changed(component), pr).output.installs, "queue");
+  const readme = runStep(changed(component), pr, { nodeStatus: 1 });
+  assert.equal(readme.output.installs, "here", "a README whose Next.js steps changed");
+  assert.match(readme.calls, /^CALL node scripts\/readme-steps\.mjs same HEAD\^1$/m);
+  // Every file the install test runs or reads, each one alone, and the jobs that run it.
+  const installFiles = [".github/workflows/ci.yml", "package.json", "pnpm-lock.yaml", "UPGRADING.md", "docs/OuroProvider.md", "test/install-fixture/package.json", "test/install-fixture-tests/vitest.config.ts", "test/install-fixture-next/src/app/page.tsx", "test/install-fixture-upgrade/vitest.config.ts"];
+  const script = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
+  const used = [...new Set([...script.matchAll(/\$root\/(scripts\/[\w.-]+)/g)].map((match) => match[1]))];
+  // ...and the local modules those scripts import.
+  const imported = used.flatMap((file) => [...readFileSync(join(root, file), "utf8").matchAll(/from "\.\/([\w.-]+)"/g)].map((match) => `scripts/${match[1]}`)).filter((file) => existsSync(join(root, file)));
+  for (const file of ["scripts/registry.mts", "scripts/latest-release.mjs", "scripts/shard.mjs", "scripts/readme-steps.mjs"]) assert.ok(used.includes(file), `${file} among ${used.join(", ")}`);
+  assert.ok(imported.includes("scripts/source-rules.mjs"), imported.join(", "));
+  for (const file of new Set(["scripts/install-test.sh", "scripts/shard-timings.json", ...used, ...imported, ...installFiles])) {
+    assert.equal(runStep(changed([file]), pr).output.installs, "here", file);
   }
   // Everything else runs the install test: the merge queue, main, dispatched runs and release branches (no installs output).
   for (const env of [{ EVENT: "merge_group", REF: "refs/heads/gh-readonly-queue/main/pr-9-abc" }, { EVENT: "push", REF: "refs/heads/main" }, { ...pr, HEAD_REF: "release/v1.1.0" }]) {

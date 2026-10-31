@@ -98,8 +98,12 @@ jobs:
               echo "::warning::Could not plan the tests, so everything runs."
               echo "full=true" >> "$GITHUB_OUTPUT"
             }
-            installPaths='^(scripts/(install-test\.sh|install-check[^/]*|readme-steps\.mjs|upgrade-note\.mjs|namespace\.sh)|UPGRADING\.md)$'
-            if git diff --name-only HEAD^1 HEAD | grep -qE "$installPaths"; then
+            # The install test's own files: scripts/install-test.sh, what it runs and reads, and the
+            # jobs here that run it. README.md counts when its Next.js steps change (the quick start's
+            # and the Next.js section's add commands and files, scripts/readme-steps.mjs same), not
+            # when a component adds itself to the catalog.
+            installPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|UPGRADING\.md|docs/OuroProvider\.md|test/install-fixture[^/]*/.+|scripts/(install-test\.sh|install-check\.mjs|source-rules\.mjs|readme-steps\.mjs|upgrade-note\.mjs|latest-release\.mjs|namespace\.sh|registry\.mts|components\.mts|shard\.mjs|shard-timings\.json|vitest-shards\.mts|test-impact\.mjs))$'
+            if git diff --name-only HEAD^1 HEAD | grep -qE "$installPaths" || ! node scripts/readme-steps.mjs same HEAD^1; then
               echo "This pull request changes the install test, so it runs here too."
               echo "installs=here" >> "$GITHUB_OUTPUT"
             else
