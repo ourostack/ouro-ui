@@ -236,6 +236,7 @@ Components:
 `attachment`,
 `attention-card`,
 `auth-layout`,
+`autocomplete`,
 `avatar`,
 `badge`,
 `breadcrumb`,
@@ -331,6 +332,7 @@ Components:
 `toaster`,
 `toggle`,
 `toggle-group`,
+`toolbar`,
 `tooltip`.
 
 Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.
@@ -415,6 +417,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ShareButton** — A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says "Link copied" for two seconds and screen readers hear it once. [Docs](docs/ShareButton.md)
 - **Toggle** — A button that stays pressed until it is pressed again, such as Bold in a text toolbar. [Docs](docs/Toggle.md)
 - **ToggleGroup** — A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar. [Docs](docs/ToggleGroup.md)
+- **Toolbar** — A row of controls for one surface, such as an editor's formatting: Button commands and Toggle states, in groups with separators. [Docs](docs/Toolbar.md)
 - **useColorScheme** — The person's color scheme, the scheme the page shows, and the setter that changes both, for a control of your own. [Docs](docs/useColorScheme.md)
 
 ### Text
@@ -429,6 +432,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Forms
 
+- **Autocomplete** — Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character. [Docs](docs/Autocomplete.md)
 - **Calendar** — A month grid to pick a day or a range of days, with the arrow keys or a press. [Docs](docs/Calendar.md)
 - **Checkbox** — A labeled checkbox on the Field contract, with the label to its right: pass `label`, and `checked` with `onCheckedChange` (or `defaultChecked`). [Docs](docs/Checkbox.md)
 - **CheckboxGroup** — A group of checkboxes under one legend, on the Field contract, for picking any number of choices: pass `legend`, and `options` (or `Checkbox` children). [Docs](docs/CheckboxGroup.md)

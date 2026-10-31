@@ -3,6 +3,7 @@
   "alert",
   "attachment",
   "attention-card",
+  "autocomplete",
   "badge",
   "breadcrumb",
   "button",
@@ -73,5 +74,6 @@
   "timer-tray",
   "toaster",
   "toggle",
-  "toggle-group"
+  "toggle-group",
+  "toolbar"
 ]

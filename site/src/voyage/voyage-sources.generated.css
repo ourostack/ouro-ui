@@ -5,6 +5,7 @@
 @source not "../../../registry/ouro/components/ouro/aspect-ratio";
 @source not "../../../registry/ouro/components/ouro/attention-card";
 @source not "../../../registry/ouro/components/ouro/auth-layout";
+@source not "../../../registry/ouro/components/ouro/autocomplete";
 @source not "../../../registry/ouro/components/ouro/breadcrumb";
 @source not "../../../registry/ouro/components/ouro/button-group";
 @source not "../../../registry/ouro/components/ouro/card";
@@ -46,6 +47,7 @@
 @source not "../../../registry/ouro/components/ouro/time-grid";
 @source not "../../../registry/ouro/components/ouro/timer";
 @source not "../../../registry/ouro/components/ouro/toggle";
+@source not "../../../registry/ouro/components/ouro/toolbar";
 @source not "../../../registry/ouro/census";
 @source not "../../../registry/ouro/e2e";
 @source not "../../../registry/ouro/source-rules";
