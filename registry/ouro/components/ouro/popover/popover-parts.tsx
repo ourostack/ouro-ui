@@ -17,6 +17,7 @@ import {
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import { popoverCloseClass } from "@/registry/ouro/components/ouro/popover/popover-styles";
 
@@ -71,10 +72,24 @@ export function PopoverRoot(props: BasePopover.Root.Props): JSX.Element {
  * The trigger anchors the popover, which opens on click while the button is pressed, so the
  * press scale is cancelled on it (Button's pressed wash still shows) and the popover lands once.
  */
-export function PopoverTrigger({ style, ...props }: BasePopover.Trigger.Props): JSX.Element {
+export function PopoverTrigger({ style, onPointerDown, onKeyDown, ...props }: BasePopover.Trigger.Props): JSX.Element {
   usePopoverPart("PopoverTrigger", "…");
   const noScale = (own?: CSSProperties): CSSProperties => ({ ...own, ["--ouro-press-scale" as string]: 1 });
-  return <BasePopover.Trigger {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "popover", "data-ouro-part": "trigger" } : {})} {...props} style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)} />;
+  return (
+    <BasePopover.Trigger
+      {...(props.render === undefined ? { className: "forced-colors:border forced-colors:border-solid", "data-ouro-control": "popover", "data-ouro-part": "trigger" } : {})}
+      {...props}
+      onPointerDown={(event) => {
+        holdPageAtPress.button.onPointerDown(event);
+        onPointerDown?.(event);
+      }}
+      onKeyDown={(event) => {
+        holdPageAtPress.button.onKeyDown(event);
+        onKeyDown?.(event);
+      }}
+      style={typeof style === "function" ? (state) => noScale(style(state)) : noScale(style)}
+    />
+  );
 }
 
 /**
