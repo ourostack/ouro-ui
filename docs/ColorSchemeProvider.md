@@ -35,5 +35,5 @@ Type: `ColorSchemeProviderProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | Your app, or the part of it that shows the scheme. |
-| `defaultScheme` | `"system" \| "light" \| "dark"` | `"system"` | The scheme before a person chooses one. |
+| `defaultScheme` | `"light" \| "dark" \| "system"` | `"system"` | The scheme before a person chooses one. |
 | `storageKey` | `string` | `"ouro-color-scheme"` | The `localStorage` key that keeps the choice. |
