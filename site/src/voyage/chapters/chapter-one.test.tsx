@@ -49,6 +49,13 @@ describe("Chapter I", () => {
     expect(marked()).toEqual(CHAPTER_ONE_CONTROLS.filter((id) => id !== "leave"));
   });
 
+  it("labels the plan in plain words, with no Latin for readers who never read the book", async () => {
+    await renderPage("/nautilus/");
+    const lettering = document.querySelector(".site-blueprint")!.textContent ?? "";
+    expect(lettering).toContain("BUILT IN SECRET");
+    expect(lettering).not.toMatch(/MOBILIS/i);
+  });
+
   it("builds the ship: each tick draws a part, and every job done readies Launch", async () => {
     await renderPage("/nautilus/");
     const plan = () => document.querySelector<SVGSVGElement>(".site-blueprint")!;
