@@ -16,7 +16,7 @@ import { isWait, validateWait } from "./wait.ts";
 import { checkWorkEvent } from "./work-event.ts";
 
 /**
- * ax-xray, the Ouro AX conformance checker: it runs the claims against a CLI, an HTTP API and an MCP server from
+ * The Ouro AX conformance checker: it runs the claims against a CLI, an HTTP API and an MCP server from
  * outside, by calling them, never by importing their code, and reports per surface which claims hold, with the fix for
  * each that does not. Reads run freely; what other people see is called only on paths that must refuse (a made-up
  * target, no `--why`) or that act on nothing (`--dry-run`), and only against a target that proves it is a mock.
