@@ -1320,3 +1320,39 @@ describe("Dialog's Button trigger with no handlers of its own", () => {
     });
   }
 });
+
+describe("DialogTrigger rendered as another element", () => {
+  // Base UI clicks a trigger that is no <button> itself, at Enter's keydown and Space's keyup, so its
+  // click ends the press's hold there too, and an app's scroll right after the dialog opens is its own.
+  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  afterEach(() => {
+    document.documentElement.removeAttribute("style");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+
+  for (const key of ["Enter", "Space"] as const) {
+    it(`lets the page go at the click ${key} makes, with nativeButton={false}`, async () => {
+      await render(
+        <div style={{ height: 5000 }}>
+          <header style={{ position: "sticky", top: 0, height: 100 }}>
+            <DialogRoot>
+              <DialogTrigger nativeButton={false} render={<span tabIndex={0} />}>
+                Open
+              </DialogTrigger>
+            </DialogRoot>
+          </header>
+        </div>,
+      );
+      window.scrollTo({ top: 2000, behavior: "instant" });
+      const opener = document.querySelector<HTMLElement>("header span")!;
+      opener.focus({ preventScroll: true });
+      await userEvent.keyboard(`{${key}}`);
+      await expect.poll(() => opener.getAttribute("aria-expanded")).toBe("true");
+      window.scrollTo({ top: 1500, behavior: "instant" });
+      await frame();
+      await frame();
+      expect(window.scrollY).toBe(1500);
+    });
+  }
+});
+
