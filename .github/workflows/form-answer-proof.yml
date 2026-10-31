@@ -34,8 +34,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           if [ "$EVENT" = pull_request ]; then
-            git fetch -q --no-tags --depth=2 origin refs/pull/280/merge:refs/probe/280 # temporary: the skip path, as #280 would take it
-            node scripts/form-answer-impact.mjs refs/probe/280^1 refs/probe/280 || echo "run=true" >> "$GITHUB_OUTPUT"
+            node scripts/form-answer-impact.mjs HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "The proof runs: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
