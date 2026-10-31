@@ -9,9 +9,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+# A push to a pull request cancels that pull request's run in progress, and a run waiting for it:
+# only its newest commit can merge. No other run is ever cancelled or replaced: each merge-queue
+# entry, push to main and dispatched run (Release's CI on its release branch) is in a group of its
+# own (its run id), since a queue entry, Pages and Release wait on that exact run.
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 # Each job ends within about twice the 90th percentile of its passing runs (the last 60 runs of
 # this workflow, 2026-10-22), and 10 minutes at least: a runner that hangs, as on a mirror that
 # stopped answering (#174's queue run 39783627653), fails its job instead of holding the merge
