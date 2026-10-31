@@ -40,10 +40,27 @@ async function order(page: Page, name: string): Promise<void> {
   await expect(trigger).toBeFocused();
 }
 
-/** Up, and the feathers: the squid lets go. */
+/** Gives an order from the Orders menu by keys: the arrows walk to it, and Enter gives it. */
+async function orderByKeys(page: Page, name: string): Promise<void> {
+  const trigger = encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  const item = page.getByRole("menu").getByRole("menuitem", { name, exact: true });
+  await expect(page.getByRole("menu")).toBeVisible();
+  for (let step = 0; step < 6 && !(await item.evaluate((element) => element === document.activeElement)); step++) await page.keyboard.press("ArrowDown");
+  await expect(item).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(trigger).toBeFocused();
+}
+
+/**
+ * Up, and the feathers: the squid lets go. By keys, because on CI WebKit sometimes closes the menu
+ * after surfacing or drops a pointer press on an item; the orders control test keeps the pointer.
+ */
 async function win(page: Page): Promise<void> {
-  await order(page, ORDERS.surface);
-  await order(page, ORDERS.feathers);
+  await orderByKeys(page, ORDERS.surface);
+  await orderByKeys(page, ORDERS.feathers);
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
 }
 
