@@ -550,7 +550,7 @@ function KeepPageExposed(): null {
 
 /** The popup under (or over) the input, on wider screens and with a mouse. */
 function Popup({ loading, children }: { loading: boolean | undefined; children: ReactNode }): JSX.Element {
-  const portal = usePortalContainer("Combobox");
+  const portal = usePortalContainer("Combobox", true);
   return (
     <BaseCombobox.Portal {...portal} data-ouro="combobox-portal" className="relative isolate z-(--ouro-layer)">
       <PortalScope>
