@@ -1,4 +1,4 @@
-# Total blocking time on the home page (/), before and after hydrating in turns
+# Total blocking time on the home page (/), before and after hydrating in turns (pull request #292)
 #
 # CI: the lighthouse job's reports (artifact lighthouse-reports) from the CI runs listed below, all
 # after #251 made / the Nautilus look. Three Lighthouse runs per job (site/lighthouserc.json:
@@ -51,37 +51,48 @@
 #
 # Local: an M-series Mac (benchmarkIndex about 2,580, close to the slow runners' 2,400, but it runs
 # the page several times faster), site/lighthouserc.json collecting / only, before = origin/main at
-# 20345692, after = this pull request; the two builds alternate, three runs at a time. At 4x this
-# machine blocks almost nothing either way, so 12x stands in for the slow runners: before, its
-# median (142 ms) is close to theirs (129 ms).
+# 65a38d14, after = this pull request; the two builds alternate, three runs at a time, on a machine
+# shared with other work (load average 46 to 122 during these runs). At 4x this machine blocks
+# almost nothing either way, so 12x stands in for the slow runners: before, its median is close to
+# theirs (129 ms).
 #
 # ## 4x (site/lighthouserc.json as is)
-# before TBT, 6 runs: 14 14 13 15 14 15
-# after TBT, 6 runs: 8 9 9 7 10 6
+# before TBT, 6 runs: 14 15 15 13 14 14
+# after TBT, 6 runs: 12 13 13 12 13 12
 # before median 14 ms, p90 15 ms, over 150 ms 0 of 6; best of each three 13 14
-# after median 8 ms, p90 10 ms, over 150 ms 0 of 6; best of each three 6 8
-# LCP before median 1826 ms, after median 1830 ms
+# after median 12 ms, p90 13 ms, over 150 ms 0 of 6; best of each three 12 12
+# LCP before median 1824 ms, after median 1824 ms
 #
 # ## 12x (cpuSlowdownMultiplier 12, standing in for the slower runners)
-# before TBT, 24 runs: 157 235 116 105 146 296 152 144 112 124 120 144 198 142 112 142 146 115 105 105 183 113 111 236
-# after TBT, 24 runs: 80 82 89 85 82 83 127 76 168 79 83 84 83 167 80 79 76 78 83 85 91 191 81 175
-# before median 142 ms, p90 235 ms, over 150 ms 7 of 24; best of each three 105 105 111 112 112 115 116 120
-# after median 83 ms, p90 168 ms, over 150 ms 4 of 24; best of each three 76 76 79 80 80 81 82 83
-# LCP before median 1841 ms, after median 1836 ms
+# before TBT, 12 runs: 186 130 193 348 117 147 224 128 206 189 147 121
+# after TBT, 12 runs: 131 117 108 181 108 108 108 107 148 186 101 143
+# before median 147 ms, p90 224 ms, over 150 ms 6 of 12; best of each three 117 121 128 130
+# after median 108 ms, p90 181 ms, over 150 ms 2 of 12; best of each three 101 107 108 108
+# LCP before median 1844 ms, after median 1833 ms
 #
 # Where the long tasks came from: Chrome traces of / at 4x CPU (DevTools throttling, Playwright's
 # Chromium, CPU profiler on, a build without minification for names), main thread, after first
-# contentful paint, on origin/main:
+# contentful paint, on origin/main at 20345692:
 #   page module evaluation 49 ms, of which navigation-menu's module-scope cn() building
 #     tailwind-merge's class map 22 ms, and hydrateRoot starting 4 ms
 #   one commit of the header, stage, themes and footer boundaries, with their effects, 70 to 75 ms
 #   SliderControl's render 48 to 83 ms, almost all of it the page's first new Intl.NumberFormat
 #   a full style recalculation after the Sheet module registers its CSS properties 41 to 46 ms
 #
-# The same traces of the production builds, two each, every task of 30 ms or more after first
+# Traces of the production builds, two each (a third "after" trace was dropped: a load spike put
+# its first paint at 780 ms), every task of 30 ms or more after first
 # contentful paint, in the order they ran (ms; "style" = that recalculation; "js" = the page's script):
-#   before: js 38 40, style 53 50, js 41 42, js 37 34, js 65 64
-#   after:  style 50 57, js 40 38
+#   before (65a38d14): js 40 36, style 44 46, js 36 38, js 35 36, js 54 64
+#   after:             js 34 33, style 47 47, js 34 44
+# (the first js task is the page module's evaluation; tailwind-merge's 22 ms is still in it)
 #
 # The first Intl.NumberFormat in a new renderer, at 4x CPU (about:blank, Playwright's Chromium):
 #   cold: 30.0 32.4 33.6 33.9 ms; after a worker made one first: 0.1 ms
+#
+# Tried and left out: warming tailwind-merge (cn("p-0", "p-1")) in a task of its own from the client
+# entry, before the page module loads. Same machine, before = origin/main at 65a38d14:
+#   with a dynamic import of lib/ouro/cn: home initial JavaScript 277,356 bytes gzip, over the
+#     276,480 ceiling in site/e2e/catalog.spec.ts (main: 274,645; this pull request: 275,140)
+#   with a static import: 12x TBT, nine runs each, median 142 -> 85 ms, p90 186 -> 98 ms; but 4x
+#     LCP, six runs each, median 1851 -> 1980 ms (runs 1963 1970 1980 2005 2010 2034), against the
+#     2,000 ms limit; without the warm-up, 1830 ms
