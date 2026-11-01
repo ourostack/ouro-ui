@@ -816,6 +816,98 @@ describe("ShowMore with maxHeight", () => {
   });
 });
 
+describe("ShowMore open", () => {
+  const clamped = (root: HTMLElement) => {
+    const text = root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
+    return text.getBoundingClientRect().height <= parseFloat(getComputedStyle(text).lineHeight) * 2 + 1;
+  };
+  const folded = (root: HTMLElement) => root.querySelector("[data-ouro-show-more-fold]")!.getBoundingClientRect().height < 200;
+  const toggle = (root: HTMLElement) => root.querySelector<HTMLElement>("[data-ouro-show-more-toggle]");
+
+  it("follows open in each mode, and its buttons ask onOpenChange without changing it", async () => {
+    const onOpenChange = vi.fn();
+    const items = await render(<ShowMore items={linkRows} open onOpenChange={onOpenChange} />);
+    expect(items.rows).toHaveLength(8);
+    expect(items.button!.textContent).toBe("Show less");
+    await userEvent.click(items.button!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(items.rows).toHaveLength(8);
+    await items.rerender(<ShowMore items={linkRows} open={false} onOpenChange={onOpenChange} />);
+    expect(items.rows).toHaveLength(5);
+    await userEvent.click(items.button!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(items.rows).toHaveLength(5);
+    // When the app agrees, focus still moves to the first new item.
+    await items.rerender(<ShowMore items={linkRows} open onOpenChange={onOpenChange} />);
+    expect(items.rows).toHaveLength(8);
+    await expect.poll(() => document.activeElement?.textContent).toBe("Recipe 6");
+
+    const lines = await render(<ShowMore lines={2} open onOpenChange={onOpenChange}>{longText}</ShowMore>);
+    await expect.poll(() => toggle(lines.root)?.textContent).toBe("Show less");
+    expect(clamped(lines.root)).toBe(false);
+    await userEvent.click(toggle(lines.root)!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(clamped(lines.root)).toBe(false);
+    await lines.rerender(<ShowMore lines={2} open={false} onOpenChange={onOpenChange}>{longText}</ShowMore>);
+    expect(clamped(lines.root)).toBe(true);
+    expect(toggle(lines.root)!.textContent).toBe("Show more");
+    await userEvent.click(toggle(lines.root)!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(clamped(lines.root)).toBe(true);
+
+    const tall = (
+      <div>
+        <div style={{ height: 400 }} />
+        <a href="#bottom">Bottom link</a>
+      </div>
+    );
+    const height = await render(<ShowMore maxHeight={120} open onOpenChange={onOpenChange}>{tall}</ShowMore>);
+    await expect.poll(() => toggle(height.root)?.textContent).toBe("Show less");
+    expect(folded(height.root)).toBe(false);
+    await userEvent.click(toggle(height.root)!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(folded(height.root)).toBe(false);
+    await height.rerender(<ShowMore maxHeight={120} open={false} onOpenChange={onOpenChange}>{tall}</ShowMore>);
+    expect(folded(height.root)).toBe(true);
+    onOpenChange.mockClear();
+    // Focus below the fold asks to unfold too.
+    await act(async () => height.root.querySelector<HTMLElement>('a[href="#bottom"]')!.focus());
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(true);
+    expect(folded(height.root)).toBe(true);
+  });
+
+  it("tells onOpenChange each change of its own state when open is not set", async () => {
+    const onOpenChange = vi.fn();
+    const items = await render(<ShowMore items={recipes} onOpenChange={onOpenChange} />);
+    await userEvent.click(items.button!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(items.rows).toHaveLength(8);
+    await userEvent.click(items.button!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(items.rows).toHaveLength(5);
+
+    const lines = await render(<ShowMore lines={2} onOpenChange={onOpenChange}>{longText}</ShowMore>);
+    await expect.poll(() => toggle(lines.root)).not.toBeNull();
+    await userEvent.click(toggle(lines.root)!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(clamped(lines.root)).toBe(false);
+
+    const height = await render(<ShowMore maxHeight={120} onOpenChange={onOpenChange}><div style={{ height: 400 }} /></ShowMore>);
+    await expect.poll(() => toggle(height.root)).not.toBeNull();
+    await userEvent.click(toggle(height.root)!);
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(folded(height.root)).toBe(false);
+    expect(onOpenChange).toHaveBeenCalledTimes(4);
+  });
+
+  it("drops the button when text shown whole no longer needs it", async () => {
+    const lines = await render(<ShowMore lines={2} open onOpenChange={() => {}}>{longText}</ShowMore>);
+    await expect.poll(() => toggle(lines.root)?.textContent).toBe("Show less");
+    await lines.rerender(<ShowMore lines={2} open onOpenChange={() => {}}>Short note.</ShowMore>);
+    await expect.poll(() => toggle(lines.root)).toBeNull();
+  });
+});
+
 describe("ShowMore development messages", () => {
   it.each([
     ["maxLines", { lines: 2, children: longText, maxLines: 2 }, "maxLines is not a prop", "<ShowMore lines={2}>"],
@@ -823,6 +915,7 @@ describe("ShowMore development messages", () => {
     ["initialCount", { items: recipes, initialCount: 0 }, "initialCount={0} is not a whole number above 0", "<ShowMore items={items} initialCount={5}>"],
     ["lines", { lines: -1, children: longText }, "lines={-1} is not a whole number above 0", "<ShowMore lines={3}>"],
     ["maxHeight", { maxHeight: 0, children: longText }, "maxHeight={0} is not a number of pixels above 0", "<ShowMore maxHeight={240}>"],
+    ["open", { items: recipes, open: true }, "open without onOpenChange: its button can't change it", "<ShowMore open={open} onOpenChange={setOpen}>"],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = extra as unknown as ShowMoreProps;
     const { root } = await render(<ShowMore {...props} />);
@@ -850,6 +943,7 @@ describe("ShowMore development messages", () => {
     await render(<ShowMore lines={2}>{longText}</ShowMore>);
     await render(<ShowMore maxHeight={120}>{longText}</ShowMore>);
     await render(<ShowMore items={recipes} hasMore={false} onShowMore={() => {}} />);
+    await render(<ShowMore items={recipes} open onOpenChange={() => {}} />);
     expect(warn).not.toHaveBeenCalled();
   });
 
