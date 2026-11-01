@@ -1891,7 +1891,8 @@
       "MessageList/Conversation",
       "MessageList/Live",
       "MessageList/ScrolledBack",
-      "MessageList/Keyboard"
+      "MessageList/Keyboard",
+      "MessageList/Springs"
     ]
   },
   {
@@ -1906,7 +1907,8 @@
       "MessageList/Conversation",
       "MessageList/Live",
       "MessageList/ScrolledBack",
-      "MessageList/Keyboard"
+      "MessageList/Keyboard",
+      "MessageList/Springs"
     ]
   },
   {
@@ -1921,7 +1923,8 @@
       "MessageList/Conversation",
       "MessageList/Live",
       "MessageList/ScrolledBack",
-      "MessageList/Keyboard"
+      "MessageList/Keyboard",
+      "MessageList/Springs"
     ]
   },
   {
