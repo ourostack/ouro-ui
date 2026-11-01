@@ -12,4 +12,4 @@ export const messageOk01 = <Message role="assistant" name="Ouro" avatar="/ouro.p
 export const messageOk02 = <Message variant="chat" role="assistant" name="Grace" avatar={<span />} time="9:41 AM" dateTime="2026-05-04T09:41" continued footer={<span />} thread={null} actions={[{ key: "reply", label: "Reply", icon: "↩", onClick: () => {}, disabled: false }]} menu={[{ label: "Copy link", onClick: () => {} }]} actionsLabel="Message actions" menuLabel="More actions">Lunch?</Message>;
 export const messageOk03 = <Message variant="post" role="assistant" name="Grace" subject="Launch plan">Notes</Message>;
 export const messageOk04 = <Message variant="chat" role="assistant" name="Grace" presence="away" presenceLabel="Away">Back soon</Message>;
-export const messageOk05 = <Message variant="chat" role="user" name="Ada" failed onRetry={() => {}} onDelete={() => {}} failedLabel="Not sent" retryLabel="Retry" deleteLabel="Delete">On my way</Message>;
+export const messageOk05 = <Message variant="chat" role="user" name="Ada" failed={{ onRetry: () => {}, onDelete: () => {} }} failedLabel="Not sent" retryLabel="Retry" deleteLabel="Delete">On my way</Message>;

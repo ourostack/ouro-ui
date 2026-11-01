@@ -291,7 +291,7 @@ function NotSentConversation() {
         </Message>
         {state !== "deleted" &&
           (state === "failed" ? (
-            <Message variant="chat" role="user" name="Priya Okafor" time="9:44 AM" dateTime="2026-05-04T09:44" continued failed onRetry={() => setState("sent")} onDelete={() => setState("deleted")}>
+            <Message variant="chat" role="user" name="Priya Okafor" time="9:44 AM" dateTime="2026-05-04T09:44" continued failed={{ onRetry: () => setState("sent"), onDelete: () => setState("deleted") }}>
               I will bring the printed mockups.
             </Message>
           ) : (
