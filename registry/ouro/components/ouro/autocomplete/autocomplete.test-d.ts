@@ -37,3 +37,7 @@ expectTypeOf<{ triggers: [typeof trigger]; children: typeof field; onSelect: () 
 
 // @ts-expect-error trigger is not a prop: Autocomplete takes a list.
 createElement(Autocomplete, { triggers: [trigger], trigger: "@" }, field);
+
+// A catalogue trigger takes the skin tone the picker uses; a misspelt tone is a type error.
+expectTypeOf<{ char: ":"; label: "Emoji"; catalogue: { categories: [] }; skinTone: "medium" }>().toExtend<AutocompleteTrigger>();
+expectTypeOf<{ char: ":"; label: "Emoji"; catalogue: { categories: [] }; skinTone: "medium-brown" }>().not.toExtend<AutocompleteTrigger>();

@@ -4,7 +4,7 @@ import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autoc
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
-import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
+import { EmojiPicker, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
@@ -169,6 +169,8 @@ function EmojiTokensStory() {
   const [text, setText] = useState("");
   const [sent, setSent] = useState(["Release notes are out :party: thanks all", ":heart: :fern:"]);
   const [open, setOpen] = useState(false);
+  // The person's skin tone, kept in one place: the picker sets it, and both insert in it.
+  const [tone, setTone] = useState<EmojiSkinTone>("default");
   const box = useRef<HTMLTextAreaElement>(null);
   const anchor = useRef<HTMLButtonElement>(null);
   return (
@@ -180,7 +182,7 @@ function EmojiTokensStory() {
           </li>
         ))}
       </ol>
-      <Autocomplete triggers={[{ char: ":", label: "Emoji", minQueryLength: 2, catalogue }]}>
+      <Autocomplete triggers={[{ char: ":", label: "Emoji", minQueryLength: 2, catalogue, skinTone: tone }]}>
         <Composer
           ref={box}
           label="Message the release team"
@@ -201,6 +203,8 @@ function EmojiTokensStory() {
       <EmojiPicker
         label="Insert emoji"
         catalogue={catalogue}
+        skinTone={tone}
+        onSkinToneChange={setTone}
         open={open}
         onOpenChange={setOpen}
         anchor={anchor}
@@ -376,7 +380,8 @@ export const Disabled: Story = {
 /**
  * Emoji from an image catalogue go into the text as `:shortcode:` tokens: type `:` and two
  * letters for suggestions, or pick one from the emoji button. The sent messages draw the
- * tokens as the catalogue's images with `EmojiText`.
+ * tokens as the catalogue's images with `EmojiText`. A skin tone chosen in the picker is the
+ * one the suggestions insert too, since both take the same `skinTone`.
  */
 export const EmojiTokens: Story = {
   parameters: { plainOpeners: ["Insert emoji"] },

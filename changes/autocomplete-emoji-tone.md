@@ -1,0 +1,1 @@
+- New: an Autocomplete trigger with `catalogue` takes `skinTone`, so a `:` suggestion shows and inserts an emoji in the skin tone the person chose in EmojiPicker, given the same `skinTone`, instead of the default tone.
