@@ -378,8 +378,10 @@ describe("Calendar", () => {
       await userEvent.click(day("2026-10-14"));
       expect(onValueChange).not.toHaveBeenCalled();
       expect(day("2026-10-14").hasAttribute("data-selected")).toBe(true);
+      // React renders what a pointerenter sets in a later task, not before the hover returns as it
+      // does for a click, so the preview is waited for.
       await userEvent.hover(day("2026-10-17"));
-      expect(day("2026-10-15").hasAttribute("data-in-range")).toBe(true);
+      await expect.poll(() => day("2026-10-15").hasAttribute("data-in-range")).toBe(true);
       expect(day("2026-10-17").hasAttribute("data-selected")).toBe(true);
       expect(day("2026-10-15").closest("td")!.getAttribute("aria-selected")).toBe("true");
       await userEvent.unhover(day("2026-10-17"));
@@ -409,7 +411,7 @@ describe("Calendar", () => {
       await render(<Calendar label="Stay" range defaultMonth="2026-10-01" isDateDisabled={(date) => booked.has(date)} onValueChange={onValueChange} />);
       await userEvent.click(day("2026-10-13"));
       await userEvent.hover(day("2026-10-17"));
-      expect(day("2026-10-14").hasAttribute("data-selected")).toBe(true);
+      await expect.poll(() => day("2026-10-14").hasAttribute("data-selected")).toBe(true);
       for (const iso of ["2026-10-15", "2026-10-16", "2026-10-17"]) {
         expect(day(iso).hasAttribute("data-in-range") || day(iso).hasAttribute("data-selected")).toBe(false);
       }
