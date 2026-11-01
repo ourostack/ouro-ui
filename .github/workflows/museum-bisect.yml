@@ -38,15 +38,16 @@ jobs:
             git worktree add -q "../w-$k" "${sha[$k]}"
             (cd "../w-$k" && pnpm i --frozen-lockfile > /dev/null 2>&1 && pnpm site:build > "$GITHUB_WORKSPACE/out/build-$k.log" 2>&1) || { echo "build $k failed"; tail -30 "out/build-$k.log"; exit 1; }
           done
+          set +e
           for round in 1 2 3; do
             for k in a328 b329 c330 dmain; do
               cd "../w-$k"
-              pnpm site:preview --host 127.0.0.1 --port 4179 --strictPort > /dev/null 2>&1 &
+              node_modules/.bin/vite preview --config site/vite.config.ts --host 127.0.0.1 --port 4179 --strictPort > /dev/null 2>&1 &
               pid=$!
               node -e 'const go=async()=>{for(let i=0;i<120;i++){try{if((await fetch("http://127.0.0.1:4179/")).ok)return;}catch{}await new Promise(r=>setTimeout(r,500));}process.exit(1)};go()'
               env CI= pnpm exec playwright test --config playwright.latency.config.ts site/e2e/chapter-two.latency.spec.ts -g "(museum|classify|catalogue-code|sort) answers" --repeat-each 2 --reporter=list > "$GITHUB_WORKSPACE/out/$k-$round.log" 2>&1
               grep -E "latency (museum|classify|catalogue-code|sort): p95" "$GITHUB_WORKSPACE/out/$k-$round.log" | sed -E "s/^.*latency /$k r$round /; s/ \(≤ [0-9]+\)//; s/, baseline [0-9]+\)/)/"
-              kill $pid; wait $pid 2>/dev/null; sleep 1
+              kill $pid || true; wait $pid 2>/dev/null || true; sleep 1
               cd "$GITHUB_WORKSPACE"
             done
           done
