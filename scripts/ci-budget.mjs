@@ -183,25 +183,32 @@ export function freshAttempt(jobs, attempt) {
   return jobs.filter((job) => job.conclusion !== "skipped").every((job) => job.run_attempt === undefined || Number(job.run_attempt) === Number(attempt));
 }
 
+/** The fail-fast job (scripts/ci-fail-fast.mjs), which watches the run rather than doing its work. */
+const watcher = "fail-fast";
+
 /**
- * Whether a run attempt's jobs (from the jobs API) ran to their end, so its work time can confirm
- * another's: its ci-budget ran (passed or failed), or none of its jobs ended cancelled. An attempt
- * fail-fast or a newer push cancelled stopped short, and its shorter work time would excuse a real
- * regression.
+ * Whether a run attempt's jobs (from the jobs API) all passed, so its work time can confirm
+ * another's: every job but ci-budget and fail-fast passed or was skipped. A skip then is one a green
+ * run makes too (install-github on a pull request, the install shards the plan leaves to the merge
+ * queue), since a job skipped for a failure or a cancel sits beside the job that failed or was
+ * cancelled. A failed or cancelled job ends its chain early, and the shorter work time would excuse
+ * a real regression: a flake that failed fast, motion-coverage skipped after ci failed, or a run
+ * fail-fast or a newer push cancelled.
  */
-export function completeAttempt(jobs) {
-  return jobs.some((job) => job.name === self && (job.conclusion === "success" || job.conclusion === "failure")) || jobs.every((job) => job.conclusion !== "cancelled");
+export function passedAttempt(jobs) {
+  const others = jobs.filter((job) => job.name !== self && job.name !== watcher);
+  return others.length > 0 && others.every((job) => job.conclusion === "success" || job.conclusion === "skipped");
 }
 
 /**
  * The earlier evidence a regression needs, as `{ seconds, from }`: this run's earlier attempt
  * (`attemptJobs(n)`), when this one ran its jobs afresh ("Re-run all jobs") and that one ran to its
- * end (`completeAttempt`), or else the pull request's previous full run (`previous()`), or none.
+ * end with every job passed (`passedAttempt`), or else the pull request's previous full run (`previous()`), or none.
  */
 export async function earlierWork({ attempt, jobs, graph, attemptJobs, previous }) {
   if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
     const before = await attemptJobs(Number(attempt) - 1);
-    if (completeAttempt(before)) return { seconds: criticalPath(before, graph, { work: true }).seconds, from: `attempt ${Number(attempt) - 1} of this run` };
+    if (passedAttempt(before)) return { seconds: criticalPath(before, graph, { work: true }).seconds, from: `attempt ${Number(attempt) - 1} of this run` };
   }
   const seconds = previous ? await previous() : null;
   return seconds === null ? { seconds: null, from: null } : { seconds, from: "the pull request's previous full run" };
