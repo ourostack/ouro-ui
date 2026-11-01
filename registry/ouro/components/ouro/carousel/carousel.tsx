@@ -203,6 +203,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // What had focus when the position settled: a re-render may disable it or make it inert.
   const focused = useRef<Element | null>(null);
   // The latest props for the scroll listener, which is attached once.
+  // Stryker disable next-line ObjectLiteral: the layout effect below sets it before anything reads it.
   const latest = useRef({ onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop });
   useLayoutEffect(() => {
     latest.current = { onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop };

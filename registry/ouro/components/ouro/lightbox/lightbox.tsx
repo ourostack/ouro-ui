@@ -262,6 +262,7 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number)
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
     const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
     const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    // Stryker disable next-line ArithmeticOperator: the position stops at the last image, so one past it shows the same.
     choose(key === "Home" ? 0 : viewport.children.length - 1);
     viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
     return;
@@ -557,8 +558,10 @@ function LightboxViewer({
   const shown = Math.min(current, total - 1);
   useLayoutEffect(() => {
     shownRef.current = shown;
-    chooseRef.current = setTarget;
   });
+  useLayoutEffect(() => {
+    chooseRef.current = setTarget;
+  }, [chooseRef]);
   // The position names the image chosen; the carousel announces it once the image has arrived.
   const chosen = target === null ? shown : Math.min(target, total - 1);
   const href = images[shown]?.href;

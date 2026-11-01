@@ -134,13 +134,14 @@ const counterClass = "shrink-0 text-sm tabular-nums text-muted-foreground";
 
 /**
  * The carousel fills the rest: the image row takes what the buttons leave. Keyboard focus on the
- * images draws its ring around the image shown, not around the whole stage (imageClass). @internal
+ * images draws its ring around the image shown, not around the whole stage (imageClass); in forced colours the
+ * stage keeps the system's ring as well. @internal
  *
  * @claim "Keyboard focus on the images draws" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > rings the image shown, not the stage, when the images have keyboard focus)
  */
 const stageClass =
   "min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] px-3 pb-5 sm:px-5 " +
-  "[&_[data-ouro-carousel-viewport]]:focus-visible:outline-none";
+  "[&_[data-ouro-carousel-viewport]]:not-forced-colors:focus-visible:outline-none";
 
 /**
  * The image and its caption, centred together: the image's row takes what the caption leaves,

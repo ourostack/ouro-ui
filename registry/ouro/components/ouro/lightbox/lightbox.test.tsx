@@ -481,6 +481,16 @@ describe("Lightbox viewer", () => {
     scroller.scrollTo = scrollTo;
     scroller.scrollTo(held!);
     await expect.poll(position).toBe("4 of 4");
+    // Home too: the first image at once.
+    scroller.scrollTo = ((options: ScrollToOptions) => {
+      held = options;
+    }) as typeof scroller.scrollTo;
+    await userEvent.keyboard("{Home}");
+    expect(counter.textContent).toBe("1 of 4");
+    expect(counter.hasAttribute("data-pending")).toBe(true);
+    scroller.scrollTo = scrollTo;
+    scroller.scrollTo(held!);
+    await expect.poll(position).toBe("1 of 4");
     announcements.stop();
   });
 
@@ -645,7 +655,7 @@ describe("Lightbox controlled", () => {
     await settled();
     const scroller = viewport();
     scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
-    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.click(button("Next image"));
     expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
     await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
     await settled();
