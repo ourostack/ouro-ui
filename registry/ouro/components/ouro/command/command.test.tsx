@@ -427,11 +427,14 @@ describe("Command results that stream in", () => {
       // Two answers in quick succession: only the settled one is said.
       await arrive(palette(["Launch planning", "Launch review", "Lab notes"], { loading: false }));
       await arrive(palette(["Launch planning"], { loading: false }));
-      await expect.poll(() => said.count("1 result")).toBe(1);
+      const region = () => document.querySelector("[data-ouro-command-results]")!;
+      await expect.poll(() => region().textContent).toBe("1 result");
       expect(said.count("3 results")).toBe(0);
-      expect(said.matching("1 result")[0]!.region.getAttribute("role")).toBe("status");
-      await arrive(palette(["Launch planning", "Lab notes"], { loading: false, resultsLabel: (count: number) => `${count} matches` }));
-      await expect.poll(() => said.count("2 matches")).toBe(1);
+      expect(region().getAttribute("role")).toBe("status");
+      await arrive(palette(["Launch planning", "Lab notes"], { loading: false }));
+      await expect.poll(() => region().textContent).toBe("2 results");
+      await arrive(palette(["Launch planning", "Lab notes", "Launch review"], { loading: false, resultsLabel: (count: number) => `${count} matches` }));
+      await expect.poll(() => region().textContent).toBe("3 matches");
       // With nothing found, the empty state speaks, and the count goes quiet.
       await arrive(palette([], { loading: false }));
       await expect.poll(() => document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
@@ -484,7 +487,7 @@ describe("Command match highlighting", () => {
 
   it("marks what the app's ranges say, in place of the search's words", async () => {
     await openPalette({
-      items: [{ label: "Launch planning", description: "Notes from the launch review", highlight: { label: [[0, 6]], description: [[15, 21], [100, 120]] }, onSelect: run }],
+      items: [{ label: "Launch planning", description: "Notes from the launch review", highlight: { label: [[0, 6], [8, 8]], description: [[15, 21], [100, 120]] }, onSelect: run }],
       highlightMatches: true,
     });
     expect(marks(row("Launch planning"))).toEqual(["Launch", "launch"]);
@@ -524,6 +527,21 @@ describe("Command match highlighting", () => {
     await userEvent.type(input(), "busy");
     await expect.poll(options).toEqual(["Weeknight dinners"]);
     expect(document.querySelectorAll('[role="option"] mark')).toHaveLength(0);
+    // Only the command's own words, each apart: nothing for a word none of them has, for "undefined", or for two run together.
+    for (const word of ["stryker", "undefined", "dinnersquick"]) {
+      await userEvent.clear(input());
+      await userEvent.type(input(), word);
+      await expect.poll(options).toEqual([]);
+    }
+  });
+
+  it("keeps a long label on one line over its description, in bold while unread", async () => {
+    const long = "Import from a link, with every photo, note, rating, comment, shopping list and cooking time the page has, kept just as it was on the page it came from";
+    await openPalette({ items: [{ label: long, description: "Paste a link to any recipe page", unread: true, onSelect: run }] });
+    const label = document.querySelector<HTMLElement>("[data-ouro-command-label]")!;
+    expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
+    expect(label.getBoundingClientRect().height).toBeLessThan(2 * parseFloat(getComputedStyle(label).lineHeight));
+    expect(getComputedStyle(label).fontWeight).toBe("600");
   });
 
   it("draws marked words that keep their contrast in light and dark, highlighted or not, and in forced colours", async () => {

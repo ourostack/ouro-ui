@@ -562,7 +562,7 @@ export function Command(props: CommandProps): JSX.Element {
 
   // The command the person has highlighted, by its value, and what was typed when it was. Base UI
   // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
-  const held = useRef<{ value: string; query: string } | null>(null);
+  const held = useRef<{ value: string; query: string }>({ value: "", query: "" });
 
   // The app's ranges for a command, or the search's words when the palette marks matches.
   const rangesFor = (item: CommandItem, part: "label" | "description"): readonly TextRange[] =>
@@ -582,11 +582,12 @@ export function Command(props: CommandProps): JSX.Element {
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.description === undefined ? item.keywords : [...(item.keywords ?? []), item.description], text)}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, [item.description ?? "", ...(item.keywords ?? [])], text)}
       value={query}
       inputRef={markInput}
       onItemHighlighted={(item: CommandItem | undefined) => {
-        held.current = item ? { value: valueOf(item), query } : null;
+        // No highlight holds no command: when the results come back, the first one is highlighted.
+        held.current = { value: item ? valueOf(item) : "", query };
       }}
       onValueChange={(next: string) => {
         setQuery(next);
@@ -759,14 +760,14 @@ function KeepHighlight({
   heldRef,
   query,
 }: {
-  heldRef: { current: { value: string; query: string } | null };
+  heldRef: { current: { value: string; query: string } };
   query: string;
 }): JSX.Element {
   // A mark of its own in the palette, since a dialog and a sheet may both be mounted while one replaces the other.
   const mark = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
     const want = heldRef.current;
-    if (want === null || want.query !== query) return;
+    if (want.query !== query) return;
     const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
     const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
     if (!row) return;
