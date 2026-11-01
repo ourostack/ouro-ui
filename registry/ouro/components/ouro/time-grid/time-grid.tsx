@@ -43,7 +43,9 @@ import {
   stepTo,
   plainFillClass,
   slotSizes,
+  periodShift,
   stackMinWidth,
+  todayOn,
   stacksOf,
   statusClass,
   statuses,
@@ -195,6 +197,14 @@ export interface TimeGridOwnProps {
    * @claim "and with its element" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > tells onEventSelect which element was pressed, and marks the one whose popover is open)
    */
   onEventSelect?: ((event: TimeGridEvent, details: TimeGridSelectDetails) => void) | undefined;
+  /**
+   * Called with the ISO date to show when a key moves the days while focus is in the grid: Page
+   * Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before, and ⌥⇧Y
+   * (Alt+Shift+Y) today, as in Teams. Set `date` to it. `TimeGridNav` gives the same moves as
+   * buttons, with these keys in their tooltips.
+   * @claim "Called with the ISO date to show when a key moves the days" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
+   */
+  onDateChange?: ((date: string) => void) | undefined;
   /**
    * Events that are not the person's own, such as a shared calendar, a colleague's or a room's.
    * Each day draws them in a lane of their own at its start, beside the person's events: thin
@@ -388,6 +398,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     ref,
     style,
     onKeyDown: onKeyDownProp,
+    onDateChange,
     // Guard props (hint types), dropped here so they never reach the DOM.
     defaultView,
     defaultDate,
@@ -663,6 +674,16 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     onKeyDownProp?.(event);
+    if (onDateChange && !event.defaultPrevented) {
+      const shift = periodShift(event, view);
+      // ⌥⇧Y by its physical key, since Option changes the character on a Mac.
+      const today = event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && event.code === "KeyY";
+      if (shift !== 0 || today) {
+        event.preventDefault();
+        onDateChange(today ? todayOn(formats.clock) : addDays(date, shift));
+        return;
+      }
+    }
     const key = (event.target as HTMLElement).dataset.ouroEventKey;
     if (key === undefined || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
     const next = stepTo(reachable, key, event.key, getComputedStyle(event.currentTarget).direction === "rtl");

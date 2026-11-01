@@ -1,0 +1,1 @@
+- New: `TimeGridNav`, Today, Previous and Next buttons for a TimeGrid with their keys in their tooltips; and TimeGrid's `onDateChange`, which moves the days from the keyboard while focus is in the grid: Page Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before, ⌥⇧Y (Alt+Shift+Y) today.

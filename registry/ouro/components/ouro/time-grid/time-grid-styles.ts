@@ -18,7 +18,9 @@ export {
   plainFillClass,
   slotSizes,
   statuses,
+  periodShift,
   stackMinWidth,
+  todayOn,
   stacksOf,
   statusClass,
   stepTo,
@@ -77,6 +79,23 @@ interface ZonedClock {
   at(instant: number): { day: string; minutes: number };
   /** The instant a day's wall-clock minute falls on. */
   instant(day: string, minutes: number): Date;
+}
+
+/**
+ * Where a key press moves the shown days, in days, for {@link TimeGrid}'s `onDateChange`, or 0 for
+ * a key that does not: Page Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before.
+ * @claim "Page Down and ⌥↓ (Alt+↓) the next day or week" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
+ */
+function periodShift(event: { key: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }, view: TimeGridView): number {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) return 0;
+  const forward = event.key === "PageDown" || (event.altKey && event.key === "ArrowDown");
+  const back = event.key === "PageUp" || (event.altKey && event.key === "ArrowUp");
+  return (forward ? 1 : back ? -1 : 0) * (view === "day" ? 1 : 7);
+}
+
+/** Today's ISO date on a clock, read when it is called. */
+function todayOn(clock: ZonedClock): string {
+  return clock.at(Date.now()).day;
 }
 
 /** The wall clock of `timeZone` (an IANA name such as `"Europe/Berlin"`, or `undefined` for the reader's own). */

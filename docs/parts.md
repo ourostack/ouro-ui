@@ -334,6 +334,29 @@ Each part checks that it sits inside `<TableRoot>`: outside it, a part throws in
 | `TableRoot` | The root of a table built from parts, with its caption and its scrolling region. `Table` takes the same parts as children (`<Table caption="Pantry">…</Table>`), so use it instead unless you are composing parts of your own; `Table` also builds the whole table from `columns` and `rows`. |
 | `TableRow` | One row (`<tr>`). With `href` a body row is one link, held by its row header cell. |
 
+## TimeGrid parts
+
+Children of `<TimeGrid>`, for what its props cannot express.
+
+```tsx
+import {
+  TimeGridNav,
+} from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
+```
+
+### Required nesting
+
+```tsx
+<TimeGridNav date={date} view={view} onDateChange={setDate} />
+<TimeGrid label="Team calendar" date={date} view={view} onDateChange={setDate} events={events} />
+```
+
+
+
+| Part | What it is |
+| --- | --- |
+| `TimeGridNav` | Today, Previous and Next for a `TimeGrid`: three buttons that move its `date` by its view's day or week, each with its keyboard shortcut in its tooltip. The grid takes the same keys while focus is in it, with `onDateChange`: Page Up and ⌥↑ (Alt+↑) the period before, Page Down and ⌥↓ the next, ⌥⇧Y (Alt+Shift+Y) today. Use your own buttons instead when the toolbar picks a month or a date as well; give the grid `onDateChange` for its keys either way. |
+
 [^field-nesting]: test:registry/ouro/components/ouro/field/field.test.tsx::Field parts > %s throws outside FieldRoot with the JSX shape verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field parts > %s throws outside FieldRoot with the JSX shape)
 [^select-nesting]: test:registry/ouro/components/ouro/select/select.test.tsx::Select development messages > throws with the JSX shape when a part is outside Select verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select development messages > throws with the JSX shape when a part is outside Select)
 [^dialog-nesting]: test:registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > %s outside DialogRoot throws with the correct JSX shape verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog parts > %s outside DialogRoot throws with the correct JSX shape)

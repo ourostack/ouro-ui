@@ -42,6 +42,7 @@ Type: `TimeGridProps`.
 | `locale` | `string` | `"en-US"` | The BCP 47 locale for the day names, the hours (`"9 AM"`, `"09"`), the times and the first day of the week: `"en-GB"` starts weeks on Monday. The default is the same on the server and in the browser, so hydration matches. |
 | `now` | `Date \| string \| number` |  | The current time, when your app keeps the clock (a demo, a test, a time it shares with other views). Without it, the grid reads the browser's clock and moves the now line each minute. |
 | `nowAdornment` | `ReactNode` |  | Something small drawn where the now line meets the hours: a mascot, an avatar. Decoration only; screen readers skip it. |
+| `onDateChange` | `((date: string) => void)` |  | Called with the ISO date to show when a key moves the days while focus is in the grid: Page Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before, and ⌥⇧Y (Alt+Shift+Y) today, as in Teams. Set `date` to it. `TimeGridNav` gives the same moves as buttons, with these keys in their tooltips. |
 | `onEventSelect` | `((event: TimeGridEvent, details: TimeGridSelectDetails) => void)` |  | Called with the event when someone presses it, or presses Enter on it, and with its element and whether it is a background event, so a popover of your own can point at it. |
 | `onSlotSelect` | `((slot: TimeGridSlot) => void)` |  | Called when someone presses an empty part of a day, with the slot under the pointer, for a new event there. A mouse shows the slot before the press. Slots answer a pointer only, so give keyboards a New event button of your own as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | The grid's root element. |
@@ -75,6 +76,10 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Parts
+
+For what these props cannot express, pass as children the parts in `@/registry/ouro/components/ouro/time-grid/time-grid-parts`. See [parts.md](parts.md#timegrid-parts) for the required nesting.
 
 ## Types
 

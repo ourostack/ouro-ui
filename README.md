@@ -605,7 +605,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Parts
 
-- **Parts** — building blocks for Checklist, Dialog, Field, Popover, Select, Sheet, Table and Tabs, only for layouts the props cannot express. [Docs](docs/parts.md)
+- **Parts** — building blocks for Checklist, Dialog, Field, Popover, Select, Sheet, Table, Tabs and TimeGrid, only for layouts the props cannot express. [Docs](docs/parts.md)
 <!-- catalog:end -->
 
 ## Theme

@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { TimeGrid, type TimeGridEvent, type TimeGridProps } from "@/registry/ouro/components/ouro/time-grid/time-grid";
+import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import {
   allDayLanes,
   layoutDay,
@@ -625,6 +626,38 @@ describe("TimeGrid", () => {
     await press("{ArrowDown}");
     expect(document.activeElement).toBe(viewport());
     expect(grid.contains(document.activeElement)).toBe(true);
+  });
+
+  it("moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y", async () => {
+    const onDateChange = vi.fn();
+    const { rerender } = await render({ events: [forum, standup], onDateChange });
+    titled("Architecture forum").focus();
+    await press("{PageDown}");
+    await press("{PageUp}");
+    await press("{Alt>}{ArrowDown}{/Alt}");
+    await press("{Alt>}{ArrowUp}{/Alt}");
+    await press("{Alt>}{Shift>}{KeyY}{/Shift}{/Alt}");
+    const today = zonedClock(zone).at(Date.now()).day;
+    expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-19", "2026-03-05", "2026-03-19", "2026-03-05", today]);
+    // Focus stays on the event; the app moves the days.
+    expect(document.activeElement).toBe(titled("Architecture forum"));
+    // A day's view moves a day; other modifiers, and keys the app took, move nothing.
+    onDateChange.mockClear();
+    await rerender({ view: "day", events: [forum], onDateChange, onKeyDown: (event) => event.key === "PageUp" && event.preventDefault() });
+    titled("Architecture forum").focus();
+    await press("{PageDown}");
+    await press("{Control>}{PageDown}{/Control}");
+    await press("{Shift>}{PageDown}{/Shift}");
+    await press("{Meta>}{ArrowDown}{/Meta}");
+    await press("{Alt>}{Control>}{KeyY}{/Control}{/Alt}");
+    await press("{PageUp}");
+    expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13"]);
+    // Without onDateChange, Page Down is the page's.
+    await rerender({ view: "day", events: [forum] });
+    titled("Architecture forum").focus();
+    const key = new KeyboardEvent("keydown", { key: "PageDown", bubbles: true, cancelable: true });
+    titled("Architecture forum").dispatchEvent(key);
+    expect(key.defaultPrevented).toBe(false);
   });
 
   it("takes events that start together longest first", async () => {
@@ -1435,5 +1468,34 @@ describe("TimeGrid background events", () => {
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
     expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
     expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
+  });
+});
+
+describe("TimeGridNav", () => {
+  it("moves the date by the view's day or week and to today, with each key in its button's tooltip", async () => {
+    const onDateChange = vi.fn();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const show = (view: "day" | "week") => act(async () => root.render(<TimeGridNav date="2026-03-12" view={view} timeZone={zone} onDateChange={onDateChange} />));
+    await show("week");
+    await userEvent.click(page.getByRole("button", { name: "Next week" }));
+    await userEvent.click(page.getByRole("button", { name: "Previous week" }));
+    await userEvent.click(page.getByRole("button", { name: "Today" }));
+    expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-19", "2026-03-05", zonedClock(zone).at(Date.now()).day]);
+    await userEvent.hover(page.getByRole("button", { name: "Next week" }));
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toContain("Next week");
+    expect(document.querySelector('[data-ouro="tooltip"] [data-ouro="kbd"]')).not.toBeNull();
+    onDateChange.mockClear();
+    await show("day");
+    await userEvent.click(page.getByRole("button", { name: "Next day" }));
+    await userEvent.click(page.getByRole("button", { name: "Previous day" }));
+    expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13", "2026-03-11"]);
+    await act(async () => root.render(<TimeGridNav date="2026-03-12" onDateChange={onDateChange} labels={{ today: "Heute", previous: "Vorherige Woche", next: "Nächste Woche" }} />));
+    await expect.element(page.getByRole("button", { name: "Nächste Woche" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Heute" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Vorherige Woche" })).toBeVisible();
   });
 });
