@@ -4,7 +4,8 @@ import { appendFileSync } from "node:fs";
 
 const base = process.env["BASE"]!;
 const tests = Number(process.env["TESTS"] ?? 100);
-const { PRESET_NAMES, THEME_KEY } = await import("../src/themes/prepaint.ts");
+const PRESET_NAMES = ["pearl", "abyss", "brass", "chart", "coral", "cookbook"];
+const THEME_KEY = "ouro-site-theme";
 const log = (line: string) => { console.log(line); appendFileSync("goto-probe.log", `${new Date().toISOString()} ${line}\n`); };
 const browser = await webkit.launch();
 let gotos = 0, errors = 0, notReady = 0;
