@@ -3,6 +3,9 @@
 import {
   isValidElement,
   useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
   useState,
   type HTMLAttributes,
   type JSX,
@@ -11,8 +14,10 @@ import {
   type ReactElement,
   type ReactNode,
   type Ref,
+  type SVGProps,
 } from "react";
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -145,6 +150,12 @@ export interface MessageOwnProps {
   streaming?: boolean | undefined;
   /** What screen readers hear for the typing indicator, for other languages. @default "Writing" */
   streamingLabel?: string | undefined;
+  /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
+  failedLabel?: string | undefined;
+  /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
+  retryLabel?: string | undefined;
+  /** The name of a `failed` message's delete button, for other languages. @default "Delete" */
+  deleteLabel?: string | undefined;
   /** Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -161,6 +172,44 @@ export interface MessageOwnProps {
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
+  /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed onRetry={retry}>`. */
+  error?: { 'Use <Message role="user" failed onRetry={retry}>': never };
+  /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed onRetry={retry}>`. */
+  status?: { 'Use <Message role="user" failed onRetry={retry}>': never };
+}
+
+/** A message of the user's own that did not send, and what the person can do about it. */
+export interface MessageFailedProps {
+  /**
+   * The message did not send. A calm marker under it says "Not sent" beside Retry and Delete
+   * buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen
+   * readers hear the marker as the message's description. It appears at once, with no motion.
+   * To put the text back in a `Composer` instead, set the Composer's `value` to it and delete
+   * the message.
+   * @claim "A calm marker under it says" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > marks the message not sent under its bubble, with Retry and Delete, and describes the message with it)
+   * @claim "and stays until the app clears" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > offers Retry alone without onDelete, and goes once the app clears failed)
+   * @claim "Screen readers hear the marker as" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > keeps the app's own description beside the marker's)
+   * @claim "It appears at once, with no" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > shows the marker at once, with nothing animating, under reduced motion too)
+   */
+  failed: true;
+  /**
+   * Sends the message again. Required with `failed`, so a message that did not send always
+   * offers another try.
+   * @claim "Required with `failed`, so a message" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /failed:\strue\s\}>\(\)\.not\.toExtend<MessageProps>/)
+   */
+  onRetry: () => void;
+  /** Deletes the message that did not send. Leave it out to offer Retry alone. */
+  onDelete?: (() => void) | undefined;
+}
+
+/** A message that sent, or one still sending. */
+export interface MessageSentProps {
+  /** Leave it out for a message that sent; pass it with `onRetry` for one that did not. */
+  failed?: false | undefined;
+  /** Read only with `failed`. */
+  onRetry?: undefined;
+  /** Read only with `failed`. */
+  onDelete?: undefined;
 }
 
 /** A Message whose avatar shows the author's presence, and the words it says. */
@@ -198,7 +247,8 @@ export interface MessageNoPresenceProps {
  */
 export type MessageProps = Omit<HTMLAttributes<HTMLElement>, keyof MessageOwnProps | "content" | "presence" | "presenceLabel"> &
   MessageOwnProps &
-  (MessagePresenceProps | MessageNoPresenceProps);
+  (MessagePresenceProps | MessageNoPresenceProps) &
+  (MessageFailedProps | MessageSentProps);
 
 const roles = ["user", "assistant", "system"] as const;
 
@@ -274,6 +324,12 @@ export function Message(props: MessageProps): JSX.Element {
     menuLabel = "More actions",
     streaming = false,
     streamingLabel = "Writing",
+    failed = false,
+    onRetry,
+    onDelete,
+    failedLabel = "Not sent",
+    retryLabel = "Retry",
+    deleteLabel = "Delete",
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     from,
@@ -282,6 +338,8 @@ export function Message(props: MessageProps): JSX.Element {
     content,
     own,
     timestamp,
+    error,
+    status,
     ...rest
   } = props;
   const name = nameProp ?? "";
@@ -307,6 +365,10 @@ export function Message(props: MessageProps): JSX.Element {
           content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
           own !== undefined && ["own is not a prop; the user's own messages are role=\"user\"", '<Message role="user" variant="chat">'],
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
+          (error !== undefined || status !== undefined) && [
+            `${error !== undefined ? "error" : "status"} is not a prop; a message that did not send is failed`,
+            '<Message role="user" failed onRetry={retry}>',
+          ],
           variant === "post" && continuedProp && ["a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
           variant !== "post" && subject !== undefined && ["subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
           presence !== undefined &&
@@ -348,6 +410,40 @@ export function Message(props: MessageProps): JSX.Element {
     else if (forwarded) forwarded.current = node;
   };
 
+  // Not sent: a line under the bubble that says so, with Retry and Delete, and the message's description.
+  const failedId = useId();
+  const describedBy = failed ? [rest["aria-describedby"], failedId].filter(Boolean).join(" ") : rest["aria-describedby"];
+  // Retry pressed: when the app clears failed, the marker goes with the focused button, so focus
+  // goes to the message rather than the page.
+  const retried = useRef(false);
+  useLayoutEffect(() => {
+    if (failed || !retried.current) return;
+    retried.current = false;
+    if (element === null || document.activeElement !== document.body) return;
+    if (!element.hasAttribute("tabindex")) element.tabIndex = -1;
+    element.focus({ preventScroll: true });
+  }, [failed, element]);
+  const retry = () => {
+    retried.current = true;
+    onRetry?.();
+  };
+  const notSent = failed && (
+    <div data-ouro-message-failed="" className="flex max-w-full flex-wrap items-center gap-x-1 text-xs">
+      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
+        <NotSentIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        {failedLabel}
+      </span>
+      <Button data-ouro-control="message" data-ouro-part="retry" tone="primary" variant="plain" size="sm" onClick={retry}>
+        {retryLabel}
+      </Button>
+      {onDelete && (
+        <Button data-ouro-control="message" data-ouro-part="delete" tone="secondary" variant="plain" size="sm" onClick={onDelete}>
+          {deleteLabel}
+        </Button>
+      )}
+    </div>
+  );
+
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? <Typing label={streamingLabel} /> : children;
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
@@ -377,6 +473,7 @@ export function Message(props: MessageProps): JSX.Element {
         data-continued={continued ? "" : undefined}
         data-ouro-message-active={active ? "" : undefined}
         aria-busy={streaming || rest["aria-busy"]}
+        aria-describedby={describedBy}
         onPointerUp={tap}
         className={cn(
           "group/message box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
@@ -417,6 +514,7 @@ export function Message(props: MessageProps): JSX.Element {
               {attachments}
             </div>
           )}
+          {notSent}
           <Extra slot="footer" end={role === "user"}>
             {footer}
           </Extra>
@@ -461,6 +559,7 @@ export function Message(props: MessageProps): JSX.Element {
       data-continued={continued ? "" : undefined}
       data-ouro-message-active={active ? "" : undefined}
       aria-busy={streaming || rest["aria-busy"]}
+      aria-describedby={describedBy}
       onPointerUp={tap}
       className={cn("group/message box-border flex w-full min-w-0 items-start gap-2 text-base pointer-fine:text-sm", focusRing, end && "flex-row-reverse", className)}
     >
@@ -507,6 +606,7 @@ export function Message(props: MessageProps): JSX.Element {
             {attachments}
           </div>
         )}
+        {notSent}
         {!card && (
           <Extra slot="footer" end={end}>
             {footer}
@@ -559,6 +659,16 @@ function Extra({ slot, end, inset = false, children }: { slot: "footer" | "threa
     >
       {children}
     </div>
+  );
+}
+
+/** A circle with an exclamation mark: the message did not send. */
+function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...props}>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 6.5v4.5M10 13.75v.01" />
+    </svg>
   );
 }
 
