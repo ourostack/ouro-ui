@@ -42,6 +42,23 @@ export interface MessageAction {
   disabled?: boolean | undefined;
 }
 
+/** The message a message replies to, for Message's `quote`: who wrote it and a line of what they wrote. */
+export interface MessageQuote {
+  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  author: string;
+  /**
+   * What they wrote, or its start. One line shows, cut with an ellipsis.
+   * @claim "One line shows, cut with" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
+   */
+  excerpt: string;
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  avatar?: ReactElement | undefined;
+  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  onActivate?: (() => void) | undefined;
+  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  label?: string | undefined;
+}
+
 /** The props Message adds to the `<article>` attributes it passes through. */
 export interface MessageOwnProps {
   /**
@@ -106,6 +123,17 @@ export interface MessageOwnProps {
   subject?: ReactNode;
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
+  /**
+   * The message this one replies to, at the top of the bubble or card, above the text: a bar,
+   * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
+   * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
+   * button, to show the quoted message.
+   *
+   * @claim "as Composer's `quote` shows it" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > looks as Message's quote does once the reply is sent)
+   * @claim "Screen readers hear it first, as" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is read before the text, as the label and the excerpt)
+   * @claim "With `onActivate` it is a button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is a button with onActivate, named by the quote, which keyboard and pointer press)
+   */
+  quote?: MessageQuote | undefined;
   /** Files sent with the message, shown under it: `<Attachment>` elements. */
   attachments?: ReactNode;
   /**
@@ -161,6 +189,8 @@ export interface MessageOwnProps {
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
+  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`. */
+  replyTo?: { 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>': never };
 }
 
 /** A Message whose avatar shows the author's presence, and the words it says. */
@@ -265,6 +295,7 @@ export function Message(props: MessageProps): JSX.Element {
     continued: continuedProp = false,
     subject,
     children,
+    quote,
     attachments,
     footer,
     thread,
@@ -282,6 +313,7 @@ export function Message(props: MessageProps): JSX.Element {
     content,
     own,
     timestamp,
+    replyTo,
     ...rest
   } = props;
   const name = nameProp ?? "";
@@ -307,6 +339,7 @@ export function Message(props: MessageProps): JSX.Element {
           content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
           own !== undefined && ["own is not a prop; the user's own messages are role=\"user\"", '<Message role="user" variant="chat">'],
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
+          replyTo !== undefined && ["replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
           variant === "post" && continuedProp && ["a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
           variant !== "post" && subject !== undefined && ["subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
           presence !== undefined &&
@@ -350,6 +383,7 @@ export function Message(props: MessageProps): JSX.Element {
 
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? <Typing label={streamingLabel} /> : children;
+  const quoted = quote && <Quote quote={quote} />;
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
@@ -364,6 +398,7 @@ export function Message(props: MessageProps): JSX.Element {
     const bubble = (
       // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: on a fine pointer the article is text-sm already; the touch tests hold the system note's smaller text.
       <div data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
+        {quoted}
         {body}
       </div>
     );
@@ -493,6 +528,7 @@ export function Message(props: MessageProps): JSX.Element {
                 {subject}
               </p>
             )}
+            {quoted}
             {body}
           </div>
           {card && (
@@ -542,6 +578,46 @@ function AvatarSlot({
   if (isValidElement(avatar)) return avatar;
   const dot = presence === undefined ? {} : { presence: presence as AvatarPresence, presenceLabel: presenceLabel || presence.replaceAll("-", " ") };
   return <Avatar name={name} src={avatar} alt="" size={size} className={className} {...dot} />;
+}
+
+// The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
+const quoteClass =
+  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-md bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
+// The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
+// with two lines of text it is taller than a touch target already.
+const quoteButtonClass =
+  "box-border w-full cursor-pointer border-0 text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent " +
+  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/**
+ * The message a message replies to: the bar, the avatar, the author and the excerpt. Screen
+ * readers hear the label ("Quoting Ada") in place of the author's name, then the excerpt.
+ */
+function Quote({ quote }: { quote: MessageQuote }): JSX.Element {
+  const body = (
+    <>
+      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      {quote.avatar}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="sr-only">{quote.label ?? `Quoting ${quote.author}`}: </span>
+        <span aria-hidden="true" data-ouro-message-quote-author="" className="truncate text-xs font-semibold text-foreground">
+          {quote.author}
+        </span>
+        <span data-ouro-message-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+          {quote.excerpt}
+        </span>
+      </span>
+    </>
+  );
+  return quote.onActivate ? (
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
+      {body}
+    </button>
+  ) : (
+    <blockquote data-ouro-message-quote="" className={quoteClass}>
+      {body}
+    </blockquote>
+  );
 }
 
 /** The words a presence's fix suggests: the app's own label, else the presence's name ("Do not disturb"). */

@@ -43,6 +43,7 @@ The props the modes share. Type: `MessageProps`.
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
+| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or card, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ada joined"), centered and quiet. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
@@ -85,6 +86,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `content`: Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`.
 - `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`.
 - `own`: Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`.
+- `replyTo`: Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`.
 - `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
 - `timestamp`: Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`.
 
@@ -222,6 +224,27 @@ interface MessageAction {
   onClick: (event: MouseEvent<HTMLElement>) => void;
   /** Shown, but cannot be pressed: an action the app has turned off for now. */
   disabled?: boolean | undefined;
+}
+```
+
+### `MessageQuote`
+
+The message a message replies to, for Message's `quote`: who wrote it and a line of what they wrote.
+
+```ts
+interface MessageQuote {
+  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  author: string;
+  /**
+   * What they wrote, or its start. One line shows, cut with an ellipsis.
+   */
+  excerpt: string;
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  avatar?: ReactElement | undefined;
+  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  onActivate?: (() => void) | undefined;
+  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  label?: string | undefined;
 }
 ```
 

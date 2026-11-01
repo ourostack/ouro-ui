@@ -6,6 +6,7 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 
@@ -335,6 +336,58 @@ function Tools() {
  */
 export const WithTools: Story = {
   render: () => <Tools />,
+};
+
+const asked = { id: "ask", author: "Mara Quill", text: "Morning! The venue confirmed the long table for Friday. Can someone bring the extension cord for the projector?" };
+
+function QuotedReply() {
+  const [quoted, setQuoted] = useState<typeof asked | undefined>(asked);
+  const [replies, setReplies] = useState<{ text: string; quoted: typeof asked | undefined }[]>([]);
+  return (
+    <Surface>
+      <Message
+        id={asked.id}
+        variant="chat"
+        role="assistant"
+        name={asked.author}
+        time="9:41 AM"
+        actions={[{ key: "reply", label: "Reply", icon: "↩", onClick: () => setQuoted(asked) }]}
+      >
+        {asked.text}
+      </Message>
+      {replies.map((reply, index) => (
+        <Message key={index} variant="chat" role="user" name="Priya Okafor" time="9:45 AM" quote={reply.quoted && { author: reply.quoted.author, excerpt: reply.quoted.text }}>
+          {reply.text}
+        </Message>
+      ))}
+      <Composer
+        label="Message Mara"
+        placeholder="Write a reply"
+        quote={
+          quoted && {
+            author: quoted.author,
+            excerpt: quoted.text,
+            onRemove: () => setQuoted(undefined),
+            onActivate: () => document.getElementById(quoted.id)?.scrollIntoView({ block: "nearest" }),
+          }
+        }
+        onSend={(text) => {
+          setReplies([...replies, { text, quoted }]);
+          setQuoted(undefined);
+        }}
+      />
+    </Surface>
+  );
+}
+
+/**
+ * A reply that quotes a message (`quote`): who wrote it and a line of what they wrote, inside the
+ * box above the text, read as the text's description. The cross, or Escape while the box is empty,
+ * removes it; Reply on the message brings it back. Sent replies show the quote in their bubble.
+ */
+export const Quoting: Story = {
+  parameters: { screenshot: { name: "composer-quote" } },
+  render: () => <QuotedReply />,
 };
 
 /** Sending is off and says why; the person can still write. Enter says the reason again. */

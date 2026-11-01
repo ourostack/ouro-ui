@@ -18,7 +18,14 @@ export default function MessageDemo(): JSX.Element {
       <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" continued>
         Can someone bring the extension cord?
       </Message>
-      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" footer={<span className="text-xs text-muted-foreground">Seen</span>}>
+      <Message
+        variant="chat"
+        role="user"
+        name="Priya Okafor"
+        time="9:45 AM"
+        quote={{ author: "Mara Quill", excerpt: "Can someone bring the extension cord?" }}
+        footer={<span className="text-xs text-muted-foreground">Seen</span>}
+      >
         I will bring it.
       </Message>
     </div>

@@ -270,6 +270,7 @@ describe("Message development messages", () => {
     ["an unknown variant", { variant: "bubble" }, 'variant="bubble" is not a variant; use "default", "chat", "post" or "reply"', '<Message variant="chat" role="assistant" name="Grace">'],
     ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
+    ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
     ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
     ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
     [
@@ -337,6 +338,94 @@ const probeColor = (host: HTMLElement, value: string) => {
 };
 const headerOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-header]")!;
 const visible = (element: Element) => element.getBoundingClientRect().width > 1;
+
+const lunch = "Lunch on Friday? The bakery on the corner opens at noon, and they keep a long table for groups if you call ahead.";
+
+describe("Message quote", () => {
+  it("shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis", async () => {
+    for (const variant of ["default", "chat", "post", "reply"] as const) {
+      const { message } = await render(
+        <Message variant={variant} role="assistant" name="Mara Quill" subject={variant === "post" ? "Friday" : undefined} quote={{ author: "Ada Lovelace", excerpt: lunch }}>
+          Count me in.
+        </Message>,
+      );
+      const content = bubbleOf(message);
+      const quote = content.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+      expect(quote.tagName, variant).toBe("BLOCKQUOTE");
+      expect(getComputedStyle(quote).marginInlineStart, variant).toBe("0px");
+      expect(quote.compareDocumentPosition(content.lastChild!) & Node.DOCUMENT_POSITION_FOLLOWING, variant).toBeTruthy();
+      const bar = quote.querySelector<HTMLElement>("[data-ouro-message-quote-bar]")!;
+      const author = quote.querySelector<HTMLElement>("[data-ouro-message-quote-author]")!;
+      const excerpt = quote.querySelector<HTMLElement>("[data-ouro-message-quote-excerpt]")!;
+      expect(bar.getAttribute("aria-hidden"), variant).toBe("true");
+      expect(bar.getBoundingClientRect().width, variant).toBe(4);
+      expect(getComputedStyle(author).fontWeight, variant).toBe("600");
+      expect(author.textContent, variant).toBe("Ada Lovelace");
+      expect(getComputedStyle(excerpt).textOverflow, variant).toBe("ellipsis");
+      expect(getComputedStyle(excerpt).whiteSpace, variant).toBe("nowrap");
+      expect(excerpt.scrollWidth, variant).toBeGreaterThan(excerpt.clientWidth);
+      expect(excerpt.getBoundingClientRect().height, variant).toBeCloseTo(parseFloat(getComputedStyle(excerpt).lineHeight), 0);
+    }
+  });
+
+  it("is read before the text, as the label and the excerpt", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor" quote={{ author: "Ada Lovelace", excerpt: "Lunch on Friday?" }}>
+        Count me in.
+      </Message>,
+    );
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    expect(quote.querySelector("[data-ouro-message-quote-author]")!.getAttribute("aria-hidden")).toBe("true");
+    expect(quote.querySelector(".sr-only")!.textContent).toBe("Quoting Ada Lovelace: ");
+    expect(bubbleOf(message).textContent).toBe("Quoting Ada Lovelace: Ada LovelaceLunch on Friday?Count me in.");
+  });
+
+  it("reads label for other languages, and shows the author's avatar before the name", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ada Lovelace", excerpt: "Mittagessen?", label: "Zitat von Ada", avatar: <Avatar name="Ada Lovelace" alt="" size="xs" /> }}>
+        Ja.
+      </Message>,
+    );
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    expect(quote.querySelector(".sr-only")!.textContent).toBe("Zitat von Ada: ");
+    const avatar = quote.querySelector('[data-ouro="avatar"]')!;
+    expect(quote.querySelector("[data-ouro-message-quote-bar]")!.compareDocumentPosition(avatar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(avatar.compareDocumentPosition(quote.querySelector("[data-ouro-message-quote-author]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("is a button with onActivate, named by the quote, which keyboard and pointer press", async () => {
+    const onActivate = vi.fn();
+    const { message } = await render(
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ada Lovelace", excerpt: "Lunch on Friday?", onActivate }}>
+        Count me in.
+      </Message>,
+    );
+    const button = page.getByRole("button", { name: "Quoting Ada Lovelace: Lunch on Friday?" });
+    await userEvent.click(button);
+    expect(onActivate).toHaveBeenCalledTimes(1);
+    const element = button.element() as HTMLButtonElement;
+    expect(element.type).toBe("button");
+    expect(element.getAttribute("data-ouro-control")).toBe("message");
+    expect(element.getAttribute("data-ouro-part")).toBe("quote");
+    expect(element.hasAttribute("data-ouro-message-quote")).toBe(true);
+    expect(bubbleOf(message).firstElementChild).toBe(element);
+    element.blur();
+    await pressTab();
+    expect(document.activeElement).toBe(element);
+    await userEvent.keyboard("{Enter}");
+    expect(onActivate).toHaveBeenCalledTimes(2);
+    expect(element.getBoundingClientRect().width).toBeCloseTo(bubbleOf(message).getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(bubbleOf(message)).paddingInlineStart), 0);
+  });
+
+  it("shows no quote without one", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector("[data-ouro-message-quote]")).toBeNull();
+  });
+});
 
 describe("Message chat", () => {
   it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
