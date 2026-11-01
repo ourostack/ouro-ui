@@ -166,8 +166,9 @@ export const Colors: Story = {
   ),
 };
 
-/** `shape="square"` for what is not a person: a team, a channel, an app, a bot. */
+/** `shape="square"` for what is not a person (a team, a channel, an app, a bot) and `shape="hexagon"` for an AI agent, with initials or a picture. */
 export const Shapes: Story = {
+  parameters: { screenshot: { name: "avatar-shapes" } },
   render: () => (
     <Surface>
       {(["sm", "md", "xl"] as const).map((size) => (
@@ -176,6 +177,8 @@ export const Shapes: Story = {
           <Avatar name="Design reviews" shape="square" size={size} />
           <Avatar name="Release notes" shape="square" size={size} src={people[2]!.src} />
           <Avatar name="Build helper" shape="square" size={size} color="brand" icon={<Icon d={bot} />} />
+          <Avatar name="Halden" shape="hexagon" size={size} />
+          <Avatar name="Launch helper" shape="hexagon" size={size} src={people[4]!.src} />
         </div>
       ))}
     </Surface>

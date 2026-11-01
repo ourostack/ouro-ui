@@ -16,3 +16,4 @@ export const messageOk03 = <Message variant="post" role="assistant" name="Grace"
 export const messageOk04 = <Message variant="chat" role="assistant" name="Grace" presence="away" presenceLabel="Away">Back soon</Message>;
 export const messageOk05 = <Message variant="chat" role="user" name="Ada" quote={{ author: "Grace", excerpt: "Lunch on Friday?", onActivate: () => {}, label: "Quoting Grace" }}>Count me in</Message>;
 export const messageOk06 = <Message variant="chat" role="user" name="Ada" failed={{ onRetry: () => {}, onDelete: () => {} }} failedLabel="Not sent" retryLabel="Retry" deleteLabel="Delete">On my way</Message>;
+export const messageOk07 = <Message variant="chat" role="assistant" name="Halden" nameTag="AI agent" avatar={<span />}>I'll post the summary by 4:00.</Message>;

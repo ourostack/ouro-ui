@@ -24,8 +24,11 @@ export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
  */
 export type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office";
 
-/** Avatar's shapes: a circle for a person, a rounded square for a team, a channel, an app or a bot. */
-export type AvatarShape = "circle" | "square";
+/**
+ * Avatar's shapes: a circle for a person, a rounded square for a team, a channel, an app or a
+ * bot, and a rounded hexagon for an AI agent.
+ */
+export type AvatarShape = "circle" | "square" | "hexagon";
 
 /** Where the initials' colors come from: a hue picked from the name, the theme's primary, or the neutral surface. */
 export type AvatarColor = "colorful" | "brand" | "neutral";
@@ -55,9 +58,13 @@ export interface AvatarOwnProps {
   icon?: ReactNode | undefined;
   /**
    * `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a
-   * channel, an app or a bot. @default "circle"
+   * channel, an app or a bot, `"hexagon"` (with rounded corners) for an AI agent, as Teams
+   * draws agents. The initials, icon or picture fill the shape, centered. A hexagon shows no
+   * presence dot: an agent has no presence. @default "circle"
+   * @claim "(with rounded corners) for an AI agent" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > draws an agent as a rounded hexagon at every size, its initials and picture inside it)
+   * @claim "A hexagon shows no presence dot" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > shows no presence on a hexagon, and names the fix)
    */
-  shape?: AvatarShape | (string & { 'Use "circle" or "square"; rounded is "square"': never }) | undefined;
+  shape?: AvatarShape | (string & { 'Use "circle", "square" or "hexagon"; rounded is "square", an agent "hexagon"': never }) | undefined;
   /**
    * How the initials are colored. `"colorful"` picks one of eight hues from `idForColor`
    * (else `name`), so the same person always gets the same one, and the initials keep at
@@ -214,7 +221,12 @@ const hues = [
 const brand = "bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))]";
 const neutral = "bg-secondary text-secondary-foreground";
 
-const shapes = ["circle", "square"] as const;
+const shapes = ["circle", "square", "hexagon"] as const;
+
+// An agent's rounded hexagon, point up, as a polygon in percentages, so it scales with every
+// size, clips the picture and the hit area too, and needs no stylesheet rule.
+const hexagon =
+  "polygon(37.5% 6.3%,42.3% 4.4%,47.4% 3.4%,52.6% 3.4%,57.7% 4.4%,62.5% 6.3%,87.5% 18.7%,91.7% 21.5%,95.2% 25%,97.8% 29.3%,99.4% 34%,100% 39%,100% 61%,99.4% 66%,97.8% 70.7%,95.2% 75%,91.7% 78.5%,87.5% 81.3%,62.5% 93.7%,57.7% 95.6%,52.6% 96.6%,47.4% 96.6%,42.3% 95.6%,37.5% 93.7%,12.5% 81.3%,8.3% 78.5%,4.8% 75%,2.2% 70.7%,0.6% 66%,0% 61%,0% 39%,0.6% 34%,2.2% 29.3%,4.8% 25%,8.3% 21.5%,12.5% 18.7%)";
 const colors = ["colorful", "brand", "neutral"] as const;
 const presences = ["available", "busy", "away", "do-not-disturb", "offline", "out-of-office"] as const;
 
@@ -315,8 +327,9 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * A person's picture, or their initials until it loads or when it fails, in a color picked
  * from the name. `name` is required: screen readers hear it, and the initials come from it.
  * `presence` adds a status dot that says what it shows (`presenceLabel`), and
- * `shape="square"` marks a team, a channel, an app or a bot. Built on Base UI's Avatar, so
- * server HTML holds the initials and the picture fades in once it loads.
+ * `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI
+ * agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in
+ * once it loads.
  *
  * Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
  *
@@ -327,6 +340,7 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * <Avatar name="Ada Lovelace" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
  * <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
  * <Avatar name="Design reviews" shape="square" />
+ * <Avatar name="Halden" shape="hexagon" src={agent.photoUrl} />
  * <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
  * @claim "in a color picked from the name" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
  */
@@ -355,7 +369,8 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const size = groupSize ?? checkSize(sizeProp) ?? "md";
   const shape = oneOf(shapes, shapeProp) ?? "circle";
   const color = oneOf(colors, colorProp);
-  const presence = oneOf(presences, presenceProp);
+  // An agent has no presence: a hexagon draws no dot and says none.
+  const presence = shape === "hexagon" ? undefined : oneOf(presences, presenceProp);
   const [image, setImage] = useState<string>("idle");
   useAppearanceClassNameCheck(
     "Avatar",
@@ -368,10 +383,17 @@ export function Avatar(props: AvatarProps): JSX.Element {
       ? () => [
           nameProp === undefined && ["name is missing, so screen readers hear nothing", '<Avatar name="Ada Lovelace" src={url} />'],
           !groupSize && sizeProp !== undefined && !checkSize(sizeProp) && sizeWarning("Avatar", sizeProp),
-          shapeProp !== undefined && !oneOf(shapes, shapeProp) && [`shape="${String(shapeProp)}" is not a shape; use "circle", "square"`, '<Avatar shape="square">'],
+          shapeProp !== undefined &&
+            !oneOf(shapes, shapeProp) && [
+              `shape="${String(shapeProp)}" is not a shape; use "circle", "square", "hexagon"`,
+              `<Avatar shape="${/agent|hex/i.test(String(shapeProp)) ? "hexagon" : "square"}">`,
+            ],
+          shape === "hexagon" &&
+            presenceProp !== undefined && ["an agent shows no presence, so a hexagon draws no dot", `<Avatar name="${name}" shape="hexagon" />`],
           colorProp !== undefined &&
             !oneOf(colors, colorProp) && [`color="${String(colorProp)}" is not a color; use "colorful", "brand", "neutral"`, '<Avatar color="colorful">'],
           presenceProp !== undefined &&
+            shape !== "hexagon" &&
             !presence && [
               `presence="${String(presenceProp)}" is not a presence; use ${presences.map((value) => `"${value}"`).join(", ")}`,
               '<Avatar presence="do-not-disturb" presenceLabel="Do not disturb">',
@@ -400,10 +422,11 @@ export function Avatar(props: AvatarProps): JSX.Element {
       data-image={image}
       data-shape={shape}
       data-presence={presence}
+      style={shape === "hexagon" ? { ...rest.style, clipPath: hexagon } : rest.style}
       className={cn(
         "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
         "font-medium leading-none select-none",
-        shape === "square" ? squareRadii[size] : "rounded-full",
+        shape === "square" ? squareRadii[size] : shape === "circle" && "rounded-full",
         tint,
         sizes[size],
         className,
