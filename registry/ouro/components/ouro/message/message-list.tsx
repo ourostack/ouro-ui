@@ -52,6 +52,14 @@ export interface MessageListOwnProps {
    */
   springy?: boolean | undefined;
   /**
+   * The widest the conversation gets, in CSS pixels, centred in a wider list (`960` is 60rem at
+   * the default font size), so in a wide window the user's own messages stay near the others'
+   * and the eye never crosses an empty field between them. The list itself still fills its
+   * place, so it scrolls from anywhere across it. Leave it out for messages as wide as the list.
+   * @claim "centred in a wider list" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > centres the conversation at maxWidth in a wider list, the user's own messages with it, and fills a narrower one)
+   */
+  maxWidth?: number | undefined;
+  /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
    */
@@ -491,6 +499,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
     springy = true,
+    maxWidth,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -992,7 +1001,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
         <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
-        <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">
+        <div
+          ref={contentRef}
+          data-ouro-message-list-content=""
+          className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3"
+          style={maxWidth === undefined ? undefined : { boxSizing: "border-box", maxWidth, marginInline: "auto" }}
+        >
           {children}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
