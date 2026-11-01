@@ -1,0 +1,9 @@
+[
+  {
+    "project": "ouro-webkit",
+    "file": "registry/ouro/components/ouro/calendar/calendar.test.tsx",
+    "title": "Calendar > range > picks a start and an end, in either order, and previews the range in between",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/351",
+    "owner": "arimendelow"
+  }
+]

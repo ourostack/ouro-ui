@@ -5,6 +5,8 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
+import { assemble } from "./changes.mjs";
+import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
@@ -528,10 +530,13 @@ test("Release stops when install-github, which the rules cannot require, failed 
   // The step against a stand-in gh: main's push run (5) skipped every required job, the queue's run (6) passed them.
   const check = (github, ownRun = "5") => {
     const dir = scratchDir("ouro-release-github-");
+    // The gh that scripts/quarantine.mjs runs, which cannot reach GitHub here.
+    writeFileSync(join(dir, "gh"), "#!/usr/bin/env bash\nexit 1\n");
+    chmodSync(join(dir, "gh"), 0o755);
     const stubs = `git() { case "$1" in ls-remote) return 1 ;; rev-parse) echo abc123 ;; esac; }
 gh() {
   case "$*" in
-    *release-rehearsal.yml*) echo success ;;
+    *release-rehearsal.yml*) echo "77 success" ;;
     "run list --workflow ci.yml "*"[0].databaseId // empty"*) echo "$OWN" ;;
     "run list"*) echo "$OWN 6" ;;
     *"/rules/branches/main "*) echo ci ;;
@@ -546,11 +551,13 @@ export -f gh
     return spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, GITHUB: github, OWN: ownRun, VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: join(dir, "output.txt"), GITHUB_ENV: join(dir, "env.txt"), POLL_SECONDS: "0" },
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, GITHUB: github, OWN: ownRun, VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: join(dir, "output.txt"), GITHUB_ENV: join(dir, "env.txt"), POLL_SECONDS: "0" },
     });
   };
   const green = check("success");
   assert.equal(green.status, 0, green.stdout + green.stderr);
+  // The rehearsal's retries are read from the run whose conclusion passed; an error reading them fails nothing.
+  assert.match(green.stdout, /^::warning::Could not read the jobs of the rehearsal https:\/\/github\.com\/o\/r\/actions\/runs\/77, so its retries are not shown here\.$/m);
   const red = check("failure");
   assert.equal(red.status, 1, red.stdout + red.stderr);
   assert.match(red.stdout, /::error::install-github is 'failure' in main's own CI run 5 \(abc123\), not success/);
@@ -566,6 +573,54 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   const check = release.indexOf('node scripts/published-release.mjs "$TAG" --wait');
   assert.ok(deploy > release.indexOf('gh release create "$TAG"'), "Pages is deployed after the release is created");
   assert.ok(check > deploy, "and the published pages are checked last");
+});
+
+/** Runs "Tag and publish the release" in a folder holding this registry.json and UPGRADING.md and the CHANGES.md given, with git and gh logged; returns the notes it published. */
+function publishRelease(changes) {
+  const fixture = scratchDir("ouro-release-notes-");
+  const temp = join(fixture, "runner-temp");
+  mkdirSync(temp);
+  for (const file of ["registry.json", "UPGRADING.md"]) copyFileSync(join(root, file), join(fixture, file));
+  writeFileSync(join(fixture, "CHANGES.md"), changes);
+  const calls = join(fixture, "calls.log");
+  const published = join(fixture, "published.md");
+  const stubs = `
+git() { printf 'git %s\\n' "$*" >> "${calls}"; }
+gh() {
+  printf 'gh %s\\n' "$*" >> "${calls}"
+  case "$*" in "release create "*) cp "\${@: -1}" "${published}" ;; esac
+}
+`;
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Tag and publish the release")], {
+    cwd: fixture,
+    encoding: "utf8",
+    env: { ...process.env, TAG: "v9.9.9", BRANCH: "release/v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", RUNNER_TEMP: temp },
+  });
+  return { ...result, temp, calls: existsSync(calls) ? readFileSync(calls, "utf8") : "", notes: existsSync(published) ? readFileSync(published, "utf8") : undefined };
+}
+
+test("Release's notes list the items by name and stay well under GitHub's 125,000-character limit for this registry", () => {
+  // v1.3.0's release (run 41279874378) failed at `gh release create`: with every item's description, the notes were over the limit.
+  const changes = assemble(join(root, "changes"));
+  const { status, stdout, stderr, calls, notes, temp } = publishRelease(changes);
+  assert.equal(status, 0, stdout + stderr);
+  assert.ok([...notes].length < 100_000, `the notes are ${[...notes].length} characters; keep them under 100,000 so growth fails here before GitHub refuses them`);
+  assert.match(notes, /^npx shadcn@latest add ourostack\/ouro-ui\/ouro-base#v9\.9\.9 ourostack\/ouro-ui\/dialog#v9\.9\.9$/m);
+  assert.ok(notes.includes(changes.replace(/^# /, "### ")), "the notes hold CHANGES.md");
+  assert.match(notes, /^### Upgrading from v0\.1\.0$/m);
+  assert.ok(notes.includes("https://github.com/ourostack/ouro-ui/blob/v9.9.9/registry.json"), "the notes link the tag's registry.json for the descriptions");
+  const { items } = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
+  assert.equal(notes.split("\n").at(-2), items.map(({ name }) => `\`${name}\``).join(", "));
+  assert.ok(!notes.includes(items[0].description), "an item's description is in the notes");
+  assert.deepEqual(calls.trim().split("\n"), ["git tag v9.9.9", "git push origin v9.9.9", `gh release create v9.9.9 --verify-tag --title v9.9.9 --notes-file ${join(temp, "notes.md")}`, "git push origin --delete release/v9.9.9"]);
+});
+
+test("Release tags nothing when its notes would be over GitHub's limit", () => {
+  const { status, stdout, calls, notes } = publishRelease(`# Changes in this release\n\n${"- A change.\n".repeat(12_000)}`);
+  assert.equal(status, 1);
+  assert.match(stdout, /^::error::The release notes are \d+ bytes, over GitHub's 125,000-character limit, so v9\.9\.9 is not tagged\./m);
+  assert.equal(calls, "", "it tagged, pushed or released");
+  assert.equal(notes, undefined);
 });
 
 test("every wait of Release, and of its rehearsal, on a CI run judges only the checks main's rules require, through scripts/required-ci.sh", () => {
@@ -1751,12 +1806,14 @@ test("a release's tag never stays out without main and Pages following unnoticed
     const dir = scratchDir("ouro-release-check-");
     const output = join(dir, "output.txt");
     writeFileSync(output, "");
-    // Main's rules require ci alone here; its run (42) passed it, and the rehearsal passed.
-    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$*" in "release view"*) [ "$RELEASED" = true ] ;; *release-rehearsal.yml*) echo success ;; "run list"*) echo 42 ;; *"/rules/branches/main "*) echo ci ;; "run watch"*) return 1 ;; "run view 42 --json status"*) echo completed ;; *"/runs/42/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\ninstall-github\\tsuccess\\n' ;; esac; }\nexport -f gh\n`;
+    writeFileSync(join(dir, "gh"), "#!/usr/bin/env bash\nexit 1\n");
+    chmodSync(join(dir, "gh"), 0o755);
+    // Main's rules require ci alone here; its run (42) passed it, and the rehearsal (77) passed.
+    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo abc123 ;; esac; }\ngh() { case "$*" in "release view"*) [ "$RELEASED" = true ] ;; *release-rehearsal.yml*) echo "77 success" ;; "run list"*) echo 42 ;; *"/rules/branches/main "*) echo ci ;; "run watch"*) return 1 ;; "run view 42 --json status"*) echo completed ;; *"/runs/42/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\ninstall-github\\tsuccess\\n' ;; esac; }\nexport -f gh\n`;
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
       encoding: "utf8",
       cwd: root,
-      env: { ...process.env, RELEASED: String(released), VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, "env.txt") },
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, RELEASED: String(released), VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, "env.txt") },
     });
     assert.equal(result.status, 0, result.stderr);
     return Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map((line) => line.split("=")));
@@ -1879,8 +1936,13 @@ test("each release job's time limit is at least 1.5 times what it waits for, the
   const publishedWait = 15;
   const jobs = releaseJobs();
   const limit = (job) => Number(jobs[job].match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-  // The release job: CI on the release commit, the lane, CI on the pull request that prepares main.
-  assert.ok(limit("release") >= Math.ceil(1.5 * (2 * ci + 2 * lane + namespaceChecks)), `release: timeout-minutes ${limit("release")}`);
+  // The release job: CI on the release commit, once more for a quarantined test's retry
+  // (scripts/quarantine.mjs), the lane, CI on the pull request that prepares main.
+  const retry = ci;
+  assert.ok(limit("release") >= Math.ceil(1.5 * (2 * ci + retry + 2 * lane + namespaceChecks)), `release: timeout-minutes ${limit("release")}`);
+  // The rehearsal: CI on the rehearsal commit and its retry, beside the lane, and the namespace checks.
+  const rehearse = Number(workflow("release-rehearsal.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+  assert.ok(rehearse >= Math.ceil(1.5 * (ci + retry + lane + namespaceChecks)) && rehearse <= 360, `rehearse: timeout-minutes ${rehearse}`);
   // The queue job: CI on the queue's commit, once more after a rebuild, and on main when main moved
   // past the queue's commit.
   assert.ok(limit("queue") >= 3 * ci, `queue: timeout-minutes ${limit("queue")}`);
@@ -1983,7 +2045,11 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   const rehearsal = workflow("release-rehearsal.yml");
   assert.match(rehearsal, /^run-name: Release rehearsal v\$\{\{ inputs\.version \}\}$/m);
   assert.match(rehearsal, /^ {6}BRANCH: release\/v\$\{\{ inputs\.version \}\}-rehearsal$/m);
-  assert.match(rehearsal, /^ {10}ref: main$/m);
+  // One commit end to end: the dispatched one, which Release finds the rehearsal by, never main by name.
+  assert.match(rehearsal, /^ {10}ref: \$\{\{ github\.sha \}\}$/m);
+  assert.doesNotMatch(rehearsal, /ref: main\b|origin\/main|--ref main\b/);
+  assert.match(stepScript(rehearsal, "Check the version and the tag"), /^\[ "\$\(git rev-parse HEAD\)" = "\$DISPATCHED_SHA" \] \|\| \{ [^\n]+exit 1; \}$/m);
+  assert.match(rehearsal, /^ {10}DISPATCHED_SHA: \$\{\{ github\.sha \}\}$/m);
   // The same script as release.yml's release commit, then its namespace checks.
   const push = stepScript(rehearsal, "Push the rehearsal branch");
   assert.match(push, /^git switch -c "\$BRANCH"\n(?:#.*\n)?scripts\/release-commit\.sh "\$VERSION"\ngit add CHANGES\.md\ngit commit -am "Release \$TAG \(rehearsal\)"\ngit push --force origin "\$BRANCH"$/m);
@@ -1991,20 +2057,262 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   const run = stepScript(rehearsal, "Run CI and the screen-reader lane on the rehearsal commit");
   assert.match(run, /^ci=\$\(scripts\/dispatch-required\.sh "\$BRANCH" "\$sha"\)$/m);
   assert.match(run, /^gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"$/m);
-  assert.match(run, /scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)" \$ci >\/dev\/null \|\| /);
+  assert.match(run, /^if ! scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)" \$ci >\/dev\/null; then$/m);
   assert.match(run, /gh run watch "\$sr" --exit-status/);
   // It never tags, releases, merges or writes statuses, and it always deletes its branch.
   assert.doesNotMatch(rehearsal, /git tag|gh release|gh pr|statuses|pull-requests: write/);
   assert.match(rehearsal, /^ {6}- if: always\(\)\n {8}name: Delete the rehearsal branch\n {8}run: git push origin --delete "\$BRANCH"/m);
-  assert.match(rehearsal, /^ {4}permissions:\n {6}contents: write # [^\n]+\n {6}actions: write # [^\n]+\n {4}#/m);
+  assert.match(rehearsal, /^ {4}permissions:\n {6}contents: write # [^\n]+\n {6}actions: write # [^\n]+\n {6}issues: write # [^\n]+\n {4}#/m);
   // Release refuses to cut a version without a passing rehearsal of it on main's commit.
   const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
-  assert.match(check, /gh run list --workflow release-rehearsal\.yml --commit "\$sha" --json conclusion,displayTitle/);
-  const filter = /--jq "([^"\\]*(?:\\.[^"\\]*)*)"\)/.exec(check.slice(check.indexOf("release-rehearsal.yml")))?.[1].replace(/\\"/g, '"').replace("$TAG", "v1.2.0");
+  // One call reads the newest rehearsal's id and conclusion, so both are the same run's.
+  assert.equal(check.split("--workflow release-rehearsal.yml").length, 2, "the rehearsal is read once");
+  assert.match(check, /^found=\$\(gh run list --workflow release-rehearsal\.yml --commit "\$sha" --json databaseId,conclusion,displayTitle --jq "[^\n]+"\)\nread -r rehearsed rehearsal <<<"\$found"$/m);
+  // The filter as jq gets it, after bash's double quotes.
+  const filter = /--jq "([^"\\]*(?:\\.[^"\\]*)*)"\)/.exec(check.slice(check.indexOf("release-rehearsal.yml")))?.[1].replace(/\\(["\\$`])/g, "$1").replace("$TAG", "v1.2.0");
   const conclusion = (runs) => spawnSync("jq", ["-r", filter], { input: JSON.stringify(runs), encoding: "utf8" }).stdout.trim();
-  assert.equal(conclusion([{ conclusion: "success", displayTitle: "Release rehearsal v1.2.0" }]), "success");
-  assert.equal(conclusion([{ conclusion: "failure", displayTitle: "Release rehearsal v1.2.0" }, { conclusion: "success", displayTitle: "Release rehearsal v1.2.0" }]), "failure");
-  assert.equal(conclusion([{ conclusion: "success", displayTitle: "Release rehearsal v1.1.1" }]), "null");
+  const rehearsalRun = (databaseId, result, version = "v1.2.0") => ({ databaseId, conclusion: result, displayTitle: `Release rehearsal ${version}` });
+  assert.equal(conclusion([rehearsalRun(7, "success")]), "7 success");
+  assert.equal(conclusion([rehearsalRun(8, "failure"), rehearsalRun(7, "success")]), "8 failure");
+  // In progress: the id, no conclusion; no rehearsal of this version: nothing, which reads as not run.
+  assert.equal(conclusion([rehearsalRun(9, "")]), "9");
+  assert.equal(conclusion([rehearsalRun(7, "success", "v1.1.1")]), "");
   assert.match(check, /\[ "\$rehearsal" = success \] \|\| \{ echo "::error::The release rehearsal of \$TAG on main \(\$sha\) is '\$\{rehearsal:-not run\}', not success\. Run it first: gh workflow run release-rehearsal\.yml -f version=\$VERSION"; exit 1; \}/);
   assert.ok(check.indexOf("release-rehearsal.yml") > check.indexOf('[ "$conclusion" = success ]'));
+});
+
+test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
+  const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
+  assert.deepEqual(entryProblems(entries), []);
+  for (const entry of entries) {
+    assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
+    assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
+  }
+  // Each part is required.
+  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  assert.deepEqual(entryProblems([whole]), []);
+  for (const key of ["project", "file", "title", "issue", "owner"]) {
+    const without = { ...whole };
+    delete without[key];
+    assert.equal(entryProblems([without]).length, 1, key);
+    assert.equal(entryProblems([{ ...whole, [key]: " " }]).length, 1, key);
+  }
+  assert.match(entryProblems([{ ...whole, issue: "#351" }])[0], /no issue URL/);
+  assert.deepEqual(entryProblems({}), ["the quarantine must be a JSON array of entries"]);
+});
+
+// A job's log as `gh run view --job <id> --log` prints it (job, step, timestamp), from the two
+// failures of the v1.2.15 rehearsals: CI runs 41270773113 (install (shadcn@latest, nova)) and
+// 41256825697 (browser (5/6), with the ci gate after it).
+const logLines = (job, lines) => lines.map((line) => `${job}\tUNKNOWN STEP\t2026-11-01T04:01:29.8723458Z ${line}`).join("\n");
+const calendarTitle = "Calendar > range > picks a start and an end, in either order, and previews the range in between";
+const calendarLog = logLines("install (shadcn@latest, nova)", [
+  "\x1b[31m❯\x1b[39m  ouro-webkit (webkit)  src/components/ouro/calendar/calendar.test.tsx (38 tests | 1 failed) 7350ms",
+  "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+  ` FAIL   ouro-webkit (webkit)  src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle}`,
+  "AssertionError: expected false to be true // Object.is equality",
+  " Test Files  1 failed | 372 passed (373)",
+  "      Tests  1 failed | 9828 passed | 1 expected fail | 29 skipped (9859)",
+  "##[error]Process completed with exit code 1.",
+]);
+const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
+const diveLog = logLines("browser (5/6)", [
+  ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
+  " Test Files  1 failed | 75 passed (76)",
+  "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
+  "##[error]TimeoutError: locator.click: Timeout 12185ms exceeded.",
+]);
+const calendarEntry = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", open: true };
+const diveEntry = { project: "site", file: "site/src/voyage/dive/dive.test.tsx", title: diveTitle, issue: "https://github.com/ourostack/ouro-ui/issues/2", owner: "someone", open: true };
+
+test("the quarantine reads a job's failed Vitest tests from its log, and anything else that failed", () => {
+  assert.deepEqual(failedTests(calendarLog), { tests: [{ project: "ouro-webkit", file: "src/components/ouro/calendar/calendar.test.tsx", title: calendarTitle }], failed: 1, unexplained: [] });
+  assert.deepEqual(failedTests(diveLog).tests, [{ project: "site", file: "site/src/voyage/dive/dive.test.tsx", title: diveTitle }]);
+  // gh's escaped colours too.
+  assert.equal(failedTests(calendarLog.replaceAll("\x1b[", "^[[")).tests.length, 1);
+  // A file that did not load, or an unhandled error, names no test.
+  assert.deepEqual(failedTests(logLines("j", [" FAIL   site (chromium)  site/src/a.test.tsx [ site/src/a.test.tsx ]"])).unexplained, ["FAIL   site (chromium)  site/src/a.test.tsx [ site/src/a.test.tsx ]"]);
+  assert.equal(failedTests(logLines("j", ["      Errors  1 error"])).unexplained.length, 1);
+  assert.deepEqual(failedTests(logLines("j", ["Type error: nothing failed in a test"])), { tests: [], failed: 0, unexplained: [] });
+  // The installed copy of a registry test is the same test; another project, file or title is not.
+  const installed = failedTests(calendarLog).tests[0];
+  assert.ok(names(calendarEntry, installed));
+  assert.ok(names(calendarEntry, { ...installed, file: calendarEntry.file }));
+  assert.ok(!names(calendarEntry, { ...installed, project: "ouro-chromium" }));
+  assert.ok(!names(calendarEntry, { ...installed, file: "src/components/ouro/calendar/other.test.tsx" }));
+  assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
+});
+
+test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
+  const ciYml = workflow("ci.yml");
+  // The name GitHub gave install-latest's unnamed test step in run 41270773113.
+  const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
+  const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/6)", "success"), job(5, "motion-coverage", "success")];
+  const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
+  const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
+  const dive = [job(4, "browser (5/6)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+
+  // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
+  const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
+  assert.equal(plan.retry, true, plan.problems.join("; "));
+  assert.equal(plan.retried.length, 1);
+  assert.equal(
+    record(plan.retried[0], "https://github.com/o/r/actions/runs/9"),
+    `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow. By https://github.com/o/r/actions/runs/9.`,
+  );
+  // A test that is not listed fails at once: tonight's Dive failure (fixed by #338, so not listed).
+  const unlisted = retryPlan({ runs: runWith(dive), contexts, entries: [calendarEntry] });
+  assert.equal(unlisted.retry, false);
+  assert.match(unlisted.problems.join("\n"), /site site\/src\/voyage\/dive\/dive\.test\.tsx > pressing Dive > .* is not quarantined/);
+  // Listed, it would be retried through the ci gate, whose failing step only read browser's result,
+  // and motion-coverage, skipped because ci, which it needs, failed.
+  const listed = retryPlan({ runs: runWith(dive), contexts, entries: [diveEntry] });
+  assert.equal(listed.retry, true, listed.problems.join("; "));
+  assert.equal(listed.retried.length, 1);
+  // Skipped with nothing it needs failed is not retried.
+  assert.equal(retryPlan({ runs: runWith([calendar, job(5, "motion-coverage", "skipped")]), contexts, entries: [calendarEntry] }).retry, false);
+  // The gate failing a step of its own (merged coverage), not reading a result, is not retried.
+  const coverage = [dive[0], { ...dive[1], failedSteps: ["Coverage of installed subsets"] }, dive[2]];
+  assert.equal(retryPlan({ runs: runWith(coverage), contexts, entries: [diveEntry] }).retry, false);
+  // The listed test's job must have failed in its test step alone: not also in another step, and
+  // not in a step that runs no tests.
+  const twoSteps = retryPlan({ runs: runWith([{ ...calendar, failedSteps: [latestStep, "Upload the report"] }]), contexts, entries: [calendarEntry] });
+  assert.equal(twoSteps.retry, false);
+  assert.match(twoSteps.problems.join("\n"), /failed in 2 steps \(.*\), not in its test step alone/);
+  const setup = retryPlan({ runs: runWith([{ ...calendar, failedSteps: ["Run pnpm i --frozen-lockfile"] }]), contexts, entries: [calendarEntry] });
+  assert.equal(setup.retry, false);
+  assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
+  assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
+  // A gate that read a skipped job failed on that, which no test explains.
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/6)", "skipped")]), contexts, entries: [diveEntry] });
+  assert.equal(skippedShard.retry, false);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/6\), which was skipped/);
+  // A quarantined failure beside any other failure: not retried.
+  assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
+  const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
+  assert.equal(retryPlan({ runs: runWith([calendar, build]), contexts, entries: [calendarEntry] }).retry, false);
+  // A listed test whose issue is closed is no longer quarantined.
+  assert.equal(retryPlan({ runs: runWith([calendar]), contexts, entries: [{ ...calendarEntry, open: false }] }).retry, false);
+  // A listed test that fails twice still fails: the run's second attempt is never retried.
+  const twice = retryPlan({ runs: runWith([calendar], 2), contexts, entries: [calendarEntry] });
+  assert.equal(twice.retry, false);
+  assert.match(twice.problems.join("\n"), /already on attempt 2: a quarantined test is retried only once/);
+  // The log must account for every failed test it reports, and the job must have failed, not timed out.
+  const more = { ...calendar, log: calendarLog.replace("Tests  1 failed", "Tests  2 failed") };
+  assert.equal(retryPlan({ runs: runWith([more]), contexts, entries: [calendarEntry] }).retry, false);
+  assert.equal(retryPlan({ runs: runWith([{ ...calendar, conclusion: "timed_out" }]), contexts, entries: [calendarEntry] }).retry, false);
+  // Nothing failing, nothing to retry.
+  assert.equal(retryPlan({ runs: runWith([]), contexts, entries: [calendarEntry] }).retry, false);
+  // A judged check missing from the runs is not retried.
+  assert.equal(retryPlan({ runs: runWith([calendar]), contexts: [...contexts, "lighthouse"], entries: [calendarEntry] }).retry, false);
+});
+
+test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
+  const bin = scratchDir("ouro-quarantine-");
+  const calls = join(bin, "calls.log");
+  const summary = join(bin, "summary.md");
+  const attempts = join(bin, "attempts");
+  writeFileSync(join(bin, "calendar.log"), calendarLog);
+  // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
+  // $STATE, and a rerun moves the run to attempt 2.
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":3,"name":"install (shadcn@latest, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run SHADCN_VERSION=latest scripts/install-test.sh shadcn \\"$RUNNER_TEMP/latest\\" abc"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") [ -z "$REFUSE" ] || exit 1; echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const retry = (state, refuse = "") => {
+    writeFileSync(calls, "");
+    writeFileSync(summary, "");
+    writeFileSync(attempts, "1");
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse },
+    });
+  };
+  const open = retry("OPEN");
+  assert.equal(open.status, 0, open.stdout + open.stderr);
+  const line = `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow. By https://github.com/o/r/actions/runs/9.`;
+  assert.match(open.stdout, new RegExp(`^::warning title=Quarantined test retried::${line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  assert.equal(readFileSync(summary, "utf8"), `- ${line}\n`);
+  const made = readFileSync(calls, "utf8").split("\n");
+  assert.ok(made.includes(`issue comment https://github.com/ourostack/ouro-ui/issues/351 --body ${line}`));
+  assert.equal(made.filter((call) => call.startsWith("run rerun")).length, 1);
+  // GitHub refuses the rerun: recorded as such, not as retried, nothing commented, and the caller fails.
+  const refusedRun = retry("OPEN", "yes");
+  assert.equal(refusedRun.status, 1);
+  const refusal = line.replace("Retried once, as quarantined", "Retry requested but the rerun failed");
+  assert.equal(readFileSync(summary, "utf8"), `- ${refusal}\n`);
+  assert.ok(refusedRun.stdout.includes(`::error title=Quarantined test not retried::${refusal}`));
+  assert.doesNotMatch(refusedRun.stdout, /Retried once/);
+  assert.ok(!readFileSync(calls, "utf8").includes("issue comment"));
+  // The issue closed: the test is no longer quarantined, nothing is rerun and the caller fails,
+  // and a warning asks for the stale entry's removal.
+  const closed = retry("CLOSED");
+  assert.equal(closed.status, 1);
+  assert.match(closed.stdout, /^Not retried: .*its issue is not open/m);
+  assert.ok(closed.stdout.includes(staleWarning(calendarEntry)));
+  assert.equal(readFileSync(summary, "utf8"), "");
+  assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+});
+
+test("only Release and its rehearsal retry, and only after scripts/required-ci.sh failed, judging the retry with it again", () => {
+  const users = workflows.filter(({ text }) => text.includes("quarantine.mjs")).map(({ file }) => file);
+  assert.deepEqual(users.sort(), ["release-rehearsal.yml", "release.yml"]);
+  for (const [file, step, runs] of [
+    ["release.yml", "Run CI on the release commit", "run"],
+    ["release-rehearsal.yml", "Run CI and the screen-reader lane on the rehearsal commit", "ci"],
+  ]) {
+    const script = stepScript(workflow(file), step);
+    const gate = `scripts/required-ci.sh --also "install (shadcn@latest, nova)" $${runs}`;
+    const first = script.indexOf(`if ! ${gate}`);
+    const retry = script.indexOf(`node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $${runs}`);
+    const again = script.indexOf(gate, retry);
+    assert.ok(first >= 0 && retry > first && again > retry, file);
+    assert.equal(script.split("quarantine.mjs retry").length, 2, `${file} retries once`);
+  }
+  // No test runner retries anything of its own: the quarantine is the only retry.
+  assert.doesNotMatch(readFileSync(join(root, "vitest.config.ts"), "utf8"), /\bretry:/);
+});
+
+test("a stale quarantine entry, its issue closed, gets a warning to remove it and fails nothing; Release shows the retries its rehearsal recorded", () => {
+  const bin = scratchDir("ouro-quarantine-release-");
+  const summary = join(bin, "summary.md");
+  // A stand-in gh: every issue is $STATE; rehearsal run 7 has jobs 11 and 12, and job 11 recorded
+  // $RETRIED, if anything, beside another warning, through the --jq filter quarantine.mjs gives.
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\ncase "$*" in\n  "issue view "*) [ "$STATE" = unreadable ] && exit 1; echo "$STATE" ;;\n  "api repos/o/r/actions/runs/7/jobs"*) printf '11\\n12\\n' ;;\n  "api repos/o/r/check-runs/11/annotations"*) jq -nc --arg m "$RETRIED" '[{title: "Stale quarantine entry", message: "elsewhere"}] + (if $m == "" then [] else [{title: "Quarantined test retried", message: $m}] end)' | jq -r "\${@: -1}" ;;\n  "api repos/o/r/check-runs/12/annotations"*) ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const quarantine = (args, env = {}) => {
+    writeFileSync(summary, "");
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), ...args], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, STATE: "OPEN", RETRIED: "", ...env },
+    });
+  };
+  const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
+  const open = quarantine(["stale"]);
+  assert.equal(open.status, 0);
+  assert.doesNotMatch(open.stdout, /Stale quarantine entry/);
+  const closed = quarantine(["stale"], { STATE: "CLOSED" });
+  assert.equal(closed.status, 0, "a closed issue never fails the run");
+  for (const entry of entries) assert.ok(closed.stdout.includes(staleWarning(entry)));
+  assert.equal(quarantine(["stale"], { STATE: "unreadable" }).status, 0);
+  // The rehearsal leads the release's own summary with any retry it recorded.
+  const retried = quarantine(["rehearsed", "7"], { RETRIED: "Retried once, as quarantined: the Calendar test" });
+  assert.equal(retried.status, 0);
+  assert.equal(readFileSync(summary, "utf8"), "- The rehearsal (https://github.com/o/r/actions/runs/7): Quarantined test retried: Retried once, as quarantined: the Calendar test\n");
+  assert.match(retried.stdout, /^::warning title=Rehearsal retried a quarantined test::/m);
+  assert.equal(quarantine(["rehearsed", "7"]).status, 0);
+  assert.equal(readFileSync(summary, "utf8"), "The rehearsal (https://github.com/o/r/actions/runs/7) retried no quarantined test.\n");
+  // Wired: the rehearsal warns of stale entries, Release reads its passing rehearsal's retries.
+  assert.match(workflow("release-rehearsal.yml"), /^ {8}run: node scripts\/quarantine\.mjs stale$/m);
+  const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
+  assert.ok(check.indexOf('node scripts/quarantine.mjs rehearsed "$rehearsed"') > check.indexOf('[ "$rehearsal" = success ]'));
+  assert.ok(check.indexOf('read -r rehearsed rehearsal <<<"$found"') < check.indexOf('node scripts/quarantine.mjs rehearsed "$rehearsed"'));
 });

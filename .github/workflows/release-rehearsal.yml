@@ -9,6 +9,10 @@ run-name: Release rehearsal v${{ inputs.version }}
 # release. Release refuses to cut v<version> until a rehearsal of that version has passed on
 # main's commit (release.yml, "Check the version, the tag and main's CI"), so it is part of
 # preparing every release: run it, fix what fails, run it again.
+# It rehearses one commit end to end: the one it was dispatched on (github.sha, main's head when it
+# starts), which is also the commit Release finds it by, so a merge to main mid-run changes neither
+# what it tests nor which commit its result is for. A check that failed only because of a test in
+# .github/quarantine.json is retried once, and the retry recorded (scripts/quarantine.mjs).
 on:
   workflow_dispatch:
     inputs:
@@ -25,10 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push and delete the rehearsal branch
-      actions: write # run CI and the screen-reader lane on it
+      actions: write # run CI and the screen-reader lane on it, and retry a quarantined test once
+      issues: write # record a quarantined test's retry on its issue
     # CI on the release commit, 45 minutes with the runner pool's queues, beside the screen-reader
-    # lane, and the namespace checks: 1.5 times that, as release.yml counts it.
-    timeout-minutes: 75
+    # lane, once more for a quarantined test's retry, and the namespace checks: 1.5 times that, as
+    # release.yml counts it.
+    timeout-minutes: 150
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
@@ -37,9 +43,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          # The dispatched commit, not main by name: main may move before the checkout.
+          ref: ${{ github.sha }}
       - name: Check the version and the tag
+        env:
+          DISPATCHED_SHA: ${{ github.sha }}
+          DISPATCHED_REF: ${{ github.ref }}
         run: |
+          [ "$(git rev-parse HEAD)" = "$DISPATCHED_SHA" ] || { echo "::error::The checkout is $(git rev-parse HEAD), not the dispatched commit $DISPATCHED_SHA."; exit 1; }
+          [ "$DISPATCHED_REF" = refs/heads/main ] || echo "::notice::Rehearsing $DISPATCHED_REF, not main: Release accepts this rehearsal only if main's head is $DISPATCHED_SHA."
+          echo "Rehearsed commit: $DISPATCHED_SHA ($DISPATCHED_REF when dispatched)" >> "$GITHUB_STEP_SUMMARY"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             echo "::error::$TAG is already tagged: there is nothing to rehearse."
@@ -51,6 +64,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      - name: Warn of stale quarantine entries
+        # An entry whose issue is closed no longer applies; this asks for its removal and never fails.
+        run: node scripts/quarantine.mjs stale
       - name: Push the rehearsal branch
         run: |
           git config user.name "github-actions[bot]"
@@ -84,8 +100,25 @@ jobs:
           failed=0
           # Judged on the checks main's rules require and the release-only install-latest job, as the
           # release judges its commit, not on each run's conclusion (ci-budget's).
+          # A check that failed only because of quarantined tests is retried once, recorded, and judged
+          # again (scripts/quarantine.mjs); any other failure, or a second one, stops the rehearsal.
           # shellcheck disable=SC2086 # one argument per run
-          scripts/required-ci.sh --also "install (shadcn@latest, nova)" $ci >/dev/null || { echo "::error::CI did not pass the checks main's rules require on the rehearsal commit $sha (runs $ci)"; failed=1; }
+          if ! scripts/required-ci.sh --also "install (shadcn@latest, nova)" $ci >/dev/null; then
+            # shellcheck disable=SC2086 # one argument per run
+            if node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $ci; then
+              # shellcheck disable=SC2086 # one argument per run
+              if scripts/required-ci.sh --also "install (shadcn@latest, nova)" $ci >/dev/null; then
+                echo "- After the retry, CI passed the checks main's rules require." >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "- After the retry, CI still failed." >> "$GITHUB_STEP_SUMMARY"
+                echo "::error::CI did not pass the checks main's rules require on the rehearsal commit $sha after retrying its quarantined tests once (runs $ci)"
+                failed=1
+              fi
+            else
+              echo "::error::CI did not pass the checks main's rules require on the rehearsal commit $sha (runs $ci)"
+              failed=1
+            fi
+          fi
           gh run watch "$sr" --exit-status --interval 30 >/dev/null || { echo "::error::The screen-reader lane failed on the rehearsal commit $sha: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$sr. An infrastructure failure (SR_CLASS=infrastructure in its log) can be rehearsed again."; failed=1; }
           exit "$failed"
       - if: always()

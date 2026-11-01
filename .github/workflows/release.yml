@@ -44,11 +44,12 @@ jobs:
       pull-requests: write # open, approve CI on and queue the PR that prepares main for the next release
       issues: write # report a screen-reader lane that failed twice on infrastructure (scripts/sr-infra-issue.sh)
     # Two CI runs, 45 minutes each with the runner pool's queues, on the release commit (with the
-    # shadcn@latest install, beside CI's other jobs) and on the pull request that prepares main;
-    # the screen-reader lane between them, 8 minutes, once more after an infrastructure failure;
-    # and the namespace checks, 2: 108, and 1.5 times that 162 (scripts/workflows.test.mjs, which
-    # holds the numbers). The merge queue, CI on main and Pages are later jobs with their own.
-    timeout-minutes: 165
+    # shadcn@latest install, beside CI's other jobs) and on the pull request that prepares main,
+    # and once more on the release commit for a quarantined test's retry; the screen-reader lane
+    # between them, 8 minutes, once more after an infrastructure failure; and the namespace checks,
+    # 2: 153, and 1.5 times that 230 (scripts/workflows.test.mjs, which holds the numbers). The
+    # merge queue, CI on main and Pages are later jobs with their own.
+    timeout-minutes: 230
     outputs:
       new: ${{ steps.check.outputs.new }}
       number: ${{ steps.prepare.outputs.number }}
@@ -115,8 +116,12 @@ jobs:
           # A rehearsal of this version on this commit (release-rehearsal.yml) ran the full CI and the
           # screen-reader lane on the release commit as this run will write it, so a check that fails
           # only on a release commit stops there, before anything is cut.
-          rehearsal=$(gh run list --workflow release-rehearsal.yml --commit "$sha" --json conclusion,displayTitle --jq "[.[] | select(.displayTitle == \"Release rehearsal $TAG\")][0].conclusion")
+          # The newest such run's id and conclusion, read together so both are the same run's.
+          found=$(gh run list --workflow release-rehearsal.yml --commit "$sha" --json databaseId,conclusion,displayTitle --jq "[.[] | select(.displayTitle == \"Release rehearsal $TAG\")][0] // {} | \"\\(.databaseId // \"\") \\(.conclusion // \"\")\"")
+          read -r rehearsed rehearsal <<<"$found"
           [ "$rehearsal" = success ] || { echo "::error::The release rehearsal of $TAG on main ($sha) is '${rehearsal:-not run}', not success. Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
+          # What the rehearsal passed only on a quarantined test's retry (scripts/quarantine.mjs), shown here too.
+          node scripts/quarantine.mjs rehearsed "$rehearsed"
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'
@@ -172,8 +177,17 @@ jobs:
           # checks and on the release-only gates the rules cannot require, as main never runs them:
           # ci.yml's install-latest job. ci-budget does not decide.
           run=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
+          # A check that failed only because of quarantined tests (.github/quarantine.json) is retried
+          # once, recorded, and judged again (scripts/quarantine.mjs); any other failure, or a second
+          # one, stops the release.
           # shellcheck disable=SC2086 # one argument per run
-          scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run
+          if ! scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run; then
+            # shellcheck disable=SC2086 # one argument per run
+            node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $run || exit 1
+            # shellcheck disable=SC2086 # one argument per run
+            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run || { echo "- After the retry, CI still failed." >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+            echo "- After the retry, CI passed the checks main's rules require." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - if: steps.check.outputs.new == 'true'
         name: Pass the screen-reader lane on the release commit
         run: |
@@ -218,8 +232,8 @@ jobs:
       - if: steps.check.outputs.new == 'true'
         name: Tag and publish the release
         run: |
-          git tag "$TAG"
-          git push origin "$TAG"
+          # The notes are assembled and measured before the tag exists: GitHub refuses a release
+          # body over 125,000 characters, and a tag pushed without its release blocks a rerun.
           {
             echo "Install an item at this release; its Ouro dependencies install from the same tag. In an app with Tailwind CSS v4 and an \"@/*\" path alias, run shadcn's init once first, with the Base UI base:"
             echo
@@ -251,10 +265,19 @@ jobs:
             echo 'npx shadcn@latest add @ouro/ouro-base @ouro/dialog'
             echo '```'
             echo
-            echo "Items:"
+            # By name only: with every description the list alone outgrew GitHub's limit.
+            echo "Items, by name. The [docs](https://ui.ouro.bot/docs/) describe each component, and the tag's [registry.json](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/registry.json) holds every item's description:"
             echo
-            jq -r '.items[] | "- `\(.name)`: \(.description)"' registry.json
+            jq -r '[.items[] | "`\(.name)`"] | join(", ")' registry.json
           } > "$RUNNER_TEMP/notes.md"
+          # Bytes, never fewer than characters.
+          size=$(( $(wc -c < "$RUNNER_TEMP/notes.md") ))
+          if [ "$size" -gt 125000 ]; then
+            echo "::error::The release notes are $size bytes, over GitHub's 125,000-character limit, so $TAG is not tagged. Shorten what release.yml prints into them."
+            exit 1
+          fi
+          git tag "$TAG"
+          git push origin "$TAG"
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
           git push origin --delete "$BRANCH"
       - if: steps.check.outputs.new == 'true'
