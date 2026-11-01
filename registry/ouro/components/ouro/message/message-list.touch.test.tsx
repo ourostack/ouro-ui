@@ -45,7 +45,7 @@ function Chat({ items }: { items: string[] }) {
 
 const distanceFromBottom = (scroller: HTMLElement) => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
 
-/** Waits until the scroll position reads the same across two frames (touch scrolling coasts). */
+/** Waits until the scroll position reads the same across two frames (touch scrolling coasts), and no message springs. */
 async function settle(scroller: HTMLElement) {
   let last = -1;
   await expect
@@ -56,6 +56,8 @@ async function settle(scroller: HTMLElement) {
       return same;
     })
     .toBe(true);
+  // And the messages have come to rest from the springs, so where each is drawn is where it is laid out.
+  await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
 }
 
 /** A real one-finger swipe on the list: positive `dy` drags the content down, toward older messages. */

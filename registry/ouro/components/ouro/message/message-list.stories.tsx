@@ -207,3 +207,23 @@ export const Keyboard: Story = {
   args: { label: "Launch channel", children: null },
   render: () => <KeyboardChannel />,
 };
+
+const longChat: Item[] = Array.from({ length: 60 }, (_, index) => ({
+  id: index,
+  role: index % 3 === 1 ? "user" : "assistant",
+  text: index % 3 === 1 ? questions[index % questions.length]! : answers[index % answers.length]!,
+}));
+
+/**
+ * A long conversation to scroll. The messages trail the scroll a little and catch up on a spring;
+ * fling it, or keep scrolling past either end, and they spread apart and settle back. Nothing
+ * moves with reduced motion.
+ */
+export const Springs: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => (
+    <Surface>
+      <ChatHistory items={longChat} />
+    </Surface>
+  ),
+};

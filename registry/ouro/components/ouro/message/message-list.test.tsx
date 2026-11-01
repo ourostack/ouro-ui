@@ -88,7 +88,7 @@ async function wheel(scroller: HTMLElement, deltaY: number) {
   await settle(scroller);
 }
 
-/** Waits until the scroll position reads the same across two frames. */
+/** Waits until the scroll position reads the same across two frames, and no message springs. */
 async function settle(scroller: HTMLElement) {
   let last = -1;
   await expect
@@ -99,6 +99,8 @@ async function settle(scroller: HTMLElement) {
       return same;
     })
     .toBe(true);
+  // And the messages have come to rest from the springs, so where each is drawn is where it is laid out.
+  await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
 }
 
 beforeEach(() => {
