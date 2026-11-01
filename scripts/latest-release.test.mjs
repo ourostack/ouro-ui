@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { unpinnedAddresses } from "./addresses.mjs";
+import { uncommitted } from "./generated-files.mjs";
 import { fillPlaceholder, latestRelease, PLACEHOLDER, releaseMismatches, withRelease } from "./latest-release.mjs";
 import { scratchDir } from "./scratch.mjs";
 
@@ -100,7 +101,11 @@ test("the release commit names only its own tag: release.yml's release-branch co
   // The release commit holds this release's changes, assembled from changes/*.md.
   assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^# Changes in this release\n\n- [^\n]*\n/);
   assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^- A change for this test's release\.$/m);
-  assert.equal(readFileSync(join(bin, "calls.log"), "utf8"), "add CHANGES.md\n");
+  // The generated files main does not commit are staged for the tag, written for this release.
+  // (The generators also ask git which of them it tracks: the stand-in answers none, as main does.)
+  const adds = readFileSync(join(bin, "calls.log"), "utf8").split("\n").filter((call) => call.startsWith("add "));
+  assert.deepEqual(adds, [`add --force -- ${uncommitted.join(" ")}`, "add CHANGES.md"]);
+  for (const path of uncommitted) assert.ok(existsSync(join(copy, path)), `the release commit has no ${path}`);
   assert.equal(latestRelease(copy), "v9.9.9");
   const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", "registry/ouro/lib/ouro/dev.ts", "registry/ouro/lib/ouro/dev.test.ts", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
   const stale = docs.flatMap((path) => releaseMismatches(readFileSync(join(copy, path), "utf8"), "v9.9.9").map((problem) => `${path}:${problem}`));

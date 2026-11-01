@@ -268,6 +268,57 @@ for (const [event, ref, expected] of [
   });
 }
 
+test("install-github checks the newest release with that release's own harness: its dependencies, fixture app, shadcn pin and runtime checks", () => {
+  // A stand-in release tree, served by a stand-in git's `archive`, and stand-ins for npm and npx.
+  const tag = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
+  const tree = scratchDir("ouro-tag-");
+  mkdirSync(join(tree, "scripts"), { recursive: true });
+  mkdirSync(join(tree, "test/install-fixture"), { recursive: true });
+  // The tag's install-test.sh: its pins and its runtime_only, which install-github runs as written.
+  writeFileSync(
+    join(tree, "scripts/install-test.sh"),
+    [
+      "shadcn=(npx --yes shadcn@9.8.7)",
+      "vitest=(npx --yes vitest@9.8.6)",
+      "runtime_only() {",
+      '  node "$root/scripts/install-check.mjs" "$app" "$1" runtime',
+      '  "${vitest[@]}" run --passWithNoTests',
+      "}",
+      "echo 'the rest of the tag's script never runs'; exit 9",
+      "",
+    ].join("\n"),
+  );
+  writeFileSync(join(tree, "scripts/install-check.mjs"), 'import { appendFileSync } from "node:fs";\nappendFileSync(process.env.CALLS, `tag check ${process.argv.slice(2).join(" ")}\\n`);\n');
+  writeFileSync(join(tree, "test/install-fixture/from-the-tag.txt"), "the tag's fixture\n");
+  writeFileSync(join(tree, "registry.json"), JSON.stringify({ items: [{ name: "dialog", type: "registry:ui" }, { name: "dialog-tests", type: "registry:component" }] }));
+  const bin = scratchDir("ouro-install-bin-");
+  const calls = join(bin, "calls.log");
+  const stub = (name, body) => {
+    writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`);
+    chmodSync(join(bin, name), 0o755);
+  };
+  stub("git", `case "$*" in *" archive "*) tar -C "${tree}" -cf - . ;; *"rev-parse HEAD"*) echo abc123 ;; *) exit 0 ;; esac`);
+  stub("npm", `echo "npm $*" >> "${calls}"`);
+  stub("pnpm", `echo "pnpm $* in $(basename "$PWD")" >> "${calls}"`);
+  stub("npx", `echo "npx $*" >> "${calls}"`);
+  const app = join(scratchDir("ouro-install-app-"), "app");
+  const result = spawnSync("bash", [join(root, "scripts/install-test.sh"), "github", app], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CALLS: calls } });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const log = readFileSync(calls, "utf8").split("\n").filter(Boolean);
+  assert.ok(existsSync(join(app, "from-the-tag.txt")), "the fixture app is the tag's");
+  assert.ok(!existsSync(join(app, "package.json")), "main's fixture app was copied in");
+  assert.deepEqual(log, [
+    "pnpm install --frozen-lockfile --ignore-scripts in tag",
+    "npm install --no-audit --no-fund",
+    "npx --yes shadcn@9.8.7 init --base base --preset nova --yes --no-monorepo",
+    `npx --yes shadcn@9.8.7 add --yes ourostack/ouro-ui/ouro-base#${tag} ourostack/ouro-ui/dialog#${tag}`,
+    "npx tsc -b",
+    "npx vite build",
+    `tag check ${app} shadcn runtime`,
+    "npx --yes vitest@9.8.6 run --passWithNoTests",
+  ]);
+});
+
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
   const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
