@@ -279,6 +279,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The content's height when the anchors were taken. A scroll event that finds it changed came
     // after messages came, went or grew, and before the resize observer has kept the reader's place.
     let height = 0;
+    // The scroll position then: the reader's scrolling since is what the correction leaves alone.
+    let taken = 0;
     const atOf = (node: Element) => node.getBoundingClientRect().top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
@@ -291,13 +293,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const below = shown.filter((message) => message.getBoundingClientRect().top >= view.top);
       anchors = (below.length > 0 ? below : shown).map((node) => ({ node, at: atOf(node) }));
       height = content.getBoundingClientRect().height;
+      taken = scroller.scrollTop;
     };
     toBottom();
     keepAnchor();
     const follow = new ResizeObserver(() => {
       const anchor = anchors.find(({ node }) => node.isConnected);
       if (pinned.current) toBottom();
-      else if (anchor && getComputedStyle(scroller).overflowAnchor !== "auto") {
+      // A scroll of the list's height or more since (to the top, to a message far off) set its own place, and the held message has left the view.
+      // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
+      else if (anchor && Math.abs(scroller.scrollTop - taken) < scroller.clientHeight && getComputedStyle(scroller).overflowAnchor !== "auto") {
         const moved = atOf(anchor.node) - anchor.at;
         if (Math.abs(moved) >= 0.5) {
           scroller.scrollTop += moved;
