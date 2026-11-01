@@ -78,8 +78,12 @@ const items = '[data-ouro="message"], [data-ouro-message-list-item]';
 const tabbableSelector =
   'a[href], area[href], button, input:not([type="hidden"]), select, textarea, iframe, summary, audio[controls], video[controls], [tabindex], [contenteditable]:not([contenteditable="false"])';
 
-/** Focus guards: the focusable sentinels a popup puts around its trigger, hidden from screen readers. */
-const guards = '[data-base-ui-focus-guard], [aria-hidden="true"]';
+/**
+ * Focus guards: the hidden sentinels an open menu puts around its button, in the Tab order. A guard
+ * closes the menu as it takes focus and sends focus back the way it came, so Tab onto one from the
+ * message would land on the message again.
+ */
+const guards = '[data-base-ui-focus-guard][tabindex="0"], [data-floating-ui-focus-guard][tabindex="0"]';
 
 /** The elements under `root` that Tab stops on, in document order. */
 function tabbables(root: Element): HTMLElement[] {
@@ -794,12 +798,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       reveal(item);
     };
     moveTo.current = focusOn;
-    // What Tab stops on in the list: all but the controls of the messages that are not current, and
-    // the focus guards an open menu puts around its button. A guard closes the menu as it takes focus
-    // and sends focus back the way it came, so Tab onto one from the message would land on the message again.
+    // What Tab stops on in the list: all but the controls of the messages that are not current.
     const stops = () => {
       const list = topItems(content);
-      return tabbables(scroller).filter((element) => [null, current].includes(itemOf(element, list)) && !element.matches(guards));
+      return tabbables(scroller).filter((element) => [null, current].includes(itemOf(element, list)));
     };
 
     const place = (list: HTMLElement[]) => {
@@ -810,6 +812,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // After React's commit, so it reads no layout unless the Tab stop went: reading where messages
     // are here would lay the page out before the browser does, at every new message.
     const sync = (changed: boolean) => {
+      // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
+      // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
+      for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
       if (focused?.isConnected === false && doc.activeElement === doc.body) {
         focused = null;
         const left = topItems(content);
