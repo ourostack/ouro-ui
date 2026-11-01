@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState, type ReactNode, type SVGProps } from "react";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import { composerShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -383,6 +384,7 @@ function QuotedReply() {
 
 function LongMessage() {
   const [messages, setMessages] = useState<string[]>([]);
+  const editor = useRef<ComposerEditor>(null);
   return (
     <Surface>
       <Sent messages={messages} />
@@ -390,6 +392,8 @@ function LongMessage() {
         label="New post in Bakers"
         placeholder="Start a post"
         defaultExpanded
+        formatting
+        editorRef={editor}
         defaultValue={"Proofing times for Saturday's class:\nRye, three hours at room temperature.\nWhite, overnight in the fridge."}
         description="Ctrl+Enter to send"
         toolbar={
@@ -397,9 +401,9 @@ function LongMessage() {
             label="Formatting"
             size="sm"
             items={[
-              { type: "toggle", label: "Bold", icon: BoldIcon, hideLabel: true },
-              { type: "toggle", label: "Italic", icon: ItalicIcon, hideLabel: true },
-              { type: "toggle", label: "Bulleted list", icon: ListIcon, hideLabel: true },
+              { label: "Bold", icon: BoldIcon, hideLabel: true, shortcut: composerShortcuts.bold, onClick: () => editor.current?.format("bold") },
+              { label: "Italic", icon: ItalicIcon, hideLabel: true, shortcut: composerShortcuts.italic, onClick: () => editor.current?.format("italic") },
+              { label: "Bulleted list", icon: ListIcon, hideLabel: true, onClick: () => editor.current?.format("bullets") },
             ]}
           />
         }
@@ -420,9 +424,11 @@ export const Quoting: Story = {
 };
 
 /**
- * A long message (`defaultExpanded`): the expand button, first among the actions, opens a taller
- * box with the formatting bar, where Enter starts a new line and Ctrl+Enter (Command+Enter on a
- * Mac) sends. Escape, or the button again, brings back the one-line box with the same text.
+ * A long message (`defaultExpanded`): the expand button, first among the actions, or ⌘⇧X, opens a
+ * taller box with the formatting bar, where Enter starts a new line and Ctrl+Enter (Command+Enter
+ * on a Mac) sends. Escape, or the button again, brings back the one-line box with the same text.
+ * `formatting` takes Teams' keys (⌘B, ⌘I, ⌘U, ⌘⌥X, ⌘⇧C), the bar formats through `editorRef`
+ * and its tooltips show the keys, and Undo takes each change back.
  */
 export const Expanded: Story = {
   parameters: { screenshot: { name: "composer-expanded" } },

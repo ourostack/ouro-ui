@@ -6,7 +6,8 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Composer, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
+import { composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
@@ -958,7 +959,8 @@ describe("Composer expanded", () => {
     body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
     await userEvent.click(expandButton()!);
-    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
+    // From the full height, a 10 s change would take 5 s to pass halfway; from the height it shows, it is below at once.
+    await expect.poll(() => body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
     await expect.poll(() => heights(body)).toEqual(["height"]);
     await act(async () => body.getAnimations().forEach((animation) => animation.finish()));
     await expect.poll(settled).toBe(true);
@@ -985,6 +987,270 @@ describe("Composer expanded", () => {
     await userEvent.click(expandButton()!);
     expect(body.getAnimations()).toEqual([]);
     expect(body.style.height).toBe("");
+  });
+});
+
+/** The platform's command key, as userEvent names it. */
+const mod = () => (isApple() ? "Meta" : "Control");
+/** Presses a shortcut, `mod` and the other modifiers held: `press("shift", "x")`. */
+async function press(...keys: string[]) {
+  const held = [mod(), ...keys.slice(0, -1).map((key) => ({ shift: "Shift", alt: "Alt" })[key]!)];
+  await userEvent.keyboard(`${held.map((key) => `{${key}>}`).join("")}${keys.at(-1)}${held.reverse().map((key) => `{/${key}}`).join("")}`);
+}
+const undo = () => act(async () => void document.execCommand("undo"));
+/** WebKit (Safari) can join edits made in a row into one Undo step, as it joins typing (on macOS it does, on Linux not always); Chromium keeps each its own. */
+const webkit = () => !/Chrome\//.test(navigator.userAgent);
+const redo = () => act(async () => void document.execCommand("redo"));
+/** The text with the selection drawn in brackets. */
+const marked = (textarea: HTMLTextAreaElement) => {
+  const { value, selectionStart: start, selectionEnd: end } = textarea;
+  return `${value.slice(0, start)}[${value.slice(start, end)}]${value.slice(end)}`;
+};
+/** A change from formatEdit, applied, with the selection in brackets. */
+const edited = (value: string, start: number, end: number, kind: Parameters<typeof formatEdit>[3]) => {
+  const change = formatEdit(value, start, end, kind);
+  const next = value.slice(0, change.from) + change.text + value.slice(change.to);
+  return `${next.slice(0, change.start)}[${next.slice(change.start, change.end)}]${next.slice(change.end)}`;
+};
+
+describe("Composer formatting", () => {
+  it("applies Teams' formatting keys, and takes each back with Undo and gives it again with Redo", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<Composer label="Reply" formatting defaultValue="Ship it today" onValueChange={onValueChange} onSend={() => {}} />);
+    textarea.focus();
+    // Selects two characters from `at` as a person does, with Shift and the arrow keys.
+    const select = async (at: number) => {
+      textarea.setSelectionRange(at, at);
+      await userEvent.keyboard("{Shift>}{ArrowRight}{ArrowRight}{/Shift}");
+    };
+    let before = "";
+    for (const [keys, mark] of [
+      [["b"], "**"],
+      [["i"], "_"],
+      [["u"], "++"],
+      [["alt", "x"], "~~"],
+      [["shift", "c"], "`"],
+    ] as const) {
+      await select(5);
+      await press(...keys);
+      expect(marked(textarea), mark).toBe(`Ship ${mark}[it]${mark} today`);
+      expect(onValueChange).toHaveBeenLastCalledWith(`Ship ${mark}it${mark} today`);
+      await undo();
+      // WebKit may take back the last key's change with the one before it, which put the text back to plain.
+      expect(webkit() && before ? ["Ship it today", `Ship ${before}it${before} today`] : ["Ship it today"], mark).toContain(textarea.value);
+      await redo();
+      expect(textarea.value, mark).toBe(`Ship ${mark}it${mark} today`);
+      // The same key again takes the mark away.
+      await select(5 + mark.length);
+      await press(...keys);
+      expect(marked(textarea), mark).toBe("Ship [it] today");
+      before = mark;
+    }
+  });
+
+  it("leaves the keys to the browser without formatting, and leaves other modifiers alone", async () => {
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultValue="Ship it" onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(0, 4);
+    await press("b");
+    expect(textarea.value).toBe("Ship it");
+    await rerender(<Composer label="Reply" formatting defaultValue="Ship it" onSend={() => {}} />);
+    await press("shift", "b");
+    await press("alt", "b");
+    expect(textarea.value).toBe("Ship it");
+  });
+
+  it("formats and inserts from editorRef, each a step that Undo takes back", async () => {
+    const editor = createRef<ComposerEditor>();
+    const { textarea, host } = await render(
+      <>
+        <button type="button" data-test-harness="">
+          Format
+        </button>
+        <Composer label="Reply" editorRef={editor} defaultValue={"eggs\nflour"} onSend={() => {}} />
+      </>,
+    );
+    // As from a formatting bar: focus is on its button when the format is applied.
+    const fromBar = async (change: () => void) => {
+      host.querySelector("button")!.focus();
+      await act(async () => change());
+    };
+    textarea.setSelectionRange(0, 10);
+    await fromBar(() => editor.current!.format("bullets"));
+    expect(marked(textarea)).toBe("[- eggs\n- flour]");
+    expect(document.activeElement).toBe(textarea);
+    await fromBar(() => editor.current!.format("numbers"));
+    expect(marked(textarea)).toBe("[1. eggs\n2. flour]");
+    await undo();
+    // WebKit may take back both formats in one step.
+    expect(webkit() ? ["- eggs\n- flour", "eggs\nflour"] : ["- eggs\n- flour"]).toContain(textarea.value);
+    if (textarea.value !== "eggs\nflour") await undo();
+    expect(textarea.value).toBe("eggs\nflour");
+    textarea.setSelectionRange(4, 4);
+    await fromBar(() => editor.current!.insert(" 🎉"));
+    expect(marked(textarea)).toBe("eggs 🎉[]\nflour");
+    await undo();
+    expect(textarea.value).toBe("eggs\nflour");
+  });
+
+  it("puts a paste through pasteText, as one step that Undo takes back", async () => {
+    const pasteText = vi.fn((data: DataTransfer) => (data.getData("text/html") ? "**Saturday**" : undefined));
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultValue="See you " pasteText={pasteText} onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(8, 8);
+    const paste = (type: string) => {
+      const data = new DataTransfer();
+      data.setData(type, "Saturday");
+      const event = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
+      textarea.dispatchEvent(event);
+      return event;
+    };
+    let event!: ClipboardEvent;
+    await act(async () => void (event = paste("text/html")));
+    expect(event.defaultPrevented).toBe(true);
+    expect(textarea.value).toBe("See you **Saturday**");
+    await undo();
+    expect(textarea.value).toBe("See you ");
+    // Plain text is the browser's own paste.
+    await act(async () => void (event = paste("text/plain")));
+    expect(event.defaultPrevented).toBe(false);
+    // An app's onPaste that takes the paste comes first.
+    await rerender(<Composer label="Reply" defaultValue="See you " pasteText={pasteText} onPaste={(paste) => paste.preventDefault()} onSend={() => {}} />);
+    pasteText.mockClear();
+    await act(async () => void paste("text/html"));
+    expect(pasteText).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("See you ");
+    // Without pasteText, every paste is the browser's own.
+    await rerender(<Composer label="Reply" defaultValue="See you " onSend={() => {}} />);
+    await act(async () => void (event = paste("text/html")));
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("changes nothing in a read-only box", async () => {
+    const editor = createRef<ComposerEditor>();
+    const { textarea } = await render(<Composer label="Reply" formatting readOnly editorRef={editor} defaultValue="Ship it" onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(0, 4);
+    await press("b");
+    await act(async () => editor.current!.insert("x"));
+    expect(textarea.value).toBe("Ship it");
+  });
+
+  it("expands and collapses on Command+Shift+X, and shows the key in the expand button's tooltip", async () => {
+    const prevented: boolean[] = [];
+    const { root, textarea } = await render(
+      <div onKeyDown={(event) => event.code === "KeyX" && prevented.push(event.defaultPrevented)}>
+        <Composer label="Reply" defaultExpanded={false} formatting onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    await press("shift", "x");
+    expect(prevented).toEqual([true]);
+    expect(root.hasAttribute("data-expanded")).toBe(true);
+    await press("shift", "x");
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    // A format's key is the composer's too.
+    await press("alt", "x");
+    expect(prevented).toEqual([true, true, true]);
+    const button = expandButton()!;
+    expect(button.getAttribute("aria-keyshortcuts")).toContain("Shift+X");
+    await pressTab();
+    expect(document.activeElement).toBe(button);
+    const tooltip = () => document.querySelector('[data-ouro="tooltip"]');
+    await expect.poll(() => tooltip()?.textContent?.startsWith("Expand")).toBe(true);
+    expect(tooltip()!.querySelector('[data-ouro="kbd"]')).not.toBeNull();
+    // A composer that does not expand leaves the key alone.
+    const plain = await render(<Composer label="Note" defaultValue="x" onSend={() => {}} />);
+    plain.textarea.focus();
+    await press("shift", "x");
+    expect(plain.root.hasAttribute("data-expanded")).toBe(false);
+    expect(plain.textarea.value).toBe("x");
+  });
+
+  it("lists the keys for a toolbar's tooltips, and reads a press only with exactly its modifiers", () => {
+    expect(composerShortcuts).toEqual({ bold: ["mod", "b"], italic: ["mod", "i"], underline: ["mod", "u"], strike: ["mod", "alt", "x"], code: ["mod", "shift", "c"], expand: ["mod", "shift", "x"] });
+    const key = (code: string, held: Partial<Record<"metaKey" | "ctrlKey" | "altKey" | "shiftKey", boolean>>) => ({ code, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...held });
+    expect(pressed(key("KeyB", { metaKey: true }), ["mod", "b"], true)).toBe(true);
+    expect(pressed(key("KeyB", { ctrlKey: true }), ["mod", "b"], true)).toBe(false);
+    expect(pressed(key("KeyB", { ctrlKey: true }), ["mod", "b"], false)).toBe(true);
+    expect(pressed(key("KeyB", { metaKey: true }), ["mod", "b"], false)).toBe(false);
+    expect(pressed(key("KeyX", { metaKey: true, altKey: true }), ["mod", "alt", "x"], true)).toBe(true);
+    expect(pressed(key("KeyX", { metaKey: true }), ["mod", "alt", "x"], true)).toBe(false);
+    expect(pressed(key("KeyC", { metaKey: true, shiftKey: true }), ["mod", "shift", "c"], true)).toBe(true);
+    expect(pressed(key("KeyC", { metaKey: true }), ["mod", "shift", "c"], true)).toBe(false);
+    expect(pressed(key("KeyV", { metaKey: true, shiftKey: true }), ["mod", "shift", "c"], true)).toBe(false);
+    // The letter alone, or with both Command and Ctrl, is no shortcut.
+    expect(pressed(key("KeyB", {}), ["mod", "b"], true)).toBe(false);
+    expect(pressed(key("KeyB", { metaKey: true, ctrlKey: true }), ["mod", "b"], true)).toBe(false);
+    expect(pressed(key("KeyB", { metaKey: true, ctrlKey: true }), ["mod", "b"], false)).toBe(false);
+  });
+
+  it("reads the platform from userAgentData where the browser has it, and from navigator.platform where not", () => {
+    // Own properties over the prototype's getters; deleting them brings the browser's back.
+    const set = (name: "userAgentData" | "platform", value: unknown) => Object.defineProperty(navigator, name, { value, configurable: true });
+    try {
+      set("platform", "Linux x86_64");
+      set("userAgentData", { platform: "macOS" });
+      expect(isApple()).toBe(true);
+      set("platform", "MacIntel");
+      set("userAgentData", { platform: "Windows" });
+      expect(isApple()).toBe(false);
+      set("userAgentData", undefined);
+      expect(isApple()).toBe(true);
+      set("platform", "Win32");
+      expect(isApple()).toBe(false);
+    } finally {
+      delete (navigator as { userAgentData?: unknown }).userAgentData;
+      delete (navigator as { platform?: unknown }).platform;
+    }
+  });
+
+  it("wraps the selection in marks, with spaces outside them, or puts a pair at the caret", () => {
+    expect(edited("Ship it today", 4, 8, "bold")).toBe("Ship **[it]** today");
+    expect(edited("Ship it today", 7, 7, "italic")).toBe("Ship it_[]_ today");
+    expect(edited("Ship   today", 4, 7, "strike")).toBe("Ship   ~~[]~~today");
+    expect(edited("it", 0, 2, "code")).toBe("`[it]`");
+  });
+
+  it("takes marks away from around the selection or from inside it", () => {
+    expect(edited("Ship **it** today", 7, 9, "bold")).toBe("Ship [it] today");
+    expect(edited("Ship **it** today", 5, 11, "bold")).toBe("Ship [it] today");
+    // A mark on one side only is no pair: the selection is wrapped.
+    expect(edited("**it", 2, 4, "bold")).toBe("****[it]**");
+    // Marks inside need something between them.
+    expect(edited("Ship **** today", 5, 9, "bold")).toBe("Ship **[****]** today");
+    expect(edited("Ship it** today", 5, 7, "bold")).toBe("Ship **[it]**** today");
+    expect(edited("**its", 0, 5, "bold")).toBe("**[**its]**");
+    expect(edited("its**", 0, 5, "bold")).toBe("**[its**]**");
+  });
+
+  it("marks the selected lines as a list or quote, numbering them, and takes the markers away when every line has one", () => {
+    expect(edited("eggs\n\nflour", 0, 11, "numbers")).toBe("[1. eggs\n\n2. flour]");
+    expect(edited("- eggs\nflour", 3, 9, "numbers")).toBe("[1. eggs\n2. flour]");
+    expect(edited("> eggs\n\n> flour", 0, 15, "quote")).toBe("[eggs\n\nflour]");
+    expect(edited("1. eggs\n2. flour", 0, 16, "numbers")).toBe("[eggs\nflour]");
+    expect(edited("Buy:\neggs\nmilk", 6, 6, "bullets")).toBe("Buy:\n[- eggs]\nmilk");
+    // A selection that ends just after a line break ends on the line before it.
+    expect(edited("eggs\nmilk", 0, 5, "quote")).toBe("[> eggs]\nmilk");
+    expect(edited("", 0, 0, "bullets")).toBe("[- ]");
+    expect(edited("\n", 0, 0, "bullets")).toBe("[- ]\n");
+    // Another kind's marker at the line's start gives way, whatever its number; a dash inside the line stays.
+    expect(edited("1. eggs\n10. flour", 0, 17, "bullets")).toBe("[- eggs\n- flour]");
+    expect(edited("eggs - flour", 0, 12, "bullets")).toBe("[- eggs - flour]");
+    // The caret at a line's start marks that line.
+    expect(edited("eggs\nmilk", 5, 5, "bullets")).toBe("eggs\n[- milk]");
+    // Some lines marked is not every line: all get the marker.
+    expect(edited("> eggs\nflour", 0, 12, "quote")).toBe("[> eggs\n> flour]");
+    // A line of spaces is blank: it gets no marker, and does not stop the others' markers going.
+    expect(edited("eggs\n  \nflour", 0, 13, "bullets")).toBe("[- eggs\n  \n- flour]");
+    expect(edited("- eggs\n  \n- flour", 0, 17, "bullets")).toBe("[eggs\n  \nflour]");
+  });
+
+  it("fences the selection as a code block on lines of its own", () => {
+    expect(edited("Run npm test now", 4, 12, "codeBlock")).toBe("Run \n```\n[npm test]\n```\n now");
+    expect(edited("npm test", 0, 8, "codeBlock")).toBe("```\n[npm test]\n```");
+    expect(edited("a\nb\nc", 2, 3, "codeBlock")).toBe("a\n```\n[b]\n```\nc");
+    expect(edited("a\nbc", 2, 4, "codeBlock")).toBe("a\n```\n[bc]\n```");
   });
 });
 

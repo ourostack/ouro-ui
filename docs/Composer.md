@@ -53,10 +53,12 @@ Type: `ComposerProps`.
 | `defaultValue` | `string` |  | The starting text, for an uncontrolled composer, which clears itself after a send. |
 | `description` | `ReactNode` |  | A quiet line under the box, read as the text's description: what the marks mean, a character count. |
 | `disabled` | `boolean` |  | Disables the whole composer: the box and the send button. |
-| `expanded` | `boolean` |  | The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`, growing to `expandedMaxRows`), with the `toolbar`, and Enter starts a new line while Ctrl+Enter (Command+Enter on a Mac) or the send button sends, whatever `sendOn` says. It is the same text either way, and the caret stays where it was. Escape collapses it, and that Escape goes no further. The box grows and shrinks in height over a moment, and at once with reduced motion. Controlled; pair it with `onExpandedChange`, or use `defaultExpanded`. |
+| `editorRef` | `Ref<ComposerEditor>` |  | A handle that formats the text and inserts into it, for a formatting bar, an emoji button or a link dialog. Every change it makes, a key's format and a `pasteText` paste go through the browser's own editing, as typing does, so Undo (⌘Z) and Redo (⌘⇧Z) step through them. WebKit (Safari) can join changes made in a row into one step, as it joins typing. |
+| `expanded` | `boolean` |  | The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`, growing to `expandedMaxRows`), with the `toolbar`, and Enter starts a new line while Ctrl+Enter (Command+Enter on a Mac) or the send button sends, whatever `sendOn` says. It is the same text either way, and the caret stays where it was. ⌘⇧X (Ctrl+Shift+X off Apple platforms) expands and collapses it, as in Teams, and the expand button's tooltip shows the key. Escape collapses it, and that Escape goes no further. The box grows and shrinks in height over a moment, and at once with reduced motion. Controlled; pair it with `onExpandedChange`, or use `defaultExpanded`. |
 | `expandedMaxRows` | `number` | `20` | Lines the expanded box grows to before it scrolls. |
 | `expandedRows` | `number` | `6` | Lines the expanded box starts with. |
 | `expandLabel` | `string` | `"Expand"` | The expand button's name, which its tooltip shows too. |
+| `formatting` | `boolean` |  | Teams' formatting keys in the box: ⌘B bold, ⌘I italic, ⌘U underline, ⌘⌥X strikethrough and ⌘⇧C code (Ctrl for ⌘, Alt for ⌥, off Apple platforms), each as a `ComposerFormat`. `composerShortcuts` (from `composer-styles`) has the keys, for your toolbar's tooltips. |
 | `highlights` | `readonly TextAreaHighlight[]` |  | Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. |
 | `label` (required) | `string` |  | What the message box is for, read as its name: "Message Mia", "Reply in thread". Required: the box shows `placeholder`, which is not a label. |
 | `maxRows` | `number` | `10` | Lines it grows to before it scrolls. |
@@ -65,6 +67,7 @@ Type: `ComposerProps`.
 | `onHighlightsChange` | `((highlights: TextAreaHighlight[]) => void)` |  | Called with the highlights moved to fit the text after the person edits it, as TextArea's. |
 | `onSend` (required) | `(text: string, event: ComposerSendEvent) => void` |  | Called with the text when the person sends: Enter in the box (see `sendOn`) or the send button. The event says which, and `event.isTrusted` that a person did it. It is not called while the text is blank (unless there are `attachments`), while `sending`, or with `sendDisabledReason` set. Without `value`, the box clears after it. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new text when it changes. |
+| `pasteText` | `((data: DataTransfer) => string \| undefined)` |  | Turns a paste into the box's text, such as formatted text into Markdown: return the text, or `undefined` for the browser's own paste. |
 | `placeholder` | `string` |  | An example of what to write, shown on the first line while the box is empty. |
 | `quote` | `ComposerQuote` |  | The message this one replies to, shown inside the box above the text until it is sent or removed: a bar, the author, a line of what they wrote and a remove button. Screen readers hear it as part of the text's description. Escape in the empty box removes it, as the remove button does, and that Escape goes no further, so a dialog around the composer stays open. The quote fades in (opacity only, and not at all with reduced motion) and takes no focus: focus stays in the box. It stays after a send, so clear it in `onSend`. |
 | `ref` | `Ref<HTMLTextAreaElement>` |  | The `<textarea>`. |
@@ -102,6 +105,27 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `ComposerEditor`
+
+What an app's formatting bar, emoji button or link dialog changes the text with: `editorRef`.
+
+```ts
+interface ComposerEditor {
+  /** Applies a format to the selection, or takes it away when the selection has it already. */
+  format: (format: ComposerFormat) => void;
+  /** Puts text in place of the selection, or at the caret: an emoji, a link. */
+  insert: (text: string) => void;
+}
+```
+
+### `ComposerFormat`
+
+A format Composer applies to the selected text, as light Markdown: `bold` (`**`), `italic` (`_`), `underline` (`++`), `strike` (`~~`) and `code` (a backtick) wrap it in marks, `bullets`, `numbers` and `quote` mark its lines, and `codeBlock` fences them.
+
+```ts
+type ComposerFormat = "bold" | "italic" | "underline" | "strike" | "code" | "bullets" | "numbers" | "quote" | "codeBlock";
+```
 
 ### `ComposerQuote`
 

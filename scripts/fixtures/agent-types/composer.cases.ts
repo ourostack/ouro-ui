@@ -47,4 +47,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04"];
