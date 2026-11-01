@@ -8,11 +8,11 @@ import {
   isDismissed,
   keepDismissed,
   kinds,
-  kindTone,
+  kindToneClass,
   periods,
   rootClass,
+  sparkClasses,
   sparkleClass,
-  sparkles,
   subscribeMoments,
   takeShowing,
   type MomentKind,
@@ -195,7 +195,6 @@ export function MomentProvider({ quiet = false, children }: MomentProviderProps)
 const levels = [2, 3, 4, 5, 6] as const;
 const sizes = ["default", "inline"] as const;
 const spoken = new Set<MomentKind>(["success", "error"]);
-const sparkPath = "M6 0Q6.7 5.3 12 6 6.7 6.7 6 12 5.3 6.7 0 6 5.3 5.3 6 0Z";
 
 // A slot holds something to render unless it is undefined, null or false.
 const present = (node: ReactNode) => node !== undefined && node !== null && node !== false;
@@ -274,10 +273,9 @@ export function Moment(props: MomentProps): JSX.Element | null {
     ...rest
   } = props;
   const kind: MomentKind = (kinds as readonly string[]).includes(kindProp) ? (kindProp as MomentKind) : "empty";
-  const size = (sizes as readonly string[]).includes(sizeProp) ? (sizeProp as (typeof sizes)[number]) : "default";
   const context = useContext(MomentContext);
   const quiet = quietProp ?? context.quiet;
-  const layout = size === "inline" ? "inline" : quiet ? "quiet" : "default";
+  const layout = sizeProp === "inline" ? "inline" : quiet ? "quiet" : "default";
   const level = headingLevel === undefined ? (layout === "inline" ? undefined : 3) : (levels as readonly unknown[]).includes(headingLevel) ? (headingLevel as (typeof levels)[number]) : 3;
   const per: MomentPeriod = cap !== undefined && Object.hasOwn(periods, cap.per) ? (cap.per as MomentPeriod) : "day";
   const times = cap === undefined ? undefined : Number.isInteger(cap.times) && cap.times >= 0 ? cap.times : 1;
@@ -297,7 +295,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
       ? () => [
           !title && ["title is required; it says what the moment is about", '<Moment title="No messages yet">'],
           kind !== kindProp && [`kind="${String(kindProp)}" is not a kind; use "empty", "loading", "error", "welcome", "success"`, '<Moment kind="empty">'],
-          size !== sizeProp && [`size="${String(sizeProp)}" is not a size; use "default", "inline"`, "<Moment quiet>"],
+          !(sizes as readonly string[]).includes(sizeProp) && [`size="${String(sizeProp)}" is not a size; use "default", "inline"`, "<Moment quiet>"],
           headingLevel !== undefined && level !== headingLevel && [`headingLevel must be 2, 3, 4, 5 or 6, got ${String(headingLevel)}`, "<Moment headingLevel={2}>"],
           cap !== undefined && per !== cap.per && [`cap per "${String(cap.per)}" is not a period; use "day", "week", "month", "ever"`, '<Moment cap={{ times: 1, per: "day" }}>'],
           cap !== undefined && times !== cap.times && [`cap times must be a whole number, 0 or more, got ${String(cap.times)}`, '<Moment cap={{ times: 1, per: "day" }}>'],
@@ -328,7 +326,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
   const started = useRef(false);
   useEffect(() => {
     if (!celebratory || !visible) {
-      if (started.current) requestAnimationFrame(() => setCelebrating(false));
+      requestAnimationFrame(() => setCelebrating(false));
       started.current = false;
       return;
     }
@@ -346,6 +344,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
   }, [speaks, speakText]);
 
   // SVG animations ignore CSS, so the art's are paused here while reduced motion is on.
+  // Stryker disable next-line BooleanLiteral: the server's guess lasts only until hydration, and the effect that reads it runs after the live value replaces it.
   const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", false);
   const artRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -400,17 +399,17 @@ export function Moment(props: MomentProps): JSX.Element | null {
       className={cn(rootClass[layout], dismissible && layout === "default" && "pt-12", className)}
     >
       {spinner && (
-        <span aria-hidden="true" data-ouro-moment-art="" className={cn("grid shrink-0 place-items-center", kindTone[kind])}>
+        <span aria-hidden="true" data-ouro-moment-art="" className={cn("grid shrink-0 place-items-center", kindToneClass[kind])}>
           <Spinner size={layout === "default" ? "lg" : layout === "quiet" ? "md" : "sm"} />
         </span>
       )}
       {hasArt && (
-        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout], kindTone[kind])}>
+        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout], kindToneClass[kind])}>
           {flourish && <span aria-hidden="true" data-ouro-part="halo" className={haloClass} />}
           {flourish &&
-            sparkles.map((spark) => (
-              <svg key={spark.at} aria-hidden="true" viewBox="0 0 12 12" data-ouro-part="sparkle" className={cn(sparkleClass, spark.at, spark.tone)}>
-                <path d={sparkPath} fill="currentColor" />
+            sparkClasses.map((spark) => (
+              <svg key={spark} aria-hidden="true" viewBox="0 0 12 12" data-ouro-part="sparkle" className={cn(sparkleClass, spark)}>
+                <path d="M6 0Q6.7 5.3 12 6 6.7 6.7 6 12 5.3 6.7 0 6 5.3 5.3 6 0Z" fill="currentColor" />
               </svg>
             ))}
           <div

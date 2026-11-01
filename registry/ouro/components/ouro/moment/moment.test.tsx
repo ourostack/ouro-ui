@@ -169,6 +169,8 @@ describe("Moment", () => {
       </div>,
     );
     await expect.poll(() => moment!.hasAttribute("data-celebrate")).toBe(true);
+    expect(moment!.getAttribute("data-celebrate")).toBe("");
+    expect(moment!.getAttribute("data-open")).toBe("");
     expect(["static", "relative"]).toContain(getComputedStyle(moment!).position);
     const [before, after] = [...host.querySelectorAll("p")].map((node) => node.getBoundingClientRect());
     const box = moment!.getBoundingClientRect();
@@ -249,6 +251,8 @@ describe("Moment sizes", () => {
     expect(getComputedStyle(moment!).flexDirection).toBe("row");
     expect(page.getByRole("heading").elements()).toHaveLength(0);
     await expect.element(page.getByText("12 of 40 messages")).toBeVisible();
+    expect((page.getByText("12 of 40 messages").element() as HTMLElement).tagName).toBe("SPAN");
+    expect(warn).not.toHaveBeenCalled();
     await render(<Moment size="inline" title="Synced" headingLevel={4} />);
     await expect.element(page.getByRole("heading", { level: 4, name: "Synced" })).toBeVisible();
   });
@@ -259,10 +263,15 @@ describe("Moment quiet", () => {
     const own = await render(<Moment quiet art={<Art />} title="No drafts" description="Drafts you start show up here, one line at most." action={<Button size="sm">New draft</Button>} />);
     const actions = own.moment!.querySelector<HTMLElement>("[data-ouro-moment-actions]")!;
     expect(actions.getBoundingClientRect().top).toBeLessThan(own.frame!.getBoundingClientRect().bottom);
-    expect(own.moment!.hasAttribute("data-quiet")).toBe(true);
+    expect(own.moment!.getAttribute("data-quiet")).toBe("");
     expect(getComputedStyle(own.moment!).flexDirection).toBe("row");
     const line = page.getByText("Drafts you start show up here, one line at most.").element() as HTMLElement;
     expect(getComputedStyle(line).whiteSpace).toBe("nowrap");
+    expect(line.tagName).toBe("DIV");
+    const roomy = await render(<Moment art={<Art />} title="Roomy" />);
+    const size = (host: Element) => parseFloat(getComputedStyle(host.querySelector("h3")!).fontSize);
+    expect(size(own.moment!)).toBeLessThan(size(roomy.moment!));
+    expect(warn).not.toHaveBeenCalled();
     const provided = await render(
       <MomentProvider quiet>
         <Moment art={<Art />} title="Quiet" />
@@ -278,6 +287,14 @@ describe("Moment quiet", () => {
       </MomentProvider>,
     );
     expect(plain.moment!.hasAttribute("data-quiet")).toBe(false);
+    await act(async () =>
+      plain.root.render(
+        <MomentProvider quiet>
+          <Moment title="Default" />
+        </MomentProvider>,
+      ),
+    );
+    expect(plain.moment!.hasAttribute("data-quiet")).toBe(true);
   });
 
   it("never celebrates when quiet or inline", async () => {
@@ -318,9 +335,10 @@ describe("Moment motion", () => {
     await expect.poll(() => welcome.moment!.hasAttribute("data-celebrate")).toBe(true);
     expect(plain.moment!.hasAttribute("data-celebrate")).toBe(false);
     // A new key on the same moment is still the same appearance: no second flourish starts.
-    await act(async () => welcome.root.render(<Moment kind="welcome" celebrate art={<Art />} title="Welcome" id="welcome-b" cap={{ times: 0, per: "day" }} />));
+    await act(async () => welcome.root.render(<Moment kind="welcome" celebrate art={<Art />} title="Welcome" id="welcome-b" cap={{ times: 1, per: "day" }} />));
     await frames();
     expect(welcome.moment!.hasAttribute("data-celebrate")).toBe(true);
+    expect(localStorage.getItem("ouro-moment:shown:welcome-b")).toBeNull();
   });
 
   it("never celebrates or speaks a moment that was dismissed", async () => {
@@ -448,6 +466,25 @@ describe("Moment cap", () => {
     localStorage.setItem("ouro-moment:shown:odd", JSON.stringify(["yesterday", now + day]));
     expect(await celebrates(moment("odd"))).toBe(true);
     expect(JSON.parse(localStorage.getItem("ouro-moment:shown:odd")!)).toEqual([now]);
+    // A showing at this very moment counts; one exactly a period ago has run out.
+    localStorage.setItem("ouro-moment:shown:now", JSON.stringify([now]));
+    expect(await celebrates(moment("now"))).toBe(false);
+    localStorage.setItem("ouro-moment:shown:edge", JSON.stringify([now - day]));
+    expect(await celebrates(moment("edge"))).toBe(true);
+  });
+
+  it("counts an unknown period as a day, and times that are no whole number as once", async () => {
+    let now = Date.UTC(2026, 9, 31, 12);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const hourly = <Moment id="hourly" kind="success" art={<Art />} title="Done" {...({ cap: { times: 1, per: "hour" } } as unknown as object)} />;
+    expect(await celebrates(hourly)).toBe(true);
+    now += 2 * 60 * 60 * 1000;
+    expect(await celebrates(hourly)).toBe(false);
+    now += day;
+    expect(await celebrates(hourly)).toBe(true);
+    const half = <Moment id="half" kind="success" art={<Art />} title="Done" cap={{ times: 1.5, per: "day" }} />;
+    expect(await celebrates(half)).toBe(true);
+    expect(await celebrates(half)).toBe(false);
   });
 
   it("celebrates every time without a cap, or without a key to count under", async () => {
@@ -498,7 +535,8 @@ describe("Moment dismissal", () => {
     expect(close.getBoundingClientRect().right).toBeLessThanOrEqual(moment!.getBoundingClientRect().right);
     const row = await render(<Moment quiet art={<Art />} title="Welcome" onDismiss={() => {}} />);
     const rowClose = row.moment!.querySelector<HTMLElement>('[data-ouro-part="dismiss"]')!;
-    expect(getComputedStyle(rowClose).position).toBe("static");
+    expect(getComputedStyle(rowClose).position).toBe("relative");
+    expect(rowClose.getBoundingClientRect().left).toBeGreaterThan(row.frame!.getBoundingClientRect().right);
     expect(rowClose.getAttribute("data-ouro-control")).toBe("moment");
   });
 
@@ -519,6 +557,18 @@ describe("Moment dismissal", () => {
     localStorage.setItem("ouro-moment:dismissed:tips", "1");
     await act(async () => void window.dispatchEvent(new StorageEvent("storage", { key: "ouro-moment:dismissed:tips" })));
     expect(other.moment).toBeNull();
+  });
+
+  it("stops listening once it is gone", async () => {
+    const gone = await render(<Moment title="Gone" dismissKey="gone" />);
+    await act(async () => gone.root.unmount());
+    roots.splice(roots.indexOf(gone.root), 1);
+    await render(<Moment title="Other" dismissKey="other" />);
+    const reads = vi.spyOn(Storage.prototype, "getItem");
+    await userEvent.click(page.getByRole("button", { name: "Dismiss" }));
+    await act(async () => void window.dispatchEvent(new StorageEvent("storage", { key: "ouro-moment:dismissed:other" })));
+    expect(reads.mock.calls.some(([key]) => key === "ouro-moment:dismissed:gone")).toBe(false);
+    expect(reads.mock.calls.some(([key]) => key === "ouro-moment:dismissed:other")).toBe(true);
   });
 
   it("closes every copy of a moment on the page at once", async () => {

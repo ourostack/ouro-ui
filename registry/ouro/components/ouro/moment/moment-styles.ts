@@ -4,14 +4,14 @@ export {
   haloClass,
   isDismissed,
   kinds,
-  kindTone,
+  kindToneClass,
   keepDismissed,
   MOMENT_STORAGE_PREFIX,
   periods,
   rootClass,
   shownKey,
+  sparkClasses,
   sparkleClass,
-  sparkles,
   subscribeMoments,
   takeShowing,
   type MomentCap,
@@ -123,6 +123,7 @@ function keepDismissed(key: string): void {
 function takeShowing(key: string, cap: MomentCap, now: number): boolean {
   let stored: unknown;
   try {
+    // Stryker disable next-line StringLiteral: an empty string fails to parse, and the catch below reads that as no showings too.
     stored = JSON.parse(read(shownKey(key)) ?? "[]");
   } catch {
     stored = [];
@@ -140,7 +141,7 @@ function takeShowing(key: string, cap: MomentCap, now: number): boolean {
  * @internal
  * @claim "The colour each kind gives the" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > names its kind in data-moment and colours the art from the theme by kind)
  */
-const kindTone: Record<MomentKind, string> = {
+const kindToneClass: Record<MomentKind, string> = {
   empty: "text-muted-foreground",
   loading: "text-muted-foreground",
   error: "text-destructive",
@@ -194,9 +195,4 @@ const sparkleClass =
   "starting:[transform:scale(0)] starting:opacity-100";
 
 /** Where the sparks sit in the art's frame, and their tones. @internal */
-const sparkles = [
-  { at: "start-[8%] top-[14%]", tone: "text-primary" },
-  { at: "end-[10%] top-[6%]", tone: "text-warning" },
-  { at: "end-[4%] bottom-[22%]", tone: "text-success" },
-  { at: "start-[16%] bottom-[8%]", tone: "text-primary" },
-] as const;
+const sparkClasses = ["start-[8%] top-[14%] text-primary", "end-[10%] top-[6%] text-warning", "end-[4%] bottom-[22%] text-success", "start-[16%] bottom-[8%] text-primary"] as const;
