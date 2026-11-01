@@ -38,7 +38,8 @@ const issuePattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/;
 
 /**
  * What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL,
- * an owner, and `remove`, when the entry leaves (the fix it waits for, or a date).
+ * an owner (plain text, which the records never turn into an @-mention), and `remove`, when the
+ * entry leaves (the fix it waits for, or a date).
  */
 export function entryProblems(entries) {
   if (!Array.isArray(entries)) return ["the quarantine must be a JSON array of entries"];
@@ -230,13 +231,13 @@ export function retryPlan({ runs, contexts, entries }) {
   return { retry: problems.length === 0 && retried.length > 0, problems, retried };
 }
 
-/** The record of one retry, for the step summary, the log and the entry's issue. */
+/** The record of one retry, for the step summary, the log and the entry's issue. The owner is plain text, never an @-mention. */
 export const record = ({ entry, test, job, url }, by) =>
-  `Retried once, as quarantined: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner @${entry.owner}, remove ${entry.remove}.${by ? ` By ${by}.` : ""}`;
+  `Retried once, as quarantined: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner ${entry.owner}, remove ${entry.remove}.${by ? ` By ${by}.` : ""}`;
 
 /** The record of a retry whose rerun GitHub refused, for the log and the step summary. */
 export const refused = ({ entry, test, job, url }, by) =>
-  `Retry requested but the rerun failed: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner @${entry.owner}, remove ${entry.remove}.${by ? ` By ${by}.` : ""}`;
+  `Retry requested but the rerun failed: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner ${entry.owner}, remove ${entry.remove}.${by ? ` By ${by}.` : ""}`;
 
 /** The warning for an entry whose issue is closed. */
 export const staleWarning = (entry) => `::warning title=Stale quarantine entry::${entry.issue} is closed: remove the quarantine entry for ${entry.project} ${entry.file} > ${entry.title}.`;

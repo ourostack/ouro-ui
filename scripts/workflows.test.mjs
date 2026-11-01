@@ -2162,6 +2162,10 @@ const latencyLines = (listed = organListed, { failed = 1 } = {}) => [
   "##[error]Process completed with exit code 1.",
 ];
 const organLog = logLines("latency", latencyLines());
+// The museum test's failure on #402's CI (job 124923981110) and #348's merge-group run (41304513684).
+const museumTitle = "Chapter II interaction latency > museum answers within 100 ms (p95 of 20, median within 144 ms) on a 4× slower CPU";
+const museumListed = "[site-latency] › site/e2e/chapter-two.latency.spec.ts:100:5 › Chapter II interaction latency › museum answers within 100 ms (p95 of 20, median within 144 ms) on a 4× slower CPU";
+const museumLog = logLines("latency", latencyLines(museumListed));
 
 test("the quarantine reads a job's failed Vitest tests from its log, and anything else that failed", () => {
   assert.deepEqual(failedTests(calendarLog), { tests: [{ project: "ouro-webkit", file: "src/components/ouro/calendar/calendar.test.tsx", title: calendarTitle }], failed: 1, unexplained: [] });
@@ -2181,7 +2185,7 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
   assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
 });
 
-test("the quarantine reads the latency job's failed Playwright tests, and retries the organ test alone, once", () => {
+test("the quarantine reads the latency job's failed Playwright tests, and retries the organ and museum tests alone, once", () => {
   const organ = { project: "site-latency", file: "site/e2e/chapter-three.latency.spec.ts", title: organTitle };
   assert.deepEqual(failedTests(organLog), { tests: [organ], failed: 1, unexplained: [] });
   // As gh prints it, with the job and step columns.
@@ -2195,8 +2199,14 @@ test("the quarantine reads the latency job's failed Playwright tests, and retrie
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8")).map((entry) => ({ ...entry, open: true }));
   const entry = entries.find((candidate) => names(candidate, organ));
   assert.ok(entry, "the quarantine lists the organ test");
-  assert.deepEqual({ issue: entry.issue, owner: entry.owner }, { issue: "https://github.com/ourostack/ouro-ui/issues/401", owner: "ci-speed" });
+  assert.deepEqual({ issue: entry.issue, owner: entry.owner }, { issue: "https://github.com/ourostack/ouro-ui/issues/401", owner: "CI speed lane (see #401)" });
   assert.match(entry.remove, /#337/);
+  // Museum, the same runner-speed family, under the same issue.
+  const museum = { project: "site-latency", file: "site/e2e/chapter-two.latency.spec.ts", title: museumTitle };
+  assert.deepEqual(failedTests(museumLog).tests, [museum]);
+  const museumEntry = entries.find((candidate) => names(candidate, museum));
+  assert.ok(museumEntry, "the quarantine lists the museum test");
+  assert.deepEqual({ ...museumEntry, title: undefined, file: undefined }, { ...entry, title: undefined, file: undefined });
   const feathers = organTitle.replace("organ", "feathers").replace("128 ms", "80 ms");
   for (const other of [{ ...organ, title: feathers }, { ...organ, title: organTitle.replace("128 ms", "160 ms") }, { ...organ, project: "site" }, { ...organ, file: "site/e2e/chapter-two.latency.spec.ts" }]) {
     assert.ok(!entries.some((candidate) => names(candidate, other)), JSON.stringify(other));
@@ -2213,8 +2223,16 @@ test("the quarantine reads the latency job's failed Playwright tests, and retrie
   assert.equal(plan.retry, true, plan.problems.join("; "));
   assert.equal(
     record(plan.retried[0]),
-    `Retried once, as quarantined: site-latency site/e2e/chapter-three.latency.spec.ts > ${organTitle} failed in latency (https://github.com/o/r/actions/runs/5/job/3). Issue ${entry.issue}, owner @ci-speed, remove ${entry.remove}.`,
+    `Retried once, as quarantined: site-latency site/e2e/chapter-three.latency.spec.ts > ${organTitle} failed in latency (https://github.com/o/r/actions/runs/5/job/3). Issue ${entry.issue}, owner CI speed lane (see #401), remove ${entry.remove}.`,
   );
+  // The owner is no @-mention: the summary and the issue's comment notify no one by it.
+  assert.doesNotMatch(record(plan.retried[0]), /@/);
+  // Museum alone, or beside the organ: each listed, so retried once.
+  assert.equal(retryPlan({ runs: runWith(latency(museumLog)), contexts, entries }).retry, true);
+  const pair = logLines("latency", latencyLines(organListed, { failed: 2 }).flatMap((line) => (line.trim() === organListed ? [line, `    ${museumListed} `] : [line])));
+  const paired = retryPlan({ runs: runWith(latency(pair)), contexts, entries });
+  assert.equal(paired.retry, true, paired.problems.join("; "));
+  assert.deepEqual(paired.retried.map((retried) => retried.test.title), [organTitle, museumTitle]);
   // A regression that fails the organ test again: the second attempt is never retried.
   const twice = retryPlan({ runs: runWith(latency(organLog), 2), contexts, entries });
   assert.equal(twice.retry, false);
@@ -2253,7 +2271,7 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.equal(plan.retried.length, 1);
   assert.equal(
     record(plan.retried[0], "https://github.com/o/r/actions/runs/9"),
-    `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow, remove when #355 lands. By https://github.com/o/r/actions/runs/9.`,
+    `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner arimendelow, remove when #355 lands. By https://github.com/o/r/actions/runs/9.`,
   );
   // A test that is not listed fails at once: tonight's Dive failure (fixed by #338, so not listed).
   const unlisted = retryPlan({ runs: runWith(dive), contexts, entries: [calendarEntry] });
@@ -2330,7 +2348,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(entry, "the quarantine lists the organ test");
   const open = retry("OPEN");
   assert.equal(open.status, 0, open.stdout + open.stderr);
-  const line = `Retried once, as quarantined: site-latency site/e2e/chapter-three.latency.spec.ts > ${organTitle} failed in latency (https://github.com/o/r/actions/runs/5/job/3). Issue ${entry.issue}, owner @${entry.owner}, remove ${entry.remove}. By https://github.com/o/r/actions/runs/9.`;
+  const line = `Retried once, as quarantined: site-latency site/e2e/chapter-three.latency.spec.ts > ${organTitle} failed in latency (https://github.com/o/r/actions/runs/5/job/3). Issue ${entry.issue}, owner ${entry.owner}, remove ${entry.remove}. By https://github.com/o/r/actions/runs/9.`;
   assert.match(open.stdout, new RegExp(`^::warning title=Quarantined test retried::${line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
   assert.equal(readFileSync(summary, "utf8"), `- ${line}\n`);
   const made = readFileSync(calls, "utf8").split("\n");
