@@ -20,6 +20,7 @@ import {
 } from "@/registry/ouro/components/ouro/menu/menu";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 
@@ -1273,11 +1274,10 @@ describe("Menu and the page's scroll", () => {
   for (const reduced of [false, true]) {
     it(`stays open and stops the page where it is, pressed mid-scroll${reduced ? ", with reduced motion" : ""}`, async () => {
       // A smooth scroll to an anchor is under way when the person presses the trigger. The menu opens
-      // on pointerdown and renders a little later; had the page gone on scrolling, the release would
-      // land on what moved under the pointer, a press outside the menu, which closes it. The pointer
-      // goes to one place in the window (the fixed mark's), over the tall trigger, and the scroll
-      // starts as it arrives there, just before the press; where the scroll would end, past the
-      // trigger's end is under that place. The menu opens beside the trigger, away from the pointer.
+      // on pointerdown and renders a little later; had the page gone on scrolling, it would no longer
+      // be where the press found it. The pointer goes to one place in the window (the fixed mark's),
+      // which is over the tall trigger wherever the page is between 2000 and 4000, the two places the
+      // page sways between until the press. The menu opens beside the trigger, away from the pointer.
       if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
       await render(
         <div style={{ height: 9000, paddingTop: 2140 }}>
@@ -1287,14 +1287,7 @@ describe("Menu and the page's scroll", () => {
         </div>,
       );
       await userEvent.hover(document.querySelector("[data-rest-here]")!);
-      window.scrollTo({ top: 2000, behavior: "instant" });
-      document.documentElement.style.scrollBehavior = "smooth";
-      document.addEventListener("pointermove", () => window.scrollTo({ top: 5000 }), { once: true });
-      let pressedAt = -1;
-      document.addEventListener("pointerdown", () => (pressedAt = window.scrollY), { capture: true, once: true });
-      await commands.pointerPress({ selector: "[data-press-here]", action: "down" });
-      for (let index = 0; index < 10; index++) await frame();
-      await commands.pointerPress({ action: "up" });
+      const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway" });
       await expect.poll(() => {
         const open = menu();
         return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -1303,7 +1296,8 @@ describe("Menu and the page's scroll", () => {
       await frame();
       expect(menu()!.hasAttribute("data-open")).toBe(true);
       expect(window.scrollY).toBe(pressedAt);
-      expect(pressedAt).toBeLessThan(4000);
+      // The page was moving when the press found it.
+      expect(moving).toBe(true);
     });
   }
 });

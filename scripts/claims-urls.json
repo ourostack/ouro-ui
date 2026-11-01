@@ -123,6 +123,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx": {
+    "status": 200,
+    "checked": "2026-11-01"
+  },
   "https://github.com/ourostack/ouro-ui/issues/113": {
     "status": 200,
     "checked": "2026-10-30"
@@ -134,6 +138,10 @@
   "https://github.com/ourostack/ouro-ui/issues/119": {
     "status": 200,
     "checked": "2026-10-30"
+  },
+  "https://github.com/ourostack/ouro-ui/pull/354": {
+    "status": 200,
+    "checked": "2026-11-01"
   },
   "https://github.com/ourostack/ouro-ui/pull/99": {
     "status": 200,

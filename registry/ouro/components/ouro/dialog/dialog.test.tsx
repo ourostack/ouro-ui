@@ -20,6 +20,7 @@ import {
   DialogViewport,
 } from "@/registry/ouro/components/ouro/dialog/dialog-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
 // Runs in Chromium and WebKit.
@@ -1117,10 +1118,8 @@ describe("Dialog and the page's scroll", () => {
         // page gone on scrolling, it would no longer be where the press found it, and the release
         // could land on what moved under the pointer. The pointer goes to one place in the window
         // (the fixed mark's), on a button far taller than the scroll goes, so the press lands on it
-        // however late it comes on a loaded runner. WebKit's smooth scroll ends within about 200ms
-        // whatever its length, sooner than a loaded runner's press may follow the pointer's move, so
-        // the page sways between two places until the press, and a press that finds it at rest
-        // starts the next sway before the trigger's handler sees it.
+        // however late it comes on a loaded runner, while the page sways between two places until
+        // the press.
         if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
         await render(
           <div style={{ height: 30000, paddingTop: 2300 }}>
@@ -1136,33 +1135,7 @@ describe("Dialog and the page's scroll", () => {
           </div>,
         );
         await userEvent.hover(document.querySelector("[data-rest-here]")!);
-        window.scrollTo({ top: 2000, behavior: "instant" });
-        document.documentElement.style.scrollBehavior = "smooth";
-        let heading = 2000;
-        let pressed = false;
-        const sway = () => {
-          heading = heading === 2000 ? 14000 : 2000;
-          window.scrollTo({ top: heading });
-        };
-        const swaying = () => {
-          if (pressed) return;
-          if (window.scrollY === heading) sway();
-          requestAnimationFrame(swaying);
-        };
-        swaying();
-        let pressedAt = -1;
-        document.addEventListener(
-          "pointerdown",
-          () => {
-            pressed = true;
-            pressedAt = window.scrollY;
-            if (pressedAt === heading) sway();
-          },
-          { capture: true, once: true },
-        );
-        await commands.pointerPress({ selector: "[data-press-here]", action: "down" });
-        for (let index = 0; index < 10; index++) await frame();
-        await commands.pointerPress({ action: "up" });
+        const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 14000, scroll: "underway" });
         await expect.poll(() => {
           const open = popup();
           return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -1170,8 +1143,8 @@ describe("Dialog and the page's scroll", () => {
         await frame();
         await frame();
         expect(window.scrollY).toBe(pressedAt);
-        // The page was on its way somewhere else when the press found it.
-        expect(heading).not.toBe(pressedAt);
+        // The page was moving when the press found it.
+        expect(moving).toBe(true);
       });
     }
   }
