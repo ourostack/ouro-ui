@@ -19,6 +19,17 @@ export interface MessageListOwnProps {
   /** The button that appears once the reader scrolls up, for other languages. @default "Jump to latest" */
   jumpLabel?: string | undefined;
   /**
+   * The `id` of the message to open at, such as one found by search or a link to it. The list opens
+   * with that message in the middle of its view, before it first draws, so the newest is never shown
+   * first, and it follows new messages only once the reader reaches the end. The list reads it when
+   * it first has messages, so it can come with them; a message it does not hold, or the newest,
+   * opens at the end, and a later change moves nothing.
+   * @claim "The list opens with that message in" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the message initialAnchor names, never drawing the newest first, and stops following new messages)
+   * @claim "The list reads it when it first" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at initialAnchor when it comes with the first messages, after the list mounted empty)
+   * @claim "a message it does not hold" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
+   */
+  initialAnchor?: string | undefined;
+  /**
    * What screen readers hear when a new message arrives, for other languages. It gets the
    * author's name and the message's text. The user's own messages are not read back.
    * @default (author, text) => `${author}: ${text}`
@@ -106,8 +117,8 @@ const EDGE = 8;
 /** How far an arrow key scrolls through a message taller than the list, in pixels. */
 const LINE = 40;
 
-/** How close to the bottom, in pixels, counts as "at the bottom" (zoom leaves fractions). */
-const AT_BOTTOM = 4;
+/** How close to the bottom, in pixels, counts as "at the bottom", where the list follows new messages (zoom leaves fractions). */
+const AT_BOTTOM = 2;
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
 
@@ -405,7 +416,9 @@ interface Spoken {
  * message they are reading where it was, and so does a message above them that moves, such as
  * a post a reply moves to the end. When the message they are on is the one that moves, the
  * messages around it keep their place. A scroll up from the end stops the list following new
- * messages at once, before the browser reports it. Scrolling is never announced.
+ * messages at once, before the browser reports it. The list follows by how far it is from the
+ * bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
+ * it too, even as the first messages arrive. Scrolling is never announced.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  *
@@ -485,6 +498,7 @@ interface Spoken {
  * @claim "and so does a message above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place when a message above them moves to the end and the list keeps its height)
  * @claim "When the message they are on is the one that moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place by the messages around the one they are on when it moves to the end)
  * @claim "When the message they are on is the one that moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place by the other message in view when the one they are on moves to the end)
+ * @claim "The list follows by how far" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stays at a message an app scrolls to as the first messages arrive, instead of following to the newest)
  * @claim "A scroll up from the end" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stops following the newest message once the list is scrolled up, even before the scroll event comes)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
@@ -495,6 +509,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     label,
     children,
     jumpLabel = "Jump to latest",
+    initialAnchor,
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
     springy = true,
@@ -530,18 +545,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  // Whether the view follows new content. Only the reader's scrolling changes it.
+  // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
-  const lastTop = useRef(0);
   const [showJump, setShowJump] = useState(false);
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
   const labelFor = useRef(newMessageLabel);
   const keyFor = useRef(onMessageKeyDown);
+  const anchorFor = useRef(initialAnchor);
   useLayoutEffect(() => {
     labelFor.current = newMessageLabel;
     keyFor.current = onMessageKeyDown;
+    anchorFor.current = initialAnchor;
   });
   // The list's ends, which Tab passes through to leave the messages behind (see the keyboard effect).
   const startRef = useRef<HTMLSpanElement | null>(null);
@@ -573,11 +589,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const scroller = scrollerRef.current!;
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
-    lastTop.current = scroller.scrollTop;
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
-  // Open at the newest message, then follow growth (new messages, streaming text, images
+  // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
   // observer callbacks run before paint, so the view never flashes off the bottom.
   // While unpinned, the first message whose top is in view stays where it is, so older history
@@ -595,9 +610,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // reader's own scrolling in the same frame is never taken back.
     // Stryker disable next-line ArrayDeclaration: keepAnchor fills it below, before the observer can first read it.
     let anchors: { node: Element; at: number }[] = [];
-    // The content's height when the anchors were taken. A scroll event that finds it changed came
+    // How far the list could scroll when the anchors were taken. A scroll event that finds it changed came
     // after messages came, went or grew, and before the resize observer has kept the reader's place.
-    let height = 0;
+    let end = 0;
     // The scroll position then: the reader's scrolling since is what the correction leaves alone.
     let taken = 0;
     const atOf = (node: Element) => boxOf(node).top - content.getBoundingClientRect().top;
@@ -610,20 +625,40 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // When none starts in view, the message filling it, then those below.
       // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
       anchors = (below.length > 0 ? below : all.filter((message) => boxOf(message).bottom > view.top)).map((node) => ({ node, at: atOf(node) }));
-      height = content.getBoundingClientRect().height;
+      end = farthest();
       taken = scroller.scrollTop;
+    };
+    const farthest = () => scroller.scrollHeight - scroller.clientHeight;
+    // At the bottom as the list was before this change, or as it is now: growth at the end, or the
+    // view getting shorter, leaves a list that was at the bottom still there, and a scroll anywhere
+    // else (the reader's, a key's, or code going to a message) leaves it.
+    // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
+    const atBottom = () => Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || farthest() - scroller.scrollTop <= AT_BOTTOM;
+    // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
+    let opened = false;
+    const open = () => {
+      if (content.querySelector(items) === null) return;
+      opened = true;
+      const id = anchorFor.current;
+      const target = id ? topItems(content).find((item) => item.id === id) : undefined;
+      // None: the list stays at the end, as it opened, and follows the messages there.
+      if (!target) return;
+      const view = scroller.getBoundingClientRect();
+      const box = boxOf(target);
+      // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
+      scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
+      // following only if it opened at the end (the anchor was the newest).
+      keepAnchor();
+      pinned.current = atBottom();
     };
     toBottom();
     keepAnchor();
+    open();
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
     const hold = () => {
-      // A scroll up away from the end that the scroll event has not reported yet (code scrolled to a message, a key) stops the following.
-      // Stryker disable next-line EqualityOperator: a list exactly half a pixel above where it was is where zoom's fractions leave it either way.
-      const up = scroller.scrollTop < lastTop.current - 0.5;
-      // Not the end coming up as a message there goes: the scroll event that follows pins the list again, so this only spares that frame.
-      // Stryker disable next-line all: as above.
-      const away = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > AT_BOTTOM;
-      if (up && away) pinned.current = false;
+      // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
+      pinned.current = atBottom();
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -646,7 +681,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
-          lastTop.current = scroller.scrollTop;
           springsRef.current?.moved(scroller.scrollTop - before);
         }
       }
@@ -659,19 +693,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // the reader is scrolled up, the anchor is held as they move, before the browser draws. A move that also resizes
     // the list is held here first, and the resize observer then finds it held. At the end, the resize observer follows.
     const moves = new MutationObserver((records) => {
+      // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
+      if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: at the end the resize observer follows in the same frame, and holding when no message came, went or moved finds nothing moved; both only spare the work.
       if (!pinned.current && records.some(touchesItems)) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
-      const top = scroller.scrollTop;
-      const distance = scroller.scrollHeight - top - scroller.clientHeight;
-      // Moving up at all unpins, even by a few pixels; reaching the bottom pins again.
-      if (top < lastTop.current - 0.5 && distance > 1) pinned.current = false;
-      else if (distance <= AT_BOTTOM) pinned.current = true;
-      lastTop.current = top;
+      // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
+      pinned.current = atBottom();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
-      if (content.getBoundingClientRect().height === height) keepAnchor();
+      if (farthest() === end) keepAnchor();
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
