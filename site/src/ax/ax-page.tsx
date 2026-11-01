@@ -2,11 +2,11 @@ import type { JSX } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
-import { FigureValue, Mark, OutputLine, RuleText, Screen, Terminal, Transcript, WRAP } from "./parts";
+import { artMarkup, FigureValue, Mark, OutputLine, RuleText, Screen, Terminal, Transcript, WRAP } from "./parts";
 import Playground from "./playground";
 import { cast } from "./cast";
 import { MORNING, MORNING_ART_ALT, TRANSCRIPTS, type Beat } from "./story";
-import xray from "./xray-tandem.json";
+import xray from "./xray-adopter.json";
 import morningSource from "./art/morning-with-an-agent.svg?raw";
 
 /*
@@ -17,12 +17,9 @@ import morningSource from "./art/morning-with-an-agent.svg?raw";
  */
 
 /** The drawing's markup without its title and notes: the band names it once, in plain words (art/manifest.json says who drew it). */
-const morningArt = morningSource
-  .replace(/<!--[\s\S]*?-->/g, "")
-  .replace(/<title>[\s\S]*?<\/title>/, "")
-  .replace("<svg ", '<svg aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid slice" ');
+const morningArt = artMarkup(morningSource, 'preserveAspectRatio="xMidYMid slice" ');
 
-/** The person and their agent at one desk, in the page's own colours: between the hero and the morning it tells. */
+/** The duo at one desk, its lines in the page's text colour: between the hero and the morning it tells. */
 function MorningArt(): JSX.Element {
   return (
     <Container>
@@ -61,7 +58,7 @@ function BeatRow({ beat }: { beat: Beat }): JSX.Element {
               <pre className="ax-term-body" style={WRAP}>
                 <OutputLine text={CHECKED} />
                 <span className="ax-term-gap" aria-hidden="true" />
-                <span className="ax-term-line ax-term-aside">{cast("{agent} moves on without reading the room back.")}</span>
+                <span className="ax-term-line ax-term-aside">{cast("{Agent} moves on without reading the room back.")}</span>
               </pre>
             </Terminal>
           )}
@@ -120,9 +117,9 @@ export default function AxPage(): JSX.Element {
       <section aria-labelledby="morning-title" className="ax-band">
         <Container>
           <h2 id="morning-title" className="site-h2">
-            {cast("{person}'s morning")}
+            {cast("{Person}'s morning")}
           </h2>
-          <p className="site-lede mt-5">{cast("{person} asks {person.their} agent for a few things before the first meeting. You see them twice: first in {person}'s app, then in the terminal of {agent}.")}</p>
+          <p className="site-lede mt-5">{cast("Before the first meeting, {person} asks {agent} for a few things. You see them twice: on {person}'s screen, then in {agent}'s terminal.")}</p>
           <ol className="m-0 mt-10 grid list-none gap-12 p-0">
             {MORNING.map((beat) => (
               <BeatRow key={beat.id} beat={beat} />
@@ -139,7 +136,7 @@ export default function AxPage(): JSX.Element {
               {cast("Be {agent}")}
             </h2>
             <p className="site-lede">
-              This is the same tool, running in your browser. Type a command or press one. Then start a wait, and answer it from the room as someone else.
+              {cast("This is the same tool, running in your browser, and you're {agent} now: {person} asks, and you run the commands. Type one or press one. Then start a wait, and answer it from the room as someone else.")}
             </p>
           </div>
           <Playground />
@@ -155,31 +152,31 @@ export default function AxPage(): JSX.Element {
             </h2>
             <p className="site-lede">
               The X-ray calls a tool the way an agent would, without reading its code, and checks it against Ouro AX's claims.{" "}
-              {claim("Tandem's agent tool was the first to adopt Ouro AX.", {
+              {claim("The first tool to adopt Ouro AX is a real app's agent interface: a command line plus an HTTP API.", {
                 source: { file: "docs/decisions/2026-10-30-ouro-ax.md" },
-                verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax.md", pattern: "into Tandem, the first adopter" },
+                verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax.md", pattern: "each built into a real app's agent interface \\(a command line plus an HTTP API\\)" },
               })}{" "}
               Here it is before and after.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <XrayCard title="Before: Tandem's main branch" commit={xray.before.commit} side={xray.before} />
-            <XrayCard title="After: Tandem's adoption" commit={xray.after.commit} side={xray.after} />
+            <XrayCard title="Before: its main branch" commit={xray.before.commit} side={xray.before} />
+            <XrayCard title="After: its adoption" commit={xray.after.commit} side={xray.after} />
           </div>
           <p className="m-0 text-muted-foreground">
             {claim("Every must claim held after adoption; before it, four failed and two could not be checked at all.", {
-              source: [{ evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-main.md" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.md" }],
+              source: [{ evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-main.md" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md" }],
               verify: [
-                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-main.md", pattern: "Does not conform yet: 4 must claims not holding; no inventory given; 2 must claims skipped" },
-                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.md", pattern: "Claims holding: 33 of 36 \\(must: 18 of 18\\)" },
+                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-main.md", pattern: "Does not conform yet: 4 must claims not holding; no inventory given; 2 must claims skipped" },
+                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md", pattern: "Claims holding: 33 of 36 \\(must: 18 of 18\\)" },
               ],
             })}{" "}
             {claim("After, the 3 failing checks are all in should claims, which conforming doesn't require.", {
-              source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.md" },
+              source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md" },
               verify: [
-                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.md", pattern: "Checks: 768 pass, 3 fail, 3 skipped" },
-                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.md", pattern: "\\| ✗ \\| `cli\\.read-json` \\| should \\| .* \\| 29 \\| 2 \\| 2 \\|" },
-                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.md", pattern: "\\| ✗ \\| `http\\.error-teaches` \\| should \\| .* \\| 43 \\| 1 \\| 0 \\|" },
+                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md", pattern: "Checks: 768 pass, 3 fail, 3 skipped" },
+                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md", pattern: "\\| ✗ \\| `cli\\.read-json` \\| should \\| .* \\| 29 \\| 2 \\| 2 \\|" },
+                { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md", pattern: "\\| ✗ \\| `http\\.error-teaches` \\| should \\| .* \\| 43 \\| 1 \\| 0 \\|" },
               ],
             })}{" "}
             Here is what changed, in plain words and then in the X-ray's own.
@@ -207,7 +204,7 @@ export default function AxPage(): JSX.Element {
                 ) : (
                   <p className="m-0 text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">Before, the X-ray could not check it: </span>
-                    Tandem had not yet listed its surfaces for it.
+                    the tool had not yet listed its surfaces for it.
                   </p>
                 )}
               </li>

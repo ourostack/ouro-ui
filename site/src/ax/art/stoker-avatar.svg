@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>The Stoker</title>
+  <!-- Spot drawing of the Stoker for the agent's side of a chat, 64 to 96 px; from "A morning with an agent",
+       released under ourostack/ouro-ui's MIT licence. Lines take currentColor; eyes, antenna and glow read the custom property duo-eye
+       (else #2ec4b6), the visor the custom property duo-visor (else a fixed navy). -->
+  <path d="M48 28 V16" stroke-width="2.6" />
+  <circle cx="48" cy="11" r="9" fill="var(--duo-eye, #2ec4b6)" stroke="none" opacity="0.22" />
+  <circle cx="48" cy="11" r="5.5" fill="var(--duo-eye, #2ec4b6)" stroke-width="1.6" />
+  <rect x="14" y="28" width="68" height="50" rx="19" stroke-width="3" />
+  <rect x="24" y="38" width="48" height="28" rx="13" fill="var(--duo-visor, #1d2955)" stroke-width="1.4" />
+  <circle cx="38" cy="52" r="5" fill="var(--duo-eye, #2ec4b6)" stroke="none" />
+  <circle cx="58" cy="52" r="5" fill="var(--duo-eye, #2ec4b6)" stroke="none" />
+  <path d="M26 92 C26 84 34 80 48 80 C62 80 70 84 70 92" stroke-width="3" />
+  <circle cx="48" cy="89" r="6" fill="var(--duo-eye, #2ec4b6)" stroke="none" opacity="0.25" />
+</svg>

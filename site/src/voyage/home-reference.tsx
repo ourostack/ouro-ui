@@ -7,7 +7,7 @@ import generated from "../generated/agent-messages.json";
 import { AX_SECTION } from "../copy";
 import { FigureValue, Screen, Transcript } from "../ax/parts";
 import { cast } from "../ax/cast";
-import { TRANSCRIPTS } from "../ax/story";
+import { LATE_SEEN, TRANSCRIPTS } from "../ax/story";
 import { latestRelease } from "../latest-release";
 import { href } from "../paths";
 import { Container } from "./layout";
@@ -175,8 +175,8 @@ function Figure({ value, children }: { value: string; children: ReactNode }): JS
 }
 
 /**
- * Ouro AX: one moment of the morning on the Ouro AX page, as the person and as the agent see it (the agent's side is
- * the kit's example tool's real output, transcripts.json), three things we measured, and the way to the page.
+ * Ouro AX: one moment of the morning on the Ouro AX page, as the duo see it, the person and their agent (the agent's
+ * side is the kit's example tool's real output, transcripts.json), three things we measured, and the way to the page.
  */
 export function OuroAx(): JSX.Element {
   return (
@@ -187,15 +187,9 @@ export function OuroAx(): JSX.Element {
           {AX_SECTION.title}
         </h2>
         <p className="site-lede mt-5">{AX_SECTION.intro}</p>
-        <div className="ax-pair mt-10 grid items-start gap-4">
-          <Screen
-            label={cast("What {person} sees")}
-            seen={[
-              { kind: "person", text: "Tell Design sync I'm running late." },
-              { kind: "room", by: cast("{person.full}"), text: "Running late, start without me", aside: cast("Sent by {person}'s agent: {person} asked me to tell the room") },
-              { kind: "agent", text: "Done: posted in Design sync." },
-            ]}
-          />
+        <p className="mt-5 mb-0 text-muted-foreground">{cast("{Person} is a person, and {agent} is {person.their} agent, acting on {person.their} word. Here is one moment, seen from both sides.")}</p>
+        <div className="ax-pair mt-8 grid items-start gap-4">
+          <Screen label={cast("What {person} sees")} seen={LATE_SEEN} />
           <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late} />
         </div>
         <p className="mt-4 mb-0 text-sm text-muted-foreground">

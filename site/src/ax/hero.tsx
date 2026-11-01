@@ -20,7 +20,7 @@ export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
           </h1>
           <p className="site-lede">
             Ouro HX is for the screens people use. Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server.{" "}
-            {cast("Here is one morning, seen from both sides: what {person} sees, and what {agent} sees.")}
+            {cast("Meet {person}, a person, and {agent}, {person.their} agent, which acts only on {person}'s word. Here is one of their mornings, seen from both sides.")}
           </p>
           <p className="m-0 text-sm text-muted-foreground">
             {claim("The tool on this page is the kit's own example, and every line it prints here is real output from the kit, checked on every CI run.", {

@@ -17,12 +17,11 @@ export interface Step {
   meanwhile?: { by: string; text: string; at: string };
 }
 
-/** What the person sees: a line in their chat with the agent, a message in the room, a notification or a private note. */
+/** What the person sees: a line in their chat with their agent, a message in the room or a private note. */
 export type Seen =
   | { kind: "person"; text: string }
   | { kind: "agent"; text: string }
   | { kind: "room"; by: string; text: string; aside?: string }
-  | { kind: "ping"; text: string; time?: string }
   | { kind: "private"; text: string }
   /** Nothing new on the person's screen, said in the screen's own quiet voice. */
   | { kind: "quiet"; text: string };
@@ -44,7 +43,16 @@ export interface Beat {
 export const ROOM = "Design sync";
 
 /** The duo drawing (art/morning-with-an-agent.svg), in plain words. */
-export const MORNING_ART_ALT = cast("{person} and {agent} share a desk on a sunny morning. {person} holds a coffee and talks; {agent} sends {person}'s note from its terminal to a room of three people.");
+export const MORNING_ART_ALT = cast(
+  "{Person} and {agent} share a desk on a sunny morning. {Person}, in a knitted bobble hat and scarf, holds a coffee and talks; {agent}, a small robot with a visor and an antenna, sends {person}'s note from its terminal to a room of three people.",
+);
+
+/** 9:03 on the person's screen: the ask, the room as it now reads, and the agent's reply. The hero and the home page show it too. */
+export const LATE_SEEN: Seen[] = [
+  { kind: "person", text: "Tell Design sync I'm running late." },
+  { kind: "agent", text: cast("Posted in Design sync on your word. {replier} and {other} can see it.") },
+  { kind: "room", by: cast("{Person}"), text: "Running late, start without me", aside: cast("Sent by {agent}, on {person}'s word") },
+];
 
 /** Each command and what the kit printed, with the cast's names filled in. */
 export const TRANSCRIPTS = castAll(rawTranscripts);
@@ -53,10 +61,10 @@ export const MORNING: Beat[] = [
   {
     id: "today",
     time: "8:58",
-    title: "What can you do for me?",
+    title: "What can you do in Design sync?",
     seen: [
-      { kind: "person", text: "What can you do for me this morning?" },
-      { kind: "agent", text: "I can post in Design sync for you, keep notes only you see, and tell you when someone answers." },
+      { kind: "person", text: "What can you do in Design sync?" },
+      { kind: "agent", text: cast("Post there for you, where {replier} and {other} will see it. Keep notes only you see. Tell you when someone answers.") },
     ],
     steps: TRANSCRIPTS.today,
     why: claim("The help sorts every command under two headings, what only the person sees and what other people see, so the agent knows which commands reach other people before it runs one.", {
@@ -68,11 +76,7 @@ export const MORNING: Beat[] = [
     id: "late",
     time: "9:03",
     title: "Tell Design sync I'm running late.",
-    seen: [
-      { kind: "person", text: "Tell Design sync I'm running late." },
-      { kind: "room", by: cast("{person.full}"), text: "Running late, start without me", aside: cast("Sent by {person}'s agent: {person} asked me to tell the room") },
-      { kind: "agent", text: "Done: posted in Design sync." },
-    ],
+    seen: LATE_SEEN,
     steps: TRANSCRIPTS.late,
     why: claim("The message goes in as an argument, not piped in. That is one of two rules we wrote from where agents in our runs went wrong, and together they took the same agent from 5 of 10 runs to 10 of 10. The refusal that names its fix already held before them, and agents recovered from it.", {
       source: [{ evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" }, { test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }],
@@ -95,7 +99,7 @@ export const MORNING: Beat[] = [
     id: "checked",
     time: "9:04",
     title: "Nothing happens, which is the point.",
-    seen: [{ kind: "quiet", text: cast("Nothing new. {person}'s coffee is still warm.") }],
+    seen: [{ kind: "quiet", text: "Nothing new, and nothing to check." }],
     steps: TRANSCRIPTS.checked,
     why: claim("The tool read its own work back and said so: Checked. When the tool said it had checked its own work, agents in our runs stopped reading the conversation back to be sure, in 0 of 2 runs against 2 of 2 without it.", {
       source: [{ file: "registry/ouro/ax/example-cli.ts" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md" }],
@@ -115,14 +119,14 @@ export const MORNING: Beat[] = [
   {
     id: "reply",
     time: "9:05",
-    title: "Let me know when someone answers.",
+    title: "Tell me when someone answers.",
     seen: [
-      { kind: "person", text: "Let me know when someone answers." },
+      { kind: "person", text: "Tell me when someone answers." },
+      { kind: "agent", text: cast("{replier.full} answered in Design sync at 9:11: “Sounds good, we'll begin with the dates”") },
       { kind: "room", by: cast("{replier.full}"), text: "Sounds good, we'll begin with the dates" },
-      { kind: "ping", time: "9:11", text: cast("{replier} answered in Design sync: “Sounds good, we'll begin with the dates”") },
     ],
     steps: TRANSCRIPTS.reply,
-    waiting: cast("The tool waits on the room. {agent} makes one call, not a loop."),
+    waiting: "The tool waits on the room: one call, not a loop.",
     why: claim("Three of the four designs we tried each added a way to wait on the conversation the agent had just posted in. With it, “tell me when someone replies” went from 1 of 2 runs to 2 of 2, in about half the calls.", {
       source: [{ file: "docs/decisions/2026-10-30-ouro-ax.md" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md" }],
       verify: [
@@ -144,12 +148,12 @@ export const MORNING: Beat[] = [
     title: "Actually, edit that.",
     seen: [
       { kind: "person", text: cast("Actually, edit that: ask {replier} about the dates.") },
-      { kind: "agent", text: "Change the message everyone in Design sync saw, or keep a note just for you?" },
-      { kind: "person", text: "Just a note for me." },
+      { kind: "agent", text: "Edit the message everyone in Design sync saw, or keep a note only you see?" },
+      { kind: "person", text: "A note, just for me." },
       { kind: "private", text: cast("ask {replier} about the dates") },
     ],
     steps: TRANSCRIPTS.edit,
-    why: claim("A word that could mean two things does nothing. It answers with both meanings, so the agent asks the person instead of guessing.", {
+    why: claim("A word that could mean two things does nothing. It answers with both meanings, so the agent asks its person instead of guessing.", {
       source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { file: "registry/ouro/ax/example-cli.ts" }],
       verify: [
         { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },
