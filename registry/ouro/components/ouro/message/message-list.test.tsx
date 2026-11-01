@@ -777,9 +777,8 @@ describe("MessageList", () => {
     expect(rect(content()).width).toBeCloseTo(600, 0);
     const room = scroller().clientWidth - 600;
     expect(rect(content()).left - rect(scroller()).left).toBeCloseTo(room / 2, 0);
-    const bubble = (id: string) => document.getElementById(id)!.querySelector("[data-ouro-message-content]")!;
-    expect(rect(bubble("mine")).right).toBeLessThanOrEqual(rect(content()).right);
-    expect(rect(bubble("mine")).right).toBeGreaterThan(rect(content()).right - 40);
+    // The user's own message ends at the column's edge, inside its 16px padding, not at the list's.
+    expect(rect(document.getElementById("mine")!).right).toBeCloseTo(rect(content()).right - 16, 0);
     await rerender(list(400, 600));
     expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
     await rerender(list(1200));
