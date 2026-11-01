@@ -92,7 +92,7 @@ export interface TimeGridEvent {
    * `cancelled` is struck through. Screen readers hear every status but busy, in the words of
    * `statusLabels`.
    * @default "busy"
-   * @claim "Screen readers hear every" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > names each event by its day, its time, its title, its status and its description)
+   * @claim "Screen readers hear every" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > names each event by the words it shows first, its title and its time, then its day, its status and its description)
    */
   status?: TimeGridStatus | (string & { 'Use "busy", "tentative", "free", "unanswered" or "cancelled"': never }) | undefined;
   /** Makes the event a link to its page, through `OuroProvider`'s router link for a path in your app. */
@@ -204,10 +204,10 @@ export interface TimeGridOwnProps {
    */
   backgroundEvents?: readonly TimeGridEvent[] | undefined;
   /**
-   * What the background events are, heard before each one's title and as the name of each
-   * day's lane: `"Shared calendar"`. Translate it with your app.
+   * What the background events are, heard after each one's title, time and day, and as the name
+   * of each day's lane: `"Shared calendar"`. Translate it with your app.
    * @default "Other calendars"
-   * @claim "heard before each one's title" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
+   * @claim "heard after each one's title, time and day" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
    */
   backgroundLabel?: string | undefined;
   /**
@@ -301,8 +301,8 @@ interface Piece {
    */
   start: number;
   end: number;
-  /** The words a screen reader hears. */
-  name: string;
+  /** What a screen reader hears after its title and time: its day or days. */
+  when: string[];
   /** Its status, `busy` for one the grid does not know. */
   status: TimeGridStatus;
   /** Whether it is one of `backgroundEvents`. */
@@ -319,8 +319,8 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * a mail or meeting app. Each day has a column under a header, today's marked; all-day events
  * have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by
  * side, each a button (a link with `href`) that shows its title first and is named for screen
- * readers by its day, its time, its title and its status ("Thursday, 9 – 10 AM, Design review,
- * needs your answer"). The grid is one Tab stop: the arrow keys move through events in time
+ * readers by the words it shows, in their order, then its day and its status ("Design review,
+ * 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time
  * order (Up and Down) and across days (Left and Right), Home and End go to the first and the
  * last, and Enter opens one. It opens scrolled to now or to the working day, and a now line
  * runs across today, under events so it never crosses their text.
@@ -396,7 +396,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     () => ({
       clock: zonedClock(zone),
       hour: new Intl.DateTimeFormat(locale, { hour: "numeric", timeZone: "UTC" }),
-      onTheHour: new Intl.DateTimeFormat(locale, { hour: "numeric", timeZone: zone }),
       time: new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZone: zone }),
       acrossDays: new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: zone }),
       weekdayShort: new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }),
@@ -430,7 +429,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const place = (list: readonly TimeGridEvent[], background: boolean) => {
     const seen = new Set<string>();
     const prefix = background ? "bg:" : "";
-    const title = (event: TimeGridEvent) => (background ? `${backgroundLabel}: ${event.title}` : event.title);
     for (const [index, event] of list.entries()) {
       // A repeated id still gets keys of its own, so React keeps every event.
       const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
@@ -449,7 +447,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         const span = spanOf(startsOn, endsOn);
         if (!span) continue;
         const key = `all:${id}`;
-        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, name: spoken([daysText(startsOn, endsOn), allDayLabel], event.title, event, words[status]) });
+        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when: [daysText(startsOn, endsOn), allDayLabel] });
         allDaySpans.push({ key, ...span });
         continue;
       }
@@ -478,20 +476,18 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         if (!span) continue;
         const key = `all:${id}`;
         const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
-        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, name: spoken(when, event.title, event, words[status]) });
+        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when });
         allDaySpans.push({ key, ...span });
         continue;
       }
-      const when =
-        from.day === lastDay
-          ? [formats.weekdayLong.format(utcDate(from.day)), rangeText(from.minutes % 60 === 0 && to.minutes % 60 === 0 ? formats.onTheHour : formats.time, start, end)]
-          : [formats.acrossDays.formatRange(start, end)];
+      // The time itself is heard as the event shows it, right after its title.
+      const when = from.day === lastDay ? [formats.weekdayLong.format(utcDate(from.day))] : [formats.acrossDays.formatRange(start, end)];
       days.forEach((day, column) => {
         if (day < from.day || day > lastDay) return;
         const key = `${prefix}${column}:${id}`;
         const top = day === from.day ? from.minutes : 0;
         const bottom = day === to.day ? to.minutes : dayLength;
-        pieces.push({ key, event, status, background, day: column, start: top, end: bottom, name: spoken(when, title(event), event, words[status]) });
+        pieces.push({ key, event, status, background, day: column, start: top, end: bottom, when });
         (background ? backgroundItems : timedItems)[column]!.push({ key, start: top, end: bottom });
       });
     }
@@ -623,6 +619,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const lines = placed ? lineCount(placed.bottom - placed.top) : 1;
     const start = placed ? toInstant(event.start)! : null;
     const end = placed ? toInstant(event.end!)! : null;
+    // The time as the event shows it, for its name: one line shows only the start, so the end follows it there.
+    const shownTime = !start ? null : lines > 1 || start.getTime() === end!.getTime() ? rangeText(formats.time, start, end!) : `${formats.time.format(start)} – ${formats.time.format(end!)}`;
     const content =
       !placed || lines === 1 ? (
         <span className="truncate">
@@ -650,7 +648,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       "data-tone": tone,
       "data-background": background ? "" : undefined,
       tabIndex: piece.key === tabStop ? 0 : -1,
-      "aria-label": piece.name,
+      "aria-label": spoken(piece, shownTime, !bar && lines >= 3, background ? backgroundLabel : null, words[status]),
       "aria-current": event.id === selectedId ? ("true" as const) : undefined,
       "aria-expanded": event.id === expandedId ? true : undefined,
       className: cn(
@@ -896,7 +894,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   );
 }
 
-/** What a screen reader hears for an event: when, the title, the status and the description. */
-function spoken(when: string[], title: string, event: TimeGridEvent, status: string): string {
-  return [...when, title, status, event.description].filter(Boolean).join(", ");
+/**
+ * What a screen reader hears for an event: first the words it shows, in the order it shows them
+ * (its title, its time and, when it has room, its description), then its day, what background
+ * events are, its status and a description it has no room to show.
+ * @claim "What a screen reader hears for an event" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > shows the title first, then the time and the description as the event's height allows)
+ */
+function spoken(piece: Piece, time: string | null, roomy: boolean, background: string | null, status: string): string {
+  const { description } = piece.event;
+  return [piece.event.title, time, roomy ? description : null, ...piece.when, background, status, roomy ? null : description].filter(Boolean).join(", ");
 }

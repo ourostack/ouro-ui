@@ -2,7 +2,7 @@
 
 # TimeGrid
 
-A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Each day has a column under a header, today's marked; all-day events have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by side, each a button (a link with `href`) that shows its title first and is named for screen readers by its day, its time, its title and its status ("Thursday, 9 – 10 AM, Design review, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time order (Up and Down) and across days (Left and Right), Home and End go to the first and the last, and Enter opens one. It opens scrolled to now or to the working day, and a now line runs across today, under events so it never crosses their text.
+A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Each day has a column under a header, today's marked; all-day events have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by side, each a button (a link with `href`) that shows its title first and is named for screen readers by the words it shows, in their order, then its day and its status ("Design review, 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time order (Up and Down) and across days (Left and Right), Home and End go to the first and the last, and Enter opens one. It opens scrolled to now or to the working day, and a now line runs across today, under events so it never crosses their text.
 
 ```tsx
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
@@ -33,7 +33,7 @@ Type: `TimeGridProps`.
 | --- | --- | --- | --- |
 | `allDayLabel` | `string` | `"All day"` | The all-day row's name, shown beside it and heard in each all-day event's name. Translate it with your app. |
 | `backgroundEvents` | `readonly TimeGridEvent[]` |  | Events that are not the person's own, such as a shared calendar, a colleague's or a room's. Each day draws them in a lane of their own at its start, beside the person's events: thin bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events only: those that are all day, or 24 hours or longer, are left out. |
-| `backgroundLabel` | `string` | `"Other calendars"` | What the background events are, heard before each one's title and as the name of each day's lane: `"Shared calendar"`. Translate it with your app. |
+| `backgroundLabel` | `string` | `"Other calendars"` | What the background events are, heard after each one's title, time and day, and as the name of each day's lane: `"Shared calendar"`. Translate it with your app. |
 | `className` | `string` |  | Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes warn in development. |
 | `date` (required) | `string` |  | The day to show, as an ISO date (`"2026-03-12"`). `week` and `work-week` show the week it is in. Move it with your own Today, Previous and Next buttons. |
 | `events` (required) | `readonly TimeGridEvent[]` |  | The events. Each shows on every day it covers that the grid shows; the rest are left out. |

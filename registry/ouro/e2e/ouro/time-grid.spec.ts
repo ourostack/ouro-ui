@@ -6,7 +6,7 @@ test("moves through events with the arrow keys and opens one with Enter", async 
   const grid = page.getByRole("region", { name: "Team calendar" });
   const thursday = grid.getByRole("list", { name: "Thursday, March 12" });
   await expect(thursday).toBeVisible();
-  const forum = thursday.getByRole("button", { name: /Architecture forum, needs your answer/ });
+  const forum = thursday.getByRole("button", { name: /^Architecture forum, .*needs your answer/ });
   await expect(forum).toHaveAccessibleName("Thursday, 10 – 11 AM, Architecture forum, needs your answer, Main auditorium");
   await forum.focus();
   await page.keyboard.press("ArrowDown");
@@ -25,5 +25,5 @@ test("adds an event where an empty slot is pressed", async ({ page }) => {
   const box = (await slots.boundingBox())!;
   // 4 PM: two thirds of the way down the day.
   await page.mouse.click(box.x + box.width / 2, box.y + (box.height * 16.1) / 24);
-  await expect(thursday.getByRole("button", { name: /New event, tentative/ })).toHaveAccessibleName(/^Thursday, 4:00 – 4:30 PM, New event, tentative$/);
+  await expect(thursday.getByRole("button", { name: /^New event, / })).toHaveAccessibleName(/^New event, 4:00 PM – 4:30 PM, Thursday, tentative$/);
 });
