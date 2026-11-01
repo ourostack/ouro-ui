@@ -60,6 +60,13 @@ export const agentCases: AgentCase[] = [
     dev: '<Message variant="chat" actionsPlacement="beside">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message09",
+    habit: "a status for a message that did not send",
+    tsc: [hint("string", 'Use <Message role="user" failed={{ onRetry: retry }}>')],
+    dev: '<Message role="user" failed={{ onRetry: retry }}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */

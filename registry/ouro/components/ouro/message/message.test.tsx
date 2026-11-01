@@ -2,7 +2,7 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
@@ -274,6 +274,9 @@ describe("Message development messages", () => {
     ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
     ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
+    ["error", { error: "Not sent" }, "error is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
+    ["status", { status: "failed" }, "status is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
+    ["onRetry", { onRetry: () => {} }, "onRetry is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
     ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
     ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
     ["an unknown actions placement", { variant: "reply", actionsPlacement: "below" }, 'actionsPlacement="below" is not a placement; use "corner" or "beside"', '<Message variant="chat" actionsPlacement="beside">'],
@@ -1464,4 +1467,166 @@ describe("Message actions", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });
+});
+
+describe("Message not sent", () => {
+  const rect = (element: Element) => element.getBoundingClientRect();
+  const markerOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-failed]");
+  const buttonsOf = (message: HTMLElement) => [...markerOf(message)!.querySelectorAll("button")].map((button) => button.textContent);
+
+  it("marks the message not sent under its bubble, with Retry and Delete, and describes the message with it", async () => {
+    const log: string[] = [];
+    const { message } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" failed={{ onRetry: () => void log.push("retry"), onDelete: () => void log.push("delete") }}>
+        On my way
+      </Message>,
+    );
+    const marker = markerOf(message)!;
+    expect(marker.textContent).toBe("Not sentRetryDelete");
+    expect(marker.querySelector("svg[aria-hidden='true'] circle")).not.toBeNull();
+    expect(rect(marker).top).toBeGreaterThanOrEqual(rect(bubbleOf(message)).bottom);
+    expect(rect(marker).right).toBeCloseTo(rect(bubbleOf(message)).right, 0);
+    const description = document.getElementById(message.getAttribute("aria-describedby")!)!;
+    expect(description.textContent).toBe("Not sent");
+    expect(marker.contains(description)).toBe(true);
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    await userEvent.click(page.getByRole("button", { name: "Delete" }));
+    expect(log).toEqual(["retry", "delete"]);
+    expect([...marker.querySelectorAll("button")].map((button) => button.getAttribute("data-ouro-part"))).toEqual(["retry", "delete"]);
+  });
+
+  it("offers Retry alone without onDelete, and goes once the app clears failed", async () => {
+    const { message, rerender } = await render(
+      <Message variant="reply" role="user" name="Priya Okafor" failed={{ onRetry: () => {} }}>
+        On my way
+      </Message>,
+    );
+    expect(buttonsOf(message)).toEqual(["Retry"]);
+    await rerender(
+      <Message variant="reply" role="user" name="Priya Okafor">
+        On my way
+      </Message>,
+    );
+    expect(markerOf(message)).toBeNull();
+    expect(message.hasAttribute("aria-describedby")).toBe(false);
+  });
+
+  it("keeps the app's own description beside the marker's", async () => {
+    const { host } = await render(
+      <>
+        <p id="hint">Sent from your phone</p>
+        <Message role="user" name="Ada" aria-describedby="hint" failed={{ onRetry: () => {}, onDelete: () => {} }} failedLabel="No enviado" retryLabel="Reintentar" deleteLabel="Eliminar">
+          Hola
+        </Message>
+        <Message role="user" name="Ada" aria-describedby="hint">
+          Hola
+        </Message>
+      </>,
+    );
+    const [failed, sent] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const [hint, own] = failed!.getAttribute("aria-describedby")!.split(" ");
+    expect(hint).toBe("hint");
+    expect(document.getElementById(own!)!.textContent).toBe("No enviado");
+    expect(buttonsOf(failed!)).toEqual(["Reintentar", "Eliminar"]);
+    // The default layout puts the marker under the bubble too.
+    expect(rect(markerOf(failed!)!).top).toBeGreaterThanOrEqual(rect(bubbleOf(failed!)).bottom);
+    expect(sent!.getAttribute("aria-describedby")).toBe("hint");
+  });
+
+  it("puts focus on the message once Retry's marker goes, keeping a tabindex it has, and leaves focus the app moved", async () => {
+    function Retrying({ moveFocus = false, tabIndex }: { moveFocus?: boolean; tabIndex?: number }) {
+      const [failed, setFailed] = useState(true);
+      const retry = () => {
+        setFailed(false);
+        if (moveFocus) document.getElementById("composer")!.focus();
+      };
+      return (
+        <div>
+          {failed ? (
+            <Message variant="chat" role="user" name="Priya Okafor" tabIndex={tabIndex} failed={{ onRetry: retry }}>
+              On my way
+            </Message>
+          ) : (
+            <Message variant="chat" role="user" name="Priya Okafor" tabIndex={tabIndex}>
+              On my way
+            </Message>
+          )}
+          <textarea id="composer" aria-label="Message" />
+        </div>
+      );
+    }
+    const { host, rerender } = await render(<Retrying />);
+    const message = () => host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    expect(document.activeElement).toBe(message());
+    expect(message().getAttribute("tabindex")).toBe("-1");
+    await rerender(<></>);
+    await rerender(<Retrying tabIndex={0} />);
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    expect(document.activeElement).toBe(message());
+    expect(message().getAttribute("tabindex")).toBe("0");
+    await rerender(<></>);
+    await rerender(<Retrying moveFocus />);
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    expect(document.activeElement!.id).toBe("composer");
+  });
+
+  it("moves focus once for each Retry press", async () => {
+    const one = (failed: boolean) => (
+      <Message variant="chat" role="user" name="Priya Okafor" failed={failed && { onRetry: () => {} }}>
+        On my way
+      </Message>
+    );
+    const { message, rerender } = await render(one(true));
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    await rerender(one(false));
+    expect(document.activeElement).toBe(message);
+    // It fails again, and later the app sends it some other way: no press, so focus stays put.
+    await rerender(one(true));
+    message.blur();
+    await rerender(one(false));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("leaves focus on Retry while the message still did not send", async () => {
+    const onRetry = vi.fn();
+    const { message, rerender } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry }}>
+        On my way
+      </Message>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(document.activeElement!.textContent).toBe("Retry");
+    // The retry failed again: the marker stays, and so does focus.
+    await rerender(
+      <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry }}>
+        On my way, again
+      </Message>,
+    );
+    expect(document.activeElement!.textContent).toBe("Retry");
+    expect(message.hasAttribute("tabindex")).toBe(false);
+  });
+
+  const appearsAtOnce = async (reducedMotion: "no-preference" | "reduce") => {
+    await commands.emulateMedia({ reducedMotion });
+    const { message, rerender } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor">
+        On my way
+      </Message>,
+    );
+    await rerender(
+      <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry: () => {} }}>
+        On my way
+      </Message>,
+    );
+    const marker = markerOf(message)!;
+    expect(marker.getAnimations({ subtree: true })).toEqual([]);
+    expect(getComputedStyle(marker).opacity).toBe("1");
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  };
+
+  it("shows the marker at once, with nothing animating", () => appearsAtOnce("no-preference"));
+
+  it("shows the marker at once, with nothing animating, under reduced motion too", () => appearsAtOnce("reduce"));
 });
