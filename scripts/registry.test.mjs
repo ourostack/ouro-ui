@@ -35,6 +35,8 @@ test("main commits no registry.json, and a release commit adds it, so only a rel
   }
   assert.match(readFileSync(join(root, "scripts/release-commit.sh"), "utf8"), /\ngit add --force -- \$\(node --input-type=module -e 'import \{ uncommitted \} from "\.\/scripts\/generated-files\.mjs";/);
   assert.match(readFileSync(join(root, "package.json"), "utf8"), /"postinstall": "node scripts\/generate\.mjs"/);
+  // The postinstall's generators parse LF text, so a Windows checkout must not turn it into CRLF.
+  assert.match(readFileSync(join(root, ".gitattributes"), "utf8"), /^\* text=auto eol=lf$/m);
   // What a GitHub install at a tag reads must be committed, and not as a Git LFS pointer.
   assert.deepEqual(unreadableOnGitHub(root, registry), []);
   const probe = { ...registry, items: [{ name: "probe", type: "registry:ui", files: [{ path: "registry.json", type: "registry:ui" }, { path: "registry/ouro/components/ouro/button/button.tsx", type: "registry:ui" }] }] };
