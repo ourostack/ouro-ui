@@ -1188,7 +1188,7 @@ describe("Message actions", () => {
         <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
           Mine
         </Message>
-        <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
+        <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])} menu={menu}>
           {"a".repeat(400)}
         </Message>
       </>,
@@ -1198,7 +1198,7 @@ describe("Message actions", () => {
     expect(box(barOf(theirs!)).top).toBeCloseTo(box(bubbleOf(theirs!)).top, 0);
     expect(box(barOf(mine!)).right).toBeCloseTo(box(bubbleOf(mine!)).left - 4, 0);
     expect(box(barOf(mine!)).top).toBeCloseTo(box(bubbleOf(mine!)).top, 0);
-    // Where the user's own bubble leaves less room than the bar needs, the bar starts at the row's start.
+    // Where the user's own bubble (at most 85% of the row) leaves less room than the bar needs, the bar starts at the row's start.
     expect(box(bubbleOf(wide!)).left - box(wide!).left).toBeLessThan(box(barOf(wide!)).width);
     expect(box(barOf(wide!)).left).toBeCloseTo(box(wide!).left, 0);
   });
