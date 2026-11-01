@@ -294,8 +294,9 @@ function useHeldTop(): (popup: HTMLElement) => () => void {
       // Stryker disable next-line CallExpression: as above.
       screen.disconnect();
     };
-    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
+  []);
 }
 
 /** Props for {@link DialogTitle}. */
