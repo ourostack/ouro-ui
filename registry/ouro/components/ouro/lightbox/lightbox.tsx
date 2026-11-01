@@ -559,10 +559,13 @@ function LightboxViewer({
   useLayoutEffect(() => {
     shownRef.current = shown;
   });
-  useLayoutEffect(() => {
-    chooseRef.current = setTarget;
+  useLayoutEffect(
+    () => {
+      chooseRef.current = setTarget;
+    },
     // Stryker disable next-line ArrayDeclaration: chooseRef is the same object for the viewer's life, so it runs once either way.
-  }, [chooseRef]);
+    [chooseRef],
+  );
   // The position names the image chosen; the carousel announces it once the image has arrived.
   const chosen = target === null ? shown : Math.min(target, total - 1);
   const href = images[shown]?.href;
