@@ -227,3 +227,23 @@ export const Springs: Story = {
     </Surface>
   ),
 };
+
+/**
+ * A conversation in a wide window, kept to a reading width (`maxWidth={600}`) and centred, so the
+ * user's own messages stay near Ouro's. Narrower than that, it fills the list.
+ */
+export const ReadingWidth: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  parameters: { screenshot: { name: "message-list-reading-width" } },
+  render: () => (
+    <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)" }}>
+      <MessageList label="Conversation with Ouro" style={{ height: 420 }} maxWidth={600}>
+        {start.slice(0, 6).map((item) => (
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada Lovelace" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    </div>
+  ),
+};

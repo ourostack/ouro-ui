@@ -759,6 +759,33 @@ describe("MessageList", () => {
     expect(error).not.toHaveBeenCalled();
   });
 
+  it("centres the conversation at maxWidth in a wider list, the user's own messages with it, and fills a narrower one", async () => {
+    const list = (width: number, maxWidth?: number) => (
+      <MessageList label="Conversation" style={{ width, height: 300 }} maxWidth={maxWidth}>
+        <Message role="assistant" name="Ouro" id="theirs">
+          Rest the dough for an hour.
+        </Message>
+        <Message role="user" name="Ada" id="mine">
+          Covered?
+        </Message>
+      </MessageList>
+    );
+    const { host, rerender } = await render(list(1200, 600));
+    const content = () => host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const scroller = () => host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    const rect = (element: Element) => element.getBoundingClientRect();
+    expect(rect(content()).width).toBeCloseTo(600, 0);
+    const room = scroller().clientWidth - 600;
+    expect(rect(content()).left - rect(scroller()).left).toBeCloseTo(room / 2, 0);
+    // The user's own message ends at the column's edge, inside its 16px padding, not at the list's.
+    expect(rect(document.getElementById("mine")!).right).toBeCloseTo(rect(content()).right - 16, 0);
+    await rerender(list(400, 600));
+    expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
+    await rerender(list(1200));
+    expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
+    expect(content().style.cssText).toBe("");
+  });
+
   it("forwards a ref to the root and lets app layout classes win", async () => {
     let element: HTMLElement | null = null;
     const { list } = await render(
