@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { treeFiles } from "../tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const componentsDir = "registry/ouro/components/ouro/";
@@ -169,8 +170,8 @@ export function dependencyFiles(
 
 function listKept() {
   const under = (dir, pattern) =>
-    readdirSync(join(root, dir), { recursive: true })
-      .map((path) => `${dir}${String(path).split("\\").join("/")}`)
+    treeFiles(join(root, dir))
+      .map((path) => `${dir}${path}`)
       .filter((path) => pattern.test(path));
   return [...under(libDir, /\.(ts|tsx|mjs)$/), ...under(themeDir, /\.(css|json|ts)$/)];
 }

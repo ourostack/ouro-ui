@@ -36,14 +36,15 @@
 //   already has, in any section of package.json, and hands every versioned one to the package
 //   manager on every add, which rewrites the app's range. The minimum versions are in each
 //   item's meta.requires and in the ouro-testing message.
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import ts from "typescript";
 import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
 import { componentsDir, MANIFEST, readComponents } from "./components.mts";
+import { treeFiles } from "./tree.mjs";
 
 const REPO = "ourostack/ouro-ui";
 const DOCS_URL = "https://ui.ouro.bot/docs";
@@ -464,12 +465,9 @@ function resolveRegistryImport(specifier: string, files: string[]): string {
 }
 
 function listFiles(root: string): string[] {
-  return (readdirSync(join(root, "registry"), { recursive: true, withFileTypes: true }) as import("node:fs").Dirent[])
-    .filter((entry) => entry.isFile() && entry.name !== ".DS_Store" && entry.name !== MANIFEST)
-    // A test's scratch folder (registry/ouro/ax/.tmp/) is no registry file.
-    .filter((entry) => !relative(root, entry.parentPath).split(/[\\/]/).includes(".tmp"))
-    .map((entry) => relative(root, join(entry.parentPath, entry.name)).split("\\").join("/"))
-    .sort();
+  return treeFiles(join(root, "registry"))
+    .filter((file) => ![".DS_Store", MANIFEST].includes(basename(file)))
+    .map((file) => `registry/${file}`);
 }
 
 /** A doc page's first sentence (its catalog line). */

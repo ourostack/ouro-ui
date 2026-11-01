@@ -7,10 +7,11 @@
 // workflow runs it on every pull request, and again when the description is edited:
 // `BASE_REF=origin/main PR_BODY="…" node scripts/conformance-exemptions.mjs`.
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const allowedFile = "scripts/physical-allowed.json";
@@ -142,10 +143,9 @@ function entriesHere() {
 /** The story files in the working tree. */
 function storyFiles() {
   return storyRoots.flatMap((dir) =>
-    readdirSync(join(root, dir), { recursive: true })
-      .map(String)
+    treeFiles(join(root, dir))
       .filter((path) => path.endsWith(".stories.tsx"))
-      .map((path) => `${dir}${path.split("\\").join("/")}`),
+      .map((path) => `${dir}${path}`),
   );
 }
 

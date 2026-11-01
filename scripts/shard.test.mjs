@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { balance, collectTimings, drivesBrowser, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { treeFiles } from "./tree.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -113,9 +114,8 @@ test("refresh reads every timing report under a folder, keeping the longer time 
 test("every script test file is in pnpm test:scripts, so one of the script test shards runs it", () => {
   const listed = scriptTestFiles();
   const found = ["scripts", "site/scripts"].flatMap((dir) =>
-    readdirSync(join(root, dir), { recursive: true })
-      .map(String)
-      .filter((file) => file.endsWith(".test.mjs") && !file.split("/").includes("node_modules"))
+    treeFiles(join(root, dir))
+      .filter((file) => file.endsWith(".test.mjs"))
       .map((file) => `${dir}/${file}`)
       // The kits' tests run inside scripts/kits.test.mjs, under Node's coverage.
       .filter((file) => !file.startsWith("scripts/kits/")),
@@ -139,11 +139,9 @@ test("a browser shard runs its share of the files, by measured time, and every s
 
 test("the sliced suites are exactly the browser tests that slice what they iterate (test/slice.ts)", () => {
   const sources = ["test", "site/src"].flatMap((dir) =>
-    readdirSync(join(root, dir), { recursive: true })
-      .map(String)
+    treeFiles(join(root, dir))
       .filter((file) => /\.tsx?$/.test(file))
-      .map((file) => `${dir}/${file}`)
-      .filter((file) => statSync(join(root, file)).isFile()),
+      .map((file) => `${dir}/${file}`),
   );
   const slicing = sources.filter((file) => /\bsliced\(/.test(readFileSync(join(root, file), "utf8")) && file !== "test/slice.ts");
   // control-suite.tsx is the controls suites' shared body.

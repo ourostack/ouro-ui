@@ -21,6 +21,7 @@ import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { treeFiles } from "./tree.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const componentsDir = "registry/ouro/components/ouro/";
@@ -75,10 +76,9 @@ const demo = /^site\/src\/docs\/demos\/(?:.*\/)?([\w-]+)\.demo\.tsx$/;
 
 /** Every docs demo, as a repository path. */
 const demoFiles = (root) =>
-  (existsSync(join(root, demosDir)) ? readdirSync(join(root, demosDir), { recursive: true }) : [])
-    .map(String)
+  (existsSync(join(root, demosDir)) ? treeFiles(join(root, demosDir)) : [])
     .filter((file) => file.endsWith(".demo.tsx"))
-    .map((file) => `${demosDir}${file.split(sep).join("/")}`);
+    .map((file) => `${demosDir}${file}`);
 
 /**
  * Each component folder's imports of other component folders, from the TypeScript source of every
@@ -96,8 +96,7 @@ function importGraph(root, folders) {
     const runtime = new Set();
     const all = new Set();
     const base = join(root, componentsDir, folder);
-    const files = readdirSync(base, { recursive: true })
-      .map(String)
+    const files = treeFiles(base)
       .filter((file) => /\.(ts|tsx|mts)$/.test(file))
       .map((file) => ({ path: join(base, file), dev: devFile.test(file) }));
     for (const file of demos.get(folder) ?? []) files.push({ path: join(root, file), dev: true });
@@ -292,7 +291,7 @@ function libFilesLoadedBy(folders, root) {
   };
   for (const folder of folders) {
     const base = join(root, componentsDir, folder);
-    for (const file of readdirSync(base, { recursive: true }).map(String)) if (/\.(ts|tsx|mts)$/.test(file)) visit(runtimeImports(join(base, file), root));
+    for (const file of treeFiles(base)) if (/\.(ts|tsx|mts)$/.test(file)) visit(runtimeImports(join(base, file), root));
   }
   while (queue.length > 0) visit(runtimeImports(queue.shift(), root));
   return [...found].map((file) => relative(root, file).split(sep).join("/")).sort();

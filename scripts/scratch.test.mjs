@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { runScriptTests } from "./run-script-tests.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -40,8 +41,7 @@ test("fails", () => {
 
 test("every script test makes its temp folders through scratchDir, so none is left in $TMPDIR", () => {
   const tests = ["scripts", "site/scripts"].flatMap((dir) =>
-    readdirSync(join(root, dir), { recursive: true })
-      .map(String)
+    treeFiles(join(root, dir))
       .filter((file) => file.endsWith(".test.mjs"))
       .map((file) => join(dir, file)),
   );
