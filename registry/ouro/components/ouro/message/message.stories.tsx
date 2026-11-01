@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -384,4 +385,36 @@ export const ReplyActions: Story = {
 export const NotSent: Story = {
   parameters: { screenshot: { name: "message-not-sent" } },
   render: () => <NotSentConversation />,
+};
+
+// Made-up image emoji, drawn here, for names and messages that hold emoji.
+const svg = (body: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`)}`;
+const emoji: EmojiCatalogue = {
+  categories: [
+    {
+      id: "symbols",
+      label: "Symbols",
+      items: [
+        { id: "sparkles", name: "Sparkles", text: "✨", src: svg('<path d="m14 3 2.5 8.5L25 14l-8.5 2.5L14 25l-2.5-8.5L3 14l8.5-2.5z" fill="#ffb400"/><path d="m25 19 1.2 3.8L30 24l-3.8 1.2L25 29l-1.2-3.8L20 24l3.8-1.2z" fill="#7c5cff"/>') },
+        { id: "party", name: "Party popper", text: "🎉", src: svg('<path d="M5 28 12 9l11 11z" fill="#ffb400"/><circle cx="22" cy="6" r="2" fill="#e8435a"/><circle cx="27" cy="12" r="2" fill="#2bb673"/>') },
+      ],
+    },
+  ],
+};
+
+/**
+ * `nameContent` shows the author's name with its emoji as an app's own pictures (here through
+ * `EmojiText`), while `name` stays what screen readers hear and the initials come from.
+ */
+export const EmojiInNames: Story = {
+  render: () => (
+    <Surface>
+      <Message variant="chat" role="assistant" name="Riley Example ✨" nameContent={<EmojiText text="Riley Example ✨" catalogue={emoji} />} avatar={<Avatar name="Riley Example" alt="" size="sm" />} time="9:41 AM">
+        <EmojiText text="Demo went well 🎉" catalogue={emoji} />
+      </Message>
+      <Message variant="post" role="assistant" name="Release bot ✨" nameContent={<EmojiText text="Release bot ✨" catalogue={emoji} />} avatar={<Avatar name="Release bot" alt="" size="sm" />} time="9:45 AM" subject="v1.3.0 is out">
+        <EmojiText text="Notes are on the site 🎉" catalogue={emoji} />
+      </Message>
+    </Surface>
+  ),
 };
