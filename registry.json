@@ -5101,6 +5101,7 @@
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-field",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/radio-group",
