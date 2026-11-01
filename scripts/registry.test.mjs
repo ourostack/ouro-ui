@@ -40,6 +40,7 @@ const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
 const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
 const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
+const axRuntime = ["ax-claims", "ax-cli", "ax-command", "ax-effects", "ax-example", "ax-exit-codes", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-problem", "ax-wait", "ax-work-event", "ax-xray"];
 const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
@@ -93,6 +94,10 @@ test("the registry is named ouro and lists every item", () => {
     "ouro-tests",
     "ouro-census",
     "ouro-source-rules",
+    ...axRuntime,
+    ...axRuntime.filter((name) => name !== "ax-example").map((name) => `${name}-tests`),
+    "ouro-ax",
+    "ouro-ax-tests",
   ]);
 });
 
@@ -286,6 +291,28 @@ test("registryDependencies are the same-repo items each item imports, as full un
   }
 });
 
+test("Ouro AX items depend on the ax items they import", () => {
+  assert.equal(itemForFile("registry/ouro/ax/command.ts"), "ax-command");
+  assert.equal(itemForFile("registry/ouro/ax/help.ts"), "ax-cli");
+  assert.equal(itemForFile("registry/ouro/ax/help.test.mts"), "ax-cli-tests");
+  assert.equal(itemForFile("registry/ouro/ax/example-cli.ts"), "ax-example");
+  assert.equal(itemForFile("registry/ouro/ax/fixtures/notes.mts"), "ax-xray-tests");
+  assert.deepEqual(item("ax-problem").registryDependencies, undefined);
+  assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-exit-codes", "ax-problem"].map(repo));
+  assert.deepEqual(item("ax-xray").registryDependencies, ["ax-claims", "ax-outcome", "ax-wait", "ax-work-event"].map(repo));
+  assert.deepEqual(item("ax-cli").files.map((file) => [file.path, file.type, file.target]), [
+    ["registry/ouro/ax/cli.ts", "registry:lib", "@lib/ouro/ax/cli.ts"],
+    ["registry/ouro/ax/help.ts", "registry:lib", "@lib/ouro/ax/help.ts"],
+  ]);
+  assert.ok(item("ax-cli-tests").registryDependencies.includes(repo("ax-cli")));
+  assert.deepEqual(item("ouro-ax").registryDependencies, axRuntime.filter((name) => name !== "ax-example").map(repo));
+  for (const name of axRuntime) {
+    assert.equal(item(name).dependencies, undefined, `${name} has npm dependencies`);
+    assert.equal(item(name).devDependencies, undefined, `${name} has devDependencies`);
+    assert.ok(!(item(name).registryDependencies ?? []).some((dependency) => /lib-|-tests$/.test(dependency)), name);
+  }
+});
+
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
   // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
@@ -446,9 +473,12 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("npx shadcn@latest add ourostack/ouro-ui/dialog#v"));
   for (const entry of registry.items.filter((each) => !each.name.startsWith("lib-"))) {
     // A component's line ends with its page's full Markdown URL, so an agent never composes one.
+    // An Ouro AX item's line ends with its page in docs/ax.
     const line = components.includes(entry.name)
       ? `- \`${entry.name}\`: ${entry.description} Docs: https://ui.ouro.bot/docs/${entry.name}.md\n`
-      : `- \`${entry.name}\`: ${entry.description}\n`;
+      : axRuntime.includes(entry.name)
+        ? `- \`${entry.name}\`: ${entry.description} Docs: https://ui.ouro.bot/docs/${entry.name}.md\n`
+        : `- \`${entry.name}\`: ${entry.description}\n`;
     assert.ok(llms.includes(line), `llms.txt lists ${entry.name} with its registry description; run pnpm registry`);
   }
   // The helpers are one line: no app adds one by name.

@@ -15,7 +15,8 @@
 // - README.md "Upgrading from v0.1.0", between <!-- upgrade:start --> and <!-- upgrade:end -->,
 //   copied from UPGRADING.md with its {{latestRelease}} placeholder filled in;
 // - the release tag in the install commands of README.md, site/public/llms.txt and
-//   package.json's description: package.json's ouro.latestRelease (scripts/latest-release.mjs).
+//   package.json's description: package.json's ouro.latestRelease (scripts/latest-release.mjs);
+// - docs/ax/<item>.md, Ouro AX's page per ax item, from registry/ouro/ax/ (scripts/ax-docs.mts).
 //
 // `--check` exits 1 when a committed file differs from what would be generated.
 // `--out <dir>` writes (or checks) under another root, for tests. Output is deterministic:
@@ -31,6 +32,7 @@ import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
 import { summary } from "./docs-summary.mts";
+import { axDocs } from "./ax-docs.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -668,7 +670,13 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
     if (!title) throw new Error(`docs/guides/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
     return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
   });
-const sitePages = [...guidePages, ...exportPages];
+// Ouro AX's page per ax item (docs/ax/, scripts/ax-docs.mts), published at docs/<item> as a component's page is.
+const axOutputs = axDocs(root, latestRelease(root));
+const axPages = [...axOutputs.keys()].sort().map((path) => {
+  const name = path.slice("docs/ax/".length, -3);
+  return { name, title: name, kind: "guide" as const, group: "Ouro AX", markdown: path, summary: summary(axOutputs.get(path)!.replace(/^# .*$/m, "")) };
+});
+const sitePages = [...guidePages, ...axPages, ...exportPages];
 const taken = new Map<string, string>(siteItems.map((item) => [item.name, `the ${item.name} item`]));
 for (const page of sitePages) {
   if (taken.has(page.name)) throw new Error(`${page.markdown} would be published at docs/${page.name}, the address of ${taken.get(page.name)}. Rename one.`);
@@ -702,6 +710,7 @@ const helperItems = readdirSync(join(root, "registry/ouro/lib/ouro"))
   .filter((file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file))
   .map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`)
   .sort();
+const axItemNames = [...axOutputs.keys()].map((path) => path.slice("docs/ax/".length, -3)).filter((name) => name !== "ax-example");
 const readmeItems = [
   "<!-- items:start -->",
   GENERATED,
@@ -725,6 +734,8 @@ const readmeItems = [
     source: { test: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
     verify: { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
   })} Optional: \`ouro-theme\`, the Ouro look.`,
+  "",
+  `Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool \`ax-example\`, \`ouro-ax-tests\` with their \`<name>-tests\` items, and \`ouro-ax\`, which is:\n${axItemNames.map(code).join(",\n")}.`,
   "",
   "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
   "",
@@ -760,6 +771,8 @@ outputs.set(
     release,
   ),
 );
+// Ouro AX's reference pages, one per ax item (scripts/ax-docs.mts).
+for (const [path, content] of axOutputs) outputs.set(path, content);
 // The other files whose install commands name the release.
 for (const path of syncedFiles.filter((file) => file !== "README.md")) {
   outputs.set(path, withRelease(readFileSync(join(root, path), "utf8"), release));
@@ -769,11 +782,13 @@ for (const path of syncedFiles.filter((file) => file !== "README.md")) {
 // Write or check
 
 const docsDir = join(outRoot, "docs");
-const stray = existsSync(docsDir)
-  ? readdirSync(docsDir)
-      .filter((file) => file.endsWith(".md") && !outputs.has(`docs/${file}`))
-      .map((file) => `docs/${file}`)
-  : [];
+const strayIn = (dir: string) =>
+  existsSync(join(outRoot, dir))
+    ? readdirSync(join(outRoot, dir))
+        .filter((file) => file.endsWith(".md") && !outputs.has(`${dir}/${file}`))
+        .map((file) => `${dir}/${file}`)
+    : [];
+const stray = existsSync(docsDir) ? [...strayIn("docs"), ...strayIn("docs/ax")] : [];
 
 if (check) {
   const stale = [...outputs]
