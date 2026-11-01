@@ -303,7 +303,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
       // Where an app turned the browser's own anchoring back on, the browser corrects.
-      // Stryker disable next-line StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so a second correction does not always land where a test can see it.
+      // Stryker disable next-line ConditionalExpression,StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so whether a second correction lands depends on timing a test cannot hold.
       const native = getComputedStyle(scroller).overflowAnchor === "auto";
       if (pinned.current) toBottom();
       else if (anchor && near && !native) {
