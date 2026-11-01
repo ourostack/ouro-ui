@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [shard12, shard12, webkit12, alone]
+        mode: [shard12, shard12, webkit12, alone, shard5of16, stories5of16]
     name: glide (${{ matrix.mode }} ${{ strategy.job-index }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,8 +39,10 @@ jobs:
               shard12) pnpm exec vitest run --coverage --shard=12/12 > out.log 2>&1 ;;
               webkit12) pnpm exec vitest run --project ouro-webkit --shard=12/12 > out.log 2>&1 ;;
               alone) pnpm exec vitest run --project ouro-webkit registry/ouro/components/ouro/lightbox/lightbox.test.tsx > out.log 2>&1 ;;
+              shard5of16) pnpm exec vitest run --coverage --shard=5/16 --reporter=default --reporter=./scripts/probe-slow-reporter.mjs > out.log 2>&1 ;;
+              stories5of16) pnpm exec vitest run --project ouro-chromium test/stories.test.tsx --shard=5/16 --reporter=default --reporter=./scripts/probe-slow-reporter.mjs > out.log 2>&1 ;;
             esac
             echo "round $i exit $?"
             sed 's/\x1b\[[0-9;]*m//g' out.log | grep -oE "GLIDE-PROBE .*" | cut -c1-900
-            sed 's/\x1b\[[0-9;]*m//g' out.log | grep -E "Test Files|FAIL " | head -8
+            sed 's/\x1b\[[0-9;]*m//g' out.log | grep -E "Test Files|FAIL |SLOW " | head -30
           done
