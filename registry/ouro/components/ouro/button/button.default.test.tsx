@@ -64,7 +64,7 @@ describe("Button default", () => {
     expect(button.textContent).toBe("Start chat");
     expect(button.getAttribute("aria-keyshortcuts")).toBe("Enter");
     expect(button.getAttribute("data-variant")).toBe("solid");
-    expect(button.hasAttribute("data-default")).toBe(true);
+    expect(button.getAttribute("data-default")).toBe("");
   });
 
   it("leaves Return to a multi-line field, and takes Command or Control Return from it", async () => {
@@ -206,6 +206,34 @@ describe("Button default", () => {
     field("Name").focus();
     await userEvent.keyboard("{Enter}");
     expect(start).toHaveBeenCalledTimes(3);
+  });
+
+  it("leaves a form alone as a plain button, and is never a link's", async () => {
+    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
+    const start = vi.fn();
+    await render(
+      <div role="dialog" aria-label="Find">
+        <form onSubmit={(event) => submit(event.nativeEvent as SubmitEvent)}>
+          <input aria-label="Name" />
+          <Button default onClick={start}>
+            Find
+          </Button>
+        </form>
+        <Button href="/help" {...({ default: true } as object)}>
+          Help
+        </Button>
+      </div>,
+    );
+    field("Name").focus();
+    await userEvent.keyboard("{Enter}");
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(submit).not.toHaveBeenCalled();
+    expect(document.querySelector("a")!.hasAttribute("aria-keyshortcuts")).toBe(false);
+  });
+
+  it("keeps an app's own aria-keyshortcuts on a button that is not the default", async () => {
+    await render(<Button aria-keyshortcuts="Control+S">Save</Button>);
+    expect(document.querySelector("button")!.getAttribute("aria-keyshortcuts")).toBe("Control+S");
   });
 
   it("does nothing outside a dialog, where Return belongs to the page", async () => {

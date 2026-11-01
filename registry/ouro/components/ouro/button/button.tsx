@@ -512,6 +512,7 @@ export function Button(props: ButtonProps): JSX.Element {
     );
   }
 
+  // Stryker disable next-line StringLiteral: a type that is not a button type renders "button", so "" does too.
   const { ref: _ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
   // A button that opens a dialog (its own, or a component's trigger) holds the page from the press,
   // so a release during a smooth scroll lands on it and its click opens the dialog.
