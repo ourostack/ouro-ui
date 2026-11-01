@@ -49,8 +49,8 @@ export const agentCases: AgentCase[] = [
   {
     id: "message07",
     habit: "a status for a message that did not send",
-    tsc: [hint("string", 'Use <Message role="user" failed onRetry={retry}>')],
-    dev: '<Message role="user" failed onRetry={retry}>',
+    tsc: [hint("string", 'Use <Message role="user" failed={{ onRetry: retry }}>')],
+    dev: '<Message role="user" failed={{ onRetry: retry }}>',
     names: ["tsc", "dev"],
   },
 ];

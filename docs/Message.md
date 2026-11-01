@@ -40,6 +40,7 @@ The props the modes share. Type: `MessageProps`.
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
 | `dateTime` | `string` |  | The same moment for machines, as an ISO date (`2026-05-01T09:41`): the `<time>` element's `dateTime`. |
 | `deleteLabel` | `string` | `"Delete"` | The name of a `failed` message's delete button, for other languages. |
+| `failed` | `MessageFailed \| false` |  | The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
 | `failedLabel` | `string` | `"Not sent"` | What the marker under a `failed` message says, for other languages. |
 | `footer` | `ReactNode` |  | Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
@@ -59,49 +60,17 @@ The props the modes share. Type: `MessageProps`.
 
 `MessageProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
-### With `presence` and `presenceLabel` and `failed`
+### With `presence` and `presenceLabel`
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `failed` | `false` | Leave it out for a message that sent; pass it with `onRetry` for one that did not. |
 | `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The author's presence, as Avatar's dot on the avatar's lower end corner: available, busy, away, do not disturb, offline or out of office, each in its own shape and tone. It shows wherever the avatar does, so not on a `continued` message or the user's own `chat` messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead. |
 | `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting". Screen readers hear it on the avatar, as Avatar reads a presence beside a written name. Required with `presence`, so no dot is silent. |
 
-Not in this mode (typed `never`):
-
-- `onDelete`: Read only with `failed`.
-- `onRetry`: Read only with `failed`.
-
-### With `presence` and `presenceLabel` and `failed` and `onRetry` and `onDelete`
+### With `presenceLabel`
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `failed` (required) | `true` | The message did not send. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
-| `onDelete` | `(() => void)` | Deletes the message that did not send. Leave it out to offer Retry alone. |
-| `onRetry` (required) | `() => void` | Sends the message again. Required with `failed`, so a message that did not send always offers another try. |
-| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The author's presence, as Avatar's dot on the avatar's lower end corner: available, busy, away, do not disturb, offline or out of office, each in its own shape and tone. It shows wherever the avatar does, so not on a `continued` message or the user's own `chat` messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead. |
-| `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting". Screen readers hear it on the avatar, as Avatar reads a presence beside a written name. Required with `presence`, so no dot is silent. |
-
-### With `presenceLabel` and `failed`
-
-| Prop | Type | Description |
-| --- | --- | --- |
-| `failed` | `false` | Leave it out for a message that sent; pass it with `onRetry` for one that did not. |
-| `presenceLabel` | `string` | Read only with `presence`. |
-
-Not in this mode (typed `never`):
-
-- `onDelete`: Read only with `failed`.
-- `onRetry`: Read only with `failed`.
-- `presence`: Leave it out for no dot; pass it with `presenceLabel` to show one.
-
-### With `presenceLabel` and `failed` and `onRetry` and `onDelete`
-
-| Prop | Type | Description |
-| --- | --- | --- |
-| `failed` (required) | `true` | The message did not send. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
-| `onDelete` | `(() => void)` | Deletes the message that did not send. Leave it out to offer Retry alone. |
-| `onRetry` (required) | `() => void` | Sends the message again. Required with `failed`, so a message that did not send always offers another try. |
 | `presenceLabel` | `string` | Read only with `presence`. |
 
 Not in this mode (typed `never`):
@@ -118,11 +87,12 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `author`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
 - `content`: Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`.
-- `error`: Not a prop. A message that did not send is `failed`: `<Message role="user" failed onRetry={retry}>`.
+- `error`: Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`.
 - `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`.
+- `onRetry`: Not a prop. Retry is part of `failed`: `<Message role="user" failed={{ onRetry: retry }}>`.
 - `own`: Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`.
 - `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
-- `status`: Not a prop. A message that did not send is `failed`: `<Message role="user" failed onRetry={retry}>`.
+- `status`: Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`.
 - `timestamp`: Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`.
 
 ## `className` is for layout only
@@ -134,6 +104,14 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `AvatarPresence`
+
+A person's presence, drawn as a dot with its own shape: a check (available), a solid dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a ring with an arrow (out of office), so it never relies on color alone.
+
+```ts
+type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office";
+```
 
 ### `MenuCheckboxEntry`
 
@@ -260,6 +238,209 @@ interface MessageAction {
   /** Shown, but cannot be pressed: an action the app has turned off for now. */
   disabled?: boolean | undefined;
 }
+```
+
+### `MessageFailed`
+
+What the person can do about a message of their own that did not send: `Message`'s `failed`.
+
+```ts
+interface MessageFailed {
+  /**
+   * Sends the message again. Required, so a message that did not send always offers another try.
+   */
+  onRetry: () => void;
+  /** Deletes the message that did not send. Leave it out to offer Retry alone. */
+  onDelete?: (() => void) | undefined;
+}
+```
+
+### `MessageNoPresenceProps`
+
+A Message without a presence dot.
+
+```ts
+interface MessageNoPresenceProps {
+  /** Leave it out for no dot; pass it with `presenceLabel` to show one. */
+  presence?: undefined;
+  /** Read only with `presence`. */
+  presenceLabel?: string | undefined;
+}
+```
+
+### `MessageOwnProps`
+
+The props Message adds to the `<article>` attributes it passes through.
+
+```ts
+interface MessageOwnProps {
+  /**
+   * Who wrote it. `user` is the person using the app: their messages sit at the end, in
+   * the primary color. `assistant` is anyone else, such as an agent, at the start. `system`
+   * is the app's own note ("Ada joined"), centered and quiet.
+   */
+  role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
+  /**
+   * How the message is laid out. `default` suits a conversation with an assistant. `chat`
+   * suits people writing to each other: others' messages at the start on a raised bubble
+   * under their name and time, the user's own at the end in a tint of the primary color,
+   * with only the time. `post` is a post in a channel: a card as wide as the list, under the
+   * author's name and time, with an optional `subject` and the `footer` inside it. `reply` is
+   * a reply in a thread: the same line of name and time, with the text unboxed under it. In
+   * `post` and `reply` the user's own messages sit at the start too.
+   * @default "default"
+   */
+  variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
+  /**
+   * The author's name. Screen readers hear it before the message, and the avatar's
+   * initials come from it. Required, so every message says who wrote it. The user's own
+   * name is read but not shown.
+   */
+  name: string;
+  /**
+   * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
+   * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
+   * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
+   * (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show
+   * no avatar.
+   */
+  avatar?: string | false | ReactElement | undefined;
+  /**
+   * When it was written, already formatted for the reader ("9:41 AM"), shown after the name.
+   * Format it in the browser after hydration, so the server and the reader's clock agree.
+   */
+  time?: string | undefined;
+  /** The same moment for machines, as an ISO date (`2026-05-01T09:41`): the `<time>` element's `dateTime`. */
+  dateTime?: string | undefined;
+  /**
+   * The message follows one from the same author: no avatar and no name line, so a run of
+   * messages reads as one. Its time shows beside it on hover and focus. Screen readers still
+   * hear the name and time. Not for `post`: every post shows its author.
+   */
+  continued?: boolean | undefined;
+  /** A post's subject, in bold above its text. `post` only. */
+  subject?: ReactNode;
+  /** The message: text, or rich content such as a list or a code block. */
+  children?: ReactNode;
+  /** Files sent with the message, shown under it: `<Attachment>` elements. */
+  attachments?: ReactNode;
+  /**
+   * Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited",
+   * whether it was delivered or seen.
+   */
+  footer?: ReactNode;
+  /** Under a post: its thread, as a `<ThreadSummary>`. */
+  thread?: ReactNode;
+  /**
+   * The message's actions, as icon buttons with tooltips in a small bar at the top corner of
+   * the bubble or card. The bar shows while the pointer is over the message, while focus is
+   * in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
+   * keys moving between its buttons.
+   */
+  actions?: readonly MessageAction[] | undefined;
+  /**
+   * More actions, in a menu that opens from the last button in the action bar: the same
+   * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
+   * browser once its code loads, so server HTML has the message without it; Menu's code loads the
+   * first time someone opens a message's menu.
+   */
+  menu?: readonly MenuEntry[] | undefined;
+  /** What screen readers hear for the action bar, for other languages. @default "Message actions" */
+  actionsLabel?: string | undefined;
+  /** The menu button's name, for other languages. @default "More actions" */
+  menuLabel?: string | undefined;
+  /**
+   * The reply is still being written. The message is `aria-busy`, an empty one shows a
+   * typing indicator, and `MessageList` announces it once, when streaming ends.
+   */
+  streaming?: boolean | undefined;
+  /** What screen readers hear for the typing indicator, for other languages. @default "Writing" */
+  streamingLabel?: string | undefined;
+  /**
+   * The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A
+   * calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app
+   * clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the
+   * message's description. It appears at once, with no motion. To put the text back in a
+   * `Composer` instead, set the Composer's `value` to it and delete the message.
+   */
+  failed?: MessageFailed | false | undefined;
+  /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
+  failedLabel?: string | undefined;
+  /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
+  retryLabel?: string | undefined;
+  /** The name of a `failed` message's delete button, for other languages. @default "Delete" */
+  deleteLabel?: string | undefined;
+  /** Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. */
+  className?: string | undefined;
+  ref?: Ref<HTMLElement> | undefined;
+
+  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`. */
+  from?: { 'Use <Message role="user" name="Ada">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
+  sender?: { 'Use <Message role="user" name="Ada">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
+  author?: { 'Use <Message role="user" name="Ada">': never };
+  /** Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`. */
+  content?: { 'Use <Message role="user" name="Ada">Hi</Message>': never };
+  /** Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`. */
+  own?: { 'Use <Message role="user" variant="chat">': never };
+  /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
+  timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
+  /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
+  error?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
+  /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
+  status?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
+  /** Not a prop. Retry is part of `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
+  onRetry?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
+}
+```
+
+### `MessagePresenceProps`
+
+A Message whose avatar shows the author's presence, and the words it says.
+
+```ts
+interface MessagePresenceProps {
+  /**
+   * The author's presence, as Avatar's dot on the avatar's lower end corner: available,
+   * busy, away, do not disturb, offline or out of office, each in its own shape and tone. It
+   * shows wherever the avatar does, so not on a `continued` message or the user's own `chat`
+   * messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead.
+   */
+  presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
+  /**
+   * What the dot says, such as "Busy" or "In a meeting". Screen readers hear it on the avatar,
+   * as Avatar reads a presence beside a written name. Required with `presence`, so no dot is
+   * silent.
+   */
+  presenceLabel: string;
+}
+```
+
+### `MessageProps`
+
+Props for `Message`: its own props, `presence` with `presenceLabel` or neither, and the `<article>` attributes it passes through.
+
+```ts
+type MessageProps = Omit<HTMLAttributes<HTMLElement>, keyof MessageOwnProps | "content" | "presence" | "presenceLabel"> &
+  MessageOwnProps &
+  (MessagePresenceProps | MessageNoPresenceProps);
+```
+
+### `MessageRole`
+
+Who wrote a message: the person using the app, the assistant, or the app itself.
+
+```ts
+type MessageRole = "user" | "assistant" | "system";
+```
+
+### `MessageVariant`
+
+How a message is laid out: `default` for a conversation with an assistant, `chat` for a chat between people, `post` for a post in a channel, and `reply` for a reply in its thread.
+
+```ts
+type MessageVariant = "default" | "chat" | "post" | "reply";
 ```
 
 [^layout-classes]: test:registry/ouro/components/ouro/message/message.test.tsx::Message > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > forwards a ref and lets app layout classes win)

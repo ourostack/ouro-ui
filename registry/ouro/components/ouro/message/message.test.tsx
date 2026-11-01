@@ -270,8 +270,9 @@ describe("Message development messages", () => {
     ["an unknown variant", { variant: "bubble" }, 'variant="bubble" is not a variant; use "default", "chat", "post" or "reply"', '<Message variant="chat" role="assistant" name="Grace">'],
     ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
-    ["error", { error: "Not sent" }, "error is not a prop; a message that did not send is failed", '<Message role="user" failed onRetry={retry}>'],
-    ["status", { status: "failed" }, "status is not a prop; a message that did not send is failed", '<Message role="user" failed onRetry={retry}>'],
+    ["error", { error: "Not sent" }, "error is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
+    ["status", { status: "failed" }, "status is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
+    ["onRetry", { onRetry: () => {} }, "onRetry is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
     ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
     ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
     [
@@ -1203,12 +1204,13 @@ describe("Message not sent", () => {
   it("marks the message not sent under its bubble, with Retry and Delete, and describes the message with it", async () => {
     const log: string[] = [];
     const { message } = await render(
-      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" failed onRetry={() => void log.push("retry")} onDelete={() => void log.push("delete")}>
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" failed={{ onRetry: () => void log.push("retry"), onDelete: () => void log.push("delete") }}>
         On my way
       </Message>,
     );
     const marker = markerOf(message)!;
     expect(marker.textContent).toBe("Not sentRetryDelete");
+    expect(marker.querySelector("svg[aria-hidden='true'] circle")).not.toBeNull();
     expect(rect(marker).top).toBeGreaterThanOrEqual(rect(bubbleOf(message)).bottom);
     expect(rect(marker).right).toBeCloseTo(rect(bubbleOf(message)).right, 0);
     const description = document.getElementById(message.getAttribute("aria-describedby")!)!;
@@ -1222,7 +1224,7 @@ describe("Message not sent", () => {
 
   it("offers Retry alone without onDelete, and goes once the app clears failed", async () => {
     const { message, rerender } = await render(
-      <Message variant="reply" role="user" name="Priya Okafor" failed onRetry={() => {}}>
+      <Message variant="reply" role="user" name="Priya Okafor" failed={{ onRetry: () => {} }}>
         On my way
       </Message>,
     );
@@ -1240,7 +1242,7 @@ describe("Message not sent", () => {
     const { host } = await render(
       <>
         <p id="hint">Sent from your phone</p>
-        <Message role="user" name="Ada" aria-describedby="hint" failed onRetry={() => {}} onDelete={() => {}} failedLabel="No enviado" retryLabel="Reintentar" deleteLabel="Eliminar">
+        <Message role="user" name="Ada" aria-describedby="hint" failed={{ onRetry: () => {}, onDelete: () => {} }} failedLabel="No enviado" retryLabel="Reintentar" deleteLabel="Eliminar">
           Hola
         </Message>
         <Message role="user" name="Ada" aria-describedby="hint">
@@ -1268,7 +1270,7 @@ describe("Message not sent", () => {
       return (
         <div>
           {failed ? (
-            <Message variant="chat" role="user" name="Priya Okafor" tabIndex={tabIndex} failed onRetry={retry}>
+            <Message variant="chat" role="user" name="Priya Okafor" tabIndex={tabIndex} failed={{ onRetry: retry }}>
               On my way
             </Message>
           ) : (
@@ -1296,10 +1298,27 @@ describe("Message not sent", () => {
     expect(document.activeElement!.id).toBe("composer");
   });
 
+  it("moves focus once for each Retry press", async () => {
+    const one = (failed: boolean) => (
+      <Message variant="chat" role="user" name="Priya Okafor" failed={failed && { onRetry: () => {} }}>
+        On my way
+      </Message>
+    );
+    const { message, rerender } = await render(one(true));
+    await userEvent.click(page.getByRole("button", { name: "Retry" }));
+    await rerender(one(false));
+    expect(document.activeElement).toBe(message);
+    // It fails again, and later the app sends it some other way: no press, so focus stays put.
+    await rerender(one(true));
+    message.blur();
+    await rerender(one(false));
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("leaves focus on Retry while the message still did not send", async () => {
     const onRetry = vi.fn();
     const { message, rerender } = await render(
-      <Message variant="chat" role="user" name="Priya Okafor" failed onRetry={onRetry}>
+      <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry }}>
         On my way
       </Message>,
     );
@@ -1308,7 +1327,7 @@ describe("Message not sent", () => {
     expect(document.activeElement!.textContent).toBe("Retry");
     // The retry failed again: the marker stays, and so does focus.
     await rerender(
-      <Message variant="chat" role="user" name="Priya Okafor" failed onRetry={onRetry}>
+      <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry }}>
         On my way, again
       </Message>,
     );
@@ -1324,7 +1343,7 @@ describe("Message not sent", () => {
       </Message>,
     );
     await rerender(
-      <Message variant="chat" role="user" name="Priya Okafor" failed onRetry={() => {}}>
+      <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry: () => {} }}>
         On my way
       </Message>,
     );
