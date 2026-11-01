@@ -711,6 +711,29 @@ describe("Command server search", () => {
 
 describe("Command media", () => {
   const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+
+  it("shows labelContent in place of the label, while the search and the row's name still use the label", async () => {
+    const onSelect = vi.fn();
+    await openPalette({
+      items: [
+        { label: "Release crew 🎉", labelContent: <>Release crew <img alt="" data-testid="party" src={picture} width={16} height={16} /></>, onSelect },
+        { label: "Sign out", onSelect: () => {} },
+      ],
+    } as object);
+    const crew = page.getByRole("option", { name: "Release crew 🎉", exact: true }).element() as HTMLElement;
+    const shown = label(crew).querySelector<HTMLElement>('[aria-hidden="true"]')!;
+    expect(shown.textContent).toBe("Release crew ");
+    expect(shown.querySelector('[data-testid="party"]')).not.toBeNull();
+    expect(label(crew).querySelector(".sr-only")!.textContent).toBe("Release crew 🎉");
+    // A row without it shows its label as before.
+    const signOut = label(page.getByRole("option", { name: "Sign out", exact: true }).element() as HTMLElement);
+    expect(signOut.textContent).toBe("Sign out");
+    expect(signOut.querySelector('[aria-hidden="true"], .sr-only')).toBeNull();
+    await userEvent.type(input(), "crew");
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
   const gear = <svg data-testid="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="currentColor" /></svg>;
   const row = (name: string) => page.getByRole("option", { name: new RegExp(`^${name}`) }).element() as HTMLElement;
   const label = (option: HTMLElement) => option.querySelector<HTMLElement>("[data-ouro-command-label]")!;

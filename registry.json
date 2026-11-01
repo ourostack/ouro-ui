@@ -6939,6 +6939,8 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/command",
         "ourostack/ouro-ui/dialog-tests",
+        "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/kbd",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
