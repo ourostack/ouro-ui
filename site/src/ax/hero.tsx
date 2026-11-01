@@ -11,8 +11,8 @@ import { cast } from "./cast";
  */
 export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
   return (
-    <section aria-labelledby="ax-title" className="site-hero pt-10 pb-16 lg:pt-16 lg:pb-24">
-      <Container className="grid items-center gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,6fr)]">
+    <section aria-labelledby="ax-title" className="site-hero ax-hero">
+      <Container className="ax-hero-grid grid items-center gap-x-12 gap-y-10">
         <div className="grid content-start gap-5">
           <p className="site-eyebrow">Ouro AX</p>
           <h1 id="ax-title" className="site-h1">

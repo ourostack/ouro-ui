@@ -21,7 +21,6 @@ import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
 import "../voyage/voyage.css";
 import "../voyage/chapters/chapters.css";
-import "../ax/ax.css";
 
 const docsHref = (item: string) => href(`/docs/${item}/`);
 

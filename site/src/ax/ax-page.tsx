@@ -19,7 +19,7 @@ const EVIDENCE = "https://github.com/ourostack/ouro-ui/tree/main/docs/decisions/
 
 function BeatRow({ beat }: { beat: Beat }): JSX.Element {
   return (
-    <li className="grid gap-6 border-t border-border/70 pt-8 lg:grid-cols-[6rem_minmax(0,1fr)] lg:gap-10" data-ax-beat={beat.id}>
+    <li className="ax-beat border-t border-border/70" data-ax-beat={beat.id}>
       <p className="site-mono m-0 text-muted-foreground" aria-hidden="true">
         {beat.time}
       </p>
@@ -28,7 +28,7 @@ function BeatRow({ beat }: { beat: Beat }): JSX.Element {
           <span className="sr-only">{beat.time}: </span>
           {beat.title}
         </h3>
-        <div className="grid items-start gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className="ax-pair grid items-start gap-4">
           <Screen label={cast("What {person} sees")} seen={beat.seen} />
           {beat.steps.length > 0 ? (
             <Transcript label={cast("What {agent} sees")} steps={beat.steps} waiting={beat.waiting} />
@@ -36,14 +36,14 @@ function BeatRow({ beat }: { beat: Beat }): JSX.Element {
             <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late.slice(1)} after={cast("{agent} moves on without reading the room back.")} />
           )}
         </div>
-        <div className="grid gap-x-8 gap-y-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline">
+        <div className="ax-finding grid gap-x-8 gap-y-3">
           {beat.figure ? (
             <p className="m-0 grid gap-1">
               <span className="ax-figure">{beat.figure.value}</span>
               <span className="text-sm text-muted-foreground">{beat.figure.label}</span>
             </p>
           ) : (
-            <span aria-hidden="true" className="hidden sm:block" />
+            <span aria-hidden="true" className="ax-finding-gap" />
           )}
           <p className="m-0 text-muted-foreground">{beat.why}</p>
         </div>
@@ -74,7 +74,7 @@ export default function AxPage(): JSX.Element {
   const held = xray.must.filter((item) => item.before === "holds");
   return (
     <div id="ax">
-      <section aria-labelledby="morning-title" className="py-16 lg:py-24">
+      <section aria-labelledby="morning-title" className="ax-band">
         <Container>
           <h2 id="morning-title" className="site-h2">
             {cast("{person}'s morning")}
@@ -88,7 +88,7 @@ export default function AxPage(): JSX.Element {
         </Container>
       </section>
 
-      <section id="be-the-agent" aria-labelledby="turn-title" className="scroll-mt-20 border-t border-border/70 py-16 lg:py-24">
+      <section id="be-the-agent" aria-labelledby="turn-title" className="ax-band ax-anchor border-t border-border/70">
         <Container className="grid gap-10">
           <div className="grid gap-4">
             <p className="site-eyebrow">Your turn</p>
@@ -103,7 +103,7 @@ export default function AxPage(): JSX.Element {
         </Container>
       </section>
 
-      <section aria-labelledby="xray-title" className="border-t border-border/70 py-16 lg:py-24">
+      <section aria-labelledby="xray-title" className="ax-band border-t border-border/70">
         <Container className="grid gap-10">
           <div className="grid gap-4">
             <p className="site-eyebrow">The X-ray</p>
@@ -184,7 +184,7 @@ export default function AxPage(): JSX.Element {
         </Container>
       </section>
 
-      <section aria-labelledby="build-title" className="border-t border-border/70 py-16 lg:py-24">
+      <section aria-labelledby="build-title" className="ax-band border-t border-border/70">
         <Container className="grid gap-10">
           <div className="grid gap-4">
             <p className="site-eyebrow">Build one</p>
@@ -195,7 +195,7 @@ export default function AxPage(): JSX.Element {
               Ouro AX is a standard, a kit and an X-ray. Copy the kit in the way you copy Ouro HX components, define each command once, and run the X-ray in CI.
             </p>
           </div>
-          <ul className="m-0 grid list-none gap-x-10 gap-y-8 p-0 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="ax-quad m-0 grid list-none gap-x-10 gap-y-8 p-0">
             {[
               { title: "The kit", body: "One definition per command gives the parser, help, errors, JSON and an MCP tool.", to: "/docs/ax/" },
               { title: "The claims", body: "The standard: checkable rules, with the reasons and the evidence that admitted them.", to: "/docs/ax-standard/" },

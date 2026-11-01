@@ -1,6 +1,7 @@
 import { Fragment, type JSX, type ReactNode } from "react";
 import { InlineCode } from "../components/code";
 import type { Seen, Step } from "./story";
+import "./ax.css";
 
 /** A line of the tool's output, coloured by what it says: a refusal, a check that held, or plain output. */
 export function OutputLine({ text, refused, fresh }: { text: string; refused?: boolean | undefined; fresh?: boolean | undefined }): JSX.Element {

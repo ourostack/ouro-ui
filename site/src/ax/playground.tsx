@@ -121,7 +121,7 @@ export default function Playground(): JSX.Element {
       </div>
       <div className="grid min-w-0 content-start gap-4">
         <Terminal label={cast("What {agent} sees")}>
-          <pre ref={log} role="log" aria-label={cast("What {agent} sees")} tabIndex={0} className="ax-term-body max-h-[26rem] min-h-[12rem] overflow-y-auto">
+          <pre ref={log} role="log" aria-label={cast("What {agent} sees")} tabIndex={0} className="ax-term-body ax-term-log overflow-y-auto">
             {entries.length === 0 && <span className="ax-term-line ax-term-out">Type a command below, or press one of the tries.</span>}
             {entries.map((entry, index) => {
               const fresh = index >= seenUpTo;

@@ -6,7 +6,7 @@ import { TRANSCRIPTS } from "./story";
 /** The hero's exhibit: the person's ask and the agent's answer, beside the command that did it and what the tool printed. */
 export default function AxExhibit(): JSX.Element {
   return (
-    <div id="ax-exhibit" className="grid items-start gap-4 sm:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:grid-cols-1 xl:grid-cols-[minmax(0,4fr)_minmax(0,7fr)]">
+    <div id="ax-exhibit" className="ax-exhibit grid items-start gap-4">
       <Screen
         label={cast("{person} sees")}
         seen={[

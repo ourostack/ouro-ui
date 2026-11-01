@@ -1,8 +1,12 @@
 /*
  * Ouro AX on the site: the home page's section and the morning at /ax/. Two surfaces side by side: the person's
  * screen (a card, in the theme's own colours) and the agent's terminal, which is always night-dark, lit by the
- * theme's primary colour, because that is where the agent works. Loaded with the voyage's first paint, so the
- * server's HTML is already styled; every colour is a theme variable or mixed from one.
+ * theme's primary colour, because that is where the agent works. Every colour is a theme variable or mixed from one.
+ *
+ * It loads with the islands that render it (parts.tsx), not with the voyage's first paint, so the home page's CSS
+ * stays within its ceiling (site/e2e/catalog.spec.ts): the home page's section is far below the first screen and
+ * its island loads as it nears it. The Ouro AX page links it in its HTML (site/scripts/prerender.mts), so it paints
+ * styled. The layout classes below stand in for Tailwind utilities no other voyage page uses, for the same reason.
  */
 @layer components {
   .ax-term {
@@ -185,6 +189,74 @@
   .ax-mark-skipped {
     border: 1px dashed var(--border);
     color: var(--muted-foreground);
+  }
+  /* Layout: the Ouro AX page's bands, beats and pairs (Tailwind's breakpoints: sm 40rem, md 48rem, lg 64rem, xl 80rem). */
+  .site-hero.ax-hero {
+    padding-block: calc(var(--spacing) * 10) calc(var(--spacing) * 16);
+  }
+  .ax-band {
+    padding-block: calc(var(--spacing) * 16);
+  }
+  .ax-anchor {
+    scroll-margin-top: calc(var(--spacing) * 20);
+  }
+  .ax-beat {
+    display: grid;
+    gap: calc(var(--spacing) * 6);
+    padding-top: calc(var(--spacing) * 8);
+  }
+  .ax-finding-gap {
+    display: none;
+  }
+  .ax-term-log {
+    min-height: 12rem;
+    max-height: 26rem;
+  }
+  @media (width >= 40rem) {
+    .ax-finding {
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: baseline;
+    }
+    .ax-finding-gap {
+      display: block;
+    }
+    .ax-quad {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ax-exhibit {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    }
+  }
+  @media (width >= 48rem) {
+    .ax-pair {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+  }
+  @media (width >= 64rem) {
+    .site-hero.ax-hero {
+      padding-block: calc(var(--spacing) * 16) calc(var(--spacing) * 24);
+    }
+    .ax-hero-grid {
+      grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+    }
+    .ax-band {
+      padding-block: calc(var(--spacing) * 24);
+    }
+    .ax-beat {
+      grid-template-columns: 6rem minmax(0, 1fr);
+      gap: calc(var(--spacing) * 10);
+    }
+    .ax-quad {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .ax-exhibit {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (width >= 80rem) {
+    .ax-exhibit {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    }
   }
   @media (forced-colors: active) {
     .ax-term,

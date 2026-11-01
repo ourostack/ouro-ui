@@ -185,7 +185,7 @@ export function OuroAx(): JSX.Element {
           {AX_SECTION.title}
         </h2>
         <p className="site-lede mt-5">{AX_SECTION.intro}</p>
-        <div className="mt-10 grid items-start gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className="ax-pair mt-10 grid items-start gap-4">
           <Screen
             label={cast("What {person} sees")}
             seen={[
