@@ -23,7 +23,7 @@ interface Recipe {
 
 const recipes: Recipe[] = [
   { id: "short-ribs", name: "Braised short ribs", cook: "Ari", time: "4 h", minutes: 240, serves: 6, status: "Published" },
-  { id: "herb-salad", name: "Herb salad", cook: "Sam", time: "10 min", minutes: 10, serves: 2, status: "Published" },
+  { id: "herb-salad", name: "Herb salad", cook: "Tess", time: "10 min", minutes: 10, serves: 2, status: "Published" },
   { id: "rye", name: "Seeded rye bread", cook: "Ari", time: "18 h", minutes: 1080, serves: 8, status: "Draft" },
   { id: "dal", name: "Tadka dal", cook: "Priya", time: "45 min", minutes: 45, serves: 4, status: "Published" },
 ];

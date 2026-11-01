@@ -30,8 +30,8 @@ export const flows = [
     steps: [
       { id: "rooms", run: ["rooms", "--json"], expect: { exit: 0, jsonShape: ["[].ref"], fields: { "[0].title": "Design sync" } }, save: { room: "[0].ref" } },
       { id: "no-why", run: ["post", "{room}", "Running late"], expect: { exit: 2, stderrRules: [...ERR], text: { has: ["--why"] } } },
-      { id: "preview", run: ["post", "{room}", "Running late", "--why", "Sam asked", "--dry-run", "--json"], expect: { exit: 0, fields: { state: "planned", "audience.who": { re: "^everyone in" } } } },
-      { id: "post", run: ["post", "{room}", "Running late", "--why", "Sam asked", "--json"], expect: { exit: 0, fields: { state: "done", "receipt.why": "Sam asked", "next[].command": { re: "watch" } }, maxMs: 5000 } },
+      { id: "preview", run: ["post", "{room}", "Running late", "--why", "Jo asked", "--dry-run", "--json"], expect: { exit: 0, fields: { state: "planned", "audience.who": { re: "^everyone in" } } } },
+      { id: "post", run: ["post", "{room}", "Running late", "--why", "Jo asked", "--json"], expect: { exit: 0, fields: { state: "done", "receipt.why": "Jo asked", "next[].command": { re: "watch" } }, maxMs: 5000 } },
     ],
   }),
   defineFlow({
@@ -41,8 +41,8 @@ export const flows = [
     rubric: ["predictable", "fast"],
     steps: [
       { id: "cursor", run: ["watch", "abc123", "--timeout", "1ms", "--json"], expect: { exit: [0, 1], jsonShape: ["cursor"] }, save: { cursor: "cursor" } },
-      { id: "reply", harness: { path: "/inject", body: { room: "abc123", by: "Sam Lee", text: "On my way" } } },
-      { id: "wait", run: ["watch", "abc123", "--cursor", "{cursor}", "--timeout", "2s", "--json"], expect: { exit: 0, fields: { state: "satisfied", "events[].summary": "On my way", "events[].by": "Sam Lee" } } },
+      { id: "reply", harness: { path: "/inject", body: { room: "abc123", by: "Jo Park", text: "On my way" } } },
+      { id: "wait", run: ["watch", "abc123", "--cursor", "{cursor}", "--timeout", "2s", "--json"], expect: { exit: 0, fields: { state: "satisfied", "events[].summary": "On my way", "events[].by": "Jo Park" } } },
     ],
   }),
   defineFlow({
@@ -79,7 +79,7 @@ export const flows = [
     readOnly: true,
     steps: [
       { id: "rooms", run: ["rooms"], expect: { exit: 3 }, fix: "nothing: this flow fails on purpose" },
-      { id: "fields", run: ["rooms", "--json"], expect: { exit: 0, fields: { "[0].owner": "Sam" } } },
+      { id: "fields", run: ["rooms", "--json"], expect: { exit: 0, fields: { "[0].owner": "Jo" } } },
       { id: "note", run: ["note", "abc123", "a private note"], expect: { exit: 0 } },
     ],
   }),

@@ -26,7 +26,7 @@ test("initialize, ping and tools/list: one tool per command, schema and effect a
 });
 
 test("a call runs the definition; a bad call is refused before it runs, with the arguments to send instead", async () => {
-  const ok = await call("post", { room: "abc123", text: "Running late", why: "Sam asked" });
+  const ok = await call("post", { room: "abc123", text: "Running late", why: "Jo asked" });
   assert.equal(ok.isError, false);
   assert.match(ok.content[0]!.text, /Posted to "Design sync"/);
   const bad = await call("post", { room: "abc123", text: "hi" });
@@ -40,7 +40,7 @@ test("a call runs the definition; a bad call is refused before it runs, with the
 });
 
 test("an outcome comes back as its text and data; a refused one is a tool error; dry-run calls the plan", async () => {
-  const planned = await call("post", { room: "abc123", text: "hi", why: "Sam asked", "dry-run": true });
+  const planned = await call("post", { room: "abc123", text: "hi", why: "Jo asked", "dry-run": true });
   assert.equal(planned.isError, false);
   assert.equal((planned.structuredContent as { state?: string }).state, "planned");
   assert.equal(rooms["abc123"]!.messages.length, 0);

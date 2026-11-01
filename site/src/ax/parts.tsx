@@ -1,7 +1,49 @@
 import { Fragment, type JSX, type ReactNode } from "react";
 import { InlineCode } from "../components/code";
+import { cast } from "./cast";
 import type { Seen, Step } from "./story";
+import captainSource from "./art/captain-head.svg?raw";
+import stokerSource from "./art/stoker-avatar.svg?raw";
 import "./ax.css";
+
+/** A drawing's markup without its title and notes, hidden from screen readers: the words beside it say who it is. */
+export function artMarkup(source: string, attributes = ""): string {
+  return source
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<title>[\s\S]*?<\/title>/, "")
+    .replace("<svg ", `<svg aria-hidden="true" focusable="false" ${attributes}`);
+}
+
+const MARKS = { person: artMarkup(captainSource), agent: artMarkup(stokerSource) } as const;
+const SPEAKERS = { person: cast("{Person}: "), agent: cast("{Agent}: ") } as const;
+
+/** One line of the person's chat with their agent: the speaker's mark beside the bubble, and their name for screen readers. */
+export function ChatLine({ by, text, fresh }: { by: "person" | "agent"; text: string; fresh?: boolean | undefined }): JSX.Element {
+  return (
+    <div className={`ax-line ax-line-${by}${fresh ? " ax-new" : ""}`}>
+      <span className={`ax-avatar ax-avatar-${by}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: MARKS[by] }} />
+      <p className={`ax-bubble ax-bubble-${by}`}>
+        <span className="sr-only">{SPEAKERS[by]}</span>
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/** The person's chat with their own agent, named in its header. */
+export function Chat({ title, children, ...rest }: { title: ReactNode; children: ReactNode } & Omit<JSX.IntrinsicElements["div"], "children" | "title">): JSX.Element {
+  return (
+    <div {...rest} className={`ax-chat ${rest.className ?? ""}`.trim()}>
+      <span className="ax-card-head" aria-hidden="true">
+        {title}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/** The header of the person's chat with their agent. */
+export const CHAT_TITLE = cast("{Person}'s chat with {agent}");
 
 /**
  * A terminal's text wraps even before ax.css has loaded: the home page's section is server-rendered far below the
@@ -73,16 +115,15 @@ export function FigureValue({ value }: { value: string }): JSX.Element {
   );
 }
 
-/** One thing the person sees: a line of their chat with the agent, a message in the room, a notification or a private note. */
+/** One thing the person sees: a line of their chat with their agent, a message in the room or a private note. */
 export function SeenItem({ item, fresh }: { item: Seen; fresh?: boolean | undefined }): JSX.Element {
   const arrive = fresh ? " ax-new" : "";
   switch (item.kind) {
     case "quiet":
       return <p className={`m-0 text-sm text-muted-foreground italic${arrive}`}>{item.text}</p>;
     case "person":
-      return <p className={`ax-bubble ax-bubble-sam${arrive}`}>{item.text}</p>;
     case "agent":
-      return <p className={`ax-bubble${arrive}`}>{item.text}</p>;
+      return <ChatLine by={item.kind} text={item.text} fresh={fresh} />;
     case "room":
       return (
         <div className={`ax-card${arrive}`}>
@@ -91,15 +132,6 @@ export function SeenItem({ item, fresh }: { item: Seen; fresh?: boolean | undefi
             <strong className="font-semibold">{item.by}</strong> {item.text}
           </span>
           {item.aside && <span className="text-sm text-muted-foreground">{item.aside}</span>}
-        </div>
-      );
-    case "ping":
-      return (
-        <div className={`ax-card${arrive}`}>
-          <span className="ax-card-head">
-            Notification{item.time && <span className="site-mono normal-case"> · {item.time}</span>}
-          </span>
-          <span>{item.text}</span>
         </div>
       );
     case "private":
@@ -112,14 +144,23 @@ export function SeenItem({ item, fresh }: { item: Seen; fresh?: boolean | undefi
   }
 }
 
-/** The person's side: their app, in the theme's colours. */
+/** The person's side, in the theme's colours: their chat with their agent first, then the room and their notes as they now read. */
 export function Screen({ label, seen }: { label: string; seen: readonly Seen[] }): JSX.Element {
+  const said = seen.filter((item) => item.kind === "person" || item.kind === "agent");
+  const rest = seen.filter((item) => item.kind !== "person" && item.kind !== "agent");
   return (
     <div className="ax-screen" role="group" aria-label={label}>
       <span className="ax-card-head" aria-hidden="true">
         {label}
       </span>
-      {seen.map((item, index) => (
+      {said.length > 0 && (
+        <Chat title={CHAT_TITLE} role="group" aria-label={CHAT_TITLE}>
+          {said.map((item, index) => (
+            <SeenItem key={index} item={item} />
+          ))}
+        </Chat>
+      )}
+      {rest.map((item, index) => (
         <SeenItem key={index} item={item} />
       ))}
     </div>

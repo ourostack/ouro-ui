@@ -21,7 +21,7 @@ test("one result, as text or --json", async () => {
 
 test("a private action says nothing was sent; an others action says who can see it", async () => {
   assert.equal((await run(["note", "abc123", "-"], "check dates\n")).out, 'Note added in "Design sync". Only you see it; nothing was sent.\n');
-  const posted = await run(["post", "abc123", "Running late", "--why", "Sam asked"]);
+  const posted = await run(["post", "abc123", "Running late", "--why", "Jo asked"]);
   assert.equal(posted.code, 0);
   assert.equal(posted.out, 'Posted to "Design sync". Everyone in it can see it.\nChecked: read the room\'s last message back.\nReceipt: m1\nNext: notes watch abc123  (wait for a reply)\n');
 });
@@ -29,14 +29,14 @@ test("a private action says nothing was sent; an others action says who can see 
 test("messages and receipts carry the clock's time: a fixed one in tests, the real one by default", async () => {
   setClock(() => new Date("2026-10-31T09:00:00.000Z"));
   try {
-    const posted = JSON.parse((await run(["post", "abc123", "Running late", "--why", "Sam asked", "--json"])).out);
+    const posted = JSON.parse((await run(["post", "abc123", "Running late", "--why", "Jo asked", "--json"])).out);
     assert.equal(posted.receipt.at, "2026-10-31T09:00:00.000Z");
     assert.equal(rooms["abc123"]!.messages[0]!.at, "2026-10-31T09:00:00.000Z");
   } finally {
     setClock();
   }
   const before = Date.now();
-  postMessage("abc123", "Sam Lee", "On my way");
+  postMessage("abc123", "Jo Park", "On my way");
   const at = Date.parse(rooms["abc123"]!.messages[1]!.at);
   assert.ok(at >= before && at <= Date.now());
 });
@@ -64,7 +64,7 @@ test("help: the overview, a command, a topic, as text and --json; an unknown top
 });
 
 test("--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted", async () => {
-  const r = await run(["post", "abc123", "hi", "--why", "Sam asked", "--dry-run", "--json"]);
+  const r = await run(["post", "abc123", "hi", "--why", "Jo asked", "--dry-run", "--json"]);
   assert.equal(r.code, 0);
   const o = JSON.parse(r.out);
   assert.equal(o.ax, "outcome/1");
@@ -193,23 +193,23 @@ async function onTerminal(tool: Parameters<typeof runCli>[0], argv: string[], en
 }
 
 test("the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error", async () => {
-  const posted = await onTerminal(cli, ["post", "abc123", "Running late", "--why", "Sam asked"]);
+  const posted = await onTerminal(cli, ["post", "abc123", "Running late", "--why", "Jo asked"]);
   assert.equal(posted.code, 0);
   const lines = posted.out.trimEnd().split("\n");
   assert.equal(lines[0], 'Posted to "Design sync". Everyone in it can see it.');
   assert.match(lines.at(-1)!, /^(Said once, said plainly\.|Posted; the room has it now\.)$/);
   assert.equal(posted.err, "");
   for (const [argv, env, tty] of [
-    [["post", "abc123", "x", "--why", "Sam asked", "--json"], {}, true],
-    [["post", "abc123", "x", "--why", "Sam asked", "--quiet"], {}, true],
-    [["--quiet", "post", "abc123", "x", "--why", "Sam asked"], {}, true],
-    [["post", "abc123", "x", "--why", "Sam asked"], { CI: "true" }, true],
-    [["post", "abc123", "x", "--why", "Sam asked"], {}, false],
+    [["post", "abc123", "x", "--why", "Jo asked", "--json"], {}, true],
+    [["post", "abc123", "x", "--why", "Jo asked", "--quiet"], {}, true],
+    [["--quiet", "post", "abc123", "x", "--why", "Jo asked"], {}, true],
+    [["post", "abc123", "x", "--why", "Jo asked"], { CI: "true" }, true],
+    [["post", "abc123", "x", "--why", "Jo asked"], {}, false],
   ] as const) {
     const r = await onTerminal(cli, [...argv], env, tty);
     assert.ok(!/Said once|the room has it/.test(r.out + r.err), `${argv.join(" ")} ${JSON.stringify(env)} tty=${tty}: ${r.out}`);
   }
-  const refused = await onTerminal(cli, ["post", "nope", "x", "--why", "Sam asked"]);
+  const refused = await onTerminal(cli, ["post", "nope", "x", "--why", "Jo asked"]);
   assert.equal(refused.out, "");
   assert.equal(refused.err.split("\n").filter(Boolean).length, 1);
   const banner = await onTerminal(cli, ["--help"]);

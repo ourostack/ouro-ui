@@ -29,7 +29,7 @@ A broken `must` claim fails the X-ray, which exits 1; a broken `should` claim is
 
 A claim is `must` in one of two ways, and in no other:[^admission]
 
-1. **An evaluation shows agents failing without it.** Real agents in fresh sessions do a task against the interface, and a scorer that calls no model judges the end state ([the evaluation](ax-eval.md)).[^eval] The run reproduces the failure the claim forbids, and a run with the fix removes it. The claim's `evidence` names the run's file. Text taken only on stdin entered this way: on Tandem's main branch, agents limited to `shell(m365tandem)` could not pipe text into a send or an edit and failed both tasks, and with `--text` they passed both.[^text]
+1. **An evaluation shows agents failing without it.** Real agents in fresh sessions do a task against the interface, and a scorer that calls no model judges the end state ([the evaluation](ax-eval.md)).[^eval] The run reproduces the failure the claim forbids, and a run with the fix removes it. The claim's `evidence` names the run's file. Text taken only on stdin entered this way: on the main branch of the first adopter, the app Ouro AX was first measured on, agents limited to `shell(app)` could not pipe text into a send or an edit and failed both tasks, and with `--text` they passed both.[^text]
 2. **It guards against a stated hazard.** It protects safety, compatibility or integrity, its `evidence` states the hazard, and the X-ray checks it. Refusing an unknown flag entered this way: no agent in the evaluations misspelt a flag, but an ignored flag on an action can act for real.[^flag]
 
 Every other claim is `should` until evidence arrives: it comes from a principle or from another product's experience.[^admission] `checkClaimSet` refuses a `must` claim that rests on a principle, and an evaluation that names no run.[^admission]
@@ -41,7 +41,7 @@ The order of work for a new claim:
 3. Fix it in an adopter and run the evaluation again.
 4. When the fix removes the failure, make it `must` and cite both runs.
 
-A claim is reviewed for demotion when repeated evaluations show that it does not change an outcome, unless it guards against a hazard. The probes found claims of that kind: the first claims, written from Tandem's principles, matched none of the wrong turns agents made on Tandem's main branch, and fixing every one of them changed no task's outcome.[^principles]
+A claim is reviewed for demotion when repeated evaluations show that it does not change an outcome, unless it guards against a hazard. The probes found claims of that kind: the first claims, written from the first adopter's principles, matched none of the wrong turns agents made on its main branch, and fixing every one of them changed no task's outcome.[^principles]
 
 ## The claim set's version
 
@@ -51,7 +51,7 @@ The claim set has a version (`CLAIM_SET_VERSION`) and a hash: the SHA-256 of its
 [^conformance]: test:registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
 [^admission]: test:registry/ouro/ax/claims.test.mts::checkClaimSet names each problem with its fix; test:registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard verify:testExists(registry/ouro/ax/claims.test.mts::checkClaimSet names each problem with its fix) verify:testExists(registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard)
 [^text]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md; evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-after-440.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md, /\| T3 Directed send others see \| 0\/2 \|/) verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-after-440.md, /\| T3 Directed send others see \| 2\/2 \|/)
-[^eval]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /a fresh mock tandem per run, and scoring from the end state/)
+[^eval]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /a fresh mock app per run, and scoring from the end state/)
 [^flag]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md, /In 30 agent runs no agent passed a misspelt flag or used `--dry-run`/)
 [^principles]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md, /named none of the 12 wrong turns in the baseline/)
 [^hash]: test:registry/ouro/ax/xray.test.mts::the claim set: its hash is stable and every claim the X-ray records exists verify:testExists(registry/ouro/ax/xray.test.mts::the claim set: its hash is stable and every claim the X-ray records exists)

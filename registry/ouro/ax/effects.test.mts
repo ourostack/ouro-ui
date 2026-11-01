@@ -6,7 +6,7 @@ test("an others action previews who will see it and its result says who can", ()
   const a = audienceLines({ doing: "Sending", done: "Sent", where: '"Design sync"', as: "the person", who: "everyone" });
   assert.equal(a.preview, 'Sending to "Design sync" as the person. Everyone in "Design sync" will see it.');
   assert.equal(a.result, 'Sent to "Design sync" as the person. Everyone in "Design sync" can see it.');
-  assert.equal(audienceLines({ doing: "Sending", done: "Sent", where: "Sam Lee", as: "the person", who: ["Sam Lee"] }).result, "Sent to Sam Lee as the person. Sam Lee can see it.");
+  assert.equal(audienceLines({ doing: "Sending", done: "Sent", where: "Jo Park", as: "the person", who: ["Jo Park"] }).result, "Sent to Jo Park as the person. Jo Park can see it.");
 });
 
 test("names read as a person would say them", () => {

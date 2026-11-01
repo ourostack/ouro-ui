@@ -8,7 +8,7 @@ const people: AutocompleteItem[] = [
   { value: "avery", label: "Avery Kim", description: "Design", avatar: {} },
   { value: "jordan", label: "Jordan Lee", description: "Engineering", avatar: {} },
   { value: "priya", label: "Priya Natarajan", description: "Research", avatar: {} },
-  { value: "sam", label: "Sam Ortiz", description: "Product", avatar: {} },
+  { value: "sasha", label: "Sasha Ortiz", description: "Product", avatar: {} },
 ];
 
 const emoji: AutocompleteItem[] = [

@@ -21,7 +21,7 @@ Before it calls anything other people see, even a call that must be refused, the
 
 - every address it can see (`--http`, the `--mock` address, an `--env` value that is a URL) is loopback;[^safety]
 - `--home <dir>` is an isolated home, not the real one or a folder that holds it;[^safety]
-- the target says it is a mock: `--mock "<loopback url> <key>=<value>"` (Tandem's mock answers `GET /api/state` with `"mock": true`), or your own `--guard "<command>"`, which must exit 0 before anything runs;[^safety]
+- the target says it is a mock: `--mock "<loopback url> <key>=<value>"` (the mock of the first adopter, the app Ouro AX was first measured on, answers `GET /api/state` with `"mock": true`), or your own `--guard "<command>"`, which must exit 0 before anything runs;[^safety]
 - no credential reaches it: it builds the checked program's environment from `PATH`, `LANG`, `TERM`, `TZ` and `TMPDIR`, the isolated `HOME`, and the `--env` values, and refuses an `--env` whose name looks like a token, secret, password or key.[^safety]
 
 Without that proof it runs the reads and skips every call other people would see, and the report says which proof was missing.[^conformance]
@@ -46,7 +46,7 @@ The report pins what it checked: the claim set's version and SHA-256 hash, the X
 
 ## Flows check what a task needs
 
-The X-ray checks the rules a command must keep. It can't tell that a task's next call needs a ref the text left out, or that the fix for `--week` drops the week. On Tandem's main branch, the same commit the X-ray called conformant failed 30 of 593 scripted flow checks.[^flows] Run your own flows beside it with `ax-flows`, and attach the X-ray's report to theirs (`--xray xray.json`), so one `report.json` covers both ([the guide](ax.md#agent-flows-in-ci)).
+The X-ray checks the rules a command must keep. It can't tell that a task's next call needs a ref the text left out, or that the fix for `--week` drops the week. On the first adopter's main branch, the same commit the X-ray called conformant failed 30 of 593 scripted flow checks.[^flows] Run your own flows beside it with `ax-flows`, and attach the X-ray's report to theirs (`--xray xray.json`), so one `report.json` covers both ([the guide](ax.md#agent-flows-in-ci)).
 
 ## In CI
 

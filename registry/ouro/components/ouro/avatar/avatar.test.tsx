@@ -243,7 +243,7 @@ describe("Avatar colors", () => {
     const { host } = await render(
       <>
         {[...sequential, ...hex].map((id) => (
-          <Avatar key={id} name="Sam Example" idForColor={id} />
+          <Avatar key={id} name="Jo Park" idForColor={id} />
         ))}
       </>,
     );
@@ -256,7 +256,7 @@ describe("Avatar colors", () => {
     const { host } = await render(
       <>
         {names.slice(0, 8).map((name) => (
-          <Avatar key={name} name="Sam Example" idForColor={name} />
+          <Avatar key={name} name="Jo Park" idForColor={name} />
         ))}
       </>,
     );

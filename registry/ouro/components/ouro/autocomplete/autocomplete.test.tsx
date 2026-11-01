@@ -35,7 +35,7 @@ const people: AutocompleteItem[] = [
   { value: "avery", label: "Avery Kim", description: "Design", avatar: {} },
   { value: "jordan", label: "Jordan Lee", description: "Engineering", avatar: { initials: "JL" } },
   { value: "priya", label: "Priya Natarajan", avatar: { src: "data:image/gif;base64,R0lGODlhAQABAAAAACw=" } },
-  { value: "sam", label: "Sam Ortiz" },
+  { value: "sasha", label: "Sasha Ortiz" },
 ];
 const emoji: AutocompleteItem[] = [
   { value: "tada", label: "Party popper", glyph: "🎉", insert: "🎉", description: ":tada:" },
@@ -94,7 +94,7 @@ describe("Autocomplete", () => {
     await expect.element(page.getByRole("listbox", { name: "People" })).toBeVisible();
     expect(document.activeElement).toBe(control);
     expect(control.getAttribute("aria-controls")).toBe(listbox()!.id);
-    expect(labels()).toEqual(["Avery Kim", "Jordan Lee", "Priya Natarajan", "Sam Ortiz"]);
+    expect(labels()).toEqual(["Avery Kim", "Jordan Lee", "Priya Natarajan", "Sasha Ortiz"]);
     expect(options().map((option) => option.getAttribute("aria-selected"))).toEqual(["true", "false", "false", "false"]);
     expect(activeLabel(control)).toBe("Avery Kim");
     expect(options().map((option) => option.getAttribute("data-ouro-control"))).toEqual(Array(4).fill("autocomplete"));
@@ -115,14 +115,14 @@ describe("Autocomplete", () => {
     );
     await type(control, "@");
     await expect.poll(() => options().length).toBe(4);
-    const [avery, jordan, priya, sam] = options();
+    const [avery, jordan, priya, sasha] = options();
     expect(avery!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AK");
     expect(jordan!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("JL");
     expect(priya!.querySelector('[data-ouro="avatar"]')).not.toBeNull();
-    expect(sam!.querySelector('[data-ouro="avatar"]')).toBeNull();
+    expect(sasha!.querySelector('[data-ouro="avatar"]')).toBeNull();
     // With neither an avatar nor a glyph, the row is the label alone.
-    expect(sam!.querySelector('[aria-hidden="true"]')).toBeNull();
-    expect(sam!.children).toHaveLength(1);
+    expect(sasha!.querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(sasha!.children).toHaveLength(1);
     // Nothing typed after the trigger, so nothing is bold.
     expect(listbox()!.querySelector('[data-ouro-autocomplete-match]')).toBeNull();
     expect(avery!.lastElementChild!.textContent).toBe("Design");
@@ -164,14 +164,14 @@ describe("Autocomplete", () => {
     expect(options().map((option) => option.getAttribute("data-highlighted"))).toEqual([null, "", null, null]);
     // A new query starts again at the top.
     await userEvent.keyboard("a");
-    await expect.poll(labels).toEqual(["Avery Kim", "Jordan Lee", "Priya Natarajan", "Sam Ortiz"]);
+    await expect.poll(labels).toEqual(["Avery Kim", "Jordan Lee", "Priya Natarajan", "Sasha Ortiz"]);
     expect(activeLabel(control)).toBe("Avery Kim");
     await userEvent.keyboard("{Backspace}");
     await expect.poll(() => options().length).toBe(4);
     await userEvent.keyboard("{ArrowDown}");
     expect(activeLabel(control)).toBe("Jordan Lee");
     await userEvent.keyboard("{ArrowUp}{ArrowUp}");
-    expect(activeLabel(control)).toBe("Sam Ortiz");
+    expect(activeLabel(control)).toBe("Sasha Ortiz");
     await userEvent.keyboard("{ArrowDown}");
     expect(activeLabel(control)).toBe("Avery Kim");
     // The caret stayed where it was.
@@ -213,13 +213,13 @@ describe("Autocomplete", () => {
       </Autocomplete>,
     );
     await type(control, "Hi @sa");
-    await expect.poll(labels).toEqual(["Sam Ortiz"]);
+    await expect.poll(labels).toEqual(["Sasha Ortiz"]);
     await userEvent.keyboard("{Enter}");
-    expect(control.value).toBe("Hi @Sam Ortiz ");
+    expect(control.value).toBe("Hi @Sasha Ortiz ");
     expect(onSend).not.toHaveBeenCalled();
     await expect.poll(listbox).toBeNull();
     await userEvent.keyboard("{Enter}");
-    expect(onSend).toHaveBeenCalledWith("Hi @Sam Ortiz ", expect.anything());
+    expect(onSend).toHaveBeenCalledWith("Hi @Sasha Ortiz ", expect.anything());
   });
 
   it("picks with Tab, and leaves Shift+Tab and modified keys to the field", async () => {
@@ -230,7 +230,7 @@ describe("Autocomplete", () => {
       </Autocomplete>,
     );
     await type(control, "@s");
-    await expect.poll(labels).toEqual(["Sam Ortiz"]);
+    await expect.poll(labels).toEqual(["Sasha Ortiz"]);
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     expect(onKeyDown.mock.calls.at(-1)![0].key).toBe("Enter");
     expect(listbox()).not.toBeNull();
@@ -243,7 +243,7 @@ describe("Autocomplete", () => {
     control.dispatchEvent(tab);
     expect(tab.defaultPrevented).toBe(true);
     expect(onKeyDown).not.toHaveBeenCalled();
-    expect(control.value).toBe("@Sam Ortiz ");
+    expect(control.value).toBe("@Sasha Ortiz ");
     expect(document.activeElement).toBe(control);
   });
 
@@ -474,7 +474,7 @@ describe("Autocomplete", () => {
     await type(control, "@");
     await expect.poll(() => options().length).toBe(4);
     await userEvent.keyboard("{ArrowUp}");
-    expect(activeLabel(control)).toBe("Sam Ortiz");
+    expect(activeLabel(control)).toBe("Sasha Ortiz");
     await rerender(
       <Autocomplete triggers={[{ char: "@", label: "People", items: people.slice(0, 2) }]}>
         <TextArea label="Message" />
@@ -595,9 +595,9 @@ describe("Autocomplete", () => {
       </Autocomplete>,
     );
     await type(control, "@sa");
-    await expect.poll(labels).toEqual(["Sam Ortiz"]);
+    await expect.poll(labels).toEqual(["Sasha Ortiz"]);
     await userEvent.keyboard("{Enter}");
-    expect(control.value).toBe("@Sam Ortiz ");
+    expect(control.value).toBe("@Sasha Ortiz ");
     await act(async () => {
       document.execCommand("undo");
     });

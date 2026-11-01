@@ -1,21 +1,14 @@
 import type { JSX } from "react";
 import { Screen, Transcript } from "./parts";
 import { cast } from "./cast";
-import { TRANSCRIPTS } from "./story";
+import { LATE_SEEN, TRANSCRIPTS } from "./story";
 
-/** The hero's exhibit: the person's ask and the agent's answer, beside the refusal that named its fix, the command that did it and what the tool printed. */
+/** The hero's exhibit: the person's ask and their agent's reply, beside the refusal that named its fix, the command that did it and what the tool printed. */
 export default function AxExhibit(): JSX.Element {
   return (
     <div id="ax-exhibit" className="ax-exhibit grid items-start gap-4">
-      <Screen
-        label={cast("{person} sees")}
-        seen={[
-          { kind: "person", text: "Tell Design sync I'm running late." },
-          { kind: "room", by: cast("{person.full}"), text: "Running late, start without me", aside: cast("Sent by {person}'s agent: {person} asked me to tell the room") },
-          { kind: "agent", text: "Done: posted in Design sync." },
-        ]}
-      />
-      <Transcript label={cast("{agent} sees")} steps={TRANSCRIPTS.late} />
+      <Screen label={cast("What {person} sees")} seen={LATE_SEEN} />
+      <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late} />
     </div>
   );
 }
