@@ -81,7 +81,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "ci", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1226,6 +1226,17 @@ test("the script test shards run every file of pnpm test:scripts between them", 
   const { readTimings, scriptTestFiles, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
   assert.deepEqual(all.sort(), scriptTestFiles().sort());
+});
+
+test("the ci job's full-suite fallback runs in the same Playwright image, runner and setup as the browser shards", () => {
+  const jobs = ciJobs();
+  const container = (block) => block.match(/^ {4}container:\n(?: {6}.*\n)+/m)?.[0];
+  assert.ok(container(jobs.browser));
+  // Same image digest, user, zstd and system packages: the fonts and browsers the shards lay text out with.
+  assert.equal(container(jobs.ci), container(jobs.browser));
+  assert.equal(jobs.ci.match(/^ {4}runs-on: (.+)$/m)?.[1], jobs.browser.match(/^ {4}runs-on: (.+)$/m)?.[1]);
+  // The fallback is in this job: when the reduced run's coverage falls short, the full suite runs here.
+  assert.match(stepScript(jobs.ci, "Browser test coverage"), /node scripts\/test-impact\.mjs coverage /);
 });
 
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
