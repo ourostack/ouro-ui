@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { checkDirectives } from "./install-check.mjs";
 import { scratchDir } from "./scratch.mjs";
-import { ignoredFolders, treeFiles } from "./tree.mjs";
+import { copyTree, ignoredFolders, treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -69,7 +69,26 @@ test("the install check's \"use client\" scan never reads a test's scratch folde
   }
 });
 
-test("every recursive walk in scripts/ of the repository's own folders goes through treeFiles (scripts/tree.mjs)", () => {
+test("a copy of the repository's folders leaves out a test's scratch folder, so one removed mid-copy cannot fail it", () => {
+  const dir = scratchDir("ouro-tree-copy-");
+  write(dir, "registry/ouro/ax/flows.ts");
+  write(dir, "registry/ouro/components/ouro/button/button.tsx");
+  write(dir, "registry/ouro/components/ouro/button/node_modules/pkg/index.js");
+  // Unreadable, as a folder removed during the copy is gone: a copy that goes into .tmp/ fails on it
+  // (Node 22's plain recursive cpSync aborts the process here).
+  const cmd = join(dir, "registry/ouro/ax/.tmp/flows-2546/cmd");
+  mkdirSync(cmd, { recursive: true });
+  chmodSync(cmd, 0o000);
+  const copy = scratchDir("ouro-tree-copied-");
+  try {
+    copyTree(join(dir, "registry"), join(copy, "registry"));
+  } finally {
+    chmodSync(cmd, 0o755);
+  }
+  assert.deepEqual(treeFiles(join(copy, "registry")), ["ouro/ax/flows.ts", "ouro/components/ouro/button/button.tsx"]);
+});
+
+test("every recursive walk or copy in scripts/ of the repository's own folders goes through treeFiles or copyTree (scripts/tree.mjs)", () => {
   // These walk what a run made (an installed app, timings, coverage and motion artifacts, an agent's workspace), not the repository.
   const artifacts = new Set(["scripts/install-check.mjs", "scripts/shard.mjs", "scripts/coverage-merge.mjs", "scripts/motion-coverage.mts", "scripts/agent-usability/static.mts", "scripts/agent-usability/workspace.mts"]);
   const walks = treeFiles(join(root, "scripts"))
@@ -77,10 +96,10 @@ test("every recursive walk in scripts/ of the repository's own folders goes thro
     .flatMap((file) =>
       readFileSync(join(root, "scripts", file), "utf8")
         .split("\n")
-        .filter((line) => /readdirSync\(.*recursive: true/.test(line))
+        .filter((line) => /readdirSync\(.*recursive: true/.test(line) || /cpSync\(join\(root\b.*recursive: true/.test(line))
         .map((line) => ({ file: `scripts/${file}`, line: line.trim() })),
     );
-  assert.deepEqual(walks.filter(({ file }) => !artifacts.has(file)), [], "walk the repository with treeFiles, which never enters a gitignored folder such as a test's .tmp/");
+  assert.deepEqual(walks.filter(({ file }) => !artifacts.has(file)), [], "walk the repository with treeFiles and copy it with copyTree, which never enter a gitignored folder such as a test's .tmp/");
   const installCheck = walks.filter(({ file }) => file === "scripts/install-check.mjs");
   assert.deepEqual(installCheck.map(({ line }) => /readdirSync\(join\(app, dir\)/.test(line)), [true], "install-check.mjs walks only the installed app itself");
 });

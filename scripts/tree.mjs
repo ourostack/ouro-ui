@@ -1,8 +1,8 @@
-// The one walk of the repository's own folders for the scripts that scan them (registry/, site/,
-// test/, scripts/): it never enters a folder .gitignore ignores, such as a test's scratch folder
+// The one walk, and the one copy, of the repository's own folders for the scripts and tests that
+// scan or copy them (registry/, site/, test/, scripts/): neither enters a folder .gitignore ignores, such as a test's scratch folder
 // (registry/ouro/ax/.tmp/), which another test can make and remove while the walk is under way.
-import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { cpSync, readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,4 +31,12 @@ export function treeFiles(dir) {
   };
   visit("");
   return files.sort();
+}
+
+/**
+ * Copies `from` to `to` as `cpSync(from, to, { recursive: true })` does, leaving out the folders
+ * .gitignore ignores, so a scratch folder removed during the copy cannot fail it.
+ */
+export function copyTree(from, to) {
+  cpSync(from, to, { recursive: true, filter: (source) => source === from || !ignoredFolders.has(basename(source)) });
 }

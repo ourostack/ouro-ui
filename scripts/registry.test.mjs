@@ -8,6 +8,7 @@ import { readComponents } from "./components.mts";
 import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
 import { buildRegistry, censusAxeVersion, cssToItem, itemForFile, rewriteDependencies, testingSetup, toolingMinimum } from "./registry.mts";
 import { scratchDir } from "./scratch.mjs";
+import { copyTree } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/registry.mts");
@@ -65,7 +66,7 @@ test("the components come from each folder's component.json, in order, with the 
 
 test("a component folder without a valid component.json fails with the fix", () => {
   const copy = scratchDir("ouro-components-");
-  cpSync(join(root, "registry"), join(copy, "registry"), { recursive: true });
+  copyTree(join(root, "registry"), join(copy, "registry"));
   const manifest = join(copy, "registry/ouro/components/ouro/link/component.json");
   writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link", "missing"] }));
   assert.throws(() => readComponents(copy), /link\/component\.json lists missing, but missing\.tsx is not in the folder/);
@@ -124,7 +125,7 @@ test("runtime items ship no tests, stories, specs or test tooling, and never pul
 test("the generator fails when a runtime file imports test tooling", () => {
   // The review's mutation: a runtime component that imports vitest.
   const copy = scratchDir("ouro-registry-root-");
-  for (const path of ["registry", "docs", "package.json"]) cpSync(join(root, path), join(copy, path), { recursive: true });
+  for (const path of ["registry", "docs", "package.json"]) copyTree(join(root, path), join(copy, path));
   const button = join(copy, "registry/ouro/components/ouro/button/button.tsx");
   writeFileSync(button, readFileSync(button, "utf8") + '\nimport { expect } from "vitest";\n');
   assert.throws(() => buildRegistry(copy), /button is a runtime item but imports test tooling: vitest/);
