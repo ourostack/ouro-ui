@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
+import { cleanupPage, renderPage, setScheme } from "../../test/render";
 import { headTags, redirectPage } from "../head";
 import { redirects, routeFor } from "../routes";
 import themes from "../themes/themes.json";
@@ -13,8 +13,8 @@ import { NAUTILUS_PAGE } from "./copy";
 import { spotlightFrom } from "./xray-store";
 
 // The voyage preview's themes and header (site-design.md, slice S1): the stored theme applies
-// before paint, the header's controls repaint the page and remember it, Copy theme copies the
-// preset's CSS, and every preset passes axe in light and dark.
+// before paint, the header's controls repaint the page and remember it, and Copy theme copies the
+// preset's CSS. voyage-presets.test.tsx holds every preset to axe in light and dark.
 
 const root = document.documentElement;
 
@@ -296,25 +296,5 @@ describe("X-ray spotlight from the address", () => {
     } finally {
       history.replaceState(null, "", before);
     }
-  });
-});
-
-describe.each([
-  { width: 390, height: 844 },
-  { width: 1280, height: 800 },
-])("every preset at $width px", ({ width, height }) => {
-  beforeEach(async () => {
-    await page.viewport(width, height);
-  });
-  describe.each(["light", "dark"] as const)("%s", (scheme) => {
-    it.each(PRESET_NAMES.flatMap((name) => ["/", "/nautilus/"].map((path) => ({ name, path }))))("$name has zero axe violations on $path", async ({ name, path }) => {
-      root.setAttribute("data-theme", name);
-      setScheme(scheme);
-      await renderPage(path);
-      await settle();
-      const violations = await scan();
-      expect(violations, describeViolations(violations)).toEqual([]);
-      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
-    }, pageScanTimeout);
   });
 });
