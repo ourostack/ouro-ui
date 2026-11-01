@@ -1862,7 +1862,11 @@
       "Message/Chat",
       "Message/Posts",
       "Message/Thread",
-      "Message/Quote"
+      "Message/Quote",
+      "Message/ReplyActions",
+      "Message/NotSent",
+      "Message/EmojiInNames",
+      "Message/Agent"
     ]
   },
   {
@@ -1881,7 +1885,11 @@
       "Message/Chat",
       "Message/Posts",
       "Message/Thread",
-      "Message/Quote"
+      "Message/Quote",
+      "Message/ReplyActions",
+      "Message/NotSent",
+      "Message/EmojiInNames",
+      "Message/Agent"
     ]
   },
   {
@@ -1900,7 +1908,57 @@
       "Message/Chat",
       "Message/Posts",
       "Message/Thread",
-      "Message/Quote"
+      "Message/Quote",
+      "Message/ReplyActions",
+      "Message/NotSent",
+      "Message/EmojiInNames",
+      "Message/Agent"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "retry",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread",
+      "Message/Quote",
+      "Message/ReplyActions",
+      "Message/NotSent",
+      "Message/EmojiInNames",
+      "Message/Agent"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "delete",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread",
+      "Message/Quote",
+      "Message/ReplyActions",
+      "Message/NotSent",
+      "Message/EmojiInNames",
+      "Message/Agent"
     ]
   },
   {
