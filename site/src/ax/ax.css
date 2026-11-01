@@ -100,8 +100,8 @@
     .ax-new {
       animation: ax-arrive var(--ouro-duration-fast, 150ms) ease;
     }
-    /* The end of the three asks: both hearts beat, and the Stoker blinks. */
-    .ax-reward circle[cx="356"][cy="254"],
+    /* The end of the three asks: both hearts beat, and the agent blinks. */
+    .ax-reward circle[cx="356"][cy="258"],
     .ax-reward circle[cx="846"][cy="288"] {
       transform-box: fill-box;
       transform-origin: center;
@@ -161,8 +161,8 @@
     font-size: 0.9375rem;
   }
   /*
-   * The person's chat with their own agent: the Captain's head beside the person's lines and the Stoker beside the
-   * agent's, in the drawings' own amber and teal.
+   * The person's chat with their own agent: the person's head beside their lines and the agent beside its replies,
+   * in the drawings' own amber and teal.
    */
   .ax-chat {
     display: grid;
@@ -204,7 +204,7 @@
     width: 100%;
     height: 100%;
   }
-  /* The drawings' own sizes: the Stoker reads from 64 px, the Captain's head from 32. */
+  /* The drawings' own sizes: the agent reads from 64 px, the person's head from 32. */
   .ax-avatar-agent {
     width: 4rem;
     height: 4rem;
@@ -327,7 +327,7 @@
   }
   /*
    * The drawing between the hero and the morning (art/morning-with-an-agent.svg): its lines take the text colour, and
-   * the duo keep the drawing's own amber (the Captain) and teal (the Stoker) in every theme, so the page sets neither.
+   * the person keeps the drawing's own amber and the agent its teal in every theme, so the page sets neither.
    * Its content sits in the middle of a 1200 by 500 view box, so a phone shows a centred 4:3 crop of it.
    */
   .ax-art {

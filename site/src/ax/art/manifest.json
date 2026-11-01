@@ -8,30 +8,30 @@
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
-      "sha256": "8839a3554f140425733593d002050b64a84ed092c0040828a39d55622d4da7f3",
-      "modifications": "Its note drops one path to where the duo is kept; the drawing is the Duo canon session's hand-drawn SVG, released by its author under this repository's MIT licence. Lines take currentColor; the Captain's hat, scarf, mittens and heart read --duo-heart (else a fixed amber), the Stoker's eyes, antenna and glow --duo-eye (else a fixed teal), and its visor --duo-visor (else a fixed navy).",
+      "sha256": "5387fd864a48c06d066687a7f5a1caf8ec02f2acf8d5a615f0bfbb3743a8336a",
+      "modifications": "None: Hand-drawn by the Duo canon session (CIT commit 2b15757b, _meta/art/duo/line/morning-with-an-agent.svg) and released by its author under this repository's MIT licence. A person and their agent at one desk. Lines take currentColor; the person's cap and heart read --duo-heart (else a fixed amber), the agent's eyes, antenna and glow --duo-eye (else a fixed teal), and its visor --duo-visor (else a fixed navy).",
       "subject": "people"
     },
     {
-      "file": "stoker-avatar.svg",
-      "title": "The Stoker",
+      "file": "agent-avatar.svg",
+      "title": "Your agent",
       "creator": "Duo canon session",
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
-      "sha256": "5a1edbaede8c065c808b5beab0b00d578fbe1620870a7c20b9481dd41a52d348",
-      "modifications": "None: a hand-drawn SVG released by its author under this repository's MIT licence, the Stoker's mark beside its replies in the chat. Lines take currentColor; eyes, antenna and glow read --duo-eye (else a fixed teal), the visor --duo-visor (else a fixed navy).",
+      "sha256": "0f58b0b99a8164280d80a8bbe764cf08f1c6ad889085411cc0bf144ed977d33b",
+      "modifications": "None: Hand-drawn by the Duo canon session (CIT commit 2b15757b, _meta/art/duo/line/, its spot drawing of the agent) and released by its author under this repository's MIT licence. The agent's mark beside its replies in the chat. Lines take currentColor; eyes, antenna and glow read --duo-eye (else a fixed teal), the visor --duo-visor (else a fixed navy).",
       "subject": "people"
     },
     {
-      "file": "captain-head.svg",
-      "title": "The Captain",
+      "file": "person-head.svg",
+      "title": "You",
       "creator": "Duo canon session",
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
-      "sha256": "1a6de65dfff38c415db10483c21616539d7fc40aadbf789d5e5171c5ef1a5113",
-      "modifications": "None: a hand-drawn SVG released by its author under this repository's MIT licence, the Captain's mark beside their messages in the chat. Faceless; lines take currentColor; the hat and scarf read --duo-heart (else a fixed amber).",
+      "sha256": "0c607872acf53996568842ca38df77eabafa26a87f162078f59ff36afa256d53",
+      "modifications": "None: Hand-drawn by the Duo canon session (CIT commit 2b15757b, _meta/art/duo/line/, its spot drawing of the person's head) and released by its author under this repository's MIT licence. The person's mark beside their asks in the chat. Faceless; lines take currentColor; the cap reads --duo-heart (else a fixed amber).",
       "subject": "people"
     }
   ]
