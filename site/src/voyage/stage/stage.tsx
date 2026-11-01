@@ -153,6 +153,16 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     write(LOG.speed[value]);
   });
   const onBell = useStable(() => {
+    // PROBE (never merge): a fixed amount of extra work in the press, as a regression would add.
+    if (import.meta.env["VITE_LATENCY_PROBE_SLOW"]) {
+      let sink = 0;
+      for (let round = 0; round < Number(import.meta.env["VITE_LATENCY_PROBE_SLOW"]); round++) {
+        const items = Array.from({ length: 64 }, (_, index) => ({ id: `item-${round}-${index}`, value: (index * 7919 + round * 104729) % 1009 }));
+        items.sort((a, b) => a.value - b.value);
+        sink += items[32]!.value + JSON.stringify(items[0]).length;
+      }
+      document.documentElement.dataset["probeSink"] = String(sink);
+    }
     const line = BELL_TOASTS[rings % BELL_TOASTS.length]!;
     setRings((count) => count + 1);
     // The crew answers once the bell has swung: the log's line and the toast both wait for the

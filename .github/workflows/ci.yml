@@ -1,6 +1,6 @@
 name: CI
+# PROBE (never merge): no CI on this branch's pull request; latency-probe.yml runs instead.
 on:
-  pull_request:
   push:
     branches: [main]
   merge_group:
@@ -344,20 +344,11 @@ jobs:
     # job), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
     # On a reduced pull request whose merged coverage falls short, the full browser suite runs here
     # and decides: a line may be covered only by another component's tests
-    # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job. That
-    # suite runs where the browser shards do, in the same Playwright image, with the same fonts and
-    # browsers: on the plain runner, text laid out wider and layout tests failed that passed in every
-    # shard (Dialog's 65ch measure, 814 px against 800, on #321).
+    # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job.
     needs: [plan, checks, browser, scripts, scripts-browser]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 40
-    # In Playwright's image (see the note above jobs:), as the browser shards are.
-    container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
-      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
-      env:
-        OURO_SYSTEM_PACKAGES: image
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
@@ -389,7 +380,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: ""
+          cache: pnpm
       - run: pnpm i --frozen-lockfile
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

@@ -35,13 +35,13 @@ export const LATENCY = {
   /** Presses before them that don't. */
   warmUps: 2,
   /** How many times slower than the runner the CPU is. */
-  throttle: 4,
+  throttle: Number(process.env["LATENCY_THROTTLE"] ?? 4),
   /**
    * The reference press's CPU time per unit of throttle, in ms, on the reference runner, CI's AMD
    * EPYC 7763, its most common runner: the median of (8× median - 4× median) / 4 across 7763s
    * (runnerPace).
    */
-  referenceCpu: 20,
+  referenceCpu: Number(process.env["LATENCY_REFERENCE_CPU"] ?? 20),
   /** Presses of the reference page at each of its two throttles, and of the near-empty press. */
   referenceSamples: 20,
   fixedSamples: 10,
@@ -109,7 +109,7 @@ export function runnerPace(page: Page): Promise<Pace> {
         `latency reference press on ${cpu}: median ${low} ms at ${LATENCY.throttle}×, ${high} ms at ${2 * LATENCY.throttle}×: CPU time ${cpuTime.toFixed(1)} ms per unit of throttle, ${LATENCY.referenceCpu} on the reference runner, so this runner's pace is ${(cpuTime / LATENCY.referenceCpu).toFixed(2)}`,
       );
       expect(cpuTime, `the reference press took longer at ${2 * LATENCY.throttle}× than at ${LATENCY.throttle}× (${low} ms, then ${high} ms)`).toBeGreaterThan(0);
-      return { pace: cpuTime / LATENCY.referenceCpu, low, high, cpu };
+      return { pace: ((LATENCY.throttle / 4) * cpuTime) / LATENCY.referenceCpu, low, high, cpu }; // PROBE: a higher throttle stands in for a slower runner
     } finally {
       await reference.close();
     }
