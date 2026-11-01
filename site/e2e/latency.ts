@@ -10,6 +10,13 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // Event Timing reports durations in 8 ms steps, so every sample is a multiple of 8 and a median of
 // 20 a multiple of 4: a bound sits between steps or it is really the step below it.
+//
+// CI's runners differ in speed, from one machine to the next as well as between kinds, and a
+// press's time follows the runner's: the same press measured 56 ms on one host and 88 on another.
+// So each worker first presses a frozen reference page the same way (runnerPace), and every sample
+// is judged as it would have measured on the reference runner: divided by how much slower than
+// there the reference press was here. A control that does more work is as much slower on every
+// runner; a slower runner slows the reference press too.
 
 /** The budget, the number of presses and the throttle every latency spec measures with. */
 export const LATENCY = {
@@ -21,7 +28,63 @@ export const LATENCY = {
   warmUps: 2,
   /** How many times slower than the runner the CPU is. */
   throttle: 4,
+  /**
+   * The reference press's median, in ms, on the reference runner (REFERENCE_PAGE, runnerPace): CI's
+   * AMD EPYC 7763, its most common runner, measured 104, 112 and 112 on three of them (2026-11-01).
+   */
+  referenceMedian: 112,
 } as const;
+
+/**
+ * The reference press: a frozen page, which no change to the site or the components touches, whose
+ * button restyles and rewrites a long list, so a press costs script, style, layout and paint as a
+ * control's press does.
+ */
+export const REFERENCE_PAGE = `<!doctype html><title>Reference press</title><style>
+body { font: 14px/1.4 system-ui, sans-serif; margin: 0 }
+.row { display: flex; gap: 8px; padding: 4px 8px; border-bottom: 1px solid #ddd }
+.on .row { background: #eef; color: #123; padding-left: 12px }
+</style><button id="press">Press</button><div id="list"></div><script>
+const list = document.getElementById("list");
+list.innerHTML = Array.from({ length: 1000 }, (_, i) => '<div class="row"><span>' + i + '</span><span class="text">Item ' + i + '</span><b>' + ((i * 7919) % 1009) + '</b></div>').join("");
+let presses = 0;
+document.getElementById("press").addEventListener("click", () => {
+  presses++;
+  list.classList.toggle("on");
+  for (const [i, text] of [...list.querySelectorAll(".text")].entries()) text.textContent = "Item " + i + " (" + presses + ")";
+});
+</script>`;
+
+/** The median of some samples. */
+function median(samples: readonly number[]): number {
+  const sorted = samples.toSorted((a, b) => a - b);
+  const middle = sorted.length / 2;
+  return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
+let pace: Promise<number> | undefined;
+
+/**
+ * How much slower than the reference runner this one presses: the reference press's median here,
+ * pressed as every control is (pressSamples), over LATENCY.referenceMedian. Measured once per
+ * worker, in a page of its own, the first time a test measures.
+ */
+export function runnerPace(page: Page): Promise<number> {
+  pace ??= (async () => {
+    const reference = await page.context().newPage();
+    try {
+      await reference.setViewportSize({ width: 1440, height: 900 });
+      await reference.setContent(REFERENCE_PAGE);
+      const samples = await pressSamples(reference, "reference press", { press: () => reference.locator("#press").click() });
+      const here = median(samples);
+      console.log(`latency reference press: median ${here} ms (${LATENCY.referenceMedian} on the reference runner); samples in order: ${samples.join(", ")}`);
+      return here / LATENCY.referenceMedian;
+    } finally {
+      await reference.close();
+    }
+  })();
+  return pace;
+}
 
 /** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1. */
 export interface Presses {
@@ -56,13 +119,28 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
 
 /**
  * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
+ * time on the reference runner (runnerPace): its click-to-paint time here, in ms, over this
+ * runner's pace. The raw times are reported too.
+ */
+export async function measure(page: Page, label: string, presses: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
+  const runner = await runnerPace(page);
+  const raw = await pressSamples(page, label, presses, throttle);
+  const samples = raw.map((sample) => Math.round((sample / runner) * 10) / 10);
+  const note = `this runner presses at ${runner.toFixed(2)}× the reference runner's time; measured here: ${raw.join(", ")}`;
+  test.info().annotations.push({ type: "latency pace", description: `${label}: ${note}` });
+  console.log(`latency ${label}: ${note}`);
+  return samples;
+}
+
+/**
+ * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
  * click-to-paint time in ms. Event Timing reports nothing under 16 ms (its durationThreshold floor),
  * so a press with no entry counts as 16 ms, if the browser's interaction count says it happened; a
  * press with neither is a broken measurement, and fails. Setting up a press runs at full speed, and
  * so does its tail (the porthole's repaint after the press), so a press is measured from a settled page, as
  * a person's would be a beat later.
  */
-export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
+export async function pressSamples(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
   await page.evaluate(() => {
     const store: number[] = [];
     (window as unknown as { __latency: number[] }).__latency = store;
