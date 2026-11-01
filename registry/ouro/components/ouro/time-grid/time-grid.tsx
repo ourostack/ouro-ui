@@ -250,7 +250,11 @@ export interface TimeGridOwnProps {
   statusLabels?: TimeGridStatusLabels | undefined;
   /** Something small drawn where the now line meets the hours: a mascot, an avatar. Decoration only; screen readers skip it. */
   nowAdornment?: ReactNode;
-  /** Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes warn in development. */
+  /**
+   * Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes
+   * warn in development. In a grid taller than a day, the hours grow so the day ends at its foot.
+   * @claim "In a grid taller than a day, the hours grow" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > grows its hours to fill a grid taller than a day, so the day ends at the grid's foot, and shrinks them back with it)
+   */
   className?: string | undefined;
   /** The grid's root element. */
   ref?: Ref<HTMLDivElement> | undefined;
@@ -577,6 +581,20 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     rootRef.current!.style.setProperty("--ouro-time-grid-head", `${head.offsetHeight}px`);
   });
 
+  // In a grid taller than a day, the hours grow to share the room under the header, so the day
+  // ends at the grid's foot rather than above it. Neither height depends on the hours'.
+  useLayoutEffect(() => {
+    const root = rootRef.current!;
+    const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    const fill = () => root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - head.offsetHeight) / 24}px`);
+    fill();
+    const observer = new ResizeObserver(fill);
+    observer.observe(viewport);
+    observer.observe(head);
+    return () => observer.disconnect();
+  }, []);
+
   const focusPiece = (key: string) => {
     setActive(key);
     rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!.focus();
@@ -734,7 +752,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       data-view={view}
       className={cn(
         "relative box-border flex h-144 min-h-0 min-w-0 flex-col text-foreground",
-        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:3rem] [--ouro-time-grid-tint:14%] pointer-coarse:[--ouro-time-grid-hour:3.5rem] dark:[--ouro-time-grid-tint:24%]",
+        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
         className,
       )}
       style={

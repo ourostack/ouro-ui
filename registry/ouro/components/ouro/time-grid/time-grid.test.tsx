@@ -924,6 +924,20 @@ describe("TimeGrid", () => {
     expect(grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight).toBe(48 * 24);
   });
 
+  it("grows its hours to fill a grid taller than a day, so the day ends at the grid's foot, and shrinks them back with it", async () => {
+    await page.viewport(1280, 1600);
+    const { grid, rerender } = await render({ className: "h-[1500px]" });
+    const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
+    const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    // The day fills the room under the header, to the pixel, with every hour as tall.
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
+    expect(body.offsetHeight).toBeGreaterThan(48 * 24);
+    expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1);
+    // Shorter than a day again: 48px hours, and the day scrolls.
+    await rerender({ className: "h-[30rem]" });
+    await expect.poll(() => body.offsetHeight).toBe(48 * 24);
+  });
+
   it("writes UTC with no now on the server, hydrates without a mismatch, then reads the browser's zone and clock", async () => {
     // The reader is in Tokyo, whatever zone the test browser runs in.
     const { DateTimeFormat } = Intl;
