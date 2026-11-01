@@ -219,7 +219,7 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
       () => {
         // A start for a filmstrip that has stopped, or changed pace, is stale: one animation an emoji.
         // Stryker disable next-line ConditionalExpression: Chromium, where the mutation run tests, fails a stale decode itself; WebKit resolves it.
-        if (stopped) return;
+        /* istanbul ignore if @preserve -- WebKit only, and only when its decode resolves late: Chromium fails a stale decode itself */ if (stopped) return;
         const frames = Math.round(own.naturalHeight / own.naturalWidth);
         if (!(frames > 1)) return;
         own.animate([{ objectPosition: "50% 0%" }, { objectPosition: "50% 100%" }], {
