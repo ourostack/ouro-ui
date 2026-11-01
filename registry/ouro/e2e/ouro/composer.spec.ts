@@ -52,3 +52,33 @@ test("an image catalogue's emoji go in as tokens, from suggestions or the picker
   await expect(sent.getByRole("img", { name: "Team coffee" })).toBeVisible();
   await expect(sent.getByRole("img", { name: "Party popper" })).toBeVisible();
 });
+
+test("a composer's quote is read with the text, goes with Escape in the empty box, and shows in the sent reply", async ({ page }) => {
+  await openStory(page, "chat-composer--quoting");
+  const reply = page.getByRole("textbox", { name: "Message Mara" });
+  await expect(reply).toHaveAccessibleDescription(/^Quoting Mara Quill: Morning! The venue confirmed/);
+  await reply.focus();
+  await reply.press("Escape");
+  await expect(page.getByRole("button", { name: "Remove quote from Mara Quill" })).toHaveCount(0);
+  await expect(reply).toBeFocused();
+  await expect(reply).not.toHaveAccessibleDescription(/Quoting/);
+});
+
+test("a composer's quote goes with its remove button, and focus goes back to the text", async ({ page }) => {
+  await openStory(page, "chat-composer--quoting");
+  const reply = page.getByRole("textbox", { name: "Message Mara" });
+  await reply.pressSequentially("I have one");
+  await page.getByRole("button", { name: "Remove quote from Mara Quill" }).click();
+  await expect(page.getByRole("button", { name: "Remove quote from Mara Quill" })).toHaveCount(0);
+  await expect(reply).toBeFocused();
+  await expect(reply).toHaveValue("I have one");
+});
+
+test("a reply sent with a quote shows the quote in its bubble", async ({ page }) => {
+  await openStory(page, "chat-composer--quoting");
+  const reply = page.getByRole("textbox", { name: "Message Mara" });
+  await reply.pressSequentially("I have one");
+  await reply.press("Enter");
+  await expect(page.locator("blockquote[data-ouro-message-quote]")).toContainText("Quoting Mara Quill: ");
+  await expect(page.getByRole("button", { name: "Remove quote from Mara Quill" })).toHaveCount(0);
+});

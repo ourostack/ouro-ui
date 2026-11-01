@@ -30,7 +30,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Composer sendDisabledReason="Sending is off">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "composer05",
+    habit: "replyTo for the message a reply quotes",
+    tsc: [hint("string", 'Use <Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>')],
+    dev: '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02"];
