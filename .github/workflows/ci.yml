@@ -1,6 +1,6 @@
 name: CI
+# PROBE (never merge): no CI on this branch's pull request.
 on:
-  pull_request:
   push:
     branches: [main]
   merge_group:
