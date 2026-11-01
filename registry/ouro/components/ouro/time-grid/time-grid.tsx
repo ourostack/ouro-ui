@@ -583,7 +583,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const stacks = behind.map((placements) =>
     // Stryker disable next-line ConditionalExpression,EqualityOperator: an unmeasured lane is measured before the first paint, which decides either way.
     labelBackground && laneWidth > 0
-      ? // Stryker disable next-line ConditionalExpression,EqualityOperator: a lone event spans the whole lane, at least 7rem, so it is never too narrow; one exactly at the minimum reads either way.
+      ? // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a lone event spans the whole lane, at least 7rem, so it is never too narrow; one exactly at the minimum reads either way; an event spread over columns sits beside narrower ones.
         stacksOf(placements).filter((stack) => stack.length > 1 && stack.some((placed) => (laneWidth * placed.span) / placed.columns < stackMinWidth))
       : [],
   );
@@ -593,7 +593,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
   const [active, setActive] = useState<string | null>(null);
-  const stopFor = (key: string | undefined) => (key === undefined ? undefined : (stackOf.get(key)?.[0]!.key ?? key));
+  const stopFor = (key: string | undefined) => stackOf.get(key as string)?.[0]!.key ?? key;
   const tabStop = stopFor(pieces.find((piece) => piece.key === active)?.key ?? pieces.find((piece) => piece.event.id === selectedId)?.key ?? pieces[0]?.key);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -645,6 +645,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
     fill();
     const observer = new ResizeObserver(fill);
+    // Stryker disable next-line CallExpression: a change that resizes the room in a test resizes the header's sticky box with it, which measures again.
     observer.observe(viewport);
     observer.observe(head);
     // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.

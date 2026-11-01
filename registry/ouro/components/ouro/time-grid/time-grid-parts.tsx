@@ -50,13 +50,14 @@ const chevron = (d: string) => (
  * @claim "The grid takes the same keys" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
  */
 export function TimeGridNav(props: TimeGridNavProps): JSX.Element {
-  const { date, view = "week", onDateChange, timeZone, labels, className } = props;
+  const { date, view, onDateChange, timeZone, labels, className } = props;
   useAppearanceClassNameCheck(
     "TimeGridNav",
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; TimeGridNav draws Ouro's own buttons`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   const unit = view === "day" ? "day" : "week";
   const step = view === "day" ? 1 : 7;

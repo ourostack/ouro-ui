@@ -650,6 +650,10 @@ describe("TimeGrid", () => {
     await press("{Shift>}{PageDown}{/Shift}");
     await press("{Meta>}{ArrowDown}{/Meta}");
     await press("{Alt>}{Control>}{KeyY}{/Control}{/Alt}");
+    await press("{Alt>}{Shift>}{Meta>}{KeyY}{/Meta}{/Shift}{/Alt}");
+    await press("{Shift>}{KeyY}{/Shift}");
+    await press("{KeyY}");
+    await press("{Alt>}{Shift>}{KeyZ}{/Shift}{/Alt}");
     await press("{PageUp}");
     expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13"]);
     // Without onDateChange, Page Down is the page's.
@@ -1328,9 +1332,13 @@ describe("TimeGrid background events", () => {
       end: at(12, index === 3 ? "09:50" : "10:00"),
     }));
     const onEventSelect = vi.fn();
-    const { rerender } = await render({ view: "day", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count) => `${count} crowd` });
-    // Four side by side in a 112px lane would be 28px each: one block with their count and time instead.
+    const narrow = { events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count: number) => `${count} crowd` };
+    // A week draws each as a bar, however narrow.
+    const { rerender } = await render({ ...narrow, view: "week" });
     const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
+    expect(stack()).toBeNull();
+    // Four side by side in a day's 112px lane would be 28px each: one block with their count and time instead.
+    await rerender({ ...narrow, view: "day" });
     await expect.poll(stack).not.toBeNull();
     expect(plain(stack()!.textContent)).toBe("4 crowd9:00 – 10:00 AM");
     // From the first one's start to the last one's end.
@@ -1355,11 +1363,8 @@ describe("TimeGrid background events", () => {
     ]);
     await userEvent.click(menu.getByRole("menuitem", { name: /^Search experiments/ }));
     expect(onEventSelect).toHaveBeenCalledWith(crowd[2], { element: stack(), background: true });
-    // A week draws each as a bar, as before, however narrow.
-    await rerender({ view: "week", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect });
-    expect(stack()).toBeNull();
-    // Wide enough to read each: each draws as before.
-    await rerender({ view: "day", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[90rem]", onEventSelect });
+    // The same day grown wide enough to read each: each draws as before.
+    await rerender({ ...narrow, view: "day", className: "h-[30rem] w-[90rem]" });
     await expect.poll(stack).toBeNull();
     expect(crowd.every((event) => events().some((element) => (element.getAttribute("aria-label") ?? "").startsWith(`${event.title}, `)))).toBe(true);
   });
@@ -1481,13 +1486,22 @@ describe("TimeGridNav", () => {
     roots.push(root);
     const show = (view: "day" | "week") => act(async () => root.render(<TimeGridNav date="2026-03-12" view={view} timeZone={zone} onDateChange={onDateChange} />));
     await show("week");
+    // Previous and Next are icons, named for screen readers; each tooltip says its words and its key.
+    expect(["Previous week", "Next week"].map((name) => page.getByRole("button", { name }).element().querySelector("svg") !== null)).toEqual([true, true]);
+    const tipFor = async (name: string) => {
+      await userEvent.hover(page.getByRole("button", { name, exact: true }));
+      await expect.poll(() => [...document.querySelectorAll('[data-ouro="tooltip"]')].find((tip) => tip.textContent!.startsWith(name))).toBeDefined();
+      const tip = [...document.querySelectorAll('[data-ouro="tooltip"]')].find((element) => element.textContent!.startsWith(name))!;
+      return plain(tip.querySelector('[data-ouro="kbd"]')!.textContent).replace(/ /g, "");
+    };
+    expect(await tipFor("Today")).toMatch(/^(⌥|Alt).*(⇧|Shift).*Y$/);
+    expect(await tipFor("Previous week")).toMatch(/^(⌥|Alt).*↑/);
+    expect(await tipFor("Next week")).toMatch(/^(⌥|Alt).*↓/);
+    expect(warnings()).toEqual([]);
     await userEvent.click(page.getByRole("button", { name: "Next week" }));
     await userEvent.click(page.getByRole("button", { name: "Previous week" }));
     await userEvent.click(page.getByRole("button", { name: "Today" }));
     expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-19", "2026-03-05", zonedClock(zone).at(Date.now()).day]);
-    await userEvent.hover(page.getByRole("button", { name: "Next week" }));
-    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toContain("Next week");
-    expect(document.querySelector('[data-ouro="tooltip"] [data-ouro="kbd"]')).not.toBeNull();
     onDateChange.mockClear();
     await show("day");
     await userEvent.click(page.getByRole("button", { name: "Next day" }));
@@ -1497,5 +1511,8 @@ describe("TimeGridNav", () => {
     await expect.element(page.getByRole("button", { name: "Nächste Woche" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Heute" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Vorherige Woche" })).toBeVisible();
+    // Layout classes only: an appearance class says so in development.
+    await act(async () => root.render(<TimeGridNav date="2026-03-12" onDateChange={onDateChange} className="bg-red-500" />));
+    expect(warnings().join(" ")).toContain('[ouro-ui] TimeGridNav: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; TimeGridNav draws Ouro\'s own buttons.');
   });
 });
