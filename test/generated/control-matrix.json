@@ -2180,7 +2180,8 @@
     "stories": [
       "CodeBlock/Playground",
       "CodeBlock/InContext",
-      "CodeBlock/Wrapped"
+      "CodeBlock/Wrapped",
+      "CodeBlock/EmojiInCode"
     ]
   },
   {
@@ -2194,7 +2195,8 @@
     "stories": [
       "CodeBlock/Playground",
       "CodeBlock/InContext",
-      "CodeBlock/Wrapped"
+      "CodeBlock/Wrapped",
+      "CodeBlock/EmojiInCode"
     ]
   },
   {

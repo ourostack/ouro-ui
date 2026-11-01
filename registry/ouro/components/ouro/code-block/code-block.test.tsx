@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
+import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -255,5 +256,75 @@ describe("CodeBlock development messages", () => {
     expect(html).toContain('data-ouro="code-block"');
     expect(html).toContain("a &lt; b");
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("CodeBlock emoji", () => {
+  /** A blank image whose address names it. */
+  const image = (name: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>${name}</title></svg>`)}`;
+  const catalogue: EmojiCatalogue = {
+    categories: [
+      {
+        id: "symbols",
+        label: "Symbols",
+        items: [
+          { id: "party", name: "Party popper", shortcodes: ["party"], text: "🎉", src: image("party") },
+          { id: "rocket", name: "Rocket", text: "🚀", src: image("rocket") },
+        ],
+      },
+    ],
+  };
+  const source = 'const cheer = "🎉 shipped";\n// :party: stays as typed 🚀\nlet next = "🚀🎉";';
+
+  it("draws the catalogue's emoji as 1em pictures over the code's own characters, without moving a line", async () => {
+    const { host } = await render(
+      <>
+        <CodeBlock code={source} copy={false} />
+        <CodeBlock code={source} copy={false} catalogue={catalogue} />
+        <CodeBlock code={source} copy={false} catalogue={catalogue} wrap className="w-48" />
+        <CodeBlock code={source} copy={false} wrap className="w-48" />
+      </>,
+    );
+    const [plain, drawn, drawnWrapped, plainWrapped] = [...host.querySelectorAll("code")];
+    const size = (element: Element) => {
+      const { width, height } = element.getBoundingClientRect();
+      return [width, height];
+    };
+    expect(size(drawn!)).toEqual(size(plain!));
+    expect(size(drawnWrapped!)).toEqual(size(plainWrapped!));
+    const emoji = [...drawn!.querySelectorAll<HTMLElement>("[data-ouro-code-emoji]")];
+    expect(emoji.map((element) => element.textContent)).toEqual(["🎉", "🚀", "🚀", "🎉"]);
+    for (const element of emoji) {
+      const characters = element.firstElementChild!;
+      expect(getComputedStyle(characters).color).toBe("rgba(0, 0, 0, 0)");
+      const picture = element.querySelector<HTMLImageElement>('[data-ouro="emoji"]')!;
+      expect(picture.closest('[aria-hidden="true"]')).not.toBeNull();
+      expect(picture.getBoundingClientRect().width).toBe(parseFloat(getComputedStyle(drawn!).fontSize));
+      // Centered over the characters it stands for.
+      const box = characters.getBoundingClientRect();
+      const drawnBox = picture.getBoundingClientRect();
+      expect(Math.abs(drawnBox.left + drawnBox.width / 2 - (box.left + box.width / 2))).toBeLessThan(1);
+    }
+    expect(emoji[0]!.querySelector("img")!.getAttribute("src")).toBe(image("party"));
+  });
+
+  it("copies and selects the code's own characters, and leaves shortcode text as it is", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const { pre } = await render(<CodeBlock code={source} catalogue={catalogue} />);
+      expect(pre.textContent).toBe(source);
+      expect(pre.querySelectorAll("[data-ouro-code-emoji]")).toHaveLength(4);
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+      selection.addRange(range);
+      expect(selection.toString()).toBe(source);
+      selection.removeAllRanges();
+      await userEvent.click(page.getByRole("button", { name: "Copy code" }));
+      expect(clipboard).toEqual([source]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
