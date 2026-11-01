@@ -87,7 +87,7 @@ describe("Button default", () => {
       <Dialog start={start}>
         <a href="#here">Help</a>
         <div role="option" tabIndex={0} aria-selected="false">
-          Sam
+          Noor
         </div>
         <input aria-label="Person" role="combobox" aria-expanded="true" />
         <input aria-label="Closed list" role="combobox" aria-expanded="false" />
@@ -96,7 +96,7 @@ describe("Button default", () => {
         </button>
       </Dialog>,
     );
-    for (const name of ["Help", "Sam", "Person", "Add"]) {
+    for (const name of ["Help", "Noor", "Person", "Add"]) {
       (document.querySelector<HTMLElement>(`[aria-label="${name}"]`) ?? [...document.querySelectorAll<HTMLElement>("a, [role=option], button")].find((node) => node.textContent === name)!).focus();
       await userEvent.keyboard("{Enter}");
     }
