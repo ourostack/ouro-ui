@@ -39,7 +39,14 @@ describe("EmojiPicker on a phone", () => {
     );
     await userEvent.click(host.querySelector("button")!);
     const panel = () => document.querySelector<HTMLElement>('[data-ouro="emoji-picker"]');
-    await expect.poll(() => panel()?.closest('[data-ouro="sheet"]')).toBeTruthy();
+    // Measure once the sheet has slid in: while it moves, its fractional translation puts a
+    // rect a float's rounding off 44px (44.00006).
+    await expect
+      .poll(() => {
+        const sheet = panel()?.closest<HTMLElement>('[data-ouro="sheet"]');
+        return Boolean(sheet && !sheet.hasAttribute("data-starting-style") && sheet.getAnimations().length === 0);
+      })
+      .toBe(true);
     const sizes = (part: string) => [...panel()!.querySelectorAll<HTMLElement>(`[data-ouro-part="${part}"]`)].map((element) => element.getBoundingClientRect().height);
     expect(sizes("emoji")).toEqual([44, 44, 44]);
     expect(sizes("quick")).toEqual([44]);
