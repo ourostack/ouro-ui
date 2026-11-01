@@ -580,10 +580,13 @@ describe("MessageList", () => {
     expect(inView(scroller, "found-29")).toBe(false);
     expect([...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].every((message) => message.style.transform === "")).toBe(true);
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
-    // A new message leaves the reader at the one they opened.
+    // A new message leaves the reader where they are, and does not take them back to the message they opened at.
+    await wheel(scroller, 200);
+    const top = scroller.scrollTop;
+    expect(top).toBeGreaterThan(first);
     await rerender(<Found items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} initialAnchor="found-5" />);
     await settle(scroller);
-    expect(scroller.scrollTop).toBe(first);
+    expect(scroller.scrollTop).toBe(top);
   });
 
   it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
@@ -623,6 +626,22 @@ describe("MessageList", () => {
     });
     await settle(scroller);
     expect(Math.abs(document.getElementById("found-15")!.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps following the end, with no Jump to latest, when the newest message goes and the browser reports the scroll first", async () => {
+    const items = history(20, 10);
+    const { scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Chat items={items.slice(0, -1)} />));
+      // The list's end came up to meet it: the browser reports that scroll before the list sees itself shrink.
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Not for a frame either: the list is at its end as it is now, though not as it was.
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
   it("stays at a message an app scrolls to as the first messages arrive, instead of following to the newest", async () => {
