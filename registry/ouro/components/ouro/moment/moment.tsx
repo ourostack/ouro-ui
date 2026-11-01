@@ -369,7 +369,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
     level === undefined ? (
       <span className="min-w-0 truncate text-sm font-medium text-foreground">{title}</span>
     ) : (
-      <Heading level={level} size={layout === "default" ? "md" : "sm"} className={layout === "default" ? undefined : "min-w-0 truncate"}>
+      <Heading level={level} size={layout === "default" ? "md" : "sm"} className={layout === "default" ? undefined : "min-w-0 truncate text-nowrap"}>
         {title}
       </Heading>
     );
