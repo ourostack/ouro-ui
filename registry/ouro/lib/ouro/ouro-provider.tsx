@@ -47,8 +47,11 @@ export interface OuroProviderProps {
    * `display: contents`, so it adds no box), so your CSS can follow the setting too, beside
    * the `prefers-reduced-motion` media query: `[data-motion="reduced"] .wave { animation: none }`.
    * While a provider with `reduced` is on the page, Ouro UI's CSS animations and transitions,
-   * and your own, end at once everywhere but inside a provider set to `full`; with `full`, a
-   * transition Ouro UI keeps for `prefers-reduced-motion: no-preference` still follows the device.
+   * and your own, end at once everywhere but inside a provider set to `full`. It does this with a
+   * `<style>` of its own, the one stylesheet an Ouro UI component brings: an app's own setting must
+   * still the dialogs, sheets and toasts that render outside the provider's element too, and Ouro
+   * UI's classes follow only the device's media query. With `full`, a transition Ouro UI keeps
+   * for `prefers-reduced-motion: no-preference` still follows the device.
    * A provider inside another keeps the outer one's setting when it sets none.
    * @claim "`reduced` moves as if that setting" registry/ouro/lib/ouro/ouro-provider.test.tsx verify:testExists(registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider motion > answers useReducedMotion by its motion, and by the device under system or no provider)
    * @claim "`full` keeps that motion running" registry/ouro/lib/ouro/ouro-provider.test.tsx verify:testExists(registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider motion > answers useReducedMotion by its motion, and by the device under system or no provider)
