@@ -71,7 +71,8 @@ function island(id: string, load: () => Promise<{ default: ComponentType }>): ()
       hydrated.current = true;
       const target = held.current;
       held.current = null;
-      if (target?.isConnected) target.click();
+      // A task later, so the press meets state React brought up to date after hydrating, such as the reader's stored theme.
+      if (target) setTimeout(() => target.isConnected && target.click());
     }, []);
     return (
       <Suspense>
