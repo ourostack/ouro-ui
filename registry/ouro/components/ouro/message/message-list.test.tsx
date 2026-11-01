@@ -796,6 +796,12 @@ function Channel({ children, height = 300, onMessageKeyDown }: { children: React
 }
 
 const focusedId = () => document.activeElement?.id ?? "";
+/** The ids of the list's messages in the Tab order; every other message has `tabindex="-1"`. */
+const tabStops = (scroller: HTMLElement) => {
+  const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro-part="item"]')];
+  expect(messages.every((message) => ["0", "-1"].includes(message.getAttribute("tabindex")!))).toBe(true);
+  return messages.filter((message) => message.getAttribute("tabindex") === "0").map((message) => message.id);
+};
 /** Within a pixel: layout lands on fractions at some zoom levels. */
 const near = (value: number, expected: number) => expect(Math.abs(value - expected)).toBeLessThanOrEqual(1);
 const button = (name: string) => page.getByRole("button", { name, exact: true }).element() as HTMLElement;
@@ -1354,7 +1360,10 @@ describe("MessageList keyboard", () => {
     // A message that arrives in the same change as an edit inside another is counted too.
     await rerender(list(3, true));
     expect(positions()).toEqual(["40/200", "null/null", "null/null", "3/5", "4/5", "5/5"]);
-    expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
+    // Once the list has followed the new message, the scroll puts the Tab stop on it, the newest in view; until then
+    // the stop stays where it was. Read it after the scroll, so the result never depends on when the scroll event lands.
+    await settle(scroller);
+    expect(tabStops(scroller)).toEqual(["post-2"]);
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-part")).toBe("item");
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-control")).toBe("message-list");
     // The focus ring rounds on Ouro's Message only; an app's message keeps its corners.
@@ -1447,13 +1456,13 @@ describe("MessageList keyboard", () => {
     expect(message.querySelector("[data-base-ui-focus-guard]")).not.toBeNull();
     await act(async () => message.focus());
     // Before the fix, the guard ahead of the menu's button took this Tab, closed the menu and dropped focus to the page.
-    const reached: (Element | null)[] = [];
+    const reached: string[] = [];
     for (let press = 0; press < 3; press++) {
       await pressTab();
-      reached.push(document.activeElement);
+      reached.push(document.activeElement!.getAttribute("aria-label") || document.activeElement!.id || document.activeElement!.textContent);
     }
-    expect(reached.slice(0, 2)).toEqual(expect.arrayContaining([more(), button("2 replies")]));
-    expect(reached[2]).toBe(button("After"));
+    expect(reached.slice(0, 2).toSorted()).toEqual(["2 replies", "More actions"]);
+    expect(reached[2]).toBe("After");
     await pressTab({ shift: true });
     expect(focusedId()).toBe("with-thread");
   });
