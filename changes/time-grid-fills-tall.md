@@ -1,0 +1,1 @@
+- Fixed: in a TimeGrid taller than a day, the hours grow to share the room under the header, so the day ends at the grid's foot instead of above it. A grid shorter than a day keeps its hours as they were.

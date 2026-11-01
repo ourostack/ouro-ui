@@ -4,7 +4,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { TimeGrid, type TimeGridEvent, type TimeGridView } from "@/registry/ouro/components/ouro/time-grid/time-grid";
-import { addDays } from "@/registry/ouro/components/ouro/calendar/calendar-styles";
+import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names). The stories show
 // a made-up team's week in March 2026, in New York's time zone with the clock held at 10:41 on
@@ -207,35 +207,17 @@ export const BackgroundEventsDay: Story = {
   args: { view: "day", backgroundEvents: shared, backgroundLabel: "Design team" },
 };
 
-/** A chevron drawn in the text colour, mirrored in a right-to-left page. */
-function Chevron({ d }: { d: string }): JSX.Element {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
-      <path d={d} />
-    </svg>
-  );
-}
-
 const toolbar: CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, color: "var(--foreground)" };
 
-/** The app's own toolbar around the grid: Today, Previous and Next move `date`; the segmented control sets `view`. */
+/** A toolbar around the grid: TimeGridNav's Today, Previous and Next move `date`, as Page Up, Page Down, ⌥↑, ⌥↓ and ⌥⇧Y do in the grid; the segmented control sets `view`. */
 export const WithToolbar: Story = {
   render: function Render(args): JSX.Element {
     const [date, setDate] = useState("2026-03-12");
     const [view, setView] = useState<TimeGridView>("work-week");
-    const stepDays = view === "day" ? 1 : 7;
     return (
       <div>
         <div style={toolbar}>
-          <Button variant="outline" size="sm" onClick={() => setDate("2026-03-12")}>
-            Today
-          </Button>
-          <Button variant="plain" tone="secondary" size="sm" aria-label={view === "day" ? "Previous day" : "Previous week"} onClick={() => setDate((day) => addDays(day, -stepDays))}>
-            <Chevron d="M10 3.5L5.5 8l4.5 4.5" />
-          </Button>
-          <Button variant="plain" tone="secondary" size="sm" aria-label={view === "day" ? "Next day" : "Next week"} onClick={() => setDate((day) => addDays(day, stepDays))}>
-            <Chevron d="M6 3.5L10.5 8 6 12.5" />
-          </Button>
+          <TimeGridNav date={date} view={view} timeZone={args.timeZone} onDateChange={setDate} />
           <SegmentedControl
             label="View"
             hideLabel
@@ -248,7 +230,7 @@ export const WithToolbar: Story = {
             onValueChange={(value) => setView(value as TimeGridView)}
           />
         </div>
-        <TimeGrid {...args} date={date} view={view} />
+        <TimeGrid {...args} date={date} view={view} onDateChange={setDate} />
       </div>
     );
   },

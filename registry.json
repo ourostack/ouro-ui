@@ -3785,9 +3785,11 @@
       "type": "registry:ui",
       "title": "TimeGrid",
       "description": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app.",
-      "docs": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Import: import { TimeGrid } from \"@/components/ouro/time-grid/time-grid\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, calendar, local-date, scroll-area, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/time-grid.md",
+      "docs": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Import: import { TimeGrid } from \"@/components/ouro/time-grid/time-grid\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, calendar, kbd, local-date, menu, scroll-area, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/time-grid.md",
       "registryDependencies": [
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/calendar",
+        "ourostack/ouro-ui/kbd",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
@@ -3796,10 +3798,16 @@
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/local-date",
+        "ourostack/ouro-ui/menu",
         "ourostack/ouro-ui/scroll-area",
         "ourostack/ouro-ui/tooltip"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/time-grid/time-grid-parts.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/time-grid/time-grid-parts.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/time-grid/time-grid-styles.ts",
           "type": "registry:ui",
@@ -11380,14 +11388,15 @@
       "registryDependencies": [
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
-        "ourostack/ouro-ui/calendar",
         "ourostack/ouro-ui/calendar-tests",
+        "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -11397,6 +11406,7 @@
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/local-date-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover",
         "ourostack/ouro-ui/popover-tests",
