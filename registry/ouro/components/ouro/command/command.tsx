@@ -1,7 +1,7 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { cloneElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
@@ -427,12 +427,7 @@ export function Command(props: CommandProps): JSX.Element {
   const triggerRef = useRef<HTMLElement>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
   // The dialog fits its commands, from 32rem to 40rem, and then never narrows while it is open: its floor is the
-  // widest it has been, taken when it opens and after every render, so filtering or a server's answer never moves
-  // the input or the rows.
-  const attachPopup = useCallback((popup: HTMLDivElement | null) => {
-    popupRef.current = popup;
-    if (popup) holdWidth(popup);
-  }, []);
+  // widest it has been, taken after every render, so filtering or a server's answer never moves the input or the rows.
   useLayoutEffect(() => {
     if (popupRef.current) holdWidth(popupRef.current);
   });
@@ -615,7 +610,7 @@ export function Command(props: CommandProps): JSX.Element {
             <DialogViewport>
               <DialogPopupUnchecked
                 data-ouro-instant=""
-                ref={attachPopup}
+                ref={popupRef}
                 size="auto"
                 className={cn("max-w-[min(100%,40rem)]", className)}
                 // The input after a key press or click; the palette itself after a touch or pen
