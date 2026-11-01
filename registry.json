@@ -3314,9 +3314,10 @@
       "type": "registry:ui",
       "title": "CodeBlock",
       "description": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it.",
-      "docs": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. Import: import { CodeBlock } from \"@/components/ouro/code-block/code-block\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, copy-button, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/code-block.md",
+      "docs": "Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. Import: import { CodeBlock } from \"@/components/ouro/code-block/code-block\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, copy-button, emoji, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/code-block.md",
       "registryDependencies": [
         "ourostack/ouro-ui/copy-button",
+        "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
@@ -10093,6 +10094,8 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/code-block",
         "ourostack/ouro-ui/copy-button-tests",
+        "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
@@ -10101,6 +10104,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-tests"
