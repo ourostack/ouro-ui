@@ -176,8 +176,7 @@ function SendIcon(): JSX.Element {
  * Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never
  * sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach,
  * formatting), `toolbar` a formatting bar above the text while it is on, and `attachments`
- * the files waiting to go. `defaultExpanded` or `expanded` with `onExpandedChange` adds an expand
- * button for a long message: a taller box with the toolbar, where Enter starts a new line. `sendDisabledReason` turns sending off and says why, while the
+ * the files waiting to go. `sendDisabledReason` turns sending off and says why, while the
  * person can still write, and `highlights` marks words in the text, as TextArea's do.
  *
  * The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an
