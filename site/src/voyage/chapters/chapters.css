@@ -77,3 +77,13 @@
  * colour from inline styles in the server HTML, and what starts hidden is hidden there too
  * (`opacity="0"`), which keeps them out of the first load's CSS budget (catalog.spec.ts).
  */
+/*
+ * A chapter well off screen is skipped (content-visibility: auto), as the porthole's scene is: a
+ * press in one chapter then restyles, lays out, paints and layers none of the others, which on a
+ * 4x slower CPU took museum's and organ's presses close to their 100 ms budget. Until a chapter has
+ * been drawn once, its height is this guess; after that the browser keeps the height it drew.
+ */
+section[data-chapter] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2400px;
+}
