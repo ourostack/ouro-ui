@@ -95,11 +95,16 @@ function springFor(reach: number, kick: number, push: number, ms: number) {
   return springAt(SPREAD * Math.tanh((kick * LAG * reach - push * (1 - reach)) / SPREAD), 0, 0, ms, SPRING);
 }
 
-/** Checks each message against its spring `ms` (the first frame's 16ms) after it began, from where it is laid out relative to `from`. */
-function expectFirstFrame(messages: HTMLElement[], from: number, kick: number, push = 0, ms = 16) {
+/**
+ * Checks each message against its spring `ms` (the first frame's 16ms) after it began, from where it is laid out
+ * relative to `from`: the pointer's height, or the box of the message the keys focused.
+ */
+function expectFirstFrame(messages: HTMLElement[], from: number | { top: number; bottom: number }, kick: number, push = 0, ms = 16) {
+  const span = typeof from === "number" ? { top: from, bottom: from } : from;
   let moved = 0;
   for (const message of messages) {
-    const reach = Math.min(Math.abs(laidOut(message).middle - from) / REACH, 1);
+    const at = laidOut(message).middle;
+    const reach = Math.min(Math.max(span.top - at, at - span.bottom, 0) / REACH, 1);
     const want = springFor(reach, kick, push, ms);
     if (Math.abs(want.value) < 0.25 && Math.abs(want.velocity) < 0.01) expect(message.style.transform).toBe("");
     else {
@@ -295,24 +300,27 @@ describe("MessageList springs", () => {
     await scrollInCode(scroller, 800);
     const frames = holdFrames();
     const view = scroller.getBoundingClientRect();
-    wheel(scroller, 30, view.top);
+    // The first scroll leaves the messages trailing by different amounts; the next, from far above, moves all
+    // those near the band's bottom alike, so a message that arrives there matches the one it started from.
+    wheel(scroller, 30, view.top + 150);
     frames.step(16);
     const before = new Set(messages().filter((message) => message.style.transform !== ""));
-    // A scroll brings new messages near, far from the pointer, as their nearest neighbour is.
-    wheel(scroller, 150, view.top);
+    wheel(scroller, 150, view.top - 500);
     frames.step(16);
     const last = [...before].at(-1)!;
     const arrived = messages().slice(messages().indexOf(last) + 1).filter((message) => message.style.transform !== "");
     expect(arrived.length).toBeGreaterThan(0);
     for (const message of arrived) expect(shiftOf(message)).toBeCloseTo(shiftOf(last), 3);
+    // The messages that left the band at the top rest at once.
+    for (const message of messages().filter((each) => each.style.transform !== "")) expect(near(scroller, message)).toBe(true);
+    expect([...before].some((message) => !near(scroller, message))).toBe(true);
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
 
     // Scrolling up, messages come near at the top and start where the topmost moving one is.
-    const below = view.bottom + 100;
-    wheel(scroller, -30, below);
+    wheel(scroller, -30, view.bottom - 150);
     frames.step(16);
     const moving = new Set(messages().filter((message) => message.style.transform !== ""));
-    wheel(scroller, -150, below);
+    wheel(scroller, -150, view.bottom + 500);
     frames.step(16);
     const first = [...moving][0]!;
     const above = messages().slice(0, messages().indexOf(first)).filter((message) => message.style.transform !== "");
@@ -345,11 +353,15 @@ describe("MessageList springs", () => {
     wheel(scroller, -20, scroller.getBoundingClientRect().top);
     frames.step(16);
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    // Past the wheel's 250ms, so only the key makes the scroll the reader's.
+    frames.step(300);
     // Page Up: the focused message lands exactly where the key puts it, and the others trail above.
+    const top = scroller.scrollTop;
     await userEvent.keyboard("{PageUp}");
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
     const paged = document.activeElement as HTMLElement;
+    expect(expectFirstFrame(messages().filter((message) => near(scroller, message)), laidOut(paged), scroller.scrollTop - top)).toBeGreaterThan(2);
     expect(paged).not.toBe(newest);
     expect(paged.style.transform).toBe("");
     // Within a pixel: scrolling lands on whole pixels, layout on fractions.
@@ -628,7 +640,34 @@ describe("MessageList springs", () => {
     const y = scroller.getBoundingClientRect().top + 200;
     finger(scroller, "touchstart", y);
     finger(scroller, "touchmove", y - 40);
+    finger(scroller, "touchmove", y - 60);
     frames.step(16);
     expectAtRest(messages());
+  });
+  it("keeps a tall focused message where the keys put it as they scroll through it", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 240 }}>
+        <Message role="assistant" name="Ouro" id="long">
+          {"A long reply that runs on. ".repeat(60)}
+        </Message>
+        <Message role="user" name="Ada">
+          Thanks
+        </Message>
+      </MessageList>,
+    );
+    const long = document.getElementById("long")!;
+    await scrollInCode(scroller, 200);
+    long.focus({ preventScroll: true });
+    const frames = holdFrames();
+    // A wheel far from it: the tall message trails.
+    wheel(scroller, 20, scroller.getBoundingClientRect().bottom + 400);
+    frames.step(16);
+    expect(shiftOf(long)).toBeGreaterThan(0);
+    // The down arrow scrolls through it without moving focus: it stops trailing at once.
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(long);
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(long.style.transform).toBe("");
   });
 });
