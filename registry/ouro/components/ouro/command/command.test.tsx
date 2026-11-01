@@ -606,7 +606,9 @@ describe("Command media", () => {
     expect(shown.querySelector('[data-testid="party"]')).not.toBeNull();
     expect(label(crew).querySelector(".sr-only")!.textContent).toBe("Release crew 🎉");
     // A row without it shows its label as before.
-    expect(label(page.getByRole("option", { name: "Sign out", exact: true }).element() as HTMLElement).textContent).toBe("Sign out");
+    const signOut = label(page.getByRole("option", { name: "Sign out", exact: true }).element() as HTMLElement);
+    expect(signOut.textContent).toBe("Sign out");
+    expect(signOut.querySelector('[aria-hidden="true"], .sr-only')).toBeNull();
     await userEvent.type(input(), "crew");
     expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
     await userEvent.keyboard("{Enter}");
