@@ -56,6 +56,12 @@ const descriptions = (element: Element) =>
     .filter(Boolean)
     .map((id) => document.getElementById(id)?.textContent);
 
+/** The height of the textarea's lines, inside its padding. */
+const linesHeight = (textarea: HTMLTextAreaElement) => {
+  const style = getComputedStyle(textarea);
+  return textarea.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+};
+
 /** A key press the browser cannot make by typing: Enter while an input method composes a word. */
 function pressEnter(textarea: HTMLTextAreaElement, init: KeyboardEventInit) {
   return act(async () => void textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, ...init })));
@@ -82,7 +88,7 @@ describe("Composer", () => {
     await expect.element(page.getByRole("textbox", { name: "Message Mia" })).toBeVisible();
     expect(textarea.placeholder).toBe("Write a message");
     expect(textarea.rows).toBe(1);
-    expect(textarea.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(textarea).lineHeight), 0);
+    expect(linesHeight(textarea)).toBeCloseTo(parseFloat(getComputedStyle(textarea).lineHeight), 0);
     await expect.element(page.getByRole("button", { name: "Send" })).toBeDisabled();
     expect(send.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
   });
@@ -92,9 +98,9 @@ describe("Composer", () => {
     const line = parseFloat(getComputedStyle(textarea).lineHeight);
     textarea.focus();
     await userEvent.keyboard("one{Shift>}{Enter}{/Shift}two");
-    expect(textarea.getBoundingClientRect().height).toBeCloseTo(2 * line, 0);
+    expect(linesHeight(textarea)).toBeCloseTo(2 * line, 0);
     await userEvent.keyboard("{Shift>}{Enter}{/Shift}three{Shift>}{Enter}{/Shift}four");
-    expect(textarea.getBoundingClientRect().height).toBeCloseTo(3 * line, 0);
+    expect(linesHeight(textarea)).toBeCloseTo(3 * line, 0);
     expect(getComputedStyle(textarea).overflowY).toBe("auto");
   });
 
@@ -224,6 +230,35 @@ describe("Composer", () => {
     textarea.focus();
     await userEvent.keyboard("a");
     expect(onValueChange).toHaveBeenLastCalledWith("a");
+  });
+});
+
+describe("Composer presses around the text", () => {
+  const text = "Yes, Friday works.\nSee you then.";
+  /** A press at a point in the frame, from its top left corner. */
+  const press = (frame: HTMLElement, x: number, y: number) => page.elementLocator(frame).click({ position: { x, y } });
+
+  it("puts the caret at the start of the text on a press in the box's top left corner", async () => {
+    const { frame, textarea } = await render(<Composer label="Reply" defaultValue={text} onSend={() => {}} />);
+    await press(frame, 6, 6);
+    expect(document.activeElement).toBe(textarea);
+    expect(textarea.selectionStart).toBe(0);
+  });
+
+  it("puts the caret at the end of the text on a press in the box's bottom left corner, under the text", async () => {
+    const { frame, textarea } = await render(<Composer label="Reply" defaultValue={text} onSend={() => {}} />);
+    await press(frame, 6, frame.getBoundingClientRect().height - 6);
+    expect(document.activeElement).toBe(textarea);
+    expect(textarea.selectionStart).toBe(text.length);
+  });
+
+  it("puts the caret at the end of a line on a press between the line and the send button", async () => {
+    const { frame, textarea, send } = await render(<Composer label="Reply" defaultValue={text} onSend={() => {}} />);
+    const box = frame.getBoundingClientRect();
+    const firstLine = textarea.getBoundingClientRect().top + parseFloat(getComputedStyle(textarea).paddingTop) + parseFloat(getComputedStyle(textarea).lineHeight) / 2;
+    await press(frame, send.getBoundingClientRect().left - box.left - 6, firstLine - box.top);
+    expect(document.activeElement).toBe(textarea);
+    expect(textarea.selectionStart).toBe(text.indexOf("\n"));
   });
 });
 
