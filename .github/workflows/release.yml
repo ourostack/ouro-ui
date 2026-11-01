@@ -118,6 +118,9 @@ jobs:
           # only on a release commit stops there, before anything is cut.
           rehearsal=$(gh run list --workflow release-rehearsal.yml --commit "$sha" --json conclusion,displayTitle --jq "[.[] | select(.displayTitle == \"Release rehearsal $TAG\")][0].conclusion")
           [ "$rehearsal" = success ] || { echo "::error::The release rehearsal of $TAG on main ($sha) is '${rehearsal:-not run}', not success. Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
+          # What the rehearsal passed only on a quarantined test's retry (scripts/quarantine.mjs), shown here too.
+          rehearsed=$(gh run list --workflow release-rehearsal.yml --commit "$sha" --json databaseId,displayTitle --jq "[.[] | select(.displayTitle == \"Release rehearsal $TAG\")][0].databaseId")
+          node scripts/quarantine.mjs rehearsed "$rehearsed"
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'

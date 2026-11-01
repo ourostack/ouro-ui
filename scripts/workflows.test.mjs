@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
-import { entryProblems, failedTests, names, quarantineFile, record, retryPlan } from "./quarantine.mjs";
+import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
@@ -2083,11 +2083,13 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
 
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
   const ciYml = workflow("ci.yml");
+  // The name GitHub gave install-latest's unnamed test step in run 41270773113.
+  const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
   const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/6)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
-  const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: ["Run SHADCN_VERSION=latest scripts/install-test.sh shadcn"], log: calendarLog });
+  const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
   const dive = [job(4, "browser (5/6)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
@@ -2112,6 +2114,19 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   // The gate failing a step of its own (merged coverage), not reading a result, is not retried.
   const coverage = [dive[0], { ...dive[1], failedSteps: ["Coverage of installed subsets"] }, dive[2]];
   assert.equal(retryPlan({ runs: runWith(coverage), contexts, entries: [diveEntry] }).retry, false);
+  // The listed test's job must have failed in its test step alone: not also in another step, and
+  // not in a step that runs no tests.
+  const twoSteps = retryPlan({ runs: runWith([{ ...calendar, failedSteps: [latestStep, "Upload the report"] }]), contexts, entries: [calendarEntry] });
+  assert.equal(twoSteps.retry, false);
+  assert.match(twoSteps.problems.join("\n"), /failed in 2 steps \(.*\), not in its test step alone/);
+  const setup = retryPlan({ runs: runWith([{ ...calendar, failedSteps: ["Run pnpm i --frozen-lockfile"] }]), contexts, entries: [calendarEntry] });
+  assert.equal(setup.retry, false);
+  assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
+  assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
+  // A gate that read a skipped job failed on that, which no test explains.
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/6)", "skipped")]), contexts, entries: [diveEntry] });
+  assert.equal(skippedShard.retry, false);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/6\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
@@ -2142,17 +2157,17 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
     join(bin, "gh"),
-    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":3,"name":"install (shadcn@latest, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":3,"name":"install (shadcn@latest, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run SHADCN_VERSION=latest scripts/install-test.sh shadcn \\"$RUNNER_TEMP/latest\\" abc"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") [ -z "$REFUSE" ] || exit 1; echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
   );
   chmodSync(join(bin, "gh"), 0o755);
-  const retry = (state) => {
+  const retry = (state, refuse = "") => {
     writeFileSync(calls, "");
     writeFileSync(summary, "");
     writeFileSync(attempts, "1");
     return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state },
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse },
     });
   };
   const open = retry("OPEN");
@@ -2163,10 +2178,20 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   const made = readFileSync(calls, "utf8").split("\n");
   assert.ok(made.includes(`issue comment https://github.com/ourostack/ouro-ui/issues/351 --body ${line}`));
   assert.equal(made.filter((call) => call.startsWith("run rerun")).length, 1);
-  // The issue closed: the test is no longer quarantined, nothing is rerun and the caller fails.
+  // GitHub refuses the rerun: recorded as such, not as retried, nothing commented, and the caller fails.
+  const refusedRun = retry("OPEN", "yes");
+  assert.equal(refusedRun.status, 1);
+  const refusal = line.replace("Retried once, as quarantined", "Retry requested but the rerun failed");
+  assert.equal(readFileSync(summary, "utf8"), `- ${refusal}\n`);
+  assert.ok(refusedRun.stdout.includes(`::error title=Quarantined test not retried::${refusal}`));
+  assert.doesNotMatch(refusedRun.stdout, /Retried once/);
+  assert.ok(!readFileSync(calls, "utf8").includes("issue comment"));
+  // The issue closed: the test is no longer quarantined, nothing is rerun and the caller fails,
+  // and a warning asks for the stale entry's removal.
   const closed = retry("CLOSED");
   assert.equal(closed.status, 1);
   assert.match(closed.stdout, /^Not retried: .*its issue is not open/m);
+  assert.ok(closed.stdout.includes(staleWarning(calendarEntry)));
   assert.equal(readFileSync(summary, "utf8"), "");
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
 });
@@ -2188,4 +2213,44 @@ test("only Release and its rehearsal retry, and only after scripts/required-ci.s
   }
   // No test runner retries anything of its own: the quarantine is the only retry.
   assert.doesNotMatch(readFileSync(join(root, "vitest.config.ts"), "utf8"), /\bretry:/);
+});
+
+test("a stale quarantine entry, its issue closed, gets a warning to remove it and fails nothing; Release shows the retries its rehearsal recorded", () => {
+  const bin = scratchDir("ouro-quarantine-release-");
+  const summary = join(bin, "summary.md");
+  // A stand-in gh: every issue is $STATE; rehearsal run 7 has jobs 11 and 12, and job 11 recorded
+  // $RETRIED, if anything, beside another warning, through the --jq filter quarantine.mjs gives.
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\ncase "$*" in\n  "issue view "*) [ "$STATE" = unreadable ] && exit 1; echo "$STATE" ;;\n  "api repos/o/r/actions/runs/7/jobs"*) printf '11\\n12\\n' ;;\n  "api repos/o/r/check-runs/11/annotations"*) jq -nc --arg m "$RETRIED" '[{title: "Stale quarantine entry", message: "elsewhere"}] + (if $m == "" then [] else [{title: "Quarantined test retried", message: $m}] end)' | jq -r "\${@: -1}" ;;\n  "api repos/o/r/check-runs/12/annotations"*) ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const quarantine = (args, env = {}) => {
+    writeFileSync(summary, "");
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), ...args], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, STATE: "OPEN", RETRIED: "", ...env },
+    });
+  };
+  const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
+  const open = quarantine(["stale"]);
+  assert.equal(open.status, 0);
+  assert.doesNotMatch(open.stdout, /Stale quarantine entry/);
+  const closed = quarantine(["stale"], { STATE: "CLOSED" });
+  assert.equal(closed.status, 0, "a closed issue never fails the run");
+  for (const entry of entries) assert.ok(closed.stdout.includes(staleWarning(entry)));
+  assert.equal(quarantine(["stale"], { STATE: "unreadable" }).status, 0);
+  // The rehearsal leads the release's own summary with any retry it recorded.
+  const retried = quarantine(["rehearsed", "7"], { RETRIED: "Retried once, as quarantined: the Calendar test" });
+  assert.equal(retried.status, 0);
+  assert.equal(readFileSync(summary, "utf8"), "- The rehearsal (https://github.com/o/r/actions/runs/7): Quarantined test retried: Retried once, as quarantined: the Calendar test\n");
+  assert.match(retried.stdout, /^::warning title=Rehearsal retried a quarantined test::/m);
+  assert.equal(quarantine(["rehearsed", "7"]).status, 0);
+  assert.equal(readFileSync(summary, "utf8"), "The rehearsal (https://github.com/o/r/actions/runs/7) retried no quarantined test.\n");
+  // Wired: the rehearsal warns of stale entries, Release reads its passing rehearsal's retries.
+  assert.match(workflow("release-rehearsal.yml"), /^ {8}run: node scripts\/quarantine\.mjs stale$/m);
+  const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
+  assert.ok(check.indexOf('node scripts/quarantine.mjs rehearsed "$rehearsed"') > check.indexOf('[ "$rehearsal" = success ]'));
+  assert.match(check, /^rehearsed=\$\(gh run list --workflow release-rehearsal\.yml --commit "\$sha" --json databaseId,displayTitle --jq "\[\.\[\] \| select\(\.displayTitle == \\"Release rehearsal \$TAG\\"\)\]\[0\]\.databaseId"\)$/m);
 });

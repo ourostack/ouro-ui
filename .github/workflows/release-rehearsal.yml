@@ -64,6 +64,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      - name: Warn of stale quarantine entries
+        # An entry whose issue is closed no longer applies; this asks for its removal and never fails.
+        run: node scripts/quarantine.mjs stale
       - name: Push the rehearsal branch
         run: |
           git config user.name "github-actions[bot]"
