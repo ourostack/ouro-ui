@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { readComponents, readMotion } from "./components.mts";
 import { buildMotionMatrix } from "./control-matrix.mts";
 import { STATE_ATTRIBUTES } from "./motion-states.mts";
+import { copyTree } from "./tree.mjs";
 
 // component.json `motion`: what each state change of a component animates, part by part, and
 // the tests that prove it (scripts/components.mts). The reader rejects a map that names a kind,
@@ -32,7 +33,7 @@ function scratch() {
     writeFileSync(join(folder, `${component.stem}.tsx`), "");
   }
   // The folders whose component.json declares motion, whole: the reader checks their parts and test titles.
-  for (const folder of new Set(readMotion(root).map((entry) => entry.folder))) cpSync(join(root, "registry/ouro/components/ouro", folder), join(dir, "registry/ouro/components/ouro", folder), { recursive: true });
+  for (const folder of new Set(readMotion(root).map((entry) => entry.folder))) copyTree(join(root, "registry/ouro/components/ouro", folder), join(dir, "registry/ouro/components/ouro", folder));
   return dir;
 }
 
