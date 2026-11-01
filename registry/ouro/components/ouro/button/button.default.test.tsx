@@ -223,3 +223,27 @@ describe("Button default", () => {
     expect(start).not.toHaveBeenCalled();
   });
 });
+
+describe("Button ref", () => {
+  it("reaches the button as an object ref, a callback ref and a callback ref with its own cleanup, and lets go on unmount", async () => {
+    const object = { current: null as HTMLButtonElement | null };
+    const callback = vi.fn();
+    const cleanup = vi.fn();
+    const withCleanup = vi.fn(() => cleanup);
+    await render(
+      <>
+        <Button ref={object}>One</Button>
+        <Button ref={callback}>Two</Button>
+        <Button ref={withCleanup}>Three</Button>
+      </>,
+    );
+    const [one, two, three] = [...document.querySelectorAll("button")];
+    expect(object.current).toBe(one);
+    expect(callback).toHaveBeenLastCalledWith(two);
+    expect(withCleanup).toHaveBeenLastCalledWith(three);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(object.current).toBeNull();
+    expect(callback).toHaveBeenLastCalledWith(null);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+});
