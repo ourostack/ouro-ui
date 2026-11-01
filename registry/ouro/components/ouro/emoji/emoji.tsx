@@ -5,7 +5,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 import { emojiClass, emojiSkinTones, splitEmojiText, toneOf, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 
 export type { EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -298,7 +298,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
   const form = toneOf(item, skinTone as EmojiSkinTone);
   const own = useRef<HTMLImageElement>(null);
   const mergedRef = useMergedRef(ref, own);
-  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", true);
+  const reduced = useReducedMotion(true);
   const animated = Boolean(form.animatedSrc ?? form.filmstrip) && !reduced;
   // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: listening saves work only; play decides first.
   const hostActive = useHostActive(own, animated && play === undefined);

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Lightbox, type LightboxImage, type LightboxProps, type LightboxWithThumbnailsProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { mosaicLayout } from "@/registry/ouro/components/ouro/lightbox/lightbox-styles";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 
@@ -196,6 +197,17 @@ describe("Lightbox still frames", () => {
     await expect.poll(() => image.currentSrc).toBe(gif.still);
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     await expect.poll(() => image.currentSrc).toBe(gif.src);
+  });
+
+  it("follows OuroProvider's motion over the device: the still frame always under reduced, never under full", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const still = await render(<OuroProvider motion="reduced">{mosaic([gif])}</OuroProvider>);
+    expect(still.host.querySelector("source")!.getAttribute("media")).toBe("all");
+    await expect.poll(() => thumbnails(still.host)[0]!.querySelector("img")!.currentSrc).toBe(gif.still);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const moving = await render(<OuroProvider motion="full">{mosaic([gif])}</OuroProvider>);
+    expect(moving.host.querySelector("source")).toBeNull();
+    await expect.poll(() => thumbnails(moving.host)[0]!.querySelector("img")!.currentSrc).toBe(gif.src);
   });
 
   it("plays the image itself in the viewer", async () => {

@@ -9,6 +9,7 @@ import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
@@ -40,7 +41,7 @@ export interface MessageListOwnProps {
    * the list's scroll position never moves for it, and at rest no message has a transform. Only the
    * messages in or near view move, so a long conversation costs what a short one does. It runs for
    * the reader's own wheel, trackpad, touch and keys, never for scrolling the list or your code
-   * does (following new messages, setting `scrollTop`), and never with `prefers-reduced-motion: reduce`.
+   * does (following new messages, setting `scrollTop`), and never with reduced motion (`prefers-reduced-motion: reduce`, or `OuroProvider`'s `motion`).
    * @default true
    * @claim "each one trails the scroll a little" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
    * @claim "A fling, or a push past" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
@@ -48,7 +49,7 @@ export interface MessageListOwnProps {
    * @claim "Only the messages in or near" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves only the messages in or near view, reading as few in a thousand as in fifty, on one frame loop)
    * @claim "It runs for the reader's own" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > follows the keys, with the focused message where the scroll starts, and its focus ring moves with it)
    * @claim "never for scrolling the list or" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never springs for scrolling the reader did not do: new messages it follows, or scrollTop set in code)
-   * @claim "and never with `prefers-reduced-motion: reduce`" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
+   * @claim "and never with reduced motion" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
    */
   springy?: boolean | undefined;
   /**
@@ -176,9 +177,7 @@ interface Springs {
  * conversation costs what a short one does, reads their boxes, then writes their transforms.
  * @claim "One frame loop for the whole" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves only the messages in or near view, reading as few in a thousand as in fifty, on one frame loop)
  */
-function springs(scroller: HTMLElement, content: HTMLElement): Springs {
-  // Asked afresh each time, so a change of the preference counts at once.
-  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boolean): Springs {
   const moving = new Map<HTMLElement, SpringState>();
   let list = topItems(content);
   // The scroll position the springs last followed, less the list's own scrolling since.
@@ -551,9 +550,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // The springs, while `springy`: told when the list scrolls itself, so no message trails that.
   const springsRef = useRef<Springs | null>(null);
+  // Whether to reduce motion, asked afresh each time, so a change of the setting counts at once.
+  const reduced = useReducedMotion();
+  const reducedRef = useRef(reduced);
+  useLayoutEffect(() => {
+    reducedRef.current = reduced;
+  }, [reduced]);
   useLayoutEffect(() => {
     if (!springy) return;
-    const handle = springs(scrollerRef.current!, contentRef.current!);
+    const handle = springs(scrollerRef.current!, contentRef.current!, () => reducedRef.current);
     springsRef.current = handle;
     return () => {
       handle.stop();

@@ -6,6 +6,7 @@ import { commands, page, server, userEvent } from "vitest/browser";
 import { Toaster, type ToasterProps } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast, type ToastOptions } from "@/registry/ouro/lib/ouro/toast";
 import { springAt } from "@/registry/ouro/lib/ouro/spring";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
@@ -1412,6 +1413,39 @@ describe("swiping", () => {
     // One and a half times its height, down and off the screen.
     expect(slidesTo(closed)).toBeCloseTo(closed.offsetHeight * 1.5, 0);
     await gone("Closed");
+  });
+
+  it("throws a swiped toast on under OuroProvider's motion=\"full\", and lets it fade where it is under \"reduced\", whatever the device says", async () => {
+    const swipeAway = async (item: HTMLElement) => {
+      const send = pointerOn(item);
+      send("pointerdown", 0, 0);
+      send("pointermove", 15, 15);
+      send("pointermove", 30, 30);
+      await act(async () => send("pointerup", 30, 30));
+    };
+    const { unmount } = await render(
+      <OuroProvider motion="reduced">
+        <Toaster />
+      </OuroProvider>,
+    );
+    const still = await show("Still", { duration: 0 });
+    await swipeAway(still);
+    const seen: string[] = [];
+    await expect.poll(() => (seen.push(still.style.translate), still.isConnected)).toBe(false);
+    expect(seen.every((translate) => translate === "30px 0px")).toBe(true);
+    await unmount();
+
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await render(
+      <OuroProvider motion="full">
+        <Toaster />
+      </OuroProvider>,
+    );
+    const thrown = await show("Thrown", { duration: 0 });
+    thrown.style.transitionDuration = "20s";
+    await swipeAway(thrown);
+    await expect.poll(() => parseFloat(thrown.style.translate)).toBeGreaterThan(30);
+    await gone("Thrown");
   });
 
   it("shows a toast sent again with the id of one just swiped away, where a toast belongs, and it can be swiped again", async () => {

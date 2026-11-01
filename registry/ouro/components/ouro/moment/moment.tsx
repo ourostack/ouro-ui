@@ -26,7 +26,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** The props Moment adds to the `<div>` attributes it passes through. */
 export interface MomentOwnProps {
@@ -343,7 +343,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
 
   // SVG animations ignore CSS, so the art's are paused here while reduced motion is on.
   // Stryker disable next-line BooleanLiteral: the server's guess lasts only until hydration, and the effect that reads it runs after the live value replaces it.
-  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", false);
+  const reduced = useReducedMotion(false);
   const artRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const host = artRef.current;

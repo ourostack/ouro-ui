@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTes
 import { commands, userEvent } from "vitest/browser";
 import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Runs in Chromium and WebKit.
@@ -276,6 +277,30 @@ describe("Emoji", () => {
     expect(emoji(host).getAttribute("src")).toBe(image("wave tone1 moving"));
     await rerender(<Emoji item={heart} play />);
     expect(emoji(host).getAttribute("src")).toBe(heart.src);
+  });
+
+  it("follows OuroProvider's motion over the device: reduced shows the still image, full plays", async () => {
+    // The device asks for reduced motion here (the file's setting).
+    const { host } = await render(
+      <>
+        <OuroProvider motion="full">
+          <Emoji item={party} play />
+        </OuroProvider>
+        <OuroProvider motion="system">
+          <Emoji item={party} play />
+        </OuroProvider>
+      </>,
+    );
+    const [full, system] = images(host);
+    expect(full!.getAttribute("src")).toBe(party.animatedSrc);
+    expect(system!.getAttribute("src")).toBe(party.src);
+    await motion();
+    const still = await render(
+      <OuroProvider motion="reduced">
+        <Emoji item={party} play />
+      </OuroProvider>,
+    );
+    expect(emoji(still.host).getAttribute("src")).toBe(party.src);
   });
 
   it("shows the still image with reduced motion, whatever play says or the pointer does", async () => {

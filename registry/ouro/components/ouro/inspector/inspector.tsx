@@ -6,6 +6,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { actionsClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** Props for {@link Inspector}. */
 export interface InspectorProps {
@@ -550,11 +551,12 @@ function InspectorLayer({
   // The first spotlit component comes to the middle of the screen once per item, when X-ray first finds it.
   const spotlit = spotlitOf(found, spotlight);
   const pointedAt = useRef<string | undefined>(undefined);
+  const reduced = useReducedMotion();
   useEffect(() => {
     if (!spotlit || pointedAt.current === spotlit.item) return;
     pointedAt.current = spotlit.item;
-    spotlit.element.scrollIntoView({ block: "center", inline: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-  }, [spotlit]);
+    spotlit.element.scrollIntoView({ block: "center", inline: "nearest", behavior: reduced ? "instant" : "smooth" });
+  }, [spotlit, reduced]);
 
   // The layer fades in from `@starting-style` while it carries `data-starting-style`, then drops it.
   useEffect(() => {
