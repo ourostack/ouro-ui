@@ -34,6 +34,18 @@ async function settled(page: Page): Promise<void> {
   });
 }
 
+/** Waits until the page has not scrolled for five frames in a row. */
+async function scrollAtRest(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    let last = scrollY;
+    for (let still = 0, frame = 0; still < 5 && frame < 300; frame++) {
+      await new Promise(requestAnimationFrame);
+      still = scrollY === last ? still + 1 : 0;
+      last = scrollY;
+    }
+  });
+}
+
 /** The porthole as pixels, with the fish held still so only the control under test changes it. */
 async function picture(page: Page): Promise<Buffer> {
   await settled(page);
@@ -547,6 +559,11 @@ for (const mode of ["light", "dark"] as const) {
     for (const { name } of TANKS) await tank(page, name).tap();
     await diveButton(page).tap();
     await page.getByRole("switch", { name: STAGE_COPY.lights }).tap();
+    // The tap focuses the switch, and the page scrolls smoothly to show it below the glass. WebKit
+    // judges a newly focused element against the page as it is mid-scroll: the lever, focused then,
+    // looks in view and is left where that scroll carries it, under the glass. Focus it once the page
+    // is still.
+    await scrollAtRest(page);
     await page.getByRole("slider", { name: STAGE_COPY.depth }).focus();
     await page.keyboard.press("End");
     await expect(scene(page)).toHaveAttribute("data-band", "midnight");
