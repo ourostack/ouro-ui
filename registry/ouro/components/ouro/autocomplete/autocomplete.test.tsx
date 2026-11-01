@@ -414,6 +414,27 @@ describe("Autocomplete", () => {
     expect(activeLabel(control)).toBe("Jordan Lee");
   });
 
+  it("keeps a picked name closed when a selection change leaves it and comes back, as an app's update of the text can make, so the next Enter sends", async () => {
+    const onSend = vi.fn();
+    // A filter that trims the query, as a people search does, matches the picked name and its space again.
+    const trimmed: AutocompleteTrigger = { char: "@", label: "People", allowSpaces: true, items: (query) => filter(people)(query.trim()) };
+    const { control } = await render(
+      <Autocomplete triggers={[trimmed]}>
+        <Composer label="Message" onSend={onSend} />
+      </Autocomplete>,
+    );
+    await type(control, "Hi @jo");
+    await expect.poll(labels).toEqual(["Jordan Lee"]);
+    await userEvent.keyboard("{Enter}");
+    expect(control.value).toBe("Hi @Jordan Lee ");
+    await moveCaret(control, 0);
+    await moveCaret(control, control.value.length);
+    expect(control.hasAttribute("aria-controls")).toBe(false);
+    await expect.poll(listbox).toBeNull();
+    await userEvent.keyboard("{Enter}");
+    expect(onSend).toHaveBeenCalledWith("Hi @Jordan Lee ", expect.anything());
+  });
+
   it("stays closed after a pick whose text the trigger would match again", async () => {
     const { control } = await render(
       <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "avery", label: "Avery Kim", insert: "@Avery" }] }]}>
