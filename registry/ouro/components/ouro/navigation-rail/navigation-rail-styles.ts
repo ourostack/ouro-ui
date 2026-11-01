@@ -1,4 +1,4 @@
-export { countClass, footerClass, headerClass, iconClass, indicatorClass, itemClass, labelClass, listClass, menuCountClass, railClass, separatorClass, shownCount };
+export { countClass, footerClass, headerClass, iconClass, indicatorClass, itemClass, labelClass, listClass, menuCountClass, railClass, separatorClass, shownCount, spokenCountClass };
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
@@ -71,15 +71,29 @@ const iconClass = "relative flex size-6 shrink-0 items-center justify-center gro
 /**
  * The label under the icon: two lines at most, broken between words (hyphenated where the
  * page's language allows). A label that still does not fit ends in an ellipsis and gets a Tooltip.
+ * A word too wide for the rail is set a size smaller (`squeezed`), and one too wide even then
+ * breaks within itself, so no letter is ever cut in half.
  * @claim "The label under the" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail labels > wraps a long label to two lines between words, and gives a label that still does not fit an ellipsis and a tooltip)
+ * @claim "A word too wide for the rail is set a size smaller" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail labels > sets a word too wide for the rail a size smaller, whole and centred when it fits there, and never clips it mid-letter)
  */
-const labelClass =
-  "line-clamp-2 w-full text-center text-[0.6875rem] leading-[0.875rem] font-medium text-balance hyphens-auto [overflow-wrap:normal] group-data-selected/navigation-rail:font-semibold";
+const labelClass = {
+  fits:
+    "line-clamp-2 w-full text-center text-[0.6875rem] leading-[0.875rem] font-medium text-balance hyphens-auto [overflow-wrap:normal] group-data-selected/navigation-rail:font-semibold",
+  squeezed:
+    "line-clamp-2 w-full text-center text-[0.625rem] leading-[0.875rem] font-medium text-balance hyphens-auto [overflow-wrap:anywhere] group-data-selected/navigation-rail:font-semibold",
+} as const;
 
 /** The count on the icon's top end corner. */
 const countClass =
   "absolute -end-2.5 -top-1.5 box-border h-4 min-w-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
   "forced-colors:border forced-colors:border-solid forced-colors:leading-[0.875rem]";
+
+/**
+ * The count in words after the label, ", 5 new", for screen readers only: inline text of zero size in
+ * the label's own line. In a box of its own, as `sr-only` makes it, the name gains a space before its comma.
+ * @claim "The count in words after the label" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail counts > names an item with a count by its words, the label first and the count after, so the name starts with what it shows)
+ */
+const spokenCountClass = "text-[0px] leading-0";
 
 /** The count after a label in the More menu. */
 const menuCountClass =
