@@ -340,7 +340,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     height.current = { expanded, px };
     const from = animating ? shown : before?.px;
     // A change still running stops at once here: its classes go once its transition is cancelled, below.
-    if (before === null || before.expanded === expanded || from === px || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (before === null || before.expanded === expanded || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     row.style.height = `${from}px`;
     void row.offsetHeight;
     row.classList.add(...growClasses);
