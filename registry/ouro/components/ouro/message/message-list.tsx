@@ -141,6 +141,12 @@ const REST = 0.25;
 const REST_SPEED = 0.01;
 
 /**
+ * How many messages the springs have drawn away from where they are laid out, in all lists: with none, a box is where it is laid out.
+ * @claim "How many messages the springs have" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > reads where messages are with no more work than before once they rest)
+ */
+let shifted = 0;
+
+/**
  * How far the springs draw each message from where it is laid out, in px, while it moves.
  * @claim "How far the springs draw each" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
  */
@@ -149,6 +155,7 @@ const shifts = new WeakMap<Element, number>();
 /** Where an element is laid out: its box, less the spring of the message it is in. */
 function boxOf(element: Element): { top: number; bottom: number; height: number } {
   const box = element.getBoundingClientRect();
+  if (shifted === 0) return box;
   let shift = 0;
   for (let item = element.closest(items); item !== null; item = item.parentElement!.closest(items)) shift += shifts.get(item) ?? 0;
   return { top: box.top - shift, bottom: box.bottom - shift, height: box.height };
@@ -189,8 +196,8 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
   let seen = new Set<HTMLElement>();
 
   const draw = (item: HTMLElement, value: number) => {
-    // Stryker disable next-line ConditionalExpression: setting them again each frame changes nothing in the page.
     if (!shifts.has(item)) {
+      shifted++;
       item.style.willChange = "transform";
       // Stryker disable next-line StringLiteral: the attribute's presence is what styles and tests read.
       item.setAttribute("data-ouro-settling", "");
@@ -201,7 +208,7 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
   // At rest a message has no transform, and no layer of its own, so its text is drawn crisp.
   const rest = (item: HTMLElement) => {
     moving.delete(item);
-    shifts.delete(item);
+    if (shifts.delete(item)) shifted--;
     item.style.removeProperty("transform");
     item.style.removeProperty("will-change");
     if (item.getAttribute("style") === "") item.removeAttribute("style");
@@ -269,6 +276,7 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
     seen = near;
     for (const [item, state] of moving) {
       const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
+      // Stryker disable next-line EqualityOperator: a spring lands exactly on the rest speed only by chance, and a frame later it rests either way.
       if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) rest(item);
       else {
         moving.set(item, next);
@@ -309,6 +317,7 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
   const onTouchStart = (event: TouchEvent) => {
     finger = touchY = event.touches[0]!.clientY;
     touchTop = scroller.scrollTop;
+    // Stryker disable next-line all: a finger scrolls only once it moves, and each move arms the list again.
     arm();
   };
   const onTouchMove = (event: TouchEvent) => {
