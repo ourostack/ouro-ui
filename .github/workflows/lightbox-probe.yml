@@ -33,6 +33,7 @@ jobs:
         env:
           MODE: ${{ matrix.mode }}
         run: |
+          set +e
           for i in 1 2 3; do
             case "$MODE" in
               shard12) pnpm exec vitest run --coverage --shard=12/12 > out.log 2>&1 ;;
@@ -40,6 +41,6 @@ jobs:
               alone) pnpm exec vitest run --project ouro-webkit registry/ouro/components/ouro/lightbox/lightbox.test.tsx > out.log 2>&1 ;;
             esac
             echo "round $i exit $?"
-            grep -oE "GLIDE-PROBE .*" out.log | cut -c1-900
-            grep -E "Test Files|FAIL " out.log | sed 's/\x1b\[[0-9;]*m//g' | head -5
+            sed 's/\x1b\[[0-9;]*m//g' out.log | grep -oE "GLIDE-PROBE .*" | cut -c1-900
+            sed 's/\x1b\[[0-9;]*m//g' out.log | grep -E "Test Files|FAIL " | head -8
           done
