@@ -9,7 +9,7 @@ import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
-import { reducesMotion, useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
@@ -169,6 +169,11 @@ function boxOf(element: Element): { top: number; bottom: number; height: number 
 interface Springs {
   moved(by: number): void;
   stop(): void;
+}
+
+/** Whether to reduce motion under a provider's `motion`, asking the device now, so a frame loop sees a change of its setting at once. */
+function reducesMotion(motion: OuroMotion | undefined): boolean {
+  return motion === "reduced" || (motion !== "full" && matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 
 /**

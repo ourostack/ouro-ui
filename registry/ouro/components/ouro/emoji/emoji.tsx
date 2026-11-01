@@ -5,7 +5,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { emojiClass, emojiSkinTones, splitEmojiText, toneOf, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 
 export type { EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";

@@ -13,7 +13,7 @@ import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { PortalScope } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   actionClass,

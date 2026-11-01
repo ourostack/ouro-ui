@@ -5,7 +5,8 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
-import { useOuro, useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 

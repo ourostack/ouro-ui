@@ -41,7 +41,8 @@ export interface OuroProviderProps {
    * that setting were on, whatever the device says: springs settle at once, scrolls jump, and
    * a moment or an emoji holds still. `full` keeps that motion running even where the device
    * asks for less.
-   * Ouro UI's motion in script reads it, as does `useReducedMotion` for your own. A provider
+   * Ouro UI's motion in script reads it, as does `useReducedMotion` for your own: it is in
+   * `lib/ouro/use-reduced-motion`, which you can add by name, `lib-use-reduced-motion`. A provider
    * that sets it wraps its children in an element with `data-motion` set to it (and
    * `display: contents`, so it adds no box), so your CSS can follow the setting too, beside
    * the `prefers-reduced-motion` media query: `[data-motion="reduced"] .wave { animation: none }`.

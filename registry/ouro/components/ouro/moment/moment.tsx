@@ -26,7 +26,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 
 /** The props Moment adds to the `<div>` attributes it passes through. */
 export interface MomentOwnProps {

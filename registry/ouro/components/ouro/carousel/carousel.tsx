@@ -5,7 +5,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   buttonsClass,

@@ -238,6 +238,7 @@
         "ourostack/ouro-ui/lib-use-media-query",
         "ourostack/ouro-ui/lib-use-mounted-open",
         "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/lib-use-sheet-presentation",
         "ourostack/ouro-ui/lib-use-timer"
       ]
@@ -999,14 +1000,28 @@
       "type": "registry:lib",
       "title": "lib-use-ouro",
       "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-ouro.ts.",
-      "registryDependencies": [
-        "ourostack/ouro-ui/lib-use-media-query"
-      ],
       "files": [
         {
           "path": "registry/ouro/lib/ouro/use-ouro.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/use-ouro.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-use-reduced-motion",
+      "type": "registry:lib",
+      "title": "lib-use-reduced-motion",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-reduced-motion.ts.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/lib-use-ouro"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-reduced-motion.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-reduced-motion.ts"
         }
       ]
     },
@@ -1716,7 +1731,7 @@
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
-        "ourostack/ouro-ui/lib-use-ouro"
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -2839,7 +2854,7 @@
         "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
-        "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/menu"
       ],
       "files": [
@@ -2870,7 +2885,7 @@
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
-        "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/menu"
       ],
       "files": [
@@ -2956,7 +2971,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-ouro"
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -3174,7 +3189,7 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/sheet"
       ],
       "files": [
@@ -3692,7 +3707,8 @@
         "ourostack/ouro-ui/lib-page-scroll-hold",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-mounted-open",
-        "ourostack/ouro-ui/lib-use-ouro"
+        "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -3911,7 +3927,7 @@
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-ouro"
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -3942,7 +3958,7 @@
         "ourostack/ouro-ui/lib-focus-handoff",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/spinner",
         "ourostack/ouro-ui/text"
       ],
@@ -4378,6 +4394,8 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -4433,7 +4451,6 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -4702,6 +4719,36 @@
       }
     },
     {
+      "name": "lib-use-reduced-motion-tests",
+      "type": "registry:item",
+      "title": "lib-use-reduced-motion tests",
+      "description": "Optional: the Vitest browser tests for lib-use-reduced-motion, and the tests of everything it installs. Add it beside lib-use-reduced-motion: add lib-use-reduced-motion lib-use-reduced-motion-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-reduced-motion.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-reduced-motion.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-use-sheet-presentation-tests",
       "type": "registry:item",
       "title": "lib-use-sheet-presentation tests",
@@ -4774,7 +4821,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -4885,7 +4931,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-tests"
@@ -4944,7 +4989,6 @@
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet"
       ],
@@ -5283,7 +5327,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
@@ -5352,7 +5395,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-area",
         "ourostack/ouro-ui/text-area-tests",
@@ -5416,7 +5458,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-area",
         "ourostack/ouro-ui/text-field-tests"
@@ -5484,7 +5525,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -5677,7 +5717,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/switch"
       ],
@@ -6219,6 +6258,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/toaster"
       ],
@@ -6476,7 +6516,6 @@
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -6538,7 +6577,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -6593,7 +6631,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/separator",
         "ourostack/ouro-ui/text",
@@ -6783,7 +6820,6 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/tooltip"
       ],
@@ -7235,7 +7271,6 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/show-more",
         "ourostack/ouro-ui/show-more-tests",
@@ -7300,7 +7335,6 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -7368,7 +7402,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -7433,7 +7466,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -7500,7 +7532,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -7558,7 +7589,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-tests"
       ],
@@ -7722,7 +7752,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/stack",
         "ourostack/ouro-ui/text",
@@ -7782,7 +7811,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/row",
         "ourostack/ouro-ui/stack",
@@ -8132,7 +8160,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -8258,7 +8285,6 @@
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/pagination",
         "ourostack/ouro-ui/text",
@@ -8322,7 +8348,6 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/navigation-menu",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
@@ -8390,7 +8415,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/scroll-area-tests",
         "ourostack/ouro-ui/table"
@@ -8451,7 +8475,6 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-testing"
@@ -8622,7 +8645,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/toggle",
         "ourostack/ouro-ui/toggle-tests"
@@ -8736,7 +8758,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -8866,6 +8887,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -8932,6 +8954,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -8940,6 +8963,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu",
         "ourostack/ouro-ui/menu-tests",
@@ -9003,7 +9027,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -9138,6 +9161,7 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -9315,6 +9339,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
@@ -9477,7 +9502,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -9612,7 +9636,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -9700,6 +9723,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
@@ -9776,7 +9800,6 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -9839,7 +9862,6 @@
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/tab-bar",
         "ourostack/ouro-ui/text",
@@ -10100,7 +10122,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-tests"
@@ -10163,7 +10184,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-tests"
@@ -10220,7 +10240,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-timer",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -10285,7 +10304,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-timer",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -10612,7 +10630,6 @@
         "ourostack/ouro-ui/lib-share",
         "ourostack/ouro-ui/lib-share-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/share-button",
         "ourostack/ouro-ui/text",
@@ -10676,7 +10693,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/switch",
         "ourostack/ouro-ui/switch-tests",
@@ -10852,7 +10868,6 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-install-prompt",
         "ourostack/ouro-ui/lib-use-install-prompt-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-tests"
       ],
@@ -10919,7 +10934,6 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -10981,7 +10995,6 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
-        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -11056,6 +11069,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
@@ -11138,6 +11152,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lightbox",
         "ourostack/ouro-ui/ouro-testing",
@@ -11228,6 +11243,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover-tests",
@@ -11301,6 +11317,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover-tests",
@@ -11598,6 +11615,7 @@
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-area",
         "ourostack/ouro-ui/text-area-tests",
@@ -11665,6 +11683,7 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -11724,6 +11743,7 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/moment",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/spinner-tests",
@@ -11800,6 +11820,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-lib"
@@ -11892,6 +11913,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/lightbox-tests",

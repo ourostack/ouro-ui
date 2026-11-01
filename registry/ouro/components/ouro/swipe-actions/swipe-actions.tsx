@@ -18,7 +18,7 @@ import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/
 import { renamedTones, type ToneName } from "@/registry/ouro/lib/ouro/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag } from "@/registry/ouro/lib/ouro/use-drag";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
 import {

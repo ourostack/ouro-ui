@@ -6,7 +6,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { actionsClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, pillClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 
 /** Props for {@link Inspector}. */
 export interface InspectorProps {
