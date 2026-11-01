@@ -444,7 +444,7 @@ export function Button(props: ButtonProps): JSX.Element {
   // (an open list's Return) is seen as taken; the button's latest onClick gets the key's own event.
   const own = useRef<HTMLElement | null>(null);
   const press = useRef<((event: globalThis.KeyboardEvent) => void) | undefined>(undefined);
-  const onClick = (rest as { onClick?: (event: globalThis.KeyboardEvent) => void }).onClick;
+  const onClick = (rest as unknown as { onClick?: (event: globalThis.KeyboardEvent) => void }).onClick;
   useEffect(() => {
     press.current = onClick;
   });
