@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "n
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, drivesBrowser, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, checkLatencyShards, collectTimings, drivesBrowser, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
@@ -102,7 +102,15 @@ test("refresh reads every timing report under a folder, keeping the longer time 
   writeFileSync(join(dir, "timings-browser-2/other.json"), JSON.stringify({ ignored: 1 }));
   mkdirSync(join(dir, "timings-e2e-3"), { recursive: true });
   writeFileSync(join(dir, "timings-e2e-3/e2e-3of3.json"), JSON.stringify({ "site/e2e/stage.spec.ts": 2000 }));
-  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 }, e2e: { "site/e2e/stage.spec.ts": 2000 } });
+  mkdirSync(join(dir, "timings-latency-1"), { recursive: true });
+  writeFileSync(join(dir, "timings-latency-1/latency-1of3.json"), JSON.stringify({ "stage.latency.spec.ts › interaction latency › dive": 18300 }));
+  writeFileSync(join(dir, "timings-latency-1/latency-tests.txt"), "stage.latency.spec.ts › interaction latency › dive\n");
+  assert.deepEqual(collectTimings(dir), {
+    vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 },
+    scripts: { "scripts/a.test.mjs": 3 },
+    e2e: { "site/e2e/stage.spec.ts": 2000 },
+    latency: { "stage.latency.spec.ts › interaction latency › dive": 18300 },
+  });
   const file = join(dir, "timings.json");
   writeFileSync(file, JSON.stringify({ vitest: { x: 1 } }));
   assert.deepEqual(readTimings("vitest", file), { x: 1 });
@@ -152,6 +160,26 @@ test("the sliced suites are exactly the browser tests that slice what they itera
   for (const suite of slicedSuites) assert.match(suite, /\.test\.tsx$/);
 });
 
+test("a sliced check runs each item exactly once across the shards, in each project, and its slices start at a shard of its own (test/slice.ts)", async () => {
+  const { offsetOf, sliceOf } = await import("../test/slice-core.ts");
+  const list = Array.from({ length: 101 }, (_, item) => item);
+  // Every check named in the sliced suites, in each project that runs it (test/slice.ts's project names).
+  const sources = ["test", "site/src"].flatMap((dir) => readdirSync(join(root, dir), { recursive: true }).map(String).filter((file) => /\.tsx?$/.test(file) && statSync(join(root, dir, file)).isFile()).map((file) => readFileSync(join(root, dir, file), "utf8")));
+  const checks = [...new Set(sources.flatMap((source) => [...source.matchAll(/\bsliced\([^;]*?, "([^"]+)"\)/gs)].map((match) => match[1])))];
+  assert.ok(checks.length >= 9, `the checks named in sliced(): ${checks.join(", ")}`);
+  const keys = ["chromium", "webkit", "chromium touch"].flatMap((project) => checks.map((check) => `${project} ${check}`));
+  for (const count of [1, 2, 3, 6, 12, 16, 24]) {
+    for (const key of keys) {
+      const runs = Array.from({ length: count }, (_, index) => sliceOf(list, index + 1, count, key)).flat();
+      assert.deepEqual(runs.toSorted((a, b) => a - b), list, `${key} at ${count} shards: each item once`);
+    }
+    // The first item, a heavy story or not, starts in more than one shard across the checks and projects.
+    if (count > 1) assert.ok(new Set(keys.map((key) => offsetOf(key, count))).size > Math.min(count, keys.length) / 2, `offsets at ${count} shards spread`);
+  }
+  // The same check in the same project starts at the same shard on every run.
+  assert.equal(offsetOf("webkit stories: axe", 16), offsetOf("webkit stories: axe", 16));
+});
+
 test("an install shard takes the app's shipped files by the time each took here, over every Vitest project", () => {
   const timings = {
     "ouro-chromium (chromium) registry/ouro/components/ouro/a/a.test.tsx": 300,
@@ -186,6 +214,48 @@ test("the Playwright timings reporter adds up each spec file's tests, in every p
   reporter.onEnd();
   assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), { "registry/ouro/e2e/ouro/menu.spec.ts": 300, "site/e2e/stage.spec.ts": 2000 });
   assert.equal(reporter.printsToStdio(), false);
+});
+
+test("the Playwright timings reporter, by test, keys each test by its file under the config's rootDir and its titles, as --test-list reads them", async () => {
+  const { default: Reporter, testKey } = await import("./timings-playwright-reporter.mjs");
+  const out = join(scratch(), "latency-2of3.json");
+  const reporter = new Reporter({ outputFile: out, by: "test" });
+  const rootDir = join(process.cwd(), "site/e2e");
+  const file = { type: "file", title: "stage.latency.spec.ts" };
+  const describe = { type: "describe", title: "interaction latency", parent: file };
+  const at = (title, parent = describe) => ({ title, parent, location: { file: join(rootDir, "stage.latency.spec.ts") } });
+  reporter.onBegin({ rootDir });
+  reporter.onTestEnd(at("dive answers within 100 ms"), { duration: 18300.4 });
+  reporter.onTestEnd(at("bell answers within 100 ms"), { duration: 5600 });
+  reporter.onEnd();
+  assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), {
+    "stage.latency.spec.ts › interaction latency › bell answers within 100 ms": 5600,
+    "stage.latency.spec.ts › interaction latency › dive answers within 100 ms": 18300,
+  });
+  assert.equal(testKey(rootDir, at("outside any describe", file)), "stage.latency.spec.ts › outside any describe");
+  // --test-list splits a line on "›" (or ">"), and trims each title.
+  for (const title of ["a › b", "a > b", " padded"]) assert.throws(() => testKey(rootDir, at(title)), /test list cannot name/);
+});
+
+test("the latency check passes only when the shards ran every listed test exactly once between them", () => {
+  const tests = ["a.latency.spec.ts › x › one", "a.latency.spec.ts › x › two", "b.latency.spec.ts › y › three"];
+  const shardsOf = (reports, lists = reports.map(() => tests)) => {
+    const dir = scratch();
+    for (const [position, report] of reports.entries()) {
+      const folder = join(dir, `timings-latency-${position + 1}`);
+      mkdirSync(folder, { recursive: true });
+      if (report) writeFileSync(join(folder, `latency-${report.index}of${report.count}.json`), JSON.stringify(Object.fromEntries(report.tests.map((name) => [name, 1000]))));
+      writeFileSync(join(folder, "latency-tests.txt"), `${lists[position].join("\n")}\n`);
+    }
+    return checkLatencyShards(dir);
+  };
+  assert.deepEqual(shardsOf([{ index: 1, count: 2, tests: [tests[0], tests[2]] }, { index: 2, count: 2, tests: [tests[1]] }]), []);
+  assert.match(shardsOf([{ index: 1, count: 2, tests: [tests[0], tests[2]] }, { index: 2, count: 2, tests: [tests[1], tests[2]] }]).join("\n"), /Ran in more than one shard \(1\/2, 2\/2\): b\.latency/);
+  assert.match(shardsOf([{ index: 1, count: 2, tests: [tests[0]] }, { index: 2, count: 2, tests: [tests[1]] }]).join("\n"), /Ran in no shard: b\.latency/);
+  assert.match(shardsOf([{ index: 1, count: 2, tests }, null]).join("\n"), /Expected one report from each shard, got 1\/2/);
+  assert.match(shardsOf([{ index: 1, count: 1, tests: [...tests, "c.latency.spec.ts › z"] }]).join("\n"), /Ran but not listed: c\.latency/);
+  assert.match(shardsOf([{ index: 1, count: 2, tests: [tests[0], tests[2]] }, { index: 2, count: 2, tests: [tests[1]] }], [tests, tests.slice(1)]).join("\n"), /listed different tests/);
+  assert.match(checkLatencyShards(scratch()).join("\n"), /^No latency-tests\.txt under /);
 });
 
 test("an install shard takes the app's shipped specs by the time each took here, in both browsers", () => {

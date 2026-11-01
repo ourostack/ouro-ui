@@ -80,7 +80,7 @@ export const describeViolations = describeFindings;
  * test that scans a whole page takes it, the voyage's presets included: one of those scans took
  * 17s on a loaded runner, past the default 15s.
  *
- * @claim "one of those scans took 17s" https://github.com/ourostack/ouro-ui/actions/runs/41041013638 verify:fileLine(site/src/voyage/voyage.test.tsx, /\}, pageScanTimeout\);/)
+ * @claim "one of those scans took 17s" https://github.com/ourostack/ouro-ui/actions/runs/41041013638 verify:fileLine(site/src/voyage/voyage-presets.test.tsx, /\}, pageScanTimeout\);/)
  */
 export const pageScanTimeout = 30_000;
 

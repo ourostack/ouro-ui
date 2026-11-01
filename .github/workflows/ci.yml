@@ -21,8 +21,8 @@ concurrency:
 # stopped answering (#174's queue run 39783627653), fails its job instead of holding the merge
 # queue for GitHub's 6 hours. Some take more, after runs that passed slower: mutation-shard (a cold
 # cache, 12 minutes; a pull request whose changed lines are many slow mutants, the Toaster's
-# announcer in #221, took a shard 18) and conformance-shard (15 minutes); ci, whose fallback to the full suite on a
-# reduced pull request took 15.7 minutes (#159); browser and e2e-shard, which a slow mirror took to
+# announcer in #221, took a shard 18) and conformance-shard (15 minutes); browser-fallback (20
+# minutes, twice a full run's slowest browser shard); browser and e2e-shard, which a slow mirror took to
 # 50.6 and 38.9 minutes while still installing; and themes, visual and theme-install, where an apt
 # install stopped after 15 minutes and tried again still fits.
 # The jobs that run a browser run in Playwright's image, at the version package.json pins, by
@@ -97,6 +97,9 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
+          # PROBE (never merge): plan #321's change as its reduced pull request run did, though this
+          # branch also changes ci.yml, which would otherwise run everything.
+          if [ "$HEAD_REF" = probe/fallback-shards ]; then printf 'full=false\ncomponents=emoji-picker\ninstalls=queue\n' >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
             node scripts/test-impact.mjs plan HEAD^1 HEAD || {
               echo "::warning::Could not plan the tests, so everything runs."
@@ -339,16 +342,16 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
-  ci:
-    # Passes when every part of it passed (checks, every browser shard and every script test
-    # job), and the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs).
-    # On a reduced pull request whose merged coverage falls short, the full browser suite runs here
-    # and decides: a line may be covered only by another component's tests
-    # (scripts/test-impact.mjs coverage). The step says which, for the motion-coverage job.
-    needs: [plan, checks, browser, scripts, scripts-browser]
+  coverage:
+    # Whether the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs). On a
+    # reduced pull request that falls short, a line may be covered only by another component's
+    # tests, so the browser-fallback shards run the full suite to decide (scripts/test-impact.mjs
+    # coverage), and the ci check holds their merged coverage to 100% instead. Its outputs say which,
+    # for the motion-coverage job. Part of the ci check.
+    needs: [plan, browser]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 10
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
@@ -358,21 +361,15 @@ jobs:
       COMPONENTS: ${{ needs.plan.outputs.components }}
       BROWSER_SHARDS: 6
     steps:
-      - name: Every part passed
+      # A failed shard decides the ci check whatever the full suite would do, so it runs only after every shard passed.
+      - name: Every browser shard passed
         env:
-          CHECKS: ${{ needs.checks.result }}
           BROWSER: ${{ needs.browser.result }}
-          SCRIPTS: ${{ needs.scripts.result }}
-          SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
         run: |
-          failed=0
-          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER"; do
-            if [ "${part#*=}" != success ]; then
-              echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
-              failed=1
-            fi
-          done
-          exit "$failed"
+          if [ "$BROWSER" != success ]; then
+            echo "::error::The browser jobs did not pass ($BROWSER): see the browser (n/6) jobs."
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -395,22 +392,129 @@ jobs:
           else
             node scripts/test-impact.mjs coverage "$RUNNER_TEMP/coverage" "$COMPONENTS" --shards "$BROWSER_SHARDS"
           fi
-      # The full suite's motion evidence, when it decided here, in place of the shards'.
-      - if: steps.tests.outputs.fallback == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+  browser-fallback:
+    # The full browser suite, when a reduced pull request's coverage fell short (the coverage job's
+    # `fallback`), run as a full run's browser shards run it, in more shards, since it starts only
+    # after them and the whole run must still fit in ten minutes. In the same Playwright image, with
+    # the same fonts and browsers: on the plain runner, text laid out wider and layout tests failed
+    # that passed in every shard (Dialog's 65ch measure, 814 px against 800, on #321). Each shard runs
+    # the files whose measured times make up its share and its slice of the sliced suites
+    # (scripts/vitest-shards.mts), and uploads its coverage, which the ci job merges and holds to
+    # 100%, and its motion evidence, which motion-coverage reads in place of the browser shards'.
+    # Part of the ci check.
+    needs: [plan, coverage]
+    if: ${{ !cancelled() && needs.coverage.outputs.fallback == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # In Playwright's image (see the note above jobs:), as the browser shards are.
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    name: browser fallback (${{ matrix.shard }}/16)
+    env:
+      SHARD: ${{ matrix.shard }}/16
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          name: motion-full
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - id: tests
+        name: Browser tests
+        run: |
+          pnpm exec vitest run --coverage --shard="$SHARD"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: motion-fallback-${{ matrix.shard }}
           path: .tmp/motion/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-fallback-${{ matrix.shard }}
+          path: coverage/coverage-final.json
+          if-no-files-found: error
+          retention-days: 7
+  ci:
+    # Passes when every part of it passed (checks, every browser shard, the coverage job and every
+    # script test job) and the browser shards' merged coverage reached 100%; or, on a reduced pull
+    # request whose merged coverage fell short, when every browser-fallback shard passed too and their
+    # merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs). Its outputs tell
+    # motion-coverage which shards' motion evidence to read.
+    needs: [plan, checks, browser, scripts, scripts-browser, coverage, browser-fallback]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      reduced: ${{ needs.coverage.outputs.reduced }}
+      stems: ${{ needs.coverage.outputs.stems }}
+      fallback: ${{ needs.coverage.outputs.fallback }}
+    env:
+      FALLBACK: ${{ needs.coverage.outputs.fallback }}
+      FALLBACK_SHARDS: 16
+    steps:
+      - name: Every part passed
+        env:
+          CHECKS: ${{ needs.checks.result }}
+          BROWSER: ${{ needs.browser.result }}
+          SCRIPTS: ${{ needs.scripts.result }}
+          SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
+          COVERAGE: ${{ needs.coverage.result }}
+          BROWSER_FALLBACK: ${{ needs.browser-fallback.result }}
+        run: |
+          failed=0
+          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
+            if [ "${part#*=}" != success ]; then
+              echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
+              failed=1
+            fi
+          done
+          # The full suite runs only when the reduced run's coverage fell short; then every shard of it must pass.
+          if [ "$FALLBACK" = true ] && [ "$BROWSER_FALLBACK" != success ]; then
+            echo "::error::The browser-fallback jobs did not pass ($BROWSER_FALLBACK): see them above this run's ci check."
+            failed=1
+          fi
+          exit "$failed"
+      - if: env.FALLBACK == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: env.FALLBACK == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: env.FALLBACK == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: env.FALLBACK == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: env.FALLBACK == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-fallback-*
+          path: ${{ runner.temp }}/coverage
+      - if: env.FALLBACK == 'true'
+        name: Full suite coverage
+        run: |
+          node scripts/coverage-merge.mjs "$RUNNER_TEMP/coverage" --shards "$FALLBACK_SHARDS"
   motion-coverage:
     # Holds every component.json "motion" map complete against the records the browser tests
     # made (scripts/motion-coverage.mts): each declared property ran, nothing undeclared ran,
     # each named test recorded its state, and each motion state was proved with reduced motion.
     # --expect names each Vitest project the browser shards run, once per shard, so a missing or
     # doubled partition fails (scripts/workflows.test.mjs derives the list from vitest.config.ts);
-    # when the full suite decided in the ci job, its unsharded partitions instead.
+    # when the full suite decided, the browser-fallback shards' partitions instead.
     # A reduced pull request still runs every project; it ran only some components' tests, so
     # --stems holds only their maps complete (the ci job's `stems`).
     needs: [ci]
@@ -418,7 +522,7 @@ jobs:
     timeout-minutes: 10
     env:
       MOTION_PARTITIONS: ouro-chromium:6,ouro-webkit:6,ouro-touch:6,site:6
-      FULL_SUITE_PARTITIONS: ouro-chromium:1,ouro-webkit:1,ouro-touch:1,site:1
+      FULL_SUITE_PARTITIONS: ouro-chromium:16,ouro-webkit:16,ouro-touch:16,site:16
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
       FALLBACK: ${{ needs.ci.outputs.fallback }}
@@ -435,7 +539,7 @@ jobs:
       # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: ${{ needs.ci.outputs.fallback == 'true' && 'motion-full' || 'motion-browser-*' }}
+          pattern: ${{ needs.ci.outputs.fallback == 'true' && 'motion-fallback-*' || 'motion-browser-*' }}
           path: ${{ runner.temp }}/motion
       - name: Motion coverage
         run: |
@@ -945,12 +1049,15 @@ jobs:
             playwright-report/
             site/theme-install/playwright-report/
           if-no-files-found: ignore
-  latency:
-    name: latency
+  latency-shard:
     # Each voyage stage control answers within budget on a 4x slower CPU: of 20 presses after two
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
-    # test shares the CPU.
+    # test shares the CPU. The tests run in shards side by side, each on a runner of its own and one
+    # test at a time: each takes the tests whose measured times add up to its share
+    # (`node scripts/shard.mjs latency`, times in scripts/shard-timings.json), from the list
+    # Playwright makes of every latency test. Each uploads that list and how long each test it ran
+    # took, which the latency check holds to every test exactly once. Part of the latency check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
@@ -961,6 +1068,14 @@ jobs:
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: latency (${{ matrix.shard }}/3)
+    env:
+      SHARD: ${{ matrix.shard }}/3
+      OURO_LATENCY_TIMINGS: .tmp/timings/latency-${{ matrix.shard }}of3.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -971,13 +1086,61 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
-      - run: pnpm test:latency
+      - name: Latency tests
+        run: |
+          # The runner's CPU, since the measured times scale with it.
+          grep -m1 'model name' /proc/cpuinfo || true
+          mkdir -p .tmp/timings
+          node scripts/shard.mjs latency-list > .tmp/timings/latency-tests.txt
+          node scripts/shard.mjs latency "$SHARD" .tmp/timings/latency-tests.txt > .tmp/latency-shard.txt
+          [ -s .tmp/latency-shard.txt ] || { echo "::error::Shard $SHARD has no latency test to run."; exit 1; }
+          cat .tmp/latency-shard.txt
+          pnpm test:latency --test-list .tmp/latency-shard.txt
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: latency-report
+          name: latency-report-${{ matrix.shard }}
           path: playwright-report/latency/
           if-no-files-found: ignore
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-latency-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
+  latency:
+    # Passes when every latency shard passed and, between them, the shards ran every latency test
+    # Playwright lists exactly once (`node scripts/shard.mjs latency-check`).
+    needs: [plan, latency-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Every shard passed
+        env:
+          SHARDS: ${{ needs.latency-shard.result }}
+        run: |
+          if [ "$SHARDS" != success ]; then
+            echo "::error::A latency shard did not pass ($SHARDS): see the latency (n/3) jobs."
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/shard.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: timings-latency-*
+          path: ${{ runner.temp }}/latency
+      - name: Every test ran exactly once
+        run: node scripts/shard.mjs latency-check "$RUNNER_TEMP/latency"
   lighthouse:
     name: lighthouse
     # Lighthouse CI on the voyage preview (site/lighthouserc.json, the thresholds in site-design.md:

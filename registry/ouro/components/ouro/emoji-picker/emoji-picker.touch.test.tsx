@@ -40,6 +40,9 @@ describe("EmojiPicker on a phone", () => {
     await userEvent.click(host.querySelector("button")!);
     const panel = () => document.querySelector<HTMLElement>('[data-ouro="emoji-picker"]');
     await expect.poll(() => panel()?.closest('[data-ouro="sheet"]')).toBeTruthy();
+    // The sheet slides in with a transform, which a bounding box measures; wait until it settles.
+    const sheet = panel()!.closest<HTMLElement>('[data-ouro="sheet"]')!;
+    await expect.poll(() => !sheet.hasAttribute("data-starting-style") && sheet.getAnimations({ subtree: true }).length === 0).toBe(true);
     const sizes = (part: string) => [...panel()!.querySelectorAll<HTMLElement>(`[data-ouro-part="${part}"]`)].map((element) => element.getBoundingClientRect().height);
     expect(sizes("emoji")).toEqual([44, 44, 44]);
     expect(sizes("quick")).toEqual([44]);
