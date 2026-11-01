@@ -421,6 +421,7 @@
     "site/scripts/proof.test.mjs": 759,
     "site/scripts/render-html.test.mjs": 64,
     "site/scripts/stage-census.test.mjs": 3,
+    "site/scripts/latency-judging.test.mjs": 1,
     "site/scripts/themes.test.mjs": 11
   },
   "e2e": {
