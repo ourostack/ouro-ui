@@ -10,8 +10,9 @@
 //                                                     browser tests of those components
 //                                                     (see runBrowserShard)
 //   node scripts/test-impact.mjs coverage <dir> <components> --shards <count>
-//                                                     the ci job: the shards' merged coverage,
-//                                                     or the full suite (see decideReducedRun)
+//                                                     the coverage job: whether the shards'
+//                                                     merged coverage stands, or the full suite
+//                                                     must decide (see decideReducedRun)
 //   node scripts/test-impact.mjs e2e <components>     the e2e job's Playwright arguments
 //   node scripts/test-impact.mjs stories <components> OURO_STORIES for the themes job
 //
@@ -357,12 +358,13 @@ export async function runBrowserShard(components, shard, { root = repoRoot, spaw
 }
 
 /**
- * The ci job's verdict on a reduced run, once every browser test shard passed: the shards' merged
- * coverage (scripts/coverage-merge.mjs, over the files vitestArgs measures) must reach 100%. A
+ * The coverage job's verdict on a reduced run, once every browser test shard passed: the shards'
+ * merged coverage (scripts/coverage-merge.mjs, over the files vitestArgs measures) must reach 100%. A
  * component can reach 100% only through another component's tests, so when it falls short, the full
- * `pnpm test` decides instead, in this job. Writes `reduced` (whether the reduced run stands),
- * `stems` (the components whose motion maps the motion-coverage job checks) and `fallback` (whether
- * the full suite ran here, writing its own motion evidence).
+ * suite decides instead, in the browser-fallback shards (.github/workflows/ci.yml), whose merged
+ * coverage the ci job holds to 100%. Writes `reduced` (whether the reduced run stands), `stems` (the
+ * components whose motion maps the motion-coverage job checks) and `fallback` (whether the full suite
+ * must run, writing its own motion evidence).
  */
 export async function decideReducedRun(components, coverageDir, shards, { root = repoRoot, spawn = spawnAndWait, output = (line) => appendFileSync(process.env["GITHUB_OUTPUT"] ?? "/dev/null", `${line}\n`), log = console.log } = {}) {
   const measured = vitestArgs(components, root).includes("--coverage");
@@ -375,18 +377,11 @@ export async function decideReducedRun(components, coverageDir, shards, { root =
     output("fallback=false");
     return 0;
   }
-  log("::warning::Every selected test passed but coverage fell short: a line may be covered only by another component's tests. Running the full suite to decide.");
-  const fullEnv = { ...process.env };
-  delete fullEnv.OURO_STORIES;
-  // A download, so it is tried again after a failure (scripts/retry.sh); the tests are not.
-  // In Playwright's image the system packages are already there (OURO_SYSTEM_PACKAGES=image), with no apt to run.
-  const deps = process.env["OURO_SYSTEM_PACKAGES"] === "image" ? [] : ["--with-deps"];
-  const browsers = await spawn("scripts/retry.sh", ["pnpm", "exec", "playwright", "install", ...deps, "chromium", "webkit"], fullEnv);
-  const all = browsers.status === 0 ? await spawn("pnpm", ["test"], fullEnv) : browsers;
+  log("::warning::Every selected test passed but coverage fell short: a line may be covered only by another component's tests. The browser-fallback shards run the full suite to decide.");
   output("reduced=false");
   output("stems=");
   output("fallback=true");
-  return all.status;
+  return 0;
 }
 
 const list = (text = "") => text.split(",").map((entry) => entry.trim()).filter(Boolean);

@@ -240,7 +240,7 @@ test("a reduced shard runs its share of the selected tests, with the selected st
   assert.match(calls[0], /^pnpm exec vitest run --project=ouro-chromium .*--coverage .*registry\/ouro\/components\/ouro\/checkbox\/ .*test\/ site\/ --shard=2\/6 checkbox$/);
 });
 
-test("the reduced run stands when the shards' merged coverage reaches 100%, and the full suite decides only when it falls short", async () => {
+test("the reduced run stands when the shards' merged coverage reaches 100%, and sends the full suite to the fallback shards only when it falls short", async () => {
   const run = async (results, components = ["checkbox"]) => {
     const calls = [];
     const outputs = [];
@@ -260,13 +260,11 @@ test("the reduced run stands when the shards' merged coverage reaches 100%, and 
   assert.deepEqual(covered.calls.map((call) => call.split(" ").slice(0, 5).join(" ")), ["node scripts/coverage-merge.mjs /cov --shards 6"]);
   assert.deepEqual(covered.outputs, ["reduced=true", "stems=checkbox,checkbox-group", "fallback=false"]);
 
-  const short = await run([{ status: 1 }, { status: 0 }, { status: 0 }]);
+  // Short: the job passes and says so, and the browser-fallback shards run the full suite, which the ci job then holds to 100%.
+  const short = await run([{ status: 1 }]);
   assert.equal(short.status, 0);
-  assert.deepEqual(short.calls.slice(1), ["scripts/retry.sh pnpm exec playwright install --with-deps chromium webkit (every story)", "pnpm test (every story)"]);
+  assert.equal(short.calls.length, 1);
   assert.deepEqual(short.outputs, ["reduced=false", "stems=", "fallback=true"]);
-
-  const fullFails = await run([{ status: 1 }, { status: 0 }, { status: 1 }]);
-  assert.equal(fullFails.status, 1);
 
   // A shard's coverage missing is no question for the full suite: the run fails.
   const missing = await run([{ status: 3 }]);
