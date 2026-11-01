@@ -74,6 +74,14 @@ export interface MessageOwnProps {
    */
   name: string;
   /**
+   * What shows as the author's name in place of `name`, when plain text cannot draw it: their
+   * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).
+   * `name` stays what screen readers hear and the avatar's initials come from.
+   *
+   * @claim "`name` stays what screen readers hear" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > shows nameContent as the author's name, while screen readers hear name and the initials come from it)
+   */
+  nameContent?: ReactNode;
+  /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
    * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
@@ -231,6 +239,17 @@ const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/mes
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
 const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
+/** The author's name as text, or the app's content for it shown while screen readers hear the text. */
+function AuthorName({ name, content }: { name: string; content: ReactNode }): ReactNode {
+  if (content === undefined) return name;
+  return (
+    <>
+      <span aria-hidden="true">{content}</span>
+      <span className="sr-only">{name}</span>
+    </>
+  );
+}
+
 /**
  * One message in a chat: who wrote it, their avatar and what they wrote, with any
  * attachments under it. `role` places and colors it: the user's own messages at the end
@@ -256,6 +275,7 @@ export function Message(props: MessageProps): JSX.Element {
   const {
     role: roleProp,
     name: nameProp,
+    nameContent,
     variant: variantProp = "default",
     avatar,
     presence,
@@ -394,7 +414,7 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
-            {name}
+            <AuthorName name={name} content={nameContent} />
             {time !== undefined && (
               <>
                 <span className="sr-only">, </span>
@@ -437,7 +457,7 @@ export function Message(props: MessageProps): JSX.Element {
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : "flex min-w-0 items-baseline gap-2 px-0.5 text-xs"}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
-        {name}
+        <AuthorName name={name} content={nameContent} />
       </span>
       {time !== undefined && (
         <>

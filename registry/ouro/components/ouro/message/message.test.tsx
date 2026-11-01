@@ -57,6 +57,32 @@ afterEach(async () => {
 });
 
 describe("Message", () => {
+  it("shows nameContent as the author's name, while screen readers hear name and the initials come from it", async () => {
+    const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    const content = (
+      <>
+        Riley Example <img alt="" src={picture} width={12} height={12} data-testid="sparkle" />
+      </>
+    );
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Riley Example" nameContent={content}>
+          Default layout.
+        </Message>
+        <Message variant="post" role="assistant" name="Riley Example" nameContent={content}>
+          Post layout.
+        </Message>
+      </>,
+    );
+    const messages = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    for (const message of messages) {
+      const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+      expect(author.querySelector('[aria-hidden="true"] [data-testid="sparkle"]')).not.toBeNull();
+      expect(author.querySelector(".sr-only")!.textContent).toBe("Riley Example");
+      expect(message.querySelector('[data-ouro="avatar"]')!.textContent).toBe("RE");
+    }
+  });
+
   it("is an article that says who wrote it, then what they wrote", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro">
