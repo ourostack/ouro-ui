@@ -139,7 +139,7 @@ function findCommand(cli: Pick<Cli<RunContext>, "commands">, words: readonly str
 
 ### `flagsOf`
 
-The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own.
+The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own; a command's own flag replaces a generated one of the same name.
 
 ```ts
 function flagsOf(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unknown, RunContext>): Record<string, FlagSpec>

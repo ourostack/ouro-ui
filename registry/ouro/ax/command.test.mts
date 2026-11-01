@@ -91,6 +91,36 @@ test("definitions are checked when the tool is built: names, rest last, examples
   assert.deepEqual(exampleArgv("t", `t a "two words" 'single quoted'`), ["a", "two words", "single quoted"]);
 });
 
+test("a command's own why flag replaces the generated one in help, the unknown-flag error and the input schema", () => {
+  const description = 'Who asked you, by name, and what they said, like "Riley asked me to post the banner".';
+  const t = defineCli({
+    name: "t",
+    about: [],
+    commands: [
+      defineCommand({ name: "post", summary: "P.", effect: "others", flags: { why: { type: "string", required: true, placeholder: '"<who asked>"', description }, tone: { type: "string", description: "Tone." } }, examples: ['t post --why "Riley asked"'] }),
+      defineCommand({ name: "tidy", summary: "T.", effect: "private", why: "none" }),
+    ],
+  });
+  const post = findCommand(t, ["post"])!.command;
+  const problem = (argv: string[]) => {
+    try {
+      parse(t, argv);
+    } catch (e) {
+      assert.ok(e instanceof AxError);
+      return e.shape.problem;
+    }
+    throw new Error("parsed");
+  };
+  assert.equal(problem(["post", "--zzzzzz"]), "there is no --zzzzzz; its flags are --why, --tone");
+  assert.equal(problem(["tidy", "--zzzzzz"]), "there is no --zzzzzz; it takes no flags of its own");
+  assert.deepEqual(inputSchema(t, post).properties.why, { type: "string", description });
+  assert.deepEqual(inputSchema(t, post).required, ["why"]);
+  const help = renderCommand(t, post, 80);
+  assert.equal(help.split("\n").filter((line) => line.trimStart().startsWith("--why")).length, 1);
+  assert.match(help, /by name/);
+  assert.doesNotMatch(help, /it is logged with the action/);
+});
+
 test("usage, the input schema and toArgv come from the same definition", () => {
   const post = findCommand(cli, ["post"])!.command;
   assert.equal(usageOf(cli, post), 'post <room> <text...>|- --why "<who asked you, and what they said>" [--dry-run] [--tone plain|markdown]');
@@ -99,7 +129,7 @@ test("usage, the input schema and toArgv come from the same definition", () => {
     properties: {
       room: { type: "string", description: "The room's short id." },
       text: { type: "string", description: "The message." },
-      why: { type: "string", description: "Who asked you, and what they said; it is logged with the action." },
+      why: { type: "string", description: 'Who asked you, and what they said, like "Riley asked me to post the banner"; it is logged with the action.' },
       "dry-run": { type: "boolean", description: "Show what it would do and who would see it, and do nothing." },
       tone: { type: "string", enum: ["plain", "markdown"], description: "How the text is formatted." },
     },

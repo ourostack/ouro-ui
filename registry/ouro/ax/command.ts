@@ -151,11 +151,11 @@ function defineCommand<R, C extends RunContext = RunContext>(def: CommandDef<R, 
 const wordsOf = (name: string) => name.split(" ");
 const unlessOf = (spec: { unless?: string | readonly string[] }): readonly string[] => (spec.unless === undefined ? [] : typeof spec.unless === "string" ? [spec.unless] : spec.unless);
 
-/** The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own. */
+/** The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own; a command's own flag replaces a generated one of the same name. */
 function flagsOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Record<string, FlagSpec> {
   const why = cmd.why ?? (cmd.effect === "others" ? "required" : "none");
   const whyFlag: Record<string, FlagSpec> =
-    why === "none" ? {} : { [WHY_FLAG]: { type: "string", required: why === "required", placeholder: `"${WHY_PLACEHOLDER}"`, description: "Who asked you, and what they said; it is logged with the action." } };
+    why === "none" ? {} : { [WHY_FLAG]: { type: "string", required: why === "required", placeholder: `"${WHY_PLACEHOLDER}"`, description: 'Who asked you, and what they said, like "Riley asked me to post the banner"; it is logged with the action.' } };
   const dryRun: Record<string, FlagSpec> = cmd.effect === "others" ? { [DRY_RUN_FLAG]: { type: "boolean", description: "Show what it would do and who would see it, and do nothing." } } : {};
   return { ...BUILTIN_FLAGS, ...cli.globalFlags, ...whyFlag, ...dryRun, ...cmd.flags };
 }
@@ -366,7 +366,7 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
       const args = command.args ?? [];
       const full = !args.at(-1)?.rest && positional.length >= args.length;
       const span = inline === undefined && next !== undefined && !next.startsWith("-") && full ? 2 : 1;
-      const own = Object.keys(command.flags ?? {}).concat(command.effect === "others" || command.why ? [WHY_FLAG] : []);
+      const own = [...new Set([...Object.keys(command.flags ?? {}), ...(Object.hasOwn(flags, WHY_FLAG) ? [WHY_FLAG] : [])])];
       throw new AxError({
         code: "unknown-flag",
         exit: usage(cli),
