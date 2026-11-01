@@ -604,9 +604,12 @@ describe("Composer expanded", () => {
     await expect.poll(settled).toBe(true);
     const expandedHeight = body.getBoundingClientRect().height;
     // Typing grows the box at once, as before.
-    await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f{Enter}g");
-    expect(textarea.getBoundingClientRect().height).toBeGreaterThan(6 * parseFloat(getComputedStyle(textarea).lineHeight));
+    await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
+    const sixLines = body.getBoundingClientRect().height;
+    // The seventh line grows the box past its six rows, at once.
+    await userEvent.keyboard("{Enter}");
     expect(heights(body)).toEqual([]);
+    expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
     await userEvent.clear(textarea);
     await userEvent.click(expandButton()!);
     expect(heights(body)).toEqual(["height"]);
