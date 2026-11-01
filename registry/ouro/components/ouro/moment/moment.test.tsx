@@ -218,6 +218,12 @@ describe("Moment", () => {
       await heardIfSpoken();
       await render(<Moment kind="success" announce title="Sent" description={<strong>to Ada</strong>} />);
       await expect.poll(() => announced.count("Sent")).toBe(1);
+      // A moment that turns into a success is heard then, and again when what it says changes.
+      const turning = await render(<Moment kind="loading" title="Uploading" />);
+      await act(async () => turning.root.render(<Moment kind="success" announce title="Uploaded" />));
+      await expect.poll(() => announced.count("Uploaded")).toBe(1);
+      await act(async () => turning.root.render(<Moment kind="success" announce title="Uploaded twice" />));
+      await expect.poll(() => announced.count("Uploaded twice")).toBe(1);
       expect(announced.count("Saved quietly")).toBe(0);
       expect(announced.count("Nothing to say")).toBe(0);
       expect(announced.count("[object")).toBe(0);
