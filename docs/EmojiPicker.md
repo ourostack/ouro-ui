@@ -120,7 +120,7 @@ A controlled EmojiPicker of the platform's emoji: you own `open`, update it in `
 | `onSelect` (required) | `(selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
 | `open` (required) | `boolean` | Whether the picker is open. |
 | `quick` | `readonly EmojiPickerEmoji[]` | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
-| `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
+| `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row, the preview, the category buttons (each category's first emoji) and the skin tone choice (the first emoji with tones), for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
 
 Not in this mode (typed `never`):
 
@@ -137,7 +137,7 @@ An uncontrolled EmojiPicker of the platform's emoji: `trigger` opens and closes 
 | `frequent` | `readonly EmojiPickerEmoji[]` | The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. |
 | `onSelect` (required) | `(selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
 | `quick` | `readonly EmojiPickerEmoji[]` | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
-| `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
+| `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row, the preview, the category buttons (each category's first emoji) and the skin tone choice (the first emoji with tones), for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
 | `trigger` (required) | `ReactElement` | The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. |
 
 Not in this mode (typed `never`):
@@ -311,7 +311,7 @@ A category of emoji: its name, the icon its button shows, and its emoji in order
 interface EmojiPickerCategory {
   /** The category's name, shown as its heading and read for its button: `"Smileys"`. Unique within the picker. */
   label: string;
-  /** What its button in the category bar shows: an icon element. Defaults to its first emoji. */
+  /** What its button in the category bar shows: an icon element or image. Defaults to its first emoji, drawn by `renderEmoji` when given. */
   icon?: ReactNode;
   /** The category's emoji, in the order they show. */
   emoji: readonly EmojiPickerEmoji[];

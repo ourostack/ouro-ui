@@ -2,7 +2,7 @@
 
 # ReactionBar
 
-A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing. `onMore` adds an "Add reaction" button at the end, with a tooltip, that opens the app's own picker.
+A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"), with a tooltip of its name, or of who reacted (`tooltip`, which screen readers hear as its description). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing. `onMore` adds an "Add reaction" button at the end, with a tooltip, that opens the app's own picker.
 
 ```tsx
 import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
@@ -81,6 +81,12 @@ interface CatalogueReaction {
   mine?: boolean | undefined;
   /** What screen readers hear for it. @default the emoji's name in the catalogue */
   label?: string | undefined;
+  /**
+   * Who reacted, shown in a tooltip on hover and keyboard focus, which screen readers hear as its
+   * description: "You and Riley Example". A tooltip never opens on touch, so keep the count
+   * meaningful without it. Without it, the tooltip shows the reaction's name.
+   */
+  tooltip?: string | undefined;
   /**
    * What it shows when the catalogue has no emoji with this id, such as an emoji the catalogue dropped. @default the id as a `:token:`
    */
@@ -212,6 +218,12 @@ interface Reaction extends ReactionOption {
   count: number;
   /** The person using the app is one of them: the reaction is pressed and tinted. */
   mine?: boolean | undefined;
+  /**
+   * Who reacted, shown in a tooltip on hover and keyboard focus, which screen readers hear as its
+   * description: "You and Riley Example". A tooltip never opens on touch, so keep the count
+   * meaningful without it. Without it, the tooltip shows the reaction's name.
+   */
+  tooltip?: string | undefined;
 }
 ```
 

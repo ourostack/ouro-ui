@@ -252,19 +252,37 @@ describe("EmojiPicker with a catalogue", () => {
     expect(panel().querySelector('[data-ouro-part="skin-tone"]')).toBeNull();
   });
 
-  it("draws the platform's emoji categories' icons with renderEmoji, in the default tone and kept still", async () => {
+  it("draws the platform's emoji categories' icons and skin tones with renderEmoji, kept still", async () => {
     const renderEmoji = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, ...rest: unknown[]) => <img alt="" data-art={`${item.name}/${skinTone}/${rest.length ? String(rest[0]) : "-"}`} />;
-    const emoji = (text: string, name: string) => ({ emoji: text, name });
+    const emoji = (text: string, name: string, skinTones?: boolean) => ({ emoji: text, name, skinTones });
     await open({
       catalogue: undefined,
       categories: [
         { label: "Smileys", emoji: [emoji("😀", "grinning face")] },
-        { label: "Food", emoji: [emoji("🍕", "pizza")] },
+        { label: "Food", emoji: [emoji("🍕", "pizza"), emoji("👍", "thumbs up", true)] },
       ],
       renderEmoji,
       skinTone: "medium",
     } as unknown as Partial<EmojiPickerProps>);
-    expect(categoryButtons().map((button) => button.querySelector("img")!.dataset.art)).toEqual(["grinning face/default/false", "pizza/default/false"]);
-    expect(cell("pizza").querySelector("img")!.dataset.art).toBe("pizza/medium/undefined");
+    const art = (element: Element) => element.querySelector("img")!.dataset.art;
+    expect(categoryButtons().map(art)).toEqual(["grinning face/default/false", "pizza/default/false"]);
+    expect(art(cell("pizza"))).toBe("pizza/medium/undefined");
+    // The skin tone button and its choices show the first emoji with tones, in each tone, and no hand character.
+    const toneButton = panel().querySelector<HTMLButtonElement>('[data-ouro-part="skin-tone"]')!;
+    expect(art(toneButton)).toBe("thumbs up/medium/-");
+    expect(toneButton.textContent).toBe("");
+    await userEvent.click(toneButton);
+    expect([...panel().querySelectorAll('[role="radio"]')].map(art)).toEqual(["default", "light", "medium-light", "medium", "medium-dark", "dark"].map((tone) => `thumbs up/${tone}/-`));
+  });
+
+  it("shows the skin tones on the quick row's first emoji with tones, else the frequently used ones', drawn by renderEmoji", async () => {
+    const renderEmoji = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone) => <img alt="" data-art={`${item.name}/${skinTone}`} />;
+    const emoji = (text: string, name: string, skinTones?: boolean) => ({ emoji: text, name, skinTones });
+    const categories = [{ label: "People", emoji: [emoji("👍", "thumbs up", true)] }];
+    const toneArt = () => panel().querySelector('[data-ouro-part="skin-tone"] img')!.getAttribute("data-art");
+    const { rerender } = await open({ catalogue: undefined, categories, renderEmoji, quick: [emoji("🙂", "smile"), emoji("👋", "waving hand", true)], frequent: [emoji("👏", "clapping hands", true)] } as unknown as Partial<EmojiPickerProps>);
+    expect(toneArt()).toBe("waving hand/default");
+    await rerender(picker({ catalogue: undefined, categories, renderEmoji, frequent: [emoji("👏", "clapping hands", true)] } as unknown as Partial<EmojiPickerProps>));
+    expect(toneArt()).toBe("clapping hands/default");
   });
 });

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ReactionBar, type Reaction, type ReactionBarProps, type ReactionOption } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -164,6 +165,28 @@ describe("ReactionBar", () => {
     expect(host.querySelectorAll("button")).toHaveLength(1);
     await userEvent.click(page.getByRole("button", { name: "Ajouter une réaction" }));
     expect(onMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows who reacted in a tooltip on hover and keyboard focus, read as the reaction's description, and after a read-only one", async () => {
+    const tooltip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]')?.textContent;
+    const withWho: Reaction[] = [{ ...reactions[0]!, tooltip: "You and Riley Example" }, reactions[1]!];
+    const { rerender, host } = await render(<ReactionBar reactions={withWho} quick={quick} onReact={() => {}} />);
+    const like = page.getByRole("button", { name: "Like, 3", exact: true });
+    await expect.element(like).toHaveAccessibleDescription("You and Riley Example");
+    await expect.element(page.getByRole("button", { name: "Laugh, 1", exact: true })).not.toHaveAttribute("aria-describedby");
+    await userEvent.hover(like);
+    await expect.poll(tooltip).toBe("You and Riley Example");
+    await userEvent.unhover(like);
+    await expect.poll(tooltip).toBeUndefined();
+    // Without who reacted, a reaction's tooltip is its name, from the keyboard too.
+    await pressTab();
+    await pressTab();
+    expect(document.activeElement!.textContent).toBe("😄Laugh, 1");
+    await expect.poll(tooltip).toBe("Laugh");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(tooltip).toBeUndefined();
+    await rerender(<ReactionBar reactions={withWho} />);
+    expect(host.querySelector('[data-ouro="badge"]')!.textContent).toBe("👍Like, 3, including you, You and Riley Example");
   });
 
   it("names the Add reaction button in a tooltip on hover", async () => {

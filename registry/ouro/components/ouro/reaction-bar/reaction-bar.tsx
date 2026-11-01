@@ -1,6 +1,6 @@
 "use client";
 
-import type { HTMLAttributes, JSX, MouseEvent, ReactNode, Ref, SVGProps } from "react";
+import { useId, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, type Ref, type SVGProps } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Emoji, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -25,6 +25,15 @@ export interface Reaction extends ReactionOption {
   count: number;
   /** The person using the app is one of them: the reaction is pressed and tinted. */
   mine?: boolean | undefined;
+  /**
+   * Who reacted, shown in a tooltip on hover and keyboard focus, which screen readers hear as its
+   * description: "You and Riley Example". A tooltip never opens on touch, so keep the count
+   * meaningful without it. Without it, the tooltip shows the reaction's name.
+   *
+   * @claim "A tooltip never opens on touch" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > never opens after a touch on the trigger, even when the touch focuses it)
+   * @claim "screen readers hear as its description" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > shows who reacted in a tooltip on hover and keyboard focus, read as the reaction's description, and after a read-only one)
+   */
+  tooltip?: string | undefined;
 }
 
 /** A reaction on a message, by the emoji it is, for a ReactionBar with a `catalogue`. */
@@ -37,6 +46,15 @@ export interface CatalogueReaction {
   mine?: boolean | undefined;
   /** What screen readers hear for it. @default the emoji's name in the catalogue */
   label?: string | undefined;
+  /**
+   * Who reacted, shown in a tooltip on hover and keyboard focus, which screen readers hear as its
+   * description: "You and Riley Example". A tooltip never opens on touch, so keep the count
+   * meaningful without it. Without it, the tooltip shows the reaction's name.
+   *
+   * @claim "A tooltip never opens on touch" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > never opens after a touch on the trigger, even when the touch focuses it)
+   * @claim "screen readers hear as its description" registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.test.tsx::ReactionBar > shows who reacted in a tooltip on hover and keyboard focus, read as the reaction's description, and after a read-only one)
+   */
+  tooltip?: string | undefined;
   /**
    * What it shows when the catalogue has no emoji with this id, such as an emoji the catalogue dropped. @default the id as a `:token:`
    *
@@ -119,7 +137,8 @@ export type ReactionBarProps = Omit<HTMLAttributes<HTMLDivElement>, keyof Reacti
  * pressed and tinted, and quick reactions to add with a single press. Pressing a reaction
  * calls `onReact` with its key, so the app adds the person's reaction or takes it back.
  * Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and
- * count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show
+ * count ("Like, 3"), with a tooltip of its name, or of who reacted (`tooltip`, which screen
+ * readers hear as its description). Without `onReact` the reactions are read-only, and with nothing to show
  * it renders nothing. `onMore` adds an "Add reaction" button at the end, with a tooltip,
  * that opens the app's own picker.
  *
@@ -163,6 +182,7 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
     onAddReaction,
     ...rest
   } = props;
+  const id = useId();
   const given: readonly (Reaction | CatalogueReaction)[] = reactions ?? [];
   const shown = (catalogue ? given.map((reaction) => fromCatalogue(reaction, catalogue)) : given) as readonly Reaction[];
   const quickOptions = (quick ?? []).flatMap((option) =>
@@ -204,8 +224,9 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
     <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
       {/* One keyed list, counts then quick reactions: a quick reaction once chosen, or the last one
           taken back, keeps its button, so keyboard focus stays on it. */}
-      {[...shown, ...offered].map((entry) => {
+      {[...shown, ...offered].map((entry, index) => {
         const reaction: Partial<Reaction> & ReactionOption = entry;
+        const described = reaction.tooltip ? `${id}-${index}` : undefined;
         const counted = reaction.count !== undefined;
         const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : counted ? ({ tone: "secondary", variant: "outline" } as const) : ({ tone: "secondary", variant: "soft" } as const);
         const face = (
@@ -221,22 +242,31 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
             )}
           </>
         );
+        // Every pressable reaction has a tooltip, its name or who reacted, so a reaction keeps its button as one comes.
         return onReact ? (
-          <Badge
-            key={reaction.key}
-            data-ouro-control="reaction-bar"
-            data-ouro-part={counted ? "reaction" : "quick"}
-            {...look}
-            aria-pressed={reaction.mine === true}
-            disabled={disabled}
-            onClick={(event) => onReact(reaction.key, event)}
-          >
-            {face}
-          </Badge>
+          <Tooltip key={reaction.key} content={reaction.tooltip ?? reaction.label}>
+            <Badge
+              data-ouro-control="reaction-bar"
+              data-ouro-part={counted ? "reaction" : "quick"}
+              {...look}
+              aria-pressed={reaction.mine === true}
+              aria-describedby={described}
+              disabled={disabled}
+              onClick={(event) => onReact(reaction.key, event)}
+            >
+              {face}
+              {described && (
+                <span id={described} hidden>
+                  {reaction.tooltip}
+                </span>
+              )}
+            </Badge>
+          </Tooltip>
         ) : (
           <Badge key={reaction.key} {...look}>
             {face}
             {reaction.mine && <span className="sr-only">, {mineLabel}</span>}
+            {reaction.tooltip && <span className="sr-only">, {reaction.tooltip}</span>}
           </Badge>
         );
       })}

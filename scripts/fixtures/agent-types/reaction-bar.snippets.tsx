@@ -8,4 +8,4 @@ const catalogue: EmojiCatalogue = { categories: [{ id: "symbols", label: "Symbol
 export const reactionBar01 = <ReactionBar reactions={reactions} onReactionClick={() => {}} />;
 export const reactionBar02 = <ReactionBar reactions={reactions} onAddReaction={() => {}} />;
 export const reactionBarOk01 = <ReactionBar reactions={[{ key: "like", label: "Like", emoji: "👍", count: 2, mine: true }]} quick={[{ key: "heart", label: "Heart", emoji: "❤️" }]} onReact={() => {}} onMore={() => {}} moreOpen={false} moreLabel="Add reaction" disabled={false} label="Reactions" mineLabel="including you" className="mt-1" />;
-export const reactionBarOk02 = <ReactionBar catalogue={catalogue} reactions={[{ key: "party", count: 2, mine: true, label: "Party" }]} quick={["party"]} onReact={(key) => void key} />;
+export const reactionBarOk02 = <ReactionBar catalogue={catalogue} reactions={[{ key: "party", count: 2, mine: true, label: "Party", tooltip: "You and Riley Example" }]} quick={["party"]} onReact={(key) => void key} />;

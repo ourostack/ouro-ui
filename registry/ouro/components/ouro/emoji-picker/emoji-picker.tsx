@@ -78,7 +78,7 @@ export type EmojiRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone) => R
 export interface EmojiPickerCategory {
   /** The category's name, shown as its heading and read for its button: `"Smileys"`. Unique within the picker. */
   label: string;
-  /** What its button in the category bar shows: an icon element. Defaults to its first emoji. */
+  /** What its button in the category bar shows: an icon element or image. Defaults to its first emoji, drawn by `renderEmoji` when given. */
   icon?: ReactNode;
   /** The category's emoji, in the order they show. */
   emoji: readonly EmojiPickerEmoji[];
@@ -193,13 +193,15 @@ export type EmojiPickerUnicodeProps = {
   /** A row of emoji above the categories for a single press, such as the quick reactions on a message. */
   quick?: readonly EmojiPickerEmoji[] | undefined;
   /**
-   * Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art:
+   * Draws an emoji in the grid, the quick row, the preview, the category buttons (each
+   * category's first emoji) and the skin tone choice (the first emoji with tones), for an app with its own emoji art:
    * return an image 1em square, so it takes the size of the text, with an empty `alt` (the button
    * already has the emoji's name). Pass a function that stays the same between renders, so moving
    * focus redraws only the emoji it leaves and reaches. Without it, the picker shows the
    * platform's own glyphs, in the skin tone in use.
    *
-   * @claim "Draws an emoji in the grid, the quick row and the preview" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > draws each emoji with renderEmoji in the skin tone in use, keeping its name for screen readers)
+   * @claim "the category buttons (each" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > draws the platform's emoji categories' icons and skin tones with renderEmoji, kept still)
+   * @claim "Draws an emoji in the grid, the quick row" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > draws each emoji with renderEmoji in the skin tone in use, keeping its name for screen readers)
    */
   renderEmoji?: EmojiRender | undefined;
   /**
@@ -559,12 +561,13 @@ function usePickerContent(
   const quickKey = catalogue ? (quick as readonly string[] | undefined)?.join("\n") : quick;
   return useMemo(() => {
     if (!catalogue) {
+      const given = { categories: categories ?? [], frequent: frequentKey as readonly EmojiPickerEmoji[] | undefined, quick: quickKey as readonly EmojiPickerEmoji[] | undefined };
+      // With the app's own art, the tones show on its first emoji with tones, drawn by it; else on a raised hand.
+      const sample = renderEmoji && [...(given.quick ?? []), ...(given.frequent ?? []), ...given.categories.flatMap((category) => category.emoji)].find((item) => item.skinTones);
       return {
-        categories: categories ?? [],
-        frequent: frequentKey as readonly EmojiPickerEmoji[] | undefined,
-        quick: quickKey as readonly EmojiPickerEmoji[] | undefined,
+        ...given,
         render: renderEmoji as GlyphRender | undefined,
-        toneGlyph: (tone: EmojiSkinTone): ReactNode => toned(hand, tone),
+        toneGlyph: (tone: EmojiSkinTone): ReactNode => (sample ? renderEmoji!(sample, tone) : toned(hand, tone)),
       };
     }
     const { byId } = catalogueIndex(catalogue);

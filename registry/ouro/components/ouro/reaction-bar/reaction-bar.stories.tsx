@@ -208,17 +208,17 @@ const imageCatalogue: EmojiCatalogue = {
 /** Adds the person's reaction by emoji id, or takes it back. */
 function toggleById(list: CatalogueReaction[], key: string): CatalogueReaction[] {
   const found = list.find((reaction) => reaction.key === key);
-  if (!found) return [...list, { key, count: 1, mine: true }];
+  if (!found) return [...list, { key, count: 1, mine: true, tooltip: "You" }];
   return list
-    .map((reaction) => (reaction.key === key ? { ...reaction, count: reaction.count + (reaction.mine ? -1 : 1), mine: !reaction.mine } : reaction))
+    .map((reaction) => (reaction.key === key ? { ...reaction, count: reaction.count + (reaction.mine ? -1 : 1), mine: !reaction.mine, tooltip: undefined } : reaction))
     .filter((reaction) => reaction.count > 0);
 }
 
 function CatalogueReacting() {
   const [list, setList] = useState<CatalogueReaction[]>([
-    { key: "party", count: 3, mine: true },
-    { key: "wave-tone3", count: 1 },
-    { key: "fern", count: 2 },
+    { key: "party", count: 3, mine: true, tooltip: "You, Riley Example and Sam Rivera" },
+    { key: "wave-tone3", count: 1, tooltip: "Riley Example" },
+    { key: "fern", count: 2, tooltip: "Sam Rivera and Ada Lovelace" },
   ]);
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLElement | null>(null);
