@@ -263,32 +263,42 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Open at the newest message, then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
   // observer callbacks run before paint, so the view never flashes off the bottom.
-  // While unpinned, the message at the top of the view stays where it is, so older history
-  // loading above it never moves the reader. This replaces the browser's scroll anchoring,
-  // which is off: Chrome's adjustment read as the reader scrolling up, and Safari has none.
+  // While unpinned, the first message whose top is in view stays where it is, so older history
+  // loading above it never moves the reader, even in the frame they scroll. This replaces the
+  // browser's scroll anchoring, which is off: Chrome's adjustment read as the reader scrolling
+  // up, and Safari has none. Where an app turns the browser's anchoring back on
+  // (`overflow-anchor: auto` on the scroller) and the browser has it, the browser corrects alone.
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
-    // The messages in view, top first, with where each sits. The first one still in the page
-    // is held in place: the top one may itself have been replaced (a key change).
-    let anchors: { node: Element; offset: number }[] = [];
-    const offsetOf = (node: Element) => node.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    // The messages whose top is in view (else the one filling it), each with where it sits in the
+    // content. The first one still in the page is held in place: it may itself have been
+    // replaced (a key change). Where a message sits in the content does not change as the list
+    // scrolls, so the reader's own scrolling in the same frame is never taken back.
+    let anchors: { node: Element; at: number }[] = [];
+    // The content's height when the anchors were taken. A scroll event that finds it changed came
+    // after messages came, went or grew, and before the resize observer has kept the reader's place.
+    let height = 0;
+    const atOf = (node: Element) => node.getBoundingClientRect().top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      anchors = [...content.querySelectorAll(items)]
-        .filter((message) => {
-          const box = message.getBoundingClientRect();
-          return box.bottom > view.top && box.top < view.bottom;
-        })
-        .map((node) => ({ node, offset: offsetOf(node) }));
+      const shown = [...content.querySelectorAll(items)].filter((message) => {
+        const box = message.getBoundingClientRect();
+        return box.bottom > view.top && box.top < view.bottom;
+      });
+      // Not a message partly above the view, whose growth the reader is not reading, unless one message fills the view.
+      // Stryker disable next-line EqualityOperator: a message whose top meets the view's to the pixel is the same anchor either way.
+      const below = shown.filter((message) => message.getBoundingClientRect().top >= view.top);
+      anchors = (below.length > 0 ? below : shown).map((node) => ({ node, at: atOf(node) }));
+      height = content.getBoundingClientRect().height;
     };
     toBottom();
     keepAnchor();
     const follow = new ResizeObserver(() => {
       const anchor = anchors.find(({ node }) => node.isConnected);
       if (pinned.current) toBottom();
-      else if (anchor) {
-        const moved = offsetOf(anchor.node) - anchor.offset;
+      else if (anchor && getComputedStyle(scroller).overflowAnchor !== "auto") {
+        const moved = atOf(anchor.node) - anchor.at;
         if (Math.abs(moved) >= 0.5) {
           scroller.scrollTop += moved;
           lastTop.current = scroller.scrollTop;
@@ -305,7 +315,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (top < lastTop.current - 0.5 && distance > 1) pinned.current = false;
       else if (distance <= AT_BOTTOM) pinned.current = true;
       lastTop.current = top;
-      keepAnchor();
+      // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
+      if (content.getBoundingClientRect().height === height) keepAnchor();
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
