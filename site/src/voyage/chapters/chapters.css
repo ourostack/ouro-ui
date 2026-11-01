@@ -80,10 +80,20 @@
 /*
  * A chapter well off screen is skipped (content-visibility: auto), as the porthole's scene is: a
  * press in one chapter then restyles, lays out, paints and layers none of the others, which on a
- * 4x slower CPU took museum's and organ's presses close to their 100 ms budget. Until a chapter has
- * been drawn once, its height is this guess; after that the browser keeps the height it drew.
+ * 4x slower CPU took museum's and organ's presses close to their 100 ms budget. Only once it has
+ * answered (data-chapter-ready, set as it nears the screen), so it has been drawn and the browser
+ * keeps the height it drew; the 2400px is only a fallback.
  */
-section[data-chapter] {
+section[data-chapter][data-chapter-ready] {
   content-visibility: auto;
   contain-intrinsic-size: auto 2400px;
+}
+/*
+ * Where scrollbars take room and scrollbar-gutter is missing (WebKit), Base UI locks the page under
+ * a dialog or menu by scrolling <body> instead (data-base-ui-scroll-locked). WebKit then drew none
+ * of a skipped chapter, the one under the dialog too, and its dialogs and menus closed (CI run
+ * 41343294690, site-webkit). So while that lock holds, every chapter is drawn.
+ */
+html[data-base-ui-scroll-locked] section[data-chapter] {
+  content-visibility: visible;
 }
