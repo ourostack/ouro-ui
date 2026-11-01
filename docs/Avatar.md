@@ -2,7 +2,7 @@
 
 # Avatar
 
-A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in once it loads.
+A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in once it loads.
 
 ```tsx
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -14,6 +14,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 <Avatar name="Ada Lovelace" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
 <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
 <Avatar name="Design reviews" shape="square" />
+<Avatar name="Halden" shape="hexagon" src={agent.photoUrl} />
 <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
 ```
 
@@ -35,7 +36,7 @@ The props the modes share. Type: `AvatarProps`.
 | `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AdL". |
 | `name` (required) | `string` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
-| `shape` | `"circle" \| "square"` | `"circle"` | `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a channel, an app or a bot. |
+| `shape` | `"circle" \| "square" \| "hexagon"` | `"circle"` | `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a channel, an app or a bot, `"hexagon"` (with rounded corners) for an AI agent, as Teams draws agents. The initials, icon or picture fill the shape, centered. A hexagon shows no presence dot: an agent has no presence. |
 | `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials and the presence dot grow with it. Inside an `AvatarGroup`, the group's size applies. |
 | `src` | `string` |  | The image URL. Until it loads, and if it fails, the initials show. |
 
