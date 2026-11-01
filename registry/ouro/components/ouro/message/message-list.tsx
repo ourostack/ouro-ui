@@ -886,8 +886,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
         (back ? startRef : endRef).current!.focus({ preventScroll: true });
         return;
       }
-      // Stryker disable next-line ConditionalExpression: focusing what the browser would focus, and revealing it, ends in the same place.
-      if (next === pick(tabbables(scroller))) return;
+      // The list moves focus itself, so each browser's own Tab order (WebKit's on a Mac, which can skip
+      // buttons; a popup's focus guards) never decides it. A radio is the browser's: Tab enters its group
+      // at the checked one.
+      if (next === pick(tabbables(scroller)) && next.matches('input[type="radio"]')) return;
       event.preventDefault();
       // Stryker disable next-line ObjectLiteral,BooleanLiteral: reveal, next, scrolls the list to the same place.
       next.focus({ preventScroll: true });
