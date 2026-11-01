@@ -310,9 +310,9 @@ const timedClass = "absolute inset-0 z-10 scroll-mt-(--ouro-time-grid-head) @con
 /**
  * An all-day event: one line in the all-day row.
  *
- * @claim "one line in the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /allDayClass = "relative h-5\.5 w-full"/)
+ * @claim "one line in the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /allDayClass = "relative h-5\.5 w-full isolate"/)
  */
-const allDayClass = "relative h-5.5 w-full";
+const allDayClass = "relative h-5.5 w-full isolate";
 
 /**
  * Each tone's start bar, and the outline of a free or unanswered event.
@@ -372,11 +372,11 @@ const backgroundBarClass = "group/bar border-0 bg-transparent p-0";
  * toward the end and down, so a short event, an all-day one and a week's bar a few pixels wide are
  * easy to point at without being drawn bigger. It grows away from the events placed before it,
  * which therefore stay under the pointer where they show, and a background event's stays under
- * the person's own events.
+ * the person's own events. It is the event's own `::before`, behind its text.
  * @claim "An event's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > gives a week's thin bar a hit area at least 24px square to a mouse from its top corner, without growing the bar)
  * @claim "An event's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller)
  */
-const eventHitClass = "absolute top-0 start-0 size-[max(100%,1.5rem)]";
+const eventHitClass = "before:absolute before:top-0 before:start-0 before:-z-1 before:size-[max(100%,1.5rem)] before:content-['']";
 
 /**
  * The slim bar a week draws for a background event: 4px, and 6px under a mouse or while its popover is open, with no motion.

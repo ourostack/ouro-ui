@@ -690,6 +690,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       "aria-expanded": event.id === expandedId ? true : undefined,
       className: cn(
         eventClass,
+        eventHitClass,
         bar ? backgroundBarClass : [toneBarClass[tone], background ? backgroundFillClass : status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status]],
         placed ? timedClass : allDayClass,
         // Under the person's own events, so a background event's touch target never covers them.
@@ -703,7 +704,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const body = (
       <>
         <TouchTarget />
-        <span aria-hidden="true" data-ouro-time-grid-hit="" className={eventHitClass} />
         {bar ? (
           <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
