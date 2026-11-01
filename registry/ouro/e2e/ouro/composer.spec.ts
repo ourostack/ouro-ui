@@ -34,3 +34,21 @@ test("a composer with sending off keeps the text and says why", async ({ page })
   await reply.press("Enter");
   await expect(reply).toHaveValue("See you Saturday");
 });
+
+test("an image catalogue's emoji go in as tokens, from suggestions or the picker, and the sent message draws them", async ({ page }) => {
+  await openStory(page, "chat-composer--emoji-tokens");
+  const box = page.getByRole("textbox", { name: "Message the release team" });
+  await box.fill("Coffee break ");
+  await box.press("End");
+  await page.keyboard.type(":cof");
+  await page.getByRole("option", { name: /Team coffee/ }).click();
+  await expect(box).toHaveValue("Coffee break :coffee_time: ");
+  await page.getByRole("button", { name: "Insert emoji" }).click();
+  await page.getByRole("dialog", { name: "Insert emoji" }).getByRole("button", { name: "Party popper" }).click();
+  await expect(box).toHaveValue("Coffee break :coffee_time: :party:");
+  await box.focus();
+  await page.keyboard.press("Enter");
+  const sent = page.getByRole("list", { name: "Sent" }).getByRole("listitem").last();
+  await expect(sent.getByRole("img", { name: "Team coffee" })).toBeVisible();
+  await expect(sent.getByRole("img", { name: "Party popper" })).toBeVisible();
+});

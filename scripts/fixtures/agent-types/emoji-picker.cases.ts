@@ -30,4 +30,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid emoji picker snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["emojiPickerOk01", "emojiPickerOk02"];
+export const validSnippets: string[] = ["emojiPickerOk01", "emojiPickerOk02", "emojiPickerOk03"];

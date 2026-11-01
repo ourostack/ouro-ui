@@ -13,6 +13,7 @@ const aliases: Readonly<Record<string, string>> = {
   "avatar-group": "avatar",
   "combobox-popup": "combobox",
   "edit-sheet-discard": "edit-sheet",
+  "emoji-text": "emoji",
   "form-message": "form",
   "menu-bar": "menu",
   "navigation-menu-popup": "navigation-menu",

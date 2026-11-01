@@ -660,6 +660,12 @@
     "summary": "An emoji picker for reactions and for putting emoji into text."
   },
   {
+    "name": "emoji",
+    "title": "Emoji",
+    "group": "Chat",
+    "summary": "One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named by its `alt` (the emoji's name)."
+  },
+  {
     "name": "inspector",
     "title": "Inspector",
     "group": "App setup",

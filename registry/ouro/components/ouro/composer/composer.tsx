@@ -133,6 +133,12 @@ function SendIcon(): JSX.Element {
  * the files waiting to go. `sendDisabledReason` turns sending off and says why, while the
  * person can still write, and `highlights` marks words in the text, as TextArea's do.
  *
+ * The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an
+ * `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few
+ * letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to
+ * put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message
+ * is sent.
+ *
  * Use `TextArea` instead for a long text that is saved rather than sent, and `Message` for
  * a message once it is sent.
  *
@@ -156,6 +162,8 @@ function SendIcon(): JSX.Element {
  * />
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > starts a new line on Shift+Enter, and sends on Ctrl+Enter or Command+Enter too)
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > never sends on the Enter that ends a word an input method is composing)
+ * @claim "an `Autocomplete` trigger with `catalogue` inserts them" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > inserts the picked emoji's token and a space in a Composer, which EmojiText draws as its image)
+ * @claim "gives its `selection.token` to put at the caret" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > chooses an emoji: onSelect gets its id, name, token, tone and catalogue item, and the token draws as its image)
  * @claim "room for the rest of a composer" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > draws one focus outline, on the frame, while the text has focus, and none on the text itself)
  */
 export function Composer(props: ComposerProps): JSX.Element {

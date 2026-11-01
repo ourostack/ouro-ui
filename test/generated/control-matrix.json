@@ -2467,7 +2467,8 @@
       "ReactionBar/InMessage",
       "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
-      "ReactionBar/Disabled"
+      "ReactionBar/Disabled",
+      "ReactionBar/ImageCatalogue"
     ]
   },
   {
@@ -2483,7 +2484,8 @@
       "ReactionBar/InMessage",
       "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
-      "ReactionBar/Disabled"
+      "ReactionBar/Disabled",
+      "ReactionBar/ImageCatalogue"
     ]
   },
   {
@@ -2499,7 +2501,8 @@
       "ReactionBar/InMessage",
       "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
-      "ReactionBar/Disabled"
+      "ReactionBar/Disabled",
+      "ReactionBar/ImageCatalogue"
     ]
   },
   {
@@ -2613,7 +2616,8 @@
       "Composer/SendingOff",
       "Composer/Sending",
       "Composer/ModEnter",
-      "Composer/Disabled"
+      "Composer/Disabled",
+      "Composer/EmojiTokens"
     ]
   },
   {
@@ -2629,7 +2633,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2645,7 +2651,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2661,7 +2669,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2677,7 +2687,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2693,7 +2705,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {

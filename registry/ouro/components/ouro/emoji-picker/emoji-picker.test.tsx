@@ -174,13 +174,14 @@ describe("EmojiPicker content", () => {
   it("shows the name of the emoji in focus, or under the mouse, large beside its glyph", async () => {
     await open();
     expect(preview()).toBe("😀grinning face");
+    // React draws the preview after the pointer and focus events, so each read waits for the exact text.
     await userEvent.hover(cell("pizza"));
-    expect(preview()).toBe("🍕pizza");
+    await expect.poll(preview).toBe("🍕pizza");
     await userEvent.hover(search());
-    expect(preview()).toBe("😀grinning face");
+    await expect.poll(preview).toBe("😀grinning face");
     await userEvent.keyboard("{ArrowDown}");
     await userEvent.keyboard("{ArrowRight}");
-    expect(preview()).toBe("😄grinning face with smiling eyes");
+    await expect.poll(preview).toBe("😄grinning face with smiling eyes");
   });
 
   it("shows the quick row, the frequently used emoji and every category, each emoji named for screen readers", async () => {

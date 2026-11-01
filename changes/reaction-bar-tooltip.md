@@ -1,0 +1,1 @@
+- New: a ReactionBar reaction takes `tooltip`, who reacted, shown in a Tooltip on hover and keyboard focus and read as the reaction's description; without it a pressable reaction's tooltip is its name.

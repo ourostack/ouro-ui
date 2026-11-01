@@ -43,3 +43,16 @@ test("adds the chosen emoji to the draft from the app's own button", async ({ pa
   await expect(picker).toBeHidden();
   await expect(page.getByText("Shipping the release notes today 🎉")).toBeVisible();
 });
+
+test("offers an image catalogue's emoji, finds one by shortcode and gives its token", async ({ page }) => {
+  await openStory(page, "chat-emojipicker--image-catalogue");
+  await page.getByRole("button", { name: "Add a reaction" }).click();
+  const picker = page.getByRole("dialog", { name: "Add a reaction" });
+  await expect(picker.getByRole("grid", { name: "Fernwood" })).toBeVisible();
+  await expect(picker.getByRole("button", { name: "Team coffee" }).locator("img")).toBeVisible();
+  await picker.getByRole("searchbox", { name: "Search emoji" }).fill(":tada");
+  await expect(picker.getByRole("grid", { name: "1 emoji" })).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(picker).toBeHidden();
+  await expect(page.getByText("Reacted with Party popper (:party:)")).toBeVisible();
+});

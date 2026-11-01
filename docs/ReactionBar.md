@@ -2,7 +2,7 @@
 
 # ReactionBar
 
-A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing. `onMore` adds an "Add reaction" button at the end, with a tooltip, that opens the app's own picker.
+A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Pressing a reaction calls `onReact` with its key, so the app adds the person's reaction or takes it back. Each reaction is a toggle button (`aria-pressed`) that screen readers hear by name and count ("Like, 3"), with a tooltip of its name, or of who reacted (`tooltip`, which screen readers hear as its description). Without `onReact` the reactions are read-only, and with nothing to show it renders nothing. `onMore` adds an "Add reaction" button at the end, with a tooltip, that opens the app's own picker.
 
 ```tsx
 import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
@@ -13,9 +13,12 @@ import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reacti
 ```tsx
 <ReactionBar reactions={message.reactions} quick={quickReactions} onReact={(key) => toggleReaction(message.id, key)} />
 <ReactionBar reactions={message.reactions} onReact={react} onMore={(event) => openPicker(event.currentTarget)} moreOpen={pickerOpen} />
+<ReactionBar catalogue={catalogue} reactions={[{ key: "party", count: 2, mine: true }]} quick={["like", "heart"]} onReact={react} />
 ```
 
 ## Usage
+
+With `catalogue`, reactions go by emoji id and show the catalogue's images, as `EmojiPicker` with the same catalogue chooses them.
 
 Place it in `Message`'s `attachments`.
 
@@ -29,6 +32,7 @@ Type: `ReactionBarProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `catalogue` | `EmojiCatalogue` |  | An image emoji catalogue, the same as the app's `EmojiPicker`: reactions and quick reactions then go by emoji id, each showing the catalogue's image, named by the emoji's name, an animated one playing while its button is under the mouse or in focus. |
 | `className` | `string` |  | Layout only: margins, placement (`mt-1`). Appearance classes warn in development. |
 | `disabled` | `boolean` |  | Keeps the counts but turns off reacting, for example while the app is offline. |
 | `label` | `string` | `"Reactions"` | What screen readers hear for the group, for other languages. |
@@ -37,8 +41,8 @@ Type: `ReactionBarProps`.
 | `moreOpen` | `boolean` |  | Whether the picker that `onMore` opens is open, so the "Add reaction" button says so (`aria-expanded`). |
 | `onMore` | `((event: MouseEvent<HTMLElement>) => void)` |  | Called when the "Add reaction" button at the end is pressed, to open the app's own reaction picker. The button shows only with `onMore`. Anchor the picker to `event.currentTarget`, and pass `moreOpen` while it is open. |
 | `onReact` | `((key: string, event: MouseEvent<HTMLElement>) => void)` |  | Called with a reaction's key when it is pressed, to add the person's reaction or take it back. The click event comes second, so the app can check `event.isTrusted` before it acts. Without it the reactions are read-only. |
-| `quick` | `readonly ReactionOption[]` |  | Reactions offered for a single press, after the counts. One that is already in `reactions` shows there instead. Shown only with `onReact`. |
-| `reactions` (required) | `readonly Reaction[]` |  | The message's reactions, in the order they show. |
+| `quick` | `readonly (ReactionOption \| string)[]` |  | Reactions offered for a single press, after the counts: each with its own emoji, or, with `catalogue`, an emoji's id. One that is already in `reactions` shows there instead, and an id the catalogue lacks is left out. Shown only with `onReact`. |
+| `reactions` (required) | `readonly Reaction[] \| readonly CatalogueReaction[]` |  | The message's reactions, in the order they show: each with its own emoji, or, with `catalogue`, by emoji id. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 
 ## Native attributes
@@ -63,6 +67,147 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
+### `CatalogueReaction`
+
+A reaction on a message, by the emoji it is, for a ReactionBar with a `catalogue`.
+
+```ts
+interface CatalogueReaction {
+  /** The emoji's id in the catalogue, or a tone's id (`"thumbs-up-tone3"`); `onReact` receives it. */
+  key: string;
+  /** How many people reacted this way. */
+  count: number;
+  /** The person using the app is one of them: the reaction is pressed and tinted. */
+  mine?: boolean | undefined;
+  /** What screen readers hear for it. @default the emoji's name in the catalogue */
+  label?: string | undefined;
+  /**
+   * Who reacted, shown in a tooltip on hover and keyboard focus, which screen readers hear as its
+   * description: "You and Riley Example". A tooltip never opens on touch, so keep the count
+   * meaningful without it. Without it, the tooltip shows the reaction's name.
+   */
+  tooltip?: string | undefined;
+  /**
+   * What it shows when the catalogue has no emoji with this id, such as an emoji the catalogue dropped. @default the id as a `:token:`
+   */
+  emoji?: ReactNode;
+}
+```
+
+### `EmojiCatalogue`
+
+An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app. The image addresses are used as they are, so an app that loads images its own way (a content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can load in the catalogue when it builds it.
+
+```ts
+interface EmojiCatalogue {
+  /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
+  categories: readonly EmojiCatalogueCategory[];
+}
+```
+
+### `EmojiCatalogueCategory`
+
+A category of a catalogue: its name, the icon its button shows, and its emoji in order.
+
+```ts
+interface EmojiCatalogueCategory {
+  /** Identifies the category, unique in the catalogue: `"people"`, `"custom"`. */
+  id: string;
+  /** Its name, shown as its heading and read for its button: `"People"`, or the organization's name for its custom emoji. */
+  label: string;
+  /** What its button in a picker's category bar shows: an icon element. Defaults to its first emoji's image. */
+  icon?: ReactNode;
+  /** Its emoji, in the order they show. */
+  items: readonly EmojiItem[];
+}
+```
+
+### `EmojiFilmstrip`
+
+An animation drawn as a filmstrip: square frames stacked top to bottom in one image, so the frames are the image's height over its width.
+
+```ts
+interface EmojiFilmstrip {
+  /** The filmstrip image's address. */
+  src: string;
+  /** Frames a second. */
+  fps: number;
+}
+```
+
+### `EmojiItem`
+
+One emoji in an image catalogue: its id, its name and the image that draws it. An app maps its own emoji set to this, whether a standard set or an organization's custom emoji.
+
+```ts
+interface EmojiItem {
+  /** Identifies the emoji, unique in the catalogue: `"party"`. Reactions, recents and `:id:` tokens use it. */
+  id: string;
+  /** Its name, which is the image's `alt`, what screen readers hear and what the search matches first: `"Party popper"`. */
+  name: string;
+  /**
+   * The still image's address. It shows whenever the emoji is not playing, and always with reduced motion.
+   */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"party-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /**
+   * An animated image (GIF, animated WebP or PNG), which plays while the pointer is on the emoji
+   * or on the button around it, or that button has focus. With reduced motion it never plays.
+   */
+  animatedSrc?: string | undefined;
+  /**
+   * The animation as a filmstrip, square frames stacked top to bottom in one image, for an
+   * emoji without `animatedSrc`: while the emoji plays, it steps through the frames at `fps`;
+   * otherwise, and always with reduced motion, `src` shows.
+   */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /** The still image's width in pixels, given to the `<img>` so the page keeps its shape while it loads. It shows at the text's size. */
+  width?: number | undefined;
+  /** The still image's height in pixels, as `width`. */
+  height?: number | undefined;
+  /** Short names typed between colons, without them: `["party", "tada"]`. The first makes the emoji's token, `:party:`. */
+  shortcodes?: readonly string[] | undefined;
+  /** More words the search matches: `["celebrate", "hooray"]`. */
+  keywords?: readonly string[] | undefined;
+  /**
+   * The emoji as plain text, such as its Unicode character (`"🎉"`), for places an image cannot
+   * go (a copied message, a notification). `EmojiText` finds it in messages and draws the image;
+   * Ouro never draws it as text.
+   */
+  text?: string | undefined;
+  /** It is the organization's or app's own emoji rather than one of the standard set. Ouro draws it the same; apps can label or treat it apart. */
+  custom?: boolean | undefined;
+  /**
+   * The emoji in Unicode's five skin tones, light to dark; leave it out for an emoji without tones.
+   */
+  skinTones?: readonly EmojiItemTone[] | undefined;
+}
+```
+
+### `EmojiItemTone`
+
+An emoji's image in one skin tone: `skinTones` on an `EmojiItem`.
+
+```ts
+interface EmojiItemTone {
+  /** Identifies the emoji in this tone, unique in the catalogue: `"thumbs-up-tone3"`. Reactions and tokens use it. */
+  id: string;
+  /** The still image's address. */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"wave-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /** An animated image (GIF, animated WebP or PNG), shown while the emoji plays; the still one shows otherwise. */
+  animatedSrc?: string | undefined;
+  /** The animation as a filmstrip of square frames, played while the emoji plays, for a tone without `animatedSrc`. */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /**
+   * The emoji in this tone as text (`"👍🏽"`), which `EmojiText` finds in messages; Ouro never draws it as text.
+   */
+  text?: string | undefined;
+}
+```
+
 ### `Reaction`
 
 A reaction on a message, with how many people chose it.
@@ -73,6 +218,12 @@ interface Reaction extends ReactionOption {
   count: number;
   /** The person using the app is one of them: the reaction is pressed and tinted. */
   mine?: boolean | undefined;
+  /**
+   * Who reacted, shown in a tooltip on hover and keyboard focus, which screen readers hear as its
+   * description: "You and Riley Example". A tooltip never opens on touch, so keep the count
+   * meaningful without it. Without it, the tooltip shows the reaction's name.
+   */
+  tooltip?: string | undefined;
 }
 ```
 
