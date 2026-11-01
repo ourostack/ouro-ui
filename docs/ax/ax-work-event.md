@@ -5,7 +5,7 @@
 An attributed work event: who acted and for whom, on what, why, with which receipt, when. An agent interface emits them for its actions, handoffs, waits and returns, so the person sees what their agents did and a value stream can be measured from it.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-work-event#v1.2.14
+npx shadcn@latest add ourostack/ouro-ui/ax-work-event#v1.3.0
 ```
 
 It installs `lib/ouro/ax/work-event.ts`, with `ax-effects`, `ax-outcome`. Its tests are `ax-work-event-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
