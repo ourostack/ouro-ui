@@ -1,6 +1,6 @@
-# ax-eval: Lane C outcomes (ax-probe/outcomes)
+# ax-eval: Lane C outcomes (probe/outcomes)
 
-CLI: `~/code/tandem-worktrees/ax-probe-outcomes/bin/m365tandem.mjs` · runs per task: 2 · 2026-10-30T23:18:41.944Z · AGENTS.md: docs/agent-guide.md paragraph
+CLI: `~/work/probe-outcomes/bin/app.mjs` · runs per task: 2 · 2026-10-30T23:18:41.944Z · AGENTS.md: docs/agent-guide.md paragraph
 
 ## Per task (mean over runs)
 
@@ -32,39 +32,39 @@ CLI: `~/code/tandem-worktrees/ax-probe-outcomes/bin/m365tandem.mjs` · runs per 
 ### T1 run 1
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem today --json
-  [0] m365tandem look k8xi47 --ids 1700000480000 --json
-  [0] m365tandem look 1zijq8 --ids 1700004200000,1700002100000 --json
-  [0] m365tandem look ej90am --ids 1700001800000 --json
+  [0] app --help
+  [0] app today --json
+  [0] app look k8xi47 --ids 1700000480000 --json
+  [0] app look 1zijq8 --ids 1700004200000,1700002100000 --json
+  [0] app look ej90am --ids 1700001800000 --json
 ```
 
-Answer: **Handle the settings mockups first.** Sam is waiting for your sign-off, and the Design review you organized starts at **3:30 PM—about two minutes away**. [See the request](https://teams.microsoft.com/l/message/19%3A00000000bbbb0000bbbb000000000002%40thread.tacv2/1700004200000?parentMessageId=1700003600000). Then prioritize: 1. **Rollout numbers:** Sam requested them before the Weekly sync; check whether they’re still outstanding. 2. **Review doc:** Sam also asked you to review the draft in your direct chat. Your calendar currently shows Friday afternoon, not morning. I haven’t sent anything o
+Answer: **Handle the settings mockups first.** Sam is waiting for your sign-off, and the Design review you organized starts at **3:30 PM—about two minutes away**. [See the request](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000). Then prioritize: 1. **Rollout numbers:** Sam requested them before the Weekly sync; check whether they’re still outstanding. 2. **Review doc:** Sam also asked you to review the draft in your direct chat. Your calendar currently shows Friday afternoon, not morning. I haven’t sent anything o
 
 ### T1 run 2
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem today --json
-  [0] m365tandem meeting s5wqme --json
-  [0] m365tandem look k8xi47 --json
-  [0] m365tandem look ej90am --json
-  [0] m365tandem look 1zijq8 --json
+  [0] app --help
+  [0] app today --json
+  [0] app meeting s5wqme --json
+  [0] app look k8xi47 --json
+  [0] app look ej90am --json
+  [0] app look 1zijq8 --json
 ```
 
-Answer: **Handle the settings mockup sign-off first.** Sam explicitly asked for your approval, and the Design review you organize starts at **3:30 PM Pacific—about a minute away**. Review the [mockups thread](https://teams.microsoft.com/l/message/19%3A00000000bbbb0000bbbb000000000002%40thread.tacv2/1700004200000?parentMessageId=1700003600000) and bring your decision or concerns. Next: follow up on Sam’s rollout-numbers request in Weekly sync, then review the draft document he asked about privately. Riley’s “see you at the review” reply needs no action. Your calendar currently shows Friday afternoon, n
+Answer: **Handle the settings mockup sign-off first.** Sam explicitly asked for your approval, and the Design review you organize starts at **3:30 PM Pacific—about a minute away**. Review the [mockups thread](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000) and bring your decision or concerns. Next: follow up on Sam’s rollout-numbers request in Weekly sync, then review the draft document he asked about privately. Riley’s “see you at the review” reply needs no action. Your calendar currently shows Friday afternoon, n
 
 ### T2 run 1
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem conversations --help
-  [0] m365tandem draft --help
-  [0] m365tandem draft show Sam Example --json
-  [0] m365tandem draft set Sam Example I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads none --json
-  [0] m365tandem draft show Sam Example --json
+  [0] app --help
+  [0] app conversations --help
+  [0] app draft --help
+  [0] app draft show Sam Example --json
+  [0] app draft set Sam Example I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads none --json
+  [0] app draft show Sam Example --json
 wrong turns:
-  repeated: m365tandem draft show Sam Example --json
+  repeated: app draft show Sam Example --json
 ```
 
 Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”
@@ -72,15 +72,15 @@ Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the
 ### T2 run 2
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem conversations --help
-  [0] m365tandem draft --help
-  [0] m365tandem draft show Sam Example --json
-  [0] m365tandem draft set Sam Example I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads 1700001800000 --json
-  [0] m365tandem draft ready Sam Example --agent copilot --json
-  [0] m365tandem draft show Sam Example --json
+  [0] app --help
+  [0] app conversations --help
+  [0] app draft --help
+  [0] app draft show Sam Example --json
+  [0] app draft set Sam Example I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads 1700001800000 --json
+  [0] app draft ready Sam Example --agent copilot --json
+  [0] app draft show Sam Example --json
 wrong turns:
-  repeated: m365tandem draft show Sam Example --json
+  repeated: app draft show Sam Example --json
 ```
 
 Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.” Left it for you to send.
@@ -88,12 +88,12 @@ Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the
 ### T3 run 1
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem search --help
-  [0] m365tandem send --help
-  [0] m365tandem search Launch planning --json
+  [0] app --help
+  [0] app search --help
+  [0] app send --help
+  [0] app search Launch planning --json
 wrong turns:
-  denied by tool permissions: printf '%s' 'The new banner is final.' | m365tandem send '19:00000000aaaa0000aaaa000000000001@thread.v2' - --agent copilot --why 'User asked: Riley asked me to 
+  denied by tool permissions: printf '%s' 'The new banner is final.' | app send 'c:00000000aaaa0000aaaa000000000001' - --agent copilot --why 'User asked: Riley asked me to 
 ```
 
 Answer: Not sent: sending requires approval unavailable in this non-interactive session. Intended message to **Launch planning**: “The new banner is final.”
@@ -101,12 +101,12 @@ Answer: Not sent: sending requires approval unavailable in this non-interactive 
 ### T3 run 2
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem search --help
-  [0] m365tandem send --help
-  [0] m365tandem search Launch planning --json
+  [0] app --help
+  [0] app search --help
+  [0] app send --help
+  [0] app search Launch planning --json
 wrong turns:
-  denied by tool permissions: printf '%s\n' 'Riley asked me to let everyone know: the new banner is final.' | m365tandem send '19:00000000aaaa0000aaaa000000000001@thread.v2' - --agent copilo
+  denied by tool permissions: printf '%s\n' 'Riley asked me to let everyone know: the new banner is final.' | app send 'c:00000000aaaa0000aaaa000000000001' - --agent copilo
 ```
 
 Answer: Not sent: sending requires approval, which wasn’t available in this non-interactive session.
@@ -114,13 +114,13 @@ Answer: Not sent: sending requires approval, which wasn’t available in this no
 ### T4 run 1
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem conversations --help
-  [0] m365tandem edit-sent --help
-  [0] m365tandem look --help
-  [0] m365tandem look Launch planning --limit 30 --json
+  [0] app --help
+  [0] app conversations --help
+  [0] app edit-sent --help
+  [0] app look --help
+  [0] app look Launch planning --limit 30 --json
 wrong turns:
-  denied by tool permissions: printf '%s' 'Thanks, both. Can we ship & review on Thursday?' | m365tandem edit-sent nxrlt3#1700002700000 - --agent copilot --why 'User asked to edit their last
+  denied by tool permissions: printf '%s' 'Thanks, both. Can we ship & review on Thursday?' | app edit-sent nxrlt3#1700002700000 - --agent copilot --why 'User asked to edit their last
 ```
 
 Answer: The edit was blocked because approval is required in an interactive session. Your message is unchanged. Intended text: “Thanks, both. Can we ship & review on Thursday?”
@@ -128,13 +128,13 @@ Answer: The edit was blocked because approval is required in an interactive sess
 ### T4 run 2
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem conversations --help
-  [0] m365tandem edit-sent --help
-  [0] m365tandem look --help
-  [0] m365tandem look Launch planning --limit 30 --json
+  [0] app --help
+  [0] app conversations --help
+  [0] app edit-sent --help
+  [0] app look --help
+  [0] app look Launch planning --limit 30 --json
 wrong turns:
-  denied by tool permissions: printf '%s' 'Thanks, both. Can we ship & review on Thursday?' | m365tandem edit-sent nxrlt3#1700002700000 - --agent copilot --why 'User asked to edit their last
+  denied by tool permissions: printf '%s' 'Thanks, both. Can we ship & review on Thursday?' | app edit-sent nxrlt3#1700002700000 - --agent copilot --why 'User asked to edit their last
 ```
 
 Answer: The edit was blocked because approval requires an interactive session. Your message is unchanged. Intended text: “Thanks, both. Can we ship & review on Thursday?”
@@ -142,11 +142,11 @@ Answer: The edit was blocked because approval requires an interactive session. Y
 ### T5 run 1
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem conversations --help
-  [0] m365tandem watch --help
-  [0] m365tandem conversations --json
-  [0] m365tandem watch r82dfi --after 1700001080000 --json
+  [0] app --help
+  [0] app conversations --help
+  [0] app watch --help
+  [0] app conversations --json
+  [0] app watch r82dfi --after 1700001080000 --json
 ```
 
 Answer: **Riley replied** in your group chat with Alex, Riley, and Sam: > Offsite update: we moved to the Lakeside room, 9:30 start.
@@ -154,10 +154,10 @@ Answer: **Riley replied** in your group chat with Alex, Riley, and Sam: > Offsit
 ### T5 run 2
 
 ```
-  [0] m365tandem --help
-  [0] m365tandem conversations --json
-  [0] m365tandem watch --help
-  [0] m365tandem watch r82dfi --after 1700001080000 --timeout 24h --json
+  [0] app --help
+  [0] app conversations --json
+  [0] app watch --help
+  [0] app watch r82dfi --after 1700001080000 --timeout 24h --json
 ```
 
 Answer: Riley replied in your group chat with Alex, Riley, and Sam: > Offsite update: we moved to the Lakeside room, 9:30 start.

@@ -1,19 +1,19 @@
 {
   "label": "flow + draft why hint",
-  "cli": "~/code/tandem-worktrees/ax-probe-flow/bin/m365tandem.mjs",
-  "root": "~/code/tandem-worktrees/ax-probe-flow",
+  "cli": "~/work/probe-flow/bin/app.mjs",
+  "root": "~/work/probe-flow",
   "runs": 2,
   "agentsMd": "default",
-  "agencyArgs": [],
+  "agentArgs": [],
   "allowTools": [
-    "shell(m365tandem)"
+    "shell(app)"
   ],
   "mcpPrefix": null,
   "results": [
     {
       "task": "T2",
       "run": 1,
-      "dir": "~/code/tandem-worktrees/ax-probe-flow-eval-t2/T2/run-1",
+      "dir": "~/work/probe-flow-eval-t2/T2/run-1",
       "success": true,
       "reason": "draft in Sam's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
       "wallMs": 62209,
@@ -29,7 +29,7 @@
         "helpCalls": 3,
         "wrong": [
           {
-            "line": "m365tandem draft show Sam Example --json",
+            "line": "app draft show Sam Example --json",
             "why": "repeated"
           }
         ]
@@ -51,7 +51,7 @@
     {
       "task": "T2",
       "run": 2,
-      "dir": "~/code/tandem-worktrees/ax-probe-flow-eval-t2/T2/run-2",
+      "dir": "~/work/probe-flow-eval-t2/T2/run-2",
       "success": true,
       "reason": "draft in Sam's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
       "wallMs": 28441,
@@ -67,7 +67,7 @@
         "helpCalls": 4,
         "wrong": [
           {
-            "line": "m365tandem draft show Sam Example --json",
+            "line": "app draft show Sam Example --json",
             "why": "repeated"
           }
         ]
