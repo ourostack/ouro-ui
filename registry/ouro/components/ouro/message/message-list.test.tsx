@@ -114,6 +114,35 @@ afterEach(async () => {
 });
 
 describe("MessageList", () => {
+  it("sits a short conversation at its bottom, by the composer under it, with the room above it empty", async () => {
+    const { scroller } = await render(<Chat items={history(2)} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const messages = scroller.querySelectorAll('[data-ouro="message"]');
+    const last = messages[messages.length - 1]!.getBoundingClientRect();
+    const padding = parseFloat(getComputedStyle(content).paddingBottom);
+    expect(scroller.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(padding, 0);
+    expect(messages[0]!.getBoundingClientRect().top - scroller.getBoundingClientRect().top).toBeGreaterThan(padding);
+    expect(scroller.scrollHeight).toBe(scroller.clientHeight);
+  });
+
+  it("sits what starts a short conversation, its first child, right above the first message", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <p data-start="" style={{ margin: 0 }}>
+          The start of your conversation with Ada
+        </p>
+        <Message role="user" name="Ada">
+          Hello
+        </Message>
+      </MessageList>,
+    );
+    const start = scroller.querySelector("[data-start]")!.getBoundingClientRect();
+    const first = scroller.querySelector('[data-ouro="message"]')!.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(scroller.querySelector("[data-ouro-message-list-content]")!).rowGap);
+    expect(first.top - start.bottom).toBeCloseTo(gap, 0);
+    expect(start.top - scroller.getBoundingClientRect().top).toBeGreaterThan(gap);
+  });
+
   it("outlines the scrollable region under forced colours, so a contrast theme shows where it ends", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     try {
