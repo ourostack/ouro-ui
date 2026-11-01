@@ -98,7 +98,7 @@ async function visitStates(id: string, host: HTMLElement, visit: (state: string)
  * size. A pull request's reduced run checks only the rows whose stories it renders (`storySelected`).
  */
 export function describeRows(title: string, rowsToCheck: ControlRow[], sizes: Size[]): void {
-  const selected = sliced(rowsToCheck.filter((row) => row.stories.some(storySelected)));
+  const selected = sliced(rowsToCheck.filter((row) => row.stories.some(storySelected)), "controls: rows");
   describe(title, () => {
     it("has rows", () => {
       expect(rowsToCheck.length).toBeGreaterThan(0);
@@ -142,7 +142,7 @@ export function describeRows(title: string, rowsToCheck: ControlRow[], sizes: Si
 export function describeStories(title: (size: Size) => string, sizes: Size[]): void {
   for (const size of sizes) {
     describe(title(size), () => {
-      it.each(sliced(selectedStories))("$id leaves no control unmarked", async ({ id, Story }) => {
+      it.each(sliced(selectedStories, "controls: unmarked"))("$id leaves no control unmarked", async ({ id, Story }) => {
         if (size) await page.viewport(size.width, size.height);
         const host = await renderStory(Story);
         await settle();

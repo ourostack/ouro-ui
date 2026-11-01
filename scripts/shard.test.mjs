@@ -160,6 +160,26 @@ test("the sliced suites are exactly the browser tests that slice what they itera
   for (const suite of slicedSuites) assert.match(suite, /\.test\.tsx$/);
 });
 
+test("a sliced check runs each item exactly once across the shards, in each project, and its slices start at a shard of its own (test/slice.ts)", async () => {
+  const { offsetOf, sliceOf } = await import("../test/slice-core.ts");
+  const list = Array.from({ length: 101 }, (_, item) => item);
+  // Every check named in the sliced suites, in each project that runs it (test/slice.ts's project names).
+  const sources = ["test", "site/src"].flatMap((dir) => readdirSync(join(root, dir), { recursive: true }).map(String).filter((file) => /\.tsx?$/.test(file) && statSync(join(root, dir, file)).isFile()).map((file) => readFileSync(join(root, dir, file), "utf8")));
+  const checks = [...new Set(sources.flatMap((source) => [...source.matchAll(/\bsliced\([^;]*?, "([^"]+)"\)/gs)].map((match) => match[1])))];
+  assert.ok(checks.length >= 9, `the checks named in sliced(): ${checks.join(", ")}`);
+  const keys = ["chromium", "webkit", "chromium touch"].flatMap((project) => checks.map((check) => `${project} ${check}`));
+  for (const count of [1, 2, 3, 6, 12, 16, 24]) {
+    for (const key of keys) {
+      const runs = Array.from({ length: count }, (_, index) => sliceOf(list, index + 1, count, key)).flat();
+      assert.deepEqual(runs.toSorted((a, b) => a - b), list, `${key} at ${count} shards: each item once`);
+    }
+    // The first item, a heavy story or not, starts in more than one shard across the checks and projects.
+    if (count > 1) assert.ok(new Set(keys.map((key) => offsetOf(key, count))).size > Math.min(count, keys.length) / 2, `offsets at ${count} shards spread`);
+  }
+  // The same check in the same project starts at the same shard on every run.
+  assert.equal(offsetOf("webkit stories: axe", 16), offsetOf("webkit stories: axe", 16));
+});
+
 test("an install shard takes the app's shipped files by the time each took here, over every Vitest project", () => {
   const timings = {
     "ouro-chromium (chromium) registry/ouro/components/ouro/a/a.test.tsx": 300,
