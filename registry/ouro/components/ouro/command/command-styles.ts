@@ -126,8 +126,8 @@ function fold(text: string): string {
  * @internal
  * @claim "Whether a command matches the query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
  */
-function matchesQuery(label: string, keywords: readonly string[] | undefined, query: string): boolean {
-  const text = fold([label, ...(keywords ?? [])].join(" "));
+function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
+  const text = fold([label, ...keywords].join(" "));
   return fold(query)
     .split(/\s+/)
     .every((word) => text.includes(word));
@@ -147,6 +147,7 @@ function queryRanges(text: string, query: string): TextRange[] {
   const folded = fold(text);
   if (folded.length !== text.length) return [];
   const ranges: [number, number][] = [];
+  // Stryker disable next-line Regex: an empty word between two spaces is dropped by the filter after it.
   for (const word of fold(query).split(/\s+/).filter(Boolean)) {
     for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + word.length)) ranges.push([at, at + word.length]);
   }
