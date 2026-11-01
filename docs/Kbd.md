@@ -2,7 +2,7 @@
 
 # Kbd
 
-A keyboard shortcut, in the reader's platform's notation: `keys={["mod", "k"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. Symbols carry their spoken name for screen readers. It sizes itself to the surrounding text, so it fits in a Menu item, a Tooltip or a sentence.
+A keyboard shortcut, in the reader's platform's notation: `keys={["mod", "k"]}` shows ⌘K on a Mac, iPhone or iPad and Ctrl+K elsewhere. Symbols carry their spoken name for screen readers, and draw as text even where they are also emoji (↩). It sizes itself to the surrounding text, so it fits in a Menu item, a Tooltip or a sentence.
 
 ```tsx
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";

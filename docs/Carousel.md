@@ -2,7 +2,7 @@
 
 # Carousel
 
-A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. It is the browser's own scrolling with snap points, so swiping, trackpads and arrow keys all work and a vertical swipe still scrolls the page. Each child is a slide named "Slide 2 of 5", and moving to another slide announces that position politely, once. It never moves on its own, and with reduced motion the buttons jump instead of scrolling smoothly.
+A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. It is the browser's own scrolling with snap points, so swiping, trackpads and arrow keys all work and a vertical swipe still scrolls the page. Each child is a slide named "Slide 2 of 5", and moving to another slide announces that position politely, once. It never moves on its own, and with reduced motion the buttons jump instead of scrolling smoothly. With every slide in view (one slide, or no more than `slidesPerView`) the buttons hide.
 
 ```tsx
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";

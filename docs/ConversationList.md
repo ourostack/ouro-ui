@@ -2,7 +2,7 @@
 
 # ConversationList
 
-A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. The open conversation's row is highlighted and marked `aria-current`. The list is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows move between rows, Home and End jump to the first and last, and Enter, Space or a click calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
+A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. The open conversation's row is highlighted, under the pointer too, and marked `aria-current`. The list is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows move between rows, Home and End jump to the first and last, and Enter, Space or a click calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
 
 ```tsx
 import { ConversationList } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
