@@ -278,6 +278,12 @@ describe("Message development messages", () => {
       "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
       'avatar={<Avatar name="Ouro" alt="" size="sm" presence="busy" presenceLabel="In a meeting" />}',
     ],
+    [
+      "a presence without words beside an Avatar element",
+      { presence: "out-of-office", avatar: <Avatar name="Ouro" alt="" size="sm" /> },
+      "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
+      'avatar={<Avatar name="Ouro" alt="" size="sm" presence="out-of-office" presenceLabel="Out of office" />}',
+    ],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { role: "assistant", name: "Ouro", children: "Hi", ...extra } as unknown as Parameters<typeof Message>[0];
     const { message } = await render(<Message {...props} />);

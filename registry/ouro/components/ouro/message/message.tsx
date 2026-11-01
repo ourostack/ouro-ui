@@ -295,6 +295,8 @@ export function Message(props: MessageProps): JSX.Element {
       ? (token: string) => `remove "${token}"; the bubble color follows role`
       : /* istanbul ignore next @preserve -- production only */ "",
   );
+  // The words a presence's fix suggests: the app's own label, else the presence's name.
+  const presenceWords = presence === undefined ? "" : presenceLabel || `${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}`;
   useDevWarnings(
     "Message",
     process.env.NODE_ENV !== "production"
@@ -312,12 +314,12 @@ export function Message(props: MessageProps): JSX.Element {
           presence !== undefined &&
             isValidElement(avatar) && [
               "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
-              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${presenceLabel ?? ""}" />}`,
+              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${presenceWords}" />}`,
             ],
           presence !== undefined &&
             !presenceLabel && [
               "presenceLabel is missing, so screen readers hear no presence",
-              `<Message presence="${presence}" presenceLabel="${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}">`,
+              `<Message presence="${presence}" presenceLabel="${presenceWords}">`,
             ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,

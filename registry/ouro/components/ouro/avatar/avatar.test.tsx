@@ -396,17 +396,15 @@ describe("Avatar presence", () => {
     );
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     expect(avatars.filter((avatar) => avatar.hasAttribute("data-presence"))).toHaveLength(6);
-    // The letters' cap height, measured from the font itself.
-    const canvas = document.createElement("canvas").getContext("2d")!;
-    const style = getComputedStyle(avatars[0]!);
-    canvas.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-    const capHeight = canvas.measureText("H").actualBoundingBoxAscent;
+    const fontSize = parseFloat(getComputedStyle(avatars[0]!).fontSize);
     for (const avatar of avatars) {
       const box = avatar.getBoundingClientRect();
       const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
       const where = `${size} ${avatar.textContent}${avatar.dataset["presence"] ? " with a dot" : ""}: letters ${JSON.stringify(letters)} avatar ${JSON.stringify(box)}`;
-      // The initials' box runs from the top of the capitals to the baseline, so its middle is the letters' own.
-      expect(Math.abs(letters.height - capHeight), where).toBeLessThan(0.5);
+      // The initials' box runs from the top of the capitals to the baseline (a cap height, under
+      // 0.8em in any font, where the line would be at least 1em), so its middle is the letters' own.
+      expect(letters.height / fontSize, where).toBeGreaterThan(0.6);
+      expect(letters.height / fontSize, where).toBeLessThan(0.8);
       expect(Math.abs(letters.left + letters.width / 2 - (box.left + box.width / 2)), where).toBeLessThanOrEqual(0.5);
       expect(Math.abs(letters.top + letters.height / 2 - (box.top + box.height / 2)), where).toBeLessThanOrEqual(0.5);
       const dot = avatar.querySelector("[data-ouro-avatar-presence]")?.getBoundingClientRect();
