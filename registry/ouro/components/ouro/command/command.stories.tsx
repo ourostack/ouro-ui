@@ -185,7 +185,13 @@ const emoji: EmojiCatalogue = {
     },
   ],
 };
-const chat = (name: string, id: string): CommandEntry => ({ label: name, labelContent: <EmojiText text={name} catalogue={emoji} />, onSelect: noop, avatar: person(name, id) });
+const chat = (name: string, id: string): CommandEntry => ({
+  label: name,
+  labelContent: <EmojiText text={name} catalogue={emoji} />,
+  onSelect: noop,
+  // The avatar's initials come from the name's words, without its emoji.
+  avatar: person(name.replace(/\s*\p{Extended_Pictographic}/gu, ""), id),
+});
 
 /**
  * `labelContent` shows a chat's name with its emoji as an app's own pictures (here through
