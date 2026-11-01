@@ -284,16 +284,34 @@ async function timingsOf({ repository, token, runId }) {
   return artifact ? JSON.parse(unzipOne(await get(artifact.archive_download_url, token, { raw: true })).toString("utf8")) : null;
 }
 
-/** The work time of the pull request's previous full run (`previousFull`), from its branch's earlier runs. */
-async function previousRunWork({ repository, token, branch, runId }) {
-  const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&branch=${encodeURIComponent(branch)}&status=completed&per_page=10`, token);
+/** How many of a pull request's earlier runs that kept a ci-timings record are read, and over how many pages of its runs. */
+export const previousRuns = { records: 5, pages: 3, perPage: 20 };
+
+/**
+ * The work time of the pull request's previous full run (`previousFull`), from its branch's earlier
+ * runs, newest first (`runsPage(page)`, each run's record from `recordOf(runId)`): the newest of the
+ * latest `previousRuns.records` runs that kept a ci-timings record. A run that kept none, as one
+ * fail-fast or a newer push cancelled before ci-budget ran, is passed over rather than counted, so a
+ * few red pushes do not hide the full run before them; at most `previousRuns.pages` pages are read.
+ */
+export async function previousRunWorkFrom({ runsPage, recordOf, runId }, { records: keep, pages } = previousRuns) {
   const records = [];
-  for (const run of runs.filter((candidate) => String(candidate.id) !== String(runId)).slice(0, 5)) {
-    const record = await timingsOf({ repository, token, runId: run.id });
-    records.push(record);
-    if (previousFull([record]) !== null) break;
+  for (let page = 1; page <= pages && records.length < keep; page += 1) {
+    const runs = await runsPage(page);
+    for (const run of runs.filter((candidate) => String(candidate.id) !== String(runId))) {
+      const record = await recordOf(run.id);
+      if (record === null) continue;
+      records.push(record);
+      if (previousFull([record]) !== null || records.length >= keep) return previousFull(records);
+    }
+    if (runs.length < previousRuns.perPage) break;
   }
   return previousFull(records);
+}
+
+async function previousRunWork({ repository, token, branch, runId }) {
+  const runsPage = async (page) => (await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&branch=${encodeURIComponent(branch)}&status=completed&per_page=${previousRuns.perPage}&page=${page}`, token)).workflow_runs;
+  return previousRunWorkFrom({ runsPage, recordOf: (id) => timingsOf({ repository, token, runId: id }), runId });
 }
 
 /** How many of the latest runs the wall time's median and 90th percentile are taken over. */

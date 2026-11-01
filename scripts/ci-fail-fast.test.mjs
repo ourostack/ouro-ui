@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { cancelNote, DEADLINE_MS, decide, FAILED, LAST, POLL_MS, SELF, TOLERATED, watch } from "./ci-fail-fast.mjs";
+import { cancelNote, DEADLINE_MS, decide, FAILED, LAST, POLL_MS, rateLimited, requestsLeft, RESERVE, SELF, TOLERATED, watch } from "./ci-fail-fast.mjs";
 
 // Fail fast for a pull request's CI (scripts/ci-fail-fast.mjs): when it cancels the run, that it
 // waits for the failed job to finish, that it never fails the run itself, and that ci.yml runs it
@@ -46,7 +46,12 @@ test("it stops once the job that waits on every other job has finished, and not 
   assert.deepEqual(decide([], 1), { kind: "wait" });
 });
 
-/** A fake gh that answers the jobs list from `polls` in turn (an Error throws) and records every call. */
+/** What `gh api --include` prints: the status, the headers, a blank line and the body. */
+const answer = (body, left = 900) => `HTTP/2.0 200 OK\nContent-Type: application/json\nX-Ratelimit-Remaining: ${left}\n\n${JSON.stringify(body)}`;
+/** A failed gh call as execFileSync throws it, with what gh printed. */
+const failed = (stderr, stdout = "") => Object.assign(new Error(`Command failed: gh api\n${stderr}`), { stderr, stdout });
+
+/** A fake gh that answers the jobs list from `polls` in turn (an Error throws; a string is printed as is) and records every call. */
 const fakeGh = (polls, cancel = null) => {
   const calls = [];
   let index = 0;
@@ -56,9 +61,9 @@ const fakeGh = (polls, cancel = null) => {
       if (cancel) throw cancel;
       return "";
     }
-    const answer = polls[Math.min(index++, polls.length - 1)];
-    if (answer instanceof Error) throw answer;
-    return JSON.stringify([{ jobs: answer }]);
+    const next = polls[Math.min(index++, polls.length - 1)];
+    if (next instanceof Error) throw next;
+    return typeof next === "string" ? next : answer({ total_count: next.length, jobs: next });
   };
   return { gh, calls };
 };
@@ -87,7 +92,7 @@ test("it polls this run attempt's jobs until one fails, then cancels the run onc
   const { gh, calls } = fakeGh([[job("checks"), job(SELF)], [job("checks", "completed", "failure"), job("browser (1/6)"), job(SELF)]]);
   const run = watched(gh);
   assert.equal(await run.done, "cancel");
-  assert.deepEqual(calls[0], ["api", "--paginate", "--slurp", "repos/o/r/actions/runs/7/attempts/1/jobs?per_page=100"]);
+  assert.deepEqual(calls[0], ["api", "--include", "repos/o/r/actions/runs/7/attempts/1/jobs?per_page=100&page=1"]);
   assert.deepEqual(calls.at(-1), ["api", "-X", "POST", "repos/o/r/actions/runs/7/cancel"]);
   assert.equal(calls.filter((call) => call.includes("POST")).length, 1);
   assert.deepEqual(run.waits, [POLL_MS]);
@@ -101,11 +106,43 @@ test("it never fails the run: a failed read is a warning and the next poll tries
   const first = watched(read.gh);
   assert.equal(await first.done, "done");
   assert.ok(first.lines.includes("::warning::Could not read this run's jobs (HTTP 502); trying again."));
+  assert.equal(read.calls.length, 2);
   assert.equal(read.calls.filter((call) => call.includes("POST")).length, 0, "nothing failed, nothing cancelled");
   const cancel = fakeGh([[job("checks", "completed", "failure")]], new Error("HTTP 403: Resource not accessible by integration"));
   const second = watched(cancel.gh);
   assert.equal(await second.done, "cancel");
   assert.ok(second.lines.some((line) => /^::warning::checks failed, but cancelling the run did not work \(HTTP 403/.test(line)));
+});
+
+test("it reads every page of a run's jobs when they are more than a page holds", async () => {
+  const pages = [answer({ total_count: 3, jobs: [job("checks", "completed", "success"), job("browser (1/6)", "completed", "success")] }), answer({ total_count: 3, jobs: [job(LAST, "completed", "success")] })];
+  const { gh, calls } = fakeGh(pages);
+  assert.equal(await watched(gh).done, "done");
+  assert.deepEqual(calls.map((call) => call.at(-1).split("&").at(-1)), ["page=1", "page=2"]);
+});
+
+test("it stops watching, with a warning and nothing cancelled, once the API rate limits this repository's runs or has few requests left", async () => {
+  const stops = [
+    failed("gh: API rate limit exceeded for installation ID 1. (HTTP 403)"),
+    failed("gh: You have exceeded a secondary rate limit. (HTTP 429)"),
+    failed("gh: Forbidden (HTTP 403)", "HTTP/2.0 403 Forbidden\nX-Ratelimit-Remaining: 0\n\n{}"),
+    answer({ total_count: 1, jobs: [job("checks")] }, RESERVE - 1),
+  ];
+  for (const stop of stops) {
+    const { gh, calls } = fakeGh([stop, [job("checks", "completed", "failure")]]);
+    const run = watched(gh);
+    assert.equal(await run.done, "rate-limited");
+    assert.equal(calls.length, 1, "no other read, and no cancel");
+    assert.deepEqual(run.waits, []);
+    assert.ok(run.lines.some((line) => /^::warning::Stopped watching: the API is rate limiting this repository's runs/.test(line)), run.lines.join("\n"));
+  }
+  // Another failure is tried again, and requests to spare go on.
+  assert.equal(rateLimited("gh: Server Error (HTTP 502)"), false);
+  assert.equal(rateLimited("Retry-After: 60"), true);
+  assert.equal(requestsLeft("HTTP/2.0 200 OK\nX-Ratelimit-Remaining: 731"), 731);
+  assert.equal(requestsLeft("HTTP/2.0 200 OK"), null);
+  const { gh } = fakeGh([answer({ total_count: 1, jobs: [job("checks")] }, RESERVE), [job(LAST, "completed", "success")]]);
+  assert.equal(await watched(gh).done, "done");
 });
 
 test("it gives up before its job's time limit, so a long run never turns the watcher red, and polls within the token's hourly requests", async () => {
@@ -115,7 +152,7 @@ test("it gives up before its job's time limit, so a long run never turns the wat
   assert.equal(run.waits.length, DEADLINE_MS / POLL_MS);
   const minutes = Number(jobs[SELF].match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
   assert.ok(DEADLINE_MS < minutes * 60_000, "the deadline is under timeout-minutes");
-  assert.ok(3_600_000 / POLL_MS <= 240, "at most 240 reads an hour per run, of the 1,000 a repository's GITHUB_TOKEN gets");
+  assert.equal(3_600_000 / POLL_MS, 60, "60 reads an hour per run, of the 1,000 a repository's GITHUB_TOKEN gets on the Team plan");
 });
 
 test("ci.yml runs fail-fast beside every job, on pull requests only, with the least it needs, and nothing else cancels or writes to Actions", () => {
