@@ -1,0 +1,1 @@
+- Fixed: a TimeGrid week's background bars, a few pixels wide, have a hit area the size of a small control to a mouse too, from the bar's top start corner, so they are easy to point at; the bars look the same, and the person's own events stay above the hit area.

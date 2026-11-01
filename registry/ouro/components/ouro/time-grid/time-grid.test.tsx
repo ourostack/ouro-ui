@@ -1159,6 +1159,33 @@ describe("TimeGrid background events", () => {
     expect(titled("Architecture forum").getBoundingClientRect().left).toBeGreaterThanOrEqual(lane.getBoundingClientRect().right);
   });
 
+  it("gives a week's thin bar a hit area at least 24px square to a mouse from its top corner, without growing the bar", async () => {
+    const short: TimeGridEvent = { id: "short", title: "Quick sync", start: at(10, "14:00"), end: at(10, "14:15") };
+    const { rerender } = await render({ events: [standup], backgroundEvents: [early, short] });
+    for (const title of ["Early sync", "Quick sync"]) {
+      const bar = spokenAs(title);
+      bar.scrollIntoView({ block: "center" });
+      const box = bar.getBoundingClientRect();
+      // The bar itself stays a slim press target in its share of the lane.
+      expect(box.width).toBeLessThanOrEqual(12);
+      expect(bar.querySelector<HTMLElement>("[data-ouro-time-grid-bar]")!.offsetWidth).toBe(4);
+      const [x, y] = [box.left, box.top];
+      const missed: string[] = [];
+      for (let dx = 0.5; dx <= 23.5; dx += 2.5) {
+        for (let dy = 0.5; dy <= 23.5; dy += 2.5) {
+          if (document.elementFromPoint(x + dx, y + dy)?.closest("[data-ouro-event-key]") !== bar) missed.push(`${dx},${dy}`);
+        }
+      }
+      expect(missed).toEqual([]);
+    }
+    // The person's own event beside a bar stays on top of the bar's hit area.
+    await rerender({ events: [{ id: "own", title: "Own sync", start: at(10, "09:00"), end: at(10, "10:00") }], backgroundEvents: [early, short] });
+    titled("Own sync").scrollIntoView({ block: "center" });
+    const own = titled("Own sync").getBoundingClientRect();
+    expect(own.left).toBeLessThan(spokenAs("Early sync").getBoundingClientRect().left + 24);
+    expect(document.elementFromPoint(own.left + 2, own.top + 4)?.closest("[data-ouro-event-key]")).toBe(titled("Own sync"));
+  });
+
   it("takes the arrow keys through background events in time order with the rest", async () => {
     await render({ view: "day", events: [forum, focus], backgroundEvents: [hands, { ...review, start: at(12, "09:00") }] });
     // The person's own events come first in the page, each day's background lane after them.
