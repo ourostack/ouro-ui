@@ -227,3 +227,23 @@ export const Springs: Story = {
     </Surface>
   ),
 };
+
+/** Older messages loading over the top of a conversation scrolled back to its start: no message moves as it shows. */
+export const LoadingOlder: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => (
+    <Surface>
+      <MessageList label="Conversation with Ouro" style={{ height: 420 }} loadingOlder>
+        {start.map((item) => (
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada Lovelace" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    canvasElement.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollTop = 0;
+    await frameUntil(() => canvasElement.querySelector("[data-ouro-message-list-jump]"));
+  },
+};
