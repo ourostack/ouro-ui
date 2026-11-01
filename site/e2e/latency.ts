@@ -63,6 +63,11 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
  * a person's would be a beat later.
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
+  // PROBE (never merge): a style on the chapters, from PROBE_STYLE.
+  if (process.env["PROBE_STYLE"]) {
+    await page.addStyleTag({ content: `section[data-chapter] { ${process.env["PROBE_STYLE"]} }` });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 200)))));
+  }
   await page.evaluate(() => {
     const store: number[] = [];
     (window as unknown as { __latency: number[] }).__latency = store;

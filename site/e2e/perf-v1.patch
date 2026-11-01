@@ -1,0 +1,95 @@
+diff --git a/site/src/voyage/chapters/chapter-three.tsx b/site/src/voyage/chapters/chapter-three.tsx
+index 15a5b448..e244a6c9 100644
+--- a/site/src/voyage/chapters/chapter-three.tsx
++++ b/site/src/voyage/chapters/chapter-three.tsx
+@@ -14,7 +14,7 @@ import { Container } from "../layout";
+ import { parseArt, type Art } from "../stage/art";
+ import type { CrewLine } from "./copy";
+ import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
+-import { useAfterPaint } from "../after-paint";
++import { afterPaint, useAfterPaint } from "../after-paint";
+ import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+ // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
+ // inside this island's script and goes into the page as the island hydrates.
+@@ -188,9 +188,12 @@ function OrganArt({ small = false, played, label }: { small?: boolean; played: b
+ }
+ 
+ /**
+- * The organ's tune, in the press that plays it: the famous opening flourish of Bach's Toccata in
++ * The organ's tune, from the press that plays it: the famous opening flourish of Bach's Toccata in
+  * D minor, on a few sine waves an octave apart, quiet, about three seconds. Web Audio only, made
+- * here; nothing is fetched. Where the browser has no Web Audio, the organ plays in silence.
++ * here; nothing is fetched. Where the browser has no Web Audio, the organ plays in silence. The
++ * press makes the audio context, so a browser that only lets a press start sound lets it play;
++ * its three dozen pipes are built in a task after the press's frame (afterPaint), which they held
++ * up by several milliseconds on a slow CPU, and the first note starts 50 ms after that.
+  */
+ const TUNE: ReadonlyArray<[midi: number, beats: number]> = [
+   [81, 0.25], [79, 0.25], [81, 1.5], [79, 0.25], [77, 0.25], [76, 0.25], [74, 0.25], [73, 0.75], [74, 2],
+@@ -199,6 +202,11 @@ export function playTune(): void {
+   const Context = typeof window === "undefined" ? undefined : window.AudioContext;
+   if (!Context) return;
+   const audio = new Context();
++  afterPaint(() => play(audio));
++}
++
++/** Builds the tune's pipes on `audio` and plays them, then closes it. */
++function play(audio: AudioContext): void {
+   const out = audio.createGain();
+   out.gain.value = 0.08;
+   out.connect(audio.destination);
+diff --git a/site/src/voyage/chapters/chapter-two.tsx b/site/src/voyage/chapters/chapter-two.tsx
+index 8d0e024d..8636275f 100644
+--- a/site/src/voyage/chapters/chapter-two.tsx
++++ b/site/src/voyage/chapters/chapter-two.tsx
+@@ -413,7 +413,7 @@ function arrange(rows: readonly Specimen[], sort: Sort, show: string): Specimen[
+ /**
+  * Aronnax's catalogue: sort and filter the specimens (the site does both; HX Table shows the rows),
+  * point at a name for Aronnax's note (HoverCard), class each new find (Combobox, checked by
+- * Conseil with a Toast), and visit Nemo's museum (Sheet).
++ * Conseil with a Toast), and visit Nemo's museum (Museum).
+  */
+ function Catalogue(): JSX.Element {
+   const store = usePlanStore();
+@@ -423,7 +423,6 @@ function Catalogue(): JSX.Element {
+   const [found, setFound] = useState<readonly string[]>([]);
+   const [guess, setGuess] = useState<string | null>(null);
+   const [line, setLine] = useState<CrewLine>(CLASSING.opening);
+-  const [museum, setMuseum] = useState(false);
+   const find = FINDS[found.length];
+   const all = useMemo(() => [...SPECIMENS, ...FINDS.filter((each) => found.includes(each.id))], [found]);
+   const rows = useMemo(() => arrange(all, sort, show), [all, sort, show]);
+@@ -512,16 +511,27 @@ function Catalogue(): JSX.Element {
+             {CATALOGUE.done}
+           </p>
+         )}
+-        <div data-chapter-control="museum">
+-          <Button variant="outline" tone="secondary" aria-haspopup="dialog" onClick={() => setMuseum(true)}>
+-            {CATALOGUE.museum}
+-          </Button>
+-        </div>
++        <Museum />
+       </div>
+       <div className="border-t border-border/70 py-4">
+         <Crew line={line} />
+       </div>
+-      <Sheet title={MUSEUM.title} description={MUSEUM.description} side="right" open={museum} onOpenChange={setMuseum}>
++    </div>
++  );
++}
++
++/**
++ * Nemo's museum: its button and its Sheet, which keep whether it is open to themselves, so opening
++ * it renders only the Sheet, not the catalogue's table, its notes and the find around it.
++ */
++function Museum(): JSX.Element {
++  const [open, setOpen] = useState(false);
++  return (
++    <div data-chapter-control="museum">
++      <Button variant="outline" tone="secondary" aria-haspopup="dialog" onClick={() => setOpen(true)}>
++        {CATALOGUE.museum}
++      </Button>
++      <Sheet title={MUSEUM.title} description={MUSEUM.description} side="right" open={open} onOpenChange={setOpen}>
+         <ItemGroup aria-label={MUSEUM.title}>
+           {MUSEUM.treasures.map((treasure) => (
+             <Item key={treasure.name} title={treasure.name} description={treasure.note} />
