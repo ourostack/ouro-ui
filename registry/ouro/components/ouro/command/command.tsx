@@ -1,7 +1,7 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { floatingHint } from "@/registry/ouro/lib/ouro/floating";
@@ -274,6 +274,11 @@ function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
  *
  * @claim "A 16px magnifier in the text" registry/ouro/components/ouro/command/command.tsx verify:fileLine(registry/ouro/components/ouro/command/command.tsx, /<svg\saria-hidden="true"\sviewBox="0\s0\s16\s16"\sfill="none">/)
  */
+/** Sets the palette's floor to its width now, so its width can grow and not shrink while it is open. */
+function holdWidth(popup: HTMLElement): void {
+  popup.style.minWidth = `min(100%, ${getComputedStyle(popup).width})`;
+}
+
 /** Marks the hidden input Base UI keeps the query in. */
 const markInput = controlRef("command", "hidden-input");
 
@@ -292,6 +297,8 @@ function SearchIcon(): JSX.Element {
  * move the highlight, and Enter runs the highlighted command. Commands come in labelled
  * groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px
  * it is a full-height bottom sheet, whose search input stays put while the results filter.
+ * Above it, the dialog fits its commands, from 32rem up to 40rem, and keeps that width while
+ * they filter.
  * A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`,
  * so a palette that jumps to any chat shows who each one is with and what is new.
  *
@@ -337,6 +344,8 @@ function SearchIcon(): JSX.Element {
  *     mark: chat.unread > 0 && <Badge>{chat.unread}</Badge>,
  *   }))}
  * />
+ * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > widens to fit a longer command, up to 40rem)
+ * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while results filter)
  * @claim "A command can lead with an" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
  * @claim "Below 640px it is a full-height" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > is a full-height bottom sheet below 640px, whose search input stays put while results filter)
  * @claim "A command palette: a searchable list" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > opens a dialog named by its title, with the search input focused and every group listed)
@@ -416,7 +425,17 @@ export function Command(props: CommandProps): JSX.Element {
   const sheet = useSheetPresentation("auto");
 
   const triggerRef = useRef<HTMLElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  // The dialog fits its commands, from 32rem to 40rem, and then never narrows while it is open: its floor is the
+  // widest it has been, taken when it opens and after every render, so filtering or a server's answer never moves
+  // the input or the rows.
+  const attachPopup = useCallback((popup: HTMLDivElement | null) => {
+    popupRef.current = popup;
+    if (popup) holdWidth(popup);
+  }, []);
+  useLayoutEffect(() => {
+    if (popupRef.current) holdWidth(popupRef.current);
+  });
   // A Server Component's trigger can arrive as a lazy wrapper; resolve it before cloning.
   const triggerElement = serverElement(trigger);
   const triggerProps = (triggerElement?.props ?? {}) as TriggerProps;
@@ -596,9 +615,9 @@ export function Command(props: CommandProps): JSX.Element {
             <DialogViewport>
               <DialogPopupUnchecked
                 data-ouro-instant=""
-                ref={popupRef}
-                size="lg"
-                className={className}
+                ref={attachPopup}
+                size="auto"
+                className={cn("max-w-[min(100%,40rem)]", className)}
                 // The input after a key press or click; the palette itself after a touch or pen
                 // tap, so no software keyboard pops up.
                 initialFocus={() => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true)}
