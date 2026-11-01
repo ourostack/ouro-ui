@@ -638,12 +638,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const follow = new ResizeObserver(hold);
     follow.observe(content);
     follow.observe(scroller);
-    // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: the
-    // anchor is held as they move, before the browser draws. A move that also resizes the list is held here first,
-    // and the resize observer then finds it held.
+    // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
+    // the reader is scrolled up, the anchor is held as they move, before the browser draws. A move that also resizes
+    // the list is held here first, and the resize observer then finds it held. At the end, the resize observer follows.
     const moves = new MutationObserver((records) => {
-      // Stryker disable next-line ConditionalExpression: holding when no message came, went or moved finds nothing moved; this only spares the work.
-      if (records.some(touchesItems)) hold();
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: at the end the resize observer follows in the same frame, and holding when no message came, went or moved finds nothing moved; both only spare the work.
+      if (!pinned.current && records.some(touchesItems)) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
