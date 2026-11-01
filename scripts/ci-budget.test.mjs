@@ -210,11 +210,17 @@ test("main's baseline carries the median work time of the same runs, once all of
   assert.equal(partial.workSeconds, null);
   const main = baseline([run(10, 6), run(11, 7), run(9, 5), run(12, 8), run(13, 9)]);
   assert.equal(main.workSeconds, 7 * 60);
-  const record = (full, fallback, work) => ({ full, fallback, workPathSeconds: work * 60 });
+  const record = (full, fallback, work, conclusion = "success") => ({ full, fallback, workPathSeconds: work * 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "browser (1/2)", conclusion }, { job: "ci-budget", conclusion: "failure" }] });
   assert.equal(previousFull([null, record(false, false, 3), record(true, true, 20), record(true, false, 9), record(true, false, 5)]), 9 * 60);
   assert.equal(previousFull([record(false, false, 3)]), null);
   // A record from before work times were kept does not count.
   assert.equal(previousFull([{ full: true, fallback: false, criticalPathSeconds: 600 }]), null);
+  // Nor does a run that did not pass: a flaky push fail-fast did not cancel (a fork's pull request, a
+  // rate-limit stop, its deadline) ended its chain early. ci-budget's own verdict and fail-fast do not count.
+  assert.equal(previousFull([record(true, false, 4, "failure"), record(true, false, 9)]), 9 * 60);
+  assert.equal(previousFull([record(true, false, 4, "cancelled")]), null);
+  assert.equal(previousFull([{ ...record(true, false, 9), jobs: [...record(true, false, 9).jobs, { job: "fail-fast", conclusion: "failure" }] }]), 9 * 60);
+  assert.equal(previousFull([{ full: true, fallback: false, workPathSeconds: 600 }]), null, "a record without its jobs shows no pass");
 });
 
 /**
@@ -240,13 +246,15 @@ async function previousWork(runs, runId = "this") {
 
 test("the previous full run is read past the runs that kept no timings, as fail-fast's cancelled ones, up to five that did, within three pages", async () => {
   assert.deepEqual(previousRuns, { records: 5, pages: 3, perPage: 20 });
-  const record = (full, fallback, work) => ({ full, fallback, workPathSeconds: work * 60 });
+  const record = (full, fallback, work, conclusion = "success") => ({ full, fallback, workPathSeconds: work * 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "browser (1/2)", conclusion }, { job: "ci-budget", conclusion: "failure" }] });
   // As before when every run kept its timings: this run left out, newest first, the first full one, read no further.
   const kept = [["this", null], ["a", record(false, false, 3)], ["b", record(true, true, 20)], ["c", record(true, false, 9)], ["d", record(true, false, 5)]];
   assert.deepEqual(await previousWork(kept), { minutes: 9, pages: [1], read: ["a", "b", "c"] });
   // Nor further than five that kept timings, none of them full.
   const reduced = Array.from({ length: 7 }, (_, index) => [`r${index}`, record(false, false, 3)]);
   assert.deepEqual(await previousWork([...reduced, ["full", record(true, false, 9)]]), { minutes: null, pages: [1], read: ["r0", "r1", "r2", "r3", "r4"] });
+  // A flaky push that fail-fast did not cancel kept timings but did not pass: it counts toward the five, and is passed over.
+  assert.deepEqual(await previousWork([["flaky", record(true, false, 4, "failure")], ["full", record(true, false, 9)]]), { minutes: 9, pages: [1], read: ["flaky", "full"] });
   // Six cancelled pushes no longer hide the full run before them, so its verdict stays a warning.
   const cancelled = Array.from({ length: 6 }, (_, index) => [`x${index}`, null]);
   const found = await previousWork([...cancelled, ["full", record(true, false, 9)]]);
