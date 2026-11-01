@@ -93,6 +93,8 @@ describe("Message", () => {
     await expect.element(page.getByRole("article")).toBeVisible();
     const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
     expect(author.textContent).toBe("Ouro");
+    // Without nameContent, the name is plain text.
+    expect(author.querySelector('[aria-hidden="true"], .sr-only')).toBeNull();
     expect(author.getBoundingClientRect().width).toBeGreaterThan(1);
     expect(bubbleOf(message).textContent).toBe("Preheat the oven to 220°C.");
     // The name comes first in reading order, so it is heard before the message.
