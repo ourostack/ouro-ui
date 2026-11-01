@@ -656,6 +656,10 @@ describe("TimeGrid", () => {
     await press("{Alt>}{Shift>}{KeyZ}{/Shift}{/Alt}");
     await press("{PageUp}");
     expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13"]);
+    // With it, the grid takes the key, so the page does not scroll as well.
+    const taken = new KeyboardEvent("keydown", { key: "PageDown", bubbles: true, cancelable: true });
+    titled("Architecture forum").dispatchEvent(taken);
+    expect(taken.defaultPrevented).toBe(true);
     // Without onDateChange, Page Down is the page's.
     await rerender({ view: "day", events: [forum] });
     titled("Architecture forum").focus();
@@ -1329,10 +1333,11 @@ describe("TimeGrid background events", () => {
       id: `crowd-${index}`,
       title,
       start: at(12, `09:${String(index * 10).padStart(2, "0")}`),
-      end: at(12, index === 3 ? "09:50" : "10:00"),
+      end: at(12, index === 0 ? "10:20" : index === 3 ? "09:50" : "10:00"),
     }));
     const onEventSelect = vi.fn();
-    const narrow = { events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count: number) => `${count} crowd` };
+    const later = { ...hands, start: at(12, "10:30"), end: at(12, "11:30") };
+    const narrow = { events: [forum], backgroundEvents: [...crowd, later], selectedId: "crowd-1", className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count: number) => `${count} crowd` };
     // A week draws each as a bar, however narrow.
     const { rerender } = await render({ ...narrow, view: "week" });
     const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
@@ -1340,9 +1345,12 @@ describe("TimeGrid background events", () => {
     // Four side by side in a day's 112px lane would be 28px each: one block with their count and time instead.
     await rerender({ ...narrow, view: "day" });
     await expect.poll(stack).not.toBeNull();
-    expect(plain(stack()!.textContent)).toBe("4 crowd9:00 – 10:00 AM");
+    expect(plain(stack()!.textContent)).toBe("4 crowd9:00 – 10:20 AM");
     // From the first one's start to the last one's end.
-    expect(hours(stack()!)).toEqual([9, 1]);
+    expect(hours(stack()!)).toEqual([9, 80 / 60]);
+    // The block holds the selected event, so it says so; it is the Tab stop, as the first event in time.
+    expect(stack()!.getAttribute("aria-current")).toBe("true");
+    expect([stack()!.tabIndex, titled("Architecture forum").tabIndex]).toEqual([0, -1]);
     await expect.element(page.getByRole("button", { name: /^4 crowd/ })).toBeVisible();
     expect(crowd.map((event) => events().some((element) => (element.getAttribute("aria-label") ?? "").startsWith(`${event.title}, `)))).toEqual([false, false, false, false]);
     // All hands, alone at its time, keeps its own label.
@@ -1351,12 +1359,20 @@ describe("TimeGrid background events", () => {
     titled("Architecture forum").focus();
     await press("{ArrowUp}");
     expect(document.activeElement).toBe(stack());
+    // An arrow on the block moves on, not into its list, and takes the Tab stop with it.
+    await press("{ArrowDown}");
+    expect(document.activeElement).toBe(titled("Architecture forum"));
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    expect([stack()!.tabIndex, titled("Architecture forum").tabIndex]).toEqual([-1, 0]);
+    // Focus on the block, by a click or the app, makes it the Tab stop again.
+    await act(async () => stack()!.focus());
+    expect([stack()!.tabIndex, titled("Architecture forum").tabIndex]).toEqual([0, -1]);
     // Enter opens their list, and choosing one tells the app, as a press on it would.
     await press("{Enter}");
     const menu = page.getByRole("menu");
     await expect.element(menu).toBeVisible();
     expect([...menu.element().querySelectorAll('[role="menuitem"]')].map((item) => plain(item.textContent))).toEqual([
-      "Engineering sync 9:00 – 10:00 AM",
+      "Engineering sync 9:00 – 10:20 AM",
       "Evaluation review 9:10 – 10:00 AM",
       "Search experiments 9:20 – 10:00 AM",
       "Partner briefing 9:30 – 9:50 AM",
@@ -1382,6 +1398,10 @@ describe("TimeGrid background events", () => {
     const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
     await expect.poll(stack).not.toBeNull();
     expect(plain(stack()!.textContent)).toBe("4 events9:00 – 11:00 AM");
+    // Without onEventSelect, choosing one from the list does nothing more.
+    await userEvent.click(stack()!);
+    await userEvent.click(page.getByRole("menuitem", { name: /^Wide one/ }));
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
   });
 
   it("takes the arrow keys through background events in time order with the rest", async () => {
@@ -1488,6 +1508,7 @@ describe("TimeGridNav", () => {
     await show("week");
     // Previous and Next are icons, named for screen readers; each tooltip says its words and its key.
     expect(["Previous week", "Next week"].map((name) => page.getByRole("button", { name }).element().querySelector("svg") !== null)).toEqual([true, true]);
+    expect(["Today", "Previous week", "Next week"].map((name) => page.getByRole("button", { name, exact: true }).element().getAttribute("data-variant"))).toEqual(["outline", "plain", "plain"]);
     const tipFor = async (name: string) => {
       await userEvent.hover(page.getByRole("button", { name, exact: true }));
       await expect.poll(() => [...document.querySelectorAll('[data-ouro="tooltip"]')].find((tip) => tip.textContent!.startsWith(name))).toBeDefined();
