@@ -7,7 +7,7 @@ test("moves through events with the arrow keys and opens one with Enter", async 
   const thursday = grid.getByRole("list", { name: "Thursday, March 12" });
   await expect(thursday).toBeVisible();
   const forum = thursday.getByRole("button", { name: /^Architecture forum, .*needs your answer/ });
-  await expect(forum).toHaveAccessibleName("Thursday, 10 – 11 AM, Architecture forum, needs your answer, Main auditorium");
+  await expect(forum).toHaveAccessibleName("Architecture forum, 10:00 – 11:00 AM, Thursday, needs your answer, Main auditorium");
   await forum.focus();
   await page.keyboard.press("ArrowDown");
   await expect(thursday.getByRole("button", { name: /Focus time/ })).toBeFocused();

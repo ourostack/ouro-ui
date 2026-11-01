@@ -848,6 +848,8 @@ describe("TimeGrid", () => {
     const nine: TimeGridEvent = { id: "nine", title: "Nine o'clock", start: at(12, "09:00"), end: at(12, "09:30") };
     // 3:30 in the morning, with the day's first event at 9: half an hour before it, as for the working day.
     expect(await opensAt({ now: at(12, "03:30"), events: [forum, nine, standup] })).toBeCloseTo(8.5, 1);
+    // A day's view, where today is the first and only day, the same.
+    expect(await opensAt({ view: "day", now: at(12, "03:30"), events: [forum, nine] })).toBeCloseTo(8.5, 1);
     // With now a few minutes before the first event, now stays in view.
     expect(await opensAt({ now: at(12, "08:50"), events: [{ ...nine, start: at(12, "09:10") }] })).toBeCloseTo(8 + 40 / 60, 1);
     // Past the day's first event, or with none today, it opens at now as before.
@@ -963,6 +965,9 @@ describe("TimeGrid", () => {
     await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
     expect(body.offsetHeight).toBeGreaterThan(48 * 24);
     expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1);
+    // A taller header, with a row of all-day events, leaves the hours less room, and they follow.
+    await rerender({ className: "h-[1500px]", events: [{ id: "all", title: "Holiday", start: "2026-03-12" }, { id: "all2", title: "Offsite", start: "2026-03-12" }] });
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
     // Shorter than a day again: 48px hours, and the day scrolls.
     await rerender({ className: "h-[30rem]" });
     await expect.poll(() => body.offsetHeight).toBe(48 * 24);

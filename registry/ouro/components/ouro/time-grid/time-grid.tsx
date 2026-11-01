@@ -568,8 +568,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // Before today's first event, open at it instead, as at the working day, so the grid does not
   // open on empty hours before now; now stays in view when the event is close.
   const scrollKey = `${days[0]}:${days.length}:${todayIndex}`;
-  // Where today's first event starts, in minutes, or null with none today.
-  const firstToday = todayIndex >= 0 && timed[todayIndex]!.length > 0 ? Math.min(...timed[todayIndex]!.map((placed) => placed.top)) : null;
+  // Where today's first event starts, in minutes, or -1 with none today, which is never after now.
+  const firstToday = todayIndex >= 0 && timed[todayIndex]!.length > 0 ? Math.min(...timed[todayIndex]!.map((placed) => placed.top)) : -1;
   // Where the grid last opened, so today's events arriving after it opened (fetched after mount)
   // move it once more, unless the reader has scrolled since.
   const opened = useRef<{ key: string; top: number } | null>(null);
@@ -578,12 +578,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const body = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
     // Stryker disable next-line EqualityOperator: a scroll of exactly a pixel is a rounding either way.
     if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
-    const minutes = todayIndex < 0 ? workingHours.start * 60 - 30 : firstToday !== null && firstToday > nowAt!.minutes ? Math.max(nowAt!.minutes - 90, firstToday - 30) : nowAt!.minutes - 90;
+    const minutes = todayIndex < 0 ? workingHours.start * 60 - 30 : firstToday > nowAt!.minutes ? Math.max(nowAt!.minutes - 90, firstToday - 30) : nowAt!.minutes - 90;
     viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
     opened.current = { key: scrollKey, top: viewport.scrollTop };
     // Only the days shown, whether today is among them, and whether today has events move the scroll.
+    // Stryker disable EqualityOperator,ConditionalExpression: any form of the flag changes exactly when today gains or loses its events.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollKey, firstToday === null]);
+  }, [scrollKey, firstToday < 0]);
+  // Stryker restore EqualityOperator,ConditionalExpression
 
   // The app's day summaries make the header as tall as they are, which only a measure knows;
   // events scrolled into view stop below it.
@@ -600,11 +602,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
     const fill = () => root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - head.offsetHeight) / 24}px`);
+    // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
     fill();
     const observer = new ResizeObserver(fill);
     observer.observe(viewport);
     observer.observe(head);
+    // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   }, []);
 
   const focusPiece = (key: string) => {
