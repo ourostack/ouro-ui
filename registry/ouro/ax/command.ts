@@ -473,7 +473,9 @@ function valueOf(cli: Cli, thing: string, name: string, spec: FlagSpec, raw: str
     const inRange = raw.trim() !== "" && Number.isFinite(n) && (spec.min === undefined || n >= spec.min) && (spec.max === undefined || n <= spec.max);
     if (!inRange) {
       const range = spec.min !== undefined && spec.max !== undefined ? ` from ${spec.min} to ${spec.max}` : spec.min !== undefined ? ` of at least ${spec.min}` : "";
-      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes a number${range}, not ${said}`, fix: fixWith(String(spec.min ?? 1)) });
+      // The fix suggests the nearest allowed number: the most for one too big, else the least.
+      const nearest = raw.trim() !== "" && spec.max !== undefined && n > spec.max ? spec.max : (spec.min ?? 1);
+      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes a number${range}, not ${said}`, fix: fixWith(String(nearest)) });
     }
     return n;
   }
