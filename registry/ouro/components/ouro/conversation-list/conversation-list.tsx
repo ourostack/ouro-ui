@@ -23,6 +23,13 @@ export interface ConversationListItem {
   id: string;
   /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
   title: string;
+  /**
+   * A quiet tag right after the title, such as "AI agent" for an agent or "Guest": small and muted, not a badge, and
+   * read after the title ("Halden, AI agent"). In a narrow row the title shortens and the tag stays whole.
+   * @claim "In a narrow row the title" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a quiet name tag after the title, read after it, and shortens the title first)
+   * @claim "A quiet tag right after the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a quiet name tag after the title, read after it, and shortens the title first)
+   */
+  nameTag?: string | undefined;
   /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
   where?: string | undefined;
   /** A second line under the title, such as the group a topic belongs to. */
@@ -320,6 +327,12 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
                   {item.title}
                 </span>
+                {item.nameTag && (
+                  <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
+                    <span className="sr-only">, </span>
+                    {item.nameTag}
+                  </span>
+                )}
                 {item.where && (
                   <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
                     <span aria-hidden="true">· </span>

@@ -25,6 +25,7 @@ expectTypeOf<{
 }>().toExtend<ConversationListProps>();
 expectTypeOf<{ id: "a"; title: "Trail crew"; subtitle: "Hikes"; preview: "Meet at eight"; time: "9:41"; unread: true; badges: null; avatar: false }>().toExtend<ConversationListItem>();
 expectTypeOf<{ id: "a"; title: "Design reviews"; where: "Lantern Labs"; icon: null; mark: "in 10 min"; avatar: ReactElement; section: "pinned" }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "halden"; title: "Halden"; nameTag: "AI agent" }>().toExtend<ConversationListItem>();
 expectTypeOf<{ id: "pinned"; title: "Pinned"; note: "your folder"; defaultOpen: false; open: true }>().toExtend<ConversationListSection>();
 expectTypeOf<{
   label: "Chats";

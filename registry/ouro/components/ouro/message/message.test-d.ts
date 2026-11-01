@@ -26,6 +26,7 @@ expectTypeOf<{
 }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "post"; subject: "Agenda" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Halden"; nameTag: "AI agent" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "assistant"; name: "Ada"; variant: "chat"; presence: "busy"; presenceLabel: "In a meeting" }>().toExtend<MessageProps>();
 // A presence that may be missing, with its label, type checks as it is.
 expectTypeOf<{ role: "assistant"; name: "Ada"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<MessageProps>();
