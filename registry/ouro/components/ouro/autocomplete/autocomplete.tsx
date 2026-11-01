@@ -21,8 +21,8 @@ import {
   type SyntheticEvent,
 } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
-import { Emoji, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
-import { emojiToken, searchCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import { Emoji, type EmojiCatalogue, type EmojiItem, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { emojiToken, searchCatalogue, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -50,6 +50,8 @@ export interface AutocompleteItem {
    * animated one plays while the suggestion is active. A trigger with `catalogue` sets it.
    */
   emoji?: EmojiItem | undefined;
+  /** The skin tone `emoji` is drawn in, for an emoji with `skinTones`. A trigger with `catalogue` and `skinTone` sets it. @default "default" */
+  skinTone?: EmojiSkinTone | (string & { 'Use "default", "light", "medium-light", "medium", "medium-dark" or "dark"': never }) | undefined;
   /**
    * The text that replaces the trigger and what follows it when the suggestion is picked.
    * @default the trigger character, the label and a space: "@Avery Kim "
@@ -73,6 +75,16 @@ export interface AutocompleteTrigger {
    * @claim "Picking one inserts the token and a space" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > inserts the picked emoji's token and a space in a Composer, which EmojiText draws as its image)
    */
   catalogue?: EmojiCatalogue | undefined;
+  /**
+   * The skin tone a `catalogue`'s emoji with tones are suggested and inserted in: the tone the
+   * person chose in EmojiPicker. Keep it in one place and give it to both, the picker's
+   * `skinTone` and `onSkinToneChange` and this, so a `:` suggestion inserts the same tone the
+   * picker does (`:thumbs-up-tone3:`). Emoji without tones are unchanged.
+   *
+   * @claim "a `:` suggestion inserts the same tone" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > suggests and inserts emoji in the skin tone the trigger gives, the one the person chose in EmojiPicker)
+   * @default "default"
+   */
+  skinTone?: EmojiSkinTone | (string & { 'Use "default", "light", "medium-light", "medium", "medium-dark" or "dark"': never }) | undefined;
   /**
    * The suggestions: a list, which shows the items whose label, a word of it, or whose value
    * starts with what follows the character, or a function of that text (`query`, "" just
@@ -314,7 +326,7 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     // No trigger without a match, or when `triggers` no longer has the match's.
     if (!trigger) return [];
     const { query } = match!;
-    if (trigger.catalogue) return searchCatalogue(trigger.catalogue, query, 8).map(emojiSuggestion);
+    if (trigger.catalogue) return searchCatalogue(trigger.catalogue, query, 8).map((item) => emojiSuggestion(item, trigger.skinTone as EmojiSkinTone | undefined));
     return typeof trigger.items === "function" ? trigger.items(query) : filterItems(trigger.items ?? [], query);
   }, [match, trigger]);
   const open = focused && match !== null && dismissed !== match.start && items.length > 0;
@@ -333,10 +345,10 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
   return { match, trigger, items, open, current, anchorAt, setActive, setFocused, setDismissed, evaluate };
 }
 
-/** A catalogue's emoji as a suggestion: its name, its token as the description and what it inserts, and its image. */
-function emojiSuggestion(item: EmojiItem): AutocompleteItem {
-  const token = emojiToken(item);
-  return { value: item.id, label: item.name, description: token, emoji: item, insert: `${token} ` };
+/** A catalogue's emoji as a suggestion in a skin tone: its name, its token as the description and what it inserts, and its image. */
+function emojiSuggestion(item: EmojiItem, skinTone: EmojiSkinTone | undefined): AutocompleteItem {
+  const token = emojiToken(item, skinTone);
+  return { value: toneOf(item, skinTone).id, label: item.name, description: token, emoji: item, skinTone, insert: `${token} ` };
 }
 
 /** Inserts the pick in place of the trigger and its query, then tells the trigger's `onPick`. */
@@ -451,7 +463,7 @@ function OptionContent({ item, query, active }: { item: AutocompleteItem; query:
     <>
       {item.emoji ? (
         <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
-          <Emoji item={item.emoji} play={active} />
+          <Emoji item={item.emoji} skinTone={item.skinTone} play={active} />
         </span>
       ) : item.avatar ? (
         <Avatar name={item.label} alt="" size="xs" src={item.avatar.src} initials={item.avatar.initials} className="shrink-0" />

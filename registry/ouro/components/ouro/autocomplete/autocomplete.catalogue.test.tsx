@@ -1,9 +1,11 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Autocomplete, type AutocompleteTrigger } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { EmojiPicker, type EmojiPickerCatalogueSelection, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -120,6 +122,61 @@ describe("Autocomplete with a catalogue", () => {
     const { host } = await render(<EmojiText text={onSend.mock.calls[0]![0] as string} catalogue={catalogue} />);
     expect(host.querySelector("img")!.getAttribute("src")).toBe(fern.src);
     expect(host.querySelector("img")!.alt).toBe("Fernwood fern");
+  });
+
+  it("suggests and inserts emoji in the skin tone the trigger gives, the one the person chose in EmojiPicker", async () => {
+    const thumbs: EmojiItem = {
+      id: "thumbs-up",
+      name: "Thumbs up",
+      shortcodes: ["thumbsup"],
+      src: image("thumbs"),
+      skinTones: [1, 2, 3, 4, 5].map((tone) => ({ id: `thumbs-up-tone${tone}`, src: image(`thumbs tone${tone}`) })),
+    };
+    const thanks: EmojiItem = { id: "thanks", name: "Thank you note", shortcodes: ["thanks"], src: image("thanks") };
+    const toned: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [thumbs, thanks] }] };
+    const onPick = vi.fn();
+    const onSelect = vi.fn<(selection: EmojiPickerCatalogueSelection) => void>();
+    // The app keeps the tone in one place and gives it to the picker and the trigger.
+    function Chat() {
+      const [tone, setTone] = useState<EmojiSkinTone>("default");
+      return (
+        <>
+          <EmojiPicker label="Add an emoji" catalogue={toned} skinTone={tone} onSkinToneChange={setTone} trigger={<Button aria-label="Emoji">+</Button>} onSelect={onSelect} />
+          <Autocomplete triggers={[{ char: ":", label: "Emoji", minQueryLength: 2, catalogue: toned, skinTone: tone, onPick }]}>
+            <Composer label="Message" onSend={() => {}} />
+          </Autocomplete>
+        </>
+      );
+    }
+    const { control } = await render(<Chat />);
+    const descriptions = () => options().map((option) => option.querySelector(".ms-2")?.textContent);
+    control.focus();
+    await userEvent.keyboard(":th");
+    await expect.poll(labels).toEqual(["Thumbs up", "Thank you note"]);
+    expect(descriptions()).toEqual([":thumbsup:", ":thanks:"]);
+    expect(options().map(art)).toEqual([thumbs.src, thanks.src]);
+    await userEvent.keyboard("{Escape}");
+    await userEvent.fill(page.getByRole("textbox", { name: "Message" }), "");
+    // The person chooses the medium tone in the picker, and the picker inserts it.
+    await userEvent.click(page.getByRole("button", { name: "Emoji" }));
+    await userEvent.click(page.getByRole("button", { name: "Skin tone: Default" }));
+    await userEvent.click(page.getByRole("radio", { name: "Medium", exact: true }));
+    await userEvent.click(page.getByRole("button", { name: "Thumbs up" }));
+    expect(onSelect.mock.lastCall![0]).toMatchObject({ id: "thumbs-up-tone3", token: ":thumbs-up-tone3:", skinTone: "medium" });
+    // Once the picker has closed and given focus back to its button, the person goes back to the box.
+    await expect.poll(() => document.querySelector('[data-ouro="emoji-picker"]')).toBeNull();
+    await userEvent.click(page.getByRole("textbox", { name: "Message" }));
+    await expect.poll(() => document.activeElement).toBe(control);
+    // Now a suggestion shows and inserts the same tone; an emoji without tones is unchanged.
+    await userEvent.keyboard(":th");
+    await expect.poll(descriptions).toEqual([":thumbs-up-tone3:", ":thanks:"]);
+    expect(options().map(art)).toEqual([image("thumbs tone3"), thanks.src]);
+    await userEvent.keyboard("{Enter}");
+    expect(control.value).toBe(":thumbs-up-tone3: ");
+    expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({ value: "thumbs-up-tone3", label: "Thumbs up", emoji: thumbs, skinTone: "medium" }), "th");
+    const { host } = await render(<EmojiText text={control.value} catalogue={toned} />);
+    expect(host.querySelector("img")!.getAttribute("src")).toBe(image("thumbs tone3"));
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("names a trigger with neither items nor catalogue, with the fix, and suggests nothing for it", async () => {
