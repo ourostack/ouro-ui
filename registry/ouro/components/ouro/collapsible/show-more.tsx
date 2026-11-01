@@ -282,12 +282,12 @@ function rowKey(item: ReactNode, index: number): string | number {
 
 /**
  * Whether the content shows in full: `open` when the app sets it, else ShowMore's own state, and
- * a setter that tells `onOpenChange` and changes the state when the app does not set `open`.
+ * a setter that tells `onOpenChange` and keeps the asked-for state, which shows once `open` is unset.
  */
 function useOpen(open: boolean | undefined, onOpenChange: ((open: boolean) => void) | undefined): [boolean, (next: boolean) => void] {
   const [own, setOwn] = useState(false);
   const set = (next: boolean) => {
-    if (open === undefined) setOwn(next);
+    setOwn(next);
     onOpenChange?.(next);
   };
   return [open ?? own, set];
@@ -416,6 +416,7 @@ function ShowMoreText({
     const measure = () => {
       const whole = !text.classList.contains(clampClass);
       text.classList.add(clampClass);
+      // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
       setOverflowing(text.scrollHeight > text.clientHeight + 1);
       text.classList.toggle(clampClass, !whole);
     };

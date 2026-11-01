@@ -943,6 +943,7 @@ describe("ShowMore development messages", () => {
     await render(<ShowMore lines={2}>{longText}</ShowMore>);
     await render(<ShowMore maxHeight={120}>{longText}</ShowMore>);
     await render(<ShowMore items={recipes} hasMore={false} onShowMore={() => {}} />);
+    await render(<ShowMore items={recipes} open onOpenChange={() => {}} />);
     expect(warn).not.toHaveBeenCalled();
   });
 
