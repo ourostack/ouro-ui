@@ -312,6 +312,9 @@ describe("Avatar shapes and icons", () => {
     const [circle, square] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     expect(circle!.getAttribute("data-shape")).toBe("circle");
     expect(square!.getAttribute("data-shape")).toBe("square");
+    // Only a hexagon is clipped.
+    expect(getComputedStyle(circle!).clipPath).toBe("none");
+    expect(getComputedStyle(square!).clipPath).toBe("none");
     expect(parseFloat(getComputedStyle(circle!).borderTopLeftRadius)).toBeGreaterThanOrEqual(24);
     const corner = parseFloat(getComputedStyle(square!).borderTopLeftRadius);
     expect(corner).toBeGreaterThan(0);
@@ -373,6 +376,17 @@ describe("Avatar shapes and icons", () => {
     expect(avatar.getAttribute("aria-label")).toBe("Halden");
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: an agent shows no presence, so a hexagon draws no dot. Fix: <Avatar name="Halden" shape="hexagon" />.');
+  });
+
+  it("asks nothing of a hexagon without presence, or of a circle with it", async () => {
+    await render(
+      <>
+        <Avatar name="Halden" shape="hexagon" />
+        <Avatar name="Ada Lovelace" presence="busy" presenceLabel="Busy" />
+        <Avatar name="Design reviews" shape="square" presence="away" presenceLabel="Away" />
+      </>,
+    );
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("clips a square's picture to its corners", async () => {
