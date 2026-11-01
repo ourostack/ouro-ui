@@ -102,6 +102,7 @@ export function MessageActionBar({
       onFocus={focus}
       className={cn(barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", card ? "-top-5" : "-top-8"] : "pointer-events-auto")}
       // A little way from the bubble while there is room; with none, the auto margin goes and the bar ends at the message's edge.
+      // Stryker disable next-line ConditionalExpression: a bar over the corner is placed by one inset, so these margins would move it nowhere.
       style={beside === undefined ? undefined : { marginInline: start ? "auto 0.25rem" : "0.25rem auto" }}
     >
       {actions.map((action) => {
