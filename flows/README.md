@@ -1,6 +1,6 @@
 # Flows
 
-What a person does on the site and in a handful of stories, written as data a runner can measure: the pages and stories to open, the widths, light and dark, and reduced motion. [`.github/workflows/flow-review.yml`](../.github/workflows/flow-review.yml) runs them with [flow-review](https://github.com/ourostack/flow-review), report-only: findings go to the run's summary and artifact, and none fails it.
+What a person does on the site and in a handful of stories, written as data a runner can measure: the pages and stories to open, the widths, light and dark, and reduced motion. [`.github/workflows/flow-review.yml`](../.github/workflows/flow-review.yml) runs them with [flow-review](https://github.com/ourostack/flow-review), report-only: findings go to the run's summary and artifact, and the run passes whatever they are.
 
 - **`site.flow.json`:** the home page and Dialog's page, then a Tab traversal.
 - **`stories.flow.json`:** the Button, CheckboxGroup, Menu, Toast and Dialog stories, as Storybook's iframe renders them. A story sits alone in its frame, so the flow counts serious axe findings and leaves out page-level ones such as a main landmark.
