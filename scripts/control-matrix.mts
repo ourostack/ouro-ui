@@ -12,6 +12,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { componentsDir, MANIFEST, pascal, readComponents, readMotion } from "./components.mts";
+import { treeFiles } from "./tree.mjs";
 
 /** The mode of a component that declares none. */
 export const defaultMode = "default";
@@ -196,10 +197,9 @@ export function sourceMarkers(root: string = repoRoot): { markers: SourceMarker[
   const animated: AnimatedMarker[] = [];
   const problems: string[] = [];
   const dir = join(root, componentsDir);
-  const files = readdirSync(dir, { withFileTypes: true, recursive: true })
-    .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !/\.(test|test-d|stories)\.tsx?$|\.touch\.test\.tsx?$/.test(entry.name))
-    .map((entry) => join(entry.parentPath, entry.name))
-    .sort();
+  const files = treeFiles(dir)
+    .filter((file) => /\.tsx?$/.test(file) && !/\.(test|test-d|stories)\.tsx?$|\.touch\.test\.tsx?$/.test(file))
+    .map((file) => join(dir, file));
   for (const file of files) {
     const source = readFileSync(file, "utf8");
     const where = (index: number) => `${relative(root, file)}:${source.slice(0, index).split("\n").length}`;

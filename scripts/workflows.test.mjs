@@ -8,6 +8,7 @@ import { runInNewContext } from "node:vm";
 import { assemble } from "./changes.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { treeFiles } from "./tree.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
 // change under them: every action is pinned to a commit, and only the release job keeps the
@@ -180,9 +181,8 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
 
 // The repository's scripts, which CI also runs: the .mjs files under scripts/ and site/scripts/, but their tests.
 const scriptSources = ["scripts", "site/scripts"].flatMap((folder) =>
-  readdirSync(join(root, folder), { recursive: true })
-    .map(String)
-    .filter((file) => file.endsWith(".mjs") && !file.endsWith(".test.mjs") && !file.includes("node_modules"))
+  treeFiles(join(root, folder))
+    .filter((file) => file.endsWith(".mjs") && !file.endsWith(".test.mjs"))
     .map((file) => ({ file: `${folder}/${file}`, text: readFileSync(join(root, folder, file), "utf8") })),
 );
 

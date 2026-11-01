@@ -17,6 +17,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const timingsFile = join(root, "scripts/shard-timings.json");
@@ -140,7 +141,7 @@ export function collectTimings(dir) {
  * which run on their own.
  */
 export function e2eFiles(rootDir = root) {
-  const specs = (dir) => (existsSync(join(rootDir, dir)) ? readdirSync(join(rootDir, dir), { recursive: true }).map((file) => `${dir}/${String(file).split("\\").join("/")}`) : []);
+  const specs = (dir) => (existsSync(join(rootDir, dir)) ? treeFiles(join(rootDir, dir)).map((file) => `${dir}/${file}`) : []);
   return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file)).sort();
 }
 

@@ -40,6 +40,7 @@ import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import ts from "typescript";
 import { comments, hasClientDirective } from "./source-rules.mjs";
+import { treeFiles } from "./tree.mjs";
 
 const runtimeFiles = [
   "src/components/ouro/button/button.tsx",
@@ -193,7 +194,7 @@ function installedPath(path) {
  */
 export function checkComments(app, root) {
   const problems = [];
-  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  const sources = treeFiles(join(root, "registry/ouro")).map((file) => `registry/ouro/${file}`);
   for (const path of sources) {
     const target = installedPath(path);
     if (!target || !existsSync(join(app, target))) continue;
@@ -211,7 +212,7 @@ export function checkComments(app, root) {
  */
 export function checkDirectives(app, root) {
   const problems = [];
-  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  const sources = treeFiles(join(root, "registry/ouro")).map((file) => `registry/ouro/${file}`);
   for (const path of sources) {
     const target = installedPath(path);
     if (!target || !existsSync(join(app, target))) continue;
@@ -237,7 +238,7 @@ export function checkSources(app, root, aliases) {
     text
       .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')
       .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/');
-  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  const sources = treeFiles(join(root, "registry/ouro")).map((file) => `registry/ouro/${file}`);
   for (const path of sources) {
     const target = installedPath(path);
     if (!target || !existsSync(join(app, target))) continue;
