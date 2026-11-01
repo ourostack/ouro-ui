@@ -1,0 +1,72 @@
+name: flow-review
+# Ouro UI's flows (flows/*.flow.json) through ourostack/flow-review, report-only: every check reports in the run's
+# summary and its flow-review-ouro-ui artifact, and no finding fails the run. Daily, and when the flows or this file
+# change, they review the published site (https://ui.ouro.bot/, built from main). Dispatched with a release tag, they
+# review that tag's site and Storybook, built as Pages builds them and served on one origin.
+on:
+  schedule:
+    - cron: "17 14 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "flows/**"
+      - ".github/workflows/flow-review.yml"
+  pull_request:
+    paths:
+      - "flows/**"
+      - ".github/workflows/flow-review.yml"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "What to review: main (the published site) or a release tag such as v1.3.1 (built here)"
+        default: main
+permissions:
+  contents: read
+concurrency:
+  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      REF: ${{ inputs.ref || 'main' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: flows
+      # A release tag: its site and Storybook, built as pages.yml builds them.
+      - if: env.REF != 'main'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.REF }}
+          path: release
+      - if: env.REF != 'main'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: release/package.json
+      - if: env.REF != 'main'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: release/pnpm-lock.yaml
+      - id: target
+        run: |
+          if [ "$REF" = main ]; then echo "url=https://ui.ouro.bot/" >> "$GITHUB_OUTPUT"; exit 0; fi
+          cd release
+          pnpm i --frozen-lockfile
+          pnpm site:build && mkdir -p _site && cp -R site/dist/. _site/
+          pnpm build-storybook --output-dir _site/storybook
+          (python3 -m http.server 4321 --bind 127.0.0.1 --directory _site > /dev/null 2>&1 &)
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4321/ > /dev/null && break; sleep 1; done
+          echo "url=http://127.0.0.1:4321/" >> "$GITHUB_OUTPUT"
+      - uses: ourostack/flow-review@64e67c6a01d20c02245ac21d409c1de40d2310b2 # v0.3.0
+        with:
+          flows: flows/*.flow.json
+          target: ${{ steps.target.outputs.url }}
+          target-version: ${{ env.REF }}
+          artifact-name: flow-review-ouro-ui
+          fail-on: none
