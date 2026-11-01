@@ -75,7 +75,7 @@ const items: NavigationRailEntry[] = [
   { label: "Notes", href: "/notes", icon: icon("notes") },
 ];
 
-const labelOf = (item: HTMLElement) => (item.dataset.ouroPart === "more" ? "More" : item.querySelector("[data-ouro-navigation-rail-label]")!.textContent);
+const labelOf = (item: HTMLElement) => (item.dataset.ouroPart === "more" ? "More" : item.querySelector("[data-ouro-navigation-rail-label]")!.firstChild!.textContent);
 const currentLabels = (list: HTMLElement[]) => list.filter((item) => item.getAttribute("aria-current") === "page").map(labelOf);
 const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
 
@@ -288,6 +288,18 @@ describe("NavigationRail counts", () => {
     expect(badge.getBoundingClientRect().top).toBeLessThan(glyph.top);
   });
 
+  it("names an item with a count by its words, the label first and the count after, so the name starts with what it shows", async () => {
+    for (const hideLabels of [false, true]) {
+      const { items: links, more } = await render(<NavigationRail label="Main" items={many} hideLabels={hideLabels} />, 16 + 4 * 56 + 3 * 4);
+      // No aria-label to differ from the words it shows: the label, then the spoken count, are its content.
+      expect([...links, more!].filter((item) => item.hasAttribute("aria-label"))).toEqual([]);
+      await expect.element(page.getByRole("link", { name: "Activity, 3 new", exact: true })).toBeInTheDocument();
+      await expect.element(page.getByRole("link", { name: "Chat", exact: true })).toBeInTheDocument();
+      await expect.element(page.getByRole("button", { name: "More, 5 new", exact: true })).toBeInTheDocument();
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("speaks the count with countLabel", async () => {
     await render(<NavigationRail label="Main" items={items} countLabel="{count} unread" />);
     await expect.element(page.getByRole("link", { name: "Activity, 5 unread" })).toBeVisible();
@@ -307,7 +319,7 @@ describe("NavigationRail keyboard", () => {
         </button>
       </>,
     );
-    const at = () => (document.activeElement as HTMLElement).querySelector("[data-ouro-navigation-rail-label]")?.textContent ?? document.activeElement!.textContent;
+    const at = () => (document.activeElement as HTMLElement).querySelector("[data-ouro-navigation-rail-label]")?.firstChild!.textContent ?? document.activeElement!.textContent;
     host.querySelector<HTMLButtonElement>("button")!.focus();
     await pressTab();
     expect(at()).toBe("Calendar");

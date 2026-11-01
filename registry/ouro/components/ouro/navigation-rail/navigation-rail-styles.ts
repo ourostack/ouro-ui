@@ -1,4 +1,4 @@
-export { countClass, footerClass, headerClass, iconClass, indicatorClass, itemClass, labelClass, listClass, menuCountClass, railClass, separatorClass, shownCount };
+export { countClass, footerClass, headerClass, iconClass, indicatorClass, itemClass, labelClass, listClass, menuCountClass, railClass, separatorClass, shownCount, spokenCountClass };
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
@@ -80,6 +80,12 @@ const labelClass =
 const countClass =
   "absolute -end-2.5 -top-1.5 box-border h-4 min-w-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
   "forced-colors:border forced-colors:border-solid forced-colors:leading-[0.875rem]";
+
+/**
+ * The count in words after the label, ", 5 new", for screen readers only: inline text of no size in
+ * the label's own line. In a box of its own, as `sr-only` makes it, the name gains a space before its comma.
+ */
+const spokenCountClass = "text-[0px] leading-0";
 
 /** The count after a label in the More menu. */
 const menuCountClass =

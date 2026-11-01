@@ -22,6 +22,7 @@ import {
   railClass,
   separatorClass,
   shownCount,
+  spokenCountClass,
 } from "@/registry/ouro/components/ouro/navigation-rail/navigation-rail-styles";
 
 /** What a NavigationRail item has: its label, its icon and a count. */
@@ -39,7 +40,9 @@ interface NavigationRailItemBase {
   currentIcon?: ReactNode;
   /**
    * New things on the item's page: a badge on the icon, capped at "99+", that screen readers hear
-   * after the label with `countLabel`. Nothing shows for 0.
+   * after the label with `countLabel`. The item's name is its label and then the count, "Activity, 5
+   * new", so it starts with the words the item shows. Nothing shows for 0.
+   * @claim "The item's name is its label and then the count" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail counts > names an item with a count by its words, the label first and the count after, so the name starts with what it shows)
    * @claim "Nothing shows for 0" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail counts > shows a count on the icon, capped at 99+, and speaks the whole number after the label)
    */
   count?: number | undefined;
@@ -333,10 +336,6 @@ function moveAlongRail(event: KeyboardEvent<HTMLUListElement>) {
   stops[(to + stops.length) % stops.length]!.focus();
 }
 
-/** With a count, the item's name is its label and the count, "Activity, 5 new"; the badge itself is hidden. */
-function namedWithCount(text: string, count: number, countLabel: string): string | undefined {
-  return count > 0 ? `${text}, ${countLabel.replace("{count}", String(count))}` : undefined;
-}
 
 /** `element` in a Tooltip of `text` toward the page when `show`. */
 function withTip(show: boolean, text: string, element: ReactElement): ReactElement {
@@ -349,8 +348,12 @@ function withTip(show: boolean, text: string, element: ReactElement): ReactEleme
   );
 }
 
-/** An item's inside: the bar, the icon with its count, and the label. */
-function itemInside(text: string, icon: ReactNode, count: number, index: number | undefined, hideLabels: boolean) {
+/**
+ * An item's inside: the bar, the icon with its count, and the label. The item is named by its
+ * words: the label, then the count as `countLabel` speaks it, "Activity, 5 new", so its name starts
+ * with the words it shows. The badge itself is hidden.
+ */
+function itemInside(text: string, icon: ReactNode, count: number, countLabel: string, index: number | undefined, hideLabels: boolean) {
   return (
     <>
       <span aria-hidden="true" data-ouro-part="indicator" className={indicatorClass} />
@@ -364,6 +367,7 @@ function itemInside(text: string, icon: ReactNode, count: number, index: number 
       </span>
       <span data-ouro-navigation-rail-label={index} className={hideLabels ? "sr-only" : labelClass}>
         {text}
+        {count > 0 && <span className={spokenCountClass}>, {countLabel.replace("{count}", String(count))}</span>}
       </span>
     </>
   );
@@ -407,7 +411,6 @@ function RailEntry({
   const key = String(index);
   const shared = {
     "aria-current": isCurrent ? ("page" as const) : undefined,
-    "aria-label": namedWithCount(entry.label, count, countLabel),
     // "true", the only form shadcn's data-selected variant matches; Tailwind's matches any.
     "data-selected": isCurrent ? "true" : undefined,
     "data-ouro-navigation-rail-stop": key,
@@ -415,7 +418,7 @@ function RailEntry({
     onFocus: () => onFocus(key),
     className: itemClass[look],
   };
-  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, index, hideLabels);
+  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels);
   return (
     <li data-ouro-navigation-rail-entry={key} className={cn("flex shrink-0", hidden && "hidden")}>
       {withTip(
@@ -468,7 +471,6 @@ function MoreEntry({
             data-ouro-control="navigation-rail"
             data-ouro-part="more"
             data-ouro-navigation-rail-stop="more"
-            aria-label={namedWithCount(moreLabel, movedCount, countLabel)}
             tabIndex={isStop ? 0 : -1}
             onFocus={onFocus}
             // The trigger's own keys are off, since the arrows (which would open the menu) move along
@@ -484,6 +486,7 @@ function MoreEntry({
                 <circle cx="19" cy="12" r="1.75" />
               </svg>,
               movedCount,
+              countLabel,
               undefined,
               hideLabels,
             )}
