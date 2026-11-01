@@ -62,6 +62,7 @@ The props the modes share. Type: `CommandProps`.
 | `loadingLabel` | `string` | `"Searching…"` | What shows, and is announced, while `loading`. |
 | `onQueryChange` | `((query: string, context: { signal: AbortSignal }) => void)` |  | For results from a server: called with the search text on every change, and with the current text (`""` at each opening) whenever the palette opens or swaps between dialog and sheet. The palette then stops filtering `items` itself and shows them as they are, so keep the last results in `items` until new ones arrive. `signal` aborts when a newer query replaces this one or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app owns the request, and must set `loading` back to false when the request fails or its signal aborts, or "Searching…" stays up. |
 | `placeholder` | `string` | `"Type a command or search…"` | The search input's placeholder. |
+| `resultsLabel` | `((count: number) => string)` | (count) => count === 1 ? "1 result" : `${count} results` | What screen readers hear, politely and once, when the results for what was typed have settled (not while `loading`, and not for an empty search, whose list is the palette's own). |
 | `searchLabel` | `string` | `"Search commands"` | The search input's label for screen readers. |
 | `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. It is always required. |
 | `unreadLabel` | `string` | `"Unread"` | What screen readers hear after an `unread` command's label, for other languages. |
@@ -146,6 +147,18 @@ interface CommandItem {
   label: string;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
+  /**
+   * What tells this command apart from the others, when results change around it: the highlight
+   * stays on the command with the same value. Give one when two commands can share a label.
+   * @default its label
+   */
+  value?: string | undefined;
+  /**
+   * Whether closing the palette after this command runs puts focus back where it was (the
+   * trigger). `false` leaves focus where `onSelect` puts it, as a command that opens a
+   * conversation and focuses its messages does. @default true
+   */
+  restoreFocus?: boolean | undefined;
   /**
    * More words the search matches, which never show: `keywords: ["dark mode"]`.
    */

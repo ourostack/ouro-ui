@@ -48,6 +48,20 @@ export interface CommandItem {
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
   /**
+   * What tells this command apart from the others, when results change around it: the highlight
+   * stays on the command with the same value. Give one when two commands can share a label.
+   * @default its label
+   * @claim "What tells this command apart from" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > tells commands with the same label apart by value)
+   */
+  value?: string | undefined;
+  /**
+   * Whether closing the palette after this command runs puts focus back where it was (the
+   * trigger). `false` leaves focus where `onSelect` puts it, as a command that opens a
+   * conversation and focuses its messages does. @default true
+   * @claim "Whether closing the palette after this" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > returns focus to its trigger after a choice, and leaves it where the choice put it with restoreFocus false)
+   */
+  restoreFocus?: boolean | undefined;
+  /**
    * More words the search matches, which never show: `keywords: ["dark mode"]`.
    *
    * @claim "More words the search matches, which" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
@@ -175,6 +189,13 @@ export interface CommandBaseProps {
   loading?: boolean | undefined;
   /** What shows, and is announced, while `loading`. @default "Searching…" */
   loadingLabel?: string | undefined;
+  /**
+   * What screen readers hear, politely and once, when the results for what was typed have settled
+   * (not while `loading`, and not for an empty search, whose list is the palette's own).
+   * @default (count) => count === 1 ? "1 result" : `${count} results`
+   * @claim "What screen readers hear, politely and" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says how many results there are, politely and once, after they settle)
+   */
+  resultsLabel?: ((count: number) => string) | undefined;
   /** What screen readers hear after an `unread` command's label, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
 
@@ -374,6 +395,7 @@ export function Command(props: CommandProps): JSX.Element {
     onQueryChange,
     loading = false,
     loadingLabel = "Searching…",
+    resultsLabel = countResults,
     unreadLabel = "Unread",
     trigger,
     open,
@@ -465,7 +487,18 @@ export function Command(props: CommandProps): JSX.Element {
       "aria-expanded": isOpenNow,
     });
   // Focus returns to the trigger on close; Safari does not focus a button on click.
-  const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
+  // A command with restoreFocus: false leaves focus where its onSelect put it.
+  const keepFocus = useRef(false);
+  const finalFocus = {
+    finalFocus: () => {
+      const keep = keepFocus.current;
+      keepFocus.current = false;
+      if (keep) return false;
+      // Stryker disable next-line ConditionalExpression: a controlled palette has no trigger, so its ref is null, which Base UI takes as true.
+      if (trigger === undefined) return true;
+      return triggerRef.current;
+    },
+  };
 
   // The search text: emptied when the palette opens (not when it closes, so a closing
   // palette keeps showing what it showed), and kept across the swap between dialog and sheet.
@@ -504,7 +537,13 @@ export function Command(props: CommandProps): JSX.Element {
   if (!loading && announcement === "on") setAnnouncement("done");
   if (!isOpenNow && announcement !== "idle") setAnnouncement("idle");
 
+  // The command the person has highlighted, by its value, and what was typed when it was. Base UI
+  // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
+  const held = useRef<{ value: string; query: string } | null>(null);
+  const committed = useRef(groups);
+
   const run = (item: CommandItem) => {
+    keepFocus.current = item.restoreFocus === false;
     setOpen(false);
     item.onSelect();
   };
@@ -520,6 +559,9 @@ export function Command(props: CommandProps): JSX.Element {
       filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.keywords, text)}
       value={query}
       inputRef={markInput}
+      onItemHighlighted={(item: CommandItem | undefined) => {
+        held.current = item ? { value: valueOf(item), query } : null;
+      }}
       onValueChange={(next: string) => {
         setQuery(next);
         if (onQueryChange) search(next);
@@ -557,6 +599,7 @@ export function Command(props: CommandProps): JSX.Element {
                       // Two commands may share a label; the position keeps their rows apart.
                       key={`${item.label}-${itemIndex}`}
                       value={item}
+                      data-ouro-command-value={valueOf(item)}
                       disabled={item.disabled}
                       onClick={() => run(item)}
                       data-ouro-control="command"
@@ -592,6 +635,8 @@ export function Command(props: CommandProps): JSX.Element {
             )}
           </CommandList>
         </div>
+        <KeepHighlight heldRef={held} query={query} groups={groups} committedRef={committed} />
+        <ResultCount query={query} loading={loading} label={resultsLabel} />
       </div>
     </Autocomplete.Root>
   );
@@ -641,6 +686,75 @@ export function Command(props: CommandProps): JSX.Element {
         </DialogRoot>
       )}
     </>
+  );
+}
+
+/** The default `resultsLabel`. */
+const countResults = (count: number) => (count === 1 ? "1 result" : `${count} results`);
+
+/** What tells a command apart when the results change around it. */
+const valueOf = (item: CommandItem) => item.value ?? item.label;
+
+/**
+ * Puts the highlight back on the command the person had highlighted when the results change while
+ * the query stays the same (results arriving from a slow source), or on the first command when that
+ * one has gone. Base UI's Autocomplete takes no highlighted item as a prop, so it moves it the way
+ * a pointer does, through the list's own handler for a pointer moving over a row. It runs after the
+ * rows' own layout effects, as the last child of the list's root.
+ * @claim "Base UI's Autocomplete takes no" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > keeps the highlight on the same command when results arrive above it)
+ */
+function KeepHighlight({
+  heldRef,
+  query,
+  groups,
+  committedRef,
+}: {
+  heldRef: { current: { value: string; query: string } | null };
+  query: string;
+  groups: readonly Group[];
+  committedRef: { current: readonly Group[] };
+}): JSX.Element {
+  // A mark of its own in the palette, since a dialog and a sheet may both be mounted while one replaces the other.
+  const mark = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const changed = groups !== committedRef.current;
+    committedRef.current = groups;
+    // Stryker disable next-line ConditionalExpression: with the results as they were, the held command is the highlighted one, so putting it back does nothing.
+    if (!changed) return;
+    const want = heldRef.current;
+    if (want === null || want.query !== query) return;
+    const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
+    const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
+    if (!row) return;
+    // Stryker disable next-line ConditionalExpression: moving the highlight onto the row it is already on changes nothing.
+    if (row.hasAttribute("data-highlighted")) return;
+    // movementX, so WebKit does not take it for a pointer that stands still.
+    row.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, movementX: 1 }));
+  });
+  return <span ref={mark} hidden data-ouro-command-keeper="" />;
+}
+
+/**
+ * Says how many results there are, politely, once they settle: 400ms after the last change, not
+ * while loading, and not for an empty search. With no results, the empty state, a live region of
+ * its own, says so instead.
+ * @claim "Says how many results there are" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says how many results there are, politely and once, after they settle)
+ * @claim "Says how many results there are" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says nothing of an empty search's results, which are the palette's own list)
+ * @claim "With no results, the empty" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says how many results there are, politely and once, after they settle)
+ */
+function ResultCount({ query, loading, label }: { query: string; loading: boolean; label: (count: number) => string }): JSX.Element {
+  const filtered = Autocomplete.useFilteredItems() as readonly Group[];
+  const count = filtered.reduce((sum, group) => sum + group.items.length, 0);
+  const [said, setSaid] = useState("");
+  useEffect(() => {
+    if (loading || query.trim() === "") return undefined;
+    const timer = setTimeout(() => setSaid(count > 0 ? label(count) : ""), 400);
+    return () => clearTimeout(timer);
+  }, [loading, query, count, label]);
+  return (
+    <span data-ouro-command-results="" role="status" aria-live="polite" className="sr-only">
+      {said}
+    </span>
   );
 }
 
