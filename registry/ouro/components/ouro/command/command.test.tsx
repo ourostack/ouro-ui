@@ -534,6 +534,33 @@ describe("Command server search", () => {
     expect(status().textContent).toBe("");
   });
 
+  it("shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends", async () => {
+    const jump = (loading: boolean, labels: string[] = []) => (
+      <Command
+        title="Jump to a chat"
+        open
+        onOpenChange={() => {}}
+        items={labels.map((label) => ({ label, onSelect() {} }))}
+        onQueryChange={() => {}}
+        loading={loading}
+        emptyLabel="No chats by that name."
+        loadingLabel="Searching the directory…"
+      />
+    );
+    await render(jump(true));
+    await settled();
+    const empty = () => document.querySelector<HTMLElement>("[data-ouro-command-empty]");
+    // The text without the word joiner Base UI adds so that its live region speaks the empty state.
+    const text = (element: Element | null | undefined) => element?.textContent?.replace(/\u2060/g, "");
+    expect(text(empty())).toBe("No chats by that name.Searching the directory…");
+    expect(document.querySelector("[data-ouro-command-loading]")).toBeNull();
+    await act(async () => roots[0]!.render(jump(false)));
+    expect(text(empty())).toBe("No chats by that name.");
+    await act(async () => roots[0]!.render(jump(true, ["Sam Rivera"])));
+    expect(empty()).toBeNull();
+    expect(document.querySelector("[data-ouro-command-loading]")?.textContent).toBe("Searching the directory…");
+  });
+
   it("takes a translated loading label, and aborts the last search when the palette closes", async () => {
     const signals: AbortSignal[] = [];
     await render(
