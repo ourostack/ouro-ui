@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deflateRawSync } from "node:zlib";
-import { baseline, budget, criticalPath, freshAttempt, jobGraph, judge, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
+import { baseline, budget, completeAttempt, criticalPath, earlierWork, freshAttempt, jobGraph, judge, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -296,6 +296,48 @@ test("the ceiling is on work time too, 15 minutes or half again main's work, whi
   // Main at 12 minutes of work: the ceiling is 18, past main's and 3 minutes it is a regression first.
   assert.deepEqual(verdict({ critical: 25, work: 18.5, main: 12, earlier: 19 }), { fail: true, reason: "ceiling", warning: null });
   assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: 16 }), { fail: true, reason: "regression", warning: null });
+});
+
+test("an earlier attempt that fail-fast or a newer push cancelled confirms nothing, so the previous full run decides", async () => {
+  const graph = jobGraph(workflow);
+  const at = (attempt, list) => list.map((entry) => ({ ...entry, run_attempt: attempt }));
+  const fresh = at(2, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 13), job("ci", 13, 13, 14), job("ci-budget", 14, 14, 15)]);
+  // As probe run 41331160904 left its first attempt: checks failed, fail-fast cancelled the rest,
+  // and ci-budget ended cancelled with its end before its start.
+  const cancelled = at(1, [job("plan", 0, 0, 1), job("checks", 1, 1, 2, "failure"), job("browser (1/2)", 1, 1, 3, "cancelled"), job("ci", 3, 3, 3, "cancelled"), job("ci-budget", 4, 4, 3.99, "cancelled")]);
+  const whole = at(1, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 12), job("ci", 12, 12, 13), job("ci-budget", 13, 13, 14)]);
+  assert.equal(completeAttempt(cancelled), false);
+  assert.equal(completeAttempt(whole), true);
+  // A failed job with nothing cancelled, or a cancelled shard in an attempt whose ci-budget still ran, ran to its end.
+  assert.equal(completeAttempt(at(1, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 12, "failure")])), true);
+  assert.equal(completeAttempt(at(1, [job("browser (1/2)", 1, 1, 12, "cancelled"), job("ci-budget", 13, 13, 14, "failure")])), true);
+  const evidence = (before, previousMinutes) => {
+    const calls = [];
+    const result = earlierWork({
+      attempt: "2",
+      jobs: fresh,
+      graph,
+      attemptJobs: async (number) => (calls.push(`attempt ${number}`), before),
+      previous: async () => (calls.push("previous"), previousMinutes === null ? null : previousMinutes * 60),
+    });
+    return result.then((value) => ({ ...value, minutes: value.seconds === null ? null : value.seconds / 60, calls }));
+  };
+  // A whole attempt 1 still confirms, as before: its own work path, and nothing else read.
+  const confirmed = await evidence(whole, 9);
+  assert.deepEqual({ from: confirmed.from, calls: confirmed.calls }, { from: "attempt 1 of this run", calls: ["attempt 1"] });
+  assert.equal(confirmed.seconds, criticalPath(whole, graph, { work: true }).seconds);
+  // A cancelled one falls back to the previous full run, or to none, so a regression still needs two runs past it.
+  const fallback = await evidence(cancelled, 16);
+  assert.deepEqual({ from: fallback.from, minutes: fallback.minutes, calls: fallback.calls }, { from: "the pull request's previous full run", minutes: 16, calls: ["attempt 1", "previous"] });
+  const none = await evidence(cancelled, null);
+  assert.deepEqual({ seconds: none.seconds, from: none.from }, { seconds: null, from: null });
+  assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: none.minutes }), { fail: true, reason: "confirm", warning: null });
+  assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: fallback.minutes }), { fail: true, reason: "regression", warning: null });
+  // Without it, the cut-short attempt's work time would have excused the regression.
+  assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: criticalPath(cancelled, graph, { work: true }).seconds / 60 }), { fail: false, warning: "unconfirmed" });
+  // Re-run failed jobs (not afresh) never reads the earlier attempt.
+  const kept = await earlierWork({ attempt: "2", jobs: [...fresh, { ...job("plan", 0, 0, 1), run_attempt: 1 }], graph, attemptJobs: async () => assert.fail("read"), previous: async () => null });
+  assert.deepEqual(kept, { seconds: null, from: null });
 });
 
 test("an earlier attempt confirms only when this attempt ran its jobs afresh, as after Re-run all jobs", () => {

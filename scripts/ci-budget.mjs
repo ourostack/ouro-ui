@@ -183,6 +183,30 @@ export function freshAttempt(jobs, attempt) {
   return jobs.filter((job) => job.conclusion !== "skipped").every((job) => job.run_attempt === undefined || Number(job.run_attempt) === Number(attempt));
 }
 
+/**
+ * Whether a run attempt's jobs (from the jobs API) ran to their end, so its work time can confirm
+ * another's: its ci-budget ran (passed or failed), or none of its jobs ended cancelled. An attempt
+ * fail-fast or a newer push cancelled stopped short, and its shorter work time would excuse a real
+ * regression.
+ */
+export function completeAttempt(jobs) {
+  return jobs.some((job) => job.name === self && (job.conclusion === "success" || job.conclusion === "failure")) || jobs.every((job) => job.conclusion !== "cancelled");
+}
+
+/**
+ * The earlier evidence a regression needs, as `{ seconds, from }`: this run's earlier attempt
+ * (`attemptJobs(n)`), when this one ran its jobs afresh ("Re-run all jobs") and that one ran to its
+ * end (`completeAttempt`), or else the pull request's previous full run (`previous()`), or none.
+ */
+export async function earlierWork({ attempt, jobs, graph, attemptJobs, previous }) {
+  if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
+    const before = await attemptJobs(Number(attempt) - 1);
+    if (completeAttempt(before)) return { seconds: criticalPath(before, graph, { work: true }).seconds, from: `attempt ${Number(attempt) - 1} of this run` };
+  }
+  const seconds = previous ? await previous() : null;
+  return seconds === null ? { seconds: null, from: null } : { seconds, from: "the pull request's previous full run" };
+}
+
 /** Whether a run's ci-timings record shows every job but ci-budget passed or was skipped. */
 export function recordPassed(record) {
   const others = (record?.jobs ?? []).filter((job) => job.job !== self);
@@ -353,8 +377,7 @@ async function main(argv) {
   }
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
   let mainBaseline = { seconds: null, values: [], workSeconds: null, workValues: [] };
-  // The earlier evidence a regression needs: this run's earlier attempt, when this one ran its jobs
-  // afresh ("Re-run all jobs"), or else the pull request's previous full run.
+  // The earlier evidence a regression needs (earlierWork).
   let earlier = { seconds: null, from: null };
   if (event === "pull_request" && !fallback) {
     try {
@@ -364,13 +387,13 @@ async function main(argv) {
     }
     if (path.seconds > limit) {
       try {
-        if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
-          const before = criticalPath(await fetchJobs({ repository, runId, attempt: Number(attempt) - 1, token }), graph, { work: true });
-          earlier = { seconds: before.seconds, from: `attempt ${Number(attempt) - 1} of this run` };
-        } else if (branch) {
-          const seconds = await previousRunWork({ repository, token, branch, runId });
-          if (seconds !== null) earlier = { seconds, from: "the pull request's previous full run" };
-        }
+        earlier = await earlierWork({
+          attempt,
+          jobs,
+          graph,
+          attemptJobs: (number) => fetchJobs({ repository, runId, attempt: number, token }),
+          previous: branch ? () => previousRunWork({ repository, token, branch, runId }) : null,
+        });
       } catch (error) {
         console.log(`::warning::The earlier attempt or the pull request's previous full run could not be read: ${error.message}`);
       }
