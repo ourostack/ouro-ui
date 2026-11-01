@@ -250,6 +250,12 @@ describe("Message development messages", () => {
         <Message role="assistant" name="Ouro">
           Hi
         </Message>
+        <Message variant="chat" role="assistant" name="Theo Brandt" presence="away" presenceLabel="Away">
+          Hi
+        </Message>
+        <Message variant="chat" role="assistant" name="Theo Brandt" avatar={<Avatar name="Theo Brandt" alt="" size="sm" presence="away" presenceLabel="Away" />}>
+          Hi
+        </Message>
       </>,
     );
     expect(warn).not.toHaveBeenCalled();
@@ -266,6 +272,12 @@ describe("Message development messages", () => {
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
     ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
     ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
+    [
+      "a presence beside an Avatar element",
+      { presence: "busy", presenceLabel: "In a meeting", avatar: <Avatar name="Ouro" alt="" size="sm" /> },
+      "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
+      'avatar={<Avatar name="Ouro" alt="" size="sm" presence="busy" presenceLabel="In a meeting" />}',
+    ],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { role: "assistant", name: "Ouro", children: "Hi", ...extra } as unknown as Parameters<typeof Message>[0];
     const { message } = await render(<Message {...props} />);
@@ -664,6 +676,66 @@ describe("Message post", () => {
     const { message } = await render(<Message {...props} />);
     expect(message.hasAttribute("data-continued")).toBe(false);
     expect(message.querySelector('[data-ouro="avatar"]')).not.toBeNull();
+  });
+});
+
+describe("Message presence", () => {
+  it("shows the author's presence on the avatar in every variant, and says it", async () => {
+    const { host } = await render(
+      <>
+        {(["default", "chat", "post", "reply"] as const).map((variant) => (
+          <Message key={variant} variant={variant} role="assistant" name="Theo Brandt" avatar={picture} presence="busy" presenceLabel="In a meeting">
+            Hi
+          </Message>
+        ))}
+        <Message role="user" name="Priya Okafor" presence="available" presenceLabel="Available">
+          Hi
+        </Message>
+      </>,
+    );
+    const messages = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(messages).toHaveLength(5);
+    for (const message of messages) {
+      const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
+      expect(avatar.querySelector("[data-ouro-avatar-presence]")).not.toBeNull();
+      // Avatar's own words for a presence beside a written name: the presence alone.
+      expect(avatar.getAttribute("role")).toBe("img");
+      expect(avatar.getAttribute("aria-label")).toBe(message.getAttribute("data-role") === "user" ? "Available" : "In a meeting");
+    }
+    expect(messages[1]!.querySelector('[data-ouro="avatar"]')!.getAttribute("data-presence")).toBe("busy");
+    await expect.element(page.getByRole("img", { name: "In a meeting" }).first()).toBeVisible();
+  });
+
+  it("shows no dot where there is no avatar", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Theo Brandt" continued presence="busy" presenceLabel="Busy">
+          Hi
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" presence="available" presenceLabel="Available">
+          Hi
+        </Message>
+        <Message role="assistant" name="Mara Quill" avatar={false} presence="away" presenceLabel="Away">
+          Hi
+        </Message>
+        <Message role="assistant" name="Mara Quill" continued presence="away" presenceLabel="Away">
+          Hi
+        </Message>
+      </>,
+    );
+    expect(host.querySelectorAll('[data-ouro="message"]')).toHaveLength(4);
+    expect(host.querySelector("[data-ouro-avatar-presence]")).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("names the presence label when it is missing, and still speaks the presence", async () => {
+    const props = { role: "assistant", name: "Theo Brandt", presence: "do-not-disturb", children: "Hi" } as unknown as MessageProps;
+    const { message } = await render(<Message {...props} />);
+    expect(message.querySelector('[data-ouro="avatar"]')!.getAttribute("aria-label")).toBe("do not disturb");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Message: presenceLabel is missing, so screen readers hear no presence. Fix: <Message presence="do-not-disturb" presenceLabel="Do not disturb">.',
+    );
   });
 });
 

@@ -140,6 +140,17 @@ describe("the ship's radio", () => {
     await expect.element(radio.getByRole("button", { name: "Like, 1" }).last()).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("shows the crew's presence on their lines, as in the list of who is on the air", async () => {
+    await openRadio();
+    const lines = [...document.querySelectorAll<HTMLElement>("[data-composition='radio'] [data-ouro='message']")];
+    expect(lines.map((line) => line.querySelector("[data-ouro='avatar']")?.getAttribute("aria-label"))).toEqual(
+      RADIO_START.crew.map((line) => RADIO.presence[line.name as keyof typeof RADIO.presence].label),
+    );
+    expect(lines.map((line) => line.querySelector("[data-ouro='avatar']")?.getAttribute("data-presence"))).toEqual(
+      RADIO_START.crew.map((line) => RADIO.presence[line.name as keyof typeof RADIO.presence].presence),
+    );
+  });
+
   it("puts someone new on the radio once you mention the squid, with a dot for news, and their conversation opens", async () => {
     const radio = await openRadio();
     await userEvent.click(radio.getByRole("textbox", { name: RADIO.compose }));

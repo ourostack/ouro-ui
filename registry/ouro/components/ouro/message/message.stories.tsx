@@ -148,7 +148,7 @@ function ChatConversation() {
   return (
     <Surface>
       <MessageList label="Chat with Mara Quill and Theo Brandt" style={{ height: 460 }}>
-        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actions} menu={menu}>
+        <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actions} menu={menu}>
           Morning! The venue confirmed the long table for Friday.
         </Message>
         <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41" continued actions={actions} menu={menu}>
@@ -158,7 +158,7 @@ function ChatConversation() {
           variant="chat"
           role="assistant"
           name="Theo Brandt"
-          avatar={<Avatar name="Theo Brandt" alt="" size="sm" />}
+          avatar={<Avatar name="Theo Brandt" alt="" size="sm" presence="away" presenceLabel="Away" />}
           time="9:43 AM"
           dateTime="2026-05-04T09:43"
           actions={actions}
@@ -193,8 +193,8 @@ function ChatConversation() {
 
 /**
  * People writing to each other (`variant="chat"`): others at the start on a raised bubble under
- * their name and time, the user's own at the end in a tint, runs from one author grouped with
- * `continued`. Hover a message, or Tab to it, for its action bar.
+ * their name and time, with their presence on the avatar, the user's own at the end in a tint,
+ * runs from one author grouped with `continued`. Hover a message, or Tab to it, for its action bar.
  */
 export const Chat: Story = {
   render: () => <ChatConversation />,
@@ -211,6 +211,8 @@ function ChannelPosts() {
         variant="post"
         role="assistant"
         name="Jonah Vale"
+        presence="busy"
+        presenceLabel="In a meeting"
         time="7:30 AM"
         dateTime="2026-05-04T07:30"
         subject="Agenda for Friday's design review"
@@ -263,7 +265,7 @@ export const Thread: Story = {
       <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM" subject="Agenda for Friday's design review">
         We will look at the new onboarding flow first, then the settings page.
       </Message>
-      <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM">
+      <Message variant="reply" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="7:36 AM">
         Can we start with the settings page? Theo is out after lunch.
       </Message>
       <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM" continued>

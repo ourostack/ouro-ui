@@ -12,7 +12,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -75,12 +75,13 @@ export interface MessageOwnProps {
   name: string;
   /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
-   * Pass an `Avatar` element instead to show presence or a square avatar:
-   * `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is
-   * written beside it). In `chat`, the user's own messages show no avatar.
+   * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
+   * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
+   * (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show
+   * no avatar.
    *
    * @claim "In `chat`, the user's own" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > shows an Avatar element the app passes, and no avatar on the user's own chat messages)
-   * @claim "Pass an `Avatar` element instead to" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > shows an Avatar element the app passes, and no avatar on the user's own chat messages)
+   * @claim "Pass an `Avatar` element instead for" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > shows an Avatar element the app passes, and no avatar on the user's own chat messages)
    * @claim "Without it the avatar shows initials" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > shows the author's avatar from main's Avatar, silent because the name is written)
    * @claim "Without it the avatar shows initials" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > shows a system message centered and quiet, without avatar or bubble)
    */
@@ -162,8 +163,42 @@ export interface MessageOwnProps {
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
 }
 
-/** Props for {@link Message}: its own props and the `<article>` attributes it passes through. */
-export type MessageProps = Omit<HTMLAttributes<HTMLElement>, keyof MessageOwnProps | "content"> & MessageOwnProps;
+/** A Message whose avatar shows the author's presence, and the words it says. */
+export interface MessagePresenceProps {
+  /**
+   * The author's presence, as Avatar's dot on the avatar's lower end corner: available,
+   * busy, away, do not disturb, offline or out of office, each in its own shape and tone. It
+   * shows wherever the avatar does, so not on a `continued` message or the user's own `chat`
+   * messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead.
+   * @claim "as Avatar's dot on the avatar's" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message presence > shows the author's presence on the avatar in every variant, and says it)
+   * @claim "It shows wherever the avatar does" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message presence > shows no dot where there is no avatar)
+   */
+  presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
+  /**
+   * What the dot says, such as "Busy" or "In a meeting". Screen readers hear it on the avatar,
+   * as Avatar reads a presence beside a written name. Required with `presence`, so no dot is
+   * silent.
+   * @claim "Screen readers hear it on the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message presence > shows the author's presence on the avatar in every variant, and says it)
+   * @claim "Required with `presence`, so no dot" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /presence:\s"busy"\s\}>\(\)\.not\.toExtend<MessageProps>/)
+   */
+  presenceLabel: string;
+}
+
+/** A Message without a presence dot. */
+export interface MessageNoPresenceProps {
+  /** Leave it out for no dot; pass it with `presenceLabel` to show one. */
+  presence?: undefined;
+  /** Read only with `presence`. */
+  presenceLabel?: string | undefined;
+}
+
+/**
+ * Props for {@link Message}: its own props, `presence` with `presenceLabel` or neither, and the
+ * `<article>` attributes it passes through.
+ */
+export type MessageProps = Omit<HTMLAttributes<HTMLElement>, keyof MessageOwnProps | "content" | "presence" | "presenceLabel"> &
+  MessageOwnProps &
+  (MessagePresenceProps | MessageNoPresenceProps);
 
 const roles = ["user", "assistant", "system"] as const;
 
@@ -223,6 +258,8 @@ export function Message(props: MessageProps): JSX.Element {
     name: nameProp,
     variant: variantProp = "default",
     avatar,
+    presence,
+    presenceLabel,
     time,
     dateTime,
     continued: continuedProp = false,
@@ -272,6 +309,16 @@ export function Message(props: MessageProps): JSX.Element {
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
           variant === "post" && continuedProp && ["a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
           variant !== "post" && subject !== undefined && ["subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
+          presence !== undefined &&
+            isValidElement(avatar) && [
+              "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
+              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${presenceLabel ?? ""}" />}`,
+            ],
+          presence !== undefined &&
+            !presenceLabel && [
+              "presenceLabel is missing, so screen readers hear no presence",
+              `<Message presence="${presence}" presenceLabel="${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}">`,
+            ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
@@ -339,7 +386,7 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={name} size="sm" className="mb-0.5" />)}
+        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
         <div
           className={cn(
             "flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
@@ -430,7 +477,7 @@ export function Message(props: MessageProps): JSX.Element {
               </time>
             )
           ) : (
-            <AvatarSlot avatar={avatar} name={name} size="sm" />
+            <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" />
           )}
         </span>
       )}
@@ -473,10 +520,28 @@ export function Message(props: MessageProps): JSX.Element {
   );
 }
 
-/** The author's avatar: the Avatar element the app passed, or one drawn from the picture URL and name. */
-function AvatarSlot({ avatar, name, size, className }: { avatar: string | ReactElement | undefined; name: string; size: "sm" | "md"; className?: string }): JSX.Element {
+/**
+ * The author's avatar: the Avatar element the app passed, or one drawn from the picture URL and
+ * name, with the author's presence. A missing label still says the presence, as Avatar would.
+ */
+function AvatarSlot({
+  avatar,
+  name,
+  presence,
+  presenceLabel,
+  size,
+  className,
+}: {
+  avatar: string | ReactElement | undefined;
+  name: string;
+  presence: string | undefined;
+  presenceLabel: string | undefined;
+  size: "sm" | "md";
+  className?: string;
+}): JSX.Element {
   if (isValidElement(avatar)) return avatar;
-  return <Avatar name={name} src={avatar} alt="" size={size} className={className} />;
+  const dot = presence === undefined ? {} : { presence: presence as AvatarPresence, presenceLabel: presenceLabel || presence.replaceAll("-", " ") };
+  return <Avatar name={name} src={avatar} alt="" size={size} className={className} {...dot} />;
 }
 
 /** A row under the message (its footer or thread), or nothing when the app passed nothing. */

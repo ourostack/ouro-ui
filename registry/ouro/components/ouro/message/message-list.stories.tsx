@@ -61,7 +61,14 @@ function ChatHistory({ items }: { items: Item[] }) {
   return (
     <MessageList label="Conversation with Ouro" style={{ height: 420 }}>
       {items.map((item) => (
-        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada Lovelace" : "Ouro"} streaming={item.streaming}>
+        <Message
+          key={item.id}
+          role={item.role}
+          name={item.role === "user" ? "Ada Lovelace" : "Ouro"}
+          presence={item.role === "assistant" ? "available" : undefined}
+          presenceLabel="Available"
+          streaming={item.streaming}
+        >
           {item.text}
         </Message>
       ))}

@@ -12,7 +12,7 @@ export default function MessageDemo(): JSX.Element {
       <Message role="assistant" name="Ouro">
         About an hour, covered, somewhere warm. It is ready when it has doubled.
       </Message>
-      <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]} menu={[{ label: "Copy text", onClick: () => {} }]}>
+      <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]} menu={[{ label: "Copy text", onClick: () => {} }]}>
         The venue confirmed the long table for Friday.
       </Message>
       <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" continued>
