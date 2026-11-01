@@ -56,7 +56,7 @@ function firstVisible(scroller: HTMLElement): { message: Element; top: number } 
   return { message, top: message.getBoundingClientRect().top };
 }
 
-function Chat({ items, label = "Conversation", ...rest }: { items: Item[]; label?: string; jumpLabel?: string; newMessageLabel?: (author: string, text: string) => string }) {
+function Chat({ items, label = "Conversation", ...rest }: { items: Item[]; label?: string; jumpLabel?: string; initialAnchor?: string; newMessageLabel?: (author: string, text: string) => string }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
@@ -545,6 +545,97 @@ describe("MessageList", () => {
     await rerender(<Chat items={[...history(10), ...items.slice(1), items[0]!]} />);
     await settle(scroller);
     expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  /** A conversation whose messages carry ids, so it can open at one, as an app does at a message found by search. */
+  function Found({ items, initialAnchor }: { items: Item[]; initialAnchor?: string }) {
+    return (
+      <MessageList label="Conversation" style={{ height: 300 }} initialAnchor={initialAnchor}>
+        {items.map((item) => (
+          <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    );
+  }
+  /** Whether the message with this id shows whole in the list's view. */
+  const inView = (scroller: HTMLElement, id: string) => {
+    const view = scroller.getBoundingClientRect();
+    const box = document.getElementById(id)!.getBoundingClientRect();
+    return box.top >= view.top - 1 && box.bottom <= view.bottom + 1;
+  };
+  /** Where the list is scrolled in the next frame, before the browser draws it. */
+  const nextFrame = (scroller: HTMLElement) => new Promise<number>((resolve) => requestAnimationFrame(() => resolve(scroller.scrollTop)));
+
+  it("opens at the message initialAnchor names, never drawing the newest first, and stops following new messages", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found items={items} initialAnchor="found-5" />);
+    const first = await nextFrame(scroller);
+    // In the middle of the view, with no transform: it opens there at once, with no movement.
+    expect(inView(scroller, "found-5")).toBe(true);
+    const view = scroller.getBoundingClientRect();
+    const box = document.getElementById("found-5")!.getBoundingClientRect();
+    expect(Math.abs(box.top - view.top - (view.bottom - box.bottom))).toBeLessThanOrEqual(2);
+    expect(inView(scroller, "found-29")).toBe(false);
+    expect([...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].every((message) => message.style.transform === "")).toBe(true);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    // A new message leaves the reader at the one they opened.
+    await rerender(<Found items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} initialAnchor="found-5" />);
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(first);
+  });
+
+  it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found items={[]} />);
+    await rerender(<Found items={items} initialAnchor="found-5" />);
+    await nextFrame(scroller);
+    expect(inView(scroller, "found-5")).toBe(true);
+    expect(inView(scroller, "found-29")).toBe(false);
+    // Only the first messages open it: an anchor named later moves nothing.
+    await rerender(<Found items={items} initialAnchor="found-20" />);
+    await settle(scroller);
+    expect(inView(scroller, "found-5")).toBe(true);
+  });
+
+  it("opens at the newest message when initialAnchor names no message in the list, or the newest itself", async () => {
+    const { scroller } = await render(<Found items={history(30)} initialAnchor="gone" />);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    const { scroller: near } = await render(<Found items={history(30)} initialAnchor="found-29" />);
+    expect(distanceFromBottom(near)).toBeLessThanOrEqual(1);
+    // An empty name names no message, not one without an id.
+    const { scroller: unnamed } = await render(<Chat items={history(30)} initialAnchor="" />);
+    expect(distanceFromBottom(unnamed)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
+    const items = history(30, 10);
+    const { scroller } = await render(<Found items={[]} />);
+    let top = 0;
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Found items={items} initialAnchor="found-15" />));
+      // The list opens as it sees the messages arrive, before the browser draws.
+      await Promise.resolve();
+      top = document.getElementById("found-15")!.getBoundingClientRect().top;
+      flushSync(() => roots.at(-1)!.render(<Found items={[...history(10), ...items]} initialAnchor="found-15" />));
+    });
+    await settle(scroller);
+    expect(Math.abs(document.getElementById("found-15")!.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("stays at a message an app scrolls to as the first messages arrive, instead of following to the newest", async () => {
+    const items = history(30);
+    const { scroller } = await render(<Found items={[]} />);
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+      // The app scrolls to a found message itself, before the list has seen its messages arrive.
+      document.getElementById("found-5")!.scrollIntoView({ block: "start" });
+    });
+    await settle(scroller);
+    expect(inView(scroller, "found-5")).toBe(true);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
   });
 
   /** A channel of an app's own posts, each `height` px tall, in the order given, so which of them start in the view is known. */

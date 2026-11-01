@@ -57,12 +57,13 @@ function Surface({ children }: { children: ReactNode }) {
   );
 }
 
-function ChatHistory({ items }: { items: Item[] }) {
+function ChatHistory({ items, initialAnchor }: { items: Item[]; initialAnchor?: string }) {
   return (
-    <MessageList label="Conversation with Ouro" style={{ height: 420 }}>
+    <MessageList label="Conversation with Ouro" style={{ height: 420 }} initialAnchor={initialAnchor}>
       {items.map((item) => (
         <Message
           key={item.id}
+          id={initialAnchor ? `found-${item.id}` : undefined}
           role={item.role}
           name={item.role === "user" ? "Ada Lovelace" : "Ouro"}
           presence={item.role === "assistant" ? "available" : undefined}
@@ -224,6 +225,20 @@ export const Springs: Story = {
   render: () => (
     <Surface>
       <ChatHistory items={longChat} />
+    </Surface>
+  ),
+};
+
+/**
+ * Opened at a message found by search, with `initialAnchor`: the list starts with that message in
+ * the middle of its view, never showing the newest first, and "Jump to latest" takes the reader to
+ * the end, where it follows new messages again.
+ */
+export const OpenedAtMessage: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => (
+    <Surface>
+      <ChatHistory items={longChat} initialAnchor="found-20" />
     </Surface>
   ),
 };
