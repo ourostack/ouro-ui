@@ -26,6 +26,8 @@ expectTypeOf<{
 }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "post"; subject: "Agenda" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply"; actionsPlacement: "corner" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; variant: "chat"; actionsPlacement: "beside" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "assistant"; name: "Ada"; variant: "chat"; presence: "busy"; presenceLabel: "In a meeting" }>().toExtend<MessageProps>();
 // A presence that may be missing, with its label, type checks as it is.
 expectTypeOf<{ role: "assistant"; name: "Ada"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<MessageProps>();
@@ -41,6 +43,7 @@ expectTypeOf<{ role: "user"; name: "Ada"; from: "user" }>().not.toExtend<Message
 expectTypeOf<{ role: "user"; name: "Ada"; sender: "Ada" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; content: "Hi" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "bubble" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply"; actionsPlacement: "right" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; own: true }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; timestamp: "9:41" }>().not.toExtend<MessageProps>();
 // A presence needs the words it says; unknown presences name the fix.

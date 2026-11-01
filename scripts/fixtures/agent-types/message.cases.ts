@@ -46,6 +46,13 @@ export const agentCases: AgentCase[] = [
     dev: '<Message presence="busy" presenceLabel="Busy">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message07",
+    habit: "a side for the action bar",
+    tsc: [notAssignable('"right"', `MessageActionsPlacement | (string & { 'Use "corner" or "beside"': never; }) | undefined`)],
+    dev: '<Message variant="chat" actionsPlacement="beside">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */

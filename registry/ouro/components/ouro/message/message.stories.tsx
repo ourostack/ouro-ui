@@ -258,21 +258,48 @@ export const Posts: Story = {
   render: () => <ChannelPosts />,
 };
 
-/** A post's thread: the post, then its replies (`variant="reply"`), unboxed, with runs grouped. */
+/** The thread story's actions, which only show where they sit. */
+const threadActions = actionsFor(
+  () => {},
+  () => {},
+);
+
+/**
+ * A post's thread: the post, then its replies (`variant="reply"`), unboxed, with runs grouped.
+ * Hover a reply, or Tab to it, for its action bar, just past the reply's text.
+ */
 export const Thread: Story = {
   render: () => (
     <Surface>
       <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM" subject="Agenda for Friday's design review">
         We will look at the new onboarding flow first, then the settings page.
       </Message>
-      <Message variant="reply" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="7:36 AM">
+      <Message variant="reply" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="7:36 AM" actions={threadActions} menu={menu}>
         Can we start with the settings page? Theo is out after lunch.
       </Message>
-      <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM" continued>
+      <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM" continued actions={threadActions} menu={menu}>
         Either way works for me.
       </Message>
-      <Message variant="reply" role="user" name="Priya Okafor" time="7:44 AM">
+      <Message variant="reply" role="user" name="Priya Okafor" time="7:44 AM" actions={threadActions} menu={menu}>
         Swapped. Settings page first.
+      </Message>
+    </Surface>
+  ),
+};
+
+/**
+ * A reply's action bar, shown by keyboard focus: just past the reply's text and level with its
+ * top, clear of the name and time above it, however wide the thread.
+ */
+export const ReplyActions: Story = {
+  parameters: { screenshot: { name: "message-reply-actions", focus: true } },
+  render: () => (
+    <Surface>
+      <Message variant="reply" role="assistant" name="Theo Brandt" presence="available" presenceLabel="Available" time="7:44 AM" actions={threadActions} menu={menu}>
+        On it.
+      </Message>
+      <Message variant="reply" role="user" name="Priya Okafor" time="7:46 AM" actions={threadActions} menu={menu}>
+        Thanks! I will send the notes after the review.
       </Message>
     </Surface>
   ),

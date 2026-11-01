@@ -247,6 +247,9 @@ describe("Message development messages", () => {
         <Message variant="reply" role="user" name="Priya Okafor" continued>
           Hi
         </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
+          Hi
+        </Message>
         <Message role="assistant" name="Ouro">
           Hi
         </Message>
@@ -272,6 +275,7 @@ describe("Message development messages", () => {
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
     ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
     ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
+    ["an unknown actions placement", { variant: "reply", actionsPlacement: "below" }, 'actionsPlacement="below" is not a placement; use "corner" or "beside"', '<Message variant="chat" actionsPlacement="beside">'],
     [
       "a presence beside an Avatar element",
       { presence: "busy", presenceLabel: "In a meeting", avatar: <Avatar name="Ouro" alt="" size="sm" /> },
@@ -759,6 +763,7 @@ function actionsFor(log: string[], extra: Partial<MessageAction> = {}): MessageA
 }
 const menu = [{ label: "Copy link", onClick: () => {} }];
 const barOf = (message: HTMLElement) => message.querySelector<HTMLElement>('[role="toolbar"]')!;
+const box = (element: Element) => element.getBoundingClientRect();
 
 
 describe("Message actions", () => {
@@ -1033,7 +1038,6 @@ describe("Message actions", () => {
       </>,
     );
     const [mine, user, assistant] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
-    const box = (element: Element) => element.getBoundingClientRect();
     expect(box(barOf(mine!)).left).toBeCloseTo(box(bubbleOf(mine!)).left + 8, 0);
     expect(box(bubbleOf(user!)).right).toBeGreaterThan(box(host).right - 60);
     // Elsewhere it sits at the bubble's end corner, 32px above it.
@@ -1052,19 +1056,176 @@ describe("Message actions", () => {
         <Message variant="post" role="user" name="Priya Okafor" actions={actionsFor([])}>
           My post
         </Message>
-        <Message variant="reply" role="user" name="Priya Okafor" actions={actionsFor([])}>
+        <Message variant="reply" role="user" name="Priya Okafor" actionsPlacement="corner" actions={actionsFor([])}>
           My reply
         </Message>
       </>,
     );
     const [chat, post, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
-    const box = (element: Element) => element.getBoundingClientRect();
     expect(box(barOf(chat!)).right).toBeCloseTo(box(bubbleOf(chat!)).right - 8, 0);
     expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 32, 0);
     const card = post!.querySelector("[data-ouro-message-card]")!;
     expect(box(barOf(post!)).right).toBeCloseTo(box(card).right - 8, 0);
     expect(box(barOf(post!)).top).toBeCloseTo(box(card).top - 20, 0);
     expect(box(barOf(reply!)).right).toBeCloseTo(box(bubbleOf(reply!)).right - 8, 0);
+    expect(box(barOf(reply!)).top).toBeCloseTo(box(bubbleOf(reply!)).top - 32, 0);
+  });
+
+  it("puts a reply's bar beside its text, level with its top, clear of the name", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="reply" role="assistant" name="Jonah Vale" time="1:05 PM" actions={actionsFor([])} style={{ marginTop: 40 }}>
+          OK
+        </Message>
+        <Message variant="reply" role="assistant" name="Mara Quill" actionsPlacement="corner" actions={actionsFor([])}>
+          OK
+        </Message>
+        <Message variant="reply" role="assistant" name="Theo Brandt">
+          No actions
+        </Message>
+      </>,
+    );
+    const [beside, corner, plain] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const bar = box(barOf(beside!));
+    const text = box(bubbleOf(beside!));
+    expect(bar.left).toBeCloseTo(text.right + 4, 0);
+    expect(bar.top).toBeCloseTo(text.top, 0);
+    expect(bar.width).toBeCloseTo(box(barOf(corner!)).width, 0);
+    // The name and time are wider than "OK", and the bar stays below their line.
+    expect(box(headerOf(beside!)).right).toBeGreaterThan(bar.left);
+    expect(bar.top).toBeGreaterThanOrEqual(box(headerOf(beside!)).bottom);
+    // The room around the bar takes no presses: a press beside it lands on the message.
+    const hit = document.elementFromPoint(bar.right + 20, bar.top + 4)!;
+    expect(beside!.contains(hit) && hit.closest("[data-ouro-message-actions-room]") === null).toBe(true);
+    // Only a message with a bar beside it measures its width, and it keeps the app's style.
+    expect(getComputedStyle(beside!).containerType).toBe("inline-size");
+    expect(getComputedStyle(beside!).marginTop).toBe("40px");
+    expect(getComputedStyle(corner!).containerType).toBe("normal");
+    expect(getComputedStyle(plain!).containerType).toBe("normal");
+  });
+
+  it("places a reply's bar beside its text for a placement that is not one", async () => {
+    const props = { variant: "reply", role: "assistant", name: "Jonah Vale", actionsPlacement: "below", actions: actionsFor([]), children: "OK" } as unknown as Parameters<typeof Message>[0];
+    const { message } = await render(<Message {...props} />);
+    expect(box(barOf(message)).left).toBeCloseTo(box(bubbleOf(message)).right + 4, 0);
+  });
+
+  it("ends a bar beside a bubble at the row's edge when the bubble fills the row, with an avatar or without, right to left too", async () => {
+    const long = "a".repeat(400);
+    const { host } = await render(
+      <>
+        <Message variant="reply" role="assistant" name="Jonah Vale" actions={actionsFor([])}>
+          {long}
+        </Message>
+        <Message variant="reply" role="assistant" name="Jonah Vale" avatar={false} actions={actionsFor([])}>
+          {long}
+        </Message>
+        <div dir="rtl">
+          <Message variant="reply" role="assistant" name="Jonah Vale" actions={actionsFor([])}>
+            {long}
+          </Message>
+          <Message variant="reply" role="assistant" name="Jonah Vale" actions={actionsFor([])}>
+            OK
+          </Message>
+        </div>
+      </>,
+    );
+    const [avatar, bare, rtlLong, rtlShort] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    for (const message of [avatar!, bare!]) {
+      expect(box(barOf(message)).right).toBeCloseTo(box(message).right, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top, 0);
+    }
+    expect(box(barOf(rtlLong!)).left).toBeCloseTo(box(rtlLong!).left, 0);
+    expect(box(barOf(rtlShort!)).right).toBeCloseTo(box(bubbleOf(rtlShort!)).left - 4, 0);
+  });
+
+  it("leaves room for the avatar's column, and none without one, when it places a bar beside a bubble", async () => {
+    // Bubbles sized so the bar just fits beside each, 10px to spare: counting the avatar's
+    // column where there is none, or missing it where there is one, moves the bar.
+    const reply = (width: number, avatar?: false) => (
+      <Message variant="reply" role="assistant" name="Jonah Vale" avatar={avatar} actions={actionsFor([])}>
+        <span style={{ display: "inline-block", width }} />
+      </Message>
+    );
+    const mine = (width: number) => (
+      <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
+        <span style={{ display: "inline-block", width }} />
+      </Message>
+    );
+    const { host, rerender } = await render(
+      <>
+        {reply(100)}
+        {reply(100, false)}
+        {mine(100)}
+      </>,
+    );
+    const all = () => [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const width = box(barOf(all()[0]!)).width;
+    // The row beside each bubble: from its start to the message's end, or for the user's own, from the message's start to its end.
+    const [withAvatar, without, own] = all().map((message, index) => (index < 2 ? box(message).right - box(bubbleOf(message)).left : box(bubbleOf(message)).right - box(message).left));
+    // Each bubble's width for a 100px child, less the 100px, is its padding.
+    const padding = all().map((message) => box(bubbleOf(message)).width - 100);
+    const fit = (row: number, index: number) => row - width - 4 - 10 - padding[index]!;
+    await rerender(
+      <>
+        {reply(fit(withAvatar!, 0), undefined)}
+        {reply(fit(without!, 1), false)}
+        {mine(fit(own!, 2))}
+      </>,
+    );
+    const [first, second, third] = all();
+    expect(box(barOf(first!)).left).toBeCloseTo(box(bubbleOf(first!)).right + 4, 0);
+    expect(box(barOf(second!)).left).toBeCloseTo(box(bubbleOf(second!)).right + 4, 0);
+    expect(box(barOf(third!)).right).toBeCloseTo(box(bubbleOf(third!)).left - 4, 0);
+  });
+
+  it("puts a chat bar beside the bubble when asked: past others' bubbles, before the user's own", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" actions={actionsFor([])}>
+          Theirs
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
+          Mine
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
+          {"a".repeat(400)}
+        </Message>
+      </>,
+    );
+    const [theirs, mine, wide] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(box(barOf(theirs!)).left).toBeCloseTo(box(bubbleOf(theirs!)).right + 4, 0);
+    expect(box(barOf(theirs!)).top).toBeCloseTo(box(bubbleOf(theirs!)).top, 0);
+    expect(box(barOf(mine!)).right).toBeCloseTo(box(bubbleOf(mine!)).left - 4, 0);
+    expect(box(barOf(mine!)).top).toBeCloseTo(box(bubbleOf(mine!)).top, 0);
+    // Where the user's own bubble leaves less room than the bar needs, the bar starts at the row's start.
+    expect(box(bubbleOf(wide!)).left - box(wide!).left).toBeLessThan(box(barOf(wide!)).width);
+    expect(box(barOf(wide!)).left).toBeCloseTo(box(wide!).left, 0);
+  });
+
+  it("keeps a post's bar, the default layout's and a system note's over the corner, beside or not", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" actionsPlacement="beside" actions={actionsFor([])}>
+          A post
+        </Message>
+        <Message role="assistant" name="Ouro" actionsPlacement="beside" actions={actionsFor([])}>
+          Default
+        </Message>
+        <Message variant="reply" role="system" name="Ouro" actions={actionsFor([])}>
+          A note
+        </Message>
+      </>,
+    );
+    const [post, plain, note] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const card = post!.querySelector("[data-ouro-message-card]")!;
+    expect(box(barOf(post!)).right).toBeCloseTo(box(card).right - 8, 0);
+    expect(box(barOf(post!)).top).toBeCloseTo(box(card).top - 20, 0);
+    for (const message of [plain!, note!]) {
+      expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);
+      expect(getComputedStyle(message).containerType).toBe("normal");
+    }
   });
 
   it("shows the bar after a tap on a touch screen, until a press lands outside the message", async () => {
