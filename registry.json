@@ -9282,6 +9282,7 @@
       "registryDependencies": [
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
@@ -9303,6 +9304,9 @@
         "ourostack/ouro-ui/message-list",
         "ourostack/ouro-ui/message-tests",
         "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/text-area",
+        "ourostack/ouro-ui/text-area-tests",
+        "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -147,6 +148,35 @@ describe("MessageList", () => {
     const grown = [...items, { id: 20, role: "assistant" as const, text: "Rest the dough. ".repeat(40), streaming: true }];
     await rerender(<Chat items={grown} />);
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("stays at the end while the reader edits the newest message in place and it grows", async () => {
+    const items = history(20);
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        {items.map((item) => (
+          <Message key={item.id} role={item.role} name="Ada">
+            {item.text}
+          </Message>
+        ))}
+        <Message role="user" name="Ada">
+          <TextArea label="Edit your message" hideLabel variant="plain" autoGrow rows={1} maxRows={8} defaultValue={"Line one\nLine two\nLine three"} />
+        </Message>
+      </MessageList>,
+    );
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await settle(scroller);
+    const editor = page.getByRole("textbox", { name: "Edit your message" });
+    // A new line: the editor and the message grow, and the list follows to the end.
+    await userEvent.type(editor, "{End}{Enter}Line four");
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    // More on the same line: the editor measures itself on each key and stays its height.
+    await userEvent.type(editor, " and five");
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
