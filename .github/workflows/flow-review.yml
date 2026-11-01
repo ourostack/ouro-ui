@@ -58,10 +58,13 @@ jobs:
           if [ "$REF" = main ]; then echo "url=https://ui.ouro.bot/" >> "$GITHUB_OUTPUT"; exit 0; fi
           cd release
           pnpm i --frozen-lockfile
-          pnpm site:build && mkdir -p _site && cp -R site/dist/. _site/
+          pnpm site:build
+          mkdir -p _site
+          cp -R site/dist/. _site/
           pnpm build-storybook --output-dir _site/storybook
           (python3 -m http.server 4321 --bind 127.0.0.1 --directory _site > /dev/null 2>&1 &)
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4321/ > /dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:4321/ > /dev/null || { echo "::error::The built site isn't being served on 127.0.0.1:4321."; exit 1; }
           echo "url=http://127.0.0.1:4321/" >> "$GITHUB_OUTPUT"
       - uses: ourostack/flow-review@64e67c6a01d20c02245ac21d409c1de40d2310b2 # v0.3.0
         with:
