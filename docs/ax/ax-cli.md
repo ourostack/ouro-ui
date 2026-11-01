@@ -5,7 +5,7 @@
 The whole front door for a tool built on the kit: parse, help, run (or, on `--dry-run`, plan), print the result as text or `--json`, and turn every failure into the one error line and its exit code. An outcome or a wait sets the exit code from its state.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.2.14
+npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.0
 ```
 
 It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

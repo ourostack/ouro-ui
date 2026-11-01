@@ -1,1 +1,0 @@
-- Changed: Lightbox runs edge to edge on a phone, and zooms an image drawn smaller than its own size with a double-tap, a pinch or a new zoom button (`zoomLabel` names it); zoomed, a swipe moves around the image instead of to the next one.

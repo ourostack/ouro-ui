@@ -1,1 +1,0 @@
-- New: ReactionBar takes `onMore`, an "Add reaction" button at the end that opens the app's own picker, with `moreOpen` and `moreLabel`.

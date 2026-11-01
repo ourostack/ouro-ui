@@ -1,1 +1,0 @@
-- Added: Lightbox `layout="mosaic"` lays a chat message's pictures out in one frame, as chat apps do; `fullScreen` opens the viewer across the whole screen; an image's `width` and `height` keep a lone picture's shape, and its `still` frame shows in its thumbnail under reduced motion.

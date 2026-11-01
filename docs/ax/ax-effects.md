@@ -5,7 +5,7 @@
 Effect classes: a command either touches only the person's own space ("private") or reaches other people ("others"). Help groups commands under those headings, an "others" command needs `--why` and previews its audience before it acts, and its result says who can see it. `readOnly` marks reads, which change nothing.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-effects#v1.2.14
+npx shadcn@latest add ourostack/ouro-ui/ax-effects#v1.3.0
 ```
 
 It installs `lib/ouro/ax/effects.ts`. Its tests are `ax-effects-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
