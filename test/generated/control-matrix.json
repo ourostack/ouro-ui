@@ -2424,7 +2424,8 @@
       "ConversationList/Sections",
       "ConversationList/Filtered",
       "ConversationList/EmojiInTitles",
-      "ConversationList/Activity"
+      "ConversationList/Activity",
+      "ConversationList/Drafts"
     ]
   },
   {
@@ -2443,7 +2444,8 @@
       "ConversationList/Sections",
       "ConversationList/Filtered",
       "ConversationList/EmojiInTitles",
-      "ConversationList/Activity"
+      "ConversationList/Activity",
+      "ConversationList/Drafts"
     ]
   },
   {

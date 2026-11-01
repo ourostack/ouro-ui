@@ -27,6 +27,7 @@ Type: `ConversationListProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: width, margins, grid placement (`w-80`). Appearance classes warn in development. |
 | `density` | `"comfortable" \| "compact"` | `"comfortable"` | `compact` drops the preview line and uses a smaller avatar. |
+| `draftLabel` | `string` | `"Draft:"` | The words before a row's `draft`, for other languages. |
 | `empty` | `ReactNode` | `"Nothing here yet"` | What shows when `items` is empty. |
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |
@@ -108,6 +109,13 @@ interface ConversationListItemFields {
   context?: ReactNode;
   /** The latest message, cut to one line. `density="compact"` hides it. */
   preview?: ReactNode;
+  /**
+   * The first words of a message the person started here and has not sent. They show in place
+   * of the preview after `draftLabel` ("Draft:"), in the destructive tone as chat apps mark a
+   * draft, so a half-written reply is visible from the list. `density="compact"` hides it with
+   * the preview.
+   */
+  draft?: ReactNode;
   /** When the latest message arrived, already formatted ("9:41", `<RelativeTime>`). */
   time?: ReactNode;
   /** There are messages the person has not read: the title is bold and a dot shows. */
