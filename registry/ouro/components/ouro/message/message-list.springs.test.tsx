@@ -233,7 +233,7 @@ describe("MessageList springs", () => {
     const frames = holdFrames();
     const view = scroller.getBoundingClientRect();
     const pointer = view.bottom - 10;
-    // The browser's own scroll event comes before the history (in one frame, the list would read the history as in place).
+    // The browser's own scroll event comes first, so the frame that loads the history is the springs' next.
     wheel(scroller, -40, pointer);
     await nextScroll(scroller);
     const reading = messages().find((message) => laidOut(message).top >= view.top)!;
