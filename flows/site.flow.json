@@ -1,0 +1,68 @@
+{
+  "schema": "flow-review/0",
+  "name": "Ouro UI site: home and a component's page",
+  "surface": "web",
+  "app": {
+    "target": "https://ui.ouro.bot/",
+    "url": "${target}"
+  },
+  "matrix": {
+    "viewports": [
+      "390x844",
+      "1440x900",
+      "2560x1440"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "reducedMotion": [
+      true
+    ]
+  },
+  "steps": [
+    {
+      "id": "home",
+      "goto": "/"
+    },
+    {
+      "waitFor": {
+        "selector": "main h1"
+      }
+    },
+    {
+      "capture": {
+        "moment": "home"
+      }
+    },
+    {
+      "id": "dialog-docs",
+      "goto": "/docs/dialog/"
+    },
+    {
+      "waitFor": {
+        "selector": "main h1"
+      }
+    },
+    {
+      "capture": {
+        "moment": "dialog docs"
+      }
+    },
+    {
+      "tabTraverse": {
+        "max": 400
+      }
+    }
+  ],
+  "checks": {
+    "designSystem": {
+      "marker": "[data-ouro], [data-ouro-control], [data-ouro-part]",
+      "depth": 2
+    },
+    "sections": "main section[id], main [data-section]"
+  },
+  "rubric": [
+    "craft"
+  ]
+}

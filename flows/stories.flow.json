@@ -1,0 +1,112 @@
+{
+  "schema": "flow-review/0",
+  "name": "Ouro UI stories: controls, overlays and feedback",
+  "surface": "web",
+  "app": {
+    "target": "https://ui.ouro.bot/",
+    "url": "${target}"
+  },
+  "matrix": {
+    "viewports": [
+      "390x844",
+      "1280x800"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "reducedMotion": [
+      true
+    ]
+  },
+  "steps": [
+    {
+      "id": "button",
+      "goto": "/storybook/iframe.html?id=actions-button--tones-and-variants&viewMode=story"
+    },
+    {
+      "waitFor": {
+        "selector": "#storybook-root > *"
+      }
+    },
+    {
+      "capture": {
+        "moment": "button tones"
+      }
+    },
+    {
+      "id": "checkbox",
+      "goto": "/storybook/iframe.html?id=forms-checkboxgroup--states&viewMode=story"
+    },
+    {
+      "waitFor": {
+        "selector": "#storybook-root > *"
+      }
+    },
+    {
+      "capture": {
+        "moment": "checkbox states"
+      }
+    },
+    {
+      "id": "menu",
+      "goto": "/storybook/iframe.html?id=menus-menu--items&viewMode=story"
+    },
+    {
+      "waitFor": {
+        "selector": "#storybook-root > *"
+      }
+    },
+    {
+      "capture": {
+        "moment": "menu"
+      }
+    },
+    {
+      "id": "toast",
+      "goto": "/storybook/iframe.html?id=feedback-toast--tones&viewMode=story"
+    },
+    {
+      "waitFor": {
+        "selector": "#storybook-root > *"
+      }
+    },
+    {
+      "capture": {
+        "moment": "toasts"
+      }
+    },
+    {
+      "id": "dialog",
+      "goto": "/storybook/iframe.html?id=overlays-dialog--short-question&viewMode=story"
+    },
+    {
+      "waitFor": {
+        "selector": "#storybook-root > *"
+      }
+    },
+    {
+      "capture": {
+        "moment": "dialog"
+      }
+    },
+    {
+      "tabTraverse": {
+        "max": 60
+      }
+    }
+  ],
+  "checks": {
+    "designSystem": {
+      "marker": "[data-ouro], [data-ouro-control], [data-ouro-part]",
+      "depth": 2
+    },
+    "sections": "[data-section]",
+    "thresholds": {
+      "axeImpact": "serious"
+    }
+  },
+  "rubric": [
+    "craft"
+  ]
+}
