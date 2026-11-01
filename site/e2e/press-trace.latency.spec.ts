@@ -105,7 +105,7 @@ function summarise(events: TraceEvent[]) {
     (p?.samples ?? []).forEach((id: number, i: number) => selfByNode.set(id, (selfByNode.get(id) ?? 0) + (deltas[i + 1] ?? deltas[i] ?? 0) / 1000));
   }
   const fns = new Map<string, number>();
-  for (const [id, ms] of selfByNode) { const f = nodes.get(id); if (!f) continue; const k = `${f.functionName || "(anon)"} ${f.url.replace(/^.*\//, "")}:${f.lineNumber}:${f.columnNumber}`; fns.set(k, (fns.get(k) ?? 0) + ms); }
+  for (const [id, ms] of selfByNode) { const f = nodes.get(id); if (!f) continue; const k = `${f.functionName || "(anon)"} ${(f.url ?? "").replace(/^.*\//, "")}:${f.lineNumber}:${f.columnNumber}`; fns.set(k, (fns.get(k) ?? 0) + ms); }
   const js = Object.fromEntries([...fns].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => [k, +v.toFixed(1)]));
   return { threads: threadsOut, forced, forcedTime: +forcedTime.toFixed(1), paints: paints.sort((a, b) => b.w * b.h - a.w * a.h).slice(0, 8), js };
 }
@@ -142,9 +142,8 @@ test.describe("press traces", () => {
         const duration = durations.length ? Math.max(...durations) : 16;
         if (index < WARMUPS) continue;
         const events = (JSON.parse(buffer.toString()).traceEvents ?? JSON.parse(buffer.toString())) as TraceEvent[];
-        const summary = { index, duration, ...summarise(events) };
-        summaries.push(summary);
         if (index === WARMUPS || index === WARMUPS + 5 || index === WARMUPS + 10) writeFileSync(`${OUT}/${id}-${index}.json.gz`, gzipSync(buffer));
+        summaries.push({ index, duration, ...summarise(events) });
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
       }
       writeFileSync(`${OUT}/${id}.json`, JSON.stringify({ cpu: cpus()[0]?.model, summaries }, null, 1));

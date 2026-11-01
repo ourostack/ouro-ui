@@ -8,6 +8,6 @@ mkdir -p probe-out/maps && cp site/dist/assets/*.map probe-out/maps/ 2>/dev/null
 node_modules/.bin/vite preview --config site/vite.config.ts --host 127.0.0.1 --port 4179 --strictPort > probe-out/preview.log 2>&1 &
 node -e 'const go = async () => { for (let i = 0; i < 120; i++) { try { if ((await fetch("http://127.0.0.1:4179/")).ok) return; } catch {} await new Promise((r) => setTimeout(r, 500)); } process.exit(1); }; go();'
 env CI= PROBE_OUT=probe-out pnpm exec playwright test --config playwright.latency.config.ts site/e2e/press-trace.latency.spec.ts --reporter=list > probe-out/trace.log 2>&1; echo "trace exit $?"
-env CI= pnpm exec playwright test --config playwright.latency.config.ts --grep-invert traced --reporter=list > probe-out/latency.log 2>&1; echo "latency exit $?"
+[ "${PROBE_LATENCY:-1}" = 1 ] && env CI= pnpm exec playwright test --config playwright.latency.config.ts --grep-invert traced --reporter=list > probe-out/latency.log 2>&1; echo "latency exit $?"
 grep -E "passed|failed" probe-out/latency.log
 exit 0
