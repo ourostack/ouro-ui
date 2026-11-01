@@ -1,4 +1,4 @@
-import { afterAll, afterEach } from "vitest";
+import { afterAll, afterEach, vi } from "vitest";
 
 // Vitest setup for Ouro UI's browser tests: test output stays clean, so anything a test
 // writes to the console fails that test: a React act() warning, a development message from
@@ -61,4 +61,11 @@ function check(when: string): void {
 // Nothing clears `seen` between tests: output while a file loads, or between two tests, fails
 // the next test, and output after the last test fails the file.
 afterEach(() => check("in this test"));
+
+// A test that holds the page's clock (`vi.useFakeTimers`, or `pressAndLetGo` from testing/press.ts)
+// and times out before giving it back would leave every later test in the file on the fake clock.
+// This runs after the test file's own afterEach, so its cleanup still sees the clock it set.
+afterEach(() => {
+  vi.useRealTimers();
+});
 afterAll(() => check("after this file's last test"));
