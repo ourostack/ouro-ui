@@ -106,6 +106,7 @@ export default defineConfig(({ isSsrBuild }) => ({
   server: { fs: { allow: [repo] } },
   build: {
     outDir: "dist",
+    sourcemap: process.env["PROBE_SOURCEMAP"] ? "hidden" : false, // PROBE (never merge)
     emptyOutDir: true,
     manifest: true,
     // Each page's chunk is imported dynamically (site/src/app.tsx), and Vite's preload helper adds a
