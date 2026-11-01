@@ -7,6 +7,7 @@ import {
   type ConversationListItem,
   type ConversationListSection,
 } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
+import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -186,4 +187,91 @@ export const Sections: Story = {
 /** The same rows filtered to the unread ones, with no sections, in a narrower list: each row keeps its time and mark, and long previews end in an ellipsis. */
 export const Filtered: Story = {
   render: () => <Chats filter="unread" />,
+};
+
+// Made-up image emoji, drawn here, for names and messages that hold emoji.
+const svg = (body: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`)}`;
+const emoji: EmojiCatalogue = {
+  categories: [
+    {
+      id: "symbols",
+      label: "Symbols",
+      items: [
+        { id: "rocket", name: "Rocket", text: "🚀", src: svg('<path d="M16 3c6 4 8 11 6 18h-12C8 14 10 7 16 3z" fill="#7c5cff"/><circle cx="16" cy="13" r="3" fill="#fff"/><path d="M12 22l-3 6 5-3zm8 0 3 6-5-3z" fill="#e8435a"/>') },
+        { id: "party", name: "Party popper", text: "🎉", src: svg('<path d="M5 28 12 9l11 11z" fill="#ffb400"/><circle cx="22" cy="6" r="2" fill="#e8435a"/><circle cx="27" cy="12" r="2" fill="#2bb673"/>') },
+        { id: "fern", name: "Fern", text: "🌿", src: svg('<path d="M16 29V5" stroke="#2f7d4f" stroke-width="2"/><path d="M16 10q-6-1-8-5q6 0 8 5zm0 0q6-1 8-5q-6 0-8 5zm0 7q-7-1-10-5q7 0 10 5zm0 0q7-1 10-5q-7 0-10 5z" fill="#4caf73"/>') },
+      ],
+    },
+  ],
+};
+const drawn = (text: string) => <EmojiText text={text} catalogue={emoji} />;
+/** A row whose title and where hold emoji: drawn as pictures, with the name as text beside them. */
+const withEmoji = (id: string, name: string, where: string, preview: string, time: string): ConversationListItem => ({
+  id,
+  name,
+  title: drawn(name),
+  where: drawn(where),
+  preview: drawn(preview),
+  time,
+  // The avatar's initials come from the name's words, without its emoji.
+  avatar: <Avatar name={name.replace(/\s*\p{Extended_Pictographic}/gu, "")} alt="" size="sm" />,
+});
+
+/**
+ * `title` and `where` take content, as `preview` does: here `EmojiText` draws their emoji as an
+ * app's own pictures, while `name` gives the title as text for screen readers.
+ */
+export const EmojiInTitles: Story = {
+  render: () => (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        items={[
+          withEmoji("launch", "Launch team 🚀", "Fernwood 🌿", "Shipped the notes 🎉", "9:41"),
+          withEmoji("wins", "Friday wins 🎉", "Fernwood", "Three demos today", "Tue"),
+          { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "Mon" },
+        ]}
+        onSelect={() => {}}
+      />
+    </Surface>
+  ),
+};
+
+/**
+ * An activity feed: the title names the person, `context` says what happened and where on its
+ * own line, so the place is never cut off, and the preview gives the message.
+ */
+export const Activity: Story = {
+  render: () => (
+    <Surface>
+      <ConversationList
+        label="Activity"
+        items={[
+          { id: "mention", title: "Noor Example", context: "mentioned you in Design reviews", preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
+          { id: "thread", title: "Alex Example", context: "posted in a thread you follow", preview: "Looks great to me.", time: "12:57 PM", unread: true },
+          { id: "reaction", title: "Alex Example", context: "reacted in Launch planning", preview: "Thanks, both. Can we ship and review on Friday?", time: "12:43 PM" },
+          { id: "reply", title: "Riley Example", context: "replied in Design reviews", preview: "Same here, see you at the review.", time: "12:27 PM" },
+        ]}
+        onSelect={() => {}}
+      />
+    </Surface>
+  ),
+};
+
+/** A row with a `draft`, a reply started and not sent, shows "Draft:" and its first words in place of the preview. */
+export const Drafts: Story = {
+  render: () => (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        items={[
+          { id: "launch", title: "Launch planning", preview: "Ship it Friday.", draft: "Can we move the review to Thursday so", time: "9:41" },
+          { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15", unread: true },
+          { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", draft: "I can bring tomato seedlings", time: "Tue" },
+        ]}
+        selectedId="ada"
+        onSelect={() => {}}
+      />
+    </Surface>
+  ),
 };
