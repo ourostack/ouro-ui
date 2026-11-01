@@ -3,8 +3,8 @@ import { openStory } from "./story";
 
 test("an avatar shows its picture once loaded and its initials without one", async ({ page }) => {
   await openStory(page, "display-avatar--sizes");
-  const ada = page.getByRole("img", { name: "Ada Lovelace" }).first();
-  await expect(ada.locator("img")).toBeVisible();
+  const ana = page.getByRole("img", { name: "Ana Lind" }).first();
+  await expect(ana.locator("img")).toBeVisible();
   const grace = page.getByRole("img", { name: "Grace Hopper" }).first();
   await expect(grace).toHaveText("GH");
 });

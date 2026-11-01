@@ -11,7 +11,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 ## Example
 
 ```tsx
-<Avatar name="Ada Lovelace" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
+<Avatar name="Ana Lind" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
 <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
 <Avatar name="Design reviews" shape="square" />
 <Avatar name="Halden" shape="hexagon" src={agent.photoUrl} />
@@ -49,7 +49,7 @@ The props the modes share. Type: `AvatarProps`.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The person's presence, as a dot on the lower end corner. Each state has its own shape and a named tone (available: success; busy and do not disturb: destructive; away: warning; offline: muted; out of office: primary). The dot's ring takes the surface's color, `--ouro-avatar-ring` (default `--background`): set it on a card, `[--ouro-avatar-ring:var(--card)]`. The dot lies over the corner and takes no room, so the initials, icon or picture stay in the middle with or without it, and the dot stays below the letters at every size. |
-| `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the name ("Ada Lovelace, Busy"). Required with `presence`, so no dot is silent. |
+| `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the name ("Ana Lind, Busy"). Required with `presence`, so no dot is silent. |
 
 ### With `presenceLabel`
 
@@ -69,8 +69,8 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `children`: Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ada Lovelace" initials="AL" />`.
-- `fallback`: Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ada Lovelace" initials="AL" />`.
+- `children`: Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`.
+- `fallback`: Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`.
 
 ## `className` is for layout only
 

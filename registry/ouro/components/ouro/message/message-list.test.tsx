@@ -72,7 +72,7 @@ function Chat({
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
-        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"} streaming={item.streaming}>
+        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"} streaming={item.streaming}>
           {item.text}
         </Message>
       ))}
@@ -141,9 +141,9 @@ describe("MessageList", () => {
     const { scroller } = await render(
       <MessageList label="Conversation" style={{ height: 300 }}>
         <p data-start="" style={{ margin: 0 }}>
-          The start of your conversation with Ada
+          The start of your conversation with Ana
         </p>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           Hello
         </Message>
       </MessageList>,
@@ -221,7 +221,7 @@ describe("MessageList", () => {
     const Overhang = ({ late }: { late: boolean }) => (
       <MessageList label="Conversation" style={{ height: 300 }}>
         {items.map((item, index) => (
-          <Message key={item.id} role={item.role} name="Ada">
+          <Message key={item.id} role={item.role} name="Ana">
             <span style={{ position: "relative", display: "block" }}>
               {item.text}
               {late && index === items.length - 1 && <span data-overhang="" style={{ position: "absolute", insetInlineStart: 0, top: 0, width: 8, height: 400 }} />}
@@ -250,11 +250,11 @@ describe("MessageList", () => {
     const { scroller } = await render(
       <MessageList label="Conversation" style={{ height: 300 }}>
         {items.map((item) => (
-          <Message key={item.id} role={item.role} name="Ada">
+          <Message key={item.id} role={item.role} name="Ana">
             {item.text}
           </Message>
         ))}
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           <TextArea label="Edit your message" hideLabel variant="plain" autoGrow rows={1} maxRows={8} defaultValue={"Line one\nLine two\nLine three"} />
         </Message>
       </MessageList>,
@@ -611,7 +611,7 @@ describe("MessageList", () => {
       <MessageList label="Conversation" style={{ height: 300 }}>
         <section aria-label="Today">
           {order.map((item) => (
-            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
               {item.text}
             </Message>
           ))}
@@ -644,7 +644,7 @@ describe("MessageList", () => {
     return (
       <MessageList label="Conversation" style={{ height: 300, marginTop: 120 }} initialAnchor={initialAnchor}>
         {items.map((item) => (
-          <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+          <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
             {item.text}
           </Message>
         ))}
@@ -926,7 +926,7 @@ describe("MessageList", () => {
     function Post({ item }: { item: Item }) {
       return (
         <article data-ouro-message-list-item="" data-role={item.role} aria-busy={item.streaming || undefined} style={{ padding: 8 }}>
-          <span data-ouro-message-author="">{item.role === "user" ? "Ada" : "Grace"}</span>
+          <span data-ouro-message-author="">{item.role === "user" ? "Ana" : "Grace"}</span>
           <p data-ouro-message-content="">{item.text}</p>
         </article>
       );
@@ -963,7 +963,7 @@ describe("MessageList", () => {
   it("looks for messages only when one comes, goes or stops streaming, not when a streamed reply gains a formatted word", async () => {
     const chat = (reply: ReactNode, streaming = true) => (
       <MessageList label="Conversation" style={{ height: 300 }}>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           How long does the dough rest?
         </Message>
         <Message role="assistant" name="Ouro" streaming={streaming}>
@@ -991,7 +991,7 @@ describe("MessageList", () => {
         {days.map((day, index) => (
           <section key={index} aria-label={`Day ${index + 1}`}>
             {day.map((item) => (
-              <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+              <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
                 {item.text}
               </Message>
             ))}
@@ -1174,7 +1174,7 @@ describe("MessageList", () => {
         <Message role="assistant" name="Ouro" id="theirs">
           Rest the dough for an hour.
         </Message>
-        <Message role="user" name="Ada" id="mine">
+        <Message role="user" name="Ana" id="mine">
           Covered?
         </Message>
       </MessageList>
@@ -1199,7 +1199,7 @@ describe("MessageList", () => {
     let element: HTMLElement | null = null;
     const { list } = await render(
       <MessageList label="Chat" className="mt-4" ref={(node) => void (element = node)}>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           Hi
         </Message>
       </MessageList>,
@@ -1212,7 +1212,7 @@ describe("MessageList", () => {
 /** Six posts by default, each `Post <n>: …` with whatever `extra` puts in it. */
 const posts = (count = 6, extra: (index: number) => ReactNode = () => null) =>
   Array.from({ length: count }, (_, index) => (
-    <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Grace" : "Ada"} id={`post-${index}`}>
+    <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Grace" : "Ana"} id={`post-${index}`}>
       Post {index}: {"a short note ".repeat(6)}
       {extra(index)}
     </Message>
@@ -1377,7 +1377,7 @@ describe("MessageList keyboard", () => {
     const list = (hide: boolean) => (
       <Channel>
         {posts(2, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
-        <Message role="user" name="Ada" id="hidden" style={hide ? { display: "none" } : undefined}>
+        <Message role="user" name="Ana" id="hidden" style={hide ? { display: "none" } : undefined}>
           <a href="#hidden-link">Hidden link</a>
         </Message>
       </Channel>
@@ -1396,7 +1396,7 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="long">
           {"A long post that runs on. ".repeat(120)}
         </Message>
-        <Message role="user" name="Ada" id="short">
+        <Message role="user" name="Ana" id="short">
           Thanks
         </Message>
       </Channel>,
@@ -1441,7 +1441,7 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="long">
           {"A long post that runs on. ".repeat(60)}
         </Message>
-        <Message role="user" name="Ada" id="short">
+        <Message role="user" name="Ana" id="short">
           Thanks
         </Message>
       </Channel>,
@@ -1471,7 +1471,7 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="link">
           With a link <a href="#b">Link B</a>
         </Message>
-        <Message role="user" name="Ada" id="plain">
+        <Message role="user" name="Ana" id="plain">
           Plain
         </Message>
       </>
@@ -1545,7 +1545,7 @@ describe("MessageList keyboard", () => {
     await render(
       <Channel>
         {posts(2)}
-        <Message role="user" name="Ada" id="editing">
+        <Message role="user" name="Ana" id="editing">
           <button type="button" onKeyDown={hold}>
             Hold
           </button>
@@ -1566,7 +1566,7 @@ describe("MessageList keyboard", () => {
         {posts(4, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
         <a href="#older">Older replies</a>
         {[0, 1].map((index) => (
-          <Message key={`late-${index}`} role="user" name="Ada" id={`late-${index}`}>
+          <Message key={`late-${index}`} role="user" name="Ana" id={`late-${index}`}>
             Late {index}
           </Message>
         ))}
@@ -1630,7 +1630,7 @@ describe("MessageList keyboard", () => {
           <Message role="assistant" name="Grace" id="long">
             {"A long post that runs on. ".repeat(120)}
           </Message>
-          <Message role="user" name="Ada" id="short">
+          <Message role="user" name="Ana" id="short">
             Thanks
           </Message>
         </Channel>
@@ -1741,7 +1741,7 @@ describe("MessageList keyboard", () => {
     await render(
       <Channel>
         {posts(2)}
-        <Message role="user" name="Ada" id="with-popup">
+        <Message role="user" name="Ana" id="with-popup">
           A popup
           <Popup />
         </Message>
@@ -1804,7 +1804,7 @@ describe("MessageList keyboard", () => {
           <span data-ouro-message-author="">Grace</span>
           <div data-ouro-message-content="">
             A message quoting another:
-            <Message role="user" name="Ada" id="quoted">
+            <Message role="user" name="Ana" id="quoted">
               Quoted
             </Message>
           </div>
@@ -1850,12 +1850,12 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="outer">
           A thread:
           <MessageList label="Replies" style={{ height: 120 }}>
-            <Message role="user" name="Ada" id="inner">
+            <Message role="user" name="Ana" id="inner">
               A reply
             </Message>
           </MessageList>
         </Message>
-        <Message role="user" name="Ada" id="newest">
+        <Message role="user" name="Ana" id="newest">
           Newest
         </Message>
       </Channel>,
@@ -1957,7 +1957,7 @@ describe("MessageList keyboard", () => {
     function Swap() {
       const [swapped, setSwapped] = useState(false);
       return (
-        <Message role="user" name="Ada" id="swap">
+        <Message role="user" name="Ana" id="swap">
           {swapped ? (
             <button type="button" key="after">
               After the swap
@@ -2012,7 +2012,7 @@ describe("MessageList keyboard", () => {
           <Channel>
             {posts(2)}
             {sent ? null : (
-              <Message role="user" name="Ada" id="draft">
+              <Message role="user" name="Ana" id="draft">
                 <button
                   type="button"
                   onClick={() => {
@@ -2066,7 +2066,7 @@ describe("MessageList keyboard", () => {
       <Channel>
         {posts(9, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
         <a href="#more">More below</a>
-        <Message role="user" name="Ada" id="newest">
+        <Message role="user" name="Ana" id="newest">
           Newest
         </Message>
       </Channel>,
@@ -2179,7 +2179,7 @@ describe("MessageList keyboard", () => {
     // A message 8px shorter than the list, below the one in focus, comes in at its top.
     await rerender(
       <Channel height={300}>
-        <Message role="user" name="Ada" id="short">
+        <Message role="user" name="Ana" id="short">
           Short
         </Message>
         <Message role="assistant" name="Grace" id="sized">
@@ -2288,9 +2288,9 @@ describe("MessageList development messages", () => {
   it.each([
     ["autoScroll", { autoScroll: true }, "autoScroll is not a prop; the list follows new messages while the reader is at the bottom", '<MessageList label="Conversation">'],
     ["stickToBottom", { stickToBottom: true }, "stickToBottom is not a prop; the list follows new messages while the reader is at the bottom", '<MessageList label="Conversation">'],
-    ["loose text", { children: "Hi" }, "MessageList holds Messages", '<MessageList label="Conversation"><Message role="user" name="Ada">Hi</Message></MessageList>'],
+    ["loose text", { children: "Hi" }, "MessageList holds Messages", '<MessageList label="Conversation"><Message role="user" name="Ana">Hi</Message></MessageList>'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
-    const props = { label: "Conversation", children: <Message role="user" name="Ada">Hi</Message>, ...extra } as unknown as Parameters<typeof MessageList>[0];
+    const props = { label: "Conversation", children: <Message role="user" name="Ana">Hi</Message>, ...extra } as unknown as Parameters<typeof MessageList>[0];
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { list } = await render(<MessageList {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] MessageList: ${problem}. Fix: ${fix}.`);

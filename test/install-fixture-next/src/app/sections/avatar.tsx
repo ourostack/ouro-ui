@@ -15,7 +15,7 @@ export default function AvatarSection() {
       <Avatar name="Ouro person" presence="busy" presenceLabel="Busy" />
       <Avatar name="Ouro team" shape="square" />
       <AvatarGroup label="Ouro cooks" max={1}>
-        <Avatar name="Ada Lovelace" />
+        <Avatar name="Ana Lind" />
         <Avatar name="Grace Hopper" />
       </AvatarGroup>
     </>
