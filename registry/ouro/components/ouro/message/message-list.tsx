@@ -9,7 +9,7 @@ import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+import { reducesMotion, useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
@@ -551,14 +551,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The springs, while `springy`: told when the list scrolls itself, so no message trails that.
   const springsRef = useRef<Springs | null>(null);
   // Whether to reduce motion, asked afresh each time, so a change of the setting counts at once.
-  const reduced = useReducedMotion();
-  const reducedRef = useRef(reduced);
+  const { motion } = useOuro();
+  const motionRef = useRef(motion);
   useLayoutEffect(() => {
-    reducedRef.current = reduced;
-  }, [reduced]);
+    motionRef.current = motion;
+  }, [motion]);
   useLayoutEffect(() => {
     if (!springy) return;
-    const handle = springs(scrollerRef.current!, contentRef.current!, () => reducedRef.current);
+    const handle = springs(scrollerRef.current!, contentRef.current!, () => reducesMotion(motionRef.current));
     springsRef.current = handle;
     return () => {
       handle.stop();

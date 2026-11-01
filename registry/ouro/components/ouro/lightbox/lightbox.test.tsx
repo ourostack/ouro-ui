@@ -307,6 +307,8 @@ describe("Lightbox navigation", () => {
     const scrollTo = vi.spyOn(viewport(), "scrollTo");
     await userEvent.keyboard("{End}");
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
   });
 
   it("glides to the last image with End under OuroProvider's motion=\"full\", whatever the device says", async () => {

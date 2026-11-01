@@ -174,7 +174,7 @@ describe("OuroProvider motion", () => {
       </OuroProvider>,
     );
     const duration = (id: string) => getComputedStyle(document.getElementById(id)!).transitionDuration;
-    expect([duration("inside"), duration("portal"), duration("full")]).toEqual(["0s, 0s", "0s", "1s"]);
+    expect([duration("inside"), duration("portal"), duration("full")]).toEqual(["0s", "0s", "1s"]);
     const elsewhere = document.body.appendChild(document.createElement("p"));
     elsewhere.style.cssText = moving;
     expect(getComputedStyle(elsewhere).animationDuration).toBe("0s");

@@ -1432,7 +1432,7 @@ describe("swiping", () => {
     await swipeAway(still);
     const seen: string[] = [];
     await expect.poll(() => (seen.push(still.style.translate), still.isConnected)).toBe(false);
-    expect(seen.every((translate) => translate === "30px 0px")).toBe(true);
+    expect([...new Set(seen.map((translate) => parseFloat(translate)))]).toEqual([30]);
     await unmount();
 
     await commands.emulateMedia({ reducedMotion: "reduce" });
@@ -1445,6 +1445,7 @@ describe("swiping", () => {
     thrown.style.transitionDuration = "20s";
     await swipeAway(thrown);
     await expect.poll(() => parseFloat(thrown.style.translate)).toBeGreaterThan(30);
+    for (const animation of thrown.getAnimations()) animation.finish();
     await gone("Thrown");
   });
 

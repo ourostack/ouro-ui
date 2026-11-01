@@ -181,7 +181,8 @@ export function OuroProvider({ children, linkComponent, portalContainer, motion:
       ) : (
         <div data-motion={own} style={{ display: "contents" }}>
           {own === "reduced" && (
-            <style href="ouro-motion-reduced" precedence="ouro">
+            // In place, not hoisted: React keeps a hoisted style after its provider goes, and this one must go with it.
+            <style>
               {stillCss}
             </style>
           )}

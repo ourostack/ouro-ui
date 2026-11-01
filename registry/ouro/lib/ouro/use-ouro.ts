@@ -50,6 +50,16 @@ export function useOuro(): OuroContextValue {
 }
 
 /**
+ * Whether to reduce motion under a provider's `motion`, asking the device now: for code that runs
+ * long after a render, such as a frame loop, which must see a change of the device's setting at once.
+ *
+ * @internal
+ */
+export function reducesMotion(motion: OuroMotion | undefined): boolean {
+  return motion === "reduced" || (motion !== "full" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+/**
  * Whether to reduce motion: `true` under `<OuroProvider motion="reduced">`, `false` under
  * `motion="full"`, and otherwise what the device's `prefers-reduced-motion` says, live.
  * `serverDefault` is the answer while the server renders and the page hydrates, as with
