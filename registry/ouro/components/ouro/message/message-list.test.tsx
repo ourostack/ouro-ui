@@ -883,6 +883,27 @@ describe("MessageList keyboard", () => {
     expect(document.activeElement).toBe(button("Before"));
   });
 
+  it("reads ⌘↑ and ⌘↓ as Home and End, and ⌥↑ and ⌥↓ as Page Up and Page Down, on a Mac", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const { scroller } = await render(<Channel>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("post-13");
+    await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+    expect(focusedId()).toBe("post-0");
+    await userEvent.keyboard("{Meta>}{ArrowDown}{/Meta}");
+    expect(focusedId()).toBe("post-13");
+    const messages = [...scroller.querySelectorAll<HTMLElement>("article")];
+    const start = messages[13]!.getBoundingClientRect().top;
+    const up = messages.findIndex((message, index) => index < 13 && start - message.getBoundingClientRect().top <= scroller.clientHeight);
+    expect(up).toBeLessThan(12);
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(focusedId()).toBe(`post-${up}`);
+    await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+    expect(Number(focusedId().slice(5))).toBeGreaterThan(up + 1);
+  });
+
   it("moves between messages with the arrow keys, Home, End, Page Up and Page Down, with a focus ring", async () => {
     const { scroller } = await render(<Channel>{posts(14)}</Channel>);
     const messages = [...scroller.querySelectorAll<HTMLElement>("article")];
@@ -1122,6 +1143,9 @@ describe("MessageList keyboard", () => {
   });
 
   it.each(["Alt", "Control", "Meta", "Shift"])("leaves the down arrow with %s to the browser and the app", async (modifier) => {
+    // Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys.
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "Windows" } as never);
     const { scroller } = await render(<Channel>{posts(3)}</Channel>);
     const first = scroller.querySelector<HTMLElement>("article")!;
     await act(async () => first.setAttribute("tabindex", "0"));

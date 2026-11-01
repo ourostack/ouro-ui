@@ -580,6 +580,9 @@ describe("TimeGrid", () => {
   });
 
   it("is one Tab stop: the arrow keys move through events in time order and across days", async () => {
+    // Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys.
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "Windows" } as never);
     const keys = vi.fn();
     const { grid } = await render({ events: [forum, focus, standup, demo, { id: "closed", title: "Office closed", start: "2026-03-13" }], onKeyDown: keys });
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Standup")]);
@@ -666,6 +669,17 @@ describe("TimeGrid", () => {
     const key = new KeyboardEvent("keydown", { key: "PageDown", bubbles: true, cancelable: true });
     titled("Architecture forum").dispatchEvent(key);
     expect(key.defaultPrevented).toBe(false);
+  });
+
+  it("reads ⌘↑ and ⌘↓ as Home and End on a Mac", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    await render({ events: [forum, focus, standup, demo] });
+    titled("Architecture forum").focus();
+    await press("{Meta>}{ArrowDown}{/Meta}");
+    expect(document.activeElement).toBe(titled("Demo day"));
+    await press("{Meta>}{ArrowUp}{/Meta}");
+    expect(document.activeElement).toBe(titled("Standup"));
   });
 
   it("takes events that start together longest first", async () => {

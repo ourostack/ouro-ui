@@ -362,12 +362,26 @@ describe("NavigationRail keyboard", () => {
   });
 
   it.each(["altKey", "ctrlKey", "metaKey", "shiftKey"] as const)("leaves the arrows to the page with %s held", async (modifier) => {
+    // Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys.
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "Windows" } as never);
     const { items: links } = await render(<NavigationRail label="Main" items={items} currentPath="/chat" />);
     links[1]!.focus();
     const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true, [modifier]: true });
     links[1]!.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
     expect(document.activeElement).toBe(links[1]);
+  });
+
+  it("reads ⌘↑ and ⌘↓ as Home and End on a Mac", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const { shown } = await render(<NavigationRail label="Main" items={items} />);
+    shown[1]!.focus();
+    await userEvent.keyboard("{Meta>}{ArrowDown}{/Meta}");
+    expect(document.activeElement).toBe(shown.at(-1));
+    await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+    expect(document.activeElement).toBe(shown[0]);
   });
 
   it("leaves other keys, and keys from outside its items, alone", async () => {
