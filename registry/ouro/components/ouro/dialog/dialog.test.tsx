@@ -690,6 +690,24 @@ describe("Dialog's top edge while its content changes", () => {
     expect(Math.round(box().top - (700 - box().bottom))).toBeGreaterThan(0);
   });
 
+  it("leaves a popup taller than the room where the viewport puts it, as a full-screen viewer is", async () => {
+    await render(
+      <DialogRoot open onOpenChange={() => {}}>
+        <DialogPortal>
+          <DialogViewport>
+            <DialogPopup style={{ marginBlock: -16, height: "calc(100% + 32px)", maxHeight: "none" }}>
+              <DialogTitle>Photos</DialogTitle>
+            </DialogPopup>
+          </DialogViewport>
+        </DialogPortal>
+      </DialogRoot>,
+    );
+    await settled();
+    expect(box().top).toBe(0);
+    expect(box().height).toBe(800);
+    expect(dialogPopup()!.style.top).toBe("0px");
+  });
+
   it("keeps its top edge when only the window's width changes, as when a page's scroll bar comes or goes", async () => {
     const { rerender } = await render(<Steps count={6} />);
     await settled();
