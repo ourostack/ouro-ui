@@ -149,6 +149,21 @@ describe("OuroProvider motion", () => {
     expect(plain.firstElementChild!.tagName).toBe("OUTPUT");
   });
 
+  it("passes a change of its motion on to what it wraps", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    roots.push(root);
+    const at = (motion: "reduced" | "full") => (
+      <OuroProvider motion={motion}>
+        <Reduced id="changing" />
+      </OuroProvider>
+    );
+    await act(async () => root.render(at("reduced")));
+    expect(answers()).toEqual(["changing:true"]);
+    await act(async () => root.render(at("full")));
+    expect(answers()).toEqual(["changing:false"]);
+  });
+
   it("keeps an outer provider's motion inside one that sets none", async () => {
     await mount(
       <OuroProvider motion="reduced">

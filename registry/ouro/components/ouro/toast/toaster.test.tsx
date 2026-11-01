@@ -1449,6 +1449,28 @@ describe("swiping", () => {
     await gone("Thrown");
   });
 
+  it("brings a toast let go short of a swipe back at once after OuroProvider's motion changes to \"reduced\"", async () => {
+    const { root } = await render(
+      <OuroProvider motion="full">
+        <Toaster />
+      </OuroProvider>,
+    );
+    const item = await show("Held", { duration: 0 });
+    await act(async () =>
+      root.render(
+        <OuroProvider motion="reduced">
+          <Toaster />
+        </OuroProvider>,
+      ),
+    );
+    const send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 10, 100);
+    send("pointermove", 20, 400);
+    await act(async () => send("pointerup", 20, 800));
+    expect(item.style.translate).toBe("");
+  });
+
   it("shows a toast sent again with the id of one just swiped away, where a toast belongs, and it can be swiped again", async () => {
     await render(<Toaster />);
     const item = await show("Syncing", { id: "sync", duration: 0 });
