@@ -636,6 +636,30 @@ describe("footer", () => {
     </>
   );
 
+  it("presses the footer's default action on Return from a field, in a dialog and in a sheet", async () => {
+    for (const width of [1280, 390]) {
+      await page.viewport(width, 800);
+      const save = vi.fn();
+      await openUncontrolled({
+        footer: (
+          <>
+            <Button variant="outline" tone="secondary">
+              Cancel
+            </Button>
+            <Button default onClick={save}>
+              Save
+            </Button>
+          </>
+        ),
+      });
+      (page.getByRole("textbox", { name: "Name" }).element() as HTMLElement).focus();
+      await userEvent.keyboard("{Enter}");
+      expect(save).toHaveBeenCalledTimes(1);
+      expect((save.mock.calls[0]![0] as KeyboardEvent).isTrusted).toBe(true);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("lays out actions in a row at the end on wide screens", async () => {
     const element = await openUncontrolled({ footer });
     const row = element.querySelector<HTMLElement>("[data-ouro-footer]")!;
