@@ -1336,7 +1336,8 @@ describe("TimeGrid background events", () => {
       end: at(12, index === 0 ? "10:20" : index === 3 ? "09:50" : "10:00"),
     }));
     const onEventSelect = vi.fn();
-    const later = { ...hands, start: at(12, "10:30"), end: at(12, "11:30") };
+    // Starting as the block's last event ends, it is a stack of its own.
+    const later = { ...hands, start: at(12, "10:20"), end: at(12, "11:30") };
     const narrow = { events: [forum], backgroundEvents: [...crowd, later], selectedId: "crowd-1", className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count: number) => `${count} crowd` };
     // A week draws each as a bar, however narrow.
     const { rerender } = await render({ ...narrow, view: "week" });
@@ -1398,6 +1399,8 @@ describe("TimeGrid background events", () => {
     const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
     await expect.poll(stack).not.toBeNull();
     expect(plain(stack()!.textContent)).toBe("4 events9:00 – 11:00 AM");
+    // None of its events is selected.
+    expect(stack()!.hasAttribute("aria-current")).toBe(false);
     // Without onEventSelect, choosing one from the list does nothing more.
     await userEvent.click(stack()!);
     await userEvent.click(page.getByRole("menuitem", { name: /^Wide one/ }));
@@ -1509,6 +1512,8 @@ describe("TimeGridNav", () => {
     // Previous and Next are icons, named for screen readers; each tooltip says its words and its key.
     expect(["Previous week", "Next week"].map((name) => page.getByRole("button", { name }).element().querySelector("svg") !== null)).toEqual([true, true]);
     expect(["Today", "Previous week", "Next week"].map((name) => page.getByRole("button", { name, exact: true }).element().getAttribute("data-variant"))).toEqual(["outline", "plain", "plain"]);
+    // A chevron back and one forward.
+    expect(["Previous week", "Next week"].map((name) => page.getByRole("button", { name }).element().querySelector("path")!.getAttribute("d"))).toEqual(["M10 3.5L5.5 8l4.5 4.5", "M6 3.5L10.5 8 6 12.5"]);
     const tipFor = async (name: string) => {
       await userEvent.hover(page.getByRole("button", { name, exact: true }));
       await expect.poll(() => [...document.querySelectorAll('[data-ouro="tooltip"]')].find((tip) => tip.textContent!.startsWith(name))).toBeDefined();
