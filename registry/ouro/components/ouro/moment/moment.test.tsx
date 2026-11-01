@@ -310,9 +310,12 @@ describe("Moment motion", () => {
   it("swells the disc and grows the sparks when it celebrates, and with reduced motion only fades the disc", async () => {
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
-      const { moment, host } = await render(<Moment kind="success" art={<Art />} title="All caught up" />);
+      const { moment, host, root } = await render(<Moment kind="loading" art={<Art />} title="Sending" />);
+      await frames();
       expect(moment!.hasAttribute("data-open")).toBe(false);
-      await attributeAdded(moment!, "data-open");
+      const opened = attributeAdded(moment!, "data-open");
+      await act(async () => root.render(<Moment kind="success" art={<Art />} title="All caught up" />));
+      await opened;
       const halo = host.querySelector<HTMLElement>('[data-ouro-part="halo"]')!;
       const spark = host.querySelector<HTMLElement>('[data-ouro-part="sparkle"]')!;
       const sheet = token("--ouro-duration-sheet");

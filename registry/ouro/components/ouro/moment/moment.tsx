@@ -416,7 +416,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
             ref={artRef}
             {...(artLabel ? { role: "img", "aria-label": artLabel } : { "aria-hidden": true })}
             data-ouro-moment-art=""
-            className="relative flex h-full max-w-full items-center justify-center *:h-full *:w-auto *:max-w-full motion-reduce:**:[animation:none]"
+            className="relative flex h-(--ouro-moment-art) max-w-full items-center justify-center *:h-(--ouro-moment-art) *:w-auto *:max-w-full motion-reduce:**:[animation:none]!"
           >
             {art}
           </div>
