@@ -947,8 +947,8 @@ jobs:
           if-no-files-found: ignore
   latency:
     name: latency
-    # Each voyage stage control answers within budget on a 4x slower CPU, its times judged as on the
-    # reference runner by a frozen reference press measured the same way (runnerPace): of 20 presses
+    # Each voyage stage control answers within budget on a 4x slower CPU, its times' CPU part judged as
+    # on the reference runner by a frozen reference press at two throttles (runnerPace): of 20 presses
     # after two warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the
     # control's CI baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so
     # no other test shares the CPU.

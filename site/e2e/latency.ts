@@ -13,10 +13,14 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // CI's runners differ in speed, from one machine to the next as well as between kinds, and a
 // press's time follows the runner's: the same press measured 56 ms on one host and 88 on another.
-// So each worker first presses a frozen reference page the same way (runnerPace), and every sample
-// is judged as it would have measured on the reference runner: divided by how much slower than
-// there the reference press was here. A control that does more work is as much slower on every
-// runner; a slower runner slows the reference press too.
+// But only part of a press scales with the CPU: the rest, the frame it waits for and the compositor
+// that shows it, does not. So each press is judged in two parts. The CPU part is judged as it would
+// have measured on the reference runner: each worker presses a frozen reference page at two
+// throttles (runnerPace), and how much longer it took at the higher one, against the reference
+// runner's, is this runner's CPU pace. The fixed part is this page's own: a press that does nearly
+// nothing, pressed the same way before each control (fixedPart). A sample is judged as its fixed
+// part plus the rest over the CPU pace. A control that does more work is as much slower on every
+// runner, and a fast runner's quick CPU no longer inflates the frames it waited for.
 
 /** The budget, the number of presses and the throttle every latency spec measures with. */
 export const LATENCY = {
@@ -39,10 +43,13 @@ export const LATENCY = {
   /** How many times slower than the runner the CPU is. */
   throttle: 4,
   /**
-   * The reference press's median, in ms, on the reference runner (REFERENCE_PAGE, runnerPace): CI's
-   * AMD EPYC 7763, its most common runner, measured 104, 112 and 112 on three of them (2026-11-01).
+   * The reference press's CPU time per unit of throttle, in ms, on the reference runner (runnerPace):
+   * CI's AMD EPYC 7763, its most common runner.
    */
-  referenceMedian: 112,
+  referenceCpu: 20,
+  /** Presses of the reference page at each of its two throttles, and of the near-empty press. */
+  referenceSamples: 20,
+  fixedSamples: 10,
 } as const;
 
 /**
@@ -56,7 +63,7 @@ body { font: 14px/1.4 system-ui, sans-serif; margin: 0 }
 .on .row { background: #eef; color: #123; padding-left: 12px }
 </style><button id="press">Press</button><div id="list"></div><script>
 const list = document.getElementById("list");
-list.innerHTML = Array.from({ length: 1000 }, (_, i) => '<div class="row"><span>' + i + '</span><span class="text">Item ' + i + '</span><b>' + ((i * 7919) % 1009) + '</b></div>').join("");
+list.innerHTML = Array.from({ length: 2000 }, (_, i) => '<div class="row"><span>' + i + '</span><span class="text">Item ' + i + '</span><b>' + ((i * 7919) % 1009) + '</b></div>').join("");
 let presses = 0;
 document.getElementById("press").addEventListener("click", () => {
   presses++;
@@ -75,9 +82,10 @@ function median(samples: readonly number[]): number {
 let pace: Promise<number> | undefined;
 
 /**
- * How much slower than the reference runner this one presses: the reference press's median here,
- * pressed as every control is (pressSamples), over LATENCY.referenceMedian. Measured once per
- * worker, in a page of its own, the first time a test measures.
+ * This runner's CPU pace against the reference runner's: how much longer the reference press took
+ * here at twice LATENCY.throttle than at LATENCY.throttle (its CPU time per unit of throttle), over
+ * LATENCY.referenceCpu. The frames and the compositor cost the same at both throttles, so they drop
+ * out. Measured once per worker, in a page of its own, the first time a test measures.
  */
 export function runnerPace(page: Page): Promise<number> {
   pace ??= (async () => {
@@ -85,10 +93,13 @@ export function runnerPace(page: Page): Promise<number> {
     try {
       await reference.setViewportSize({ width: 1440, height: 900 });
       await reference.setContent(REFERENCE_PAGE);
-      const samples = await pressSamples(reference, "reference press", { press: () => reference.locator("#press").click() });
-      const here = median(samples);
-      console.log(`latency reference press: median ${here} ms (${LATENCY.referenceMedian} on the reference runner); samples in order: ${samples.join(", ")}`);
-      return here / LATENCY.referenceMedian;
+      const press = { press: () => reference.locator("#press").click() };
+      const at = async (throttle: number) => median(await pressSamples(reference, "reference press", press, throttle, { samples: LATENCY.referenceSamples }));
+      const low = await at(LATENCY.throttle);
+      const high = await at(2 * LATENCY.throttle);
+      const cpu = (high - low) / LATENCY.throttle;
+      console.log(`latency reference press: median ${low} ms at ${LATENCY.throttle}x, ${high} ms at ${2 * LATENCY.throttle}x: CPU time ${cpu.toFixed(1)} ms per unit of throttle (${LATENCY.referenceCpu} on the reference runner)`);
+      return cpu / LATENCY.referenceCpu;
     } finally {
       await reference.close();
     }
@@ -96,51 +107,44 @@ export function runnerPace(page: Page): Promise<number> {
   return pace;
 }
 
-/** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1. */
-export interface Presses {
-  /** Presses the control once. */
-  press: (index: number) => Promise<unknown>;
-  /** Runs once before the first press, at full speed: what the presses need (an earlier line in the log). */
-  prepare?: () => Promise<unknown>;
-  /** Runs before a press, at full speed: what that press needs (full tanks before Dive). */
-  setUp?: (index: number) => Promise<unknown>;
-}
-
 /**
- * The most a control's median may be, in ms, given its baseline: the highest median it measured
- * across recorded CI runs. Twice the baseline, or 24 ms (three Event Timing steps) over it if that is
- * more, so a slower runner passes and a control that got twice as slow does not. Above 100 ms the
- * p95 ceiling already holds the median, so for slower controls this only guards the fast ones.
+ * The part of a press on this page that doesn't scale with the CPU: the median of a press that
+ * changes one small box's colour and nothing else, pressed as every control is. Added to the page
+ * for these presses and taken away after.
  */
-export function medianCeiling(baseline: number): number {
-  return Math.max(2 * baseline, baseline + 24);
-}
-
-/** The 95th percentile and the median of a control's samples, and whether they are within budget. */
-export function summarise(samples: readonly number[], baseline: number): { p95: number; median: number; within: boolean; report: string } {
-  const sorted = samples.toSorted((a, b) => a - b);
-  const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
-  const middle = sorted.length / 2;
-  const median = sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
-  const ceiling = medianCeiling(baseline);
-  const within = p95 <= LATENCY.p95 && median <= ceiling;
-  return { p95, median, within, report: `p95 ${p95} ms (≤ ${LATENCY.p95}), median ${median} ms (≤ ${ceiling}, baseline ${baseline}); samples in order: ${samples.join(", ")}` };
+export async function fixedPart(page: Page, throttle: number = LATENCY.throttle): Promise<number> {
+  await page.evaluate(() => {
+    const button = document.createElement("button");
+    button.id = "latency-fixed-part";
+    button.textContent = "·";
+    button.style.cssText = "position:fixed;right:0;bottom:0;z-index:2147483647;width:24px;height:24px;margin:0;padding:0;border:0;background:#888";
+    button.addEventListener("click", () => {
+      button.style.background = button.style.background === "rgb(136, 136, 136)" ? "#999" : "#888";
+    });
+    document.body.append(button);
+  });
+  try {
+    return median(await pressSamples(page, "fixed part", { press: () => page.locator("#latency-fixed-part").click() }, throttle, { samples: LATENCY.fixedSamples }));
+  } finally {
+    await page.evaluate(() => document.getElementById("latency-fixed-part")?.remove());
+  }
 }
 
 /**
  * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
- * time on the reference runner (runnerPace): its click-to-paint time here, in ms, over this
- * runner's pace. The raw times are reported too.
+ * time as on the reference runner: its fixed part here (fixedPart) plus the rest of its
+ * click-to-paint time over this runner's CPU pace (runnerPace). The raw times are reported too.
  */
 export async function measure(page: Page, label: string, presses: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
   const runner = await runnerPace(page);
+  const fixed = await fixedPart(page, throttle);
   const raw = await pressSamples(page, label, presses, throttle);
-  const asOnReference = (values: readonly number[]) => values.map((sample) => Math.round((sample / runner) * 10) / 10);
+  const asOnReference = (values: readonly number[]) => values.map((sample) => Math.round((sample <= fixed ? sample : fixed + (sample - fixed) / runner) * 10) / 10);
   if (summarise(asOnReference(raw), 0).p95 >= LATENCY.nearP95) {
     raw.push(...(await pressSamples(page, label, presses, throttle, { first: LATENCY.warmUps + LATENCY.samples, warmUps: 0, samples: LATENCY.moreSamples })));
   }
   const samples = asOnReference(raw);
-  const note = `this runner presses at ${runner.toFixed(2)}× the reference runner's time; measured here: ${raw.join(", ")}`;
+  const note = `this runner's CPU takes ${runner.toFixed(2)}× the reference runner's time, and a press's fixed part here is ${fixed} ms; measured here: ${raw.join(", ")}`;
   test.info().annotations.push({ type: "latency pace", description: `${label}: ${note}` });
   console.log(`latency ${label}: ${note}`);
   return samples;
