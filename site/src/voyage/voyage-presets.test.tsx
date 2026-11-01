@@ -27,7 +27,7 @@ afterEach(async () => {
   setScheme("light");
 });
 
-const scans = sliced(["/", "/nautilus/"].flatMap((path) => PRESET_NAMES.map((name) => ({ name, path }))));
+const scans = sliced(["/", "/nautilus/"].flatMap((path) => PRESET_NAMES.map((name) => ({ name, path }))), "voyage presets");
 
 describe.each([
   { width: 390, height: 844 },
