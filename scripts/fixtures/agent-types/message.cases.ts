@@ -37,7 +37,16 @@ export const agentCases: AgentCase[] = [
     dev: '<Message time="9:41 AM" dateTime={iso}>',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message06",
+    habit: "a presence with no words for it",
+    tsc: [
+      `error TS2322: Type '{ children: string; variant: "chat"; role: "assistant"; name: string; presence: "busy"; }' is not assignable to type 'IntrinsicAttributes & MessageProps'.\n  Property 'presenceLabel' is missing in type '{ children: string; variant: "chat"; role: "assistant"; name: string; presence: "busy"; }' but required in type 'MessagePresenceProps'.`,
+    ],
+    dev: '<Message presence="busy" presenceLabel="Busy">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03"];
+export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04"];

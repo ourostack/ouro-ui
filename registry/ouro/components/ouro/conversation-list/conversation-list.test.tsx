@@ -2,7 +2,7 @@ import { useState, type MouseEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { ConversationList, type ConversationListItem, type ConversationListProps } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -79,6 +79,12 @@ describe("ConversationList", () => {
   it("marks the open conversation current and highlights it", async () => {
     const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
     expect(rows.map((row) => row.getAttribute("aria-current"))).toEqual([null, "true", null]);
+    // A pointer an earlier test left over the row would show its hover shade instead.
+    const away = document.createElement("div");
+    away.style.height = "40px";
+    host.append(away);
+    await userEvent.hover(away);
+    await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
     const probe = document.createElement("span");
     probe.style.color = "var(--accent)";
     host.append(probe);
@@ -87,6 +93,38 @@ describe("ConversationList", () => {
     expect(getComputedStyle(rows[0]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     await rerender(<ConversationList label="Conversations" items={items} selectedId={null} onSelect={() => {}} />);
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
+  });
+
+  it("keeps the open conversation highlighted under the pointer", async () => {
+    const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
+    const paint = (value: string) => {
+      const probe = document.createElement("span");
+      probe.style.backgroundColor = value;
+      host.append(probe);
+      const color = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return color;
+    };
+    const settled = async (row: HTMLElement) => {
+      await Promise.allSettled(row.getAnimations().map((animation) => animation.finished));
+      return getComputedStyle(row).backgroundColor;
+    };
+    // The open row stays exactly --accent under the pointer and while pressed, where the other rows
+    // take --muted. A theme that draws the two alike (shadcn's stock themes) cannot show the
+    // difference, but the row is still --accent there.
+    await userEvent.hover(rows[1]!);
+    expect(rows[1]!.matches(":hover")).toBe(true);
+    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    await commands.pointerPress({ selector: '[data-ouro-control="conversation-list"][aria-current="true"]', action: "down" });
+    try {
+      expect(rows[1]!.matches(":active")).toBe(true);
+      expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await userEvent.hover(rows[0]!);
+    expect(await settled(rows[0]!)).toBe(paint("var(--muted)"));
+    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
   });
 
   it("moves focus with the arrow keys, Home and End", async () => {

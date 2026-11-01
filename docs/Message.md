@@ -27,14 +27,14 @@ Use it inside `MessageList`, which keeps the newest message in view and announce
 
 ## Props
 
-Type: `MessageProps`.
+The props the modes share. Type: `MessageProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the top corner of the bubble or card. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
 | `attachments` | `ReactNode` |  | Files sent with the message, shown under it: `<Attachment>` elements. |
-| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. Pass an `Avatar` element instead to show presence or a square avatar: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
+| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
@@ -51,6 +51,27 @@ Type: `MessageProps`.
 | `thread` | `ReactNode` |  | Under a post: its thread, as a `<ThreadSummary>`. |
 | `time` | `string` |  | When it was written, already formatted for the reader ("9:41 AM"), shown after the name. Format it in the browser after hydration, so the server and the reader's clock agree. |
 | `variant` | `"default" \| "chat" \| "post" \| "reply"` | `"default"` | How the message is laid out. `default` suits a conversation with an assistant. `chat` suits people writing to each other: others' messages at the start on a raised bubble under their name and time, the user's own at the end in a tint of the primary color, with only the time. `post` is a post in a channel: a card as wide as the list, under the author's name and time, with an optional `subject` and the `footer` inside it. `reply` is a reply in a thread: the same line of name and time, with the text unboxed under it. In `post` and `reply` the user's own messages sit at the start too. |
+
+## Modes
+
+`MessageProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
+
+### With `presence` and `presenceLabel`
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The author's presence, as Avatar's dot on the avatar's lower end corner: available, busy, away, do not disturb, offline or out of office, each in its own shape and tone. It shows wherever the avatar does, so not on a `continued` message or the user's own `chat` messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead. |
+| `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting". Screen readers hear it on the avatar, as Avatar reads a presence beside a written name. Required with `presence`, so no dot is silent. |
+
+### With `presenceLabel`
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `presenceLabel` | `string` | Read only with `presence`. |
+
+Not in this mode (typed `never`):
+
+- `presence`: Leave it out for no dot; pass it with `presenceLabel` to show one.
 
 ## Native attributes
 
