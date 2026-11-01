@@ -324,7 +324,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const toggleExpanded = () => {
     setExpanded(!expanded);
     // The person goes on writing where they were: the textarea keeps its caret while it has no focus.
-    textareaRef.current!.focus({ preventScroll: true });
+    textareaRef.current!.focus();
   };
   // After every render, once TextArea has fitted the box: a render that expands or collapses it
   // grows or shrinks the row around the text from the height it had, clipped, while the text takes
@@ -334,15 +334,13 @@ export function Composer(props: ComposerProps): JSX.Element {
     const animating = row.style.height !== "";
     // What shows now: a running change's height, or the row's own.
     const shown = row.offsetHeight;
-    if (animating) row.style.height = "";
+    row.style.height = "";
     const px = row.offsetHeight;
     const before = height.current;
     height.current = { expanded, px };
     const from = animating ? shown : before?.px;
-    if (before === null || before.expanded === expanded || from === px || matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      if (animating) row.classList.remove(...growClasses);
-      return;
-    }
+    // A change still running stops at once here: its classes go once its transition is cancelled, below.
+    if (before === null || before.expanded === expanded || from === px || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     row.style.height = `${from}px`;
     void row.offsetHeight;
     row.classList.add(...growClasses);

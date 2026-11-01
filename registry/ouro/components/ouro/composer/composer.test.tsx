@@ -410,15 +410,52 @@ describe("Composer expanded", () => {
     expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
     expect(root.hasAttribute("data-expanded")).toBe(false);
     expect(textarea.rows).toBe(1);
+    const iconPath = () => button.querySelector("svg[aria-hidden='true'] path")!.getAttribute("d");
+    const collapsedIcon = iconPath();
     await userEvent.click(button);
     expect(onExpandedChange).toHaveBeenCalledWith(true);
     expect(button.getAttribute("aria-pressed")).toBe("true");
-    expect(root.hasAttribute("data-expanded")).toBe(true);
+    expect(root.getAttribute("data-expanded")).toBe("");
+    expect(iconPath()).toMatch(/^M\d/);
+    expect(collapsedIcon).toMatch(/^M\d/);
+    expect(iconPath()).not.toBe(collapsedIcon);
     expect(root.querySelector("[data-ouro-composer-toolbar]")!.textContent).toBe("B");
     expect(textarea.rows).toBe(6);
     await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThanOrEqual(6 * parseFloat(getComputedStyle(textarea).lineHeight));
     await userEvent.click(button);
     expect(onExpandedChange).toHaveBeenLastCalledWith(false);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    expect(iconPath()).toBe(collapsedIcon);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("draws the pressed expand button as an outlined primary Button, and the other as a plain one, and keeps focus in the text on a press", async () => {
+    const { host } = await render(
+      <>
+        <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
+        <Button variant="outline" tone="primary" aria-label="Outlined" data-test-harness="">o</Button>
+        <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="">p</Button>
+      </>,
+    );
+    const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
+    const [outlined, plain] = [...host.querySelectorAll("[data-test-harness]")];
+    expect(look(expandButton()!)).toEqual(look(plain!));
+    await userEvent.click(expandButton()!);
+    await expect.poll(() => look(expandButton()!)).toEqual(look(outlined!));
+    const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    expandButton()!.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("can expand with onExpandedChange alone, and hides the toolbar of a collapsed composer the app controls without listening", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, rerender } = await render(<Composer label="Reply" onExpandedChange={onExpandedChange} toolbar={formatting} onSend={() => {}} />);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await userEvent.click(expandButton()!);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    await rerender(<Composer label="Reply" expanded={false} toolbar={formatting} onSend={() => {}} />);
+    expect(expandButton()).toBeNull();
     expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
   });
 
@@ -567,8 +604,10 @@ describe("Composer expanded", () => {
     await expect.poll(settled).toBe(true);
     const expandedHeight = body.getBoundingClientRect().height;
     // Typing grows the box at once, as before.
-    await userEvent.keyboard("a");
+    await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f{Enter}g");
+    expect(textarea.getBoundingClientRect().height).toBeGreaterThan(6 * parseFloat(getComputedStyle(textarea).lineHeight));
     expect(heights(body)).toEqual([]);
+    await userEvent.clear(textarea);
     await userEvent.click(expandButton()!);
     expect(heights(body)).toEqual(["height"]);
     await expect.poll(settled).toBe(true);
