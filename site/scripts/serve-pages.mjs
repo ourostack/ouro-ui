@@ -9,6 +9,9 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createSecureServer } from "node:http2";
+import { createServer as createHttpsServer } from "node:https";
+import { createServer as createHttpServer } from "node:http";
+import { appendFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -48,7 +51,10 @@ function resolveFile(pathname) {
   return undefined;
 }
 
-const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")), cert: readFileSync(join(certDir, "cert.pem")), allowHTTP1: true }, (request, response) => {
+// PROBE (never merge): PAGES_PROTOCOL picks the transport; every session and stream event is logged.
+const protocol = process.env["PAGES_PROTOCOL"] ?? "h2";
+const log = (line) => appendFileSync(join(repo, "pages-server.log"), `${new Date().toISOString()} ${line}\n`);
+const handler = (request, response) => {
   const url = new URL(request.url, "https://localhost");
   if (url.pathname === base.slice(0, -1)) {
     response.writeHead(301, { location: base });
@@ -61,6 +67,26 @@ const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")),
   const compress = /text|json|svg|xml/.test(type) && /\bgzip\b/.test(String(request.headers["accept-encoding"] ?? ""));
   response.writeHead(file ? 200 : 404, compress ? { ...headers, "content-encoding": "gzip", vary: "accept-encoding" } : headers);
   response.end(compress ? gzipSync(body) : body);
+};
+const tls = { key: readFileSync(join(certDir, "key.pem")), cert: readFileSync(join(certDir, "cert.pem")) };
+const server = protocol === "h2" ? createSecureServer({ ...tls, allowHTTP1: true }, handler) : protocol === "h1tls" ? createHttpsServer(tls, handler) : createHttpServer(handler);
+let sessions = 0;
+server.on("session", (session) => {
+  const id = ++sessions;
+  log(`session ${id} open`);
+  session.on("goaway", (code, last) => log(`session ${id} goaway from client code ${code} last ${last}`));
+  session.on("error", (error) => log(`session ${id} error ${error.code} ${error.message}`));
+  session.on("frameError", (type, code, stream) => log(`session ${id} frameError type ${type} code ${code} stream ${stream}`));
+  session.on("close", () => log(`session ${id} close`));
+  session.on("stream", (stream, headers) => {
+    stream.on("aborted", () => log(`session ${id} stream ${stream.id} aborted ${headers[":path"]}`));
+    stream.on("error", (error) => log(`session ${id} stream ${stream.id} error ${error.code} ${headers[":path"]}`));
+    stream.on("close", () => { if (stream.rstCode) log(`session ${id} stream ${stream.id} rst ${stream.rstCode} ${headers[":path"]}`); });
+  });
 });
+server.on("connection", () => log("tcp connection"));
+server.on("tlsClientError", (error) => log(`tlsClientError ${error.code} ${error.message}`));
+server.on("clientError", (error) => log(`clientError ${error.code} ${error.message}`));
 
-server.listen(port, "127.0.0.1", () => console.log(`Serving site/dist over HTTP/2 at https://127.0.0.1:${port}${base}`));
+
+server.listen(port, "127.0.0.1", () => console.log(`Serving site/dist (${protocol}) on 127.0.0.1:${port}${base}`));

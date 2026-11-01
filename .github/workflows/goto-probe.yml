@@ -1,0 +1,54 @@
+# PROBE (never merge): WebKit page.goto internal errors against the Pages-style server, by transport.
+name: WebKit goto probe
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  goto:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [same, idle, fresh, blank]
+        n: [1, 2, 3]
+    name: goto (${{ matrix.variant }}, ${{ matrix.n }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm site:build > build.log 2>&1 || { tail -40 build.log; exit 1; }
+      - name: Probe
+        shell: bash {0}
+        env:
+          PAGES_PROTOCOL: h2
+          VARIANT: ${{ matrix.variant }}
+          TESTS: "150"
+        run: |
+          node site/scripts/serve-pages.mjs 4179 > server.out 2>&1 &
+          sleep 2
+          if [ "$PAGES_PROTOCOL" = h1 ]; then export BASE=http://127.0.0.1:4179/; else export BASE=https://127.0.0.1:4179/; fi
+          node site/e2e/goto-probe.mts || true
+          echo "--- server log around failures"
+          grep -c "" pages-server.log || true
+          grep -vE "tcp connection|session [0-9]+ (open|close)$" pages-server.log | head -60 || true
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: goto-${{ matrix.variant }}-${{ matrix.n }}
+          path: |
+            goto-probe.log
+            pages-server.log
+          if-no-files-found: ignore
