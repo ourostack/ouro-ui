@@ -82,15 +82,20 @@ export interface MessageOwnProps {
    * How the message is laid out. `default` suits a conversation with an assistant. `chat`
    * suits people writing to each other: others' messages at the start on a raised bubble
    * under their name and time, the user's own at the end in a tint of the primary color,
-   * with only the time. `post` is a post in a channel: a card as wide as the list, under the
-   * author's name and time, with an optional `subject` and the `footer` inside it. `reply` is
-   * a reply in a thread: the same line of name and time, with the text unboxed under it. In
-   * `post` and `reply` the user's own messages sit at the start too.
+   * with only the time. `chat` also suits a channel without threads, which reads as a chat.
+   * `post` is a post in a threaded channel, unboxed: the author's name and time, an optional
+   * `subject`, the text, then the `footer` and the `thread` under it, with room around it and
+   * a hairline from the text's start to the end between it and a post just before it. `reply`
+   * is a reply in a thread: the same line of name and time, with the text unboxed under it,
+   * starting where a post's text starts. In `post` and `reply` the user's own messages sit at
+   * the start too.
    * @default "default"
    *
    * @claim "`chat` suits people writing to each" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint)
-   * @claim "`post` is a post in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > is a card as wide as the list under the name and time, with the subject and footer inside it)
+   * @claim "`post` is a post in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > is unboxed, with the name and time over the subject and text, and the footer and thread under them)
+   * @claim "a hairline from the text's start" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > draws a hairline from the text's start to the end between two posts, and none above the first)
    * @claim "`reply` is a reply in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > lays a reply out unboxed under its name and time, at the start for everyone)
+   * @claim "starting where a post's text starts" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > starts a reply's text where a post's text starts)
    */
   variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
   /**
@@ -147,12 +152,12 @@ export interface MessageOwnProps {
    * @claim "The message follows one from the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > groups a continued message under the one before, without avatar or name, its time on hover)
    */
   continued?: boolean | undefined;
-  /** A post's subject, in bold above its text. `post` only. */
+  /** A post's subject, in semibold above its text. `post` only. */
   subject?: ReactNode;
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
   /**
-   * The message this one replies to, at the top of the bubble or card, above the text: a bar,
+   * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
    * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
    * button, to show the quoted message.
@@ -162,18 +167,19 @@ export interface MessageOwnProps {
    * @claim "With `onActivate` it is a button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is a button with onActivate, named by the quote, which keyboard and pointer press)
    */
   quote?: MessageQuote | undefined;
-  /** Files sent with the message, shown under it: `<Attachment>` elements. */
-  attachments?: ReactNode;
   /**
-   * Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited",
-   * whether it was delivered or seen.
+   * Files and pictures sent with the message, shown under it: `<Attachment>` elements, and
+   * pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them
+   * full size.
    */
+  attachments?: ReactNode;
+  /** Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. */
   footer?: ReactNode;
-  /** Under a post: its thread, as a `<ThreadSummary>`. */
+  /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
-   * (`actionsPlacement`) or over a post card's corner. The bar shows while the pointer is over
+   * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
    * keys moving between its buttons.
    *
@@ -187,7 +193,7 @@ export interface MessageOwnProps {
    * with the bubble however wide the row; where the row has no room left, it ends at the row's
    * edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble.
    * `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is
-   * over its card's corner, and the default layout's over its bubble's.
+   * over its top end, and the default layout's over its bubble's corner.
    *
    * @default "beside" on a `reply`, "corner" on a `chat`
    * @claim "`beside` puts it just past the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > puts a reply's bar beside its text, level with its top, clear of the name)
@@ -319,7 +325,7 @@ const bubbles = {
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
-// A raised surface: the theme's card with its hairline and small shadow.
+// A raised surface: the theme's card with its hairline and small shadow, for a chat's bubbles.
 const raised = "bg-card text-card-foreground ring-1 ring-border/60 shadow-(--shadow-sm)";
 
 const layouts = {
@@ -327,9 +333,21 @@ const layouts = {
     user: "rounded-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
     assistant: `rounded-lg px-3 py-2 ${raised}`,
   },
-  post: `w-full rounded-lg px-4 py-3 ${raised}`,
-  reply: "px-0.5",
 } as const;
+
+// A post's line after its name line: one each, in order after the name line (and an unanswered post's Reply beside it).
+const postRow = "order-3 basis-full";
+
+// A post or a reply: the avatar's column (w-8) and the gap after it (gap-3), where the text starts.
+const peopleGutter = "2.75rem";
+
+// Between two posts, a hairline from the text's start to the end, midway between them as MessageList spaces them (16px,
+// and each post's 4px): a border, which forced colours keep.
+const postHairline =
+  "[[data-variant=post]+[data-variant=post]_&]:before:absolute [[data-variant=post]+[data-variant=post]_&]:before:inset-x-0 " +
+  "[[data-variant=post]+[data-variant=post]_&]:before:-top-3 [[data-variant=post]+[data-variant=post]_&]:before:border-0 " +
+  "[[data-variant=post]+[data-variant=post]_&]:before:border-t [[data-variant=post]+[data-variant=post]_&]:before:border-solid " +
+  "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-['']";
 
 // The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
 // page whose messages have no bar never loads it, nor the Tooltip and Menu it uses.
@@ -507,7 +525,7 @@ export function Message(props: MessageProps): JSX.Element {
     element.focus({ preventScroll: true });
   }, [isFailed, element]);
   const notSent = failed !== false && (
-    <div data-ouro-message-failed="" className="flex max-w-full flex-wrap items-center gap-x-1 text-xs">
+    <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
       <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
         <NotSentIcon aria-hidden="true" className="size-3.5 shrink-0" />
         {failedLabel}
@@ -533,16 +551,18 @@ export function Message(props: MessageProps): JSX.Element {
     if (hasBar) void loadBar().then((Loaded) => setBar(() => Loaded));
   }, [hasBar]);
   // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
-  // avatar's column takes (w-8 and the row's gap-2) when it is at the start.
+  // avatar's column takes when it is at the start (w-8, and the row's gap-2 in a chat or gap-3 in a reply).
   const beside =
     placement === "beside" && (variant === "chat" || variant === "reply") && role !== "system"
       ? avatar === false || (variant === "chat" && role === "user")
         ? "0px"
-        : "2.5rem"
+        : variant === "reply"
+          ? peopleGutter
+          : "2.5rem"
       : undefined;
   const bar =
     hasBar && Bar ? (
-      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} card={variant === "post"} beside={beside} />
+      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} post={variant === "post"} beside={beside} />
     ) : null;
 
   if (variant === "default" || role === "system") {
@@ -629,15 +649,18 @@ export function Message(props: MessageProps): JSX.Element {
   const mine = role === "user";
   const end = variant === "chat" && mine;
   const continued = continuedProp && variant !== "post";
+  const post = variant === "post";
+  // A post or a reply names its author in the text's size; a chat's bubbles carry a smaller line above them.
+  const people = variant !== "chat";
   // In chat the user's own name is not shown (the side says whose it is), only the time.
   const nameShown = !continued && !end;
   const header = (
-    <span data-ouro-message-header="" className={continued ? "sr-only" : "flex min-w-0 items-baseline gap-2 px-0.5 text-xs"}>
+    <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
         <AuthorName name={name} content={nameContent} />
       </span>
       {nameTag && (
-        <span data-ouro-message-name-tag="" className={nameShown ? "shrink-0 text-muted-foreground" : "sr-only"}>
+        <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
           <span className="sr-only">, </span>
           {nameTag}
         </span>
@@ -645,15 +668,18 @@ export function Message(props: MessageProps): JSX.Element {
       {time !== undefined && (
         <>
           <span className="sr-only">, </span>
-          <time dateTime={dateTime} className="shrink-0 text-muted-foreground tabular-nums">
+          <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
             {time}
           </time>
         </>
       )}
     </span>
   );
-  const card = variant === "post";
-  const surface = variant === "chat" ? layouts.chat[mine ? "user" : "assistant"] : layouts.reply;
+  // A chat's bubble; a post's and a reply's text sits on the page, unboxed.
+  const surface = variant === "chat" ? layouts.chat[mine ? "user" : "assistant"] : undefined;
+  const titled = post && subject !== undefined && subject !== null;
+  // A message of pictures or files alone draws no empty bubble above them.
+  const worded = !empty || streaming || quote !== undefined || titled;
   return (
     <article
       {...rest}
@@ -668,7 +694,15 @@ export function Message(props: MessageProps): JSX.Element {
       onPointerUp={tap}
       // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
       style={hasBar && beside !== undefined ? { ...rest.style, containerType: "inline-size" } : rest.style}
-      className={cn("group/message box-border flex w-full min-w-0 items-start gap-2 text-base pointer-fine:text-sm", focusRing, end && "flex-row-reverse", className)}
+      className={cn(
+        "group/message box-border flex w-full min-w-0 items-start text-base pointer-fine:text-sm",
+        people ? "gap-3" : "gap-2",
+        // With MessageList's 16px between messages, 24px between one post's last line and the next one's name.
+        post && "py-1",
+        focusRing,
+        end && "flex-row-reverse",
+        className,
+      )}
     >
       {!end && avatar !== false && (
         <span data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">
@@ -687,42 +721,44 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         </span>
       )}
-      <div className={cn("flex min-w-0 flex-col gap-1", variant === "chat" ? "max-w-[min(85%,42rem)]" : "flex-1", end ? "items-end" : "items-start")}>
+      <div
+        data-ouro-message-body=""
+        className={cn(
+          "relative flex min-w-0 gap-1",
+          // A post's rows wrap in a row, so an unanswered post's Reply ends its name line and the rest take a line each.
+          post ? "flex-row flex-wrap items-center gap-x-2" : "flex-col",
+          variant === "chat" ? "max-w-[min(85%,42rem)]" : "flex-1",
+          !post && (end ? "items-end" : "items-start"),
+          post && postHairline,
+        )}
+      >
         {header}
-        <div
-          data-ouro-message-card={card ? "" : undefined}
-          className={cn("relative box-border flex max-w-full min-w-0 flex-col", card ? layouts.post : end ? "items-end" : "items-start")}
-        >
-          <div data-ouro-message-content="" className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", !card && surface)}>
-            {card && subject !== undefined && subject !== null && (
-              <p data-ouro-message-subject="" className="m-0 mb-1 font-[family-name:var(--font-heading,inherit)] text-lg leading-snug font-semibold">
+        <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          {/* Hidden rather than left out when empty: MessageList reads every message's text from it. */}
+          <div data-ouro-message-content="" hidden={!worded} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+            {titled && (
+              <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
                 {subject}
               </p>
             )}
             {quoted}
             {body}
           </div>
-          {card && (
-            <Extra slot="footer" end={false} inset>
-              {footer}
-            </Extra>
-          )}
-          {bar}
+          {!post && bar}
         </div>
         {attachments !== undefined && attachments !== null && (
-          <div data-ouro-message-attachments="" className={cn("flex max-w-full flex-wrap gap-2", end && "justify-end")}>
+          <div data-ouro-message-attachments="" className={cn("flex w-full max-w-full min-w-0 flex-wrap gap-2", end && "justify-end", post && ["mt-1", postRow])}>
             {attachments}
           </div>
         )}
         {notSent}
-        {!card && (
-          <Extra slot="footer" end={end}>
-            {footer}
-          </Extra>
-        )}
-        <Extra slot="thread" end={end}>
+        <Extra slot="footer" end={end} post={post}>
+          {footer}
+        </Extra>
+        <Extra slot="thread" end={end} post={post}>
           {thread}
         </Extra>
+        {post && bar}
       </div>
     </article>
   );
@@ -797,13 +833,21 @@ function wordsFor(presence: string, label: string | undefined): string {
   return label || `${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}`;
 }
 
-/** A row under the message (its footer or thread), or nothing when the app passed nothing. */
-function Extra({ slot, end, inset = false, children }: { slot: "footer" | "thread"; end: boolean; inset?: boolean; children: ReactNode }): JSX.Element | null {
+/**
+ * A row under the message (its footer or thread), or nothing when the app passed nothing. A post's rows keep a little
+ * more room, and a post's thread that is only Reply (nobody has replied) ends the name line instead.
+ */
+function Extra({ slot, end, post = false, children }: { slot: "footer" | "thread"; end: boolean; post?: boolean; children: ReactNode }): JSX.Element | null {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
       {...{ [`data-ouro-message-${slot}`]: "" }}
-      className={cn("flex max-w-full min-w-0 flex-wrap items-center gap-2", end && "justify-end", inset && "mt-2")}
+      className={cn(
+        "flex max-w-full min-w-0 flex-wrap items-center gap-2",
+        end && "justify-end",
+        post && ["mt-1", postRow],
+        post && slot === "thread" && "has-data-ouro-thread-summary-unanswered:order-2 has-data-ouro-thread-summary-unanswered:mt-0 has-data-ouro-thread-summary-unanswered:basis-auto",
+      )}
     >
       {children}
     </div>

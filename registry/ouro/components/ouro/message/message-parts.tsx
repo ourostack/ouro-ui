@@ -7,7 +7,7 @@ import type { MessageAction } from "@/registry/ouro/components/ouro/message/mess
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
-// The action bar: a small raised pill above the bubble's top corner (over a post card's corner)
+// The action bar: a small raised pill above the bubble's top corner (over a post's top end)
 // or beside the bubble's top end, shown on hover (a mouse's only), while focus is in the message,
 // after a tap, and while its menu is open; keyboard focus shows it at once. A mouse over the
 // hidden bar is over the message, which shows it; on a touch screen the hidden bar lets taps
@@ -45,7 +45,7 @@ export function MessageActionBar({
   label,
   menuLabel,
   start,
-  card,
+  post,
   beside,
 }: {
   actions: readonly MessageAction[];
@@ -53,7 +53,8 @@ export function MessageActionBar({
   label: string;
   menuLabel: string;
   start: boolean;
-  card: boolean;
+  /** Over a post's top end, a little lower than over a bubble, since a post's name line is its top. */
+  post: boolean;
   /**
    * Beside the bubble rather than over its corner: the space from the bubble's end to the
    * message's (`start`: from the message's start to the bubble's), less `beside`, the room the
@@ -100,7 +101,7 @@ export function MessageActionBar({
       data-menu-open={menuOpen ? "" : undefined}
       onKeyDown={keyDown}
       onFocus={focus}
-      className={cn(barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", card ? "-top-5" : "-top-8"] : "pointer-events-auto")}
+      className={cn(barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", post ? "-top-5" : "-top-8"] : "pointer-events-auto")}
       // A little way from the bubble while there is room; with none, the auto margin goes and the bar ends at the message's edge.
       // Stryker disable next-line ConditionalExpression: a bar over the corner is placed by one inset, so these margins would move it nowhere.
       style={beside === undefined ? undefined : { marginInline: start ? "auto 0.25rem" : "0.25rem auto" }}

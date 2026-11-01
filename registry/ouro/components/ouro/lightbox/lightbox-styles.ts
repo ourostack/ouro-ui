@@ -2,6 +2,7 @@ export {
   fullScreenClass,
   mosaicCellClass,
   mosaicClass,
+  mosaicFrameClass,
   mosaicLayout,
   mosaicMoreClass,
   mosaicThumbnailClass,
@@ -79,6 +80,14 @@ const popupClass =
 const fullScreenClass =
   "dark -m-4 h-[calc(100%+2rem)] max-h-none w-[calc(100%+2rem)] max-w-none rounded-none ring-0 shadow-none " +
   "bg-(--ouro-backdrop-color) text-foreground forced-colors:bg-[Canvas]";
+
+/**
+ * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
+ * its shape (`--ouro-lightbox-ratio`, width over height), as big as a chat shows pictures. @internal
+ *
+ * @claim "as big as a chat shows pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
+ */
+const mosaicFrameClass = "w-full min-w-0 max-w-[min(100%,25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))]";
 
 /** The mosaic's frame: rounded corners and a hairline, with the card colour in the gaps between its pictures. @internal */
 const mosaicClass =

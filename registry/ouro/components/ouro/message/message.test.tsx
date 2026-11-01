@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
+import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -725,7 +726,7 @@ describe("Message rows", () => {
 });
 
 describe("Message post", () => {
-  it("is a card as wide as the list under the name and time, with the subject and footer inside it", async () => {
+  it("is unboxed, with the name and time over the subject and text, and the footer and thread under them", async () => {
     const { host, message } = await render(
       <Message
         variant="post"
@@ -740,33 +741,183 @@ describe("Message post", () => {
         We start with onboarding.
       </Message>,
     );
-    const card = message.querySelector<HTMLElement>("[data-ouro-message-card]")!;
-    expect(card.getAttribute("data-ouro-message-card")).toBe("");
-    const hostBox = host.getBoundingClientRect();
+    expect(message.querySelector("[data-ouro-message-card]")).toBeNull();
     // The user's own post sits at the start too, with their name shown.
     expect(visible(message.querySelector("[data-ouro-message-author]")!)).toBe(true);
     expect(message.querySelector('[data-ouro="avatar"]')).not.toBeNull();
-    expect(card.getBoundingClientRect().right).toBeCloseTo(hostBox.right, 0);
-    expect(getComputedStyle(card).backgroundColor).toBe(probeColor(host, "var(--card)"));
-    const subject = card.querySelector<HTMLElement>("[data-ouro-message-subject]")!;
+    // No surface: nothing but the page behind the text, and no edge or shadow around it.
+    for (const element of [message, bubbleOf(message), bubbleOf(message).parentElement!]) {
+      const style = getComputedStyle(element);
+      expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+      expect(style.boxShadow).toBe("none");
+      expect(style.borderTopWidth).toBe("0px");
+    }
+    const subject = message.querySelector<HTMLElement>("[data-ouro-message-subject]")!;
     expect(subject.textContent).toBe("Agenda for Friday");
     expect(getComputedStyle(subject).fontWeight).toBe("600");
+    expect(getComputedStyle(subject).fontSize).toBe("16px");
     expect(bubbleOf(message).contains(subject)).toBe(true);
-    const footer = card.querySelector<HTMLElement>("[data-ouro-message-footer]")!;
-    expect(footer.textContent).toBe("4 likes");
-    expect(footer.getAttribute("data-ouro-message-footer")).toBe("");
-    // Reactions start at the card's start, under the text.
-    expect(footer.firstElementChild!.getBoundingClientRect().left).toBeCloseTo(subject.getBoundingClientRect().left, 0);
-    // Inside the card, the footer keeps 8px from the text.
-    expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
-    // Reactions are not part of what MessageList reads out as the message.
-    expect(bubbleOf(message).contains(footer)).toBe(false);
+    // The text starts after the avatar's 32px column and a 12px gap.
+    expect(box(bubbleOf(message)).left - box(message).left).toBeCloseTo(44, 0);
+    expect(box(message.querySelector("[data-ouro-message-header]")!).left).toBeCloseTo(box(bubbleOf(message)).left, 0);
+    // Under the text, in order and 8px apart: the attachments, the footer, then the thread, each at the text's start.
+    const attachments = message.querySelector<HTMLElement>("[data-ouro-message-attachments]")!;
+    const footer = message.querySelector<HTMLElement>("[data-ouro-message-footer]")!;
     const thread = message.querySelector<HTMLElement>("[data-ouro-message-thread]")!;
-    expect(card.contains(thread)).toBe(false);
-    expect(thread.getBoundingClientRect().top).toBeGreaterThanOrEqual(card.getBoundingClientRect().bottom);
+    expect(footer.textContent).toBe("4 likes");
+    expect(bubbleOf(message).contains(footer)).toBe(false);
+    let above: HTMLElement = bubbleOf(message);
+    for (const row of [attachments, footer, thread]) {
+      expect(box(row).top - box(above).bottom).toBeCloseTo(8, 0);
+      expect(box(row).left).toBeCloseTo(box(subject).left, 0);
+      above = row;
+    }
+    expect(box(thread).right).toBeLessThanOrEqual(box(host).right);
   });
 
-  it("shows no subject line without one, and no card footer without a footer", async () => {
+  it("ends every post the same way, with a thread or without, and keeps 4px above and below", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM">
+          No thread.
+        </Message>
+        <Message variant="post" role="assistant" name="Build bot" time="7:52 AM" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+          Nobody has replied.
+        </Message>
+        <Message variant="post" role="assistant" name="Mara Quill" time="8:05 AM" thread={<ThreadSummary count={2} onOpen={() => {}} />}>
+          Two replies.
+        </Message>
+        <Message variant="reply" role="assistant" name="Theo Brandt" time="8:10 AM">
+          A reply.
+        </Message>
+      </>,
+    );
+    const [plain, unanswered, answered, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const last = (message: HTMLElement) => message.querySelector("[data-ouro-message-thread]:not(:has([data-ouro-thread-summary-unanswered]))") ?? bubbleOf(message);
+    for (const message of [plain!, unanswered!, answered!]) {
+      expect(getComputedStyle(message).paddingTop).toBe("4px");
+      expect(box(message).bottom - box(last(message)).bottom).toBeCloseTo(4, 0);
+    }
+    // Reply adds no row: the post with only Reply is as tall as the one with no thread.
+    expect(box(unanswered!).height).toBeCloseTo(box(plain!).height, 0);
+    expect(getComputedStyle(reply!).paddingTop).toBe("0px");
+  });
+
+  it("puts Reply at the end of the name line when nobody has replied, adding no row", async () => {
+    const { message } = await render(
+      <Message variant="post" role="assistant" name="Build bot" nameTag="App" time="7:52 AM" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+        Build 1432 passed.
+      </Message>,
+    );
+    const header = message.querySelector<HTMLElement>("[data-ouro-message-header]")!;
+    const reply = message.querySelector<HTMLElement>('[data-ouro-control="thread-summary"]')!;
+    expect(reply.textContent).toBe("Reply");
+    // On the name line, just after the time, and as tall as the line.
+    expect(box(reply).top).toBeCloseTo(box(header).top, 0);
+    expect(box(reply).height).toBeCloseTo(box(header).height, 0);
+    expect(box(reply).left).toBeGreaterThan(box(header.querySelector("time")!).right);
+    expect(box(reply).left - box(header.querySelector("time")!).right).toBeLessThan(8);
+    expect(box(reply).bottom).toBeLessThanOrEqual(box(bubbleOf(message)).top);
+    // Still read after the text, as a thread's row.
+    expect(bubbleOf(message).compareDocumentPosition(reply) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("draws a hairline from the text's start to the end between two posts, and none above the first", async () => {
+    const { host } = await render(
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM">
+          First.
+        </Message>
+        <Message variant="post" role="assistant" name="Mara Quill" time="8:05 AM">
+          Second.
+        </Message>
+        <Message variant="reply" role="assistant" name="Theo Brandt" time="8:10 AM">
+          A reply.
+        </Message>
+      </div>,
+    );
+    const [first, second, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const line = (message: HTMLElement) => getComputedStyle(message.querySelector("[data-ouro-message-body]")!, "::before");
+    expect(line(first!).content).toBe("none");
+    expect(line(reply!).content).toBe("none");
+    const hairline = line(second!);
+    expect(hairline.borderTopStyle).toBe("solid");
+    expect(hairline.borderTopWidth).toBe("1px");
+    expect(hairline.borderTopColor).toBe(probeColor(host, "var(--border)"));
+    // From the text's start to the end, midway between the first post's last line and the second's name.
+    const body = box(second!.querySelector("[data-ouro-message-body]")!);
+    expect(parseFloat(hairline.width)).toBeCloseTo(body.width, 0);
+    const at = body.top + parseFloat(hairline.top);
+    expect(at - box(bubbleOf(first!)).bottom).toBeCloseTo(12, 0);
+    expect(box(second!.querySelector("[data-ouro-message-header]")!).top - at).toBeCloseTo(12, 0);
+  });
+
+  it("starts a reply's text where a post's text starts", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM">
+          A post.
+        </Message>
+        <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM">
+          A reply.
+        </Message>
+        <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM" continued>
+          Another.
+        </Message>
+      </>,
+    );
+    const [post, reply, more] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    for (const message of [reply!, more!]) expect(box(bubbleOf(message)).left).toBeCloseTo(box(bubbleOf(post!)).left, 0);
+    expect(box(reply!.querySelector("[data-ouro-message-header]")!).left).toBeCloseTo(box(bubbleOf(post!)).left, 0);
+  });
+
+  it("names the author in the text's size on posts and replies, and smaller above a chat's bubble", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" nameTag="App" time="7:30 AM">
+          A post.
+        </Message>
+        <Message variant="reply" role="assistant" name="Mara Quill" nameTag="Guest" time="7:36 AM">
+          A reply.
+        </Message>
+        <Message variant="chat" role="assistant" name="Theo Brandt" nameTag="Guest" time="7:40 AM">
+          A chat.
+        </Message>
+      </>,
+    );
+    const sizes = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')].map((message) =>
+      ["[data-ouro-message-author]", "[data-ouro-message-name-tag]", "time"].map((part) => getComputedStyle(message.querySelector(part)!).fontSize),
+    );
+    expect(sizes).toEqual([
+      ["14px", "12px", "12px"],
+      ["14px", "12px", "12px"],
+      ["12px", "12px", "12px"],
+    ]);
+    const gaps = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')].map((message) => getComputedStyle(message).columnGap);
+    expect(gaps).toEqual(["12px", "12px", "8px"]);
+  });
+
+  it("draws no empty bubble for a message of pictures or files alone", async () => {
+    const files = <Attachment name="agenda.pdf" />;
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" attachments={files} />
+        <Message variant="post" role="assistant" name="Jonah Vale" attachments={files}>
+          {""}
+        </Message>
+        <Message variant="post" role="assistant" name="Jonah Vale" subject="Agenda" attachments={files} />
+        <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Theo Brandt", excerpt: "Lunch?" }} attachments={files} />
+        <Message variant="chat" role="assistant" name="Ouro" streaming />
+        <Message variant="reply" role="assistant" name="Theo Brandt">
+          Words.
+        </Message>
+      </>,
+    );
+    const shown = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')].map((message) => visible(bubbleOf(message)));
+    expect(shown).toEqual([false, false, true, true, true, true]);
+  });
+
+  it("shows no subject line without one, and no footer without a footer", async () => {
     const { host } = await render(
       <>
         <Message variant="post" role="assistant" name="Jonah Vale" subject={null}>
@@ -1233,7 +1384,7 @@ describe("Message actions", () => {
     }
   });
 
-  it("puts the bar at the end corner of others' chat messages, and over a post card's corner", async () => {
+  it("puts the bar at the end corner of others' chat messages, and over a post's top end", async () => {
     const { host } = await render(
       <>
         <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])}>
@@ -1250,9 +1401,9 @@ describe("Message actions", () => {
     const [chat, post, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     expect(box(barOf(chat!)).right).toBeCloseTo(box(bubbleOf(chat!)).right - 8, 0);
     expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 32, 0);
-    const card = post!.querySelector("[data-ouro-message-card]")!;
-    expect(box(barOf(post!)).right).toBeCloseTo(box(card).right - 8, 0);
-    expect(box(barOf(post!)).top).toBeCloseTo(box(card).top - 20, 0);
+    const body = post!.querySelector("[data-ouro-message-body]")!;
+    expect(box(barOf(post!)).right).toBeCloseTo(box(body).right - 8, 0);
+    expect(box(barOf(post!)).top).toBeCloseTo(box(body).top - 20, 0);
     expect(box(barOf(reply!)).right).toBeCloseTo(box(bubbleOf(reply!)).right - 8, 0);
     expect(box(barOf(reply!)).top).toBeCloseTo(box(bubbleOf(reply!)).top - 32, 0);
   });
@@ -1385,7 +1536,8 @@ describe("Message actions", () => {
     const rooms = [...host.querySelectorAll<HTMLElement>("[data-ouro-message-actions-room]")].map((room) => room.style.width);
     // Each room runs to the message's edge (100cqw); the browser may reorder the terms it reads back.
     expect(rooms.every((width) => width.includes("100cqw"))).toBe(true);
-    expect(rooms.map((width) => width.includes("2.5rem"))).toEqual([true, true, false, false]);
+    // A chat's avatar column and gap are 2.5rem, a reply's 2.75rem; neither stands before the user's own chat bubble.
+    expect(rooms.map((width) => width.match(/\d+(\.\d+)?rem/)?.[0] ?? "none")).toEqual(["2.5rem", "2.75rem", "none", "none"]);
   });
 
   it("puts a chat bar beside the bubble when asked: past others' bubbles, before the user's own", async () => {
@@ -1427,9 +1579,9 @@ describe("Message actions", () => {
       </>,
     );
     const [post, plain, note] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
-    const card = post!.querySelector("[data-ouro-message-card]")!;
-    expect(box(barOf(post!)).right).toBeCloseTo(box(card).right - 8, 0);
-    expect(box(barOf(post!)).top).toBeCloseTo(box(card).top - 20, 0);
+    const body = post!.querySelector("[data-ouro-message-body]")!;
+    expect(box(barOf(post!)).right).toBeCloseTo(box(body).right - 8, 0);
+    expect(box(barOf(post!)).top).toBeCloseTo(box(body).top - 20, 0);
     for (const message of [plain!, note!]) {
       expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
       expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);

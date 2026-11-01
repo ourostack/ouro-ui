@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -22,4 +23,19 @@ it("gives the ThreadSummary button a target at least 44px square to a finger", a
   const rect = host.querySelector<HTMLElement>('[data-ouro-control="thread-summary"] [data-ouro-touch-target]')!.getBoundingClientRect();
   expect(rect.height).toBeGreaterThanOrEqual(44);
   expect(rect.width).toBeGreaterThanOrEqual(44);
+});
+
+it("always shows Reply in a message on a touch screen", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <Message variant="post" role="assistant" name="Jonah Vale" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+        Agenda for Friday
+      </Message>,
+    ),
+  );
+  expect(getComputedStyle(host.querySelector<HTMLElement>('[data-ouro="thread-summary"]')!).opacity).toBe("1");
 });
