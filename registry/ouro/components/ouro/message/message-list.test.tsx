@@ -1418,6 +1418,46 @@ describe("MessageList keyboard", () => {
     await expect.poll(() => document.activeElement).toBe(more());
   });
 
+  it("passes over the focus guards around an open menu's button, so Tab never bounces back to the message", async () => {
+    await render(
+      <Channel>
+        {posts(2)}
+        <Message
+          variant="post"
+          role="assistant"
+          name="Mara Quill"
+          id="with-thread"
+          menu={[{ label: "Copy link", onClick: () => {} }]}
+          footer={
+            <button type="button" aria-label="2 replies">
+              2 replies
+            </button>
+          }
+        >
+          Settings mockups.
+        </Message>
+      </Channel>,
+    );
+    const message = document.getElementById("with-thread")!;
+    const more = () => message.querySelector<HTMLElement>('[data-ouro-part="menu"]');
+    await expect.poll(more).not.toBeNull();
+    await userEvent.click(more()!);
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    // The menu's guards stand around its button while it is open, as a screen reader's cursor or a click lands on the message.
+    expect(message.querySelector("[data-base-ui-focus-guard]")).not.toBeNull();
+    await act(async () => message.focus());
+    // Before the fix, the guard ahead of the menu's button took this Tab, closed the menu and dropped focus to the page.
+    const reached: (Element | null)[] = [];
+    for (let press = 0; press < 3; press++) {
+      await pressTab();
+      reached.push(document.activeElement);
+    }
+    expect(reached.slice(0, 2)).toEqual(expect.arrayContaining([more(), button("2 replies")]));
+    expect(reached[2]).toBe(button("After"));
+    await pressTab({ shift: true });
+    expect(focusedId()).toBe("with-thread");
+  });
+
   it("leaves focus where a component puts it after removing the focused control", async () => {
     function Swap() {
       const [swapped, setSwapped] = useState(false);

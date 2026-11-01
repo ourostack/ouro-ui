@@ -78,6 +78,9 @@ const items = '[data-ouro="message"], [data-ouro-message-list-item]';
 const tabbableSelector =
   'a[href], area[href], button, input:not([type="hidden"]), select, textarea, iframe, summary, audio[controls], video[controls], [tabindex], [contenteditable]:not([contenteditable="false"])';
 
+/** Focus guards: the focusable sentinels a popup puts around its trigger, hidden from screen readers. */
+const guards = '[data-base-ui-focus-guard], [aria-hidden="true"]';
+
 /** The elements under `root` that Tab stops on, in document order. */
 function tabbables(root: Element): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>(tabbableSelector)].filter(
@@ -417,7 +420,9 @@ interface Spoken {
  * messages, with a focus ring; a message taller than the list scrolls through first. The right
  * arrow (the left one, right to left) goes into the focused message's toolbar, such as its action
  * bar, else its first control, and Tab goes through its controls. Tab never stops on the other
- * messages' controls, so the next Tab after a message's own controls leaves the list. A new
+ * messages' controls, so the next Tab after a message's own controls leaves the list. Nor does it
+ * stop on the focus guards an open menu puts around its button, so Tab from a message whose menu
+ * is open goes on through its controls rather than back to the message. A new
  * message never takes focus, and when the focused message goes, focus goes to the one now in its
  * place. Each message that is an article carries its place among them for screen readers
  * (`aria-posinset`, `aria-setsize`). `onMessageKeyDown` adds keys of your own on the focused
@@ -472,6 +477,7 @@ interface Spoken {
  * @claim "a message taller than the list scrolls" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > scrolls through a message taller than the list, a line or a page at a time, before moving on)
  * @claim "The right arrow (the left one, right to" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > goes into the focused message's toolbar with the right arrow, else its first control, and the left arrow right to left)
  * @claim "Tab never stops on the other" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reaches a control between messages in the Tab order, and passes over the other messages' controls)
+ * @claim "Nor does it stop on the focus guards" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > passes over the focus guards around an open menu's button, so Tab never bounces back to the message)
  * @claim "A new message never takes focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > keeps focus where it is when a message arrives, and the Tab stop on the message focused last while it shows)
  * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app)
  * @claim "Each message that is an article carries" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives each message its place among them for screen readers, and keeps an app's own)
@@ -788,10 +794,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       reveal(item);
     };
     moveTo.current = focusOn;
-    // What Tab stops on in the list: all but the controls of the messages that are not current.
+    // What Tab stops on in the list: all but the controls of the messages that are not current, and
+    // the focus guards an open menu puts around its button. A guard closes the menu as it takes focus
+    // and sends focus back the way it came, so Tab onto one from the message would land on the message again.
     const stops = () => {
       const list = topItems(content);
-      return tabbables(scroller).filter((element) => [null, current].includes(itemOf(element, list)));
+      return tabbables(scroller).filter((element) => [null, current].includes(itemOf(element, list)) && !element.matches(guards));
     };
 
     const place = (list: HTMLElement[]) => {
