@@ -573,11 +573,59 @@ describe("NavigationRail labels", () => {
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Supercalifragilistic");
   });
 
+  it("sets a word too wide for the rail a size smaller, whole and centred when it fits there, and never clips it mid-letter", async () => {
+    // Words a little wider than the label at its own size; which ones depends on the font, so the test measures.
+    const words = ["Customers", "Workspaces", "Developers", "Approvals", "Assistants", "Downloads", "Favourites", "Documents"];
+    const { items: links } = await render(
+      <div lang="zxx" style={{ display: "flex" }}>
+        <NavigationRail label="Main" items={[...words, "Supercalifragilistic"].map((word) => ({ label: word, href: `/${word}`, icon: icon(word) }))} />
+      </div>,
+    );
+    const labels = links.map((link) => link.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!);
+    const room = labels[0]!.clientWidth;
+    const widthAt = (word: string, size: string, weight: string) => {
+      const context = document.createElement("canvas").getContext("2d")!;
+      context.font = `${weight} ${size} ${getComputedStyle(labels[0]!).fontFamily}`;
+      return context.measureText(word).width;
+    };
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    // The label's size, 11px, and the step below it, 10px.
+    const [natural, small] = [0.6875 * rem, 0.625 * rem];
+    const squeezed = words.filter((word) => widthAt(word, `${natural}px`, "500") > room && widthAt(word, `${small}px`, "500") < room - 1);
+    expect(squeezed.length).toBeGreaterThan(0);
+    for (const [index, label] of labels.entries()) {
+      const word = label.textContent;
+      // Nothing runs past the label's edge, where it would be cut off mid-letter.
+      expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+      const size = parseFloat(getComputedStyle(label).fontSize);
+      if (squeezed.includes(word)) {
+        expect(size).toBe(small);
+        expect(Math.round(label.getBoundingClientRect().height / 14)).toBe(1);
+        const box = label.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const text = range.getBoundingClientRect();
+        expect(Math.abs(text.left - box.left - (box.right - text.right))).toBeLessThanOrEqual(1);
+        await userEvent.hover(links[index]!);
+        await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
+      } else if (word === "Supercalifragilistic") {
+        // Too wide even then: it breaks within the word, ends in an ellipsis past two lines, and shows whole in a tooltip.
+        expect(size).toBe(small);
+        await userEvent.hover(links[index]!);
+        await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Supercalifragilistic");
+      } else if (widthAt(word, `${natural}px`, "500") < room - 1) {
+        expect(size).toBe(natural);
+      }
+    }
+  });
+
   it("with hideLabels, keeps each label as the item's name and shows it in a tooltip toward the page", async () => {
     for (const dir of ["ltr", "rtl"] as const) {
       document.documentElement.dir = dir;
       const { items: links } = await render(<NavigationRail label="Main" items={many} hideLabels />, 16 + 3 * 44 + 2 * 4);
       expect(links[0]!.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+      // A hidden label is never measured as too wide, so none is set smaller.
+      expect(document.querySelector("[data-ouro-navigation-rail-squeezed]")).toBeNull();
       await userEvent.hover(page.getByRole("link", { name: "Chat" }));
       await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Chat");
       expect(document.querySelector('[data-ouro="tooltip"]')!.getAttribute("data-side")).toBe(dir === "ltr" ? "right" : "left");
