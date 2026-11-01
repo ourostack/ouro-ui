@@ -12,6 +12,14 @@ It installs `lib/ouro/ax/output.ts`. Its tests are `ax-output-tests`. Every item
 
 ## Exports
 
+### `emptyText`
+
+The text for a list that came back empty: what is empty, by the filter that emptied it ("Nothing unread."), never "nothing held yet" when the filter is why, then the command to run next. A tool's voice may add its `empty` line after.
+
+```ts
+function emptyText(what: string, next?: { command: string; why: string; } | undefined): string
+```
+
 ### `page`
 
 One page of a list. The cursor is the next item's offset, so it is stable while the list is.

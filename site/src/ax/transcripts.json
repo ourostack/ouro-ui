@@ -35,7 +35,7 @@
   "edit": [
     {
       "command": "notes edit abc123",
-      "output": "notes: edit: \"edit\" could mean 2 things, so it does nothing: a note only you see; or a message other people see. Fix: notes note <room> <text> or notes post <room> <text> --why <why>.",
+      "output": "notes: edit: \"edit\" could mean 2 things, so it does nothing: a note only you see; or a message other people see. Fix: notes note abc123 <text> or notes post abc123 <text> --why <why>.",
       "refused": true
     },
     {

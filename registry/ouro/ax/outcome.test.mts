@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BASE_EXIT_CODES, defineExitCodes } from "./exit-codes.ts";
-import { DEFAULT_OUTCOME_EXITS, isOutcome, nextStep, OUTCOME_STATES, outcome, outcomeExit, outcomeText, validateOutcome, type Outcome } from "./outcome.ts";
+import { DEFAULT_OUTCOME_EXITS, isGenericAudience, isOutcome, nextStep, OUTCOME_STATES, outcome, outcomeExit, outcomeText, validateOutcome, type Outcome } from "./outcome.ts";
 
 const AT = "2026-10-30T20:00:00.000Z";
 const receipt = { id: "a1b2c3d4e5f6", at: AT, by: "agent:planner", why: "Sam asked me to tell Design sync" };
@@ -102,4 +102,13 @@ test("outcomeText: the summary, the check, the receipt, the person's step and th
 test("outcomeText says when the effect is not checked yet, and why", () => {
   assert.equal(outcomeText(sent({ postcondition: { checked: false, holds: null, how: "the window has not sent it yet" } }), "tool").split("\n")[1], "Not checked yet: the window has not sent it yet.");
   assert.equal(outcomeText(sent({ postcondition: { checked: true, holds: null, how: "not readable until the next sync" } }), "tool").split("\n")[1], "Not checked yet: not readable until the next sync.");
+});
+
+test("an action for other people that names no one is warned about", () => {
+  for (const who of ["other people", "Others.", " someone ", "Everyone", "users"]) assert.equal(isGenericAudience(who), true, who);
+  for (const who of ['everyone in "Design sync"', "Sam Lee", "the organizer, Alex Example", "the team"]) assert.equal(isGenericAudience(who), false, who);
+  const generic = validateOutcome(sent({ audience: { only: false, who: "other people" } }));
+  assert.equal(generic.ok, true);
+  assert.deepEqual(generic.warnings, ['audience.who is "other people", which names no one: say who will see it, as the text does (everyone in "Design sync", Sam Lee)']);
+  assert.deepEqual(validateOutcome(outcome({ action: "note", state: "done", summary: "Noted.", audience: { only: false, who: "someone" }, postcondition: { checked: true, holds: true, how: "read back" } })).warnings, []);
 });

@@ -67,7 +67,7 @@ const CLAIM_SET: ClaimSet
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```ts
-const CLAIM_SET_VERSION: "1.0.0"
+const CLAIM_SET_VERSION: "1.1.0"
 ```
 
 ### `ClaimEvidence`
@@ -164,6 +164,13 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `cli.outcome` | should | evaluation: [outcomes-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md) |
 | `cli.wait-typed` | should | evaluation: [outcomes-results.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-results.md) |
 | `cli.work-events` | should | evaluation: [flow-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/flow-probe.md) |
+| `cli.voice-off-in-json` | should | principle |
+| `cli.voice-off-when-piped` | should | principle |
+| `cli.fact-before-voice` | should | principle |
+| `cli.audience-named` | should | principle |
+| `cli.text-refs` | should | principle |
+| `cli.named-is-listed` | should | principle |
+| `cli.help-size` | should | principle |
 | `http.json` | should | principle |
 | `http.error-shape` | should | principle |
 | `http.error-teaches` | should | principle |

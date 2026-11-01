@@ -11880,6 +11880,7 @@
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-output",
         "ourostack/ouro-ui/ax-problem",
+        "ourostack/ouro-ui/ax-voice",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -11906,6 +11907,7 @@
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-problem",
+        "ourostack/ouro-ui/ax-voice",
         "ourostack/ouro-ui/ax-wait"
       ],
       "files": [
@@ -11963,6 +11965,20 @@
           "path": "registry/ouro/ax/exit-codes.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/exit-codes.ts"
+        }
+      ]
+    },
+    {
+      "name": "ax-flows",
+      "type": "registry:lib",
+      "title": "ax-flows",
+      "description": "Ouro AX: an adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and the runner checks the calls' exit codes, JSON shapes and fields, error text, time, size and voice.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-flows.md",
+      "files": [
+        {
+          "path": "registry/ouro/ax/flows.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/flows.ts"
         }
       ]
     },
@@ -12056,6 +12072,23 @@
       ]
     },
     {
+      "name": "ax-voice",
+      "type": "registry:lib",
+      "title": "ax-voice",
+      "description": "Ouro AX: A tool's voice: an optional line of character after the facts, for a person at a terminal, never where an agent parses.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-voice.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-outcome"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/voice.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/voice.ts"
+        }
+      ]
+    },
+    {
       "name": "ax-wait",
       "type": "registry:lib",
       "title": "ax-wait",
@@ -12145,6 +12178,8 @@
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice",
+        "ourostack/ouro-ui/ax-voice-tests",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
       "files": [
@@ -12178,6 +12213,7 @@
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
       "files": [
@@ -12223,6 +12259,39 @@
       ]
     },
     {
+      "name": "ax-flows-tests",
+      "type": "registry:item",
+      "title": "ax-flows tests",
+      "description": "Optional: the node:test tests for ax-flows; run them with node --test.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-flows.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-cli",
+        "ourostack/ouro-ui/ax-cli-tests",
+        "ourostack/ouro-ui/ax-command-tests",
+        "ourostack/ouro-ui/ax-effects-tests",
+        "ourostack/ouro-ui/ax-example",
+        "ourostack/ouro-ui/ax-exit-codes-tests",
+        "ourostack/ouro-ui/ax-flows",
+        "ourostack/ouro-ui/ax-outcome-tests",
+        "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
+        "ourostack/ouro-ui/ax-wait-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/fixtures/flows-suite.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/flows-suite.mts"
+        },
+        {
+          "path": "registry/ouro/ax/flows.test.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/flows.test.mts"
+        }
+      ]
+    },
+    {
       "name": "ax-lint-tests",
       "type": "registry:item",
       "title": "ax-lint tests",
@@ -12239,6 +12308,7 @@
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
       "files": [
@@ -12268,6 +12338,7 @@
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
         "ourostack/ouro-ui/ax-wait",
         "ourostack/ouro-ui/ax-wait-tests"
       ],
@@ -12331,6 +12402,28 @@
           "path": "registry/ouro/ax/problem.test.mts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/problem.test.mts"
+        }
+      ]
+    },
+    {
+      "name": "ax-voice-tests",
+      "type": "registry:item",
+      "title": "ax-voice tests",
+      "description": "Optional: the node:test tests for ax-voice; run them with node --test.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-voice.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-effects-tests",
+        "ourostack/ouro-ui/ax-exit-codes-tests",
+        "ourostack/ouro-ui/ax-outcome",
+        "ourostack/ouro-ui/ax-outcome-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/voice.test.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/voice.test.mts"
         }
       ]
     },
@@ -12402,6 +12495,7 @@
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ax-problem",
         "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
         "ourostack/ouro-ui/ax-wait-tests",
         "ourostack/ouro-ui/ax-work-event-tests",
         "ourostack/ouro-ui/ax-xray"
@@ -12443,6 +12537,11 @@
           "target": "@lib/ouro/ax/fixtures/tasks.mts"
         },
         {
+          "path": "registry/ouro/ax/fixtures/voice-cli.mjs",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/voice-cli.mjs"
+        },
+        {
           "path": "registry/ouro/ax/xray.test.mts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/xray.test.mts"
@@ -12461,11 +12560,13 @@
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-effects",
         "ourostack/ouro-ui/ax-exit-codes",
+        "ourostack/ouro-ui/ax-flows",
         "ourostack/ouro-ui/ax-lint",
         "ourostack/ouro-ui/ax-mcp",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-output",
         "ourostack/ouro-ui/ax-problem",
+        "ourostack/ouro-ui/ax-voice",
         "ourostack/ouro-ui/ax-wait",
         "ourostack/ouro-ui/ax-work-event",
         "ourostack/ouro-ui/ax-xray"
@@ -12483,11 +12584,13 @@
         "ourostack/ouro-ui/ax-command-tests",
         "ourostack/ouro-ui/ax-effects-tests",
         "ourostack/ouro-ui/ax-exit-codes-tests",
+        "ourostack/ouro-ui/ax-flows-tests",
         "ourostack/ouro-ui/ax-lint-tests",
         "ourostack/ouro-ui/ax-mcp-tests",
         "ourostack/ouro-ui/ax-outcome-tests",
         "ourostack/ouro-ui/ax-output-tests",
         "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
         "ourostack/ouro-ui/ax-wait-tests",
         "ourostack/ouro-ui/ax-work-event-tests",
         "ourostack/ouro-ui/ax-xray-tests",

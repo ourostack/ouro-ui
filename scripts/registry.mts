@@ -307,11 +307,13 @@ const themeDir = "registry/ouro/theme/";
 const censusDir = "registry/ouro/census/";
 const sourceRulesDir = "registry/ouro/source-rules/";
 // Ouro AX: the agent-experience kit, Node TypeScript with no dependencies, one item per file (ax-<stem>), its node:test
-// tests as ax-<stem>-tests, the X-ray's fixtures with its tests, and the example tool as ax-example.
+// tests as ax-<stem>-tests, the X-ray's fixtures with its tests (a flow suite's with ax-flows'), and the example tool as
+// ax-example.
 const axDir = "registry/ouro/ax/";
 
 /** The item that ships an ax file. help.ts is part of ax-cli, which renders it. */
 function axItem(rest: string): string {
+  if (rest.startsWith("fixtures/flows-")) return "ax-flows-tests";
   if (rest.startsWith("fixtures/")) return "ax-xray-tests";
   if (rest === "example-cli.ts") return "ax-example";
   const stem = rest.replace(/\.test\.mts$|\.ts$/, "");

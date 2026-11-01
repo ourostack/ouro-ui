@@ -1,6 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { dispatch, printResult, runCli } from "./cli.ts";
+import { spawn } from "node:child_process";
+import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "./cli.ts";
 import { defineCli, defineCommand, parse, type Parsed, type RunContext } from "./command.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
 import { nextStep, outcome } from "./outcome.ts";
@@ -181,4 +182,121 @@ test("a failed outcome is the error line too, and a help topic that ends its own
   const b = io();
   assert.equal(await runCli(t, ["help", "refs"], b.io, { topics: { refs: "refs\n" } }), 0);
   assert.equal(b.o.out, "refs\n");
+});
+
+/** Runs a tool as a person at a terminal would see it (stdout a TTY), with the given environment. */
+async function onTerminal(tool: Parameters<typeof runCli>[0], argv: string[], env: Record<string, string | undefined> = {}, tty = true, memory?: Parameters<typeof runCli>[3] extends infer O ? (O extends { voiceMemory?: infer M } ? M : never) : never) {
+  let out = "";
+  let err = "";
+  const code = await runCli(tool, argv, { stdout: { write: (s) => (out += s), isTTY: tty }, stderr: { write: (s) => (err += s) } }, { env, ...(memory ? { voiceMemory: memory } : {}) });
+  return { code, out, err };
+}
+
+test("the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error", async () => {
+  const posted = await onTerminal(cli, ["post", "abc123", "Running late", "--why", "Sam asked"]);
+  assert.equal(posted.code, 0);
+  const lines = posted.out.trimEnd().split("\n");
+  assert.equal(lines[0], 'Posted to "Design sync". Everyone in it can see it.');
+  assert.match(lines.at(-1)!, /^(Said once, said plainly\.|Posted; the room has it now\.)$/);
+  assert.equal(posted.err, "");
+  for (const [argv, env, tty] of [
+    [["post", "abc123", "x", "--why", "Sam asked", "--json"], {}, true],
+    [["post", "abc123", "x", "--why", "Sam asked", "--quiet"], {}, true],
+    [["--quiet", "post", "abc123", "x", "--why", "Sam asked"], {}, true],
+    [["post", "abc123", "x", "--why", "Sam asked"], { CI: "true" }, true],
+    [["post", "abc123", "x", "--why", "Sam asked"], {}, false],
+  ] as const) {
+    const r = await onTerminal(cli, [...argv], env, tty);
+    assert.ok(!/Said once|the room has it/.test(r.out + r.err), `${argv.join(" ")} ${JSON.stringify(env)} tty=${tty}: ${r.out}`);
+  }
+  const refused = await onTerminal(cli, ["post", "nope", "x", "--why", "Sam asked"]);
+  assert.equal(refused.out, "");
+  assert.equal(refused.err.split("\n").filter(Boolean).length, 1);
+  const banner = await onTerminal(cli, ["--help"]);
+  assert.equal(banner.out.split("\n")[0], "Rooms to talk in, notes to keep.");
+  assert.equal(banner.out.split("\n")[1], "notes: a toy tool built from Ouro AX definitions.");
+  for (const argv of [["--help", "--quiet"], ["post", "--help"]]) assert.ok(!(await onTerminal(cli, argv)).out.includes("Rooms to talk in"), argv.join(" "));
+  // help --json lists the voice's lines as data, so a checker can prove none leak, and prints nothing else.
+  assert.deepEqual(JSON.parse((await onTerminal(cli, ["help", "--json"])).out).voice, ["Rooms to talk in, notes to keep.", "Nothing yet. Rooms fill up."]);
+  assert.ok(!(await onTerminal(cli, ["--help"], { CI: "1" })).out.includes("Rooms to talk in"));
+  assert.ok((await onTerminal(cli, ["--help"], { CI: "false" })).out.includes("Rooms to talk in"));
+  assert.ok(!(await run(["--help"])).out.includes("Rooms to talk in"));
+});
+
+test("a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most", async () => {
+  const told: string[] = [];
+  const tool = defineCli({
+    name: "t",
+    about: ["t: a test tool."],
+    voice: { done: (o) => [`Done: ${o.action}.`], empty: ["Quiet day."], summary: ["That is the day."] },
+    commands: [
+      defineCommand({ name: "list", summary: "L.", effect: "private", readOnly: true, flags: { none: { type: "boolean", description: "N." } }, run: (i) => (i["none"] ? [] : ["a"]), text: (r) => (r.length ? r.join("\n") : "Nothing listed.") }),
+      defineCommand({ name: "page", summary: "P.", effect: "private", readOnly: true, run: () => ({ items: [], total: 0, nextCursor: null }), text: () => "Nothing on this page." }),
+      defineCommand({ name: "today", summary: "T.", effect: "private", readOnly: true, summarizes: true, run: () => "Two meetings.", text: (r) => r }),
+      defineCommand({ name: "both", summary: "B.", effect: "private", run: async () => {
+        // Two done outcomes in one process: the second gets no celebration.
+        const io = { stdout: { write: (s: string) => void told.push(s) }, stderr: { write: () => undefined } };
+        const voice = (await import("./voice.ts")).createVoice(tool.voice, { tty: true, json: false, quiet: false, env: {} });
+        printResult(tool, tool.commands[3]!, {}, outcome({ action: "one", state: "done", summary: "One." }), false, io, voice);
+        printResult(tool, tool.commands[3]!, {}, outcome({ action: "two", state: "queued", summary: "Two.", receipt: { id: "r", at: "x", by: "agent", why: null }, next: [nextStep("t list", "see it")] }), false, io, voice);
+        printResult(tool, tool.commands[3]!, {}, outcome({ action: "three", state: "planned", summary: "Three." }), false, io, voice);
+        return outcome({ action: "both", state: "done", summary: "Both." });
+      } }),
+    ],
+  });
+  assert.equal((await onTerminal(tool, ["list", "--none"])).out, "Nothing listed.\nQuiet day.\n");
+  assert.equal((await onTerminal(tool, ["list"])).out, "a\n");
+  assert.equal((await onTerminal(tool, ["page"])).out, "Nothing on this page.\nQuiet day.\n");
+  assert.equal((await onTerminal(tool, ["today"])).out, "Two meetings.\nThat is the day.\n");
+  assert.equal((await onTerminal(tool, ["--help"])).out.split("\n")[0], "t: a test tool.");
+  assert.equal((await onTerminal(tool, ["both"])).out, "Both.\nDone: both.\n");
+  assert.deepEqual(told, ["One.\n", "Done: one.\n", "Two.\nReceipt: r\nNext: t list  (see it)\n", "Three.\n"]);
+  assert.equal(isEmptyResult(null), false);
+  assert.equal(isEmptyResult({ items: "x" }), false);
+  // A tool may print results itself with printResult and no voice, as before.
+  let out = "";
+  assert.equal(printResult(tool, tool.commands[0]!, {}, [], false, { stdout: { write: (s) => (out += s) }, stderr: { write: () => undefined } }), 0);
+  assert.equal(out, "Nothing listed.\n");
+});
+
+test("voice variants rotate from the memory a tool keeps between runs", async () => {
+  const kept = new Map<string, number>();
+  const memory = { last: (slot: string) => kept.get(slot) ?? null, remember: (slot: string, i: number) => void kept.set(slot, i) };
+  const tool = defineCli({ name: "t", about: ["t."], voice: { banner: ["One.", "Two."] }, commands: [defineCommand({ name: "x", summary: "X.", effect: "private", run: () => 1 })] });
+  const first = (await onTerminal(tool, ["--help"], {}, true, memory)).out.split("\n")[0];
+  const second = (await onTerminal(tool, ["--help"], {}, true, memory)).out.split("\n")[0];
+  assert.notEqual(first, second);
+  assert.deepEqual([first, second].sort(), ["One.", "Two."]);
+});
+
+/** Runs the example tool, with or without quietPipes, its stdout already closed, as `notes --help | head -0` leaves it. */
+function closedPipe(argv: string[], quiet = true) {
+  const url = (file: string) => JSON.stringify(new URL(file, import.meta.url).href);
+  const program = `import { quietPipes, runCli } from ${url("./cli.ts")}; import { exampleCli } from ${url("./example-cli.ts")};${quiet ? " quietPipes(process);" : ""} process.exitCode = await runCli(exampleCli, process.argv.slice(1), process);`;
+  return new Promise<{ code: number | null; err: string }>((done) => {
+    const child = spawn(process.execPath, ["--input-type=module", "-e", program, "--", ...argv], { stdio: ["ignore", "pipe", "pipe"] });
+    child.stdout.destroy();
+    let err = "";
+    child.stderr.on("data", (d: Buffer) => (err += String(d)));
+    child.on("close", (code) => done({ code, err }));
+  });
+}
+
+test("a closed pipe ends the tool quietly with the exit code so far, and any other stream error still throws", async () => {
+  assert.deepEqual(await closedPipe(["--help"]), { code: 0, err: "" });
+  assert.deepEqual(await closedPipe(["help", "--json"]), { code: 0, err: "" });
+  const loud = await closedPipe(["--help"], false);
+  assert.equal(loud.code, 1);
+  assert.match(loud.err, /EPIPE/);
+  const handlers: ((e: { code?: string }) => void)[] = [];
+  const exits: unknown[] = [];
+  const stream = { on: (_: "error", h: (e: { code?: string }) => void) => handlers.push(h) };
+  const proc = { stdout: stream, stderr: stream, exitCode: 2 as number | undefined, exit: (code?: number) => exits.push(code) };
+  quietPipes(proc);
+  assert.equal(handlers.length, 2);
+  handlers[0]!({ code: "EPIPE" });
+  proc.exitCode = undefined;
+  handlers[1]!({ code: "EPIPE" });
+  assert.deepEqual(exits, [2, 0]);
+  assert.throws(() => handlers[0]!({ code: "EIO" }), (e: unknown) => (e as { code?: string }).code === "EIO");
 });

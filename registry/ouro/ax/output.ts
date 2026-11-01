@@ -1,4 +1,4 @@
-export { page, render, truncate };
+export { emptyText, page, render, truncate };
 export type { Page, Truncated };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -53,4 +53,15 @@ function page<T>(items: readonly T[], options: { limit: number; cursor?: string 
   if (!Number.isSafeInteger(start) || start < 0 || start > items.length) throw new Error(`cursor "${options.cursor}" is not one this list gave. Fix: start again without a cursor.`);
   const end = Math.min(items.length, start + Math.max(1, options.limit));
   return { items: items.slice(start, end), total: items.length, nextCursor: end < items.length ? String(end) : null };
+}
+
+/**
+ * The text for a list that came back empty: what is empty, by the filter that emptied it ("Nothing unread."), never
+ * "nothing held yet" when the filter is why, then the command to run next. A tool's voice may add its `empty` line after.
+ *
+ * @claim "by the filter that emptied it" registry/ouro/ax/output.test.mts verify:testExists(registry/ouro/ax/output.test.mts::an empty list says what is empty and what to run next)
+ */
+function emptyText(what: string, next?: { command: string; why: string }): string {
+  const fact = `Nothing ${what.replace(/[.\s]+$/, "")}.`;
+  return next ? `${fact}\nNext: ${next.command}  (${next.why})` : fact;
 }

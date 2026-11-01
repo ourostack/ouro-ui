@@ -4,11 +4,12 @@ export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, I
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { AxError, commandLine, didYouMean } from "./problem.ts";
+import { AxError, commandLine, didYouMean, shellWord } from "./problem.ts";
 import { BASE_EXIT_CODES, defineExitCodes, type ExitTable } from "./exit-codes.ts";
 import { DEFAULT_HEADINGS, DRY_RUN_FLAG, WHY_FLAG, WHY_PLACEHOLDER, type Effect, type EffectHeadings } from "./effects.ts";
 import { DEFAULT_OUTCOME_EXITS, type Outcome, type OutcomeExits } from "./outcome.ts";
 import { DEFAULT_WAIT_EXITS, type WaitExits } from "./wait.ts";
+import { checkVoice, type VoiceDef } from "./voice.ts";
 
 /**
  * One definition of a command: its words, effect, arguments and flags, examples and output. From it come the parser
@@ -55,9 +56,23 @@ interface ArgSpec {
   source?: string;
   /** The problem a missing value reports; defaults to "needs <name>". */
   missing?: string;
+  /**
+   * The words it takes when it is one of a few (`today`, `week`): an unknown flag spelt as one of them (`--week`) gets the
+   * word itself as its fix. Help and the input schema don't restrict the argument to them.
+   *
+   * @claim "gets the word itself as its fix" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::an unknown flag that is one of an argument's words gets that word as its fix)
+   */
+  values?: readonly string[];
 }
 
-/** One meaning of an ambiguous word, and the command for it. */
+/**
+ * One meaning of an ambiguous word, and the command for it. `use` may hold `{args}`, the words the agent gave after the
+ * ambiguous word in that command's argument slots (a slot with none shows its placeholder), and `{flags}`, the flags
+ * the agent gave that the command takes (a sensitive value as its placeholder). A flag `use` writes out itself, such as
+ * `--why <why>`, gives way to the same flag given.
+ *
+ * @claim "the words the agent gave after the ambiguous word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::an ambiguous word's fix carries the words and flags the agent gave, in each meaning's command)
+ */
 interface Meaning {
   means: string;
   use: string;
@@ -90,6 +105,8 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   output?: string;
   /** Out of the overview, still callable and with its help. */
   hidden?: boolean;
+  /** Marks the command whose text sums up the person's day: the voice's `summary` line may follow it on a terminal. */
+  summarizes?: boolean;
   /** Flags and extra words pass through unchecked: a command adopted before its flags were declared. */
   loose?: boolean;
   run?(input: Input, ctx: C): R | Promise<R>;
@@ -124,6 +141,13 @@ interface CliDef<C extends RunContext = RunContext> {
   outcomeExits?: OutcomeExits;
   /** Exit code names by wait state; defaults to DEFAULT_WAIT_EXITS. */
   waitExits?: WaitExits;
+  /**
+   * Optional lines of character for a person at a terminal (ax-voice). With a voice the tool takes `--quiet`, which
+   * turns it off.
+   *
+   * @claim "the tool takes `--quiet`" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
+   */
+  voice?: VoiceDef;
 }
 
 interface Cli<C extends RunContext = RunContext> {
@@ -137,12 +161,16 @@ interface Cli<C extends RunContext = RunContext> {
   readonly groups: Readonly<Record<string, string>>;
   readonly outcomeExits: OutcomeExits;
   readonly waitExits: WaitExits;
+  readonly voice: VoiceDef;
 }
 
 const BUILTIN_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   json: { type: "boolean", description: "Print one JSON document on stdout instead of text." },
   help: { type: "boolean", description: "This command's help." },
 });
+
+/** The flag a tool with a voice takes to print the facts alone. */
+const QUIET_FLAG: FlagSpec = Object.freeze({ type: "boolean", description: "The facts only: no voice lines on a terminal." });
 
 function defineCommand<R, C extends RunContext = RunContext>(def: CommandDef<R, C>): CommandDef<R, C> {
   return def;
@@ -168,12 +196,14 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
     commands: def.commands,
     exits: def.exits ?? defineExitCodes(BASE_EXIT_CODES),
     headings: def.headings ?? DEFAULT_HEADINGS,
-    globalFlags: def.globalFlags ?? {},
+    globalFlags: def.voice && !def.globalFlags?.["quiet"] ? { ...def.globalFlags, quiet: QUIET_FLAG } : (def.globalFlags ?? {}),
     ambiguous: def.ambiguous ?? {},
     groups: def.groups ?? {},
     outcomeExits: def.outcomeExits ?? DEFAULT_OUTCOME_EXITS,
     waitExits: def.waitExits ?? DEFAULT_WAIT_EXITS,
+    voice: def.voice ?? {},
   };
+  if (def.voice) checkVoice(def.name, def.voice);
   for (const names of [cli.outcomeExits, cli.waitExits]) for (const name of Object.values(names)) cli.exits.code(name);
   const seen = new Set<string>();
   for (const cmd of cli.commands) {
@@ -309,7 +339,7 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   }
   const found = findCommand(cli, leading);
   const refused = ambiguousWord(cli, leading);
-  if (refused && (!found || wordsOf(refused).length > found.used)) throw ambiguousError(cli, refused);
+  if (refused && (!found || wordsOf(refused).length > found.used)) throw ambiguousError(cli, refused, tokens.slice(wordsOf(refused).length));
   if (!found) throw unknownCommand(cli, leading);
   const { command, used } = found;
   if (helpIn(flagsOf(cli, command))) return { kind: "help", topic: command.name, json };
@@ -360,6 +390,8 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
       continue;
     }
     if (!spec) {
+      const word = inline === undefined ? (command.args ?? []).find((a) => a.values?.includes(name)) : undefined;
+      if (word) throw new AxError({ code: "unknown-flag", exit: usage(cli), thing, problem: `there is no --${name}; "${name}" is a word for <${word.name}>, without the dashes`, fix: at(i, [name]) });
       const near = didYouMean(name, Object.keys(flags));
       // An unknown flag's value goes with it when the command's words are already all given.
       const next = rest[i + 1];
@@ -463,14 +495,64 @@ function ambiguousWord(cli: Cli, leading: readonly string[]): string | null {
   return matches.sort((a, b) => wordsOf(b).length - wordsOf(a).length)[0] ?? null;
 }
 
-function ambiguousError(cli: Cli, word: string): AxError {
+/** The flags given after an ambiguous word, by name, with their values; and the words that are not flags or values. */
+function givenAfter(cli: Cli, after: readonly string[]): { words: string[]; flags: { name: string; value: string | null }[] } {
+  const words: string[] = [];
+  const flags: { name: string; value: string | null }[] = [];
+  // A flag takes the next word as its value when some command declares it with a value.
+  const takesValue = (name: string) => cli.commands.some((c) => {
+    const spec = flagsOf(cli, c)[name];
+    return spec !== undefined && spec.type !== "boolean";
+  });
+  for (let i = 0; i < after.length; i++) {
+    const t = after[i]!;
+    if (!t.startsWith("--")) {
+      words.push(t);
+      continue;
+    }
+    const eq = t.indexOf("=");
+    const name = t.slice(2, eq === -1 ? undefined : eq);
+    const next = after[i + 1];
+    const value = eq !== -1 ? t.slice(eq + 1) : next !== undefined && !next.startsWith("--") && takesValue(name) ? (i++, next) : null;
+    flags.push({ name, value });
+  }
+  return { words, flags };
+}
+
+/** A meaning's command with the given words and flags in it ({args}, {flags}); a `use` without them is as written. */
+function fillMeaning(cli: Cli, use: string, given: ReturnType<typeof givenAfter>): string {
+  if (!use.includes("{args}") && !use.includes("{flags}")) return use;
+  const cmd = findCommand(cli, wordsOf(use.split("{")[0]!.trim()))?.command;
+  const flags = cmd ? flagsOf(cli, cmd) : {};
+  const taken = given.flags.filter((f) => Object.hasOwn(flags, f.name) && !(f.name in BUILTIN_FLAGS));
+  // A flag the template writes out itself gives way to the same flag given.
+  let template = use;
+  for (const f of taken) template = template.replace(new RegExp(` --${f.name}(?![\\w-])(?:=\\S+| "[^"]*"| <[^>]*>| (?!-|\\{)\\S+)?`, "g"), "");
+  const slots: string[] = [];
+  const words = [...given.words];
+  for (const a of cmd?.args ?? []) {
+    if (a.rest) slots.push(...(words.length ? words.splice(0).map(shellWord) : a.required ? [`<${a.name}>`] : []));
+    else if (words.length) slots.push(shellWord(words.shift()!));
+    else if (a.required) slots.push(`<${a.name}>`);
+  }
+  slots.push(...words.map(shellWord));
+  const flagWords = taken.flatMap((f) => {
+    const spec = flags[f.name]!;
+    if (spec.type === "boolean" || f.value === null) return [`--${f.name}`];
+    return [`--${f.name}`, spec.sensitive ? placeholderOf(f.name, spec) : shellWord(f.value)];
+  });
+  return template.replace("{args}", slots.join(" ")).replace("{flags}", flagWords.join(" ")).replace(/ {2,}/g, " ").trim();
+}
+
+function ambiguousError(cli: Cli, word: string, after: readonly string[]): AxError {
   const meanings = cli.ambiguous[word]!;
+  const given = givenAfter(cli, after);
   return new AxError({
     code: "ambiguous",
     exit: usage(cli),
     thing: word,
     problem: `"${word}" could mean ${meanings.length} things, so it does nothing: ${meanings.map((m) => m.means).join("; or ")}`,
-    fix: meanings.map((m) => `${cli.name} ${m.use}`).join(" or "),
+    fix: meanings.map((m) => `${cli.name} ${fillMeaning(cli, m.use, given)}`).join(" or "),
   });
 }
 
@@ -523,7 +605,7 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
     if (a.required && !unless.length) required.push(a.name);
   }
   for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
-    if (name in BUILTIN_FLAGS) continue;
+    if (name in BUILTIN_FLAGS || spec === QUIET_FLAG) continue;
     const unless = unlessOf(spec);
     const type = spec.type === "boolean" ? "boolean" : spec.type === "number" ? "number" : spec.type === "list" ? "array" : "string";
     const s: JsonSchema & { type: string } = { type, description: spec.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
@@ -626,7 +708,7 @@ function toArgv(cli: Pick<Cli, "globalFlags">, cmd: CommandDef, input: Input): {
   }
   for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
     const value = input[name];
-    if (value === undefined || name in BUILTIN_FLAGS) continue;
+    if (value === undefined || name in BUILTIN_FLAGS || spec === QUIET_FLAG) continue;
     if (spec.type === "boolean") {
       if (value === true) argv.push(`--${name}`);
     } else argv.push(`--${name}`, Array.isArray(value) ? value.join(",") : String(value));

@@ -52,7 +52,7 @@ test("every refusal names the exact command to run instead", () => {
   assert.equal(refusal(["rooms", "extra"]).fix, "notes rooms");
   assert.deepEqual([refusal(["rooms", "--limit", "1", "--limit", "2"]).code, refusal(["rooms", "--limit", "1", "--limit", "2"]).fix], ["duplicate-flag", "notes rooms --limit 1"]);
   assert.equal(refusal(["rooms", "--json=yes"]).code, "bad-value");
-  assert.deepEqual(refusal(["edit", "x"]), { code: "ambiguous", exit: 2, thing: "edit", problem: '"edit" could mean 2 things, so it does nothing: a note only you see; or a message other people see', fix: "notes note <room> <text> or notes post <room> <text> --why <why>" });
+  assert.deepEqual(refusal(["edit", "x"]), { code: "ambiguous", exit: 2, thing: "edit", problem: '"edit" could mean 2 things, so it does nothing: a note only you see; or a message other people see', fix: "notes note x <text> or notes post x <text> --why <why>" });
   assert.equal(refusal(["romos"]).fix, "notes rooms");
   assert.equal(refusal(["zzzzzzzz"]).fix, "notes --help");
   assert.equal(refusal([]).code, "no-command");
@@ -286,3 +286,72 @@ test("-h as a flag's value is the value, a rest list keeps its words apart, and 
   assert.throws(() => parse(two, ["edit", "x"]), (e: AxError) => e.shape.thing === "edit");
   assert.throws(() => defineCli({ name: "t", about: [], ambiguous: { "draft set": [] }, commands: [defineCommand({ name: "draft set", summary: "S.", effect: "private" })] }), /"draft set" is both a command and an ambiguous word/);
 });
+
+test("an ambiguous word's fix carries the words and flags the agent gave, in each meaning's command", () => {
+  assert.equal(refusal(["edit"]).fix, "notes note <room> <text> or notes post <room> <text> --why <why>");
+  assert.equal(refusal(["edit", "abc123", "Thursday?", "--tone", "plain", "--why", "Sam asked"]).fix, 'notes note abc123 "Thursday?" or notes post abc123 "Thursday?" --tone plain --why "Sam asked"');
+  assert.equal(refusal(["edit", "abc123", "x", "--why=Sam", "--dry-run", "--json"]).fix, "notes note abc123 x or notes post abc123 x --why Sam --dry-run");
+  const tool = defineCli({
+    name: "t",
+    about: [],
+    ambiguous: {
+      edit: [
+        { means: "a draft", use: "draft set {args} {flags}" },
+        { means: "a sent message", use: 'edit-sent {args} {flags} --why "..."' },
+        { means: "as written", use: "help edit" },
+        { means: "no such command", use: "gone {args}" },
+      ],
+    },
+    commands: [
+      defineCommand({ name: "draft set", summary: "D.", effect: "private", args: [{ name: "conversation", description: "C.", required: true }, { name: "note", description: "N." }], flags: { text: { type: "string", description: "T." }, token: { type: "string", description: "K.", sensitive: true }, wide: { type: "boolean", description: "W." } }, run: () => null }),
+      defineCommand({ name: "edit-sent", summary: "E.", effect: "others", args: [{ name: "message", description: "M.", required: true }, { name: "more", description: "R.", rest: true }], flags: { text: { type: "string", description: "T." } }, run: () => null }),
+    ],
+  });
+  const fix = (argv: string[]) => {
+    try {
+      parse(tool, argv);
+    } catch (e) {
+      return (e as AxError).shape.fix;
+    }
+    return null;
+  };
+  assert.equal(fix(["edit", "c#1", "--text", "Thursday?", "--token", "s3cret", "--wide", "--zz"]), 't draft set c#1 --text "Thursday?" --token <token> --wide or t edit-sent c#1 --text "Thursday?" --why "..." or t help edit or t gone c#1');
+  assert.equal(fix(["edit", "c#1", "--why", "Sam asked", "--text"]), 't draft set c#1 --text or t edit-sent c#1 --why "Sam asked" --text or t help edit or t gone c#1');
+  assert.equal(fix(["edit"]), 't draft set <conversation> or t edit-sent <message> --why "..." or t help edit or t gone');
+  assert.equal(fix(["edit", "a", "b", "c", "d"]), 't draft set a b c d or t edit-sent a b c d --why "..." or t help edit or t gone a b c d');
+});
+
+test("an unknown flag that is one of an argument's words gets that word as its fix", () => {
+  const tool = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "calendar", summary: "C.", effect: "private", readOnly: true, args: [{ name: "range", description: "R.", values: ["today", "tomorrow", "week"] }], flags: { matters: { type: "boolean", description: "M." } }, run: () => [] })] });
+  const shape = (argv: string[]) => {
+    try {
+      parse(tool, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  assert.deepEqual(shape(["calendar", "--week", "--matters"]), { code: "unknown-flag", exit: 2, thing: "calendar", problem: 'there is no --week; "week" is a word for <range>, without the dashes', fix: "t calendar week --matters" });
+  assert.equal(shape(["calendar", "--mattres"])?.fix, "t calendar --matters");
+  assert.equal(shape(["calendar", "--week=1"])?.fix, "t calendar");
+  assert.equal(parse(tool, ["calendar", "week"]).kind, "run");
+});
+
+test("a tool with a voice takes --quiet, which stays out of the input schema and argv", () => {
+  const tool = defineCli({ name: "t", about: [], voice: { banner: ["Hello there."] }, commands: [defineCommand({ name: "list", summary: "L.", effect: "private", readOnly: true, run: () => [] })] });
+  assert.deepEqual(run2(tool, ["--quiet", "list"]).input, { quiet: true });
+  assert.deepEqual(inputSchema(tool, tool.commands[0]!).properties, {});
+  assert.deepEqual(toArgv(tool, tool.commands[0]!, { quiet: true }).argv, ["list"]);
+  const own = defineCli({ name: "t", about: [], voice: {}, globalFlags: { quiet: { type: "boolean", description: "Less." } }, commands: tool.commands });
+  assert.equal(own.globalFlags["quiet"]!.description, "Less.");
+  const none = defineCli({ name: "t", about: [], commands: tool.commands });
+  assert.deepEqual(none.globalFlags, {});
+  assert.deepEqual(none.voice, {});
+  assert.throws(() => defineCli({ name: "t", about: [], voice: { empty: ["Nothing here \u{1F6B2}"] }, commands: [] }), /t: the voice's empty line "Nothing here .*" is not plain ASCII \(no emoji, curly quotes or tabs\)\. Fix: one line of plain ASCII, at most 72 characters\./);
+});
+
+function run2(tool: ReturnType<typeof defineCli>, argv: string[]): Parsed {
+  const p = parse(tool, argv);
+  assert.equal(p.kind, "run");
+  return p as Parsed;
+}

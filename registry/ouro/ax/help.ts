@@ -6,6 +6,7 @@ export type { CommandManifest, OverviewOptions };
 
 import { argUsage, BUILTIN_FLAGS, flagsOf, flagUsage, inputSchema, usageOf, type Cli, type CommandDef, type JsonSchema } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG } from "./effects.ts";
+import { voiceLines } from "./voice.ts";
 
 /**
  * Help from the definitions: a one-screen overview under the two effect headings, each command's details, and the same
@@ -151,7 +152,10 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
   };
 }
 
-/** The help as data: the tool, its headings, the commands, the exit codes and the one error shape. */
+/**
+ * The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (for a checker
+ * that looks for them in an agent's output) and the one error shape.
+ */
 function helpJson(cli: Cli) {
   return {
     tool: cli.name,
@@ -159,6 +163,7 @@ function helpJson(cli: Cli) {
     effects: { private: cli.headings.private, others: cli.headings.others },
     commands: cli.commands.map((c) => commandManifest(cli, c)),
     exitCodes: cli.exits.codes,
+    voice: voiceLines(cli.voice),
     errorShape: { error: { code: "<slug>", exit: "<exit code>", thing: "<command or flag>", problem: "<what's wrong>", fix: "<exact code to run instead, or null>", message: "<thing>: <problem>. Fix: <fix>." } },
   };
 }

@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLAIM_SET } from "./claims.ts";
 import {
+  audienceWho,
   checkSafety,
   claimSetHash,
   compareInventory,
@@ -14,6 +15,7 @@ import {
   main,
   misspell,
   parseArgs,
+  refsOf,
   refusalVerdict,
   renderHtml,
   renderMarkdown,
@@ -289,7 +291,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
   assert.equal(JSON.parse(b.o.out).hash, claimSetHash());
   const c = io();
   assert.equal(await main(["--help"], c.io), 0);
-  assert.match(c.o.out, /^ax-xray 1\.0\.0: checks an agent-facing interface/);
+  assert.match(c.o.out, new RegExp(`^ax-xray ${XRAY_VERSION.replaceAll(".", "\\.")}: checks an agent-facing interface`));
   for (const [argv, message] of [
     [["--jsn"], /there is no --jsn\. Fix: --json\./],
     [["oops"], /unexpected "oops"/],
@@ -437,4 +439,38 @@ test("a mock check that answers text, a key path through a value that is not an 
   const good = io();
   assert.equal(await main(["--cli", fixture("notes.mts"), "--name", "notes", "--home", home, "--mock", `${mockUrl}/ mock=true`, "--inventory", inventory, "--conformance", "--state", "state", "--env", `NOTES_STATE=${join(scratch, "notes-main.json")}`], good.io), 0);
   assert.match(good.o.out, /Conforms: every applicable must claim holds/);
+});
+
+test("refsOf collects each list item's ref once; audienceWho reads an outcome's audience", () => {
+  assert.deepEqual(refsOf({ rooms: [{ ref: "r1", messages: [{ ref: "r1#1" }, { ref: "" }, "x"] }, { ref: "r1" }], meta: { ref: "not-a-list" } }), ["r1", "r1#1"]);
+  assert.deepEqual(refsOf("text"), []);
+  assert.equal(audienceWho({ audience: { who: "Sam Lee" } }), "Sam Lee");
+  assert.equal(audienceWho({ audience: { only: false } }), "");
+  assert.equal(audienceWho({}), "");
+  assert.equal(audienceWho(null), "");
+});
+
+test("a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe", async () => {
+  const report = await xray(base({ cli: fixture("voice-cli.mjs"), name: "loud", samples: { room: "a1" }, timeoutMs: 10_000 }));
+  const v = (claim: string, surface: string) => verdictOf(report, claim, surface);
+  const note = (claim: string, surface: string) => report.results.find((r) => r.claim === claim && r.surface === surface)?.note ?? "";
+  assert.deepEqual([v("cli.text-refs", "list"), v("cli.text-refs", "big")], ["fail", "fail"]);
+  assert.match(note("cli.text-refs", "list"), /leaves out 1 of 2 refs, first: a2/);
+  assert.match(note("cli.text-refs", "big"), /exit 1/);
+  assert.equal(v("cli.help-size", "big --help"), "fail");
+  assert.match(note("cli.help-size", "big --help"), /^\d+ bytes, over 6000$/);
+  assert.equal(v("cli.help-size", "list --help"), "pass");
+  assert.equal(v("cli.named-is-listed", "secret"), "fail");
+  assert.match(note("cli.named-is-listed", "secret"), /names `loud secret`, which loud --help does not list/);
+  assert.deepEqual([v("cli.fact-before-voice", "send"), v("cli.fact-before-voice", "ping")], ["fail", "pass"]);
+  assert.match(note("cli.fact-before-voice", "send"), /^the text starts "Heads up: this one goes out\.", not the summary/);
+  assert.deepEqual([v("cli.audience-named", "send"), v("cli.audience-named", "ping")], ["fail", "fail"]);
+  const inJson = report.results.filter((r) => r.claim === "cli.voice-off-in-json");
+  assert.ok(inJson.some((r) => r.verdict === "fail" && r.surface.startsWith("loud noisy --json") && r.note === 'prints the voice line "Pedal on."'), JSON.stringify(inJson));
+  assert.ok(inJson.some((r) => r.verdict === "fail" && r.surface.startsWith("loud flaky --json") && /^stdout is not JSON alone: Here they are:/.test(r.note)), JSON.stringify(inJson));
+  assert.equal(holds(report, "cli.voice-off-when-piped"), false);
+  assert.ok(report.results.some((r) => r.claim === "cli.voice-off-when-piped" && r.surface === "loud --help" && r.verdict === "fail"));
+  const traced = report.results.find((r) => r.claim === "cli.no-stack-trace" && r.verdict === "fail");
+  assert.equal(traced?.surface, "loud --help | head -0");
+  assert.match(traced!.note, /EPIPE|Unhandled 'error' event/);
 });
