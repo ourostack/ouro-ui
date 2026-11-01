@@ -19,9 +19,9 @@
 // - docs/ax/<item>.md, Ouro AX's page per ax item, from registry/ouro/ax/ (scripts/ax-docs.mts).
 //
 // `--check` exits 1 when a committed file differs from what would be generated. The site's
-// catalog.json, pages.json and page-index.json list every component, so main does not commit them
-// (scripts/generated-files.mjs): `--check` writes them, as `pnpm i` does with `--uncommitted`, and
-// checks them only on a release commit, which adds them. Either way, site/public/llms.txt is
+// catalog.json, sources.json, pages.json and page-index.json list every component, so main does
+// not commit them (scripts/generated-files.mjs): `--check` writes them, as `pnpm i` does with
+// `--uncommitted`, and checks them only on a release commit, which adds them. Either way, site/public/llms.txt is
 // written again from site/llms.txt when git does not track it (`pnpm registry --uncommitted`).
 // `--out <dir>` writes (or checks) under another root, for tests. Output is deterministic:
 // sorted props, no timestamps.
