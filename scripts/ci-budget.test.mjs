@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deflateRawSync } from "node:zlib";
-import { baseline, budget, criticalPath, freshAttempt, jobGraph, judge, percentile, previousFull, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
+import { baseline, budget, criticalPath, freshAttempt, jobGraph, judge, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -215,6 +215,49 @@ test("main's baseline carries the median work time of the same runs, once all of
   assert.equal(previousFull([record(false, false, 3)]), null);
   // A record from before work times were kept does not count.
   assert.equal(previousFull([{ full: true, fallback: false, criticalPathSeconds: 600 }]), null);
+});
+
+/**
+ * The previous full run's work time from a pull request's earlier runs (newest first, as `[id, record]`
+ * with a null record for a run that kept none), and the pages and records it read.
+ */
+async function previousWork(runs, runId = "this") {
+  const pages = [];
+  const read = [];
+  const seconds = await previousRunWorkFrom({
+    runId,
+    runsPage: async (page) => {
+      pages.push(page);
+      return runs.slice((page - 1) * previousRuns.perPage, page * previousRuns.perPage).map(([id]) => ({ id }));
+    },
+    recordOf: async (id) => {
+      read.push(id);
+      return runs.find(([candidate]) => candidate === id)[1];
+    },
+  });
+  return { minutes: seconds === null ? null : seconds / 60, pages, read };
+}
+
+test("the previous full run is read past the runs that kept no timings, as fail-fast's cancelled ones, up to five that did, within three pages", async () => {
+  assert.deepEqual(previousRuns, { records: 5, pages: 3, perPage: 20 });
+  const record = (full, fallback, work) => ({ full, fallback, workPathSeconds: work * 60 });
+  // As before when every run kept its timings: this run left out, newest first, the first full one, read no further.
+  const kept = [["this", null], ["a", record(false, false, 3)], ["b", record(true, true, 20)], ["c", record(true, false, 9)], ["d", record(true, false, 5)]];
+  assert.deepEqual(await previousWork(kept), { minutes: 9, pages: [1], read: ["a", "b", "c"] });
+  // Nor further than five that kept timings, none of them full.
+  const reduced = Array.from({ length: 7 }, (_, index) => [`r${index}`, record(false, false, 3)]);
+  assert.deepEqual(await previousWork([...reduced, ["full", record(true, false, 9)]]), { minutes: null, pages: [1], read: ["r0", "r1", "r2", "r3", "r4"] });
+  // Six cancelled pushes no longer hide the full run before them, so its verdict stays a warning.
+  const cancelled = Array.from({ length: 6 }, (_, index) => [`x${index}`, null]);
+  const found = await previousWork([...cancelled, ["full", record(true, false, 9)]]);
+  assert.deepEqual(found, { minutes: 9, pages: [1], read: [...cancelled.map(([id]) => id), "full"] });
+  assert.deepEqual(verdict({ work: 12, earlier: null }), { fail: true, reason: "confirm", warning: null });
+  assert.deepEqual(verdict({ work: 12, earlier: found.minutes }), { fail: false, warning: "unconfirmed" });
+  // On the second page, and never past the third.
+  const many = Array.from({ length: 25 }, (_, index) => [`y${index}`, null]);
+  assert.deepEqual((await previousWork([...many, ["full", record(true, false, 9)]])).minutes, 9);
+  const none = await previousWork(Array.from({ length: 100 }, (_, index) => [`z${index}`, null]));
+  assert.deepEqual({ minutes: none.minutes, pages: none.pages, read: none.read.length }, { minutes: null, pages: [1, 2, 3], read: 60 });
 });
 
 const min = 60;

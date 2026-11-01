@@ -17,6 +17,11 @@
 // never fails the run: a failed call is a warning and the next poll tries again, and it gives up at
 // DEADLINE_MS, under its job's time limit. It calls gh with fixed arguments, never through a shell.
 //
+// Its request budget: the repository's GITHUB_TOKEN requests share 1,000 an hour (the Team plan)
+// with every other run, ci-budget's required check among them. So it reads once a minute, one
+// request a read (a page of 100 holds every job), 60 an hour per run, plus one cancel; and when the
+// API answers 403 or 429, or says fewer than RESERVE requests are left, it stops watching.
+//
 //   node scripts/ci-fail-fast.mjs   in GitHub Actions: GITHUB_REPOSITORY, GITHUB_RUN_ID,
 //                                   GITHUB_RUN_ATTEMPT, and GH_TOKEN with actions: write
 import { execFileSync } from "node:child_process";
@@ -32,11 +37,10 @@ export const LAST = "ci-budget";
 export const TOLERATED = ["plan"];
 /** A finished job with one of these conclusions means the run cannot pass. */
 export const FAILED = ["failure", "timed_out", "cancelled"];
-/**
- * How often it reads the jobs. A run's GITHUB_TOKEN may make 1,000 requests an hour in this
- * repository, shared with every other run, so not more often: 240 an hour per pull request run.
- */
-export const POLL_MS = 15_000;
+/** How often it reads the jobs: once a minute, 60 requests an hour per pull request run. */
+export const POLL_MS = 60_000;
+/** It stops watching when the API says fewer requests than this are left this hour, for the required checks. */
+export const RESERVE = 200;
 /** Under the job's timeout-minutes (60), so the job ends by itself rather than timing out. */
 export const DEADLINE_MS = 55 * 60_000;
 
@@ -60,9 +64,38 @@ export const cancelNote = (failed) => `${failed.join(", ")} failed, so fail-fast
 /** The first line of an error's message, for a warning. */
 const firstLine = (error) => String(error?.message ?? error).split("\n")[0];
 
+/** Everything a failed gh call said: its output (headers, with --include), its error output and its message. */
+const said = (error) => [error?.stdout, error?.stderr, error?.message].filter(Boolean).join("\n");
+
+/** Whether what the API said means this token is rate limited: a 403 or a 429, or a header that says so. */
+export const rateLimited = (text) => /\bHTTP (?:403|429)\b|^HTTP\/[\d.]+ (?:403|429)\b|^x-ratelimit-remaining:\s*0\s*$|^retry-after:/im.test(text);
+
+/** The requests left this hour, from `gh api --include` headers, or null. */
+export const requestsLeft = (headers) => {
+  const match = /^x-ratelimit-remaining:\s*(\d+)/im.exec(headers);
+  return match ? Number(match[1]) : null;
+};
+
+class RateLimit extends Error {}
+
+/** Every job of the run attempt, a page of 100 at a time, through `gh api --include`. */
+function readJobs(gh, url) {
+  const jobs = [];
+  for (let page = 1; ; page += 1) {
+    const output = gh(["api", "--include", `${url}&page=${page}`]);
+    const at = output.search(/\r?\n\r?\n/);
+    const left = requestsLeft(output.slice(0, at));
+    if (left !== null && left < RESERVE) throw new RateLimit(`${left} requests are left this hour`);
+    const body = JSON.parse(output.slice(at).trim());
+    jobs.push(...body.jobs);
+    if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
+  }
+}
+
 /**
- * Watches the run until a job fails (then cancels the run), LAST finishes, or the deadline passes.
- * Never throws. `gh` runs the GitHub CLI with an argument list and returns its output.
+ * Watches the run until a job fails (then cancels the run), LAST finishes, the API rate limits it,
+ * or the deadline passes. Never throws. `gh` runs the GitHub CLI with an argument list and returns
+ * its output, or throws an error carrying its output and error output.
  */
 export async function watch({ gh, repo, id, attempt, wait = sleep, now = Date.now, log = console.log, summary = () => {} }) {
   const run = `repos/${repo}/actions/runs/${id}`;
@@ -70,9 +103,12 @@ export async function watch({ gh, repo, id, attempt, wait = sleep, now = Date.no
   while (now() < end) {
     let verdict = { kind: "wait" };
     try {
-      const pages = JSON.parse(gh(["api", "--paginate", "--slurp", `${run}/attempts/${attempt}/jobs?per_page=100`]));
-      verdict = decide(pages.flatMap((page) => page.jobs), attempt);
+      verdict = decide(readJobs(gh, `${run}/attempts/${attempt}/jobs?per_page=100`), attempt);
     } catch (error) {
+      if (error instanceof RateLimit || rateLimited(said(error))) {
+        log(`::warning::Stopped watching: the API is rate limiting this repository's runs (${firstLine(error)}), and the required checks need what is left.`);
+        return "rate-limited";
+      }
       log(`::warning::Could not read this run's jobs (${firstLine(error)}); trying again.`);
     }
     if (verdict.kind === "done") {
