@@ -1,0 +1,1 @@
+- Fixed: a NavigationRail item with a count is named by its words, its label and then the count ("Activity, 5 new"), instead of an `aria-label`, so its name starts with the words it shows. More is named the same way.
