@@ -338,14 +338,16 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
     if (records.some(touchesItems)) list = topItems(content);
   });
   observer.observe(content, { childList: true, subtree: true });
-  // Stryker disable ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for these listeners.
-  scroller.addEventListener("scroll", onScroll, { passive: true });
-  scroller.addEventListener("wheel", onWheel, { passive: true });
-  scroller.addEventListener("touchstart", onTouchStart, { passive: true });
-  scroller.addEventListener("touchmove", onTouchMove, { passive: true });
-  // Stryker restore ObjectLiteral,BooleanLiteral
+  // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for these listeners.
+  const passive = { passive: true };
+  scroller.addEventListener("scroll", onScroll, passive);
+  scroller.addEventListener("wheel", onWheel, passive);
+  scroller.addEventListener("touchstart", onTouchStart, passive);
+  scroller.addEventListener("touchmove", onTouchMove, passive);
   scroller.addEventListener("keydown", onKey);
   scroller.addEventListener("focusin", onFocus);
+  // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change; removing them frees memory only.
+  const forget = () => (observer.disconnect(), scroller.removeEventListener("touchstart", onTouchStart), scroller.removeEventListener("keydown", onKey), scroller.removeEventListener("focusin", onFocus));
   return {
     moved(by) {
       top += by;
@@ -357,12 +359,7 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
       scroller.removeEventListener("scroll", onScroll);
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchmove", onTouchMove);
-      // Stryker disable all: with the listeners above gone, nothing reads what these change; removing them frees memory only.
-      observer.disconnect();
-      scroller.removeEventListener("touchstart", onTouchStart);
-      scroller.removeEventListener("keydown", onKey);
-      scroller.removeEventListener("focusin", onFocus);
-      // Stryker restore all
+      forget();
     },
   };
 }
