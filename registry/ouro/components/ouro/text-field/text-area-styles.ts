@@ -69,7 +69,7 @@ const textAreaSizes = {
 
 /**
  * Sizes a textarea to its content, between `rows` and `maxRows` lines, and lets it scroll
- * only once it is capped. Only an `autoGrow` TextArea calls it; without `autoGrow` the
+ * only once it is capped. What scrolls around it stays where it was while it measures. Only an `autoGrow` TextArea calls it; without `autoGrow` the
  * inline height belongs to the user's resize handle.
  *
  * @internal
@@ -81,11 +81,17 @@ function fitHeight(textarea: HTMLTextAreaElement, rows: number, maxRows: number 
   const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
   const min = rows * line + padding + border;
   const max = maxRows === undefined ? Infinity : Math.max(min, maxRows * line + padding + border);
-  // Collapse first so scrollHeight measures the content, not the current height.
+  // Collapse first so scrollHeight measures the content, not the current height. Collapsing can
+  // pull up the end of what scrolls around it (a conversation it sits at the end of), and the
+  // browser then scrolls that back into range, so each of those is put back where it was.
+  const scrolled: [Element, number][] = [];
+  // Stryker disable next-line EqualityOperator,ConditionalExpression: at 0 nothing can pull it further up, and putting 0 back changes nothing.
+  for (let around = textarea.parentElement; around !== null; around = around.parentElement) if (around.scrollTop > 0) scrolled.push([around, around.scrollTop]);
   textarea.style.height = `${min}px`;
   const needed = textarea.scrollHeight + border;
   textarea.style.height = `${Math.min(Math.max(needed, min), max)}px`;
   textarea.style.overflowY = needed > max + 0.5 ? "auto" : "hidden";
+  for (const [around, top] of scrolled) around.scrollTop = top;
 }
 
 /**
