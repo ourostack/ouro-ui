@@ -791,6 +791,25 @@ describe("non-modal sheet", () => {
     }
   });
 
+  it("keeps a header row for its close button with the title hidden, where a modal sheet shows one only for a title or a description", async () => {
+    const cases = [
+      { hideTitle: false, description: undefined, modal: true, header: true },
+      { hideTitle: true, description: undefined, modal: true, header: false },
+      { hideTitle: true, description: "Pick a look.", modal: true, header: true },
+      { hideTitle: true, description: undefined, modal: false, header: true },
+    ];
+    for (const { header, ...props } of cases) {
+      await render(
+        <Sheet title="Look" open onOpenChange={() => {}} {...props}>
+          Body
+        </Sheet>,
+      );
+      await settled();
+      expect(popup()!.querySelector("[data-ouro-sheet-header]") !== null, JSON.stringify(props)).toBe(header);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("stays modal by default, with its backdrop", async () => {
     await openUncontrolled();
     expect(backdrop()).not.toBeNull();

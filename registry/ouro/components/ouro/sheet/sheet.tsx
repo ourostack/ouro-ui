@@ -158,7 +158,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     description,
     side: sideProp = "bottom",
     snapPoints,
-    modal = true,
+    modal,
     children,
     footer,
     className,
