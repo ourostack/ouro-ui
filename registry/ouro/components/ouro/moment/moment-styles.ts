@@ -155,15 +155,14 @@ const rootClass = {
 
 /**
  * The art's frame, by layout: up to 160px tall, 96px when the moment is narrower than 24rem
- * (its content box, inside the padding, narrower than 21rem), 40px when quiet and 24px inline.
+ * (its content box, inside the padding, narrower than 21rem), and 24px inline.
  * The art fills the frame's height.
  *
  * @internal
- * @claim "The art's frame, by layout: up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
+ * @claim "The art's frame, by layout: up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline)
  */
 const artFrameClass = {
   default: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:10rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
-  quiet: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:2.5rem]",
   inline: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:1.5rem]",
 } as const;
 

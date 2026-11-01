@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip } from "@base-ui/react/tooltip";
-import { useMemo, type JSX, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
 import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
 
 export type { OuroContextValue, OuroLinkComponent } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -34,7 +34,22 @@ export interface OuroProviderProps {
    * @claim "A provider inside another keeps the" registry/ouro/lib/ouro/portal-container.test.tsx verify:testExists(registry/ouro/lib/ouro/portal-container.test.tsx::usePortalContainer > gives popups Base UI's own place again inside an OuroProvider whose portalContainer is null, as an app's own dialog needs)
    */
   portalContainer?: HTMLElement | RefObject<HTMLElement | null> | null | undefined;
+  /**
+   * For people who want less: `Moment` shows its words without art or a celebration, and
+   * `Celebrate` its message without confetti. While it is on, `<html>` carries
+   * `data-ouro-quiet`, so an app hides its own decoration with one rule:
+   * `[data-ouro-quiet] [data-ouro-quiet-hide] { display: none; }`. A provider inside another
+   * keeps the outer one's setting when it sets none. Store the person's choice as you store
+   * their other settings, and pass it here.
+   * @default false
+   * @claim "For people who want less: `Moment`" registry/ouro/lib/ouro/ouro-provider.test.tsx verify:testExists(registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider quiet > tells components the person asked for less, and marks the page while it is on)
+   * @claim "A provider inside another keeps the" registry/ouro/lib/ouro/ouro-provider.test.tsx verify:testExists(registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider quiet > keeps an outer provider's quiet inside one that sets none, and lets an inner one turn it off)
+   */
+  quiet?: boolean | undefined;
 }
+
+// How many quiet providers are mounted, so the page stays marked until the last one goes.
+let quietProviders = 0;
 
 /**
  * Optional app-level provider that routes internal `href`s through your
@@ -122,13 +137,23 @@ export interface OuroProviderProps {
  * @claim "Ouro UI components work without it" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
  * @claim "It installs with every component that" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses)
  */
-export function OuroProvider({ children, linkComponent, portalContainer }: OuroProviderProps): JSX.Element {
+export function OuroProvider({ children, linkComponent, portalContainer, quiet: quietProp }: OuroProviderProps): JSX.Element {
   const outer = useOuro();
   const container = portalContainer === undefined ? outer.portalContainer : (portalContainer ?? undefined);
+  const quiet = quietProp ?? outer.quiet === true;
   const value = useMemo<OuroContextValue>(
-    () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}) }),
-    [linkComponent, container],
+    () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}), quiet }),
+    [linkComponent, container, quiet],
   );
+  useEffect(() => {
+    if (!quiet) return;
+    quietProviders += 1;
+    document.documentElement.setAttribute("data-ouro-quiet", "");
+    return () => {
+      quietProviders -= 1;
+      if (quietProviders === 0) document.documentElement.removeAttribute("data-ouro-quiet");
+    };
+  }, [quiet]);
   return (
     <OuroContext.Provider value={value}>
       <Tooltip.Provider>{children}</Tooltip.Provider>

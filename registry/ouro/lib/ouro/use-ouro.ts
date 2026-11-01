@@ -15,6 +15,8 @@ export interface OuroContextValue {
   linkComponent: OuroLinkComponent;
   /** Where floating popups render. Unset, they render where Base UI puts them: the end of `<body>`, or the portal they open from. */
   portalContainer?: HTMLElement | RefObject<HTMLElement | null> | undefined;
+  /** Whether the person asked for less: words without art or celebrations. */
+  quiet?: boolean | undefined;
 }
 
 /**

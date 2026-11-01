@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Moment, MomentProvider } from "@/registry/ouro/components/ouro/moment/moment";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -250,13 +251,12 @@ describe("Moment", () => {
 });
 
 describe("Moment sizes", () => {
-  it("gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline", async () => {
+  it("gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline", async () => {
     const cases = [
       [{}, 480, 160],
       [{}, 392, 160],
       [{}, 376, 96],
       [{}, 320, 96],
-      [{ quiet: true }, 480, 40],
       [{ size: "inline" as const }, 480, 24],
     ] as const;
     for (const [props, width, px] of cases) {
@@ -285,7 +285,8 @@ describe("Moment quiet", () => {
   it("renders a compact row from the prop or from MomentProvider, and the prop wins", async () => {
     const own = await render(<Moment quiet art={<Art />} title="No drafts" description="Drafts you start show up here, one line at most." action={<Button size="sm">New draft</Button>} />);
     const actions = own.moment!.querySelector<HTMLElement>("[data-ouro-moment-actions]")!;
-    expect(actions.getBoundingClientRect().top).toBeLessThan(own.frame!.getBoundingClientRect().bottom);
+    expect(own.frame).toBeNull();
+    expect(actions.getBoundingClientRect().top).toBeLessThan(own.moment!.querySelector("h3")!.getBoundingClientRect().bottom);
     expect(own.moment!.getAttribute("data-quiet")).toBe("");
     expect(getComputedStyle(own.moment!).flexDirection).toBe("row");
     const line = page.getByText("Drafts you start show up here, one line at most.").element() as HTMLElement;
@@ -325,6 +326,35 @@ describe("Moment quiet", () => {
       ),
     );
     expect(plain.moment!.hasAttribute("data-quiet")).toBe(true);
+  });
+
+  it("keeps its words and drops its art and celebration under OuroProvider's quiet, unless MomentProvider or the prop says otherwise", async () => {
+    const { host } = await render(
+      <OuroProvider quiet>
+        <Moment kind="success" art={<Art />} title="All caught up" description="Nothing needs you." />
+        <MomentProvider quiet={false}>
+          <Moment kind="success" art={<Art />} title="Provided" />
+        </MomentProvider>
+        <MomentProvider>
+          <Moment kind="success" art={<Art />} title="Passed through" />
+        </MomentProvider>
+        <Moment quiet={false} kind="success" art={<Art />} title="Own" />
+        <Moment kind="loading" title="Syncing" />
+      </OuroProvider>,
+    );
+    await frames(3);
+    const [quiet, provided, passed, own, loading] = [...host.querySelectorAll<HTMLElement>('[data-ouro="moment"]')];
+    expect(quiet!.getAttribute("data-quiet")).toBe("");
+    expect(quiet!.querySelector("[data-ouro-moment-frame]")).toBeNull();
+    expect(quiet!.hasAttribute("data-celebrate")).toBe(false);
+    expect(quiet!.textContent).toBe("All caught upNothing needs you.");
+    expect(passed!.hasAttribute("data-quiet")).toBe(true);
+    for (const loud of [provided!, own!]) {
+      expect(loud.hasAttribute("data-quiet")).toBe(false);
+      expect(loud.querySelector("[data-ouro-moment-frame]")).not.toBeNull();
+      expect(loud.hasAttribute("data-celebrate")).toBe(true);
+    }
+    expect(loading!.querySelector('[data-ouro="spinner"]')).not.toBeNull();
   });
 
   it("never celebrates when quiet or inline", async () => {
@@ -583,7 +613,7 @@ describe("Moment dismissal", () => {
     const rowClose = row.moment!.querySelector<HTMLElement>('[data-ouro-part="dismiss"]')!;
     expect(getComputedStyle(row.moment!).paddingTop).not.toBe("48px");
     expect(getComputedStyle(rowClose).position).toBe("relative");
-    expect(rowClose.getBoundingClientRect().left).toBeGreaterThan(row.frame!.getBoundingClientRect().right);
+    expect(rowClose.getBoundingClientRect().left).toBeGreaterThan(row.moment!.querySelector("h3")!.getBoundingClientRect().left);
     expect(rowClose.getAttribute("data-ouro-control")).toBe("moment");
   });
 

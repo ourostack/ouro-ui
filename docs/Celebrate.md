@@ -14,6 +14,10 @@ import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
 <Celebrate show={items.every((item) => item.checked)} message="List cleared" />
 ```
 
+## Usage
+
+Under `OuroProvider`'s `quiet`, for people who want less, only the message shows and is heard: no confetti.
+
 ## Use instead when
 
 - Use `toast()` instead to confirm an everyday action (saved, sent), and `Alert` for a message that should stay.

@@ -97,3 +97,78 @@ describe("OuroProvider and useOuro", () => {
     expect(html).toBe('<a href="/recipes" class="mt-2">Recipes</a>');
   });
 });
+
+describe("OuroProvider quiet", () => {
+  function Quiet({ id }: { id: string }) {
+    return <output data-testid={id}>{String(useOuro().quiet === true)}</output>;
+  }
+  const marked = () => document.documentElement.hasAttribute("data-ouro-quiet");
+  const read = (container: Element, id: string) => container.querySelector(`[data-testid="${id}"]`)!.textContent;
+
+  it("tells components the person asked for less, and marks the page while it is on", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Quiet id="none" />));
+    expect(read(container, "none")).toBe("false");
+    expect(marked()).toBe(false);
+    await act(async () => root.render(<OuroProvider quiet><Quiet id="on" /></OuroProvider>));
+    expect(read(container, "on")).toBe("true");
+    expect(document.documentElement.getAttribute("data-ouro-quiet")).toBe("");
+    await act(async () => root.render(<OuroProvider quiet={false}><Quiet id="off" /></OuroProvider>));
+    expect(read(container, "off")).toBe("false");
+    expect(marked()).toBe(false);
+    await act(async () => root.render(<OuroProvider quiet><Quiet id="again" /></OuroProvider>));
+    expect(marked()).toBe(true);
+    await act(async () => root.unmount());
+    expect(marked()).toBe(false);
+  });
+
+  it("keeps an outer provider's quiet inside one that sets none, and lets an inner one turn it off", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () =>
+      root.render(
+        <OuroProvider quiet>
+          <OuroProvider>
+            <Quiet id="inherited" />
+          </OuroProvider>
+          <OuroProvider quiet={false}>
+            <Quiet id="off" />
+          </OuroProvider>
+        </OuroProvider>,
+      ),
+    );
+    expect(read(container, "inherited")).toBe("true");
+    expect(read(container, "off")).toBe("false");
+    await act(async () => root.unmount());
+    expect(marked()).toBe(false);
+  });
+
+  it("keeps the page marked until the last quiet provider goes", async () => {
+    const first = document.body.appendChild(document.createElement("div"));
+    const second = document.body.appendChild(document.createElement("div"));
+    const [a, b] = [createRoot(first), createRoot(second)];
+    await act(async () => a.render(<OuroProvider quiet><Quiet id="a" /></OuroProvider>));
+    await act(async () => b.render(<OuroProvider quiet><Quiet id="b" /></OuroProvider>));
+    await act(async () => a.unmount());
+    expect(marked()).toBe(true);
+    await act(async () => b.unmount());
+    expect(marked()).toBe(false);
+  });
+
+  it("hides what an app marks with data-ouro-quiet-hide, with the rule its docs give", async () => {
+    const style = document.head.appendChild(document.createElement("style"));
+    style.textContent = "[data-ouro-quiet] [data-ouro-quiet-hide] { display: none; }";
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<OuroProvider quiet><span data-ouro-quiet-hide="">Riders</span></OuroProvider>));
+      expect(getComputedStyle(container.querySelector("span")!).display).toBe("none");
+      await act(async () => root.render(<OuroProvider><span data-ouro-quiet-hide="">Riders</span></OuroProvider>));
+      expect(getComputedStyle(container.querySelector("span")!).display).toBe("inline");
+    } finally {
+      await act(async () => root.unmount());
+      style.remove();
+    }
+  });
+});

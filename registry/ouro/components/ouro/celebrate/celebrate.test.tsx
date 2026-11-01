@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -62,6 +63,34 @@ describe("Celebrate", () => {
     document.body.append(probe);
     mounted.push(probe);
     expect(getComputedStyle(badge).color).toBe(getComputedStyle(probe).color);
+  });
+
+  it("shows and speaks only the message under OuroProvider's quiet, with no confetti", async () => {
+    const announced = watchAnnouncements();
+    try {
+      const { root, host } = await render(
+        <OuroProvider quiet>
+          <Celebrate show={false} message="Inbox cleared" />
+        </OuroProvider>,
+      );
+      await act(async () =>
+        root.render(
+          <OuroProvider quiet>
+            <Celebrate show message="Inbox cleared" />
+          </OuroProvider>,
+        ),
+      );
+      const celebrate = host.querySelector<HTMLElement>('[data-ouro="celebrate"]')!;
+      expect(celebrate.getAttribute("data-quiet")).toBe("");
+      expect(host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(0);
+      expect(host.querySelector('[data-ouro-part="message"]')!.textContent).toBe("Inbox cleared");
+      await expect.poll(() => announced.count("Inbox cleared"), { timeout: 3000 }).toBe(1);
+      await act(async () => root.render(<Celebrate show message="Inbox cleared" />));
+      expect(host.querySelector('[data-ouro="celebrate"]')!.hasAttribute("data-quiet")).toBe(false);
+      expect(host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(12);
+    } finally {
+      announced.stop();
+    }
   });
 
   it("bursts its pieces outward and fades in its message, and with reduced motion only fades the message in", async () => {
