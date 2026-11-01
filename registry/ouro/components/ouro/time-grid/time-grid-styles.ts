@@ -287,18 +287,20 @@ function stepTo(pieces: ReadonlyArray<{ key: string; day: number; start: number 
 
 /**
  * An event: its text from the top, and a bar in its tone on its start edge (each status sets the
- * border widths, `statusClass`). Keyboard focus and the
- * selected event get an outline; under forced colours every event keeps a border.
+ * border widths, `statusClass`). Keyboard focus is a ring outside the event, with a gap, as on
+ * Ouro's other controls; the selected event has a line just inside its edge instead, so focus on
+ * it still shows. Under forced colours every event keeps a border.
+ * @claim "Keyboard focus is a ring outside the event" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws keyboard focus apart from selection: a ring outside the event, where selection is a line just inside it)
  * @claim "each status sets the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /busy: "border-0 border-s-3"/)
- * @claim "under forced colours every event" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /forced-colors:border forced-colors:border-s-3/)
+ * @claim "Under forced colours every event" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /forced-colors:border forced-colors:border-s-3/)
  */
 const eventClass =
   "m-0 box-border flex min-w-0 flex-col rounded-md border-solid px-1.5 py-0.5 " +
   "font-[inherit] text-start text-xs leading-4 text-foreground no-underline [overflow-wrap:anywhere] " +
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-(--ouro-ease-out) " +
-  "outline-ring outline-offset-1 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
-  "aria-[current=true]:z-20 aria-[current=true]:outline-2 aria-[current=true]:outline-solid aria-[current=true]:outline-foreground " +
+  "outline-ring outline-offset-2 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
+  "aria-[current=true]:z-20 aria-[current=true]:shadow-[inset_0_0_0_2px_var(--foreground)] " +
   "aria-expanded:z-20 aria-expanded:outline-2 aria-expanded:outline-solid aria-expanded:outline-primary " +
   "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 
