@@ -809,6 +809,72 @@ describe("Message post", () => {
   });
 });
 
+describe("Message name tag", () => {
+  it("shows a quiet tag after the name in every layout, read after the name", async () => {
+    const { host } = await render(
+      <>
+        {(["default", "chat", "post", "reply"] as const).map((variant) => (
+          <Message key={variant} variant={variant} role="assistant" name="Halden" nameTag="AI agent" time="3:24 PM">
+            I'll post the summary by 4:00.
+          </Message>
+        ))}
+      </>,
+    );
+    const probe = document.createElement("span");
+    probe.style.color = "var(--muted-foreground)";
+    host.append(probe);
+    const messages = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(messages).toHaveLength(4);
+    for (const message of messages) {
+      const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+      const tag = message.querySelector<HTMLElement>("[data-ouro-message-name-tag]")!;
+      const line = message.getAttribute("data-variant") ? headerOf(message) : author;
+      // Read in order: the name, its tag, then the time.
+      expect(line.textContent).toBe("Halden, AI agent, 3:24 PM");
+      expect(tag.getBoundingClientRect().width).toBeGreaterThan(1);
+      expect(getComputedStyle(tag).color).toBe(getComputedStyle(probe).color);
+      expect(getComputedStyle(tag).fontWeight).toBe("400");
+      expect(parseFloat(getComputedStyle(tag).fontSize)).toBeLessThanOrEqual(12);
+      const name = document.createRange();
+      name.selectNodeContents(author.firstChild!);
+      expect(tag.getBoundingClientRect().left).toBeGreaterThan(name.getBoundingClientRect().right);
+      expect(Math.abs(tag.getBoundingClientRect().bottom - name.getBoundingClientRect().bottom)).toBeLessThan(3);
+    }
+    probe.remove();
+  });
+
+  it("hides the tag with the name, and still reads it", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Halden" nameTag="AI agent">
+          Hi
+        </Message>
+        <Message variant="chat" role="assistant" name="Halden" nameTag="AI agent" continued>
+          Again
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" nameTag="Guest" time="3:29 PM">
+          Thanks
+        </Message>
+        <Message role="assistant" name="Halden" nameTag="AI agent" continued>
+          Again
+        </Message>
+      </>,
+    );
+    const [, continued, mine, plain] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    // Hidden as screen-reader text is: the tag, or a box around it, clipped to a pixel.
+    const clipped = (node: HTMLElement, message: HTMLElement) => {
+      for (let at: HTMLElement | null = node; at && at !== message; at = at.parentElement) if (at.getBoundingClientRect().width <= 1) return true;
+      return false;
+    };
+    for (const message of [continued!, mine!, plain!]) {
+      const tag = message.querySelector<HTMLElement>("[data-ouro-message-name-tag]")!;
+      expect(clipped(tag, message)).toBe(true);
+      expect(tag.textContent).toMatch(/AI agent|Guest/);
+    }
+    expect(headerOf(mine!).textContent).toBe("Priya Okafor, Guest, 3:29 PM");
+  });
+});
+
 describe("Message presence", () => {
   it("shows the author's presence on the avatar in every variant, and says it", async () => {
     const { host } = await render(

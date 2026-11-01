@@ -11,6 +11,7 @@ export default function AvatarDemo(): JSX.Element {
         <Avatar name="Grace Hopper" presence="busy" presenceLabel="In a meeting" />
         <Avatar name="Alan Turing" size="lg" presence="away" presenceLabel="Away" />
         <Avatar name="Design reviews" size="lg" shape="square" />
+        <Avatar name="Halden" size="lg" shape="hexagon" />
       </div>
       <AvatarGroup label="Cooks on this recipe" max={3}>
         <Avatar name="Ada Lovelace" />

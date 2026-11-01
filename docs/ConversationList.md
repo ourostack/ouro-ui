@@ -71,6 +71,11 @@ interface ConversationListItem {
   id: string;
   /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
   title: string;
+  /**
+   * A quiet tag right after the title, such as "AI agent" for an agent or "Guest": small and muted, not a badge, and
+   * read after the title ("Halden, AI agent"). In a narrow row the title shortens and the tag stays whole.
+   */
+  nameTag?: string | undefined;
   /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
   where?: string | undefined;
   /** A second line under the title, such as the group a topic belongs to. */

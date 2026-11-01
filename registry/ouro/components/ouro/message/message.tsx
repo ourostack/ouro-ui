@@ -110,6 +110,15 @@ export interface MessageOwnProps {
    */
   nameContent?: ReactNode;
   /**
+   * A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and
+   * muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name
+   * is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both
+   * are still read.
+   * @claim "A quiet tag after the author's" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message name tag > shows a quiet tag after the name in every layout, read after the name)
+   * @claim "Where the name is hidden" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message name tag > hides the tag with the name, and still reads it)
+   */
+  nameTag?: string | undefined;
+  /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
    * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
@@ -368,6 +377,7 @@ export function Message(props: MessageProps): JSX.Element {
     role: roleProp,
     name: nameProp,
     nameContent,
+    nameTag,
     variant: variantProp = "default",
     avatar,
     presence,
@@ -573,6 +583,14 @@ export function Message(props: MessageProps): JSX.Element {
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
             <AuthorName name={name} content={nameContent} />
+            {nameTag && (
+              <>
+                <span className="sr-only">, </span>
+                <span data-ouro-message-name-tag="" className="ms-1.5 font-normal">
+                  {nameTag}
+                </span>
+              </>
+            )}
             {time !== undefined && (
               <>
                 <span className="sr-only">, </span>
@@ -618,6 +636,12 @@ export function Message(props: MessageProps): JSX.Element {
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
         <AuthorName name={name} content={nameContent} />
       </span>
+      {nameTag && (
+        <span data-ouro-message-name-tag="" className={nameShown ? "shrink-0 text-muted-foreground" : "sr-only"}>
+          <span className="sr-only">, </span>
+          {nameTag}
+        </span>
+      )}
       {time !== undefined && (
         <>
           <span className="sr-only">, </span>
