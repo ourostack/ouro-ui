@@ -8,15 +8,15 @@ export {
   MOMENT_STORAGE_PREFIX,
   periods,
   rootClass,
-  shownKey,
   sparkClasses,
   sparkleClass,
   subscribeMoments,
   takeShowing,
-  type MomentCap,
   type MomentKind,
   type MomentPeriod,
 };
+
+import { celebrationPeriods, takeCelebration, type CelebrationPeriod } from "@/registry/ouro/lib/ouro/celebration-cap";
 
 // Class strings, values and the stored-state helpers for Moment, apart from the component so
 // its file exports only components (React Fast Refresh). Class strings are literal so the
@@ -25,10 +25,8 @@ export {
 /** What a moment is about. @internal */
 type MomentKind = "empty" | "loading" | "error" | "welcome" | "success";
 
-/** How long a celebration cap counts showings for. @internal */
-type MomentPeriod = "day" | "week" | "month" | "ever";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** How long a celebration cap counts showings for, shared with Celebrate. @internal */
+type MomentPeriod = CelebrationPeriod;
 
 /**
  * Each period in milliseconds; a month is 30 days.
@@ -36,13 +34,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * @internal
  * @claim "Each period in milliseconds; a month" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment cap > counts by id without a dismissKey, keeps ever for good, and never celebrates at times 0)
  */
-const periods: Record<MomentPeriod, number> = { day: DAY_MS, week: 7 * DAY_MS, month: 30 * DAY_MS, ever: Number.POSITIVE_INFINITY };
-
-/** At most `times` flourishes `per` period. @internal */
-interface MomentCap {
-  times: number;
-  per: MomentPeriod;
-}
+const periods = celebrationPeriods;
 
 /**
  * The prefix of every key Moment writes to `localStorage`.
@@ -56,8 +48,6 @@ const MOMENT_STORAGE_PREFIX = "ouro-moment:";
 /** The key that remembers a dismissal. @internal */
 const dismissedKey = (key: string) => `${MOMENT_STORAGE_PREFIX}dismissed:${key}`;
 
-/** The key that keeps when a celebration last showed. @internal */
-const shownKey = (key: string) => `${MOMENT_STORAGE_PREFIX}shown:${key}`;
 
 /** Values kept in memory, for a browser that refuses localStorage (a private window), so a dismissal still holds on the page. */
 const memory = new Map<string, string>();
@@ -111,26 +101,12 @@ function keepDismissed(key: string): void {
 }
 
 /**
- * Whether a celebration may show now under `cap`, and if so, records it. Only the showings
- * inside the period count, and only those are kept.
+ * Whether a celebration may show now under `cap`, and if so, records it, under the same keys
+ * as Celebrate's.
  *
  * @internal
  */
-function takeShowing(key: string, cap: MomentCap, now: number): boolean {
-  let stored: unknown;
-  try {
-    // Stryker disable next-line StringLiteral: an empty string fails to parse, which leaves no showings, as "[]" does.
-    stored = JSON.parse(read(shownKey(key)) ?? "[]");
-  } catch {
-    // A value that is no JSON counts as no showings.
-  }
-  const since = now - periods[cap.per];
-  // Stryker disable next-line ArrayDeclaration: an entry put in the empty list is no number, so the filter drops it.
-  const recent = (Array.isArray(stored) ? stored : []).filter((time): time is number => typeof time === "number" && time > since && time <= now);
-  if (recent.length >= cap.times) return false;
-  write(shownKey(key), JSON.stringify([...recent, now]));
-  return true;
-}
+const takeShowing = takeCelebration;
 
 /**
  * The colour each kind gives the art's `currentColor` and its celebration.
