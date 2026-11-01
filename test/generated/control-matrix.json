@@ -1913,7 +1913,8 @@
       "MessageList/Live",
       "MessageList/ScrolledBack",
       "MessageList/Keyboard",
-      "MessageList/Springs"
+      "MessageList/Springs",
+      "MessageList/ReadingWidth"
     ]
   },
   {
@@ -1929,7 +1930,8 @@
       "MessageList/Live",
       "MessageList/ScrolledBack",
       "MessageList/Keyboard",
-      "MessageList/Springs"
+      "MessageList/Springs",
+      "MessageList/ReadingWidth"
     ]
   },
   {
@@ -1945,7 +1947,8 @@
       "MessageList/Live",
       "MessageList/ScrolledBack",
       "MessageList/Keyboard",
-      "MessageList/Springs"
+      "MessageList/Springs",
+      "MessageList/ReadingWidth"
     ]
   },
   {
