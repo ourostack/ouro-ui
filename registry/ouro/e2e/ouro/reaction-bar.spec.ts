@@ -21,3 +21,16 @@ test("Add reaction opens the app's picker, and the chosen reaction joins the cou
   await expect(bar.getByRole("button", { name: "Party, 1" })).toHaveAttribute("aria-pressed", "true");
   await expect(more).toHaveAttribute("aria-expanded", "false");
 });
+
+test("with a catalogue, reactions show its images by id, and the picker's choice joins the counts", async ({ page }) => {
+  await openStory(page, "chat-reactionbar--image-catalogue");
+  const bar = page.getByRole("group", { name: "Reactions" });
+  await expect(bar.getByRole("button", { name: "Party popper, 3" }).locator("img")).toBeVisible();
+  await bar.getByRole("button", { name: "Red heart", exact: true }).click();
+  await expect(bar.getByRole("button", { name: "Red heart, 1" })).toHaveAttribute("aria-pressed", "true");
+  await bar.getByRole("button", { name: "Add reaction" }).click();
+  const picker = page.getByRole("dialog", { name: "Add a reaction" });
+  await picker.getByRole("searchbox", { name: "Search emoji" }).fill("coffee");
+  await picker.getByRole("button", { name: "Team coffee" }).click();
+  await expect(bar.getByRole("button", { name: "Team coffee, 1" })).toHaveAttribute("aria-pressed", "true");
+});

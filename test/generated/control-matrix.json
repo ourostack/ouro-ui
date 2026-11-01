@@ -2467,7 +2467,8 @@
       "ReactionBar/InMessage",
       "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
-      "ReactionBar/Disabled"
+      "ReactionBar/Disabled",
+      "ReactionBar/ImageCatalogue"
     ]
   },
   {
@@ -2483,7 +2484,8 @@
       "ReactionBar/InMessage",
       "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
-      "ReactionBar/Disabled"
+      "ReactionBar/Disabled",
+      "ReactionBar/ImageCatalogue"
     ]
   },
   {
@@ -2499,7 +2501,8 @@
       "ReactionBar/InMessage",
       "ReactionBar/WithPicker",
       "ReactionBar/ReadOnly",
-      "ReactionBar/Disabled"
+      "ReactionBar/Disabled",
+      "ReactionBar/ImageCatalogue"
     ]
   },
   {

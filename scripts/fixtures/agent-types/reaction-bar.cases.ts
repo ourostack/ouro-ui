@@ -7,4 +7,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid reaction-bar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["reactionBarOk01"];
+export const validSnippets: string[] = ["reactionBarOk01", "reactionBarOk02"];

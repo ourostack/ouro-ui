@@ -3636,9 +3636,10 @@
       "type": "registry:ui",
       "title": "ReactionBar",
       "description": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press.",
-      "docs": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Import: import { ReactionBar } from \"@/components/ouro/reaction-bar/reaction-bar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/reaction-bar.md",
+      "docs": "A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. Import: import { ReactionBar } from \"@/components/ouro/reaction-bar/reaction-bar\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: badge, emoji, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/reaction-bar.md",
       "registryDependencies": [
         "ourostack/ouro-ui/badge",
+        "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
@@ -9201,6 +9202,7 @@
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
@@ -10906,6 +10908,11 @@
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-picker",
+        "ourostack/ouro-ui/emoji-picker-tests",
+        "ourostack/ouro-ui/emoji-tests",
+        "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
@@ -10918,6 +10925,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
@@ -10930,9 +10938,15 @@
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/reaction-bar",
         "ourostack/ouro-ui/sheet-tests",
+        "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.catalogue.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/reaction-bar/reaction-bar.catalogue.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/reaction-bar/reaction-bar.stories.tsx",
           "type": "registry:component",
