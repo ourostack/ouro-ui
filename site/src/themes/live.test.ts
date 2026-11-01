@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSouthern, LIVE_PALETTES, PHASES, skyAt } from "./live";
+import { isSouthern, LIVE_PALETTES, liveCss, PHASES, SEASONS, skyAt } from "./live";
 
 /** Pearl's own surfaces and text, which Live paints over (pearl.css). */
 const PEARL = {
@@ -29,6 +29,13 @@ describe("Live", () => {
     expect(skyAt(at(9, 17, 50), false).phase).toBe("dusk");
     expect(skyAt(at(9, 22, 30), false).phase).toBe("night");
     expect(skyAt(at(9, 3), false).phase).toBe("night");
+  });
+
+  it("tints the porthole by season and leaves the page's own colours as the phase has them", () => {
+    const sheets = SEASONS.map((season) => liveCss(LIVE_PALETTES["dusk"]!, season));
+    const sky = (css: string) => /html\[data-live\]\{[^}]*--live-sky:([^;}]*)/.exec(css)![1];
+    expect(new Set(sheets.map(sky)).size).toBe(SEASONS.length);
+    for (const css of sheets) expect(css).toContain(`--primary:${LIVE_PALETTES["dusk"]!.light["primary"]!}`);
   });
 
   it("knows the season, and flips it south of the equator", () => {

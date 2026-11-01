@@ -11,6 +11,7 @@ import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../th
 import { presetList } from "./presets";
 import { NAUTILUS_PAGE } from "./copy";
 import { spotlightFrom } from "./xray-store";
+import { finishReveal } from "./theme-store";
 
 // The voyage preview's themes and header (site-design.md, slice S1): the stored theme applies
 // before paint, the header's controls repaint the page and remember it, Copy theme copies the
@@ -39,6 +40,8 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   toast.dismiss();
+  // A theme reveal still running holds the page's pointer events, so the next test's first click would miss.
+  await finishReveal();
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
@@ -152,13 +155,24 @@ describe("the header and the theme section", () => {
     await renderPage("/");
     const presets = page.getByRole("group", { name: "Presets" });
     for (const preset of presetList) {
-      await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }));
+      // Pressed at once, mid-reveal: the click still lands (force: no waiting for the transition to end).
+      await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }), { force: true });
       await expect.poll(() => root.getAttribute("data-theme")).toBe(preset.name);
       await expect.element(presets.getByRole("button", { name: preset.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       expect(presets.getByRole("button", { pressed: true }).elements()).toHaveLength(1);
-      // While the circle reveal runs, its view transition takes the page's clicks; the next press waits for it.
-      await expect.poll(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition")).length).toBe(0);
     }
+  });
+
+  it("names the mixer's paint in the sample window while it is on, and the preset's again after", async () => {
+    root.setAttribute("data-theme", "pearl");
+    await renderPage("/");
+    const corners = () => document.querySelector<HTMLElement>("[data-site-corners]")?.innerText;
+    await expect.poll(corners).toBe("0.75rem");
+    await userEvent.click(page.getByRole("radiogroup", { name: "Corners" }).getByRole("radio", { name: "Pebble" }));
+    await expect.poll(corners).toBe("1rem");
+    await expect.poll(() => document.querySelector<HTMLElement>("[data-site-sample]")?.innerText).toContain("Your paint");
+    await userEvent.click(page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Pearl", exact: true }), { force: true });
+    await expect.poll(corners).toBe("0.75rem");
   });
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
