@@ -162,6 +162,30 @@ describe("ConversationList", () => {
     expect(rows[0]!.querySelector("[data-ouro-conversation-unread]")!.textContent).toBe("Non lu");
   });
 
+  it("shows a title and where given as content, with the name screen readers hear and the avatar's initials come from", async () => {
+    const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    const { rows } = await render(
+      <ConversationList
+        label="Conversations"
+        items={[
+          { id: "launch", title: <>Launch team <img alt="" src={picture} width={16} height={16} data-testid="rocket" /></>, name: "Launch team", where: <>Fernwood <b>HQ</b></>, time: "9:41" },
+          { id: "ada", title: "Ada Lovelace", name: "Ada L.", time: "Tue" },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const [launch, ada] = rows;
+    const title = launch!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
+    expect(title.querySelector('[aria-hidden="true"] [data-testid="rocket"]')).not.toBeNull();
+    expect(title.querySelector(".sr-only")!.textContent).toBe("Launch team");
+    expect(launch!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("LT");
+    expect(launch!.querySelector("[data-ouro-conversation-where] b")!.textContent).toBe("HQ");
+    await expect.element(page.getByRole("button", { name: /^\W*(LT )?Launch team\W+Fernwood HQ 9:41$/ })).toBeVisible();
+    // A text title with a name: the name is what screen readers hear and what the initials come from.
+    expect(ada!.querySelector("[data-ouro-conversation-title] .sr-only")!.textContent).toBe("Ada L.");
+    expect(ada!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AL");
+  });
+
   it("shows the avatar from the title or a picture, or none", async () => {
     const { rows } = await render(
       <ConversationList

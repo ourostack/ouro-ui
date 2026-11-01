@@ -1,0 +1,1 @@
+- New: a ConversationList row's `title` and `where` take content, as `preview` does, such as a name with its emoji as pictures through `EmojiText`; a title given as content takes `name`, the text screen readers hear and the avatar's initials come from. `ConversationListItem` is now a type rather than an interface.

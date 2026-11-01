@@ -61,18 +61,43 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
-### `ConversationListItem`
+### `ConversationListContentTitle`
 
-One conversation in a `ConversationList`.
+A conversation whose title is content, such as its name with emoji drawn as pictures (`<EmojiText text={chat.name} catalogue={catalogue} />`), with its name as text beside it.
 
 ```ts
-interface ConversationListItem {
+interface ConversationListContentTitle {
+  /** What the row shows as the conversation's name. */
+  title: ReactNode;
+  /**
+   * The conversation's name as text: what screen readers hear in place of the title, and the
+   * avatar's initials come from it.
+   */
+  name: string;
+}
+```
+
+### `ConversationListItem`
+
+One conversation in a `ConversationList`: its title as text, or as content with a `name`.
+
+```ts
+type ConversationListItem = ConversationListItemFields & (ConversationListTextTitle | ConversationListContentTitle);
+```
+
+### `ConversationListItemFields`
+
+What a `ConversationList` row shows of a conversation, whichever way its title comes.
+
+```ts
+interface ConversationListItemFields {
   /** Identifies the conversation; `onSelect` receives it. */
   id: string;
-  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
-  title: string;
-  /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
-  where?: string | undefined;
+  /**
+   * A muted name after the title, on its line, such as the team a channel belongs to: "Design
+   * reviews · Launch team". Text, or content such as `<EmojiText>` to draw its emoji as pictures.
+   */
+  where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
   /** The latest message, cut to one line. `density="compact"` hides it. */
@@ -117,6 +142,19 @@ interface ConversationListSection {
   defaultOpen?: boolean | undefined;
   /** Whether the section is open, when the app keeps the state with `onSectionOpenChange`. */
   open?: boolean | undefined;
+}
+```
+
+### `ConversationListTextTitle`
+
+A conversation whose title is text.
+
+```ts
+interface ConversationListTextTitle {
+  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
+  title: string;
+  /** The name screen readers hear in place of `title`, and the avatar's initials come from. @default the title */
+  name?: string | undefined;
 }
 ```
 

@@ -17,14 +17,15 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
-/** One conversation in a {@link ConversationList}. */
-export interface ConversationListItem {
+/** What a {@link ConversationList} row shows of a conversation, whichever way its title comes. */
+export interface ConversationListItemFields {
   /** Identifies the conversation; `onSelect` receives it. */
   id: string;
-  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
-  title: string;
-  /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
-  where?: string | undefined;
+  /**
+   * A muted name after the title, on its line, such as the team a channel belongs to: "Design
+   * reviews · Launch team". Text, or content such as `<EmojiText>` to draw its emoji as pictures.
+   */
+  where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
   /** The latest message, cut to one line. `density="compact"` hides it. */
@@ -51,6 +52,33 @@ export interface ConversationListItem {
   /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
   section?: string | undefined;
 }
+
+/** A conversation whose title is text. */
+export interface ConversationListTextTitle {
+  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
+  title: string;
+  /** The name screen readers hear in place of `title`, and the avatar's initials come from. @default the title */
+  name?: string | undefined;
+}
+
+/**
+ * A conversation whose title is content, such as its name with emoji drawn as pictures
+ * (`<EmojiText text={chat.name} catalogue={catalogue} />`), with its name as text beside it.
+ */
+export interface ConversationListContentTitle {
+  /** What the row shows as the conversation's name. */
+  title: ReactNode;
+  /**
+   * The conversation's name as text: what screen readers hear in place of the title, and the
+   * avatar's initials come from it.
+   *
+   * @claim "what screen readers hear in place of the title" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a title and where given as content, with the name screen readers hear and the avatar's initials come from)
+   */
+  name: string;
+}
+
+/** One conversation in a {@link ConversationList}: its title as text, or as content with a `name`. */
+export type ConversationListItem = ConversationListItemFields & (ConversationListTextTitle | ConversationListContentTitle);
 
 /** A group of rows in a {@link ConversationList}, under a header that opens and closes it. */
 export interface ConversationListSection {
@@ -307,7 +335,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
               {item.avatar}
             </span>
           ) : (
-            <Avatar name={item.title} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
+            <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
           )}
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="flex min-w-0 items-center gap-2">
@@ -318,9 +346,16 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                   </span>
                 )}
                 <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
-                  {item.title}
+                  {item.name === undefined ? (
+                    item.title
+                  ) : (
+                    <>
+                      <span aria-hidden="true">{item.title}</span>
+                      <span className="sr-only">{item.name}</span>
+                    </>
+                  )}
                 </span>
-                {item.where && (
+                {shown(item.where) && (
                   <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
                     <span aria-hidden="true">· </span>
                     {item.where}
