@@ -783,7 +783,7 @@ describe("MessageList", () => {
     expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
     await rerender(list(1200));
     expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
-    expect(content().getAttribute("style")).toBeNull();
+    expect(content().style.cssText).toBe("");
   });
 
   it("forwards a ref to the root and lets app layout classes win", async () => {
