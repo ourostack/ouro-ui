@@ -17,7 +17,7 @@ import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block
 
 ## Usage
 
-It does not color the code; to highlight it, set colors on the `data-language` block from a highlighter of your own, or pass highlighted code to your own `<pre>`.
+It does not color the code; to highlight it, set colors on the `data-language` block from a highlighter of your own, or pass highlighted code to your own `<pre>`. With `catalogue`, the emoji characters in the code show as an image catalogue's pictures.
 
 ## Use instead when
 
@@ -29,6 +29,7 @@ Type: `CodeBlockProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `catalogue` | `EmojiCatalogue` |  | An image emoji catalogue: emoji characters in the code that it lists show as its pictures, 1em square, over the characters themselves, which stay in place unseen. The lines keep their length and wrapping, and copying or selecting gives the code's own characters. `:shortcode:` text stays text, since in code it means something else. |
 | `className` | `string` |  | Layout only: margins, width, a maximum height that scrolls (`max-h-80`). Appearance classes warn in development. |
 | `code` (required) | `string` |  | The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies. |
 | `copy` | `boolean` | `true` | The copy button in the bar above the code. Turn it off for code nobody should paste, such as output. |
@@ -58,3 +59,119 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `EmojiCatalogue`
+
+An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app. The image addresses are used as they are, so an app that loads images its own way (a content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can load in the catalogue when it builds it.
+
+```ts
+interface EmojiCatalogue {
+  /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
+  categories: readonly EmojiCatalogueCategory[];
+}
+```
+
+### `EmojiCatalogueCategory`
+
+A category of a catalogue: its name, the icon its button shows, and its emoji in order.
+
+```ts
+interface EmojiCatalogueCategory {
+  /** Identifies the category, unique in the catalogue: `"people"`, `"custom"`. */
+  id: string;
+  /** Its name, shown as its heading and read for its button: `"People"`, or the organization's name for its custom emoji. */
+  label: string;
+  /** What its button in a picker's category bar shows: an icon element. Defaults to its first emoji's image. */
+  icon?: ReactNode;
+  /** Its emoji, in the order they show. */
+  items: readonly EmojiItem[];
+}
+```
+
+### `EmojiFilmstrip`
+
+An animation drawn as a filmstrip: square frames stacked top to bottom in one image, so the frames are the image's height over its width.
+
+```ts
+interface EmojiFilmstrip {
+  /** The filmstrip image's address. */
+  src: string;
+  /** Frames a second. */
+  fps: number;
+}
+```
+
+### `EmojiItem`
+
+One emoji in an image catalogue: its id, its name and the image that draws it. An app maps its own emoji set to this, whether a standard set or an organization's custom emoji.
+
+```ts
+interface EmojiItem {
+  /** Identifies the emoji, unique in the catalogue: `"party"`. Reactions, recents and `:id:` tokens use it. */
+  id: string;
+  /** Its name, which is the image's `alt`, what screen readers hear and what the search matches first: `"Party popper"`. */
+  name: string;
+  /**
+   * The still image's address. It shows whenever the emoji is not playing, and always with reduced motion.
+   */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"party-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /**
+   * An animated image (GIF, animated WebP or PNG), which plays while the pointer is on the emoji
+   * or on the button around it, or that button has focus. With reduced motion it never plays.
+   */
+  animatedSrc?: string | undefined;
+  /**
+   * The animation as a filmstrip, square frames stacked top to bottom in one image, for an
+   * emoji without `animatedSrc`: while the emoji plays, it steps through the frames at `fps`;
+   * otherwise, and always with reduced motion, `src` shows.
+   */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /** The still image's width in pixels, given to the `<img>` so the page keeps its shape while it loads. It shows at the text's size. */
+  width?: number | undefined;
+  /** The still image's height in pixels, as `width`. */
+  height?: number | undefined;
+  /** Short names typed between colons, without them: `["party", "tada"]`. The first makes the emoji's token, `:party:`. */
+  shortcodes?: readonly string[] | undefined;
+  /** More words the search matches: `["celebrate", "hooray"]`. */
+  keywords?: readonly string[] | undefined;
+  /**
+   * The emoji as plain text, such as its Unicode character (`"🎉"`), for places an image cannot
+   * go (a copied message, a notification). `EmojiText` finds it in messages and draws the image;
+   * Ouro never draws it as text.
+   */
+  text?: string | undefined;
+  /** It is the organization's or app's own emoji rather than one of the standard set. Ouro draws it the same; apps can label or treat it apart. */
+  custom?: boolean | undefined;
+  /**
+   * The emoji in Unicode's five skin tones, light to dark; leave it out for an emoji without tones.
+   */
+  skinTones?: readonly EmojiItemTone[] | undefined;
+}
+```
+
+### `EmojiItemTone`
+
+An emoji's image in one skin tone: `skinTones` on an `EmojiItem`.
+
+```ts
+interface EmojiItemTone {
+  /** Identifies the emoji in this tone, unique in the catalogue: `"thumbs-up-tone3"`. Reactions and tokens use it. */
+  id: string;
+  /** The still image's address. */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"wave-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /** An animated image (GIF, animated WebP or PNG), shown while the emoji plays; the still one shows otherwise. */
+  animatedSrc?: string | undefined;
+  /** The animation as a filmstrip of square frames, played while the emoji plays, for a tone without `animatedSrc`. */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /**
+   * The emoji in this tone as text (`"👍🏽"`), which `EmojiText` finds in messages; Ouro never draws it as text.
+   */
+  text?: string | undefined;
+}
+```

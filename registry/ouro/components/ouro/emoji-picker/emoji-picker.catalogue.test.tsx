@@ -137,24 +137,27 @@ describe("EmojiPicker with a catalogue", () => {
 
   it("searches by shortcode, with or without colons, by keyword and by the emoji's text", async () => {
     await open();
-    const results = async (text: string) => {
-      await userEvent.clear(search());
-      await userEvent.type(search(), text);
-      return names(cells());
+    // Search only once the field can take text and the catalogue has drawn every emoji. Each
+    // search fills the field in one command, as typing a key at a time spent a slow runner's
+    // whole test time, and then waits for the exact results React draws for it.
+    const field = page.getByRole("searchbox", { name: "Search emoji" });
+    await expect.element(field).toBeVisible();
+    await expect.element(field).toBeEnabled();
+    await expect.poll(() => names(cells())).toEqual(["Smiling face", "Waving hand", "Red heart", "Party popper", "Fernwood fern", "Team coffee"]);
+    const searchFor = async (text: string, expected: string[]) => {
+      await userEvent.fill(field, text);
+      expect(search().value).toBe(text);
+      await expect.poll(() => names(cells())).toEqual(expected);
     };
-    expect(await results("tada")).toEqual(["Party popper"]);
-    expect(await results(":tada:")).toEqual(["Party popper"]);
-    expect(await results("coffee_time")).toEqual(["Team coffee"]);
-    expect(await results("coffee_t")).toEqual(["Team coffee"]);
-    expect(await results("team")).toEqual(["Fernwood fern", "Team coffee"]);
-    expect(await results("love")).toEqual(["Red heart"]);
-    await userEvent.clear(search());
-    await userEvent.fill(search(), "❤");
-    expect(names(cells())).toEqual(["Red heart"]);
-    await userEvent.fill(search(), "🎉");
-    expect(names(cells())).toEqual(["Party popper"]);
-    await userEvent.fill(search(), "party");
-    expect(names(cells())).toEqual(["Party popper"]);
+    await searchFor("tada", ["Party popper"]);
+    await searchFor(":tada:", ["Party popper"]);
+    await searchFor("coffee_time", ["Team coffee"]);
+    await searchFor("coffee_t", ["Team coffee"]);
+    await searchFor("team", ["Fernwood fern", "Team coffee"]);
+    await searchFor("love", ["Red heart"]);
+    await searchFor("❤", ["Red heart"]);
+    await searchFor("🎉", ["Party popper"]);
+    await searchFor("party", ["Party popper"]);
   });
 
   it("shows frequently used and quick emoji by id, leaving out ids the catalogue lacks", async () => {

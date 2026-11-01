@@ -442,14 +442,17 @@ describe("Emoji helpers", () => {
 
   it("splits text into its runs and emoji with no empty runs between or around them", () => {
     expect(splitEmojiText(":party::heart:", catalogue)).toEqual([
-      { item: party, tone: "default" },
-      { item: heart, tone: "default" },
+      { item: party, tone: "default", source: ":party:" },
+      { item: heart, tone: "default", source: ":heart:" },
     ]);
+    // Emoji text alone, with tokens left as text, and nothing for a catalogue that lists no text.
+    expect(splitEmojiText(":party: 🎉 ❤", catalogue, false)).toEqual([":party: ", { item: party, tone: "default", source: "🎉" }, " ", { item: heart, tone: "default", source: "❤" }]);
+    expect(splitEmojiText("🎉 :tada:", { categories: [{ id: "plain", label: "Plain", items: [tada] }] }, false)).toEqual(["🎉 :tada:"]);
     expect(splitEmojiText("", catalogue)).toEqual([]);
   });
 
   it("finds emoji text with characters a pattern would read as its own", () => {
-    expect(splitEmojiText("press *️⃣ or *", withKeycap)).toEqual(["press ", { item: keycap, tone: "default" }, " or *"]);
+    expect(splitEmojiText("press *️⃣ or *", withKeycap)).toEqual(["press ", { item: keycap, tone: "default", source: "*️⃣" }, " or *"]);
   });
 
   it("makes an emoji's token from its first shortcode, else its id, and a tone's id", () => {
