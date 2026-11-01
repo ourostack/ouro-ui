@@ -1,0 +1,1 @@
+- Fixed: MessageList's scroll box is positioned, so the parts placed absolutely inside it, such as a Message's screen-reader text and the list's edges, stay in its own overflow. They counted as overflow of the boxes around the list, so moving focus or scrolling a message into view could scroll the page or an app's frame around the list.
