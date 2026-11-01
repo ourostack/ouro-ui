@@ -11,6 +11,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 /** The colour behind an element: the nearest background around it that is not transparent. */
 function behind(element: Element): string {
@@ -328,6 +329,171 @@ describe("Command search focus", () => {
     expect(line()).not.toBe(getComputedStyle(ring).borderTopColor);
     await act(async () => input().element().focus());
     expect(line()).toBe(getComputedStyle(ring).borderTopColor);
+  });
+});
+
+describe("Command results that stream in", () => {
+  const run = () => {};
+  /** A palette whose results come from a slow source: the test sets them as they arrive. */
+  const palette = (labels: (string | [label: string, value: string])[], props: Partial<CommandProps> = {}) => (
+    <Command
+      title="Go to"
+      open
+      onOpenChange={() => {}}
+      onQueryChange={() => {}}
+      items={labels.map((entry) => (typeof entry === "string" ? { label: entry, onSelect: run } : { label: entry[0], value: entry[1], onSelect: run }))}
+      {...(props as object)}
+    />
+  );
+  const highlighted = () => document.querySelector("[data-highlighted] [data-ouro-command-label]")?.textContent;
+  const arrive = (next: ReturnType<typeof palette>) => act(async () => roots[0]!.render(next));
+  /** Waits for the search input to have focus, so the arrow keys reach the list. */
+  const ready = () => expect.poll(() => document.activeElement).toBe(input().element());
+
+  it("keeps the highlight on the same command when results arrive above it", async () => {
+    await render(palette(["Launch planning", "Weekly sync"]));
+    await settled();
+    await ready();
+    await expect.poll(highlighted).toBe("Launch planning");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Weekly sync");
+    await arrive(palette(["New chat", "Design reviews", "Launch planning", "Weekly sync"]));
+    await expect.poll(highlighted).toBe("Weekly sync");
+    await arrive(palette(["Weekly sync", "Launch planning"]));
+    await expect.poll(highlighted).toBe("Weekly sync");
+  });
+
+  it("keeps the first command highlighted by default where it is when results arrive above it", async () => {
+    await render(palette(["Launch planning", "Weekly sync"]));
+    await settled();
+    await expect.poll(highlighted).toBe("Launch planning");
+    await arrive(palette(["New chat", "Launch planning", "Weekly sync"]));
+    await expect.poll(highlighted).toBe("Launch planning");
+  });
+
+  it("goes to the first command when the highlighted one leaves the results", async () => {
+    await render(palette(["Launch planning", "Weekly sync", "Design reviews"]));
+    await settled();
+    await ready();
+    await expect.poll(highlighted).toBe("Launch planning");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Weekly sync");
+    await arrive(palette(["Design reviews", "Launch planning"]));
+    await expect.poll(highlighted).toBe("Design reviews");
+    await arrive(palette([]));
+    await expect.poll(() => document.querySelector("[data-ouro-command-empty]")).not.toBeNull();
+    await arrive(palette(["Weekly sync", "Design reviews"]));
+    await expect.poll(highlighted).toBe("Weekly sync");
+  });
+
+  it("highlights the first result for a new search, though the command highlighted before is among them", async () => {
+    await render(palette(["Launch planning", "Weekly sync"]));
+    await settled();
+    await ready();
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Weekly sync");
+    await userEvent.type(input(), "w");
+    await arrive(palette(["Weekly notes", "Weekly sync"]));
+    await expect.poll(highlighted).toBe("Weekly notes");
+  });
+
+  it("tells commands with the same label apart by value", async () => {
+    await render(palette([["Noor Haddad", "noor-1"], ["Noor Haddad", "noor-2"]]));
+    await settled();
+    const second = () => document.querySelector("[data-highlighted]")?.getAttribute("data-ouro-command-value");
+    await expect.poll(second).toBe("noor-1");
+    await ready();
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(second).toBe("noor-2");
+    await arrive(palette([["Ines Park", "ines"], ["Noor Haddad", "noor-1"], ["Noor Haddad", "noor-2"]]));
+    await expect.poll(second).toBe("noor-2");
+  });
+
+  it("highlights the best match again when the person types, even where the highlighted command still matches", async () => {
+    await openPalette();
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe("Import from a link");
+    await userEvent.type(input(), "e");
+    await expect.poll(options).toContain("Import from a link");
+    await expect.poll(highlighted).toBe("New recipe");
+  });
+
+  it("says how many results there are, politely and once, after they settle", async () => {
+    const said = watchAnnouncements();
+    try {
+      await render(palette(["Launch planning", "Weekly sync"], { loading: true }));
+      await settled();
+      await userEvent.type(input(), "la");
+      await arrive(palette(["Launch planning", "Launch review", "Lab notes"], { loading: false }));
+      await expect.poll(() => said.count("3 results")).toBe(1);
+      const region = said.matching("3 results")[0]!.region;
+      expect(region.getAttribute("role")).toBe("status");
+      await arrive(palette(["Launch planning"], { loading: false, resultsLabel: (count: number) => `${count} match` }));
+      await expect.poll(() => said.count("1 match")).toBe(1);
+      expect(said.count("3 results")).toBe(1);
+      // With nothing found, the empty state speaks, and the count goes quiet.
+      await arrive(palette([], { loading: false }));
+      await expect.poll(() => document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
+    } finally {
+      said.stop();
+    }
+  });
+
+  it("says nothing of an empty search's results, which are the palette's own list", async () => {
+    const said = watchAnnouncements();
+    try {
+      await render(palette(["Launch planning", "Weekly sync"]));
+      await settled();
+      // real clock: the count is said 400ms after results settle; this waits past that to show none comes.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
+      expect(said.count("2 results")).toBe(0);
+      // Nor of results still loading.
+      await arrive(palette(["Launch planning", "Weekly sync"], { loading: true }));
+      await userEvent.type(input(), "la");
+      // real clock: as above, past the moment a settled count would be said.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
+    } finally {
+      said.stop();
+    }
+  });
+});
+
+describe("Command and focus after a choice", () => {
+  it("returns focus to its trigger after a choice, and leaves it where the choice put it with restoreFocus false", async () => {
+    const target = document.createElement("button");
+    target.textContent = "Conversation";
+    document.body.append(target);
+    mounted.push(target);
+    await render(
+      <Command
+        title="Go to"
+        trigger={<Button>Go to</Button>}
+        items={[
+          { label: "Stay", onSelect: () => target.focus() },
+          { label: "Open the conversation", restoreFocus: false, onSelect: () => target.focus() },
+        ]}
+      />,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(popup).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await expect.poll(popup).toBeNull();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(document.activeElement).toBe(target);
+    // Only that choice: the next close, by Escape, returns focus to the trigger again, even when
+    // the palette opened while focus was somewhere else.
+    trigger().click();
+    await settled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
   });
 });
 

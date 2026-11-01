@@ -1,6 +1,6 @@
 "use client";
 
-import type { JSX, ReactElement, ReactNode, RefObject } from "react";
+import type { JSX, ReactElement, ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -16,6 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetViewport,
+  type SheetPopupProps,
   type SheetSnapPoint,
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { footerClass, sheetHint, sheetSides, sideWarning, type SheetSide } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
@@ -235,8 +236,8 @@ export interface SheetFrameProps {
   footer?: ReactNode;
   /** Marks the popup with `data-ouro-presentation`, when `Dialog` renders as a sheet. */
   presentation?: "sheet" | undefined;
-  /** Where focus goes on close: `Dialog` passes its own trigger, which it renders outside the sheet. */
-  finalFocus?: RefObject<HTMLElement | null> | undefined;
+  /** Where focus goes on close: `Dialog` passes its own trigger, which it renders outside the sheet, and `Command` a choice of its own. */
+  finalFocus?: SheetPopupProps["finalFocus"];
   /** Disables the close button, as `EditSheet` does while a save is pending. */
   closeDisabled?: boolean | undefined;
 }
