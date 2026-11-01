@@ -26,6 +26,9 @@ expectTypeOf<{
 }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "post"; subject: "Agenda" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; failed: { onRetry: () => void; onDelete: () => void }; failedLabel: "No enviado" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; failed: { onRetry: () => void } | false }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; failed: false }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "assistant"; name: "Ada"; variant: "chat"; presence: "busy"; presenceLabel: "In a meeting" }>().toExtend<MessageProps>();
 // A presence that may be missing, with its label, type checks as it is.
 expectTypeOf<{ role: "assistant"; name: "Ada"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<MessageProps>();
@@ -43,6 +46,11 @@ expectTypeOf<{ role: "user"; name: "Ada"; content: "Hi" }>().not.toExtend<Messag
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "bubble" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; own: true }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; timestamp: "9:41" }>().not.toExtend<MessageProps>();
+// A message that did not send always offers another try, and its buttons come with failed.
+expectTypeOf<{ role: "user"; name: "Ada"; failed: true }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; failed: { onDelete: () => void } }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; onRetry: () => void }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ada"; status: "failed" }>().not.toExtend<MessageProps>();
 // A presence needs the words it says; unknown presences name the fix.
 expectTypeOf<{ role: "assistant"; name: "Ada"; presence: "busy" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "assistant"; name: "Ada"; presence: "dnd"; presenceLabel: "Busy" }>().not.toExtend<MessageProps>();

@@ -277,3 +277,38 @@ export const Thread: Story = {
     </Surface>
   ),
 };
+
+function NotSentConversation() {
+  const [state, setState] = useState<"failed" | "sent" | "deleted">("failed");
+  return (
+    <Surface>
+      <MessageList label="Chat with Mara Quill" style={{ height: 260 }}>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+          Are you joining the design review?
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" time="9:43 AM" dateTime="2026-05-04T09:43">
+          Yes, I will be there.
+        </Message>
+        {state !== "deleted" &&
+          (state === "failed" ? (
+            <Message variant="chat" role="user" name="Priya Okafor" time="9:44 AM" dateTime="2026-05-04T09:44" continued failed={{ onRetry: () => setState("sent"), onDelete: () => setState("deleted") }}>
+              I will bring the printed mockups.
+            </Message>
+          ) : (
+            <Message variant="chat" role="user" name="Priya Okafor" time="9:44 AM" dateTime="2026-05-04T09:44" continued>
+              I will bring the printed mockups.
+            </Message>
+          ))}
+      </MessageList>
+    </Surface>
+  );
+}
+
+/**
+ * The user's own message that did not send (`failed`): "Not sent" under it, with Retry and
+ * Delete, until the app sends it again or deletes it. Retry here sends it; Delete removes it.
+ */
+export const NotSent: Story = {
+  parameters: { screenshot: { name: "message-not-sent" } },
+  render: () => <NotSentConversation />,
+};

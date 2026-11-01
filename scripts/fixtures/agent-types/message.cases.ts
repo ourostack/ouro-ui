@@ -46,7 +46,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Message presence="busy" presenceLabel="Busy">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message07",
+    habit: "a status for a message that did not send",
+    tsc: [hint("string", 'Use <Message role="user" failed={{ onRetry: retry }}>')],
+    dev: '<Message role="user" failed={{ onRetry: retry }}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04"];
+export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04", "messageOk05"];

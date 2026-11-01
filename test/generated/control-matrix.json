@@ -1858,7 +1858,8 @@
       "Message/WithAttachments",
       "Message/Chat",
       "Message/Posts",
-      "Message/Thread"
+      "Message/Thread",
+      "Message/NotSent"
     ]
   },
   {
@@ -1876,7 +1877,46 @@
       "Message/WithAttachments",
       "Message/Chat",
       "Message/Posts",
-      "Message/Thread"
+      "Message/Thread",
+      "Message/NotSent"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "retry",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread",
+      "Message/NotSent"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "delete",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread",
+      "Message/NotSent"
     ]
   },
   {
