@@ -10,6 +10,7 @@ import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/c
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 /** The colour behind an element: the nearest background around it that is not transparent. */
 function behind(element: Element): string {
@@ -252,6 +253,77 @@ describe("Command", () => {
       expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
     }
     document.documentElement.classList.remove("dark");
+  });
+});
+
+describe("Command width", () => {
+  const long = "Export every recipe in the collection as a printable cookbook, with photos, notes, ratings and the shopping list";
+  const run = () => {};
+  const width = (element: HTMLElement) => element.getBoundingClientRect().width;
+
+  it("fits short commands at 32rem, the narrowest a dialog fits", async () => {
+    expect(width(await openPalette())).toBe(512);
+  });
+
+  it("widens to fit a longer command, up to 40rem", async () => {
+    const medium = "Export the open recipe as a printable page, with its photos, notes and ratings";
+    const fitting = await openPalette({ items: [{ label: medium, onSelect: run }] });
+    expect(width(fitting)).toBeGreaterThan(512);
+    expect(width(fitting)).toBeLessThan(640);
+    const label = fitting.querySelector<HTMLElement>("[data-ouro-command-label]")!;
+    expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(width(await openPalette({ items: [{ label: long, onSelect: run }] }))).toBe(640);
+  });
+
+  it("keeps the width it opened at while results filter", async () => {
+    const element = await openPalette({ items: [{ label: long, onSelect: run }, { label: "Switch theme", onSelect: run }] });
+    const opened = width(element);
+    await userEvent.type(input(), "theme");
+    await expect.poll(options).toEqual(["Switch theme"]);
+    expect(width(element)).toBe(opened);
+  });
+
+  it("keeps the widest it has been while a server search's results change", async () => {
+    function Server() {
+      const [items, setItems] = useState<CommandEntry[]>([{ label: "Switch theme", onSelect: run }]);
+      return (
+        <Command
+          title="Command palette"
+          trigger={<Button>Search</Button>}
+          items={items}
+          onQueryChange={(query) => setItems([{ label: query === "ex" ? long : "Switch theme", onSelect: run }])}
+        />
+      );
+    }
+    await render(<Server />);
+    await userEvent.click(trigger());
+    const element = await settled();
+    expect(width(element)).toBe(512);
+    await userEvent.type(input(), "ex");
+    await expect.poll(options).toEqual([long]);
+    expect(width(element)).toBe(640);
+    await userEvent.type(input(), "t");
+    await expect.poll(options).toEqual(["Switch theme"]);
+    expect(width(element)).toBe(640);
+  });
+});
+
+describe("Command search focus", () => {
+  it("draws the search row's line in the ring colour while the search input has keyboard focus", async () => {
+    const element = await openPalette();
+    const ring = document.createElement("i");
+    ring.className = "border-ring";
+    document.body.append(ring);
+    mounted.push(ring);
+    const line = () => getComputedStyle(element.querySelector("[data-ouro-command-search]")!).borderBottomColor;
+    await expect.poll(() => document.activeElement).toBe(input().element());
+    expect(line()).toBe(getComputedStyle(ring).borderTopColor);
+    await pressTab();
+    expect(document.activeElement).not.toBe(input().element());
+    expect(line()).not.toBe(getComputedStyle(ring).borderTopColor);
+    await act(async () => input().element().focus());
+    expect(line()).toBe(getComputedStyle(ring).borderTopColor);
   });
 });
 
