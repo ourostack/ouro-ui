@@ -47,5 +47,11 @@ export const ChapterTwoIsland = island("chapter-two", () => import("./chapter-tw
 
 export const ChapterThreeIsland = island("chapter-three", () => import("./chapter-three"));
 
+/** The Ouro AX page's body (ax/ax-page.tsx): its script, with the kit's example tool, loads only on that page. */
+export const AxIsland = island("ax", () => import("../../ax/ax-page"));
+
+/** The Ouro AX hero's exhibit (ax/exhibit.tsx), an island in the same way, which shares the page's chunk for its parts. */
+export const AxExhibitIsland = island("ax-exhibit", () => import("../../ax/exhibit"));
+
 /** The home page's agents and install sections, as an island in the same way (home-reference.tsx). */
 export const HomeReferenceIsland = island("reference", () => import("../home-reference"));

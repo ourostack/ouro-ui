@@ -4,7 +4,10 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import generated from "../generated/agent-messages.json";
-import { AGENTS_COMING_SOON } from "../copy";
+import { AX_SECTION } from "../copy";
+import { FigureValue, Screen, Transcript } from "../ax/parts";
+import { cast } from "../ax/cast";
+import { TRANSCRIPTS } from "../ax/story";
 import { latestRelease } from "../latest-release";
 import { href } from "../paths";
 import { Container } from "./layout";
@@ -114,7 +117,7 @@ const principles: Array<{ title: string; body: ReactNode }> = [
   },
 ];
 
-/** "Agents read the types": the generated examples, the rules behind them, then what is coming for agents. */
+/** "Agents read the types": the generated examples, then the rules behind them. */
 export function Agents(): JSX.Element {
   return (
     <section aria-labelledby="agents-title" className="border-t border-border/70 py-20 lg:py-28">
@@ -154,9 +157,85 @@ export function Agents(): JSX.Element {
             </li>
           ))}
         </ol>
-        <div className="mt-14 max-w-[44rem]">
-          <h3 className="site-h3">{AGENTS_COMING_SOON.title}</h3>
-          <p className="mt-2 mb-0 text-muted-foreground">{AGENTS_COMING_SOON.intro}</p>
+      </Container>
+    </section>
+  );
+}
+
+/** A figure we measured, large, over the sentence that says what it is. */
+function Figure({ value, children }: { value: string; children: ReactNode }): JSX.Element {
+  return (
+    <li className="grid content-start gap-2 border-t border-border/70 pt-4">
+      <span className="ax-figure">
+        <FigureValue value={value} />
+      </span>
+      <p className="m-0 text-sm text-muted-foreground">{children}</p>
+    </li>
+  );
+}
+
+/**
+ * Ouro AX: one moment of the morning on the Ouro AX page, as the person and as the agent see it (the agent's side is
+ * the kit's example tool's real output, transcripts.json), three things we measured, and the way to the page.
+ */
+export function OuroAx(): JSX.Element {
+  return (
+    <section id="ax-section" aria-labelledby="ax-section-title" className="border-t border-border/70 py-20 lg:py-28">
+      <Container>
+        <p className="site-eyebrow">{AX_SECTION.eyebrow}</p>
+        <h2 id="ax-section-title" className="site-h2 mt-4">
+          {AX_SECTION.title}
+        </h2>
+        <p className="site-lede mt-5">{AX_SECTION.intro}</p>
+        <div className="ax-pair mt-10 grid items-start gap-4">
+          <Screen
+            label={cast("What {person} sees")}
+            seen={[
+              { kind: "person", text: "Tell Design sync I'm running late." },
+              { kind: "room", by: cast("{person.full}"), text: "Running late, start without me", aside: cast("Sent by {person}'s agent: {person} asked me to tell the room") },
+              { kind: "agent", text: "Done: posted in Design sync." },
+            ]}
+          />
+          <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late} />
+        </div>
+        <p className="mt-4 mb-0 text-sm text-muted-foreground">
+          {claim("The agent's first try is refused in one line that names the fix, and nothing reaches the room until it says who asked.", {
+            source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { test: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" }],
+            verify: [
+              { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },
+              { testExists: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" },
+            ],
+          })}
+        </p>
+        <h3 className="site-h3 mt-14">Written from where agents went wrong</h3>
+        <ul className="m-0 mt-6 grid list-none gap-x-10 gap-y-8 p-0 sm:grid-cols-3">
+          <Figure value="0 of 12">
+            {claim("Rules written from principles alone matched none of the 12 wrong turns real agents made.", {
+              source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" },
+              verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "named none of the 12 wrong turns in the baseline" },
+            })}
+          </Figure>
+          <Figure value="5 → 10">
+            {claim("Two rules written from those wrong turns took the same agent from 5 of 10 runs to 10 of 10.", {
+              source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" },
+              verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "Fixing those two claims took the same agent from 5\\/10 to 10\\/10" },
+            })}
+          </Figure>
+          <Figure value="1 → 2">
+            {claim("A wait on the conversation the agent already knew took “tell me when someone replies” from 1 of 2 runs to 2 of 2, in about half the calls.", {
+              source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md" },
+              verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md", pattern: "T5 1\\/2->2\\/2, 8->4\\.5 calls" },
+            })}
+          </Figure>
+        </ul>
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Button href={href("/ax/#be-the-agent")}>{cast("Be {agent}")}</Button>
+          <Button href={href("/ax/")} variant="outline" tone="secondary">
+            {AX_SECTION.morning}
+          </Button>
+          <Button href={href("/docs/ax/")} variant="plain" tone="secondary">
+            {AX_SECTION.guide}
+          </Button>
         </div>
       </Container>
     </section>
@@ -264,11 +343,12 @@ export function InstallSteps(): JSX.Element {
   );
 }
 
-/** The island's content: the agents section, then the install steps. */
+/** The island's content: the agents section, Ouro AX, then the install steps. */
 export default function HomeReference(): JSX.Element {
   return (
     <div id="reference">
       <Agents />
+      <OuroAx />
       <InstallSteps />
     </div>
   );

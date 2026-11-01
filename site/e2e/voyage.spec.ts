@@ -265,6 +265,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   for (const [role, name] of [
     ["link", "Ouro HX"],
     ["link", "The Nautilus"],
+    ["link", "Ouro AX"],
     ["link", "Docs"],
     ["link", "Components"],
     ["link", "GitHub"],

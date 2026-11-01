@@ -46,10 +46,12 @@ export const SHADCN_BADGE = claim("Works with shadcn/ui", {
 export const SHADCN_LINE =
   "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.";
 
-/** AX's product scope is not established; the concept is not a shipped kit. */
-export const AGENTS_COMING_SOON = {
-  title: "Coming soon: Ouro AX",
+/** The home page's Ouro AX section (home-reference.tsx), which leads to the Ouro AX page (ax/ax-page.tsx). */
+export const AX_SECTION = {
+  eyebrow: "Ouro AX",
+  title: "Obvious to the agents using it, too",
   intro:
-    "Ouro AX is the agent-facing direction within Ouro UI.",
+    "Ouro HX is for the screens people use. Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server. It's a standard of checkable claims, a kit that meets them and an X-ray that checks any tool against them.",
+  morning: "Spend a morning with an agent",
+  guide: "Read the guide",
 } as const;
-

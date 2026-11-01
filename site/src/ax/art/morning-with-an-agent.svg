@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>Sam and Sam's agent share one desk on a sunny morning; the agent sends Sam's note to a room of three people</title>
+  <!-- Original line drawing of the CIT duo (gim-home/CIT pages/VISUAL-LANGUAGE.md#the-duo), drawn by hand for
+       Ouro HX's "A morning with an agent" and released under ourostack/ouro-ui's MIT licence. Sam, on the left,
+       holds a coffee beside a laptop and says something out loud; Sam's agent, on the right, sends the note to the
+       Design sync room from its terminal. Lines take currentColor. Sam's heart reads the duo-heart custom property
+       and the agent's eyes, antenna and heart read duo-eye; its visor reads duo-visor, else a fixed navy; both fall back to primary, then currentColor.
+       Everything that matters sits in the middle 60% of the width and 80% of the height, so a centred 4:3 crop
+       keeps it; the drawing is scaled to 90% about the centre for that margin. -->
+
+  <g transform="translate(600 250) scale(0.9) translate(-600 -250)">
+  <!-- Floor and the shared desk -->
+  <path d="M170 446 H1030" stroke-width="1.4" opacity="0.45" />
+  <path d="M288 300 H912" stroke-width="2.4" />
+  <path d="M296 306 H904" stroke-width="1" opacity="0.6" />
+  <path d="M312 306 V444 M888 306 V444" stroke-width="2" />
+  <path d="M312 352 H372 M888 352 H828" stroke-width="1" opacity="0.5" />
+
+  <!-- Window with the sun coming up -->
+  <rect x="530" y="58" width="140" height="196" rx="12" stroke-width="2" />
+  <path d="M600 58 V254 M530 156 H670" stroke-width="1" opacity="0.5" />
+  <path d="M518 262 H682" stroke-width="2" />
+  <path d="M556 254 A44 44 0 0 1 644 254" stroke-width="1.8" />
+  <path d="M600 196 V184 M572 204 L564 194 M628 204 L636 194 M553 224 L541 218 M647 224 L659 218" stroke-width="1.4" />
+
+  <!-- Wall clock at nine -->
+  <circle cx="726" cy="96" r="20" stroke-width="1.6" />
+  <path d="M726 96 V82 M726 96 H714" stroke-width="1.8" />
+  <path d="M726 79 V77 M743 96 H745 M726 113 V115 M709 96 H707" stroke-width="1.2" opacity="0.7" />
+
+  <!-- Sam: a round head with no face, a clear body and a warm heart -->
+  <circle cx="356" cy="178" r="34" stroke-width="2.4" />
+  <path d="M338 160 A22 22 0 0 1 352 152" stroke-width="1.4" opacity="0.6" />
+  <path d="M326 300 V236 C326 222 336 214 350 214 H362 C376 214 386 222 386 236 V300" stroke-width="2.4" />
+  <circle cx="356" cy="252" r="9" fill="var(--duo-heart, var(--primary, currentColor))" stroke="none" opacity="0.25" />
+  <circle cx="356" cy="252" r="4.5" fill="var(--duo-heart, var(--primary, currentColor))" stroke="none" />
+  <!-- Sam's arms: one holding the mug up, one at the laptop -->
+  <path d="M330 232 C318 244 314 252 316 262" stroke-width="2.4" />
+  <circle cx="318" cy="266" r="7" stroke-width="2" />
+  <path d="M382 232 C394 250 402 270 410 288" stroke-width="2.4" />
+  <circle cx="412" cy="292" r="7" stroke-width="2" />
+  <!-- Mug and steam -->
+  <path d="M288 252 H310 V272 C310 275 308 276 305 276 H293 C290 276 288 275 288 272 Z" stroke-width="1.8" />
+  <path d="M288 257 C281 257 279 268 288 268" stroke-width="1.6" />
+  <path d="M294 244 C290 236 298 232 294 224 M304 244 C300 236 308 232 304 224" stroke-width="1.2" opacity="0.7" />
+  <!-- Sam's laptop, its app showing a conversation -->
+  <path d="M420 296 H520 L512 300 H428 Z" stroke-width="1.8" />
+  <rect x="428" y="214" width="84" height="80" rx="5" stroke-width="2" />
+  <rect x="436" y="224" width="40" height="12" rx="6" stroke-width="1.2" opacity="0.7" />
+  <rect x="460" y="242" width="44" height="12" rx="6" stroke-width="1.2" opacity="0.7" />
+  <rect x="436" y="260" width="52" height="12" rx="6" stroke-width="1.6" />
+  <circle cx="496" cy="266" r="3" fill="var(--duo-eye, var(--primary, currentColor))" stroke="none" />
+  <!-- What Sam says out loud -->
+  <path d="M398 104 H478 C486 104 490 108 490 116 V128 C490 136 486 140 478 140 H414 L398 152 L402 140 C394 140 390 136 390 128 V116 C390 108 394 104 398 104 Z" stroke-width="1.8" />
+  <circle cx="420" cy="122" r="3" fill="currentColor" stroke="none" />
+  <circle cx="440" cy="122" r="3" fill="currentColor" stroke="none" />
+  <circle cx="460" cy="122" r="3" fill="currentColor" stroke="none" />
+
+  <!-- Sam's agent: smaller than Sam, its head level with Sam's shoulder -->
+  <path d="M846 222 V204" stroke-width="2.2" />
+  <circle cx="846" cy="198" r="6" fill="var(--duo-eye, var(--primary, currentColor))" stroke="none" />
+  <rect x="816" y="222" width="60" height="44" rx="15" stroke-width="2.4" />
+  <rect x="826" y="231" width="40" height="22" rx="9" fill="var(--duo-visor, #1d2955)" stroke="currentColor" stroke-width="1" />
+  <circle cx="838" cy="242" r="3.6" fill="var(--duo-eye, var(--primary, currentColor))" stroke="none" />
+  <circle cx="854" cy="242" r="3.6" fill="var(--duo-eye, var(--primary, currentColor))" stroke="none" />
+  <path d="M824 300 V280 C824 274 828 270 834 270 H858 C864 270 868 274 868 280 V300" stroke-width="2.4" />
+  <circle cx="846" cy="288" r="7" fill="var(--duo-eye, var(--primary, currentColor))" stroke="none" opacity="0.25" />
+  <circle cx="846" cy="288" r="3.4" fill="var(--duo-eye, var(--primary, currentColor))" stroke="none" />
+  <path d="M826 280 L800 286" stroke-width="2.4" />
+  <circle cx="796" cy="287" r="5.5" stroke-width="2" />
+  <path d="M866 280 C876 284 880 290 878 296" stroke-width="2.4" />
+  <!-- The agent's terminal: a slim panel of command lines -->
+  <rect x="694" y="214" width="92" height="80" rx="5" stroke-width="2" />
+  <path d="M694 228 H786" stroke-width="1" opacity="0.5" />
+  <circle cx="702" cy="221" r="1.6" fill="currentColor" stroke="none" />
+  <circle cx="709" cy="221" r="1.6" fill="currentColor" stroke="none" />
+  <path d="M702 240 L707 244 L702 248 M712 248 H748" stroke-width="1.4" />
+  <path d="M702 258 H766 M702 268 H740" stroke-width="1.2" opacity="0.6" />
+  <path d="M702 280 L707 284 L702 288 M712 288 H722" stroke-width="1.4" />
+  <path d="M726 282 V290" stroke="var(--duo-eye, var(--primary, currentColor))" stroke-width="2.4" />
+  <path d="M700 300 H780" stroke-width="1.8" />
+
+  <!-- The note flies from the terminal to the Design sync room -->
+  <path d="M760 210 C770 176 786 156 806 146" stroke-width="1.4" stroke-dasharray="2 6" opacity="0.8" />
+  <path d="M808 128 L842 140 L812 150 Z M812 150 L818 140 L842 140" stroke-width="1.8" />
+  <path d="M846 132 C850 122 856 116 862 114" stroke-width="1.4" stroke-dasharray="2 6" opacity="0.8" />
+  <rect x="866" y="78" width="76" height="52" rx="12" stroke-width="2" />
+  <path d="M882 130 L878 142 L894 130" stroke-width="2" />
+  <circle cx="886" cy="100" r="7" stroke-width="1.6" />
+  <circle cx="904" cy="96" r="7" stroke-width="1.6" />
+  <circle cx="922" cy="100" r="7" stroke-width="1.6" />
+  <path d="M878 120 C880 112 892 112 894 120 M896 116 C898 108 910 108 912 116 M914 120 C916 112 928 112 930 120" stroke-width="1.4" />
+  </g>
+</svg>

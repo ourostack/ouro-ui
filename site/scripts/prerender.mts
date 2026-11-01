@@ -74,10 +74,26 @@ function pageAssets(kind: string): string[] {
   return [...css].filter((file) => !loaded.has(file)).map((file) => `<link rel="stylesheet" crossorigin href="/${file}" />`);
 }
 
+/**
+ * The islands whose stylesheets a page links in its HTML as well, so it paints styled before they load. The Ouro AX
+ * page's body and exhibit carry ax/ax.css, which the home page loads only with its own island (ax/ax.css says why).
+ */
+const islandSheets: Record<string, string[]> = { "/ax/": ["src/ax/ax-page.tsx", "src/ax/exhibit.tsx"] };
+
+function islandAssets(path: string): string[] {
+  const loaded = new Set([...closure("index.html"), ...closure(`src/pages/${pageKind(path)}.tsx`)]);
+  const css = new Set<string>();
+  for (const key of islandSheets[path] ?? []) {
+    if (!manifest[key]) throw new Error(`The client build has no chunk for ${key}`);
+    for (const file of closure(key)) if (file.endsWith(".css") && !loaded.has(file)) css.add(file);
+  }
+  return [...css].map((file) => `<link rel="stylesheet" crossorigin href="/${file}" />`);
+}
+
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {
   const head = headTags(route, canonical).join("\n    ");
   // Each page imports its own stylesheets (the entry has none), Tailwind's first, so a page's theme rules come later and win.
-  const assets = pageAssets(pageKind(path)).join("\n    ");
+  const assets = [...pageAssets(pageKind(path)), ...islandAssets(path)].join("\n    ");
   const html = await render(path);
   return template
     .replace("<!--head-->", () => head)

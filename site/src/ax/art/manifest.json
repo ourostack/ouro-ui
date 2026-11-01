@@ -1,0 +1,16 @@
+{
+  "$comment": "Where each drawing in this folder came from, for the Ouro AX page (/ax/). node site/scripts/art.mts checks it as it checks site/src/nautilus/art.",
+  "art": [
+    {
+      "file": "morning-with-an-agent.svg",
+      "title": "A morning with an agent",
+      "creator": "Duo canon session",
+      "source": "original-svg",
+      "published": "2026-10-31",
+      "licence": "repository",
+      "sha256": "ca17b78850eb6500a976f3c230b9e1c3aa6f297685fdf0b9c8d4bb7d8d236677",
+      "modifications": "None: a hand-drawn SVG, copied byte for byte from gim-home/CIT d74ec0f7 (_meta/art/duo/line/morning-with-an-agent.svg) and released by its author under this repository's MIT licence. Lines take currentColor; Sam's heart reads --duo-heart, the agent's eyes, antenna and heart --duo-eye, and its visor --duo-visor (ax.css sets the heart to the theme's --warning amber and leaves the rest on their fallbacks).",
+      "subject": "people"
+    }
+  ]
+}

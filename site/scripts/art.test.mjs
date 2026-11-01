@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
 import { test } from "node:test";
-import { ART_BUDGET, artDir, CHAPTER_ART_BUDGET, checkArt, readArt, sha256 } from "./art.mts";
+import { ART_BUDGET, artDir, axArtDir, CHAPTER_ART_BUDGET, checkArt, readArt, sha256 } from "./art.mts";
 
 const svg = (body) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${body}</svg>`);
 
@@ -28,6 +28,10 @@ function fixture() {
 
 test("the committed drawings match their manifest", () => {
   assert.deepEqual(checkArt(readArt(artDir)), []);
+});
+
+test("the Ouro AX page's drawings match theirs", () => {
+  assert.deepEqual(checkArt(readArt(axArtDir)), []);
 });
 
 test("a clean manifest passes", () => {

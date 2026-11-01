@@ -1,0 +1,46 @@
+{
+  "today": [
+    {
+      "command": "notes --help",
+      "output": "notes: a toy tool built from Ouro AX definitions.\n\nOnly you see these\n  rooms   The rooms, with their short ids.\n  note    Add a private note to a room.\n  watch   Wait for the next message in a room, then print it.\n\nOther people see these\n  post    Post a message everyone in the room sees.\n\nOutput: --json on every command. Exit codes: 0 ok, 1 error, 2 usage, 3 unavailable. Errors: one line\nthat says what to do instead.\nDetails: notes help <command>"
+    },
+    {
+      "command": "notes rooms",
+      "output": "[abc123] Design sync"
+    }
+  ],
+  "late": [
+    {
+      "command": "notes post abc123 \"Running late, start without me\"",
+      "output": "notes: post: other people will see this as the person's, so it needs --why: who asked you, and what they said. Fix: notes post abc123 \"Running late, start without me\" --why \"<who asked you, and what they said>\".",
+      "refused": true
+    },
+    {
+      "command": "notes post abc123 \"Running late, start without me\" --why \"{person} asked me to tell the room\"",
+      "output": "Posted to \"Design sync\". Everyone in it can see it.\nChecked: read the room's last message back.\nReceipt: m1\nNext: notes watch abc123  (wait for a reply)"
+    }
+  ],
+  "checked": [],
+  "reply": [
+    {
+      "command": "notes watch abc123 --timeout 2m",
+      "meanwhile": {
+        "by": "{replier.full}",
+        "text": "Sounds good, we'll begin with the dates",
+        "at": "2026-10-30T16:11:00.000Z"
+      },
+      "output": "Happened: a message in \"Design sync\".\n2026-10-30T16:11:00.000Z {replier.full}: Sounds good, we'll begin with the dates"
+    }
+  ],
+  "edit": [
+    {
+      "command": "notes edit abc123",
+      "output": "notes: edit: \"edit\" could mean 2 things, so it does nothing: a note only you see; or a message other people see. Fix: notes note <room> <text> or notes post <room> <text> --why <why>.",
+      "refused": true
+    },
+    {
+      "command": "notes note abc123 \"ask {replier} about the dates\"",
+      "output": "Note added in \"Design sync\". Only you see it; nothing was sent."
+    }
+  ]
+}

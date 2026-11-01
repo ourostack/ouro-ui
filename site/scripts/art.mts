@@ -1,4 +1,4 @@
-// The site's drawings, in site/src/nautilus/art, and where each came from (manifest.json):
+// The site's drawings, in site/src/nautilus/art and site/src/ax/art, and where each came from (each folder's manifest.json):
 //
 //   node site/scripts/art.mts           fails when a drawing is unlisted or missing, its checksum
 //                                       or licence is off, a public-domain plate breaks the rules
@@ -18,6 +18,8 @@ import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const artDir = join(repo, "site/src/nautilus/art");
+/** The Ouro AX page's drawings (/ax/), checked the same way. */
+export const axArtDir = join(repo, "site/src/ax/art");
 
 /** The hero's art budget: its drawings together, gzipped (site-design.md, Budgets). */
 export const ART_BUDGET = 35 * 1024;
@@ -32,7 +34,7 @@ const REQUIRED = ["file", "title", "creator", "source", "published", "licence", 
  * What a drawing shows. Every entry names one, so a drawing with the ship in it says so whatever
  * its title or file name, and an original one must then quote Verne for its shape.
  */
-export const SUBJECTS = ["nautilus", "creature", "sea", "instrument"] as const;
+export const SUBJECTS = ["nautilus", "creature", "sea", "instrument", "people"] as const;
 
 export interface ShapeNote {
   quote: string;
@@ -93,7 +95,7 @@ export function checkArt({ manifest, files }: ArtSet): string[] {
     for (const field of REQUIRED) if (typeof entry[field] !== "string" || entry[field].trim() === "") errors.push(`${name}: ${field} is required`);
     const bytes = files.get(name);
     if (!bytes) {
-      errors.push(`${name} is listed but missing from site/src/nautilus/art`);
+      errors.push(`${name} is listed but missing from its folder`);
       continue;
     }
     const actual = sha256(bytes);
@@ -133,18 +135,23 @@ export function checkArt({ manifest, files }: ArtSet): string[] {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const set = readArt(artDir);
-  if (process.argv.includes("--write")) {
-    for (const entry of set.manifest.art) {
-      const bytes = set.files.get(entry.file);
-      if (bytes) entry.sha256 = sha256(bytes);
+  let count = 0;
+  const errors: string[] = [];
+  for (const dir of [artDir, axArtDir]) {
+    const set = readArt(dir);
+    if (process.argv.includes("--write")) {
+      for (const entry of set.manifest.art) {
+        const bytes = set.files.get(entry.file);
+        if (bytes) entry.sha256 = sha256(bytes);
+      }
+      writeFileSync(join(dir, "manifest.json"), `${JSON.stringify(set.manifest, null, 2)}\n`);
     }
-    writeFileSync(join(artDir, "manifest.json"), `${JSON.stringify(set.manifest, null, 2)}\n`);
+    count += set.manifest.art.length;
+    errors.push(...checkArt(set));
   }
-  const errors = checkArt(set);
   if (errors.length) {
     console.error(errors.join("\n"));
     process.exit(1);
   }
-  console.log(`${set.manifest.art.length} drawings match manifest.json`);
+  console.log(`${count} drawings match their manifest.json`);
 }
