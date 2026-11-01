@@ -32,3 +32,16 @@ test("keeps an animated emoji still with reduced motion", async ({ page }) => {
   await button.focus();
   await expect(image).toHaveAttribute("src", still!);
 });
+
+test("steps a filmstrip emoji through its frames while its button is under the mouse", async ({ page }) => {
+  await openStory(page, "chat-emoji--in-buttons");
+  const button = page.getByRole("button", { name: "Blinking face" });
+  const image = button.locator("img");
+  const still = await image.getAttribute("src");
+  await button.hover();
+  await expect(image).not.toHaveAttribute("src", still!);
+  await expect.poll(() => image.evaluate((element) => element.getAnimations().length)).toBe(1);
+  await page.mouse.move(0, 0);
+  await expect(image).toHaveAttribute("src", still!);
+  await expect.poll(() => image.evaluate((element) => element.getAnimations().length)).toBe(0);
+});

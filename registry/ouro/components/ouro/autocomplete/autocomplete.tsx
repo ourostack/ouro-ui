@@ -335,7 +335,7 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
 
 /** A catalogue's emoji as a suggestion: its name, its token as the description and what it inserts, and its image. */
 function emojiSuggestion(item: EmojiItem): AutocompleteItem {
-  const token = emojiToken(item, "default");
+  const token = emojiToken(item);
   return { value: item.id, label: item.name, description: token, emoji: item, insert: `${token} ` };
 }
 

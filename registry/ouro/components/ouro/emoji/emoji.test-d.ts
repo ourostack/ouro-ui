@@ -5,6 +5,7 @@ import {
   EmojiText,
   type EmojiCatalogue,
   type EmojiCatalogueCategory,
+  type EmojiFilmstrip,
   type EmojiItem,
   type EmojiItemTone,
   type EmojiProps,
@@ -30,9 +31,14 @@ expectTypeOf<{
   keywords: readonly ["hello"];
   text: "👋";
   custom: false;
+  filmstrip: EmojiFilmstrip;
+  width: 64;
+  height: 64;
   skinTones: readonly EmojiItemTone[];
 }>().toExtend<EmojiItem>();
 expectTypeOf<{ id: "party"; name: "Party popper" }>().not.toExtend<EmojiItem>();
+expectTypeOf<{ src: "/blink-strip.png"; fps: 12 }>().toExtend<EmojiFilmstrip>();
+expectTypeOf<{ src: "/blink-strip.png" }>().not.toExtend<EmojiFilmstrip>();
 expectTypeOf<{ id: "wave-tone1"; src: "/wave-1.png"; animatedSrc: "/wave-1.gif"; text: "👋🏻" }>().toExtend<EmojiItemTone>();
 expectTypeOf<{ id: "custom"; label: "Fernwood"; items: readonly EmojiItem[] }>().toExtend<EmojiCatalogueCategory>();
 expectTypeOf<{ categories: readonly [] }>().toExtend<EmojiCatalogue>();

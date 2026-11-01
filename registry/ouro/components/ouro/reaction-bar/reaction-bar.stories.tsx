@@ -152,6 +152,27 @@ const wave: EmojiItem = {
   animatedSrc: animated(hand("#ffc83d")),
   skinTones: tones.map((fill, index) => ({ id: `wave-tone${index + 1}`, src: svg(hand(fill)), animatedSrc: animated(hand(fill)) })),
 };
+// A filmstrip: square frames stacked top to bottom, stepped through at its fps while it plays.
+const eyes = {
+  open: `<circle cx="11" cy="13" r="2" fill="${ink}"/><circle cx="21" cy="13" r="2" fill="${ink}"/>`,
+  half: `<ellipse cx="11" cy="13.5" rx="2.2" ry="1" fill="${ink}"/><ellipse cx="21" cy="13.5" rx="2.2" ry="1" fill="${ink}"/>`,
+  shut: `<path d="M8.8 13.5h4.4M18.8 13.5h4.4" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/>`,
+};
+const blinkFrame = (open: string, top: number) => `<g transform="translate(0 ${top})"><circle cx="16" cy="16" r="14" fill="#ffc83d"/>${open}${smile}</g>`;
+const blinkFrames = [eyes.open, eyes.open, eyes.open, eyes.half, eyes.shut, eyes.half];
+const blink: EmojiItem = {
+  id: "blink",
+  name: "Blinking face",
+  shortcodes: ["blink"],
+  keywords: ["sleepy"],
+  width: 32,
+  height: 32,
+  src: svg(blinkFrame(eyes.open, 0)),
+  filmstrip: {
+    src: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="${32 * blinkFrames.length}" viewBox="0 0 32 ${32 * blinkFrames.length}">${blinkFrames.map((open, index) => blinkFrame(open, index * 32)).join("")}</svg>`)}`,
+    fps: 8,
+  },
+};
 const imageCatalogue: EmojiCatalogue = {
   categories: [
     {
@@ -163,6 +184,7 @@ const imageCatalogue: EmojiCatalogue = {
         emoji("wow", "Surprised face", ["wow"], ["amazed"], { text: "😮" }),
         emoji("sad", "Sad face", ["sad"], ["tear"], { text: "😢" }),
         wave,
+        blink,
       ],
     },
     {

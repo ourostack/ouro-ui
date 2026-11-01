@@ -27,8 +27,8 @@ const emojiSkinTones: readonly EmojiSkinTone[] = ["default", "light", "medium-li
 const emojiClass = "inline-block size-[1.25em] shrink-0 align-[-0.3em] object-contain select-none";
 
 /** The emoji's form in a skin tone: its toned image, or the emoji itself in the default tone or without tones. @internal */
-function toneOf(item: EmojiItem, tone: EmojiSkinTone): EmojiItem | EmojiItemTone {
-  const index = emojiSkinTones.indexOf(tone);
+function toneOf(item: EmojiItem, tone: EmojiSkinTone | undefined): EmojiItem | EmojiItemTone {
+  const index = emojiSkinTones.indexOf(tone!);
   return (index > 0 && item.skinTones?.[index - 1]) || item;
 }
 
@@ -38,7 +38,7 @@ function toneOf(item: EmojiItem, tone: EmojiSkinTone): EmojiItem | EmojiItemTone
  *
  * @claim "its first shortcode, or else its id" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > draws shortcode, id and tone id tokens as their images, and leaves unknown ones as text)
  */
-function emojiToken(item: EmojiItem, tone: EmojiSkinTone): string {
+function emojiToken(item: EmojiItem, tone?: EmojiSkinTone): string {
   const form = toneOf(item, tone);
   return `:${form === item ? (item.shortcodes?.[0] ?? item.id) : form.id}:`;
 }

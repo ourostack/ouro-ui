@@ -15,6 +15,13 @@ let mounted: Element[] = [];
 /** A blank image whose address names it, so a test can tell the images apart. */
 const image = (name: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>${name}</title></svg>`)}`;
 
+/** A filmstrip of square frames stacked top to bottom, each a different shade, `frames` tall. */
+const strip = (name: string, frames: number) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="${32 * frames}" viewBox="0 0 32 ${32 * frames}"><title>${name}</title>${Array.from({ length: frames }, (_, index) => `<rect y="${32 * index}" width="32" height="32" fill="hsl(${index * 60} 80% 50%)"/>`).join("")}</svg>`,
+  )}`;
+const blink: EmojiItem = { id: "blink", name: "Blinking face", src: image("blink"), width: 32, height: 32, filmstrip: { src: strip("blink", 4), fps: 8 } };
+
 const tones = ["tone1", "tone2", "tone3", "tone4", "tone5"].map((tone, index) => ({
   id: `wave-${tone}`,
   src: image(`wave ${tone}`),
@@ -163,6 +170,68 @@ describe("Emoji", () => {
     expect(emoji(host).getAttribute("src")).toBe(party.src);
   });
 
+  it("plays a filmstrip by stepping through its frames at its fps while its button is under the mouse, and shows the still image after", async () => {
+    const { host } = await render(
+      <>
+        <button type="button">
+          <Emoji item={blink} />
+        </button>
+        <button type="button">Elsewhere</button>
+      </>,
+    );
+    const [button, elsewhere] = [...host.querySelectorAll("button")];
+    const img = emoji(host);
+    expect(img.getAttribute("src")).toBe(blink.src);
+    expect(img.getAttribute("width")).toBe("32");
+    expect(img.getAttribute("height")).toBe("32");
+    expect(img.getAnimations()).toEqual([]);
+    await userEvent.hover(button!);
+    await expect.poll(() => img.getAnimations().length).toBe(1);
+    expect(img.getAttribute("src")).toBe(blink.filmstrip!.src);
+    expect(getComputedStyle(img).objectFit).toBe("cover");
+    const [animation] = img.getAnimations();
+    const timing = animation!.effect!.getTiming();
+    expect(timing.duration).toBe(500);
+    expect(timing.iterations).toBe(Infinity);
+    expect(timing.easing).toMatch(/^steps\(4, jump-none\)$/);
+    expect((animation!.effect as KeyframeEffect).getKeyframes().map((frame) => frame["objectPosition"])).toEqual(["50% 0%", "50% 100%"]);
+    await userEvent.hover(elsewhere!);
+    await expect.poll(() => img.getAttribute("src")).toBe(blink.src);
+    expect(img.getAnimations()).toEqual([]);
+    expect(getComputedStyle(img).objectFit).toBe("contain");
+  });
+
+  it("plays an animated image over a filmstrip, a tone's filmstrip in that tone, leaves one frame or a broken strip still, and starts a strip once", async () => {
+    const both: EmojiItem = { ...blink, animatedSrc: image("blink moving") };
+    const toned: EmojiItem = { ...wave, animatedSrc: undefined, skinTones: tones.map((tone) => ({ ...tone, animatedSrc: undefined, filmstrip: { src: strip(tone.id, 3), fps: 6 } })) };
+    const { host, rerender } = await render(<Emoji item={both} play />);
+    expect(emoji(host).getAttribute("src")).toBe(both.animatedSrc);
+    await rerender(<Emoji item={toned} skinTone="dark" play />);
+    expect(emoji(host).getAttribute("src")).toBe(strip("wave-tone5", 3));
+    await expect.poll(() => emoji(host).getAnimations()[0]?.effect?.getTiming().duration).toBe(500);
+    // One frame is no animation.
+    await rerender(<Emoji item={{ ...blink, filmstrip: { src: strip("one", 1), fps: 8 } }} play />);
+    await emoji(host).decode();
+    await act(async () => {});
+    expect(emoji(host).getAnimations()).toEqual([]);
+    // A strip that fails to load leaves the image as it is.
+    await rerender(<Emoji item={{ ...blink, filmstrip: { src: "data:image/png;base64,AAAA", fps: 8 } }} play />);
+    await emoji(host).decode().catch(() => {});
+    await act(async () => {});
+    expect(emoji(host).getAnimations()).toEqual([]);
+    // A strip whose fps changes before it is ready starts once, at the new pace.
+    const late = (fps: number) => <Emoji item={{ ...blink, filmstrip: { src: strip("late", 4), fps } }} play />;
+    await rerender(late(8));
+    await rerender(late(4));
+    await expect.poll(() => emoji(host).getAnimations().length).toBe(1);
+    await emoji(host).decode();
+    await act(async () => {});
+    expect(emoji(host).getAnimations().map((animation) => animation.effect!.getTiming().duration)).toEqual([1000]);
+    await rerender(<Emoji item={blink} play={false} />);
+    expect(emoji(host).getAnimations()).toEqual([]);
+    expect(emoji(host).getAttribute("src")).toBe(blink.src);
+  });
+
   it("plays and stops with play, plays for the image itself outside a button, and never without an animated image", async () => {
     const { host, rerender } = await render(<Emoji item={party} play />);
     expect(emoji(host).getAttribute("src")).toBe(party.animatedSrc);
@@ -192,9 +261,12 @@ describe("Emoji", () => {
           <button type="button">
             <Emoji item={wave} />
           </button>
+          <Emoji item={blink} play />
         </>,
       );
-      const [played, inButton] = images(host);
+      const [played, inButton, filmstrip] = images(host);
+      expect(filmstrip!.getAttribute("src")).toBe(blink.src);
+      expect(filmstrip!.getAnimations()).toEqual([]);
       expect(played!.getAttribute("src")).toBe(party.src);
       expect(played!.getAttribute("srcset")).toBe(party.srcSet);
       await userEvent.hover(host.querySelector("button")!);
@@ -286,7 +358,7 @@ describe("EmojiText", () => {
     );
     const root = () => host.querySelector('[data-ouro="emoji-text"]')!;
     const widths = () => images(host).map((img) => img.getBoundingClientRect().width);
-    expect(root().hasAttribute("data-enlarged")).toBe(true);
+    expect(root().getAttribute("data-enlarged")).toBe("");
     expect(widths()).toEqual([44, 44, 44]);
     await rerender(<EmojiText text=":party: :heart: :party: :heart:" catalogue={catalogue} enlarge />);
     expect(root().hasAttribute("data-enlarged")).toBe(false);
@@ -365,6 +437,11 @@ describe("Emoji helpers", () => {
     expect(matchWords(words, ":party_popper:")).toBe(true);
     expect(matchWords(words, "cafe lait")).toBe(true);
     expect(matchWords(words, "b")).toBe(true);
+    expect(matchWords(["Crème brûlée"], "creme brulee")).toBe(true);
+    expect(matchWords(words, "::party")).toBe(true);
+    expect(matchWords(words, "party::")).toBe(true);
+    expect(matchWords(words, "a:b")).toBe(true);
+    expect(matchWords(["a:b"], "a:x")).toBe(false);
     expect(matchWords(words, "arty")).toBe(false);
     expect(matchWords(words, "party cake")).toBe(false);
   });

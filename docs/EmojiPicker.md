@@ -169,7 +169,7 @@ Alignment classes (`text-center`) warn too: use the `align` prop.
 
 ### `EmojiCatalogue`
 
-An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app.
+An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app. The image addresses are used as they are, so an app that loads images its own way (a content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can load in the catalogue when it builds it.
 
 ```ts
 interface EmojiCatalogue {
@@ -195,6 +195,19 @@ interface EmojiCatalogueCategory {
 }
 ```
 
+### `EmojiFilmstrip`
+
+An animation drawn as a filmstrip: square frames stacked top to bottom in one image, so the frames are the image's height over its width.
+
+```ts
+interface EmojiFilmstrip {
+  /** The filmstrip image's address. */
+  src: string;
+  /** Frames a second. */
+  fps: number;
+}
+```
+
 ### `EmojiItem`
 
 One emoji in an image catalogue: its id, its name and the image that draws it. An app maps its own emoji set to this, whether a standard set or an organization's custom emoji.
@@ -216,6 +229,16 @@ interface EmojiItem {
    * or on the button around it, or that button has focus. With reduced motion it never plays.
    */
   animatedSrc?: string | undefined;
+  /**
+   * The animation as a filmstrip, square frames stacked top to bottom in one image, for an
+   * emoji without `animatedSrc`: while the emoji plays, it steps through the frames at `fps`;
+   * otherwise, and always with reduced motion, `src` shows.
+   */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /** The still image's width in pixels, given to the `<img>` so the page keeps its shape while it loads. It shows at the text's size. */
+  width?: number | undefined;
+  /** The still image's height in pixels, as `width`. */
+  height?: number | undefined;
   /** Short names typed between colons, without them: `["party", "tada"]`. The first makes the emoji's token, `:party:`. */
   shortcodes?: readonly string[] | undefined;
   /** More words the search matches: `["celebrate", "hooray"]`. */
@@ -249,6 +272,8 @@ interface EmojiItemTone {
   srcSet?: string | undefined;
   /** An animated image (GIF, animated WebP or PNG), shown while the emoji plays; the still one shows otherwise. */
   animatedSrc?: string | undefined;
+  /** The animation as a filmstrip of square frames, played while the emoji plays, for a tone without `animatedSrc`. */
+  filmstrip?: EmojiFilmstrip | undefined;
   /**
    * The emoji in this tone as text (`"👍🏽"`), which `EmojiText` finds in messages; Ouro never draws it as text.
    */

@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { ReactionBar, type CatalogueReaction, type ReactionBarProps } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -53,6 +53,13 @@ const button = (name: string) => page.getByRole("button", { name, exact: true })
 const pictographic = /\p{Extended_Pictographic}/u;
 
 let warn: ReturnType<typeof vi.spyOn>;
+// Reduced motion for the file, so a mouse left resting on a reaction plays nothing; the test of playing lets motion through.
+beforeAll(async () => {
+  await commands.emulateMedia({ reducedMotion: "reduce" });
+});
+afterAll(async () => {
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -99,11 +106,10 @@ describe("ReactionBar with a catalogue", () => {
       await expect.poll(() => art(reaction)).toBe(party.src);
       await act(async () => (reaction as HTMLElement).focus());
       expect(art(reaction)).toBe(party.animatedSrc);
-      await commands.emulateMedia({ reducedMotion: "reduce" });
-      await expect.poll(() => art(reaction)).toBe(party.src);
     } finally {
-      await commands.emulateMedia({ reducedMotion: "no-preference" });
+      await commands.emulateMedia({ reducedMotion: "reduce" });
     }
+    await expect.poll(() => art(button("Party popper, 2"))).toBe(party.src);
   });
 
   it("draws read-only reactions from the catalogue too, saying which is the person's own", async () => {

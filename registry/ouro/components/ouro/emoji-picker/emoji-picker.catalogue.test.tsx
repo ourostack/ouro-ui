@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import {
   EmojiPicker,
@@ -97,9 +97,10 @@ async function open(props: Partial<EmojiPickerProps> = {}) {
 }
 
 let warn: ReturnType<typeof vi.spyOn>;
+// Reduced motion for the file, so a mouse left resting on an emoji plays nothing; the test of playing lets motion through.
 beforeAll(async () => {
   await page.viewport(1280, 800);
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  await commands.emulateMedia({ reducedMotion: "reduce" });
 });
 afterAll(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
@@ -189,6 +190,8 @@ describe("EmojiPicker with a catalogue", () => {
   });
 
   it("plays an animated emoji while it is in focus or under the mouse, and the preview with it", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    onTestFinished(() => commands.emulateMedia({ reducedMotion: "reduce" }));
     await open();
     expect(previewArt()).toBe(smile.src);
     await userEvent.hover(cell("Party popper"));
@@ -214,19 +217,14 @@ describe("EmojiPicker with a catalogue", () => {
   });
 
   it("shows animated emoji still under reduced motion, under the mouse and in focus", async () => {
-    await commands.emulateMedia({ reducedMotion: "reduce" });
-    try {
-      await open();
-      await userEvent.hover(cell("Party popper"));
-      expect(art(cell("Party popper"))).toBe(party.src);
-      expect(previewArt()).toBe(party.src);
-      await userEvent.click(search());
-      await userEvent.keyboard("{ArrowDown}");
-      expect(art(cell("Smiling face"))).toBe(smile.src);
-      expect(previewArt()).toBe(smile.src);
-    } finally {
-      await commands.emulateMedia({ reducedMotion: "no-preference" });
-    }
+    await open();
+    await userEvent.hover(cell("Party popper"));
+    expect(art(cell("Party popper"))).toBe(party.src);
+    expect(previewArt()).toBe(party.src);
+    await userEvent.click(search());
+    await userEvent.keyboard("{ArrowDown}");
+    expect(art(cell("Smiling face"))).toBe(smile.src);
+    expect(previewArt()).toBe(smile.src);
   });
 
   it("offers the catalogue's skin tones as images, as a radio group the arrow keys move through", async () => {

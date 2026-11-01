@@ -460,6 +460,7 @@
     "registry/ouro/e2e/ouro/dialog.spec.ts": 16700,
     "registry/ouro/e2e/ouro/edit-sheet.spec.ts": 35100,
     "registry/ouro/e2e/ouro/emoji-picker.spec.ts": 15000,
+    "registry/ouro/e2e/ouro/emoji.spec.ts": 6000,
     "registry/ouro/e2e/ouro/empty.spec.ts": 3400,
     "registry/ouro/e2e/ouro/field.spec.ts": 6595,
     "registry/ouro/e2e/ouro/fieldset.spec.ts": 3300,

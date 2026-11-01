@@ -10,6 +10,17 @@ import { emojiClass, emojiSkinTones, splitEmojiText, toneOf, type EmojiSkinTone 
 
 export type { EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 
+/**
+ * An animation drawn as a filmstrip: square frames stacked top to bottom in one image, so the
+ * frames are the image's height over its width.
+ */
+export interface EmojiFilmstrip {
+  /** The filmstrip image's address. */
+  src: string;
+  /** Frames a second. */
+  fps: number;
+}
+
 /** An emoji's image in one skin tone: `skinTones` on an `EmojiItem`. */
 export interface EmojiItemTone {
   /** Identifies the emoji in this tone, unique in the catalogue: `"thumbs-up-tone3"`. Reactions and tokens use it. */
@@ -20,6 +31,8 @@ export interface EmojiItemTone {
   srcSet?: string | undefined;
   /** An animated image (GIF, animated WebP or PNG), shown while the emoji plays; the still one shows otherwise. */
   animatedSrc?: string | undefined;
+  /** The animation as a filmstrip of square frames, played while the emoji plays, for a tone without `animatedSrc`. */
+  filmstrip?: EmojiFilmstrip | undefined;
   /**
    * The emoji in this tone as text (`"👍🏽"`), which `EmojiText` finds in messages; Ouro never draws it as text.
    *
@@ -55,6 +68,19 @@ export interface EmojiItem {
    * @claim "With reduced motion it never plays" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
    */
   animatedSrc?: string | undefined;
+  /**
+   * The animation as a filmstrip, square frames stacked top to bottom in one image, for an
+   * emoji without `animatedSrc`: while the emoji plays, it steps through the frames at `fps`;
+   * otherwise, and always with reduced motion, `src` shows.
+   *
+   * @claim "it steps through the frames at `fps`" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays a filmstrip by stepping through its frames at its fps while its button is under the mouse, and shows the still image after)
+   * @claim "always with reduced motion, `src` shows" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
+   */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /** The still image's width in pixels, given to the `<img>` so the page keeps its shape while it loads. It shows at the text's size. */
+  width?: number | undefined;
+  /** The still image's height in pixels, as `width`. */
+  height?: number | undefined;
   /** Short names typed between colons, without them: `["party", "tada"]`. The first makes the emoji's token, `:party:`. */
   shortcodes?: readonly string[] | undefined;
   /** More words the search matches: `["celebrate", "hooray"]`. */
@@ -93,6 +119,10 @@ export interface EmojiCatalogueCategory {
  * An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete`
  * and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an
  * organization's custom emoji in a category of their own, labelled by the app.
+ *
+ * The image addresses are used as they are, so an app that loads images its own way (a
+ * content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can
+ * load in the catalogue when it builds it.
  *
  * @example
  * const catalogue: EmojiCatalogue = { categories: [{ id: "smileys", label: "Smileys", items: smileys }, { id: "custom", label: "Contoso", items: custom }] };
@@ -140,24 +170,60 @@ function useHostActive(image: { current: HTMLImageElement | null }, watch: boole
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: listening without need changes nothing; play decides first.
     if (!watch) return;
     const own = image.current!;
     const host = own.parentElement!.closest<HTMLElement>(hostSelector) ?? own;
     const listening = new AbortController();
-    const { signal } = listening;
-    host.addEventListener("pointerenter", (event) => setHovered(event.pointerType === "mouse"), { signal });
-    host.addEventListener("pointerleave", () => setHovered(false), { signal });
-    host.addEventListener("focusin", () => setFocused(true), { signal });
-    host.addEventListener("focusout", (event) => setFocused(host.contains(event.relatedTarget as Node | null)), { signal });
+    const listen = <K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void) =>
+      // Stryker disable next-line ObjectLiteral: a listener left once play is set or the emoji is gone decides nothing.
+      host.addEventListener(type, handler, { signal: listening.signal });
+    listen("pointerenter", (event) => setHovered(event.pointerType === "mouse"));
+    listen("pointerleave", () => setHovered(false));
+    listen("focusin", () => setFocused(true));
+    listen("focusout", (event) => setFocused(host.contains(event.relatedTarget as Node | null)));
+    // Stryker disable next-line BlockStatement: once play is set or the emoji is gone, what the host did decides nothing.
     return () => {
-      // Stryker disable next-line CallExpression: once play is set or the emoji is gone, what the host does decides nothing.
       listening.abort();
-      // The pointer and focus may leave unseen while play is set.
       setHovered(false);
       setFocused(false);
     };
   }, [image, watch]);
   return hovered || focused;
+}
+
+/**
+ * Steps a filmstrip through its frames while `strip` is set: one Web Animation on the image's
+ * `object-position`, started once the filmstrip has loaded (its height over its width is the
+ * number of frames) and cancelled when it stops.
+ */
+function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiFilmstrip | undefined): void {
+  const src = strip?.src;
+  const fps = strip?.fps;
+  useEffect(() => {
+    if (src === undefined) return;
+    const own = image.current!;
+    let animation: Animation | undefined;
+    let stopped = false;
+    // Starts once the filmstrip is ready, whether it loads now or was there already.
+    own.decode().then(
+      () => {
+        const frames = Math.round(own.naturalHeight / own.naturalWidth);
+        if (stopped || !(frames > 1)) return;
+        animation = own.animate([{ objectPosition: "50% 0%" }, { objectPosition: "50% 100%" }], {
+          duration: (frames / fps!) * 1000,
+          iterations: Infinity,
+          easing: `steps(${frames}, jump-none)`,
+        });
+      },
+      // A filmstrip that fails to load leaves the still image.
+      () => {},
+    );
+    return () => {
+      stopped = true;
+      animation?.cancel();
+    };
+  }, [image, src, fps]);
 }
 
 /**
@@ -220,22 +286,27 @@ export function Emoji(props: EmojiProps): JSX.Element {
   const own = useRef<HTMLImageElement>(null);
   const mergedRef = useMergedRef(ref, own);
   const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", true);
-  const animated = Boolean(form.animatedSrc) && !reduced;
+  const animated = Boolean(form.animatedSrc ?? form.filmstrip) && !reduced;
   // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: listening saves work only; play decides first.
   const hostActive = useHostActive(own, animated && play === undefined);
   const playing = animated && (play ?? hostActive);
+  // An animated image wins over a filmstrip.
+  const strip = playing && !form.animatedSrc ? form.filmstrip : undefined;
+  useFilmstrip(own, strip);
   return (
     <img
       loading="lazy"
       {...rest}
       ref={mergedRef}
       data-ouro="emoji"
-      src={playing ? form.animatedSrc : form.src}
+      src={strip ? strip.src : playing ? form.animatedSrc : form.src}
       srcSet={playing ? undefined : form.srcSet}
+      width={item.width}
+      height={item.height}
       alt={alt ?? item.name}
       draggable={false}
       decoding="async"
-      className={cn(emojiClass, className)}
+      className={cn(emojiClass, strip && "object-cover object-top", className)}
     />
   );
 }
