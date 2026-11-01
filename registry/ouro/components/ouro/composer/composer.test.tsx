@@ -606,10 +606,12 @@ describe("Composer expanded", () => {
     // Typing grows the box at once, as before.
     await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
     const sixLines = body.getBoundingClientRect().height;
-    // The seventh line grows the box past its six rows, at once.
+    // The seventh line grows the box past its six rows, at once; a long duration would hold a change still running.
+    body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.keyboard("{Enter}");
     expect(heights(body)).toEqual([]);
     expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
+    body.style.removeProperty("--ouro-duration-base");
     await userEvent.clear(textarea);
     await userEvent.click(expandButton()!);
     expect(heights(body)).toEqual(["height"]);
