@@ -231,6 +231,8 @@ describe("Moment sizes", () => {
   it("gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline", async () => {
     const cases = [
       [{}, 480, 160],
+      [{}, 392, 160],
+      [{}, 376, 96],
       [{}, 320, 96],
       [{ quiet: true }, 480, 40],
       [{ size: "inline" as const }, 480, 24],

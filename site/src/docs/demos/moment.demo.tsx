@@ -7,7 +7,7 @@ import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 
 function TrayArt(): JSX.Element {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="30 8 140 140" fill="none">
       <ellipse cx="100" cy="136" rx="62" ry="6" fill="currentColor" opacity="0.12" />
       <circle cx="100" cy="30" r="12" className="fill-primary">
         <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0" dur="4s" repeatCount="indefinite" />
@@ -23,7 +23,7 @@ function TrayArt(): JSX.Element {
 
 function TickArt(): JSX.Element {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="40 16 120 128" fill="none">
       <ellipse cx="100" cy="136" rx="62" ry="6" fill="currentColor" opacity="0.12" />
       <circle cx="100" cy="70" r="46" fill="currentColor" opacity="0.14" />
       <circle cx="100" cy="70" r="30" fill="currentColor" />

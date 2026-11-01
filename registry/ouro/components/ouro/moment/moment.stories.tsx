@@ -21,7 +21,7 @@ const ground = <ellipse cx="100" cy="136" rx="62" ry="6" fill="currentColor" opa
 /** An open tray with a small moon above it: nothing here yet. */
 function TrayArt() {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="30 8 140 140" fill="none">
       {ground}
       <circle cx="100" cy="30" r="12" style={{ fill: "var(--primary)" }} />
       <circle cx="132" cy="20" r="3" style={{ fill: "var(--primary)" }} opacity="0.45" />
@@ -36,7 +36,7 @@ function TrayArt() {
 /** A doorway with the sun behind it: come on in. */
 function DoorwayArt() {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="36 16 128 128" fill="none">
       {ground}
       <circle cx="136" cy="44" r="18" style={{ fill: "var(--warning)" }} opacity="0.85" />
       <path d="M50 134V96a50 50 0 0 1 100 0v38Z" fill="currentColor" opacity="0.22" />
@@ -50,7 +50,7 @@ function DoorwayArt() {
 /** A filled disc with a tick: done. */
 function TickArt() {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="40 16 120 128" fill="none">
       {ground}
       <circle cx="100" cy="70" r="46" fill="currentColor" opacity="0.14" />
       <circle cx="100" cy="70" r="30" fill="currentColor" />
@@ -62,9 +62,9 @@ function TickArt() {
 /** A card whose line breaks off: something failed. */
 function BrokenLineArt() {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="38 16 124 128" fill="none">
       {ground}
-      <rect x="50" y="34" width="100" height="84" rx="14" style={{ fill: "var(--muted)" }} />
+      <rect x="50" y="34" width="100" height="84" rx="14" fill="currentColor" opacity="0.1" />
       <path d="m66 96 16-18 14 10 10-14" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="m120 62 16-16" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 9" />
       <circle cx="146" cy="38" r="12" fill="currentColor" />
@@ -77,7 +77,7 @@ function BrokenLineArt() {
 /** The tray, with its moon drifting up and down (an SVG animation, which pauses with reduced motion). */
 function DriftingTrayArt() {
   return (
-    <svg viewBox="0 0 200 150" fill="none">
+    <svg viewBox="30 8 140 140" fill="none">
       {ground}
       <circle cx="100" cy="30" r="12" style={{ fill: "var(--primary)" }}>
         <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0" dur="4s" repeatCount="indefinite" />
@@ -127,7 +127,7 @@ export const Kinds: Story = {
           <Moment kind="success" art={<TickArt />} title="All caught up" description="You've read everything new." />
         </Panel>
         <Panel>
-          <Moment kind="loading" title="Loading messages" />
+          <Moment kind="loading" title="Loading messages" description="This takes a moment." />
         </Panel>
       </div>
     </Page>
