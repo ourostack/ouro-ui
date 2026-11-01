@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type Rolldown } from "vite";
+import { colorMixFallbacks } from "./scripts/color-mix-fallbacks.mts";
 import { proofPlugin } from "./scripts/proof.mts";
 
 // The landing page and docs site, built from the repository's own dependencies (no
@@ -98,7 +99,7 @@ export function voyageSmallModules(): Rolldown.CodeSplittingGroup {
 export default defineConfig(({ isSsrBuild }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "/",
-  plugins: [react(), tailwindcss(), chunkEvidence(repo), proofPlugin()],
+  plugins: [react(), tailwindcss(), colorMixFallbacks(), chunkEvidence(repo), proofPlugin()],
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.
   resolve: { alias: { "@": repo } },

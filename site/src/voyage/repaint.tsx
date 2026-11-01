@@ -39,8 +39,11 @@ async function copyText(text: string | Promise<string>, done: string, how: strin
 const loadDive = () => import("./dive/dive");
 const DiveScene = lazy(loadDive);
 
-/** The sample the presets repaint: a checklist and a dialog, in a framed window. Dive takes it under. */
-function DiveWindow(): JSX.Element {
+/**
+ * The sample the presets repaint: a checklist and a dialog, in a framed window. Dive takes it under.
+ * `corners` is the mixer's --radius while its paint is on, so the window names that paint, not the preset's.
+ */
+function DiveWindow({ corners }: { corners?: string | undefined }): JSX.Element {
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set(["hatch"]));
   const [open, setOpen] = useState(false);
   /** The dive under way: a new one each press, so it plays again; `ending` once it is cut short. */
@@ -57,14 +60,21 @@ function DiveWindow(): JSX.Element {
         </span>
         <span className="site-mono truncate">before-we-dive.tsx</span>
         <span className="ms-auto inline-flex items-center gap-2">
-          <ByPreset>
-            {(item) => (
-              <span className="inline-flex items-center gap-2">
-                <Swatch preset={item.name} />
-                {item.label}
-              </span>
-            )}
-          </ByPreset>
+          {corners ? (
+            <>
+              <span aria-hidden="true" className="inline-block size-3.5 shrink-0 rounded-full bg-primary" />
+              Your paint
+            </>
+          ) : (
+            <ByPreset>
+              {(item) => (
+                <span className="inline-flex items-center gap-2">
+                  <Swatch preset={item.name} />
+                  {item.label}
+                </span>
+              )}
+            </ByPreset>
+          )}
         </span>
       </div>
       {/* Open on the window's own surface: a hairline between the checklist and its specs, no box inside the box. */}
@@ -90,8 +100,8 @@ function DiveWindow(): JSX.Element {
               <ByPreset>{(item) => item.heading}</ByPreset>
             </dd>
             <dt className="text-muted-foreground">Corners</dt>
-            <dd className="site-mono m-0">
-              <ByPreset>{(item) => item.radius}</ByPreset>
+            <dd className="site-mono m-0" data-site-corners="">
+              {corners ?? <ByPreset>{(item) => item.radius}</ByPreset>}
             </dd>
             <dt className="text-muted-foreground">Colours</dt>
             <dd className="m-0 flex flex-wrap gap-1.5">
@@ -261,7 +271,7 @@ export function Repaint(): JSX.Element {
         </div>
         <div className="grid gap-8 lg:col-span-7 lg:self-start">
           <div className="min-w-0" style={own}>
-            <DiveWindow />
+            <DiveWindow corners={made ? radius : undefined} />
           </div>
           <div className="grid justify-items-start gap-4">
             <h3 className="m-0 font-heading text-xl font-semibold">Or mix your own paint</h3>

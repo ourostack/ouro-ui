@@ -81,6 +81,26 @@ function addRevealCss(): void {
   style.id = "ouro-reveal";
   style.textContent = REVEAL_CSS;
   document.head.append(style);
+  document.addEventListener("click", passClickThrough, true);
+}
+
+/** The reveal on screen now, if one is. */
+let running: { skipTransition(): void; ready: Promise<unknown>; finished: Promise<unknown> } | null = null;
+
+/**
+ * While a view transition runs, the browser sends every click to <html>, so a dot pressed mid-reveal
+ * would be lost. A click there that falls on a theme dot finishes the reveal at once and presses the dot.
+ */
+function passClickThrough(event: MouseEvent): void {
+  if (!running || event.target !== document.documentElement) return;
+  const { clientX: x, clientY: y } = event;
+  const dot = [...document.querySelectorAll<HTMLElement>("[data-site-preset], .site-dot")].find((element) => {
+    const box = element.getBoundingClientRect();
+    return box.width > 0 && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+  });
+  running.skipTransition();
+  running = null;
+  dot?.click();
 }
 
 /**
@@ -98,7 +118,13 @@ function transition(change: () => void, origin: Origin | undefined): void {
   const root = document.documentElement;
   root.style.setProperty("--reveal-x", `${origin.x}px`);
   root.style.setProperty("--reveal-y", `${origin.y}px`);
-  start.call(document, change);
+  const current = start.call(document, change) as NonNullable<typeof running>;
+  running = current;
+  // A skipped transition rejects `ready`; that is expected, not an error.
+  current.ready.catch(() => undefined);
+  void current.finished.finally(() => {
+    if (running === current) running = null;
+  });
 }
 
 /** Writes a choice and applies it at once, as the head script would on the next load. */

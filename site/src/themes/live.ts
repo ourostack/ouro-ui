@@ -148,14 +148,27 @@ export function isSouthern(timeZone: string): boolean {
 
 /**
  * The stylesheet for one phase: Pearl's variables with the phase's over them, light on
- * html[data-live] and dark on html.dark[data-live]. Self-contained.
+ * html[data-live] and dark on html.dark[data-live]. The season tints the porthole a little: fresh
+ * green in spring, bright in summer, amber in autumn, icy in winter (half as much in the dark). Only
+ * the porthole's sky, sun and sea change, so the text keeps the phase's contrast. Self-contained.
  */
-export function liveCss(palette: { light: Palette; dark: Palette }): string {
-  const body = (values: Palette) =>
+export function liveCss(palette: { light: Palette; dark: Palette }, season: Season): string {
+  // Per season, the tint and how much of it (percent, light mode) goes into the sky, sun and sea.
+  const tints: Record<Season, Record<string, [string, number]>> = {
+    spring: { "live-sky": ["#bfeec2", 30], "live-sun": ["#fff3a6", 30], "live-sea": ["#1f8a6a", 22] },
+    summer: { "live-sky": ["#8fd3ff", 22], "live-sun": ["#ffd23f", 40], "live-sea": ["#0b9ac4", 22] },
+    autumn: { "live-sky": ["#f2a65e", 30], "live-sun": ["#ff7a2e", 30], "live-sea": ["#6a4a3a", 18] },
+    winter: { "live-sky": ["#eef4ff", 45], "live-sun": ["#f2f6ff", 50], "live-sea": ["#7f93b0", 30] },
+  };
+  const body = (values: Palette, share: number) =>
     Object.keys(values)
-      .map((name) => `--${name}:${values[name]}`)
+      .map((name) => {
+        const tint = tints[season][name];
+        const value = tint ? `color-mix(in oklab,${values[name]} ${100 - tint[1] * share}%,${tint[0]})` : values[name];
+        return `--${name}:${value}`;
+      })
       .join(";");
-  return `html[data-live]{${body(palette.light)}}html.dark[data-live]{${body(palette.dark)}}`;
+  return `html[data-live]{${body(palette.light, 1)}}html.dark[data-live]{${body(palette.dark, 0.5)}}`;
 }
 
 /**
@@ -185,7 +198,7 @@ export function applyLive(
     style.id = "ouro-live";
     document.head.appendChild(style);
   }
-  style.textContent = css(palettes[current.phase]!);
+  style.textContent = css(palettes[current.phase]!, current.season);
   return current;
 }
 

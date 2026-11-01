@@ -152,13 +152,26 @@ describe("the header and the theme section", () => {
     await renderPage("/");
     const presets = page.getByRole("group", { name: "Presets" });
     for (const preset of presetList) {
-      await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }));
+      // Pressed at once, mid-reveal: the click still lands (force: no waiting for the transition to end).
+      await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }), { force: true });
       await expect.poll(() => root.getAttribute("data-theme")).toBe(preset.name);
       await expect.element(presets.getByRole("button", { name: preset.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       expect(presets.getByRole("button", { pressed: true }).elements()).toHaveLength(1);
-      // While the circle reveal runs, its view transition takes the page's clicks; the next press waits for it.
-      await expect.poll(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition")).length).toBe(0);
     }
+  });
+
+  it("names the mixer's paint in the sample window while it is on, and the preset's again after", async () => {
+    root.setAttribute("data-theme", "pearl");
+    await renderPage("/");
+    const corners = () => document.querySelector<HTMLElement>("[data-site-corners]")?.innerText;
+    await expect.poll(corners).toBe("0.75rem");
+    await userEvent.click(page.getByRole("radiogroup", { name: "Corners" }).getByRole("radio", { name: "Pebble" }));
+    await expect.poll(corners).toBe("1rem");
+    await expect.element(page.getByText("Your paint", { exact: true })).toBeVisible();
+    await userEvent.click(page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Pearl", exact: true }), { force: true });
+    await expect.poll(corners).toBe("0.75rem");
+    // Leave no reveal running into the next test.
+    await expect.poll(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition")).length).toBe(0);
   });
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
