@@ -177,6 +177,26 @@ describe("TextArea autoGrow", () => {
     expect(getComputedStyle(textarea).overflowY).toBe("hidden");
   });
 
+  it("leaves what scrolls around it where it was as it grows a line, at the end of a scrolling list", async () => {
+    const { host, textarea } = await render(
+      // A conversation keeps its own place and turns the browser's scroll anchoring off, as MessageList does.
+      <div style={{ height: 200, overflowY: "auto", overflowAnchor: "none" }}>
+        <div style={{ height: 600 }} />
+        <TextArea label="Notes" autoGrow rows={1} maxRows={6} defaultValue={"one\ntwo\nthree"} />
+        <div style={{ height: 40 }} />
+      </div>,
+    );
+    const list = host.firstElementChild as HTMLElement;
+    list.scrollTop = list.scrollHeight;
+    const end = list.scrollTop;
+    // Each key collapses the textarea to measure it, which would pull the list's end up, and the browser
+    // would then bring only the caret back into view, short of the space below the textarea.
+    await userEvent.type(textarea, "{End}{Enter}four");
+    expect(list.scrollTop).toBeGreaterThanOrEqual(end);
+    await userEvent.type(textarea, " and five");
+    expect(list.scrollTop).toBeGreaterThanOrEqual(end);
+  });
+
   it("grows without a cap when maxRows is not set", async () => {
     const { textarea } = await render(<TextArea label="Notes" autoGrow defaultValue={"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"} />);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 12), 0);
