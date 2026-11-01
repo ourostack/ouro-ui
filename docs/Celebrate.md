@@ -14,6 +14,10 @@ import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
 <Celebrate show={items.every((item) => item.checked)} message="List cleared" />
 ```
 
+## Usage
+
+While the moment lasts, the root carries `data-celebrate`, so a checker or a test can find it.
+
 ## Use instead when
 
 - Use `toast()` instead to confirm an everyday action (saved, sent), and `Alert` for a message that should stay.

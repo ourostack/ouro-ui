@@ -60,6 +60,13 @@ export interface MomentOwnProps {
   art?: ReactNode;
   /** Names the art for screen readers (`role="img"`), for a picture that says something the title does not. */
   artLabel?: string | undefined;
+  /**
+   * Which picture this is, such as a pose ("waving", "pedalling"), for checkers, tests and
+   * styles: the art carries it as `data-moment-art`, which it has, empty, whenever there is
+   * art. Not shown or spoken.
+   * @claim "the art carries it as `data-moment-art`," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > marks its art with data-moment-art, carrying artName)
+   */
+  artName?: string | undefined;
   /** The way forward, usually one `Button`: `action={<Button onClick={compose}>New message</Button>}`. */
   action?: ReactNode;
   /**
@@ -215,7 +222,8 @@ function CloseIcon(): JSX.Element {
  * art's own motion stops with reduced motion, the close button keeps a dismissal through
  * `dismissKey`, `cap` limits how often a success celebrates, and `quiet` (or
  * `MomentProvider`) makes them compact. The root carries `data-moment` (the kind),
- * `data-celebrate` while it celebrates and `data-quiet` when quiet.
+ * `data-celebrate` while it celebrates and `data-quiet` when quiet, and the art
+ * `data-moment-art` (its `artName`).
  *
  * Use `Empty` instead for a plain empty list with an icon and no art, `Alert` for a message
  * about something that happened beside the content, `Skeleton` for the shape of content that
@@ -247,6 +255,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
     description,
     art,
     artLabel,
+    artName,
     action,
     secondaryAction,
     headingLevel,
@@ -414,6 +423,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
             ref={artRef}
             {...(artLabel ? { role: "img", "aria-label": artLabel } : { "aria-hidden": true })}
             data-ouro-moment-art=""
+            data-moment-art={artName ?? ""}
             className="relative flex h-(--ouro-moment-art) max-w-full items-center justify-center *:h-(--ouro-moment-art) *:w-auto *:max-w-full motion-reduce:**:[animation:none]!"
           >
             {art}

@@ -135,6 +135,16 @@ describe("Moment", () => {
     }
   });
 
+  it("marks its art with data-moment-art, carrying artName", async () => {
+    const plain = await render(<Moment art={<Art />} title="Nothing here" />);
+    expect(plain.art!.getAttribute("data-moment-art")).toBe("");
+    const named = await render(<Moment art={<Art />} artName="waving" title="Welcome" />);
+    expect(named.art!.getAttribute("data-moment-art")).toBe("waving");
+    expect(named.host.querySelectorAll("[data-moment-art]")).toHaveLength(1);
+    const bare = await render(<Moment kind="loading" title="Loading" />);
+    expect(bare.host.querySelector("[data-moment-art]")).toBeNull();
+  });
+
   it("hides the art from screen readers, or names it with artLabel", async () => {
     const hidden = await render(<Moment art={<Art />} title="Nothing here" />);
     expect(hidden.art!.getAttribute("aria-hidden")).toBe("true");
