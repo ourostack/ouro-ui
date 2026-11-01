@@ -33,12 +33,15 @@ import {
   commandGroupLabelClass,
   commandInputClass,
   commandItemClass,
+  commandMarkClass,
   commandListClass,
   commandLoadingClass,
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
   matchesQuery,
+  queryRanges,
+  type TextRange,
 } from "@/registry/ouro/components/ouro/command/command-styles";
 
 /** One command in a Command palette's `items`. */
@@ -61,6 +64,17 @@ export interface CommandItem {
    * @claim "Whether closing the palette after this" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > returns focus to its trigger after a choice, and leaves it where the choice put it with restoreFocus false)
    */
   restoreFocus?: boolean | undefined;
+  /**
+   * A second line under the label, such as a snippet of a message, which the search matches too.
+   * @claim "A second line under the label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks nothing without highlightMatches, and searches a command's description)
+   */
+  description?: string | undefined;
+  /**
+   * Where to mark the label and the description, as `[start, end]` ranges of each, such as the
+   * matches a server found. With these, `highlightMatches` marks nothing else on this command.
+   * @claim "Where to mark the label and" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks what the app's ranges say, in place of the search's words)
+   */
+  highlight?: { label?: readonly TextRange[] | undefined; description?: readonly TextRange[] | undefined } | undefined;
   /**
    * More words the search matches, which never show: `keywords: ["dark mode"]`.
    *
@@ -134,6 +148,14 @@ export interface CommandBaseProps {
   placeholder?: string | undefined;
   /** The search input's label for screen readers. @default "Search commands" */
   searchLabel?: string | undefined;
+  /**
+   * Marks the words of the search in each command's label and description, with the theme's
+   * colours (the system's mark colours under forced colours). The commands' names stay their
+   * plain text.
+   * @claim "Marks the words of the search" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks the words of the search in each command's label and description, and keeps the text as it was)
+   * @claim "Marks the words of the search" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > draws marked words that keep their contrast in light and dark, highlighted or not, and in forced colours)
+   */
+  highlightMatches?: boolean | undefined;
   /** What shows when nothing matches the search. @default "No results" */
   emptyLabel?: string | undefined;
   /**
@@ -390,6 +412,7 @@ export function Command(props: CommandProps): JSX.Element {
     searchLabel = "Search commands",
     emptyLabel = "No results",
     empty,
+    highlightMatches = false,
     closeLabel = "Close",
     className,
     onQueryChange,
@@ -541,6 +564,10 @@ export function Command(props: CommandProps): JSX.Element {
   // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
   const held = useRef<{ value: string; query: string } | null>(null);
 
+  // The app's ranges for a command, or the search's words when the palette marks matches.
+  const rangesFor = (item: CommandItem, part: "label" | "description"): readonly TextRange[] =>
+    item.highlight?.[part] ?? (highlightMatches && item.highlight === undefined ? queryRanges(item[part]!, query) : []);
+
   const run = (item: CommandItem) => {
     keepFocus.current = item.restoreFocus === false;
     setOpen(false);
@@ -555,7 +582,7 @@ export function Command(props: CommandProps): JSX.Element {
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.keywords, text)}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.description === undefined ? item.keywords : [...(item.keywords ?? []), item.description], text)}
       value={query}
       inputRef={markInput}
       onItemHighlighted={(item: CommandItem | undefined) => {
@@ -617,9 +644,20 @@ export function Command(props: CommandProps): JSX.Element {
                           </span>
                         )
                       )}
-                      <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
-                        {item.label}
-                      </span>
+                      {item.description === undefined ? (
+                        <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
+                          <Marked text={item.label} ranges={rangesFor(item, "label")} />
+                        </span>
+                      ) : (
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span data-ouro-command-label="" className={cn("block truncate", item.unread ? "font-semibold" : "font-normal")}>
+                            <Marked text={item.label} ranges={rangesFor(item, "label")} />
+                          </span>
+                          <span data-ouro-command-description="" className={cn("block truncate text-xs leading-4", quiet)}>
+                            <Marked text={item.description} ranges={rangesFor(item, "description")} />
+                          </span>
+                        </span>
+                      )}
                       {shown(item.mark) && (
                         <span data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
                           {item.mark}
@@ -686,6 +724,21 @@ export function Command(props: CommandProps): JSX.Element {
       )}
     </>
   );
+}
+
+/** A text with its ranges marked; a range past the text's end is cut to it, and one with nothing left is dropped. */
+function Marked({ text, ranges }: { text: string; ranges: readonly TextRange[] }): ReactNode {
+  const parts: ReactNode[] = [];
+  let at = 0;
+  for (const [start, end] of ranges) {
+    const from = Math.max(start, at);
+    const to = Math.min(end, text.length);
+    if (to <= from) continue;
+    parts.push(text.slice(at, from), <mark key={from} className={commandMarkClass}>{text.slice(from, to)}</mark>);
+    at = to;
+  }
+  parts.push(text.slice(at));
+  return parts;
 }
 
 /** The default `resultsLabel`. */
