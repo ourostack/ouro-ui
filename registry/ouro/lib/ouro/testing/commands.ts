@@ -1125,8 +1125,14 @@ export const doubleTap: BrowserCommand<[DoubleTapOptions]> = async (ctx, { at, g
 export interface PointerPressOptions {
   /** CSS selector of the element to press, inside the test iframe. Not needed for `up`. */
   selector?: string;
-  /** `down` moves to the element's center and presses; `up` releases. */
-  action: "down" | "up";
+  /**
+   * `down` moves to the element's center and presses; `up` releases; `click` moves there,
+   * presses and releases in one command, so the release follows the press however loaded the
+   * runner is, and, unlike `userEvent.click`, nothing scrolls the element into view first.
+   *
+   * @claim "presses and releases in one command" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::pointerPress click presses and releases in one command, leaving the page's scroll alone)
+   */
+  action: "down" | "up" | "click";
 }
 
 /**
@@ -1139,11 +1145,12 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
     await page.mouse.up();
     return;
   }
-  if (!selector) throw new Error("pointerPress: down needs a selector");
+  if (!selector) throw new Error(`pointerPress: ${action} needs a selector`);
   const box = await ctx.iframe.locator(selector).boundingBox();
   if (!box) throw new Error(`pointerPress: ${selector} is not visible`);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
+  if (action === "click") await page.mouse.up();
 };
 
 /**

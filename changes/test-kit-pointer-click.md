@@ -1,0 +1,1 @@
+- New: the test kit's `commands.pointerPress({ selector, action: "click" })` presses and releases the real mouse in one command, so the release follows the press however loaded the runner is, and nothing scrolls the element into view first.
