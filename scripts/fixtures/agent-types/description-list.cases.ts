@@ -21,7 +21,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "descriptionList03",
     habit: "an lg breakpoint",
-    tsc: [notAssignable('"lg"', `"sm" | "md" | (string & { 'Use "sm" (384px) or "md" (448px)': never; }) | undefined`)],
+    tsc: [notAssignable('"lg"', `"sm" | "md" | (string & { 'Use "sm" (448px) or "md" (512px)': never; }) | undefined`)],
     dev: '<DescriptionList stackBelow="sm">',
     names: ["tsc", "dev"],
   },
