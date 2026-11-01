@@ -57,9 +57,9 @@ export const Roles: Story = {
   render: () => (
     <Surface>
       <Message role="system" name="Ouro">
-        Ada started a conversation
+        Ana started a conversation
       </Message>
-      <Message role="user" name="Ada Lovelace">
+      <Message role="user" name="Ana Lind">
         How long should the dough rest?
       </Message>
       <Message role="assistant" name="Ouro">
@@ -87,7 +87,7 @@ export const WithAttachments: Story = {
     <Surface>
       <Message
         role="user"
-        name="Ada Lovelace"
+        name="Ana Lind"
         attachments={
           <>
             <Attachment name="crumb.jpg" size={348_160} contentType="image/jpeg" href="#crumb" />

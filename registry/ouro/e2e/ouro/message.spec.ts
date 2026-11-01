@@ -7,7 +7,7 @@ test("messages say who wrote them and sit on the author's side", async ({ page }
   await expect(articles).toHaveCount(3);
   const user = articles.nth(1);
   const assistant = articles.nth(2);
-  await expect(user).toContainText("Ada Lovelace");
+  await expect(user).toContainText("Ana Lind");
   await expect(assistant).toContainText("Ouro");
   const userBox = (await user.locator("[data-ouro-message-content]").boundingBox())!;
   const assistantBox = (await assistant.locator("[data-ouro-message-content]").boundingBox())!;

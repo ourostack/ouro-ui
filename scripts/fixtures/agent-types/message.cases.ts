@@ -5,8 +5,8 @@ export const agentCases: AgentCase[] = [
   {
     id: "message01",
     habit: "a chat API's { role, content } spread as props",
-    tsc: [hint("string", 'Use <Message role="user" name="Ada">Hi</Message>')],
-    dev: '<Message role="user" name="Ada">Hi</Message>',
+    tsc: [hint("string", 'Use <Message role="user" name="Ana">Hi</Message>')],
+    dev: '<Message role="user" name="Ana">Hi</Message>',
     names: ["tsc", "dev"],
   },
   {
@@ -19,8 +19,8 @@ export const agentCases: AgentCase[] = [
   {
     id: "message03",
     habit: "AI Elements' from",
-    tsc: [hint("string", 'Use <Message role="user" name="Ada">')],
-    dev: '<Message role="user" name="Ada">',
+    tsc: [hint("string", 'Use <Message role="user" name="Ana">')],
+    dev: '<Message role="user" name="Ana">',
     names: ["tsc", "dev"],
   },
   {

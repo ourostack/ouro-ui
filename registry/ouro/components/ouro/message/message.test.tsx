@@ -76,7 +76,7 @@ describe("Message", () => {
   it("puts the user's messages at the end in the primary color and others at the start", async () => {
     const { host } = await render(
       <>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           How hot?
         </Message>
         <Message role="assistant" name="Ouro">
@@ -104,12 +104,12 @@ describe("Message", () => {
 
   it("hides the user's own name visually but keeps it for screen readers", async () => {
     const { message } = await render(
-      <Message role="user" name="Ada">
+      <Message role="user" name="Ana">
         Hi
       </Message>,
     );
     const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
-    expect(author.textContent).toBe("Ada");
+    expect(author.textContent).toBe("Ana");
     expect(author.getBoundingClientRect().width).toBeLessThanOrEqual(1);
   });
 
@@ -119,7 +119,7 @@ describe("Message", () => {
         <Message role="assistant" name="Ouro Agent">
           Hi
         </Message>
-        <Message role="user" name="Ada" avatar={false}>
+        <Message role="user" name="Ana" avatar={false}>
           Hi
         </Message>
       </>,
@@ -133,7 +133,7 @@ describe("Message", () => {
   it("shows a system message centered and quiet, without avatar or bubble", async () => {
     const { host, message } = await render(
       <Message role="system" name="Ouro">
-        Ada joined the conversation
+        Ana joined the conversation
       </Message>,
     );
     expect(message.querySelector('[data-ouro="avatar"]')).toBeNull();
@@ -146,7 +146,7 @@ describe("Message", () => {
 
   it("lists attachments under the bubble", async () => {
     const { message } = await render(
-      <Message role="user" name="Ada" attachments={<Attachment name="menu.pdf" />}>
+      <Message role="user" name="Ana" attachments={<Attachment name="menu.pdf" />}>
         Here it is
       </Message>,
     );
@@ -225,7 +225,7 @@ describe("Message", () => {
   it("forwards a ref and lets app layout classes win", async () => {
     let element: HTMLElement | null = null;
     const { message } = await render(
-      <Message role="user" name="Ada" className="mt-4" ref={(node) => void (element = node)}>
+      <Message role="user" name="Ana" className="mt-4" ref={(node) => void (element = node)}>
         Hi
       </Message>,
     );
@@ -263,10 +263,10 @@ describe("Message development messages", () => {
 
   it.each([
     ["an unknown role", { role: "bot" }, 'role="bot" is not a role; use "user", "assistant" or "system"', '<Message role="assistant" name="Ouro">'],
-    ["from", { from: "user" }, "from is not a prop", '<Message role="user" name="Ada">'],
-    ["sender", { sender: "Ada" }, "sender is not a prop", '<Message role="user" name="Ada">'],
-    ["author", { author: "Ada" }, "author is not a prop", '<Message role="user" name="Ada">'],
-    ["content", { content: "Hi" }, "content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
+    ["from", { from: "user" }, "from is not a prop", '<Message role="user" name="Ana">'],
+    ["sender", { sender: "Ana" }, "sender is not a prop", '<Message role="user" name="Ana">'],
+    ["author", { author: "Ana" }, "author is not a prop", '<Message role="user" name="Ana">'],
+    ["content", { content: "Hi" }, "content is not a prop; the message is the children", '<Message role="user" name="Ana">Hi</Message>'],
     ["an unknown variant", { variant: "bubble" }, 'variant="bubble" is not a variant; use "default", "chat", "post" or "reply"', '<Message variant="chat" role="assistant" name="Grace">'],
     ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
@@ -317,7 +317,7 @@ describe("Message development messages", () => {
 
   it("checks the className", async () => {
     await render(
-      <Message role="user" name="Ada" className="bg-blue-500">
+      <Message role="user" name="Ana" className="bg-blue-500">
         Hi
       </Message>,
     );
@@ -466,11 +466,11 @@ describe("Message chat", () => {
         <Message role="assistant" name="Ouro" continued>
           Second
         </Message>
-        <Message role="user" name="Ada" continued>
+        <Message role="user" name="Ana" continued>
           Mine
         </Message>
         <Message role="system" name="Ouro" continued>
-          Ada joined
+          Ana joined
         </Message>
       </>,
     );
@@ -567,10 +567,10 @@ describe("Message rows", () => {
         <Message role="assistant" name="Ouro">
           Hi
         </Message>
-        <Message role="user" name="Ada" attachments={null}>
+        <Message role="user" name="Ana" attachments={null}>
           Hi
         </Message>
-        <Message variant="chat" role="user" name="Ada" attachments={null}>
+        <Message variant="chat" role="user" name="Ana" attachments={null}>
           Hi
         </Message>
       </>,
@@ -581,7 +581,7 @@ describe("Message rows", () => {
   it("centers a system note over a wider footer", async () => {
     const { host, message } = await render(
       <Message role="system" name="Ouro" footer={<span style={{ display: "inline-block", width: 300, height: 20 }} />}>
-        Ada joined
+        Ana joined
       </Message>,
     );
     const box = bubbleOf(message).getBoundingClientRect();
@@ -1024,7 +1024,7 @@ describe("Message actions", () => {
         <Message variant="chat" role="user" name="Priya Okafor" actions={actionsFor([])}>
           Mine
         </Message>
-        <Message role="user" name="Ada" actions={actionsFor([])}>
+        <Message role="user" name="Ana" actions={actionsFor([])}>
           Default
         </Message>
         <Message role="assistant" name="Ouro" actions={actionsFor([])}>

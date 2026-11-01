@@ -47,7 +47,7 @@ export interface MessageOwnProps {
   /**
    * Who wrote it. `user` is the person using the app: their messages sit at the end, in
    * the primary color. `assistant` is anyone else, such as an agent, at the start. `system`
-   * is the app's own note ("Ada joined"), centered and quiet.
+   * is the app's own note ("Ana joined"), centered and quiet.
    */
   role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
   /**
@@ -76,7 +76,7 @@ export interface MessageOwnProps {
   /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
-   * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
+   * avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}`
    * (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show
    * no avatar.
    *
@@ -149,14 +149,14 @@ export interface MessageOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
-  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`. */
-  from?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  sender?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  author?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`. */
-  content?: { 'Use <Message role="user" name="Ada">Hi</Message>': never };
+  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ana">`. */
+  from?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  sender?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  author?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The message is the children: `<Message role="user" name="Ana">Hi</Message>`. */
+  content?: { 'Use <Message role="user" name="Ana">Hi</Message>': never };
   /** Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`. */
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
@@ -302,9 +302,9 @@ export function Message(props: MessageProps): JSX.Element {
           nameProp === undefined && ["name is missing, so screen readers cannot say who wrote it", `<Message role="${role}" name="Ouro">`],
           role !== roleProp && [`role="${String(roleProp)}" is not a role; use "user", "assistant" or "system"`, '<Message role="assistant" name="Ouro">'],
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "default", "chat", "post" or "reply"`, '<Message variant="chat" role="assistant" name="Grace">'],
-          from !== undefined && ["from is not a prop", '<Message role="user" name="Ada">'],
-          (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ada">'],
-          content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
+          from !== undefined && ["from is not a prop", '<Message role="user" name="Ana">'],
+          (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ana">'],
+          content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ana">Hi</Message>'],
           own !== undefined && ["own is not a prop; the user's own messages are role=\"user\"", '<Message role="user" variant="chat">'],
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
           variant === "post" && continuedProp && ["a post is never continued: every post shows its author", '<Message variant="reply" continued>'],

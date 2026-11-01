@@ -515,7 +515,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           ],
           Children.toArray(children).some((child) => !isValidElement(child)) && [
             "MessageList holds Messages",
-            '<MessageList label="Conversation"><Message role="user" name="Ada">Hi</Message></MessageList>',
+            '<MessageList label="Conversation"><Message role="user" name="Ana">Hi</Message></MessageList>',
           ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,

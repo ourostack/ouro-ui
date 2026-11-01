@@ -30,13 +30,13 @@ function Surface({ children, width = 380 }: { children: ReactNode; width?: numbe
 
 const conversations: ConversationListItem[] = [
   { id: "trail", title: "Trail crew", subtitle: "Weekend hikes", preview: "Meet at the north gate at eight.", time: "9:41", unread: true },
-  { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15" },
+  { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15" },
   { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Tue", badges: <Badge variant="soft">Muted</Badge> },
   { id: "grace", title: "Grace Hopper", preview: "Found the bug: a moth in relay 70.", time: "Mon", unread: true },
 ];
 
 function Controlled({ density }: { density?: "comfortable" | "compact" }) {
-  const [openId, setOpenId] = useState<string | null>("ada");
+  const [openId, setOpenId] = useState<string | null>("ana");
   return (
     <Surface>
       <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} density={density} />
@@ -48,7 +48,7 @@ const meta = {
   title: "Chat/ConversationList",
   component: ConversationList,
   parameters: { layout: "padded" },
-  args: { label: "Conversations", items: conversations, selectedId: "ada", onSelect: () => {} },
+  args: { label: "Conversations", items: conversations, selectedId: "ana", onSelect: () => {} },
   argTypes: {
     density: { control: "inline-radio", options: ["comfortable", "compact"] },
   },

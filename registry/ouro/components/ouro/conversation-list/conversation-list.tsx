@@ -181,7 +181,7 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
  *
  * @example
  * <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />
- * <ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ada", title: "Ada Lovelace", section: "pinned" }]} onSelect={open} />
+ * <ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ana", title: "Ana Lind", section: "pinned" }]} onSelect={open} />
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is a named list of buttons, one per conversation, in order)
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows unread conversations with a bold title, a dot and a spoken label)
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > marks the open conversation current and highlights it)

@@ -64,7 +64,7 @@ function ChatHistory({ items }: { items: Item[] }) {
         <Message
           key={item.id}
           role={item.role}
-          name={item.role === "user" ? "Ada Lovelace" : "Ouro"}
+          name={item.role === "user" ? "Ana Lind" : "Ouro"}
           presence={item.role === "assistant" ? "available" : undefined}
           presenceLabel="Available"
           streaming={item.streaming}
@@ -165,10 +165,10 @@ export const ScrolledBack: Story = {
 
 const launchPosts = [
   { id: 1, author: "Grace Hopper", text: "The launch checklist is up. Have a look before Thursday." },
-  { id: 2, author: "Ada Lovelace", text: "Read it. The rollback step needs an owner." },
+  { id: 2, author: "Ana Lind", text: "Read it. The rollback step needs an owner." },
   { id: 3, author: "Grace Hopper", text: "I'll take rollback. Ouro drafts the release notes." },
   { id: 4, author: "Ouro", text: "Release notes drafted from the merged changes." },
-  { id: 5, author: "Ada Lovelace", text: "Thanks! Shipping Thursday at 10." },
+  { id: 5, author: "Ana Lind", text: "Thanks! Shipping Thursday at 10." },
   { id: 6, author: "Grace Hopper", text: "Calendar invite sent for the launch call." },
 ];
 const quickReactions = ["👍", "🎉", "❤️"];

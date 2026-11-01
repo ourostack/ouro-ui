@@ -19,10 +19,10 @@ const conversations: ConversationListItem[] = [
     section: "recent",
   },
   { id: "design", title: "Design reviews", where: "Lantern Labs", preview: "Odile: Can you sign off on the mockups?", time: "9:12", section: "recent" },
-  { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
+  { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
 ];
 
 export default function ConversationListDemo(): JSX.Element {
-  const [openId, setOpenId] = useState<string | null>("ada");
+  const [openId, setOpenId] = useState<string | null>("ana");
   return <ConversationList label="Conversations" items={conversations} sections={sections} selectedId={openId} onSelect={setOpenId} className="max-w-sm" />;
 }

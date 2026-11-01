@@ -5,7 +5,7 @@ import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/
 
 // Type tests: `pnpm typecheck` compiles this file.
 
-expectTypeOf<{ role: "user"; name: "Ada" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "assistant"; name: "Ouro"; avatar: "/ouro.png"; streaming: true; streamingLabel: "Écrit"; children: "Hi"; attachments: null }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "system"; name: "Ouro"; avatar: false }>().toExtend<MessageProps>();
 expectTypeOf<ComponentProps<typeof Message>>().toEqualTypeOf<MessageProps>();
@@ -24,30 +24,30 @@ expectTypeOf<{
   actionsLabel: "Actions";
   menuLabel: "More";
 }>().toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; variant: "post"; subject: "Agenda" }>().toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply" }>().toExtend<MessageProps>();
-expectTypeOf<{ role: "assistant"; name: "Ada"; variant: "chat"; presence: "busy"; presenceLabel: "In a meeting" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "post"; subject: "Agenda" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "reply" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Ana"; variant: "chat"; presence: "busy"; presenceLabel: "In a meeting" }>().toExtend<MessageProps>();
 // A presence that may be missing, with its label, type checks as it is.
-expectTypeOf<{ role: "assistant"; name: "Ada"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Ana"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<MessageProps>();
 expectTypeOf<{ key: "reply"; label: "Reply"; icon: "↩"; onClick: (event: MouseEvent<HTMLElement>) => void; disabled: true }>().toExtend<MessageAction>();
 // An action needs a label, for its name and tooltip.
 expectTypeOf<{ key: "reply"; icon: "↩"; onClick: () => void }>().not.toExtend<MessageAction>();
 
 // role and name are required; other roles and the names agents bring from other chat kits name the fix.
-expectTypeOf<{ name: "Ada" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ name: "Ana" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "bot"; name: "Ouro" }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; from: "user" }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; sender: "Ada" }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; content: "Hi" }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; variant: "bubble" }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; own: true }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "user"; name: "Ada"; timestamp: "9:41" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; from: "user" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; sender: "Ana" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; content: "Hi" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "bubble" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; own: true }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; timestamp: "9:41" }>().not.toExtend<MessageProps>();
 // A presence needs the words it says; unknown presences name the fix.
-expectTypeOf<{ role: "assistant"; name: "Ada"; presence: "busy" }>().not.toExtend<MessageProps>();
-expectTypeOf<{ role: "assistant"; name: "Ada"; presence: "dnd"; presenceLabel: "Busy" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Ana"; presence: "busy" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Ana"; presence: "dnd"; presenceLabel: "Busy" }>().not.toExtend<MessageProps>();
 
 // @ts-expect-error name is required.
 createElement(Message, { role: "user" });
 // @ts-expect-error presence needs presenceLabel.
-createElement(Message, { role: "assistant", name: "Ada", presence: "busy" });
+createElement(Message, { role: "assistant", name: "Ana", presence: "busy" });

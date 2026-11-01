@@ -6,7 +6,7 @@ import { Message } from "@/registry/ouro/components/ouro/message/message";
 export default function MessageDemo(): JSX.Element {
   return (
     <div className="grid gap-4">
-      <Message role="user" name="Ada Lovelace">
+      <Message role="user" name="Ana Lind">
         How long should the dough rest?
       </Message>
       <Message role="assistant" name="Ouro">

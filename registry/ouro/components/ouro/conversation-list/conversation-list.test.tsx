@@ -33,7 +33,7 @@ async function render(node: ReactNode) {
 
 const items: ConversationListItem[] = [
   { id: "trail", title: "Trail crew", subtitle: "Weekend hikes", preview: "Meet at the north gate at eight.", time: "9:41", unread: true },
-  { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "Tue" },
+  { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "Tue" },
   { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Mon", avatar: false },
 ];
 
@@ -54,7 +54,7 @@ describe("ConversationList", () => {
     await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
     expect(rows.map((row) => row.textContent)).toEqual([
       "TCTrail crew9:41Weekend hikesMeet at the north gate at eight.Unread",
-      "ALAda LovelaceTueThe engine notes are attached.",
+      "ALAna LindTueThe engine notes are attached.",
       "Garden clubMonSeed swap moved to Sunday.",
     ]);
     expect(rows.every((row) => row.type === "button")).toBe(true);
@@ -63,8 +63,8 @@ describe("ConversationList", () => {
   it("calls onSelect with the row's id on a click, Enter and Space", async () => {
     const onSelect = vi.fn();
     const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={onSelect} />);
-    await userEvent.click(page.getByRole("button", { name: /Ada Lovelace/ }));
-    expect(onSelect).toHaveBeenLastCalledWith("ada");
+    await userEvent.click(page.getByRole("button", { name: /Ana Lind/ }));
+    expect(onSelect).toHaveBeenLastCalledWith("ana");
     // WebKit does not focus a button on click, so focus it as a keyboard user would reach it.
     await act(async () => rows[1]!.focus());
     await userEvent.keyboard("{ArrowDown}");
@@ -72,12 +72,12 @@ describe("ConversationList", () => {
     expect(onSelect).toHaveBeenLastCalledWith("garden");
     await userEvent.keyboard("{ArrowUp}");
     await userEvent.keyboard(" ");
-    expect(onSelect).toHaveBeenLastCalledWith("ada");
+    expect(onSelect).toHaveBeenLastCalledWith("ana");
     expect(onSelect).toHaveBeenCalledTimes(3);
   });
 
   it("marks the open conversation current and highlights it", async () => {
-    const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
+    const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     expect(rows.map((row) => row.getAttribute("aria-current"))).toEqual([null, "true", null]);
     // A pointer an earlier test left over the row would show its hover shade instead.
     const away = document.createElement("div");
@@ -96,7 +96,7 @@ describe("ConversationList", () => {
   });
 
   it("keeps the open conversation highlighted under the pointer", async () => {
-    const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />);
+    const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const paint = (value: string) => {
       const probe = document.createElement("span");
       probe.style.backgroundColor = value;
@@ -267,7 +267,7 @@ describe("ConversationList", () => {
 
   it("renders in server HTML and hydrates without a warning", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const node = <ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />;
+    const node = <ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />;
     const html = renderToString(node);
     expect(html).toContain('aria-current="true"');
     expect(html).toContain("Trail crew");
@@ -289,7 +289,7 @@ describe("ConversationList", () => {
     const { host, rows, rerender } = await render(
       <>
         <button type="button">Before</button>
-        <ConversationList label="Conversations" items={items} selectedId="ada" onSelect={() => {}} />
+        <ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />
         <button type="button">After</button>
       </>,
     );
@@ -321,7 +321,7 @@ describe("ConversationList", () => {
 
   it("keeps the stop on the row that has focus while the open conversation changes", async () => {
     function Inbox() {
-      const [openId, setOpenId] = useState<string | null>("ada");
+      const [openId, setOpenId] = useState<string | null>("ana");
       return <ConversationList label="Conversations" items={items} selectedId={openId} onSelect={setOpenId} />;
     }
     const { rows } = await render(<Inbox />);
@@ -340,7 +340,7 @@ describe("ConversationList", () => {
     await userEvent.click(rows[1]!);
     expect(withEvent).toHaveBeenCalledTimes(1);
     const [id, event] = withEvent.mock.calls[0]!;
-    expect(id).toBe("ada");
+    expect(id).toBe("ana");
     expect(event.type).toBe("click");
     expect((event.target as Element).closest('[data-ouro-part="row"]')).toBe(rows[1]);
     expect(event.nativeEvent.isTrusted).toBe(true);
@@ -399,7 +399,7 @@ describe("ConversationList", () => {
     expect(icon.nextElementSibling).toBe(title);
     expect(icon.querySelector("svg")!.getBoundingClientRect().width).toBe(16);
     expect(getComputedStyle(icon).color).not.toBe(getComputedStyle(title).color);
-    await expect.element(page.getByRole("button", { name: /^Pinned Ada Lovelace/ })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: /^Pinned Ana Lind/ })).toBeVisible();
     expect(rows[1]!.querySelector("[data-ouro-conversation-icon]")).toBeNull();
   });
 
@@ -411,7 +411,7 @@ describe("ConversationList", () => {
         items={[
           { id: "a", title: "Trail crew", preview: "Meet at eight.", time: "9:41", unread: true, mark: mention },
           { id: "b", title: "Weekly sync", subtitle: "Garden club", time: "9:27", mark: "in 10 min" },
-          { id: "c", title: "Ada Lovelace", time: "Tue", unread: true },
+          { id: "c", title: "Ana Lind", time: "Tue", unread: true },
           { id: "d", title: "Grace Hopper", preview: "Found the bug.", time: "Mon" },
         ]}
         onSelect={() => {}}
@@ -471,7 +471,7 @@ describe("ConversationList", () => {
           label="Unread"
           items={[
             { id: "a", title: "Weekly sync", where: "Garden club", preview: "Could you share the rollout numbers before Friday's review?", time: "9:27", unread: true },
-            { id: "b", title: "Ada Lovelace", preview: "Short.", time: "Tue" },
+            { id: "b", title: "Ana Lind", preview: "Short.", time: "Tue" },
           ]}
           onSelect={() => {}}
         />
@@ -505,7 +505,7 @@ describe("ConversationList", () => {
 const grouped: ConversationListItem[] = [
   { id: "notes", title: "Notes to self", preview: "Bring the slides.", time: "Mon" },
   { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", unread: true, section: "recent" },
-  { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "Tue", section: "pinned" },
+  { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "Tue", section: "pinned" },
   { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Mon", section: "recent" },
 ];
 const sections = [
@@ -521,7 +521,7 @@ describe("ConversationList sections", () => {
     const onSectionOpenChange = vi.fn();
     const { host, rows } = await render(<ConversationList label="Chats" items={grouped} sections={sections} onSectionOpenChange={onSectionOpenChange} onSelect={() => {}} />);
     // Rows with no section first, then each section's rows in the sections' order; an empty section is left out.
-    expect(rows.map((row) => row.querySelector("[data-ouro-conversation-title]")!.textContent)).toEqual(["Notes to self", "Ada Lovelace", "Trail crew", "Garden club"]);
+    expect(rows.map((row) => row.querySelector("[data-ouro-conversation-title]")!.textContent)).toEqual(["Notes to self", "Ana Lind", "Trail crew", "Garden club"]);
     expect(headers(host).map((header) => header.textContent)).toEqual(["Pinned", "Recentyou posted here lately"]);
     const recent = headers(host)[1]!;
     expect(recent.getAttribute("aria-expanded")).toBe("true");
@@ -642,7 +642,7 @@ describe("ConversationList sections", () => {
 describe("ConversationList development messages", () => {
   it("warns of nothing when the props are right", async () => {
     await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
-    await render(<ConversationList label="Conversations" items={items} density="compact" selectedId="ada" onSelect={() => {}} />);
+    await render(<ConversationList label="Conversations" items={items} density="compact" selectedId="ana" onSelect={() => {}} />);
     await render(<ConversationList label="Chats" items={grouped} sections={[{ id: "pinned", title: "Pinned", open: true }, sections[1]!]} onSectionOpenChange={() => {}} onSelect={() => {}} />);
     await render(<ConversationList label="Chats" items={grouped} sections={sections} onSelect={() => {}} />);
     expect(warn).not.toHaveBeenCalled();
@@ -650,15 +650,15 @@ describe("ConversationList development messages", () => {
 
   it.each([
     ["an unknown density", { density: "cozy" }, 'density="cozy" is not a density; use "comfortable" or "compact"', '<ConversationList density="compact">'],
-    ["value", { value: "ada" }, "value is not a prop", "<ConversationList selectedId={openId}>"],
-    ["selected", { selected: "ada" }, "selected is not a prop", "<ConversationList selectedId={openId}>"],
+    ["value", { value: "ana" }, "value is not a prop", "<ConversationList selectedId={openId}>"],
+    ["selected", { selected: "ana" }, "selected is not a prop", "<ConversationList selectedId={openId}>"],
     ["onValueChange", { onValueChange: () => {} }, "onValueChange is not a prop", "<ConversationList onSelect={(id) => open(id)}>"],
     ["conversations", { conversations: [] }, "conversations is not a prop", "<ConversationList items={conversations}>"],
     ["groups", { groups: [] }, "groups is not a prop", '<ConversationList sections={[{ id: "pinned", title: "Pinned" }]} items={[{ ...row, section: "pinned" }]}>'],
     [
       "a row whose section is not in sections",
-      { items: [{ id: "ada", title: "Ada Lovelace", section: "pinned" }] },
-      'the row "ada" names section "pinned", which is not in sections, so it shows first',
+      { items: [{ id: "ana", title: "Ana Lind", section: "pinned" }] },
+      'the row "ana" names section "pinned", which is not in sections, so it shows first',
       '<ConversationList sections={[{ id: "pinned", title: "Pinned" }]}>',
     ],
     [

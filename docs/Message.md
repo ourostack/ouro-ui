@@ -34,7 +34,7 @@ The props the modes share. Type: `MessageProps`.
 | `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the top corner of the bubble or card. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
 | `attachments` | `ReactNode` |  | Files sent with the message, shown under it: `<Attachment>` elements. |
-| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
+| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
@@ -44,7 +44,7 @@ The props the modes share. Type: `MessageProps`.
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
-| `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ada joined"), centered and quiet. |
+| `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
 | `subject` | `ReactNode` |  | A post's subject, in bold above its text. `post` only. |
@@ -81,11 +81,11 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `author`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
-- `content`: Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`.
-- `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`.
+- `author`: Not a prop. The author is `name`: `<Message role="user" name="Ana">`.
+- `content`: Not a prop. The message is the children: `<Message role="user" name="Ana">Hi</Message>`.
+- `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ana">`.
 - `own`: Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`.
-- `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
+- `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ana">`.
 - `timestamp`: Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`.
 
 ## `className` is for layout only

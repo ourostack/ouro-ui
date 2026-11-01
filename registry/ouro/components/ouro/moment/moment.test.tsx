@@ -216,7 +216,7 @@ describe("Moment", () => {
       await heardIfSpoken();
       await render(<Moment kind="empty" announce title="Nothing to say" />);
       await heardIfSpoken();
-      await render(<Moment kind="success" announce title="Sent" description={<strong>to Ada</strong>} />);
+      await render(<Moment kind="success" announce title="Sent" description={<strong>to Ana</strong>} />);
       await expect.poll(() => announced.count("Sent")).toBe(1);
       // A moment that turns into a success is heard then, and again when what it says changes.
       const turning = await render(<Moment kind="loading" title="Uploading" />);
