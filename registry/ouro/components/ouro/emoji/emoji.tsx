@@ -184,6 +184,7 @@ function useHostActive(image: { current: HTMLImageElement | null }, watch: boole
     listen("focusout", (event) => setFocused(host.contains(event.relatedTarget as Node | null)));
     // Stryker disable next-line BlockStatement: once play is set or the emoji is gone, what the host did decides nothing.
     return () => {
+      // Stryker disable next-line CallExpression: a listener left once play is set or the emoji is gone decides nothing.
       listening.abort();
       setHovered(false);
       setFocused(false);

@@ -488,6 +488,8 @@ describe("Emoji helpers", () => {
             { id: "tea", name: "Cup of tea", shortcodes: ["tea"], src: image("tea") },
             { id: "tada", name: "Party popper", shortcodes: ["tada"], src: image("tada") },
             { id: "cat", name: "Cat face", src: image("cat") },
+            { id: "hotdog", name: "Hot dog", src: image("hotdog") },
+            { id: "cheer", name: "Cheering", shortcodes: ["cheer", "hooray"], src: image("cheer") },
           ],
         },
       ],
@@ -498,6 +500,8 @@ describe("Emoji helpers", () => {
     expect(ids("t", 2)).toEqual(["tea", "tada"]);
     expect(ids("CUP")).toEqual(["tea"]);
     expect(ids("tasty")).toEqual(["taco"]);
-    expect(ids("dog")).toEqual([]);
+    // A second shortcode counts as a shortcode, ahead of a name.
+    expect(ids("ho")).toEqual(["cheer", "hotdog"]);
+    expect(ids("here")).toEqual([]);
   });
 });
