@@ -1,2 +1,0 @@
-- New: Composer, a chat message box: text that grows from one line, a send button, actions, a toolbar shown on demand and attachments in one frame with one focus outline. Enter or Ctrl+Enter sends, but not mid-word in an input method, and `sending` and `sendDisabledReason` hold a message back and say why.
-- New: TextArea `highlights` marks ranges of its text in place, with a tone and a label that screen readers hear; the marks follow their words through typing, pasting and undo, and `onHighlightsChange` gives them back moved.

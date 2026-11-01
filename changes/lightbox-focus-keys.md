@@ -1,2 +1,0 @@
-- Changed: closing Lightbox gives focus to the thumbnail of the image last shown, not the one that opened it, and a controlled Lightbox takes `returnFocus`, which gets the index of the image last shown and returns the element to focus, such as that image's thumbnail in your layout.
-- New: Home and End go to Lightbox's first and last image.
