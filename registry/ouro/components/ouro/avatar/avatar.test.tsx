@@ -360,6 +360,12 @@ describe("Avatar shapes and icons", () => {
     expect(mark.left - box.left).toBeCloseTo(box.right - mark.right, 0);
     expect(mark.top - box.top).toBeCloseTo(box.bottom - mark.bottom, 0);
   });
+
+  it("shows the initials when the icon is null", async () => {
+    const { avatar } = await render(<Avatar name="Weekly sync" icon={null} />);
+    expect(avatar.textContent).toBe("WS");
+    expect(avatar.querySelector("[data-ouro-avatar-initials]")).not.toBeNull();
+  });
 });
 
 describe("Avatar presence", () => {

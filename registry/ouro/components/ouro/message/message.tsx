@@ -295,8 +295,6 @@ export function Message(props: MessageProps): JSX.Element {
       ? (token: string) => `remove "${token}"; the bubble color follows role`
       : /* istanbul ignore next @preserve -- production only */ "",
   );
-  // The words a presence's fix suggests: the app's own label, else the presence's name.
-  const presenceWords = presence === undefined ? "" : presenceLabel || `${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}`;
   useDevWarnings(
     "Message",
     process.env.NODE_ENV !== "production"
@@ -314,12 +312,12 @@ export function Message(props: MessageProps): JSX.Element {
           presence !== undefined &&
             isValidElement(avatar) && [
               "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
-              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${presenceWords}" />}`,
+              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
             ],
           presence !== undefined &&
             !presenceLabel && [
               "presenceLabel is missing, so screen readers hear no presence",
-              `<Message presence="${presence}" presenceLabel="${presenceWords}">`,
+              `<Message presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}">`,
             ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -544,6 +542,11 @@ function AvatarSlot({
   if (isValidElement(avatar)) return avatar;
   const dot = presence === undefined ? {} : { presence: presence as AvatarPresence, presenceLabel: presenceLabel || presence.replaceAll("-", " ") };
   return <Avatar name={name} src={avatar} alt="" size={size} className={className} {...dot} />;
+}
+
+/** The words a presence's fix suggests: the app's own label, else the presence's name ("Do not disturb"). */
+function wordsFor(presence: string, label: string | undefined): string {
+  return label || `${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}`;
 }
 
 /** A row under the message (its footer or thread), or nothing when the app passed nothing. */
