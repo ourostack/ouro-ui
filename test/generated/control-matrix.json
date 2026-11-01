@@ -11,6 +11,7 @@
       "Button/Playground",
       "Button/TonesAndVariants",
       "Button/Sizes",
+      "Button/Inline",
       "Button/Loading",
       "Button/Disabled",
       "Button/InContext"

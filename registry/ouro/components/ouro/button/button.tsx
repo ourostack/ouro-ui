@@ -71,17 +71,23 @@ export interface ButtonBaseProps {
     | (string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never })
     | undefined;
   /**
-   * Control size. Each size is taller on phones and steps down to desktop
-   * density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an
-   * icon-only button, pass the icon as children and an `aria-label`. Any other
+   * Control size. `sm`, `md` and `lg` are taller on phones and step down to desktop
+   * density from the `sm` breakpoint (640px). `inline` is an action inside a line of text,
+   * such as Undo in a note: it takes the text's size, leaves the line's height as it was and
+   * keeps a target at least 24px tall and wide (44px on a coarse pointer). shadcn's `default`
+   * is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other
    * string is a type error whose message names the fix. @default "md"
-   * @claim "Each size is taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::appearance > orders sizes sm < md < lg)
-   * @claim "Each size is taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
+   * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::appearance > orders sizes sm < md < lg)
+   * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
+   * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::inline size > sits in a line of text at the text's size without moving the line, and keeps a 24px target)
+   * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::inline size > is at least 24px wide around a one-letter label)
+   * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.touch.test.tsx, /44px hit area on a coarse pointer/)
    */
   size?:
     | "sm"
     | "md"
     | "lg"
+    | "inline"
     | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never })
     | undefined;
   /** Stretches the button to the width of its container. */
@@ -201,6 +207,9 @@ const sizes = {
   lg:
     `${density} gap-2 text-base [--ouro-button-h:calc(var(--spacing)*12)] [--ouro-button-px:calc(var(--spacing)*5)] ` +
     "sm:[--ouro-button-h:calc(var(--spacing)*11)]",
+  // In a line of text, at the text's own size: the padding takes the box to 24px and more, and the
+  // negative margin gives that back, so the line keeps its height and the label sits on its baseline.
+  inline: "h-auto min-w-6 px-1 py-[3px] -my-1 gap-1 rounded-md align-baseline text-[length:inherit] leading-[inherit]",
 } as const;
 
 // `soft` is the tone at low opacity behind text in the tone, the pattern shadcn uses for
