@@ -196,35 +196,35 @@ describe("EmojiPicker with a catalogue", () => {
     expect(previewArt()).toBe(smile.src);
     await userEvent.hover(cell("Party popper"));
     await expect.poll(() => art(cell("Party popper"))).toBe(party.animatedSrc);
-    expect(previewArt()).toBe(party.animatedSrc);
+    await expect.poll(previewArt).toBe(party.animatedSrc);
     await userEvent.hover(search());
     await expect.poll(() => art(cell("Party popper"))).toBe(party.src);
-    expect(previewArt()).toBe(smile.src);
+    await expect.poll(previewArt).toBe(smile.src);
     await userEvent.click(search());
     await userEvent.keyboard("{ArrowDown}");
     expect(focused()).toBe(cell("Smiling face"));
-    expect(art(cell("Smiling face"))).toBe(smile.animatedSrc);
-    expect(previewArt()).toBe(smile.animatedSrc);
+    await expect.poll(() => art(cell("Smiling face"))).toBe(smile.animatedSrc);
+    await expect.poll(previewArt).toBe(smile.animatedSrc);
     await userEvent.keyboard("{ArrowRight}");
-    expect(art(cell("Smiling face"))).toBe(smile.src);
-    expect(art(cell("Waving hand"))).toBe(wave.animatedSrc);
-    expect(previewArt()).toBe(wave.animatedSrc);
+    await expect.poll(() => art(cell("Smiling face"))).toBe(smile.src);
+    await expect.poll(() => art(cell("Waving hand"))).toBe(wave.animatedSrc);
+    await expect.poll(previewArt).toBe(wave.animatedSrc);
     // Focus leaves the grid for the search: the preview stops.
     await userEvent.keyboard("{ArrowUp}");
     expect(focused()).toBe(search());
-    expect(art(cell("Waving hand"))).toBe(wave.src);
-    expect(previewArt()).toBe(wave.src);
+    await expect.poll(() => art(cell("Waving hand"))).toBe(wave.src);
+    await expect.poll(previewArt).toBe(wave.src);
   });
 
   it("shows animated emoji still under reduced motion, under the mouse and in focus", async () => {
     await open();
     await userEvent.hover(cell("Party popper"));
-    expect(art(cell("Party popper"))).toBe(party.src);
-    expect(previewArt()).toBe(party.src);
+    await expect.poll(previewArt).toBe(party.src);
+    await expect.poll(() => art(cell("Party popper"))).toBe(party.src);
     await userEvent.click(search());
     await userEvent.keyboard("{ArrowDown}");
-    expect(art(cell("Smiling face"))).toBe(smile.src);
-    expect(previewArt()).toBe(smile.src);
+    await expect.poll(() => art(cell("Smiling face"))).toBe(smile.src);
+    await expect.poll(previewArt).toBe(smile.src);
   });
 
   it("offers the catalogue's skin tones as images, as a radio group the arrow keys move through", async () => {
