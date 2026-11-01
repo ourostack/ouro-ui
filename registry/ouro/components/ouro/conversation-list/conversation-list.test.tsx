@@ -186,6 +186,13 @@ describe("ConversationList", () => {
     expect(ada!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AL");
   });
 
+  it("shows a text title without a name as plain text", async () => {
+    const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
+    const title = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
+    expect(title.textContent).toBe("Trail crew");
+    expect(title.querySelector('[aria-hidden="true"], .sr-only')).toBeNull();
+  });
+
   it("shows the avatar from the title or a picture, or none", async () => {
     const { rows } = await render(
       <ConversationList
