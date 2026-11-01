@@ -55,6 +55,7 @@ The props the modes share. Type: `CommandProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, applied to the dialog panel: margins (`mt-8`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the close button, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the palette. |
+| `empty` | `ReactNode` |  | Content for the empty state in place of `emptyLabel`, such as a picture with words: `empty={<Empty icon={<SearchIcon />} title="Nothing matches" />}`. While `loading`, the loading line still shows under it. |
 | `emptyLabel` | `string` | `"No results"` | What shows when nothing matches the search. |
 | `items` (required) | `readonly CommandEntry[]` |  | The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. |
 | `loading` | `boolean` |  | Whether results are on their way: shows `loadingLabel` beside the input, or under the empty state while nothing matches yet ("No chats by that name." over "Searching the directory…"), and announces it politely for the first load of each opening (not again while typing goes on). Set it back to false when the request fails or aborts. |

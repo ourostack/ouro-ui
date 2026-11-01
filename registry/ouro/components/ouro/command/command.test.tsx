@@ -556,9 +556,26 @@ describe("Command server search", () => {
     expect(document.querySelector("[data-ouro-command-loading]")).toBeNull();
     await act(async () => roots[0]!.render(jump(false)));
     expect(text(empty())).toBe("No chats by that name.");
-    await act(async () => roots[0]!.render(jump(true, ["Sam Rivera"])));
+    await act(async () => roots[0]!.render(jump(true, ["Noor Haddad"])));
     expect(empty()).toBeNull();
     expect(document.querySelector("[data-ouro-command-loading]")?.textContent).toBe("Searching the directory…");
+  });
+
+  it("takes content for its empty state, such as a picture with words, with the loading line under it while loading", async () => {
+    const empty = (
+      <figure data-testid="nothing" style={{ margin: 0 }}>
+        <svg aria-hidden="true" width="48" height="48" />
+        <figcaption>Nothing matches that.</figcaption>
+      </figure>
+    );
+    const jump = (loading: boolean) => <Command title="Jump to a chat" open onOpenChange={() => {}} items={[]} onQueryChange={() => {}} loading={loading} empty={empty} emptyLabel="Unused" loadingLabel="Searching the directory…" />;
+    await render(jump(true));
+    await settled();
+    const region = document.querySelector<HTMLElement>("[data-ouro-command-empty]")!;
+    expect(region.querySelector('[data-testid="nothing"]')).not.toBeNull();
+    expect(region.textContent!.replace(/\u2060/g, "")).toBe("Nothing matches that.Searching the directory…");
+    await act(async () => roots[0]!.render(jump(false)));
+    expect(document.querySelector("[data-ouro-command-empty]")!.textContent!.replace(/\u2060/g, "")).toBe("Nothing matches that.");
   });
 
   it("takes a translated loading label, and aborts the last search when the palette closes", async () => {
