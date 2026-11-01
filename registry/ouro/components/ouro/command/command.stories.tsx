@@ -5,6 +5,7 @@ import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/command/command";
+import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -168,4 +169,33 @@ const chats: CommandEntry[] = [
 export const Media: Story = {
   args: { title: "Go to a chat", trigger: <Button variant="outline" tone="secondary">Go to…</Button>, items: chats, placeholder: "Search chats and actions…" },
   parameters: { screenshot: { name: "command-media", open: true } },
+};
+
+// Two made-up image emoji, drawn here, for chat names that hold emoji.
+const svg = (body: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`)}`;
+const emoji: EmojiCatalogue = {
+  categories: [
+    {
+      id: "symbols",
+      label: "Symbols",
+      items: [
+        { id: "rocket", name: "Rocket", text: "🚀", src: svg('<path d="M16 3c6 4 8 11 6 18h-12C8 14 10 7 16 3z" fill="#7c5cff"/><circle cx="16" cy="13" r="3" fill="#fff"/><path d="M12 22l-3 6 5-3zm8 0 3 6-5-3z" fill="#e8435a"/>') },
+        { id: "party", name: "Party popper", text: "🎉", src: svg('<path d="M5 28 12 9l11 11z" fill="#ffb400"/><circle cx="22" cy="6" r="2" fill="#e8435a"/><circle cx="27" cy="12" r="2" fill="#2bb673"/>') },
+      ],
+    },
+  ],
+};
+const chat = (name: string, id: string): CommandEntry => ({ label: name, labelContent: <EmojiText text={name} catalogue={emoji} />, onSelect: noop, avatar: person(name, id) });
+
+/**
+ * `labelContent` shows a chat's name with its emoji as an app's own pictures (here through
+ * `EmojiText`), while `label` stays the text the search matches and screen readers hear.
+ */
+export const EmojiInLabels: Story = {
+  args: {
+    title: "Go to a chat",
+    trigger: <Button variant="outline" tone="secondary">Go to…</Button>,
+    items: [chat("Launch team 🚀", "team-0201"), chat("Friday wins 🎉", "team-0202"), chat("Kai Sample", "person-0203")],
+    placeholder: "Search chats…",
+  },
 };

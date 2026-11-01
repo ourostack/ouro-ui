@@ -141,8 +141,14 @@ One command in a Command palette's `items`.
 
 ```ts
 interface CommandItem {
-  /** The command's text, which the search matches. */
+  /** The command's text, which the search matches and screen readers hear. */
   label: string;
+  /**
+   * What the row shows in place of `label`, when plain text cannot draw it: a chat's name with
+   * its emoji as pictures (`<EmojiText text={chat.name} catalogue={catalogue} />`). `label`
+   * stays the text the search matches and the row's name for screen readers.
+   */
+  labelContent?: ReactNode;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
   /**
