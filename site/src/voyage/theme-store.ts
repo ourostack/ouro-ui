@@ -103,6 +103,15 @@ function passClickThrough(event: MouseEvent): void {
   dot?.click();
 }
 
+/** Ends the reveal on screen now, if one is, and resolves once the browser has let go of the page. */
+export async function finishReveal(): Promise<void> {
+  const current = running;
+  if (!current) return;
+  current.skipTransition();
+  running = null;
+  await current.finished.catch(() => undefined);
+}
+
 /**
  * Runs `change` inside a view transition where the browser has them, so the new theme spreads out
  * from `origin` in a circle (REVEAL_CSS); with reduced motion, or without view transitions, it

@@ -11,6 +11,7 @@ import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../th
 import { presetList } from "./presets";
 import { NAUTILUS_PAGE } from "./copy";
 import { spotlightFrom } from "./xray-store";
+import { finishReveal } from "./theme-store";
 
 // The voyage preview's themes and header (site-design.md, slice S1): the stored theme applies
 // before paint, the header's controls repaint the page and remember it, Copy theme copies the
@@ -37,13 +38,10 @@ beforeEach(async () => {
   root.removeAttribute("data-theme");
   setScheme("light");
 });
-/** A theme reveal still running holds the page's pointer events, so the next test's first click would miss. */
-const revealAnimations = () => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition"));
-
 afterEach(async () => {
   toast.dismiss();
-  for (const animation of revealAnimations()) animation.finish();
-  await expect.poll(() => revealAnimations().length).toBe(0);
+  // A theme reveal still running holds the page's pointer events, so the next test's first click would miss.
+  await finishReveal();
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
