@@ -52,3 +52,25 @@ test("an image catalogue's emoji go in as tokens, from suggestions or the picker
   await expect(sent.getByRole("img", { name: "Team coffee" })).toBeVisible();
   await expect(sent.getByRole("img", { name: "Party popper" })).toBeVisible();
 });
+
+test("an expanded composer starts a new line on Enter, sends on Ctrl+Enter, and collapses on Escape with its text", async ({ page }) => {
+  await openStory(page, "chat-composer--expanded");
+  const post = page.getByRole("textbox", { name: "New post in Bakers" });
+  const expand = page.getByRole("button", { name: "Expand" });
+  await expect(expand).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+  await post.press("ControlOrMeta+End");
+  await post.press("Enter");
+  await post.pressSequentially("Bring a towel.");
+  await expect(post).toHaveValue(/fridge\.\nBring a towel\.$/);
+  await post.press("Escape");
+  await expect(expand).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
+  await expect(post).toBeFocused();
+  await expect(post).toHaveValue(/fridge\.\nBring a towel\.$/);
+  await expand.click();
+  await expect(expand).toHaveAttribute("aria-pressed", "true");
+  await expect(post).toBeFocused();
+  await post.press("ControlOrMeta+Enter");
+  await expect(page.getByRole("list", { name: "Sent" }).getByRole("listitem")).toHaveText(/Bring a towel\.$/);
+});

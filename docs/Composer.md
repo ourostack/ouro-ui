@@ -2,7 +2,7 @@
 
 # Composer
 
-A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach, formatting), `toolbar` a formatting bar above the text while it is on, and `attachments` the files waiting to go. `sendDisabledReason` turns sending off and says why, while the person can still write, and `highlights` marks words in the text, as TextArea's do.
+A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach, formatting), `toolbar` a formatting bar above the text while it is on, and `attachments` the files waiting to go. `defaultExpanded` or `expanded` with `onExpandedChange` adds an expand button for a long message: a taller box with the toolbar, where Enter starts a new line. `sendDisabledReason` turns sending off and says why, while the person can still write, and `highlights` marks words in the text, as TextArea's do.
 
 ```tsx
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
@@ -23,6 +23,7 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
   attachments={files.length > 0 && files.map((file) => <Attachment key={file.name} name={file.name} onRemove={() => remove(file)} />)}
   sendDisabledReason={offline ? "You're offline. Sending resumes when you reconnect." : undefined}
 />
+<Composer label="Reply" defaultExpanded={false} toolbar={<Toolbar label="Formatting" items={formatting} />} onSend={(text) => send(text)} />
 ```
 
 ## Usage
@@ -43,13 +44,19 @@ Type: `ComposerProps`.
 | `attachments` | `ReactNode` |  | Files waiting to go with the message, shown in a row inside the box under the text: `Attachment` items with `onRemove`. Pass it only when there are some; with it, the message can be sent without text. |
 | `attachmentsLabel` | `string` | `"Attachments"` | A name for the attachments row, for screen readers. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-2`). Appearance classes warn in development. |
+| `defaultExpanded` | `boolean` |  | Whether it starts expanded, for an uncontrolled composer that the expand button opens; `false` to start small. |
 | `defaultValue` | `string` |  | The starting text, for an uncontrolled composer, which clears itself after a send. |
 | `description` | `ReactNode` |  | A quiet line under the box, read as the text's description: what the marks mean, a character count. |
 | `disabled` | `boolean` |  | Disables the whole composer: the box and the send button. |
+| `expanded` | `boolean` |  | The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`, growing to `expandedMaxRows`), with the `toolbar`, and Enter starts a new line while Ctrl+Enter (Command+Enter on a Mac) or the send button sends, whatever `sendOn` says. It is the same text either way, and the caret stays where it was. Escape collapses it, and that Escape goes no further. The box grows and shrinks in height over a moment, and at once with reduced motion. Controlled; pair it with `onExpandedChange`, or use `defaultExpanded`. |
+| `expandedMaxRows` | `number` | `20` | Lines the expanded box grows to before it scrolls. |
+| `expandedRows` | `number` | `6` | Lines the expanded box starts with. |
+| `expandLabel` | `string` | `"Expand"` | The expand button's name, which its tooltip shows too. |
 | `highlights` | `readonly TextAreaHighlight[]` |  | Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. |
 | `label` (required) | `string` |  | What the message box is for, read as its name: "Message Mia", "Reply in thread". Required: the box shows `placeholder`, which is not a label. |
 | `maxRows` | `number` | `10` | Lines it grows to before it scrolls. |
 | `name` | `string` |  | The form field name the text submits under. |
+| `onExpandedChange` | `((expanded: boolean) => void)` |  | Called when the person expands or collapses it: the expand button, or Escape. With it, or with `defaultExpanded`, the expand button shows first among the actions. |
 | `onHighlightsChange` | `((highlights: TextAreaHighlight[]) => void)` |  | Called with the highlights moved to fit the text after the person edits it, as TextArea's. |
 | `onSend` (required) | `(text: string, event: ComposerSendEvent) => void` |  | Called with the text when the person sends: Enter in the box (see `sendOn`) or the send button. The event says which, and `event.isTrusted` that a person did it. It is not called while the text is blank (unless there are `attachments`), while `sending`, or with `sendDisabledReason` set. Without `value`, the box clears after it. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new text when it changes. |
@@ -60,8 +67,8 @@ Type: `ComposerProps`.
 | `sending` | `boolean` |  | The message is on its way: the send button shows a spinner, and nothing more sends until it is done. |
 | `sendingLabel` | `string` | `"Sending"` | What screen readers hear when `sending` turns on. |
 | `sendLabel` | `string` | `"Send"` | The send button's name, which its tooltip shows too. |
-| `sendOn` | `"enter" \| "mod-enter"` | `"enter"` | Which key sends. `enter`: Enter sends and Shift+Enter starts a new line, as chat apps do. `mod-enter`: Ctrl+Enter (Command+Enter on a Mac) sends and Enter starts a new line, for long messages. Enter never sends while an input method is composing a word. |
-| `toolbar` | `ReactNode` |  | Tools shown above the text, inside the box: a formatting bar. Pass it only while it should show, as when the person turns formatting on. |
+| `sendOn` | `"enter" \| "mod-enter"` | `"enter"` | Which key sends. `enter`: Enter sends and Shift+Enter starts a new line, as chat apps do. `mod-enter`: Ctrl+Enter (Command+Enter on a Mac) sends and Enter starts a new line, for long messages. Enter never sends while an input method is composing a word or while a suggestion list (`Autocomplete`) is open, and an `expanded` composer sends on Ctrl+Enter. |
+| `toolbar` | `ReactNode` |  | Tools shown above the text, inside the box: a formatting bar. In a composer that expands, it shows only while expanded; otherwise pass it only while it should show. |
 | `value` | `string` |  | The text, for a controlled composer; pair it with `onValueChange`, and clear it yourself once the message is sent. |
 
 ## Native attributes
@@ -73,6 +80,7 @@ Also accepts the attributes in React's `HTMLAttributes` and `TextareaHTMLAttribu
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `enterToSend`: Not a prop. Ouro UI uses `sendOn`: `<Composer sendOn="mod-enter">`.
+- `expandable`: Not a prop. A composer that expands takes `defaultExpanded` or `onExpandedChange`: `<Composer defaultExpanded={false}>`.
 - `loading`: Not a prop. Ouro UI uses `sending`: `<Composer sending>`.
 - `onSubmit`: Not a prop. Sending calls `onSend`: `<Composer onSend={(text) => send(text)}>`.
 - `sendDisabled`: Not a prop. Ouro UI uses `sendDisabledReason`: `<Composer sendDisabledReason="Sending is off">`.

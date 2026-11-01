@@ -30,7 +30,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Composer sendDisabledReason="Sending is off">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "composer05",
+    habit: "an expandable flag for the expand button",
+    tsc: [hint("boolean", "Use <Composer defaultExpanded={false}> or expanded with onExpandedChange")],
+    dev: "<Composer defaultExpanded={false}>",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02"];

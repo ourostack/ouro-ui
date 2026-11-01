@@ -2,7 +2,8 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
+import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerProps } from "@/registry/ouro/components/ouro/composer/composer";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -393,6 +394,196 @@ describe("Composer states", () => {
   });
 });
 
+const expandButton = () => document.querySelector<HTMLButtonElement>('[data-ouro-control="composer"][data-ouro-part="expand"]');
+const formatting = <Button variant="plain" aria-label="Bold">B</Button>;
+
+describe("Composer expanded", () => {
+  it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, textarea } = await render(
+      <Composer label="Reply" defaultExpanded={false} onExpandedChange={onExpandedChange} toolbar={formatting} actions={<Button variant="plain" aria-label="Emoji">:)</Button>} onSend={() => {}} />,
+    );
+    const button = expandButton()!;
+    expect(button.parentElement!.firstElementChild).toBe(button);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    await expect.element(page.getByRole("button", { name: "Expand", pressed: false })).toBeVisible();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    expect(textarea.rows).toBe(1);
+    await userEvent.click(button);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(root.hasAttribute("data-expanded")).toBe(true);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")!.textContent).toBe("B");
+    expect(textarea.rows).toBe(6);
+    await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThanOrEqual(6 * parseFloat(getComputedStyle(textarea).lineHeight));
+    await userEvent.click(button);
+    expect(onExpandedChange).toHaveBeenLastCalledWith(false);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+  });
+
+  it("shows no expand button, and the toolbar as passed, in a composer that does not expand", async () => {
+    const { root } = await render(<Composer label="Reply" toolbar={formatting} onSend={() => {}} />);
+    expect(expandButton()).toBeNull();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).not.toBeNull();
+  });
+
+  it("names the expand button with expandLabel, grows to expandedRows and expandedMaxRows, and turns the button off with the composer", async () => {
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultExpanded expandLabel="Long message" expandedRows={4} expandedMaxRows={5} onSend={() => {}} />);
+    await expect.element(page.getByRole("button", { name: "Long message", pressed: true })).toBeVisible();
+    expect(textarea.rows).toBe(4);
+    const line = parseFloat(getComputedStyle(textarea).lineHeight);
+    textarea.focus();
+    await userEvent.keyboard("1{Enter}2{Enter}3{Enter}4{Enter}5{Enter}6{Enter}7");
+    expect(textarea.getBoundingClientRect().height).toBeCloseTo(5 * line + parseFloat(getComputedStyle(textarea).paddingTop) * 2, 0);
+    await rerender(<Composer label="Reply" defaultExpanded disabled onSend={() => {}} />);
+    expect(expandButton()!.disabled).toBe(true);
+  });
+
+  it("starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says", async () => {
+    const onSend = vi.fn();
+    const { textarea } = await render(<Composer label="Reply" sendOn="enter" defaultExpanded onSend={onSend} />);
+    textarea.focus();
+    await userEvent.keyboard("one{Enter}two");
+    expect(onSend).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("one\ntwo");
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).toHaveBeenCalledWith("one\ntwo", expect.anything());
+    await userEvent.keyboard("three{Meta>}{Enter}{/Meta}");
+    expect(onSend).toHaveBeenLastCalledWith("three", expect.anything());
+  });
+
+  it("never sends while a suggestion list is open, Ctrl+Enter included", async () => {
+    const onSend = vi.fn();
+    const { textarea } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Reply" defaultExpanded onSend={onSend} />
+      </Autocomplete>,
+    );
+    textarea.focus();
+    await userEvent.keyboard("Hi @ma");
+    await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(true);
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(false);
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
+  });
+
+  it("keeps the text, focus and the caret when it expands and collapses", async () => {
+    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    textarea.focus();
+    await userEvent.keyboard("Hello world");
+    textarea.setSelectionRange(5, 5);
+    await userEvent.click(expandButton()!);
+    expect(document.activeElement).toBe(textarea);
+    expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+    await pressTab();
+    expect(document.activeElement).toBe(expandButton());
+    await userEvent.keyboard("{Enter}");
+    expect(expandButton()!.getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(textarea);
+    expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+  });
+
+  it("collapses on Escape, and that Escape goes no further", async () => {
+    const outer = vi.fn();
+    const onExpandedChange = vi.fn();
+    const { textarea, root } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" defaultExpanded onExpandedChange={onExpandedChange} defaultValue="Draft" onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void textarea.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    expect(outer).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("Draft");
+    // Collapsed, Escape is the app's again.
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Escape to an input method, to the app's onKeyDown, and to an app that controls it without listening", async () => {
+    const outer = vi.fn();
+    const { textarea, rerender } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" expanded onSend={() => {}} />
+      </div>,
+    );
+    expect(expandButton()).toBeNull();
+    textarea.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+    const onExpandedChange = vi.fn();
+    await rerender(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" expanded onExpandedChange={onExpandedChange} onKeyDown={(event) => event.key === "Escape" && event.preventDefault()} onSend={() => {}} />
+      </div>,
+    );
+    await userEvent.keyboard("{Escape}");
+    for (const init of [{ isComposing: true }, { keyCode: 229 }]) {
+      await act(async () => void textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, ...init })));
+    }
+    expect(onExpandedChange).not.toHaveBeenCalled();
+  });
+
+  it("does not animate when expanding leaves the box its height", async () => {
+    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(textarea.getAnimations()).toEqual([]);
+    expect(textarea.classList.contains("transition-[height]")).toBe(false);
+  });
+
+  it("is controlled with expanded and onExpandedChange", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, rerender } = await render(<Composer label="Reply" expanded={false} onExpandedChange={onExpandedChange} onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    await rerender(<Composer label="Reply" expanded onExpandedChange={onExpandedChange} onSend={() => {}} />);
+    expect(root.hasAttribute("data-expanded")).toBe(true);
+    expect(expandButton()!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("grows and shrinks in height over a moment, and at once with reduced motion", async () => {
+    const heights = (textarea: HTMLTextAreaElement) => textarea.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
+    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(heights(textarea)).toEqual(["height"]);
+    await expect.poll(() => heights(textarea).length === 0 && !textarea.classList.contains("transition-[height]")).toBe(true);
+    // Typing grows the box at once, as before.
+    await userEvent.keyboard("a");
+    expect(heights(textarea)).toEqual([]);
+    await userEvent.click(expandButton()!);
+    expect(heights(textarea)).toEqual(["height"]);
+    await expect.poll(() => heights(textarea).length === 0 && !textarea.classList.contains("transition-[height]")).toBe(true);
+    // Collapsed again mid-way: a second transition replaces the first, and the classes stay until it ends.
+    textarea.parentElement!.style.setProperty("--ouro-duration-base", "10s");
+    await userEvent.click(expandButton()!);
+    await userEvent.click(expandButton()!);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(heights(textarea)).toEqual(["height"]);
+    expect(textarea.classList.contains("transition-[height]")).toBe(true);
+    await act(async () => textarea.getAnimations().forEach((animation) => animation.finish()));
+    await expect.poll(() => textarea.classList.contains("transition-[height]")).toBe(false);
+    textarea.parentElement!.style.removeProperty("--ouro-duration-base");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await userEvent.click(expandButton()!);
+      expect(heights(textarea)).toEqual([]);
+      expect(textarea.classList.contains("transition-[height]")).toBe(false);
+      expect(textarea.rows).toBe(6);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+});
+
 describe("Composer development messages", () => {
   it.each([
     ["sendOn", { sendOn: "shift-enter" }, 'sendOn="shift-enter" is not a key; use "enter" or "mod-enter"', '<Composer sendOn="enter">'],
@@ -401,6 +592,7 @@ describe("Composer development messages", () => {
     ["enterToSend", { enterToSend: true }, "enterToSend is not a prop", '<Composer sendOn="enter">'],
     ["loading", { loading: true }, "loading is not a prop", "<Composer sending>"],
     ["sendDisabled", { sendDisabled: true }, "sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
+    ["expandable", { expandable: true }, "expandable is not a prop; defaultExpanded or onExpandedChange shows the expand button", "<Composer defaultExpanded={false}>"],
   ])("says what to use instead of %s", async (name, extra, problem, fix) => {
     const props = { label: "Message", onSend: () => {}, ...extra } as unknown as ComposerProps;
     const { host } = await render(<Composer {...props} />);
