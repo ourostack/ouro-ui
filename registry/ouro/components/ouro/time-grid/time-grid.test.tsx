@@ -838,6 +838,36 @@ describe("TimeGrid", () => {
     expect(viewport().scrollTop).toBe(0);
   });
 
+  it("opens at today's first event when now is before it, rather than at empty hours before now", async () => {
+    // Where a grid opens, in hours from midnight.
+    const opensAt = async (props: Partial<TimeGridProps>) => {
+      const { grid } = await render(props);
+      const hour = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
+      return grid.querySelector<HTMLElement>("[data-scroll-viewport]")!.scrollTop / hour;
+    };
+    const nine: TimeGridEvent = { id: "nine", title: "Nine o'clock", start: at(12, "09:00"), end: at(12, "09:30") };
+    // 3:30 in the morning, with the day's first event at 9: half an hour before it, as for the working day.
+    expect(await opensAt({ now: at(12, "03:30"), events: [forum, nine, standup] })).toBeCloseTo(8.5, 1);
+    // With now a few minutes before the first event, now stays in view.
+    expect(await opensAt({ now: at(12, "08:50"), events: [{ ...nine, start: at(12, "09:10") }] })).toBeCloseTo(8 + 40 / 60, 1);
+    // Past the day's first event, or with none today, it opens at now as before.
+    expect(await opensAt({ now: at(12, "10:41"), events: [forum] })).toBeCloseTo((641 - 90) / 60, 1);
+    expect(await opensAt({ now: at(12, "03:30"), events: [standup] })).toBeCloseTo(2, 1);
+    // An event that starts at now: now is not before it.
+    expect(await opensAt({ now: at(12, "09:00"), events: [nine] })).toBeCloseTo(7.5, 1);
+    // Today's events fetched after the grid opened move it once, unless the reader has scrolled since.
+    const { grid, rerender } = await render({ now: at(12, "03:30"), events: [] });
+    const scroller = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const hour = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
+    expect(scroller.scrollTop / hour).toBeCloseTo(2, 1);
+    await rerender({ now: at(12, "03:30"), events: [nine] });
+    expect(scroller.scrollTop / hour).toBeCloseTo(8.5, 1);
+    await rerender({ now: at(12, "03:30"), events: [] });
+    scroller.scrollTop = hour * 12;
+    await rerender({ now: at(12, "03:30"), events: [nine] });
+    expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
+  });
+
   it("shades the hours outside the working day, and the weekend", async () => {
     const { grid } = await render({ workingHours: { start: 9.5, end: 18 } });
     const columns = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] > div:not([aria-hidden])")];

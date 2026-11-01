@@ -2,7 +2,7 @@
 
 # TimeGrid
 
-A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Each day has a column under a header, today's marked; all-day events have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by side, each a button (a link with `href`) that shows its title first and is named for screen readers by the words it shows, in their order, then its day and its status ("Design review, 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time order (Up and Down) and across days (Left and Right), Home and End go to the first and the last, and Enter opens one. It opens scrolled to now or to the working day, and a now line runs across today, under events so it never crosses their text.
+A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Each day has a column under a header, today's marked; all-day events have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by side, each a button (a link with `href`) that shows its title first and is named for screen readers by the words it shows, in their order, then its day and its status ("Design review, 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time order (Up and Down) and across days (Left and Right), Home and End go to the first and the last, and Enter opens one. It opens scrolled to now or to the working day (to today's first event when now is before it), and a now line runs across today, under events so it never crosses their text.
 
 ```tsx
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
@@ -51,7 +51,7 @@ Type: `TimeGridProps`.
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
 | `timeZone` | `string` |  | The IANA time zone the grid's clock reads (`"Europe/Berlin"`): which day and hour each event falls on, where the now line is, and the times shown. Without it, the reader's own, once the page runs in the browser; the server writes UTC until then. |
 | `view` | `"day" \| "work-week" \| "week"` | `"week"` | `day`, `work-week` (the week without the locale's weekend) or `week`, from the locale's first day of the week. |
-| `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens scrolled to its start unless today is shown, when it opens at now. |
+| `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens scrolled to its start unless today is shown, when it opens at now, or at today's first event when now is before it. |
 
 ## Native attributes
 

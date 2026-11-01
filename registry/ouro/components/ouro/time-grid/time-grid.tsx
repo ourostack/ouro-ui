@@ -179,7 +179,7 @@ export interface TimeGridOwnProps {
   /**
    * The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it,
    * and weekend days, are shaded, and the grid opens scrolled to its start unless today is
-   * shown, when it opens at now.
+   * shown, when it opens at now, or at today's first event when now is before it.
    * @default { start: 8, end: 17 }
    * @claim "start: 8, end: 17" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /const defaultWorkingHours = \{ start: 8, end: 17 \}/)
    */
@@ -327,7 +327,8 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * readers by the words it shows, in their order, then its day and its status ("Design review,
  * 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time
  * order (Up and Down) and across days (Left and Right), Home and End go to the first and the
- * last, and Enter opens one. It opens scrolled to now or to the working day, and a now line
+ * last, and Enter opens one. It opens scrolled to now or to the working day (to today's first
+ * event when now is before it), and a now line
  * runs across today, under events so it never crosses their text.
  *
  * Use `Calendar` instead to pick a date from a month, and `Table` or `ItemGroup` for an agenda
@@ -348,6 +349,7 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * @claim "Each day has a column" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws a week of days from the locale's first day, each a list named by its date, today marked)
  * @claim "Events that overlap sit side" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > shares a day's width between overlapping events)
  * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > runs the now line across today, under the events, with the time beside it)
+ * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > opens at today's first event when now is before it, rather than at empty hours before now)
  */
 export function TimeGrid(props: TimeGridProps): JSX.Element {
   const {
@@ -563,15 +565,25 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 
   // Open at now when today shows, else half an hour before the working day: once for each set
   // of days, and again when today moves (the browser first knows the time, or midnight passes).
+  // Before today's first event, open at it instead, as at the working day, so the grid does not
+  // open on empty hours before now; now stays in view when the event is close.
   const scrollKey = `${days[0]}:${days.length}:${todayIndex}`;
+  // Where today's first event starts, in minutes, or null with none today.
+  const firstToday = todayIndex >= 0 && timed[todayIndex]!.length > 0 ? Math.min(...timed[todayIndex]!.map((placed) => placed.top)) : null;
+  // Where the grid last opened, so today's events arriving after it opened (fetched after mount)
+  // move it once more, unless the reader has scrolled since.
+  const opened = useRef<{ key: string; top: number } | null>(null);
   useLayoutEffect(() => {
     const viewport = rootRef.current!.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const body = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
-    const minutes = todayIndex >= 0 ? nowAt!.minutes - 90 : workingHours.start * 60 - 30;
+    // Stryker disable next-line EqualityOperator: a scroll of exactly a pixel is a rounding either way.
+    if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
+    const minutes = todayIndex < 0 ? workingHours.start * 60 - 30 : firstToday !== null && firstToday > nowAt!.minutes ? Math.max(nowAt!.minutes - 90, firstToday - 30) : nowAt!.minutes - 90;
     viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
-    // Only the days shown, and whether today is among them, move the scroll.
+    opened.current = { key: scrollKey, top: viewport.scrollTop };
+    // Only the days shown, whether today is among them, and whether today has events move the scroll.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollKey]);
+  }, [scrollKey, firstToday === null]);
 
   // The app's day summaries make the header as tall as they are, which only a measure knows;
   // events scrolled into view stop below it.
