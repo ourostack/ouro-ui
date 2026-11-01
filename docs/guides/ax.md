@@ -91,6 +91,8 @@ Receipt: a-t1
 | [`ax-lint`](../ax/ax-lint.md) | Checks the declarations, and against your command inventory that the commands you register run through them. |
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
+| [`ax-voice`](../ax/ax-voice.md) | An optional line of character for a person at a terminal, after the facts, kept out of what an agent parses. |
+| [`ax-flows`](../ax/ax-flows.md) | Your agent flows as data, run in CI without a model: the calls a good agent makes for a task, checked. |
 | [`ax-example`](../ax/ax-example.md) | A small tool built only from the kit; the tests use it. |
 
 ## Outcomes and waits
@@ -98,6 +100,45 @@ Receipt: a-t1
 An action returns an outcome rather than a bare "ok". Its `state` says what became of it: `done`, `queued`, `planned`, `needs-human`, `uncertain`, `refused` or `failed`. `postcondition` says whether the tool checked the effect apart from the transport's answer, and `receipt.id` finds the request again. `runCli` sets the exit code from the state.[^outcome-exit]
 
 A wait takes a reference the agent already holds, such as a conversation id from a list, and waits inside the tool. `waitFor()` reads the source as often as it must and returns what happened, or, when the time limit passes, the cursor and the exact command that resumes the wait. The agent makes one call instead of writing a polling loop.
+
+## A voice
+
+A tool may have a voice: a line of character after the facts, for a person at a terminal. Give `defineCli` a `voice` with any of four slots, each a list of variants: `banner` leads the help overview, `done(outcome)` follows an action that is done or queued, `summary` follows the command marked `summarizes`, and `empty` follows a list that came back empty. `emptyText("unread", next)` writes that list's fact first: `Nothing unread.` and the command to run next.
+
+```ts
+voice: {
+  banner: ["Rooms to talk in, notes to keep."],
+  done: () => ["Said once, said plainly.", "Posted; the room has it now."],
+  empty: ["Nothing yet. Rooms fill up."],
+},
+```
+
+The kit prints a voice line only when stdout is a terminal, and never under `--json`, `--quiet` (a tool with a voice takes it) or when `CI` is set; never on stderr and never in an error.[^voice] Every line is one line of plain ASCII, at most 72 characters, checked when the tool is built.[^voice-line] The fact comes first, a process celebrates once, and variants rotate; pass `voiceMemory` to `runCli` to keep the last one between runs.[^voice-order] `help --json` lists the fixed lines, which the X-ray looks for in its piped and `--json` calls.
+
+## Agent flows in CI
+
+The X-ray checks the rules a command must keep; a flow checks what a task needs. A flow is the calls a good agent makes for one task, as data, with what the calls must show:
+
+```ts
+import { defineFlow, defineSuite, inProcess } from "./lib/ouro/ax/flows.ts";
+
+const send = defineFlow({
+  id: "T3", surface: "agent-cli", title: "Post what someone asked for, after a preview", rubric: ["honest", "forgiving"],
+  steps: [
+    { id: "rooms", run: ["rooms", "--json"], expect: { exit: 0, jsonShape: ["[].ref"] }, save: { room: "[0].ref" } },
+    { id: "no-why", run: ["post", "{room}", "Running late"], expect: { exit: 2, stderrRules: ["oneLine", "namesFix", "noStack"] } },
+    { id: "preview", run: ["post", "{room}", "Running late", "--why", "Sam asked", "--dry-run", "--json"], expect: { exit: 0, fields: { "audience.who": { re: "^everyone in" } } } },
+  ],
+});
+
+export default defineSuite({ tool: "notes", flows: [send], cli: inProcess(main), start: startMock, guard: assertMock, state: ["log", "--json"] });
+```
+
+```sh
+node lib/ouro/ax/flows.ts run flows/suite.ts --out report --xray xray.json
+```
+
+It writes `report/findings.jsonl`, one check a line, and `report/report.json` with the X-ray attached, in the `flow-review/0` format. Each call is checked for its exit code, JSON shape and fields, one-line errors that name the fix, time and size budgets, text it must have or must not, and the voice: plain stderr and JSON alone under `--json`.[^flows-checks] The runner also checks a flow for commands the overview leaves out, and a flow marked `readOnly` for a state that changed. Nothing runs until your guard proves the mock is a mock.[^flows-guard] A step marked `known` with its issue is reported and doesn't fail the run; once it passes, the run fails until the mark goes.[^flows-known] `fixtures/flows-suite.mts` is a whole suite over the example tool, with a reply that arrives partway through a wait.
 
 ## Adopting it in an existing tool
 
@@ -108,4 +149,10 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^tool]: test:scripts/ax.test.mjs::the guide shows the tasks tool as it is, and the answers it gives; test:registry/ouro/ax/xray.test.mts::the guide's tool conforms verify:testExists(scripts/ax.test.mjs::the guide shows the tasks tool as it is, and the answers it gives) verify:testExists(registry/ouro/ax/xray.test.mts::the guide's tool conforms)
 [^dry-run]: test:registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted verify:testExists(registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted)
 [^outcome-exit]: test:registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table verify:testExists(registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table)
+[^voice]: test:registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
+[^voice-line]: test:registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built)
+[^voice-order]: test:registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most; test:registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most) verify:testExists(registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs)
+[^flows-checks]: test:registry/ouro/ax/flows.test.mts::a call's checks: exit, shape, fields, error text, time, size, text and voice, each its own finding verify:testExists(registry/ouro/ax/flows.test.mts::a call's checks: exit, shape, fields, error text, time, size, text and voice, each its own finding)
+[^flows-guard]: test:registry/ouro/ax/flows.test.mts::nothing runs until the suite's guard passes verify:testExists(registry/ouro/ax/flows.test.mts::nothing runs until the suite's guard passes)
+[^flows-known]: test:registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage verify:testExists(registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage)
 [^lint]: test:registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command verify:testExists(registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command)

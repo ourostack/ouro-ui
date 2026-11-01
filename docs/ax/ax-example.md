@@ -2,7 +2,7 @@
 
 # ax-example
 
-A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word and a tool-specific exit code.
+A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word, a tool-specific exit code and a voice.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-example#v1.3.0
@@ -20,7 +20,7 @@ const exampleCli: Cli<RunContext>
 
 ### `exits`
 
-A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word and a tool-specific exit code.
+A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word, a tool-specific exit code and a voice.
 
 ```ts
 const exits: ExitTable

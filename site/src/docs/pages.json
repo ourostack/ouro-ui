@@ -197,7 +197,7 @@
     "kind": "guide",
     "group": "Ouro AX",
     "markdown": "docs/ax/ax-example.md",
-    "summary": "A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word and a tool-specific exit code."
+    "summary": "A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action that returns an outcome with a preview, a wait on a room, an ambiguous word, a tool-specific exit code and a voice."
   },
   {
     "name": "ax-exit-codes",
@@ -206,6 +206,14 @@
     "group": "Ouro AX",
     "markdown": "docs/ax/ax-exit-codes.md",
     "summary": "A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift."
+  },
+  {
+    "name": "ax-flows",
+    "title": "ax-flows",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-flows.md",
+    "summary": "An adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and the runner checks the calls' exit codes, JSON shapes and fields, error text, time, size and voice."
   },
   {
     "name": "ax-lint",
@@ -246,6 +254,14 @@
     "group": "Ouro AX",
     "markdown": "docs/ax/ax-problem.md",
     "summary": "One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop."
+  },
+  {
+    "name": "ax-voice",
+    "title": "ax-voice",
+    "kind": "guide",
+    "group": "Ouro AX",
+    "markdown": "docs/ax/ax-voice.md",
+    "summary": "A tool's voice: an optional line of character after the facts, for a person at a terminal, never where an agent parses."
   },
   {
     "name": "ax-wait",

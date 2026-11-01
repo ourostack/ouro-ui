@@ -5,7 +5,7 @@ import { checkVoice, checkVoiceLine, createVoice, isCi, VOICE_MAX, voiceLines, v
 
 const on = { tty: true, json: false, quiet: false, env: {} };
 
-test("a line is one line of plain ASCII, at most 72 characters; the definition is checked when the tool is built", () => {
+test("a line is one line of plain ASCII, at most 72 characters, checked when the tool is built", () => {
   assert.equal(VOICE_MAX, 72);
   assert.equal(checkVoiceLine("Pedals down, coasting now."), null);
   assert.equal(checkVoiceLine("x".repeat(72)), null);

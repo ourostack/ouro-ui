@@ -12,6 +12,8 @@ import type { Outcome } from "./outcome.ts";
  * environment variable is set; never on stderr and never in an error. Each line is one line of plain ASCII, at most 72
  * characters, and comes after the fact it follows. Variants rotate, and a process celebrates (`done`) at most once.
  *
+ * @claim "never on stderr and never in an error" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
+ * @claim "Each line is one line of plain ASCII, at most 72" registry/ouro/ax/voice.ts verify:fileLine(registry/ouro/ax/voice.ts, /^const VOICE_MAX = 72;$/) verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built)
  * @claim "never where an agent parses" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
  * @claim "a process celebrates (`done`) at most once" registry/ouro/ax/voice.test.mts verify:testExists(registry/ouro/ax/voice.test.mts::variants rotate, never the same line twice in a row, and a process celebrates once)
  */
@@ -31,7 +33,7 @@ interface VoiceDef {
 /**
  * The longest voice line, in characters.
  *
- * @claim "The longest voice line" registry/ouro/ax/voice.test.mts verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters; the definition is checked when the tool is built)
+ * @claim "The longest voice line" registry/ouro/ax/voice.test.mts verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built)
  */
 const VOICE_MAX = 72;
 
@@ -44,7 +46,7 @@ function checkVoiceLine(line: string): string | null {
   return null;
 }
 
-/** Throws at definition time when a fixed voice line breaks the rules; `done` is checked as each line is made. */
+/** Throws at definition time when a fixed voice line breaks the rules; `done` lines are checked as they are made. */
 function checkVoice(tool: string, voice: VoiceDef): void {
   for (const slot of ["banner", "summary", "empty"] as const) {
     for (const line of voice[slot] ?? []) {
@@ -54,7 +56,7 @@ function checkVoice(tool: string, voice: VoiceDef): void {
   }
 }
 
-/** The fixed voice lines (banner, summary and empty), as `help --json` lists them so a checker can see none leak. */
+/** The fixed voice lines (banner, summary and empty), as `help --json` lists them for a checker. */
 function voiceLines(voice: VoiceDef): string[] {
   return [...(voice.banner ?? []), ...(voice.summary ?? []), ...(voice.empty ?? [])];
 }
@@ -69,7 +71,7 @@ function isCi(env: Readonly<Record<string, string | undefined>>): boolean {
   return ci !== undefined && !["", "0", "false"].includes(ci.trim().toLowerCase());
 }
 
-/** Remembers the variant each slot last used, so a tool that keeps it between runs never repeats a line twice in a row. */
+/** Remembers the variant a slot last used, so a tool that keeps it between runs rotates across runs too. */
 interface VoiceMemory {
   last(slot: VoiceSlot): number | null;
   remember(slot: VoiceSlot, index: number): void;
@@ -83,18 +85,18 @@ interface VoiceOptions {
   env: Readonly<Record<string, string | undefined>>;
   /** Where the last variant is kept; by default, in this process only. */
   memory?: VoiceMemory;
-  /** The variant to start from when the memory has none; by default, from the clock. */
+  /** The variant to start from when the memory is empty; by default, from the clock. */
   start?: number;
 }
 
-/** Whether a voice line may print at all: stdout is a terminal, and not `--json`, `--quiet` or CI. */
+/** Whether a voice line may print: stdout is a terminal, and not `--json`, `--quiet` or CI. */
 function voiceOn(options: Pick<VoiceOptions, "tty" | "json" | "quiet" | "env">): boolean {
   return options.tty && !options.json && !options.quiet && !isCi(options.env);
 }
 
 interface Voice {
   readonly on: boolean;
-  /** The slot's next line, or null: the voice is off, the slot has no line, a `done` line breaks the rules, or this process already celebrated. */
+  /** The slot's next line, or null when the voice is off, the slot is empty, a `done` line breaks the rules, or this process already celebrated. */
   line(slot: VoiceSlot, outcome?: Outcome): string | null;
 }
 
@@ -103,7 +105,7 @@ function processMemory(): VoiceMemory {
   return { last: (slot) => seen.get(slot) ?? null, remember: (slot, index) => void seen.set(slot, index) };
 }
 
-/** One process's voice: it rotates each slot's variants and gives at most one `done` line. */
+/** One process's voice: it rotates the variants of a slot and gives at most one `done` line. */
 function createVoice(voice: VoiceDef, options: VoiceOptions): Voice {
   const on = voiceOn(options);
   const memory = options.memory ?? processMemory();

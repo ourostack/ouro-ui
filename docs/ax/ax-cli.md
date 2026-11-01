@@ -8,7 +8,7 @@ The whole front door for a tool built on the kit: parse, help, run (or, on `--dr
 npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.0
 ```
 
-It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports of cli.ts
 
@@ -18,7 +18,7 @@ The whole front door for a tool built on the kit: parse, help, run (or, on `--dr
 
 ```ts
 interface CliIo {
-  stdout: { write(s: string): unknown };
+  stdout: { write(s: string): unknown; isTTY?: boolean };
   stderr: { write(s: string): unknown };
   stdin?: AsyncIterable<string | Uint8Array> | Iterable<string | Uint8Array>;
 }
@@ -32,12 +32,28 @@ Runs a parsed command as runCli does, for a tool that reads stdin and prints err
 function dispatch<C extends RunContext>(cli: Cli<C>, parsed: Parsed, ctx: C) => Promise<unknown>
 ```
 
-### `printResult`
+### `isEmptyResult`
 
-Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, anything else as its text or `--json`.
+Whether a result is an empty list: an empty array, or a page (`{ items }`) whose items are empty.
 
 ```ts
-function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">): number
+function isEmptyResult(result: unknown): boolean
+```
+
+### `printResult`
+
+Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, anything else as its text or `--json`. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
+
+```ts
+function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined): number
+```
+
+### `quietPipes`
+
+Ends the tool quietly when whatever reads its output goes away, as in `tool help | head -1`: on `EPIPE` it exits with the exit code so far (0 when none was set) and prints nothing, instead of a stack trace. Call it once in the tool's bin, before runCli: `quietPipes(process)`. Any other stream error is thrown as before.
+
+```ts
+function quietPipes(proc: { stdout: ErrorEvents; stderr: ErrorEvents; exitCode?: string | number | null | undefined; exit(code?: number | undefined): unknown; }): void
 ```
 
 ### `runCli`
@@ -52,6 +68,8 @@ function runCli(cli: Cli<RunContext>, argv: readonly string[], io: CliIo, option
 interface RunOptions {
   overview?: OverviewOptions;
   topics?: Readonly<Record<string, string>>;
+  env?: Readonly<Record<string, string | undefined>>;
+  voiceMemory?: VoiceMemory;
 }
 ```
 
@@ -112,10 +130,10 @@ function flagLines(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, w
 
 ### `helpJson`
 
-The help as data: the tool, its headings, the commands, the exit codes and the one error shape.
+The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (for a checker that looks for them in an agent's output) and the one error shape.
 
 ```ts
-function helpJson(cli: Cli<RunContext>): { tool: string; about: readonly string[]; effects: { private: string; others: string; }; commands: CommandManifest[]; exitCodes: readonly ExitCode[]; errorShape: { error: { code: string; exit: string; thing: string; problem: string; fix: string; message: string; }; }; }
+function helpJson(cli: Cli<RunContext>): { tool: string; about: readonly string[]; effects: { private: string; others: string; }; commands: CommandManifest[]; exitCodes: readonly ExitCode[]; voice: string[]; errorShape: { error: { code: string; exit: string; thing: string; problem: string; fix: string; message: string; }; }; }
 ```
 
 ### `OverviewOptions`

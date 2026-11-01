@@ -272,11 +272,13 @@ The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit
 - `ax-effects`: Ouro AX: effect classes: a command either touches only the person's own space ("private") or reaches other people ("others"). Docs: https://ui.ouro.bot/docs/ax-effects.md
 - `ax-example`: Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it. Docs: https://ui.ouro.bot/docs/ax-example.md
 - `ax-exit-codes`: Ouro AX: A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift. Docs: https://ui.ouro.bot/docs/ax-exit-codes.md
+- `ax-flows`: Ouro AX: an adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and the runner checks the calls' exit codes, JSON shapes and fields, error text, time, size and voice. Docs: https://ui.ouro.bot/docs/ax-flows.md
 - `ax-lint`: Ouro AX: the kit's check of a tool's declarations: what an agent needs from every declared command (a summary, an example, described arguments and flags, `--why` and a preview where other people see it, help that fits the width), and, against the tool's own command inventory, that every command it registers runs through its declaration. Docs: https://ui.ouro.bot/docs/ax-lint.md
 - `ax-mcp`: Ouro AX: the same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. Docs: https://ui.ouro.bot/docs/ax-mcp.md
 - `ax-outcome`: Ouro AX: the outcome of an action: what became of it, who can see it, whether that was checked, how to find it again and what to run next, in one shape over a CLI's `--json`, an HTTP route and an MCP tool. Docs: https://ui.ouro.bot/docs/ax-outcome.md
 - `ax-output`: Ouro AX: one result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data. Docs: https://ui.ouro.bot/docs/ax-output.md
 - `ax-problem`: Ouro AX: one error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop. Docs: https://ui.ouro.bot/docs/ax-problem.md
+- `ax-voice`: Ouro AX: A tool's voice: an optional line of character after the facts, for a person at a terminal, never where an agent parses. Docs: https://ui.ouro.bot/docs/ax-voice.md
 - `ax-wait`: Ouro AX: A typed wait: the agent names a reference it already holds, the tool waits (polling, if it must, where the agent cannot see it) until something happens or the time limit passes, and returns what happened with the cursor that resumes the wait. Docs: https://ui.ouro.bot/docs/ax-wait.md
 - `ax-work-event`: Ouro AX: an attributed work event: who acted and for whom, on what, why, with which receipt, when. Docs: https://ui.ouro.bot/docs/ax-work-event.md
 - `ax-xray`: Ouro AX: the Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold. Docs: https://ui.ouro.bot/docs/ax-xray.md
@@ -285,11 +287,13 @@ The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit
 - `ax-command-tests`: Optional: the node:test tests for ax-command; run them with node --test.
 - `ax-effects-tests`: Optional: the node:test tests for ax-effects; run them with node --test.
 - `ax-exit-codes-tests`: Optional: the node:test tests for ax-exit-codes; run them with node --test.
+- `ax-flows-tests`: Optional: the node:test tests for ax-flows; run them with node --test.
 - `ax-lint-tests`: Optional: the node:test tests for ax-lint; run them with node --test.
 - `ax-mcp-tests`: Optional: the node:test tests for ax-mcp; run them with node --test.
 - `ax-outcome-tests`: Optional: the node:test tests for ax-outcome; run them with node --test.
 - `ax-output-tests`: Optional: the node:test tests for ax-output; run them with node --test.
 - `ax-problem-tests`: Optional: the node:test tests for ax-problem; run them with node --test.
+- `ax-voice-tests`: Optional: the node:test tests for ax-voice; run them with node --test.
 - `ax-wait-tests`: Optional: the node:test tests for ax-wait; run them with node --test.
 - `ax-work-event-tests`: Optional: the node:test tests for ax-work-event; run them with node --test.
 - `ax-xray-tests`: Optional: the node:test tests for ax-xray; run them with node --test.

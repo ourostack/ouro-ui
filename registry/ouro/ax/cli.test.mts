@@ -1,8 +1,6 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "./cli.ts";
 import { defineCli, defineCommand, parse, type Parsed, type RunContext } from "./command.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
@@ -225,7 +223,7 @@ test("the voice speaks only on a terminal: never under --json, --quiet, CI or a 
   assert.ok(!(await run(["--help"])).out.includes("Rooms to talk in"));
 });
 
-test("a voice line follows the fact it adds to: a done outcome, an empty list, the summary; at most one celebration", async () => {
+test("a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most", async () => {
   const told: string[] = [];
   const tool = defineCli({
     name: "t",
@@ -271,11 +269,12 @@ test("voice variants rotate from the memory a tool keeps between runs", async ()
   assert.deepEqual([first, second].sort(), ["One.", "Two."]);
 });
 
-const fixtures = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
-/** Runs a fixture with its stdout already closed, as `tool --help | head -0` would. */
-function closedPipe(file: string, argv: string[]) {
+/** Runs the example tool, with or without quietPipes, its stdout already closed, as `notes --help | head -0` leaves it. */
+function closedPipe(argv: string[], quiet = true) {
+  const url = (file: string) => JSON.stringify(new URL(file, import.meta.url).href);
+  const program = `import { quietPipes, runCli } from ${url("./cli.ts")}; import { exampleCli } from ${url("./example-cli.ts")};${quiet ? " quietPipes(process);" : ""} process.exitCode = await runCli(exampleCli, process.argv.slice(1), process);`;
   return new Promise<{ code: number | null; err: string }>((done) => {
-    const child = spawn(process.execPath, [join(fixtures, file), ...argv], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, ["--input-type=module", "-e", program, "--", ...argv], { stdio: ["ignore", "pipe", "pipe"] });
     child.stdout.destroy();
     let err = "";
     child.stderr.on("data", (d: Buffer) => (err += String(d)));
@@ -283,9 +282,12 @@ function closedPipe(file: string, argv: string[]) {
   });
 }
 
-test("a closed pipe ends the tool quietly with the exit code so far; any other stream error still throws", async () => {
-  assert.deepEqual(await closedPipe("notes.mts", ["--help"]), { code: 0, err: "" });
-  assert.deepEqual(await closedPipe("tasks.mts", ["help", "--json"]), { code: 0, err: "" });
+test("a closed pipe ends the tool quietly with the exit code so far, and any other stream error still throws", async () => {
+  assert.deepEqual(await closedPipe(["--help"]), { code: 0, err: "" });
+  assert.deepEqual(await closedPipe(["help", "--json"]), { code: 0, err: "" });
+  const loud = await closedPipe(["--help"], false);
+  assert.equal(loud.code, 1);
+  assert.match(loud.err, /EPIPE/);
   const handlers: ((e: { code?: string }) => void)[] = [];
   const exits: unknown[] = [];
   const stream = { on: (_: "error", h: (e: { code?: string }) => void) => handlers.push(h) };

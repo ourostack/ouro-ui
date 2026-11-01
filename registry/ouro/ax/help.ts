@@ -153,8 +153,8 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
 }
 
 /**
- * The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (so a checker can
- * prove none reach an agent) and the one error shape.
+ * The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (for a checker
+ * that looks for them in an agent's output) and the one error shape.
  */
 function helpJson(cli: Cli) {
   return {

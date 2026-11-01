@@ -91,7 +91,7 @@ const NO_SUCH_FLAG = "--ax-xray-no-such-flag";
 const WHY = "ax-xray conformance probe: nobody asked, so this must not reach anyone";
 const READ_WORDS = new Set(["show", "list", "status", "profile", "catalog", "get"]);
 const AMBIGUOUS = ["edit", "delete", "remove"];
-/** The most bytes a command's help may take (`cli.help-size`). */
+/** The byte budget of a command's help (`cli.help-size`). */
 const HELP_BYTES = 6000;
 /** An instruction to a person or agent at the start of a clause: "; open the window", "Tell them, do not retry". */
 const IMPERATIVE = /(^|[;:.!?]\s+|, )(open|tell|ask|run|use|try|give|wait|restart|start|turn|name|pass|add|choose|pick|check)\b/i;
@@ -267,7 +267,7 @@ function harvest(value: unknown, samples: Record<string, string>, key: string | 
   return samples;
 }
 
-/** Every `ref` the items of a JSON answer's lists carry, as a read's text should show them (`cli.text-refs`). */
+/** The refs that a JSON answer's list items carry, as a read's text should show them (`cli.text-refs`). */
 function refsOf(value: unknown, out: string[] = []): string[] {
   if (Array.isArray(value)) {
     for (const item of value) {
@@ -278,7 +278,7 @@ function refsOf(value: unknown, out: string[] = []): string[] {
   return out;
 }
 
-/** An outcome's `audience.who`, or "" when it has none. */
+/** An outcome's `audience.who`, or an empty string. */
 function audienceWho(value: unknown): string {
   const audience = isRecord(value) ? value["audience"] : null;
   return isRecord(audience) && typeof audience["who"] === "string" ? audience["who"] : "";
@@ -466,7 +466,7 @@ async function checkCli(ctx: Context) {
   const overviewLines = lines(overview.stdout);
   // The overview into a pipe that is already closed: the tool should end quietly, not with a stack trace.
   await call(["--help"], null, opts.timeoutMs, true);
-  /** The fixed voice lines the CLI declares (`help --json` `voice`), which must never reach a pipe or `--json`. */
+  /** The fixed voice lines the CLI declares (`help --json` `voice`), which a pipe or `--json` must not get. */
   const voiceLines = help && Array.isArray(help["voice"]) ? help["voice"].filter((v): v is string => typeof v === "string" && v.trim() !== "").map((v) => v.trim()) : [];
   const commands: CliCommand[] = help ? commandsOf(help, name) : [];
   if (!help) {

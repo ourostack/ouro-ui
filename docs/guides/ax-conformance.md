@@ -9,7 +9,7 @@ node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --mock "htt
 
 ## What it checks
 
-- **A CLI** (`--cli "<command>"`): it reads `help --json` for the commands and who sees each, then calls every command's `--help`, every read with `--json`, an unknown command and flag, a misspelt flag, the ambiguous verbs, the wait command on a reference a read gave, and each command other people see without `--why`, with a made-up target, and with `--dry-run` on a real one.[^cli]
+- **A CLI** (`--cli "<command>"`): it reads `help --json` for the commands and who sees each, then calls every command's `--help`, every read with `--json`, an unknown command and flag, a misspelt flag, the ambiguous verbs, the wait command on a reference a read gave, and each command other people see without `--why`, with a made-up target, and with `--dry-run` on a real one.[^cli] It also runs the overview into a pipe that is already closed, runs each read that lists refs again as text, and checks every call for the voice lines `help --json` lists: none may reach a pipe or `--json`.[^v13]
 - **An HTTP API** (`--http <url> --routes <manifest.json>`): it requests the base path's index, an unknown route and every read route, and sends the refused probes the manifest names.[^http] The manifest is `{ "base": "/api", "routes": ["GET /api/x", ...], "state": ["GET /api/log"], "others": [{ "route": "POST /api/send", "why": "why", "body": { "to": "{ref}" } }] }`.
 - **An MCP server** (`--mcp "<command>"`): it initializes, lists the tools, calls a tool that has required arguments with none, and calls a tool that does not exist.[^mcp]
 
@@ -43,6 +43,10 @@ With `--conformance` (which needs `--inventory`), the X-ray exits 0 only when th
 ## The report
 
 The report pins what it checked: the claim set's version and SHA-256 hash, the X-ray's version, and `--commit <sha>`.[^pin] It lists the safety proof, the effects it caused, and every claim with how many surfaces hold it, then the failures with the fix.[^report] `--json` prints it as data; `--md <file>` and `--html <file>` also write it as a page, with a grid of every surface against every claim.[^report]
+
+## Flows check what a task needs
+
+The X-ray checks the rules a command must keep. It can't tell that a task's next call needs a ref the text left out, or that the fix for `--week` drops the week. On Tandem's main branch, the same commit the X-ray called conformant failed 30 of 593 scripted flow checks.[^flows] Run your own flows beside it with `ax-flows`, and attach the X-ray's report to theirs (`--xray xray.json`), so one `report.json` covers both ([the guide](ax.md#agent-flows-in-ci)).
 
 ## In CI
 
@@ -85,4 +89,6 @@ Each failing check names the call it made and what came back, then the claim's f
 [^safety]: test:registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock; test:registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock) verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
 [^inventory]: test:registry/ouro/ax/xray.test.mts::compareInventory names what is missing, unknown or listed twice; test:registry/ouro/ax/xray.test.mts::an HTTP API: JSON, one error shape, an index, errors that teach, refusals that change nothing, its inventory verify:testExists(registry/ouro/ax/xray.test.mts::compareInventory names what is missing, unknown or listed twice) verify:testExists(registry/ouro/ax/xray.test.mts::an HTTP API: JSON, one error shape, an index, errors that teach, refusals that change nothing, its inventory)
 [^conformance]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing; test:registry/ouro/ax/xray.test.mts::the command: claims, help, usage errors with the fix, exit codes, written reports verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing) verify:testExists(registry/ouro/ax/xray.test.mts::the command: claims, help, usage errors with the fix, exit codes, written reports)
+[^v13]: test:registry/ouro/ax/xray.test.mts::a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe verify:testExists(registry/ouro/ax/xray.test.mts::a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe)
+[^flows]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/agent-flow-review.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/agent-flow-review.md, /593 checks, 30 failing/)
 [^pin]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)

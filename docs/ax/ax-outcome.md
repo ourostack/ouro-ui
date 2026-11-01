@@ -32,6 +32,14 @@ The default: what was done, queued, planned or handed to the person exits `ok` (
 const DEFAULT_OUTCOME_EXITS: OutcomeExits
 ```
 
+### `isGenericAudience`
+
+Whether an audience's `who` names no one in particular ("other people", "someone", "everyone"), so an agent reading the JSON learns less than one reading the text.
+
+```ts
+function isGenericAudience(who: string): boolean
+```
+
 ### `isOutcome`
 
 Whether a value is an outcome of this version (its shape only; `validateOutcome` checks its meaning).

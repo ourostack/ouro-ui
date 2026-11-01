@@ -8,7 +8,7 @@ One definition of a command: its words, effect, arguments and flags, examples an
 npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.0
 ```
 
-It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -24,6 +24,7 @@ interface ArgSpec {
   unless?: string | readonly string[];
   source?: string;
   missing?: string;
+  values?: readonly string[];
 }
 ```
 
@@ -63,6 +64,7 @@ interface Cli<C extends RunContext = RunContext> {
   readonly groups: Readonly<Record<string, string>>;
   readonly outcomeExits: OutcomeExits;
   readonly waitExits: WaitExits;
+  readonly voice: VoiceDef;
 }
 ```
 
@@ -80,6 +82,7 @@ interface CliDef<C extends RunContext = RunContext> {
   groups?: Readonly<Record<string, string>>;
   outcomeExits?: OutcomeExits;
   waitExits?: WaitExits;
+  voice?: VoiceDef;
 }
 ```
 
@@ -100,6 +103,7 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   examples?: readonly string[];
   output?: string;
   hidden?: boolean;
+  summarizes?: boolean;
   loose?: boolean;
   run?(input: Input, ctx: C): R | Promise<R>;
   plan?(input: Input, ctx: C): Outcome | Promise<Outcome>;
@@ -228,7 +232,7 @@ interface JsonSchema {
 
 ### `Meaning`
 
-One meaning of an ambiguous word, and the command for it.
+One meaning of an ambiguous word, and the command for it. `use` may hold `{args}`, the words the agent gave after the ambiguous word in that command's argument slots (a slot with none shows its placeholder), and `{flags}`, the flags the agent gave that the command takes (a sensitive value as its placeholder). A flag `use` writes out itself, such as `--why <why>`, gives way to the same flag given.
 
 ```ts
 interface Meaning {

@@ -16,6 +16,14 @@ It installs `lib/ouro/ax/xray.ts`, with `ax-claims`, `ax-outcome`, `ax-wait`, `a
 
 ## Exports
 
+### `audienceWho`
+
+An outcome's `audience.who`, or an empty string.
+
+```ts
+function audienceWho(value: unknown): string
+```
+
 ### `CheckResult`
 
 ```ts
@@ -103,6 +111,14 @@ function misspell(flag: string): string
 
 ```ts
 function parseArgs(argv: readonly string[]): XrayOptions
+```
+
+### `refsOf`
+
+The refs that a JSON answer's list items carry, as a read's text should show them (`cli.text-refs`).
+
+```ts
+function refsOf(value: unknown, out?: string[]): string[]
 ```
 
 ### `refusalVerdict`
@@ -222,7 +238,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```ts
-const XRAY_VERSION: "1.0.0"
+const XRAY_VERSION: "1.1.0"
 ```
 
 ### `XrayOptions`

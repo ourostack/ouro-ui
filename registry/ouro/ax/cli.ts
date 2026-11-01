@@ -33,7 +33,7 @@ interface RunOptions {
   topics?: Readonly<Record<string, string>>;
   /** The environment the voice reads `CI` from; defaults to the process's. */
   env?: Readonly<Record<string, string | undefined>>;
-  /** Keeps each voice slot's last variant between runs, so no line repeats twice in a row. */
+  /** Keeps the last variant of a voice slot between runs, so variants rotate across runs too. */
   voiceMemory?: VoiceMemory;
 }
 
@@ -70,7 +70,7 @@ async function dispatch<C extends RunContext>(cli: Cli<C>, parsed: Parsed, ctx: 
   return dryRun ? cmd.plan!(parsed.input, ctx) : cmd.run!(parsed.input, ctx);
 }
 
-/** Whether a result is an empty list: an empty array, or a page (`{ items }`) with no items. */
+/** Whether a result is an empty list: an empty array, or a page (`{ items }`) whose items are empty. */
 function isEmptyResult(result: unknown): boolean {
   if (Array.isArray(result)) return result.length === 0;
   const items = typeof result === "object" && result !== null ? (result as { items?: unknown }).items : undefined;
@@ -83,7 +83,7 @@ function isEmptyResult(result: unknown): boolean {
  * process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an
  * empty list, or the summary command.
  *
- * @claim "never before it" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary; at most one celebration)
+ * @claim "never before it" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most)
  */
 function printResult(cli: Cli, cmd: CommandDef, input: Input, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice): number {
   const say = (slot: VoiceSlot, outcome?: Outcome) => {
@@ -175,7 +175,7 @@ interface ErrorEvents {
  * the exit code so far (0 when none was set) and prints nothing, instead of a stack trace. Call it once in the tool's
  * bin, before runCli: `quietPipes(process)`. Any other stream error is thrown as before.
  *
- * @claim "prints nothing, instead of a stack trace" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a closed pipe ends the tool quietly with the exit code so far; any other stream error still throws)
+ * @claim "prints nothing, instead of a stack trace" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a closed pipe ends the tool quietly with the exit code so far, and any other stream error still throws)
  */
 function quietPipes(proc: { stdout: ErrorEvents; stderr: ErrorEvents; exitCode?: number | string | null | undefined; exit(code?: number): unknown }): void {
   for (const stream of [proc.stdout, proc.stderr]) {
