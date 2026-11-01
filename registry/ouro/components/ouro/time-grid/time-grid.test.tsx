@@ -1292,7 +1292,7 @@ describe("TimeGrid background events", () => {
       id: `crowd-${index}`,
       title,
       start: at(12, `09:${String(index * 10).padStart(2, "0")}`),
-      end: at(12, "10:00"),
+      end: at(12, index === 3 ? "09:50" : "10:00"),
     }));
     const onEventSelect = vi.fn();
     const { rerender } = await render({ view: "day", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count) => `${count} crowd` });
@@ -1300,6 +1300,8 @@ describe("TimeGrid background events", () => {
     const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
     await expect.poll(stack).not.toBeNull();
     expect(plain(stack()!.textContent)).toBe("4 crowd9:00 – 10:00 AM");
+    // From the first one's start to the last one's end.
+    expect(hours(stack()!)).toEqual([9, 1]);
     await expect.element(page.getByRole("button", { name: /^4 crowd/ })).toBeVisible();
     expect(crowd.map((event) => events().some((element) => (element.getAttribute("aria-label") ?? "").startsWith(`${event.title}, `)))).toEqual([false, false, false, false]);
     // All hands, alone at its time, keeps its own label.
@@ -1316,14 +1318,32 @@ describe("TimeGrid background events", () => {
       "Engineering sync 9:00 – 10:00 AM",
       "Evaluation review 9:10 – 10:00 AM",
       "Search experiments 9:20 – 10:00 AM",
-      "Partner briefing 9:30 – 10:00 AM",
+      "Partner briefing 9:30 – 9:50 AM",
     ]);
     await userEvent.click(menu.getByRole("menuitem", { name: /^Search experiments/ }));
     expect(onEventSelect).toHaveBeenCalledWith(crowd[2], { element: stack(), background: true });
+    // A week draws each as a bar, as before, however narrow.
+    await rerender({ view: "week", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect });
+    expect(stack()).toBeNull();
     // Wide enough to read each: each draws as before.
     await rerender({ view: "day", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[90rem]", onEventSelect });
     await expect.poll(stack).toBeNull();
     expect(crowd.every((event) => events().some((element) => (element.getAttribute("aria-label") ?? "").startsWith(`${event.title}, `)))).toBe(true);
+  });
+
+  it("folds a stack when any of its events is too narrow, even beside one wide enough, and counts it in its own words by default", async () => {
+    // Three columns: the long one and two short ones, then one that spreads over the two columns free beside it.
+    const spread: TimeGridEvent[] = [
+      { id: "long", title: "Long review", start: at(12, "09:00"), end: at(12, "11:00") },
+      { id: "short-1", title: "Short one", start: at(12, "09:00"), end: at(12, "09:30") },
+      { id: "short-2", title: "Short two", start: at(12, "09:00"), end: at(12, "09:30") },
+      { id: "wide", title: "Wide one", start: at(12, "10:00"), end: at(12, "10:30") },
+    ];
+    // A 32rem grid leaves a lane of about 180px: 60px for each of three columns, 120px for one spread over two.
+    await render({ view: "day", backgroundEvents: spread, className: "h-[30rem] w-[32rem]" });
+    const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
+    await expect.poll(stack).not.toBeNull();
+    expect(plain(stack()!.textContent)).toBe("4 events9:00 – 11:00 AM");
   });
 
   it("takes the arrow keys through background events in time order with the rest", async () => {

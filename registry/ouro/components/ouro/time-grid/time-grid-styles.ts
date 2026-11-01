@@ -167,7 +167,7 @@ const stackMinWidth = 96;
  */
 function stacksOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>): Array<Array<DayPlacement<Key>>> {
   const stacks: Array<Array<DayPlacement<Key>>> = [];
-  let end = -1;
+  let end = -Infinity;
   for (const placed of placements) {
     if (placed.top >= end) stacks.push([]);
     stacks.at(-1)!.push(placed);

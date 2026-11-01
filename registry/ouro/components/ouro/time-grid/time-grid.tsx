@@ -570,8 +570,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // the first render before it, draw each event.
   const [laneWidth, setLaneWidth] = useState(0);
   const stacks = behind.map((placements) =>
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: an unmeasured lane is measured before the first paint, which decides either way.
     labelBackground && laneWidth > 0
-      ? stacksOf(placements).filter((stack) => stack.length > 1 && stack.some((placed) => (laneWidth * placed.span) / placed.columns < stackMinWidth))
+      ? // Stryker disable next-line ConditionalExpression,EqualityOperator: a lone event spans the whole lane, at least 7rem, so it is never too narrow; one exactly at the minimum reads either way.
+        stacksOf(placements).filter((stack) => stack.length > 1 && stack.some((placed) => (laneWidth * placed.span) / placed.columns < stackMinWidth))
       : [],
   );
   // Each folded event's stack, by its key; the stack goes by its first event's key.
@@ -646,6 +648,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     if (!hasLane) return;
     const lane = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-background]")!;
     const measure = () => setLaneWidth(lane.getBoundingClientRect().width);
+    // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(lane);
