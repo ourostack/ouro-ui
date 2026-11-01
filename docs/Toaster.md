@@ -35,7 +35,7 @@ Type: `ToasterProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `avoid` | `string` |  | A CSS selector for controls the toasts must stay clear of, such as a call's Join button in a corner. While one is on screen in the lower half of the window, under the toasts' column, the toasts rise to sit 8px above it, and they come back down when it goes. Mark the controls and pass the selector: `<Toaster avoid="[data-keep-clear]" />`. |
+| `avoid` | `string` |  | A CSS selector for controls the toasts must stay clear of, such as a call's Join button in a corner. While one is on screen in the lower half of the window, under the toasts' column, the toasts rise to sit 8px above it, and they come back down when it goes. They measure again when the page changes outside the toasts and when the window resizes. Mark the controls and pass the selector: `<Toaster avoid="[data-keep-clear]" />`. |
 | `className` | `string` |  | Layout classes on the actual portaled toast viewport, not on each toast. For example, `bottom-[calc(5rem+max(1rem,env(safe-area-inset-bottom)))]` clears persistent bottom controls. A bottom override replaces the default safe-area expression; include the appropriate inset in your own clearance. Use statically written classes matching your app's visibility/breakpoints, which need not match the Toaster's `sm` breakpoint. |
 | `closeLabel` | `string` | `"Dismiss"` | The accessible name of each toast's dismiss button, which shows an icon only. |
 | `label` | `string` | `"Notifications"` | The name screen readers give the region the toasts appear in. Translate it with the rest of your interface. |

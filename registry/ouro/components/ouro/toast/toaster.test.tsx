@@ -1548,28 +1548,34 @@ describe("motion", () => {
 });
 
 describe("Toaster avoid", () => {
-  /** A control fixed in a corner of the window, such as a call's Join button. */
+  /** A control fixed in a corner of the window, such as a call's Join button, inside a part of the page. */
   function corner(side: "left" | "right", place: "bottom" | "top" = "bottom", css = "") {
+    const part = document.createElement("section");
     const button = document.createElement("button");
     button.textContent = "Join";
     button.setAttribute("data-keep-clear", "");
     button.style.cssText = `position: fixed; ${place}: 16px; ${side}: 16px; width: 140px; height: 44px; z-index: 0; ${css}`;
-    document.body.append(button);
-    mounted.push(button);
+    part.append(button);
+    document.body.append(part);
+    mounted.push(part);
     return button;
   }
   const overlaps = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  const above = (item: HTMLElement, control: HTMLElement) => Math.round(control.getBoundingClientRect().top - item.getBoundingClientRect().bottom);
 
   it("keeps the toasts clear of a control the selector matches under them, and comes back down when it goes", async () => {
     await page.viewport(1280, 800);
     await render(<Toaster avoid="[data-keep-clear]" />);
     const item = await show("Recording saved", { duration: Infinity });
-    const resting = item.getBoundingClientRect().bottom;
+    const resting = Math.round(item.getBoundingClientRect().bottom);
     const join = corner("right");
-    await until(() => overlaps(item.getBoundingClientRect(), join.getBoundingClientRect()), false);
-    expect(item.getBoundingClientRect().bottom).toBeCloseTo(join.getBoundingClientRect().top - 8, 0);
+    await until(() => above(item, join), 8);
+    join.style.display = "none";
+    await until(() => Math.round(item.getBoundingClientRect().bottom), resting);
+    join.style.display = "";
+    await until(() => above(item, join), 8);
     join.remove();
-    await until(() => Math.round(item.getBoundingClientRect().bottom), Math.round(resting));
+    await until(() => Math.round(item.getBoundingClientRect().bottom), resting);
   });
 
   it("covers the same control without avoid, as it always has", async () => {
@@ -1589,42 +1595,46 @@ describe("Toaster avoid", () => {
     expect(Math.round(800 - item.getBoundingClientRect().bottom)).toBe(24);
   });
 
-  it("rises above a control at the bottom of a phone, where the toasts span the width", async () => {
-    await page.viewport(390, 844);
-    const join = corner("left");
-    await render(<Toaster avoid="[data-keep-clear]" />);
-    const item = await show("Recording saved", { duration: Infinity });
-    await until(() => overlaps(item.getBoundingClientRect(), join.getBoundingClientRect()), false);
-  });
-
-  it("measures to the pixel: a control that ends where the column starts, or starts where it ends, is clear of it, and one at the window's middle is under it", async () => {
+  it("measures to the pixel: a control that ends where the column starts, starts where it ends or can't be seen is clear of it, and one at the window's middle is under it", async () => {
     await page.viewport(1280, 800);
     // At 1280px the column runs from 896px to 1256px (360px wide, 24px from the end).
-    const before = corner("left", "bottom", "left: 756px");
-    const after = corner("right", "bottom", "right: 0; width: 24px");
-    const hidden = corner("right", "bottom", "visibility: hidden");
+    const clear = [
+      corner("left", "bottom", "left: 756px"),
+      corner("right", "bottom", "right: 0; width: 24px"),
+      corner("right", "bottom", "visibility: hidden"),
+      corner("right", "bottom", "opacity: 0"),
+    ];
     await render(<Toaster avoid="[data-keep-clear]" />);
     const item = await show("Recording saved", { duration: Infinity });
     expect(Math.round(800 - item.getBoundingClientRect().bottom)).toBe(24);
-    for (const element of [before, after, hidden]) element.remove();
+    for (const element of clear) element.remove();
     const middle = corner("right", "bottom", "bottom: auto; top: 400px");
-    await until(() => Math.round(item.getBoundingClientRect().bottom), 392);
-    middle.remove();
+    await until(() => above(item, middle), 8);
   });
 
-  it("lets go of the window and the page when the Toaster goes", async () => {
+  it("measures again when the window resizes: a control beside the column on a wide screen is under it on a phone", async () => {
     await page.viewport(1280, 800);
-    corner("right");
+    const join = corner("left");
     await render(<Toaster avoid="[data-keep-clear]" />);
+    const item = await show("Recording saved", { duration: Infinity });
+    expect(overlaps(item.getBoundingClientRect(), join.getBoundingClientRect())).toBe(false);
+    await page.viewport(390, 844);
+    await until(() => above(item, join), 8);
+  });
+
+  it("lets go of the page and the window when avoid goes", async () => {
+    await page.viewport(1280, 800);
+    const { root } = await render(<Toaster />);
     await show("Recording saved", { duration: Infinity });
+    const added = vi.spyOn(window, "addEventListener");
+    const observed = vi.spyOn(MutationObserver.prototype, "observe");
+    await act(async () => root.render(<Toaster avoid="[data-keep-clear]" />));
+    const resize = added.mock.calls.find(([type]) => type === "resize")![1];
+    const watcher = observed.mock.contexts[observed.mock.calls.findIndex(([target]) => target === document.body)];
     const removed = vi.spyOn(window, "removeEventListener");
-    const watching = vi.spyOn(MutationObserver.prototype, "disconnect");
-    const sizing = vi.spyOn(ResizeObserver.prototype, "disconnect");
-    const frames = vi.spyOn(window, "cancelAnimationFrame");
-    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
-    expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(["resize", "scroll"]));
-    expect(watching).toHaveBeenCalled();
-    expect(sizing).toHaveBeenCalled();
-    expect(frames).toHaveBeenCalled();
+    const disconnected = vi.spyOn(MutationObserver.prototype, "disconnect");
+    await act(async () => root.render(<Toaster />));
+    expect(removed).toHaveBeenCalledWith("resize", resize);
+    expect(disconnected.mock.contexts).toContain(watcher);
   });
 });
