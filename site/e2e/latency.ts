@@ -130,6 +130,37 @@ export async function fixedPart(page: Page, throttle: number = LATENCY.throttle)
   }
 }
 
+/** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1. */
+export interface Presses {
+  /** Presses the control once. */
+  press: (index: number) => Promise<unknown>;
+  /** Runs once before the first press, at full speed: what the presses need (an earlier line in the log). */
+  prepare?: () => Promise<unknown>;
+  /** Runs before a press, at full speed: what that press needs (full tanks before Dive). */
+  setUp?: (index: number) => Promise<unknown>;
+}
+
+/**
+ * The most a control's median may be, in ms, given its baseline: the highest median it measured
+ * across recorded CI runs. Twice the baseline, or 24 ms (three Event Timing steps) over it if that is
+ * more, so a slower runner passes and a control that got twice as slow does not. Above 100 ms the
+ * p95 ceiling already holds the median, so for slower controls this only guards the fast ones.
+ */
+export function medianCeiling(baseline: number): number {
+  return Math.max(2 * baseline, baseline + 24);
+}
+
+/** The 95th percentile and the median of a control's samples, and whether they are within budget. */
+export function summarise(samples: readonly number[], baseline: number): { p95: number; median: number; within: boolean; report: string } {
+  const sorted = samples.toSorted((a, b) => a - b);
+  const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
+  const middle = sorted.length / 2;
+  const median = sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+  const ceiling = medianCeiling(baseline);
+  const within = p95 <= LATENCY.p95 && median <= ceiling;
+  return { p95, median, within, report: `p95 ${p95} ms (≤ ${LATENCY.p95}), median ${median} ms (≤ ${ceiling}, baseline ${baseline}); samples in order: ${samples.join(", ")}` };
+}
+
 /**
  * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
  * time as on the reference runner: its fixed part here (fixedPart) plus the rest of its
