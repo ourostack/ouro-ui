@@ -5,7 +5,7 @@
 The kit's check of a tool's declarations: what an agent needs from every declared command (a summary, an example, described arguments and flags, `--why` and a preview where other people see it, help that fits the width), and, against the tool's own command inventory, that every command it registers runs through its declaration.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-lint#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-lint#v1.3.1
 ```
 
 It installs `lib/ouro/ax/lint.ts`, with `ax-cli`, `ax-command`, `ax-effects`. Its tests are `ax-lint-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
