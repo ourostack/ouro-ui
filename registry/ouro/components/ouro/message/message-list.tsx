@@ -267,6 +267,7 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
         const at = middle(box);
         const reach = Math.min(Math.max(anchor.top - at, at - anchor.bottom, 0) / REACH, 1);
         // A message that comes near mid-scroll starts where its nearest moving neighbour is, so no gap opens at the band's edge.
+        // Stryker disable next-line EqualityOperator: of two neighbours exactly as near, either is as near.
         const neighbour = seen.has(item) ? undefined : known.reduce<(typeof known)[number] | undefined>((best, other) => (best === undefined || Math.abs(other.at - at) < Math.abs(best.at - at) ? other : best), undefined);
         const state = moving.get(item) ?? neighbour?.state ?? { value: 0, velocity: 0 };
         const value = state.value + kick * LAG * reach - push * (1 - reach);
@@ -363,11 +364,12 @@ function springs(scroller: HTMLElement, content: HTMLElement): Springs {
     },
     stop() {
       // Stryker disable next-line all: a frame left after this finds no message moving, and asks for none.
-      cancelAnimationFrame(frame);
+      frame = (cancelAnimationFrame(frame), 0);
       [...moving.keys()].forEach(rest);
       scroller.removeEventListener("scroll", onScroll);
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchmove", onTouchMove);
+      // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change.
       forget();
     },
   };
@@ -580,6 +582,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The messages in view, top first, with where each sits. The first one still in the page
     // is held in place: the top one may itself have been replaced (a key change).
     let anchors: { node: Element; offset: number }[] = [];
+    // Stryker disable next-line ArithmeticOperator: the list's own top drops out of the difference the anchor keeps.
     const offsetOf = (node: Element) => boxOf(node).top - scroller.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
