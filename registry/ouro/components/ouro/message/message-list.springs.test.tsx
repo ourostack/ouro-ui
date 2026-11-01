@@ -78,6 +78,11 @@ function wheel(scroller: HTMLElement, delta: number, y: number) {
 /** The browser's next scroll event on the list: after `wheel`, its own, which it sends at the next frame. */
 const nextScroll = (scroller: HTMLElement) => new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
 
+/** A finger at `y` over the list: the touch event the list reads, in any browser (WebKit on a desktop makes no TouchEvent). */
+function finger(scroller: HTMLElement, type: "touchstart" | "touchmove", y: number) {
+  scroller.dispatchEvent(Object.assign(new Event(type, { bubbles: true }), { touches: [{ clientY: y }] }));
+}
+
 /** Scrolls the list in code and waits for the browser's scroll event. */
 async function scrollInCode(scroller: HTMLElement, top: number) {
   const scrolled = new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
@@ -469,6 +474,7 @@ describe("MessageList springs", () => {
     const grouped = (count: number) => (
       <MessageList label="Conversation" style={{ height: 300 }}>
         <div>
+          {count > 4 && <p>Today</p>}
           {Array.from({ length: count }, (_, index) => (
             <Message key={index} role="assistant" name="Ouro">
               {`Message ${index} of ${count}: ${"rest the dough ".repeat(3)}`}
@@ -547,5 +553,82 @@ describe("MessageList springs", () => {
     expect(asked).not.toHaveBeenCalled();
     expectAtRest(messages());
     asked.mockRestore();
+  });
+  it("spreads the messages when a finger pulls past the end, and not when the list itself bounces", async () => {
+    const { scroller, messages } = await render(<Chat count={30} />);
+    const frames = holdFrames();
+    const y = scroller.getBoundingClientRect().top + 200;
+    // At the bottom, a finger moving up has nowhere to scroll: the messages near it rise.
+    finger(scroller, "touchstart", y);
+    finger(scroller, "touchmove", y - 40);
+    frames.step(16);
+    const band = messages().filter((message) => near(scroller, message));
+    expect(expectFirstFrame(band, y - 40, 0, 40 * STRETCH)).toBeGreaterThan(2);
+    for (const message of band.filter((each) => each.style.transform !== "")) expect(shiftOf(message)).toBeLessThan(0);
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    // Where the browser bounced the list itself (its scroll position moved), the springs leave the push to it,
+    // and take it up again on the next move if the list then holds still.
+    finger(scroller, "touchstart", y);
+    scroller.scrollTop -= 1;
+    finger(scroller, "touchmove", y - 40);
+    frames.step(16);
+    expect(scroller.querySelector("[data-ouro-settling]")).toBeNull();
+    finger(scroller, "touchmove", y - 60);
+    frames.step(16);
+    expect(scroller.querySelector("[data-ouro-settling]")).not.toBeNull();
+  });
+
+  it("counts the scroll of a finger that rests before it moves as the reader's, from where the finger is", async () => {
+    const { scroller, messages } = await render(<Chat count={30} />);
+    await scrollInCode(scroller, 400);
+    const frames = holdFrames();
+    const y = scroller.getBoundingClientRect().top + 20;
+    finger(scroller, "touchstart", y);
+    frames.step(400);
+    finger(scroller, "touchmove", y - 20);
+    scroller.scrollTop += 20;
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(expectFirstFrame(messages().filter((message) => near(scroller, message)), y - 20, 20)).toBeGreaterThan(2);
+  });
+
+  it("picks the Tab stop by where messages are laid out while they spring", async () => {
+    const { scroller, messages } = await render(<Chat count={40} />);
+    // Scroll so that, after the reader's 30px, a message ends 2px inside the list's bottom edge.
+    const view = scroller.getBoundingClientRect();
+    const edge = messages().find((message) => message.getBoundingClientRect().bottom - view.top + scroller.scrollTop > 900)!;
+    const bottom = edge.getBoundingClientRect().bottom - view.top + scroller.scrollTop;
+    await scrollInCode(scroller, bottom - scroller.clientHeight + 2 - 30);
+    const frames = holdFrames();
+    wheel(scroller, 30, view.top);
+    frames.step(16);
+    // Drawn, it trails past the edge; laid out, it is wholly in view, so it is the newest message wholly in view.
+    expect(edge.getBoundingClientRect().bottom).toBeGreaterThan(view.bottom);
+    scroller.dispatchEvent(new Event("scroll"));
+    expect(edge.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("reads where messages are with no more work than before once they rest", async () => {
+    const { scroller, messages } = await render(<Chat count={30} />);
+    await scrollInCode(scroller, 400);
+    const frames = holdFrames();
+    wheel(scroller, 30, scroller.getBoundingClientRect().top);
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    const closest = vi.spyOn(Element.prototype, "closest");
+    // The list keeps the reader's place on each scroll, reading every message's box.
+    scroller.dispatchEvent(new Event("scroll"));
+    expect(closest.mock.contexts.filter((element) => messages().includes(element as HTMLElement))).toEqual([]);
+    closest.mockRestore();
+  });
+
+  it("leaves a finger pulling past the end alone once springy turns off", async () => {
+    const { scroller, messages, rerender } = await render(<Chat count={30} />);
+    await rerender(<Chat count={30} springy={false} />);
+    const frames = holdFrames();
+    const y = scroller.getBoundingClientRect().top + 200;
+    finger(scroller, "touchstart", y);
+    finger(scroller, "touchmove", y - 40);
+    frames.step(16);
+    expectAtRest(messages());
   });
 });
