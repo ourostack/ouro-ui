@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -107,6 +108,15 @@ describe("Moment", () => {
     expect(getComputedStyle(moment!).alignItems).toBe("center");
     expect(getComputedStyle(moment!).textAlign).toBe("center");
     expect(moment!.hasAttribute("data-quiet")).toBe(false);
+    const heading = moment!.querySelector("h3")!;
+    const line = page.getByText("Messages you send show up here.").element() as HTMLElement;
+    expect(getComputedStyle(heading).whiteSpace).not.toBe("nowrap");
+    expect(getComputedStyle(line).whiteSpace).not.toBe("nowrap");
+    expect(getComputedStyle(heading.parentElement!).flexDirection).toBe("column");
+    expect(getComputedStyle(heading.parentElement!).alignItems).toBe("center");
+    const actions = moment!.querySelector<HTMLElement>("[data-ouro-moment-actions]")!;
+    expect(getComputedStyle(actions).flexWrap).toBe("wrap");
+    expect(getComputedStyle(actions).justifyContent).toBe("center");
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -147,6 +157,7 @@ describe("Moment", () => {
     }
     const withArt = await render(<Moment kind="loading" art={<Art />} title="Loading" />);
     expect(withArt.host.querySelector('[data-ouro="spinner"]')).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("leaves out the art, line and actions when they are empty", async () => {
@@ -195,20 +206,22 @@ describe("Moment", () => {
 
   it("speaks a success or error moment politely only when asked", async () => {
     const announced = watchAnnouncements();
+    // The shared live region speaks the last message given within about 100ms, so each quiet
+    // moment gets time to be heard before the next render.
+    const heardIfSpoken = () => new Promise((resolve) => setTimeout(resolve, 400));
     try {
-      await render(
-        <>
-          <Moment kind="success" title="Saved quietly" />
-          <Moment kind="empty" announce title="Nothing to say" />
-        </>,
-      );
       await render(<Moment kind="error" announce title="Couldn't send" description="Check your connection." />);
       await expect.poll(() => announced.count("Couldn't send. Check your connection.")).toBe(1);
+      await render(<Moment kind="success" title="Saved quietly" />);
+      await heardIfSpoken();
+      await render(<Moment kind="empty" announce title="Nothing to say" />);
+      await heardIfSpoken();
       await render(<Moment kind="success" announce title="Sent" description={<strong>to Ada</strong>} />);
       await expect.poll(() => announced.count("Sent")).toBe(1);
       expect(announced.count("Saved quietly")).toBe(0);
       expect(announced.count("Nothing to say")).toBe(0);
-      expect(announced.count("to Ada")).toBe(0);
+      expect(announced.count("[object")).toBe(0);
+      expect(announced.count("Couldn't send")).toBe(1);
     } finally {
       announced.stop();
     }
@@ -226,6 +239,7 @@ describe("Moment", () => {
   it.each([2, 4, 5, 6] as const)("renders the title at headingLevel %i", async (level) => {
     await render(<Moment title="Nothing here" headingLevel={level} />);
     await expect.element(page.getByRole("heading", { level, name: "Nothing here" })).toBeVisible();
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 
@@ -251,7 +265,10 @@ describe("Moment sizes", () => {
     expect(getComputedStyle(moment!).flexDirection).toBe("row");
     expect(page.getByRole("heading").elements()).toHaveLength(0);
     await expect.element(page.getByText("12 of 40 messages")).toBeVisible();
-    expect((page.getByText("12 of 40 messages").element() as HTMLElement).tagName).toBe("SPAN");
+    const inlineLine = page.getByText("12 of 40 messages").element() as HTMLElement;
+    expect(inlineLine.tagName).toBe("SPAN");
+    expect(getComputedStyle(inlineLine.parentElement!).flexDirection).toBe("row");
+    expect(getComputedStyle(inlineLine.parentElement!).alignItems).toBe("baseline");
     expect(warn).not.toHaveBeenCalled();
     await render(<Moment size="inline" title="Synced" headingLevel={4} />);
     await expect.element(page.getByRole("heading", { level: 4, name: "Synced" })).toBeVisible();
@@ -268,6 +285,13 @@ describe("Moment quiet", () => {
     const line = page.getByText("Drafts you start show up here, one line at most.").element() as HTMLElement;
     expect(getComputedStyle(line).whiteSpace).toBe("nowrap");
     expect(line.tagName).toBe("DIV");
+    const title = own.moment!.querySelector("h3")!;
+    expect(getComputedStyle(title).whiteSpace).toBe("nowrap");
+    expect(getComputedStyle(title.parentElement!).flexDirection).toBe("column");
+    expect(getComputedStyle(title.parentElement!).flexGrow).toBe("1");
+    const ownActions = own.moment!.querySelector<HTMLElement>("[data-ouro-moment-actions]")!;
+    expect(getComputedStyle(ownActions).flexShrink).toBe("0");
+    expect(getComputedStyle(ownActions).flexWrap).toBe("nowrap");
     const roomy = await render(<Moment art={<Art />} title="Roomy" />);
     const size = (host: Element) => parseFloat(getComputedStyle(host.querySelector("h3")!).fontSize);
     expect(size(own.moment!)).toBeLessThan(size(roomy.moment!));
@@ -365,7 +389,8 @@ describe("Moment motion", () => {
     await act(async () => root.render(<Moment kind="loading" art={<Art />} title="Sending" />));
     expect(moment!.hasAttribute("data-celebrate")).toBe(false);
     await frames();
-    await act(async () => root.render(<Moment kind="success" art={<Art />} title="Sent" />));
+    // The celebration starts a frame after the moment turns into a success, not with it.
+    flushSync(() => root.render(<Moment kind="success" art={<Art />} title="Sent" />));
     expect(moment!.hasAttribute("data-celebrate")).toBe(false);
     await expect.poll(() => moment!.hasAttribute("data-celebrate")).toBe(true);
   });
@@ -433,6 +458,7 @@ describe("Moment cap", () => {
     now += day;
     expect(await celebrates(moment)).toBe(true);
     expect(JSON.parse(localStorage.getItem("ouro-moment:shown:caught-up")!)).toEqual([now]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("counts by id without a dismissKey, keeps ever for good, and never celebrates at times 0", async () => {
@@ -474,6 +500,9 @@ describe("Moment cap", () => {
     expect(await celebrates(moment("now"))).toBe(false);
     localStorage.setItem("ouro-moment:shown:edge", JSON.stringify([now - day]));
     expect(await celebrates(moment("edge"))).toBe(true);
+    // A time written as text is no showing.
+    localStorage.setItem("ouro-moment:shown:text", JSON.stringify([String(now)]));
+    expect(await celebrates(moment("text"))).toBe(true);
   });
 
   it("counts an unknown period as a day, and times that are no whole number as once", async () => {
@@ -488,6 +517,9 @@ describe("Moment cap", () => {
     const half = <Moment id="half" kind="success" art={<Art />} title="Done" cap={{ times: 1.5, per: "day" }} />;
     expect(await celebrates(half)).toBe(true);
     expect(await celebrates(half)).toBe(false);
+    const below = <Moment id="below" kind="success" art={<Art />} title="Done" cap={{ times: -1, per: "day" }} />;
+    expect(await celebrates(below)).toBe(true);
+    expect(await celebrates(below)).toBe(false);
   });
 
   it("celebrates every time without a cap, or without a key to count under", async () => {
@@ -528,19 +560,31 @@ describe("Moment dismissal", () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
     expect(document.querySelector('[data-ouro="moment"]')).toBeNull();
     await expect.poll(() => document.activeElement?.textContent).toBe("Next");
+    expect(Object.keys(localStorage).filter((key) => key.startsWith("ouro-moment:"))).toEqual([]);
   });
 
   it("puts the close button in the corner, clear of the art, or at the end of a row", async () => {
     const { moment, frame } = await render(<Moment art={<Art />} title="Welcome" dismissKey="corner" dismissLabel="Close" />);
     const close = page.getByRole("button", { name: "Close" }).element() as HTMLElement;
+    expect(close.querySelector("svg")).not.toBeNull();
     expect(getComputedStyle(close).position).toBe("absolute");
+    expect(getComputedStyle(moment!).paddingTop).toBe("48px");
+    const undismissible = await render(<Moment art={<Art />} title="Welcome" />);
+    expect(getComputedStyle(undismissible.moment!).paddingTop).toBe("32px");
     expect(close.getBoundingClientRect().bottom).toBeLessThanOrEqual(frame!.getBoundingClientRect().top + 0.5);
     expect(close.getBoundingClientRect().right).toBeLessThanOrEqual(moment!.getBoundingClientRect().right);
     const row = await render(<Moment quiet art={<Art />} title="Welcome" onDismiss={() => {}} />);
     const rowClose = row.moment!.querySelector<HTMLElement>('[data-ouro-part="dismiss"]')!;
+    expect(getComputedStyle(row.moment!).paddingTop).not.toBe("48px");
     expect(getComputedStyle(rowClose).position).toBe("relative");
     expect(rowClose.getBoundingClientRect().left).toBeGreaterThan(row.frame!.getBoundingClientRect().right);
     expect(rowClose.getAttribute("data-ouro-control")).toBe("moment");
+  });
+
+  it("never reads a dismissal for a moment without a dismissKey", async () => {
+    localStorage.setItem("ouro-moment:dismissed:undefined", "1");
+    const { moment } = await render(<Moment title="Keyless" />);
+    expect(moment).not.toBeNull();
   });
 
   it("has no close button unless it can be dismissed", async () => {

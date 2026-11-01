@@ -3,7 +3,6 @@ export {
   dismissedKey,
   haloClass,
   isDismissed,
-  kinds,
   kindToneClass,
   keepDismissed,
   MOMENT_STORAGE_PREFIX,
@@ -25,9 +24,6 @@ export {
 
 /** What a moment is about. @internal */
 type MomentKind = "empty" | "loading" | "error" | "welcome" | "success";
-
-/** The kinds, in the order the docs list them. @internal */
-const kinds: readonly MomentKind[] = ["empty", "loading", "error", "welcome", "success"];
 
 /** How long a celebration cap counts showings for. @internal */
 type MomentPeriod = "day" | "week" | "month" | "ever";
@@ -123,12 +119,13 @@ function keepDismissed(key: string): void {
 function takeShowing(key: string, cap: MomentCap, now: number): boolean {
   let stored: unknown;
   try {
-    // Stryker disable next-line StringLiteral: an empty string fails to parse, and the catch below reads that as no showings too.
+    // Stryker disable next-line StringLiteral: an empty string fails to parse, which leaves no showings, as "[]" does.
     stored = JSON.parse(read(shownKey(key)) ?? "[]");
   } catch {
-    stored = [];
+    // A value that is no JSON counts as no showings.
   }
   const since = now - periods[cap.per];
+  // Stryker disable next-line ArrayDeclaration: an entry put in the empty list is no number, so the filter drops it.
   const recent = (Array.isArray(stored) ? stored : []).filter((time): time is number => typeof time === "number" && time > since && time <= now);
   if (recent.length >= cap.times) return false;
   write(shownKey(key), JSON.stringify([...recent, now]));

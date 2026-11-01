@@ -1,13 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   artFrameClass,
   haloClass,
   isDismissed,
   keepDismissed,
-  kinds,
   kindToneClass,
   periods,
   rootClass,
@@ -168,7 +167,7 @@ export interface MomentProviderProps {
   children: ReactNode;
 }
 
-const MomentContext = createContext<{ quiet: boolean }>({ quiet: false });
+const MomentContext = createContext(false);
 
 /**
  * Sets `quiet` for every `Moment` inside it, so an app can make its moments compact
@@ -188,8 +187,7 @@ const MomentContext = createContext<{ quiet: boolean }>({ quiet: false });
  * </MomentProvider>
  */
 export function MomentProvider({ quiet = false, children }: MomentProviderProps): JSX.Element {
-  const value = useMemo(() => ({ quiet }), [quiet]);
-  return <MomentContext value={value}>{children}</MomentContext>;
+  return <MomentContext value={quiet}>{children}</MomentContext>;
 }
 
 const levels = [2, 3, 4, 5, 6] as const;
@@ -272,9 +270,9 @@ export function Moment(props: MomentProps): JSX.Element | null {
     variant,
     ...rest
   } = props;
-  const kind: MomentKind = (kinds as readonly string[]).includes(kindProp) ? (kindProp as MomentKind) : "empty";
-  const context = useContext(MomentContext);
-  const quiet = quietProp ?? context.quiet;
+  const kind: MomentKind = Object.hasOwn(kindToneClass, kindProp) ? (kindProp as MomentKind) : "empty";
+  const provided = useContext(MomentContext);
+  const quiet = quietProp ?? provided;
   const layout = sizeProp === "inline" ? "inline" : quiet ? "quiet" : "default";
   const level = headingLevel === undefined ? (layout === "inline" ? undefined : 3) : (levels as readonly unknown[]).includes(headingLevel) ? (headingLevel as (typeof levels)[number]) : 3;
   const per: MomentPeriod = cap !== undefined && Object.hasOwn(periods, cap.per) ? (cap.per as MomentPeriod) : "day";
@@ -306,7 +304,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
           body !== undefined && ["body is not a prop", `<Moment description="${String(body)}">`],
           actions !== undefined && ["actions is not a prop", "<Moment action={<Button>…</Button>} secondaryAction={<Button>…</Button>}>"],
           onClose !== undefined && ["onClose is not a prop", "<Moment onDismiss={() => setOpen(false)}>"],
-          variant !== undefined && ["variant is not a prop", `<Moment kind="${kinds.includes(variant as unknown as MomentKind) ? String(variant) : "error"}">`],
+          variant !== undefined && ["variant is not a prop", `<Moment kind="${Object.hasOwn(kindToneClass, String(variant)) ? String(variant) : "error"}">`],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
