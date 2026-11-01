@@ -1131,6 +1131,7 @@
         "ourostack/ouro-ui/lib-page-scroll-hold",
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-backdrop-anchor",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable"
@@ -9658,6 +9659,7 @@
         "ourostack/ouro-ui/radio-group-tests",
         "ourostack/ouro-ui/select",
         "ourostack/ouro-ui/select-tests",
+        "ourostack/ouro-ui/sheet",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/switch",
         "ourostack/ouro-ui/switch-tests",

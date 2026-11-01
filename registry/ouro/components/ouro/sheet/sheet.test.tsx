@@ -684,6 +684,120 @@ describe("close control", () => {
   });
 });
 
+describe("non-modal sheet", () => {
+  /** A page with its own controls and a side sheet beside it that leaves it in use. */
+  function Preview({ onPage = () => {}, onOpenChange = () => {} }: { onPage?: () => void; onOpenChange?: (open: boolean) => void }) {
+    const [open, setOpen] = useState(true);
+    return (
+      <>
+        <main style={{ height: 1600 }}>
+          <Button onClick={onPage}>Page action</Button>
+          <input aria-label="Page field" />
+        </main>
+        <Sheet
+          title="Look"
+          side="right"
+          modal={false}
+          open={open}
+          onOpenChange={(next) => {
+            onOpenChange(next);
+            setOpen(next);
+          }}
+        >
+          <Button>Ocean</Button>
+        </Sheet>
+      </>
+    );
+  }
+
+  it("draws no backdrop and leaves the page at full strength, in reach and scrolling", async () => {
+    await page.viewport(1280, 800);
+    const onPage = vi.fn();
+    await render(<Preview onPage={onPage} />);
+    await settled();
+    expect(backdrop()).toBeNull();
+    const action = page.getByRole("button", { name: "Page action" }).element() as HTMLElement;
+    expect(action.closest("[inert], [aria-hidden='true']")).toBeNull();
+    const box = action.getBoundingClientRect();
+    expect(action.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))).toBe(true);
+    await userEvent.click(action);
+    expect(onPage).toHaveBeenCalledOnce();
+    expect(popup()).not.toBeNull();
+    expect(getComputedStyle(document.documentElement).overflow).not.toBe("hidden");
+    window.scrollTo(0, 200);
+    await expect.poll(() => window.scrollY).toBe(200);
+    window.scrollTo(0, 0);
+  });
+
+  it("is a dialog without aria-modal, lets focus leave it, and stays open when focus or a press goes to the page", async () => {
+    await page.viewport(1280, 800);
+    const onOpenChange = vi.fn();
+    await render(<Preview onOpenChange={onOpenChange} />);
+    await settled();
+    const dialog = page.getByRole("dialog", { name: "Look" }).element();
+    expect(dialog.hasAttribute("aria-modal")).toBe(false);
+    await userEvent.click(page.getByRole("textbox", { name: "Page field" }));
+    expect(document.activeElement).toBe(page.getByRole("textbox", { name: "Page field" }).element());
+    await userEvent.keyboard("abc");
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(popup()).not.toBeNull();
+  });
+
+  it("closes on Escape from inside it, and from its close button, which shows at its top corner", async () => {
+    await page.viewport(1280, 800);
+    const onOpenChange = vi.fn();
+    await render(<Preview onOpenChange={onOpenChange} />);
+    await settled();
+    const close = page.getByRole("dialog").getByRole("button", { name: "Close" }).element() as HTMLElement;
+    const sheet = popup()!.getBoundingClientRect();
+    const corner = close.getBoundingClientRect();
+    expect(corner.width).toBeGreaterThanOrEqual(24);
+    expect(corner.top - sheet.top).toBeLessThan(24);
+    expect(sheet.right - corner.right).toBeLessThan(24);
+    await userEvent.click(close);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    await expect.poll(() => popup()).toBeNull();
+    await act(async () => roots[0]!.render(<Preview key="again" onOpenChange={onOpenChange} />));
+    await settled();
+    (page.getByRole("button", { name: "Ocean" }).element() as HTMLElement).focus();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("built from parts, stays open on a press on the page, unless the app passes disablePointerDismissal={false}", async () => {
+    await page.viewport(1280, 800);
+    for (const dismiss of [undefined, false] as const) {
+      await render(
+        <>
+          <Button>Page action</Button>
+          <SheetRoot side="right" modal={false} defaultOpen {...(dismiss === undefined ? {} : { disablePointerDismissal: dismiss })}>
+            <SheetPortal>
+              <SheetViewport>
+                <SheetPopup>
+                  <SheetTitle>Look</SheetTitle>
+                  <SheetContent>Pick a look.</SheetContent>
+                </SheetPopup>
+              </SheetViewport>
+            </SheetPortal>
+          </SheetRoot>
+        </>,
+      );
+      await settled();
+      expect(popup()!.getAttribute("data-modal")).toBe("false");
+      await userEvent.click(page.getByRole("button", { name: "Page action" }));
+      if (dismiss === undefined) expect(popup()).not.toBeNull();
+      else await expect.poll(() => popup()).toBeNull();
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
+  it("stays modal by default, with its backdrop", async () => {
+    await openUncontrolled();
+    expect(backdrop()).not.toBeNull();
+    expect(trigger().closest("[inert], [aria-hidden='true']")).not.toBeNull();
+  });
+});
+
 /**
  * The compiled app CSS with its iOS-only rules (`@supports (-webkit-touch-callout: none)`)
  * switched on. Desktop test browsers never match that query, so the test swaps it for one
