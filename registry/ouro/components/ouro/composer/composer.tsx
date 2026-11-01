@@ -313,8 +313,9 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (!ready) return;
     onSend(text, event);
     setOwn("");
-    // After a press of Send, the person goes on writing; after Enter, focus is there already.
-    textareaRef.current!.focus();
+    // After a press of Send, the person goes on writing; after Enter, focus is there already. No
+    // box around the composer scrolls for it.
+    textareaRef.current!.focus({ preventScroll: true });
   };
   const setExpanded = (next: boolean) => {
     setOwnExpanded(next);
@@ -323,7 +324,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const toggleExpanded = () => {
     setExpanded(!expanded);
     // The person goes on writing where they were: the textarea keeps its caret while it has no focus.
-    textareaRef.current!.focus();
+    textareaRef.current!.focus({ preventScroll: true });
   };
   // After every render, once TextArea has fitted the box: a render that expands or collapses it
   // grows or shrinks the row around the text from the height it had, clipped, while the text takes

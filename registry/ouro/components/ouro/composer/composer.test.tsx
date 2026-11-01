@@ -189,6 +189,23 @@ describe("Composer", () => {
     expect(document.activeElement).toBe(textarea);
   });
 
+  it("puts focus back in the box without scrolling a box around it, after a press of Send or the expand button", async () => {
+    const { host, textarea } = await render(
+      <div data-frame="" style={{ height: 80, overflow: "hidden" }}>
+        <div style={{ height: 400 }} />
+        <Composer label="Reply" defaultExpanded={false} defaultValue="See you" onSend={() => {}} />
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="send"]')!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(frame.scrollTop).toBe(0);
+    textarea.blur();
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="expand"]')!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(frame.scrollTop).toBe(0);
+  });
+
   it("names the send button with sendLabel, which its tooltip shows on keyboard focus", async () => {
     const { textarea } = await render(<Composer label="Message" defaultValue="Hi" sendLabel="Post" onSend={() => {}} />);
     textarea.focus();
