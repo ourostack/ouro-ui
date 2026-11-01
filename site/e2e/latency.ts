@@ -24,6 +24,16 @@ export const LATENCY = {
   p95: 100,
   /** Presses that count. */
   samples: 20,
+  /**
+   * When those put a control's p95 within 25 ms of the budget, it is pressed this many more times
+   * and judged on all of them (60): the p95 still allows one press in 20 over, but a run's one or
+   * two stray slow presses no longer decide it. For a control with one press in 100 over the budget,
+   * 20 presses fail it 1.7% of the time and 60 presses 0.3%; for one with one in 10 over, 20 presses
+   * catch it 61% of the time and 60 presses 86% (two or more, and four or more, over).
+   */
+  moreSamples: 40,
+  /** The p95, in ms, at and above which a control is pressed moreSamples more times. */
+  nearP95: 75,
   /** Presses before them that don't. */
   warmUps: 2,
   /** How many times slower than the runner the CPU is. */
@@ -125,7 +135,11 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
 export async function measure(page: Page, label: string, presses: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
   const runner = await runnerPace(page);
   const raw = await pressSamples(page, label, presses, throttle);
-  const samples = raw.map((sample) => Math.round((sample / runner) * 10) / 10);
+  const asOnReference = (values: readonly number[]) => values.map((sample) => Math.round((sample / runner) * 10) / 10);
+  if (summarise(asOnReference(raw), 0).p95 >= LATENCY.nearP95) {
+    raw.push(...(await pressSamples(page, label, presses, throttle, { first: LATENCY.warmUps + LATENCY.samples, warmUps: 0, samples: LATENCY.moreSamples })));
+  }
+  const samples = asOnReference(raw);
   const note = `this runner presses at ${runner.toFixed(2)}× the reference runner's time; measured here: ${raw.join(", ")}`;
   test.info().annotations.push({ type: "latency pace", description: `${label}: ${note}` });
   console.log(`latency ${label}: ${note}`);
@@ -140,7 +154,13 @@ export async function measure(page: Page, label: string, presses: Presses, throt
  * so does its tail (the porthole's repaint after the press), so a press is measured from a settled page, as
  * a person's would be a beat later.
  */
-export async function pressSamples(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
+export async function pressSamples(
+  page: Page,
+  label: string,
+  { press, prepare, setUp }: Presses,
+  throttle: number = LATENCY.throttle,
+  { first = 0, warmUps = LATENCY.warmUps, samples: count = LATENCY.samples }: { first?: number; warmUps?: number; samples?: number } = {},
+): Promise<number[]> {
   await page.evaluate(() => {
     const store: number[] = [];
     (window as unknown as { __latency: number[] }).__latency = store;
@@ -159,9 +179,9 @@ export async function pressSamples(page: Page, label: string, { press, prepare, 
   /** How many interactions the page has had (Event Timing's count, which has no duration floor). */
   const interactions = () => page.evaluate(() => (performance as Performance & { interactionCount: number }).interactionCount);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
-  if (prepare) await unthrottled(prepare);
+  if (prepare && first === 0) await unthrottled(prepare);
   const samples: number[] = [];
-  for (let index = 0; index < LATENCY.warmUps + LATENCY.samples; index++) {
+  for (let index = first; index < first + warmUps + count; index++) {
     if (setUp) await unthrottled(() => setUp(index));
     await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
     const before = await interactions();
@@ -170,7 +190,7 @@ export async function pressSamples(page: Page, label: string, { press, prepare, 
     const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
-    if (index >= LATENCY.warmUps) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
+    if (index >= first + warmUps) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
