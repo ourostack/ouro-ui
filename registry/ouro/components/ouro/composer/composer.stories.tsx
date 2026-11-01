@@ -185,6 +185,7 @@ function EmojiTokensStory() {
           ref={box}
           label="Message the release team"
           placeholder="Type : and two letters for emoji"
+          catalogue={catalogue}
           value={text}
           onValueChange={setText}
           onSend={(message) => {
@@ -376,7 +377,8 @@ export const Disabled: Story = {
 /**
  * Emoji from an image catalogue go into the text as `:shortcode:` tokens: type `:` and two
  * letters for suggestions, or pick one from the emoji button. The sent messages draw the
- * tokens as the catalogue's images with `EmojiText`.
+ * tokens as the catalogue's images with `EmojiText`. Given the `catalogue`, the box puts an
+ * emoji typed from the system's emoji panel, or pasted, in as its token too.
  */
 export const EmojiTokens: Story = {
   parameters: { plainOpeners: ["Insert emoji"] },

@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
-import { catalogueIndex, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import { catalogueIndex, emojiTextToTokens, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Runs in Chromium and WebKit.
@@ -458,6 +458,19 @@ describe("Emoji helpers", () => {
     expect(emojiToken(wave, "medium-dark")).toBe(":wave-tone4:");
     expect(emojiToken(party, "dark")).toBe(":party:");
     expect(emojiToken(fern)).toBe(":Fern:");
+  });
+
+  it("turns each emoji the catalogue lists as text into its token, a whole character at a time", () => {
+    const coder: EmojiItem = { id: "technologist", name: "Technologist", text: "👩‍💻", src: image("coder") };
+    const thumbs: EmojiItem = { id: "thumbs", name: "Thumbs up", shortcodes: ["thumbsup"], text: "👍", src: image("thumbs") };
+    const more: EmojiCatalogue = { categories: [...catalogue.categories, { id: "more", label: "More", items: [coder, thumbs] }] };
+    expect(emojiTextToTokens("Hi 👋🎉!", more)).toBe("Hi :wave::party:!");
+    // A skin tone modifier makes the toned emoji, a joined sequence its own emoji, and a variation selector changes nothing.
+    expect(emojiTextToTokens("👋🏽 👩‍💻 ❤️ ❤", more)).toBe(":wave-tone3: :technologist: :heart: :heart:");
+    // Only a whole character the catalogue lists changes: a toned form it lacks, a sequence it lacks and other emoji stay.
+    expect(emojiTextToTokens("👍🏽 👍 👩‍🔬 🦄", more)).toBe("👍🏽 :thumbsup: 👩‍🔬 🦄");
+    expect(emojiTextToTokens("Done :party: at 9:30", more)).toBe("Done :party: at 9:30");
+    expect(emojiTextToTokens("🎉", { categories: [{ id: "custom", label: "Fernwood", items: [fern] }] })).toBe("🎉");
   });
 
   it("matches every typed word to the start of a word, a part of one, or a whole one, ignoring case, accents and colons", () => {

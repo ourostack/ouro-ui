@@ -1,4 +1,4 @@
-export { caretRect, filterItems, findMatch, insertText, matchAt };
+export { caretRect, filterItems, findMatch, matchAt };
 export type { AutocompleteMatch };
 
 // The caret arithmetic and DOM edits Autocomplete uses, apart from the component so its file
@@ -140,21 +140,4 @@ function caretRect(control: HTMLTextAreaElement | HTMLInputElement, index: numbe
   const height = marker.offsetHeight;
   mirror.remove();
   return new DOMRect(left, top, 0, height);
-}
-
-/**
- * Replaces the text from `start` to `end` with `text` and puts the caret after it, as typing
- * would: through the browser's insertText command, which keeps undo, or, where that is not
- * available, with `setRangeText` and an `input` event, so React's change handlers run.
- *
- * @internal
- */
-function insertText(control: HTMLTextAreaElement | HTMLInputElement, start: number, end: number, text: string): void {
-  control.focus();
-  control.setSelectionRange(start, end);
-  // `execCommand` is deprecated but is still the only edit that joins the undo stack.
-  // Stryker disable next-line BooleanLiteral: browsers ignore execCommand's showUI argument.
-  if (control.ownerDocument.execCommand("insertText", false, text)) return;
-  control.setRangeText(text, start, end, "end");
-  control.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertReplacementText", data: text }));
 }

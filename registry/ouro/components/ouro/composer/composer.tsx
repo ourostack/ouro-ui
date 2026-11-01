@@ -1,13 +1,16 @@
 "use client";
 
-import { Children, useId, useRef, useState } from "react";
-import type { JSX, KeyboardEvent, MouseEvent, ReactNode, Ref, TextareaHTMLAttributes } from "react";
+import { Children, useEffect, useId, useRef, useState } from "react";
+import type { ClipboardEvent, JSX, KeyboardEvent, MouseEvent, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { TextArea, type TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { insertText } from "@/registry/ouro/lib/ouro/insert-text";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -75,6 +78,18 @@ export interface ComposerOwnProps {
   toolbar?: ReactNode;
   /** A quiet line under the box, read as the text's description: what the marks mean, a character count. */
   description?: ReactNode;
+  /**
+   * An image emoji catalogue. With it, an emoji typed into the box (from the system's emoji
+   * panel, say) or pasted goes in as its `:shortcode:` token, the token `Autocomplete` and
+   * `EmojiPicker` insert, so the text holds the catalogue's emoji only as tokens, which
+   * `EmojiText` draws as its images. That includes an emoji joined from others and one with a
+   * skin tone, which become the catalogue's emoji or tone for it; an emoji the catalogue does
+   * not list stays as it is. The caret lands after what went in, and one undo takes it out.
+   *
+   * @claim "goes in as its `:shortcode:` token" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts a typed emoji in as its token, with the caret after it, in one step undo takes out)
+   * @claim "or pasted goes in as its" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list)
+   */
+  catalogue?: EmojiCatalogue | undefined;
   /** Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. */
   highlights?: readonly TextAreaHighlight[] | undefined;
   /** Called with the highlights moved to fit the text after the person edits it, as TextArea's. */
@@ -125,6 +140,18 @@ function SendIcon(): JSX.Element {
 }
 
 /**
+ * Puts text in at the caret, in place of the browser's own insertion, with the catalogue's
+ * tokens for the emoji it lists, when it has any; otherwise the browser inserts it as usual.
+ * One edit, so one undo takes it out.
+ */
+function insertTokens(control: HTMLTextAreaElement, event: { preventDefault(): void }, text: string, catalogue: EmojiCatalogue): void {
+  const tokens = emojiTextToTokens(text, catalogue);
+  if (tokens === text) return;
+  event.preventDefault();
+  insertText(control, control.selectionStart, control.selectionEnd, tokens);
+}
+
+/**
  * A chat message box: text that grows from one line as the person writes, a send button, and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
  * Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never
@@ -137,7 +164,8 @@ function SendIcon(): JSX.Element {
  * `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few
  * letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to
  * put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message
- * is sent.
+ * is sent. Given the `catalogue` too, Composer puts an emoji typed from the system's emoji
+ * panel or pasted in as its token as well.
  *
  * Use `TextArea` instead for a long text that is saved rather than sent, and `Message` for
  * a message once it is sent.
@@ -187,12 +215,14 @@ export function Composer(props: ComposerProps): JSX.Element {
     description,
     highlights,
     onHighlightsChange,
+    catalogue,
     rows = 1,
     maxRows = 10,
     name,
     className,
     ref,
     onKeyDown,
+    onPaste,
     "aria-describedby": describedByProp,
     // Guard props (hint types), dropped here so they never reach the DOM.
     onSubmit,
@@ -258,6 +288,23 @@ export function Composer(props: ComposerProps): JSX.Element {
     send(event);
   };
 
+  // With a catalogue, an emoji typed (from the system's emoji panel, which inserts it whole) goes in as its token.
+  useEffect(() => {
+    if (!catalogue) return;
+    const control = textareaRef.current!;
+    const typed = (event: InputEvent) => {
+      // A word an input method is composing is the input method's until it ends.
+      if (event.isComposing || (event.inputType !== "insertText" && event.inputType !== "insertReplacementText")) return;
+      insertTokens(control, event, event.data ?? "", catalogue);
+    };
+    control.addEventListener("beforeinput", typed);
+    return () => control.removeEventListener("beforeinput", typed);
+  }, [catalogue]);
+  const paste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    onPaste?.(event);
+    if (catalogue && !event.defaultPrevented) insertTokens(event.currentTarget, event, event.clipboardData.getData("text/plain"), catalogue);
+  };
+
   const notes = [sendDisabledReason !== undefined && !disabled ? `${id}-reason` : undefined, description ? `${id}-description` : undefined];
   const describedBy = [describedByProp, ...notes].filter(Boolean).join(" ") || undefined;
 
@@ -287,6 +334,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             highlights={highlights}
             onHighlightsChange={onHighlightsChange}
             onKeyDown={keyDown}
+            onPaste={paste}
             aria-describedby={describedBy}
             className="min-w-[min(12rem,100%)] flex-1 basis-48 px-2 py-2"
           />

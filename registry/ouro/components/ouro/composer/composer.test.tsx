@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerProps } from "@/registry/ouro/components/ouro/composer/composer";
+import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -474,5 +475,89 @@ describe("Composer server rendering", () => {
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Composer with a catalogue", () => {
+  const image = (name: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>${name}</title></svg>`)}`;
+  const party: EmojiItem = { id: "party", name: "Party popper", shortcodes: ["party", "tada"], text: "🎉", src: image("party") };
+  const wave: EmojiItem = {
+    id: "wave",
+    name: "Waving hand",
+    shortcodes: ["wave"],
+    text: "👋",
+    src: image("wave"),
+    skinTones: [1, 2, 3, 4, 5].map((tone) => ({ id: `wave-tone${tone}`, src: image(`wave tone${tone}`), text: `👋${String.fromCodePoint(0x1f3fa + tone)}` })),
+  };
+  const coder: EmojiItem = { id: "technologist", name: "Technologist", text: "👩‍💻", src: image("coder") };
+  const catalogue: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [wave, coder, party] }] };
+  const box = () => page.getByRole("textbox", { name: "Message" });
+
+  /** Pastes text as the browser would announce it; a script's paste inserts nothing itself. */
+  async function paste(textarea: HTMLTextAreaElement, text: string) {
+    const data = new DataTransfer();
+    data.setData("text/plain", text);
+    const event = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
+    await act(async () => void textarea.dispatchEvent(event));
+    return event;
+  }
+  /** An input event the browser announces before it inserts text; a script's inserts nothing itself. */
+  async function beforeInput(textarea: HTMLTextAreaElement, init: InputEventInit) {
+    const event = new InputEvent("beforeinput", { bubbles: true, cancelable: true, ...init });
+    await act(async () => void textarea.dispatchEvent(event));
+    return event;
+  }
+
+  it("puts a typed emoji in as its token, with the caret after it, in one step undo takes out", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<Composer label="Message" catalogue={catalogue} defaultValue="Hi there" onValueChange={onValueChange} onSend={() => {}} />);
+    // The system's emoji panel puts an emoji in whole, as one insertion, as fill does.
+    await userEvent.fill(box(), "Hi 🎉 there");
+    expect(textarea.value).toBe("Hi :party: there");
+    expect([textarea.selectionStart, textarea.selectionEnd]).toEqual([16, 16]);
+    // The emoji never went in as a character.
+    expect(onValueChange.mock.calls.map((call: unknown[]) => call[0]).filter((value) => /🎉/u.test(value as string))).toEqual([]);
+    expect(onValueChange).toHaveBeenLastCalledWith("Hi :party: there");
+    await act(async () => void document.execCommand("undo"));
+    expect(textarea.value).toBe("Hi there");
+    expect(onValueChange).toHaveBeenLastCalledWith("Hi there");
+    // A joined emoji and a toned one become theirs; one the catalogue does not list stays.
+    await userEvent.fill(box(), "Coding 👩‍💻 👋🏽 🦄");
+    expect(textarea.value).toBe("Coding :technologist: :wave-tone3: 🦄");
+  });
+
+  it("puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list", async () => {
+    const onPaste = vi.fn();
+    const { textarea } = await render(<Composer label="Message" catalogue={catalogue} defaultValue="Hi there" onPaste={onPaste} onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(3, 3);
+    const event = await paste(textarea, "👋🏽 coding 👩‍💻 🦄 🎉 ");
+    expect(event.defaultPrevented).toBe(true);
+    expect(onPaste).toHaveBeenCalledTimes(1);
+    expect(textarea.value).toBe("Hi :wave-tone3: coding :technologist: 🦄 :party: there");
+    // The caret lands after what went in, before the text that followed it.
+    expect([textarea.selectionStart, textarea.selectionEnd]).toEqual([49, 49]);
+    await act(async () => void document.execCommand("undo"));
+    expect(textarea.value).toBe("Hi there");
+    // Text with none of its emoji is the browser's to paste.
+    expect((await paste(textarea, "plain 🦄 text")).defaultPrevented).toBe(false);
+    expect(textarea.value).toBe("Hi there");
+  });
+
+  it("leaves a paste the app handled, a word an input method composes, and other edits to the browser", async () => {
+    const { textarea, rerender } = await render(<Composer label="Message" catalogue={catalogue} onPaste={(event) => event.preventDefault()} onSend={() => {}} />);
+    textarea.focus();
+    expect((await paste(textarea, "🎉")).defaultPrevented).toBe(true);
+    expect(textarea.value).toBe("");
+    expect((await beforeInput(textarea, { inputType: "insertText", data: "🎉", isComposing: true })).defaultPrevented).toBe(false);
+    expect((await beforeInput(textarea, { inputType: "insertFromDrop", data: "🎉" })).defaultPrevented).toBe(false);
+    expect((await beforeInput(textarea, { inputType: "insertReplacementText", data: null })).defaultPrevented).toBe(false);
+    expect((await beforeInput(textarea, { inputType: "insertReplacementText", data: "🎉" })).defaultPrevented).toBe(true);
+    expect(textarea.value).toBe(":party:");
+    // Without a catalogue, an emoji goes in as typed.
+    await rerender(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.fill(box(), "🎉");
+    expect(textarea.value).toBe("🎉");
+    expect((await paste(textarea, "🎉")).defaultPrevented).toBe(false);
   });
 });

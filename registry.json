@@ -213,6 +213,7 @@
         "ourostack/ouro-ui/lib-floating",
         "ourostack/ouro-ui/lib-focus-handoff",
         "ourostack/ouro-ui/lib-form-answer",
+        "ourostack/ouro-ui/lib-insert-text",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
         "ourostack/ouro-ui/lib-open-mode",
@@ -642,6 +643,19 @@
           "path": "registry/ouro/lib/ouro/form-answer.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/form-answer.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-insert-text",
+      "type": "registry:lib",
+      "title": "lib-insert-text",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/insert-text.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/insert-text.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/insert-text.ts"
         }
       ]
     },
@@ -3700,13 +3714,15 @@
       "type": "registry:ui",
       "title": "Composer",
       "description": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline.",
-      "docs": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Import: import { Composer } from \"@/components/ouro/composer/composer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, text-area, text-field, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/composer.md",
+      "docs": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Import: import { Composer } from \"@/components/ouro/composer/composer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, emoji, field, text-area, text-field, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/composer.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/lib-announce",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-insert-text",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/text-area",
@@ -3869,6 +3885,7 @@
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
+        "ourostack/ouro-ui/lib-insert-text",
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-server-element",
@@ -4294,6 +4311,31 @@
           "path": "registry/ouro/lib/ouro/form-answer.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/form-answer.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-insert-text-tests",
+      "type": "registry:item",
+      "title": "lib-insert-text tests",
+      "description": "Optional: the Vitest browser tests for lib-insert-text, and the tests of everything it installs. Add it beside lib-insert-text: add lib-insert-text lib-insert-text-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-insert-text",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/insert-text.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/insert-text.test.ts"
         }
       ],
       "meta": {
@@ -11154,6 +11196,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -11525,6 +11568,7 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -11717,6 +11761,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -11809,6 +11854,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",

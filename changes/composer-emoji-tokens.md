@@ -1,0 +1,1 @@
+- New: Composer takes `catalogue`, an image emoji catalogue; with it, an emoji typed from the system's emoji panel or pasted goes in as its `:shortcode:` token, the caret after it and one undo taking it out, and an emoji the catalogue does not list stays as it is.
