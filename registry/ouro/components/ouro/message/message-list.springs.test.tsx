@@ -296,7 +296,12 @@ describe("MessageList springs", () => {
   });
 
   it("starts a message that comes near mid-scroll where its nearest moving neighbour is, so no gap opens", async () => {
-    const { scroller, messages } = await render(<Chat count={60} height={400} />);
+    // Well down the page, so every message's place on screen is far from 0.
+    const { scroller, messages } = await render(
+      <div style={{ paddingTop: 2000 }}>
+        <Chat count={60} height={400} />
+      </div>,
+    );
     await scrollInCode(scroller, 800);
     const frames = holdFrames();
     const view = scroller.getBoundingClientRect();
