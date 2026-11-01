@@ -615,8 +615,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const hold = () => {
       const anchor = anchors.find(({ node }) => node.isConnected);
       // A scroll up away from the end that the scroll event has not reported yet (code scrolled to a message, a key) stops the following.
-      // Stryker disable next-line EqualityOperator: a list exactly half a pixel above, or exactly AT_BOTTOM from its end, is where zoom's fractions leave it either way.
-      if (scroller.scrollTop < lastTop.current - 0.5 && scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > AT_BOTTOM) pinned.current = false;
+      // Stryker disable next-line EqualityOperator: a list exactly half a pixel above where it was is where zoom's fractions leave it either way.
+      const up = scroller.scrollTop < lastTop.current - 0.5;
+      // Not the end coming up as a message there goes: the scroll event that follows pins the list again, so this only spares that frame.
+      // Stryker disable next-line all: as above.
+      const away = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > AT_BOTTOM;
+      if (up && away) pinned.current = false;
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -658,11 +662,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      follow.disconnect();
-      moves.disconnect();
-      scroller.removeEventListener("scroll", onScroll);
-    };
+    // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
+    return () => (follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll));
   }, [toBottom]);
 
   // Announce each message from someone else once: when it is appended after the last

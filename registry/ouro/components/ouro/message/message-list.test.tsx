@@ -514,13 +514,16 @@ describe("MessageList", () => {
 
   it("keeps the reader's place when a message above them moves to the end and the list keeps its height", async () => {
     const items = history(20, 10);
+    // The messages sit in a group, as under a day's heading, so the move happens inside it.
     const list = (order: Item[], note: string) => (
       <MessageList label="Conversation" style={{ height: 300 }}>
-        {order.map((item) => (
-          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
-            {item.text}
-          </Message>
-        ))}
+        <section aria-label="Today">
+          {order.map((item) => (
+            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+              {item.text}
+            </Message>
+          ))}
+        </section>
         <p key={note}>Seen</p>
       </MessageList>
     );
