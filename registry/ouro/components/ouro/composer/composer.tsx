@@ -345,8 +345,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   };
   const removeQuote = () => {
     quote!.onRemove();
-    // The remove button goes with the quote, so focus goes back to the text.
-    textareaRef.current!.focus();
+    // The remove button goes with the quote, so focus goes back to the text, scrolling no box around it.
+    textareaRef.current!.focus({ preventScroll: true });
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     onKeyDown?.(event);

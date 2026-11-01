@@ -509,6 +509,18 @@ describe("Composer quote", () => {
     expect(document.activeElement).toBe(textarea);
   });
 
+  it("puts focus back in the box after the remove button without scrolling a box around it", async () => {
+    const { host, textarea, remove } = await render(
+      <div data-frame="" style={{ height: 80, overflow: "hidden" }}>
+        <div style={{ height: 400 }} />
+        <Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />
+      </div>,
+    );
+    await act(async () => remove!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(host.querySelector<HTMLElement>("[data-frame]")!.scrollTop).toBe(0);
+  });
+
   it("removes the quote on Escape while the box is empty, and that Escape goes no further", async () => {
     const onRemove = vi.fn();
     const outer = vi.fn();
