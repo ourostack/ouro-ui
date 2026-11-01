@@ -123,6 +123,13 @@ export interface CommandBaseProps {
   /** What shows when nothing matches the search. @default "No results" */
   emptyLabel?: string | undefined;
   /**
+   * Content for the empty state in place of `emptyLabel`, such as a picture with words:
+   * `empty={<Empty icon={<SearchIcon />} title="Nothing matches" />}`. While `loading`, the loading
+   * line still shows under it.
+   * @claim "Content for the empty state" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > takes content for its empty state, such as a picture with words, with the loading line under it while loading)
+   */
+  empty?: ReactNode;
+  /**
    * The label of the close button, hidden until it has keyboard focus, so screen-reader
    * users on phones (who have no Escape key) can always close the palette. @default "Close"
    * @claim "The label of the close button" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > labels the search input and its close button, translated)
@@ -361,6 +368,7 @@ export function Command(props: CommandProps): JSX.Element {
     placeholder = "Type a command or search…",
     searchLabel = "Search commands",
     emptyLabel = "No results",
+    empty,
     closeLabel = "Close",
     className,
     onQueryChange,
@@ -531,7 +539,7 @@ export function Command(props: CommandProps): JSX.Element {
           {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
           <Autocomplete.Empty>
             <div data-ouro-command-empty="" className={commandEmptyClass}>
-              {emptyLabel}
+              {empty ?? emptyLabel}
               {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
             </div>
           </Autocomplete.Empty>
