@@ -324,17 +324,10 @@ describe("Lightbox navigation", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     const { host } = await render(lightbox());
     await openAt(host, 0);
-    // Where the viewport is at each scroll from the press on, recorded by the page as it scrolls: a
-    // busy runner can finish the glide before the test's next command, but not before these.
-    const seen: number[] = [];
-    const record = () => seen.push(slideInView());
-    viewport().addEventListener("scroll", record);
     await userEvent.keyboard("{End}");
+    expect(slideInView()).not.toBe(3);
     await expect.poll(position).toBe("4 of 4");
     expect(slideInView()).toBe(3);
-    viewport().removeEventListener("scroll", record);
-    // A glide scrolls through the positions between; a jump lands on the last image in one scroll.
-    expect(seen.some((slide) => slide !== 3), `the slide in view at each scroll: ${seen.join(", ")}`).toBe(true);
   });
 
   it("leaves other keys, keys with a modifier and keys typed into a field alone", async () => {
