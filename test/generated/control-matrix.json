@@ -1858,7 +1858,8 @@
       "Message/WithAttachments",
       "Message/Chat",
       "Message/Posts",
-      "Message/Thread"
+      "Message/Thread",
+      "Message/EmojiInNames"
     ]
   },
   {
@@ -1876,7 +1877,8 @@
       "Message/WithAttachments",
       "Message/Chat",
       "Message/Posts",
-      "Message/Thread"
+      "Message/Thread",
+      "Message/EmojiInNames"
     ]
   },
   {
