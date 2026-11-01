@@ -28,8 +28,8 @@ const emojiClass = "inline-block size-[1.25em] shrink-0 align-[-0.3em] object-co
 
 /** The emoji's form in a skin tone: its toned image, or the emoji itself in the default tone or without tones. @internal */
 function toneOf(item: EmojiItem, tone: EmojiSkinTone | undefined): EmojiItem | EmojiItemTone {
-  const index = emojiSkinTones.indexOf(tone!);
-  return (index > 0 && item.skinTones?.[index - 1]) || item;
+  // The default tone, or one that is no tone, is the emoji itself.
+  return item.skinTones?.[emojiSkinTones.indexOf(tone!) - 1] ?? item;
 }
 
 /**
@@ -91,7 +91,7 @@ function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
     }
   }
   // Shortcodes win over ids that look the same, so they go in last.
-  for (const item of items) for (const shortcode of item.shortcodes ?? []) byToken.set(shortcode.toLowerCase(), { item, tone: "default" });
+  for (const item of items) item.shortcodes?.forEach((shortcode) => byToken.set(shortcode.toLowerCase(), { item, tone: "default" }));
   // Longest first, so a sequence wins over the emoji it starts with; a variation selector may follow any character.
   const texts = [...byText.keys()].sort((a, b) => b.length - a.length).map((text) => Array.from(text, (char) => `${escape(char)}\\uFE0F?`).join(""));
   const pattern = new RegExp([":[^\\s:]+(?=:)", ...texts].join("|"), "gu");

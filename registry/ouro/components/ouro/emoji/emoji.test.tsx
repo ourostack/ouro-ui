@@ -230,6 +230,11 @@ describe("Emoji", () => {
     await rerender(<Emoji item={blink} play={false} />);
     expect(emoji(host).getAnimations()).toEqual([]);
     expect(emoji(host).getAttribute("src")).toBe(blink.src);
+    // A tall still image is no filmstrip: only a filmstrip that plays is stepped.
+    await rerender(<Emoji item={{ id: "tall", name: "Tall banner", src: strip("tall", 3) }} />);
+    await emoji(host).decode();
+    await act(async () => {});
+    expect(emoji(host).getAnimations()).toEqual([]);
   });
 
   it("plays and stops with play, plays for the image itself outside a button, and never without an animated image", async () => {
@@ -418,6 +423,14 @@ describe("Emoji helpers", () => {
     expect(index.byText.has("")).toBe(false);
   });
 
+  it("splits text into its runs and emoji with no empty runs between or around them", () => {
+    expect(splitEmojiText(":party::heart:", catalogue)).toEqual([
+      { item: party, tone: "default" },
+      { item: heart, tone: "default" },
+    ]);
+    expect(splitEmojiText("", catalogue)).toEqual([]);
+  });
+
   it("finds emoji text with characters a pattern would read as its own", () => {
     expect(splitEmojiText("press *️⃣ or *", withKeycap)).toEqual(["press ", { item: keycap, tone: "default" }, " or *"]);
   });
@@ -427,6 +440,7 @@ describe("Emoji helpers", () => {
     expect(emojiToken(heart, "default")).toBe(":heart:");
     expect(emojiToken(wave, "medium-dark")).toBe(":wave-tone4:");
     expect(emojiToken(party, "dark")).toBe(":party:");
+    expect(emojiToken(fern)).toBe(":Fern:");
   });
 
   it("matches every typed word to the start of a word, a part of one, or a whole one, ignoring case, accents and colons", () => {

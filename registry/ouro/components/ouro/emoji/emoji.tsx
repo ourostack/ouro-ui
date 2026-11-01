@@ -193,6 +193,13 @@ function useHostActive(image: { current: HTMLImageElement | null }, watch: boole
 }
 
 /**
+ * The filmstrip animation each emoji's image runs, at most one.
+ *
+ * @claim "at most one" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays an animated image over a filmstrip, a tone's filmstrip in that tone, leaves one frame or a broken strip still, and starts a strip once)
+ */
+const filmstrips = new WeakMap<HTMLImageElement, Animation>();
+
+/**
  * Steps a filmstrip through its frames while `strip` is set: one Web Animation on the image's
  * `object-position`, started once the filmstrip has loaded (its height over its width is the
  * number of frames) and cancelled when it stops.
@@ -203,26 +210,26 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
   useEffect(() => {
     if (src === undefined) return;
     const own = image.current!;
-    let animation: Animation | undefined;
-    let stopped = false;
     // Starts once the filmstrip is ready, whether it loads now or was there already.
     own.decode().then(
       () => {
         const frames = Math.round(own.naturalHeight / own.naturalWidth);
-        if (stopped || !(frames > 1)) return;
-        animation = own.animate([{ objectPosition: "50% 0%" }, { objectPosition: "50% 100%" }], {
-          duration: (frames / fps!) * 1000,
-          iterations: Infinity,
-          easing: `steps(${frames}, jump-none)`,
-        });
+        // One animation an emoji: a start for an earlier pace gives way to this one.
+        filmstrips.get(own)?.cancel();
+        if (!(frames > 1)) return;
+        filmstrips.set(
+          own,
+          own.animate([{ objectPosition: "50% 0%" }, { objectPosition: "50% 100%" }], {
+            duration: (frames / fps!) * 1000,
+            iterations: Infinity,
+            easing: `steps(${frames}, jump-none)`,
+          }),
+        );
       },
       // A filmstrip that fails to load leaves the still image.
       () => {},
     );
-    return () => {
-      stopped = true;
-      animation?.cancel();
-    };
+    return () => filmstrips.get(own)?.cancel();
   }, [image, src, fps]);
 }
 
@@ -273,7 +280,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
     "Emoji",
     process.env.NODE_ENV !== "production"
       ? () => [
-          !item?.src && ["item has no src, so there is no image to draw", '<Emoji item={{ id: "party", name: "Party popper", src: "/emoji/party.png" }} />'],
+          !item.src && ["item has no src, so there is no image to draw", '<Emoji item={{ id: "party", name: "Party popper", src: "/emoji/party.png" }} />'],
           !knownTone && [`skinTone="${skinTone}" is not a skin tone; use ${emojiSkinTones.map((tone) => `"${tone}"`).join(", ")}`, '<Emoji item={item} skinTone="medium" />'],
           src !== undefined && ["src is not a prop; the image comes from item", "<Emoji item={{ id, name, src }} />"],
           emoji !== undefined && ["emoji is not a prop; Emoji draws a catalogue's item", "<Emoji item={catalogueItem} />"],
@@ -282,7 +289,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const form = toneOf(item, knownTone ? (skinTone as EmojiSkinTone) : "default");
+  const form = toneOf(item, skinTone as EmojiSkinTone);
   const own = useRef<HTMLImageElement>(null);
   const mergedRef = useMergedRef(ref, own);
   const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", true);
