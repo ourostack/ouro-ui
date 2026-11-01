@@ -625,6 +625,85 @@ describe("centered dialog", () => {
   });
 });
 
+describe("Dialog's top edge while its content changes", () => {
+  /** A dialog whose steps the test adds and removes, as a first-run checklist ticks. */
+  function Steps({ count }: { count: number }) {
+    return (
+      <Dialog title="Getting set up" open onOpenChange={() => {}}>
+        <ol>
+          {Array.from({ length: count }, (_, step) => (
+            <li key={step} style={{ height: 40 }}>
+              Step {step + 1}
+            </li>
+          ))}
+        </ol>
+      </Dialog>
+    );
+  }
+  const box = () => dialogPopup()!.getBoundingClientRect();
+
+  it("opens centred, then keeps its top edge where it opened as its content grows", async () => {
+    const { rerender } = await render(<Steps count={2} />);
+    await settled();
+    const opened = box();
+    expect(Math.abs(opened.top - (800 - opened.bottom))).toBeLessThanOrEqual(1);
+    await rerender(<Steps count={6} />);
+    await expect.poll(() => box().height).toBeGreaterThan(opened.height + 150);
+    // The hold runs in a resize observer, after the frame's animation callbacks and before its paint.
+    await expect.poll(() => Math.round(box().top)).toBe(Math.round(opened.top));
+  });
+
+  it("keeps its top edge where it opened as its content shrinks", async () => {
+    const { rerender } = await render(<Steps count={6} />);
+    await settled();
+    const opened = box();
+    await rerender(<Steps count={2} />);
+    await expect.poll(() => box().height).toBeLessThan(opened.height - 150);
+    // The hold runs in a resize observer, after the frame's animation callbacks and before its paint.
+    await expect.poll(() => Math.round(box().top)).toBe(Math.round(opened.top));
+  });
+
+  it("moves up only as far as it must when it grows past the screen's bottom margin", async () => {
+    const { rerender } = await render(<Steps count={6} />);
+    await settled();
+    const opened = box();
+    await rerender(<Steps count={24} />);
+    await expect.poll(() => box().bottom).toBeCloseTo(800 - 16, 0);
+    expect(box().top).toBeLessThan(opened.top);
+    expect(box().top).toBeGreaterThanOrEqual(16);
+  });
+
+  it("centres itself again for a window of a new size", async () => {
+    const { rerender } = await render(<Steps count={2} />);
+    await settled();
+    await rerender(<Steps count={6} />);
+    await expect.poll(() => box().height).toBeGreaterThan(300);
+    await page.viewport(1280, 700);
+    // The window's new height reaches the dialog's viewport, and its resize observer, before the dialog moves.
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="dialog-viewport"]')!.clientHeight).toBe(700);
+    await expect.poll(() => Math.round(box().top - (700 - box().bottom))).toBe(0);
+    await nextFrame();
+    await nextFrame();
+    const centred = Math.round(box().top);
+    await rerender(<Steps count={8} />);
+    await expect.poll(() => Math.round(box().top)).toBe(centred);
+    expect(Math.round(box().top - (700 - box().bottom))).toBeGreaterThan(0);
+  });
+
+  it("keeps its top edge when only the window's width changes, as when a page's scroll bar comes or goes", async () => {
+    const { rerender } = await render(<Steps count={6} />);
+    await settled();
+    const opened = Math.round(box().top);
+    await rerender(<Steps count={2} />);
+    await expect.poll(() => Math.round(box().top)).toBe(opened);
+    await page.viewport(1100, 800);
+    await expect.poll(() => Math.round(box().left)).toBe(Math.round((1100 - box().width) / 2));
+    await nextFrame();
+    await nextFrame();
+    expect(Math.round(box().top)).toBe(opened);
+  });
+});
+
 describe("footer", () => {
   const footer = (
     <>

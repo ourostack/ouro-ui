@@ -199,6 +199,9 @@ function CloseIcon(): JSX.Element {
  * A dialog that presents itself for the screen: a centered dialog on wider
  * screens and a bottom sheet you can drag away on phones (below 640px). It
  * handles focus, Escape, outside presses, scroll locking and a close button.
+ * Once open, a centered dialog keeps its top edge where it opened while its
+ * content grows or shrinks, as a macOS sheet does, and moves up only as far as
+ * it must to stay on the screen.
  *
  * Use `trigger` for a dialog a button opens, or `open` with `onOpenChange` to
  * control it. Use `ConfirmDialog` instead to confirm an action, and `Sheet`
@@ -230,6 +233,8 @@ function CloseIcon(): JSX.Element {
  * </Dialog>
  * @claim "A dialog that presents itself for" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders a centered dialog at 1280px)
  * @claim "A dialog that presents itself for" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::automatic presentation > renders the bottom sheet at 390px)
+ * @claim "Once open, a centered dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog's top edge while its content changes > opens centred, then keeps its top edge where it opened as its content grows)
+ * @claim "Once open, a centered dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog's top edge while its content changes > moves up only as far as it must when it grows past the screen's bottom margin)
  * @claim "It stacks above the page at" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  * @claim "Testing accessibility: in WebKit, Base UI's" test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded the accessibility gate finds nothing)
