@@ -1179,6 +1179,29 @@ describe("Message actions", () => {
     expect(box(barOf(third!)).right).toBeCloseTo(box(bubbleOf(third!)).left - 4, 0);
   });
 
+  it("counts the avatar's column out of the room beside the bubble only where it stands before the bubble", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" actions={actionsFor([])}>
+          Theirs
+        </Message>
+        <Message variant="reply" role="user" name="Priya Okafor" actions={actionsFor([])}>
+          My reply
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
+          Mine
+        </Message>
+        <Message variant="reply" role="assistant" name="Jonah Vale" avatar={false} actions={actionsFor([])}>
+          No avatar
+        </Message>
+      </>,
+    );
+    const rooms = [...host.querySelectorAll<HTMLElement>("[data-ouro-message-actions-room]")].map((room) => room.style.width);
+    // Each room runs to the message's edge (100cqw); the browser may reorder the terms it reads back.
+    expect(rooms.every((width) => width.includes("100cqw"))).toBe(true);
+    expect(rooms.map((width) => width.includes("2.5rem"))).toEqual([true, true, false, false]);
+  });
+
   it("puts a chat bar beside the bubble when asked: past others' bubbles, before the user's own", async () => {
     const { host } = await render(
       <>
