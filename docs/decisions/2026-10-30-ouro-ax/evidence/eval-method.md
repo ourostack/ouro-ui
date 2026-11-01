@@ -49,11 +49,11 @@ node probe/ax-eval/run.ts --rescore <out>   # score a finished evaluation again 
 
 | Task | Prompt | Success |
 |---|---|---|
-| T1 Triage (read only) | "What should I handle first this morning?" | No action-log entry by an agent and no message sent; the answer names at least 2 of the 3 top "Needs you" items: Sam's mention in Design reviews (`/design reviews?/`), Sam's question about the review doc in the Sam Example chat (`/review doc\|sam's question\|sam asked/`), the mention in the Weekly sync meeting chat (`/weekly sync/`). |
-| T2 Draft handoff | "Draft a reply in my chat with Sam Example saying I'll look at the review doc by end of day, and leave it for me to send." | A draft in the Sam Example chat (`ej90am`) whose text has "review doc" and "end of day"/"EOD"/"today"; no draft elsewhere; no action other people see; nothing sent. |
+| T1 Triage (read only) | "What should I handle first this morning?" | No action-log entry by an agent and no message sent; the answer names at least 2 of the 3 top "Needs you" items: Jo's mention in Design reviews (`/design reviews?/`), Jo's question about the review doc in the Jo Park chat (`/review doc\|jo's question\|jo asked/`), the mention in the Weekly sync meeting chat (`/weekly sync/`). |
+| T2 Draft handoff | "Draft a reply in my chat with Jo Park saying I'll look at the review doc by end of day, and leave it for me to send." | A draft in the Jo Park chat (`ej90am`) whose text has "review doc" and "end of day"/"EOD"/"today"; no draft elsewhere; no action other people see; nothing sent. |
 | T3 Directed send others see | "Riley asked me to tell the Launch planning group that the new banner is final. Send it." | Exactly one completed `message.send` to Launch planning (`nxrlt3`), its `--why` names Riley, the sent text has "banner" and "final"; no other action others see; nothing sent elsewhere. |
-| T4 Recovery (ambiguous verb) | "Edit my last message in the Launch planning group: Sam says it should say Thursday, not Friday." | The person's own message "Thanks, both. Can we ship & review on Friday?" (`nxrlt3#1700002700000`) is edited (`edit-sent`) to say Thursday and not Friday; no new message; no other action others see. The obvious first try, `app edit ...`, exits 2 with the one line naming `edit-sent`; "Recoveries" and "Help calls" show whether the agent got there from the error or from help. |
-| T5 Wait | "Tell me when someone replies in my group chat with Alex, Riley, and Sam." | The harness posts Riley's reply "Offsite update: we moved to the Lakeside room, 9:30 start." in that chat (`r82dfi`) 10 s after the agent starts a `watch` (or an MCP tool whose name has watch/wait), or 75 s after its first call, whichever is first. Success: the answer reports it ("Lakeside"), no action others see, and at most 3 repeated identical calls (more is blind polling). If the agent ends before the reply is posted, it fails. |
+| T4 Recovery (ambiguous verb) | "Edit my last message in the Launch planning group: Jo says it should say Thursday, not Friday." | The person's own message "Thanks, both. Can we ship & review on Friday?" (`nxrlt3#1700002700000`) is edited (`edit-sent`) to say Thursday and not Friday; no new message; no other action others see. The obvious first try, `app edit ...`, exits 2 with the one line naming `edit-sent`; "Recoveries" and "Help calls" show whether the agent got there from the error or from help. |
+| T5 Wait | "Tell me when someone replies in my group chat with Alex, Riley, and Jo." | The harness posts Riley's reply "Offsite update: we moved to the Lakeside room, 9:30 start." in that chat (`r82dfi`) 10 s after the agent starts a `watch` (or an MCP tool whose name has watch/wait), or 75 s after its first call, whichever is first. Success: the answer reports it ("Lakeside"), no action others see, and at most 3 repeated identical calls (more is blind polling). If the agent ends before the reply is posted, it fails. |
 
 ## Metrics (per run; the table shows the mean over runs)
 
@@ -86,8 +86,8 @@ Every run (each run's calls and answer: `baseline-results.md` beside this file; 
 |---|---|---|---|---|---|---|---|---|---|---|
 | T1 | 1 | yes | no writes; names 3 of the 3 top items | 5 | 0 | 0 | 0 | 1 | 99k/403 | 51s |
 | T1 | 2 | yes | no writes; names 3 of the 3 top items | 5 | 0 | 0 | 0 | 1 | 94k/404 | 50s |
-| T2 | 1 | yes | draft in Sam's chat, nothing sent | 6 | 0 | 1 | 0 | 3 | 118k/234 | 45s |
-| T2 | 2 | yes | draft in Sam's chat, nothing sent | 8 | 0 | 1 | 0 | 2 | 131k/307 | 37s |
+| T2 | 1 | yes | draft in Jo's chat, nothing sent | 6 | 0 | 1 | 0 | 3 | 118k/234 | 45s |
+| T2 | 2 | yes | draft in Jo's chat, nothing sent | 8 | 0 | 1 | 0 | 2 | 131k/307 | 37s |
 | T3 | 1 | no | no send: `printf ... \| app send` denied | 4 | 1 | 1 | 0 | 3 | 115k/272 | 40s |
 | T3 | 2 | no | no send: same | 4 | 1 | 1 | 0 | 3 | 115k/243 | 32s |
 | T4 | 1 | no | not edited: the `edit-sent` pipe denied | 4 | 1 | 1 | 0 | 2 | 133k/292 | 40s |
@@ -119,7 +119,7 @@ Supplement: the same main, T3 and T4 with `--allow-tool 'shell(printf)' --allow-
 
 This is the baseline for T2, T3 and T4 from now on. #440 ("Agent CLI: give text with --text or --file, no pipe needed") lets every text-taking command take `--text <s>`, `--file <path>` and `--why-file` as plain arguments, and help and hints lead with them.
 
-Which code: these runs used the #440 branch head `6297c319` (detached worktree), started before the merge. #440 landed on main as the squash commit `1c8cfffa`. Its CLI (`src/cli/`) and `docs/agent-guide.md` are identical to `6297c319`; the other differences in what the runner loads are the window-away-for-sign-in route in the daemon (not used by these tasks) and one fixture wording (Sam's question now reads "can you look at the review doc before the Q&A?" instead of "...review doc <draft>?"). So I kept the runs and did not re-run on `1c8cfffa`.
+Which code: these runs used the #440 branch head `6297c319` (detached worktree), started before the merge. #440 landed on main as the squash commit `1c8cfffa`. Its CLI (`src/cli/`) and `docs/agent-guide.md` are identical to `6297c319`; the other differences in what the runner loads are the window-away-for-sign-in route in the daemon (not used by these tasks) and one fixture wording (Jo's question now reads "can you look at the review doc before the Q&A?" instead of "...review doc <draft>?"). So I kept the runs and did not re-run on `1c8cfffa`.
 
 Setup as the first baseline: default AGENTS.md (the docs/agent-guide.md paragraph from that commit, unchanged), only `shell(app)` allowed, 2 runs per task, gpt-6.1-sol, 2026-10-30 16:20-16:47 PT.
 

@@ -58,7 +58,7 @@ Answer: Sent to **Launch planning**: “The new banner is final.”
   [0] app look --help
   [0] app look nxrlt3 --json
   [0] app look nxrlt3 --limit 5 --json
-  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why User asked to edit their last message in Launch planning to say Thursday, not Friday, per Sam. --json
+  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why User asked to edit their last message in Launch planning to say Thursday, not Friday, per Jo. --json
   [0] app look nxrlt3#1700002700000 --json
 wrong turns:
   repeated: app edit-sent --help
@@ -76,7 +76,7 @@ Answer: Edited your last message in Launch planning to say: “Thanks, both. Can
   [0] app edit-sent --help
   [0] app look --help
   [0] app look Launch planning --limit 20 --json
-  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why User asked to edit their last message in Launch planning: Sam says it should say Thursday, not Friday. --json
+  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why User asked to edit their last message in Launch planning: Jo says it should say Thursday, not Friday. --json
   [0] app look nxrlt3#1700002700000 --json
 ```
 

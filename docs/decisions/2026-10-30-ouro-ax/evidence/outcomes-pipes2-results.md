@@ -24,7 +24,7 @@ CLI: `~/work/probe-outcomes/bin/app.mjs` · runs per task: 2 · 2026-10-30T23:50
   [0] app conversations --json
   [0] app edit-sent --help
   [0] app look nxrlt3 --json
-  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why Asked to edit my last message in the Launch planning group: Sam says it should say Thursday, not Friday. --json
+  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why Asked to edit my last message in the Launch planning group: Jo says it should say Thursday, not Friday. --json
 ```
 
 Answer: Edited your last message in Launch planning to: “Thanks, both. Can we ship & review on Thursday?”
@@ -39,7 +39,7 @@ Answer: Edited your last message in Launch planning to: “Thanks, both. Can we 
   [0] app edit-sent --help
   [0] app look --help
   [0] app look nxrlt3 --json
-  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why User asked to edit their last message in Launch planning to say Thursday, not Friday, per Sam. --json
+  [0] app edit-sent nxrlt3#1700002700000 - --agent copilot --why User asked to edit their last message in Launch planning to say Thursday, not Friday, per Jo. --json
 wrong turns:
   repeated: app edit-sent --help
   repeated: app look --help

@@ -216,9 +216,9 @@ function toggleById(list: CatalogueReaction[], key: string): CatalogueReaction[]
 
 function CatalogueReacting() {
   const [list, setList] = useState<CatalogueReaction[]>([
-    { key: "party", count: 3, mine: true, tooltip: "You, Riley Example and Sam Rivera" },
+    { key: "party", count: 3, mine: true, tooltip: "You, Riley Example and Jo Rivera" },
     { key: "wave-tone3", count: 1, tooltip: "Riley Example" },
-    { key: "fern", count: 2, tooltip: "Sam Rivera and Ada Lovelace" },
+    { key: "fern", count: 2, tooltip: "Jo Rivera and Ada Lovelace" },
   ]);
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLElement | null>(null);

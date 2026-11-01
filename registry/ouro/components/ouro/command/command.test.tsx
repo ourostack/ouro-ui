@@ -650,11 +650,11 @@ describe("Command media", () => {
         { label: "Launch team", onSelect: () => {}, unread: true, mark: <Badge>3</Badge>, shortcut: ["mod", "1"] },
         { label: "Weekly notes", onSelect: () => {}, mark: "Draft" },
         { label: "Kai Sample", onSelect: () => {}, mark: false, icon: null },
-        { label: "Sam Example", onSelect: () => {} },
+        { label: "Jo Park", onSelect: () => {} },
       ],
     } as object);
-    const [team, notes, kai, sam] = ["Launch team", "Weekly notes", "Kai Sample", "Sam Example"].map(row);
-    for (const quiet of [kai!, sam!]) expect(quiet.querySelector("[data-ouro-command-mark], [data-ouro-command-icon], [data-ouro-command-unread]")).toBeNull();
+    const [team, notes, kai, jo] = ["Launch team", "Weekly notes", "Kai Sample", "Jo Park"].map(row);
+    for (const quiet of [kai!, jo!]) expect(quiet.querySelector("[data-ouro-command-mark], [data-ouro-command-icon], [data-ouro-command-unread]")).toBeNull();
     const mark = team!.querySelector<HTMLElement>("[data-ouro-command-mark]")!;
     expect(mark.querySelector('[data-ouro="badge"]')!.textContent).toBe("3");
     const unread = team!.querySelector<HTMLElement>("[data-ouro-command-unread]")!;

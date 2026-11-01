@@ -18,8 +18,8 @@ CLI: `~/work/ax-eval/bin/app.mjs` · runs per task: 2 · 2026-10-30T22:20:51.115
 |---|---|---|---|---|---|---|---|---|---|---|
 | T1 | 1 | yes | no writes; names 3 of the 3 top items | 5 | 0 | 0 | 0 | 1 | 99k/403 | 51s |
 | T1 | 2 | yes | no writes; names 3 of the 3 top items | 5 | 0 | 0 | 0 | 1 | 94k/404 | 50s |
-| T2 | 1 | yes | draft in Sam's chat, nothing sent: "I'll look at the review doc by end of day." | 6 | 0 | 1 | 0 | 3 | 118k/234 | 45s |
-| T2 | 2 | yes | draft in Sam's chat, nothing sent: "I'll look at the review doc by end of day." | 8 | 0 | 1 | 0 | 2 | 131k/307 | 37s |
+| T2 | 1 | yes | draft in Jo's chat, nothing sent: "I'll look at the review doc by end of day." | 6 | 0 | 1 | 0 | 3 | 118k/234 | 45s |
+| T2 | 2 | yes | draft in Jo's chat, nothing sent: "I'll look at the review doc by end of day." | 8 | 0 | 1 | 0 | 2 | 131k/307 | 37s |
 | T3 | 1 | no | 0 completed sends to Launch planning (want 1); log: none | 4 | 1 | 1 | 0 | 3 | 115k/272 | 40s |
 | T3 | 2 | no | 0 completed sends to Launch planning (want 1); log: none | 4 | 1 | 1 | 0 | 3 | 115k/243 | 32s |
 | T4 | 1 | no | the message was not edited | 4 | 1 | 1 | 0 | 2 | 133k/292 | 40s |
@@ -39,7 +39,7 @@ CLI: `~/work/ax-eval/bin/app.mjs` · runs per task: 2 · 2026-10-30T22:20:51.115
   [0] app look k8xi47 --json
 ```
 
-Answer: **Start with the settings mockups.** Sam explicitly needs your sign-off, and the Design review you organize starts at **3:30 PM—about 20 minutes away**. Review them and prepare either approval or specific blockers. [Open request](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000). Then handle: 1. **Rollout numbers:** Sam’s Weekly sync request is still flagged as needing attention; check whether it remains outstanding. 2. **Review doc draft:** Sam also asked you to look it over in your direct chat. Your synced 
+Answer: **Start with the settings mockups.** Jo explicitly needs your sign-off, and the Design review you organize starts at **3:30 PM—about 20 minutes away**. Review them and prepare either approval or specific blockers. [Open request](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000). Then handle: 1. **Rollout numbers:** Jo’s Weekly sync request is still flagged as needing attention; check whether it remains outstanding. 2. **Review doc draft:** Jo also asked you to look it over in your direct chat. Your synced 
 
 ### T1 run 2
 
@@ -51,7 +51,7 @@ Answer: **Start with the settings mockups.** Sam explicitly needs your sign-off,
   [0] app look ej90am --ids 1700001800000 --json
 ```
 
-Answer: **Handle the settings mockups first.** [Sam is waiting for your sign-off](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000), and the design review you organized starts in about 18 minutes, at **3:30 PM Pacific**. Then: 1. Review the draft document Sam asked about in your direct chat. 2. Check whether the rollout numbers requested in Weekly sync still need a follow-up—the request remains flagged. Your calendar shows it’s already afternoon locally. The pending brown-bag and social invites can wait behind those 
+Answer: **Handle the settings mockups first.** [Jo is waiting for your sign-off](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000), and the design review you organized starts in about 18 minutes, at **3:30 PM Pacific**. Then: 1. Review the draft document Jo asked about in your direct chat. 2. Check whether the rollout numbers requested in Weekly sync still need a follow-up—the request remains flagged. Your calendar shows it’s already afternoon locally. The pending brown-bag and social invites can wait behind those 
 
 ### T2 run 1
 
@@ -59,14 +59,14 @@ Answer: **Handle the settings mockups first.** [Sam is waiting for your sign-off
   [0] app --help
   [0] app conversations --help
   [0] app draft --help
-  [0] app draft show Sam Example --json
-  [0] app draft set Sam Example I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads none --json
-  [0] app draft show Sam Example --json
+  [0] app draft show Jo Park --json
+  [0] app draft set Jo Park I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads none --json
+  [0] app draft show Jo Park --json
 wrong turns:
-  repeated: app draft show Sam Example --json
+  repeated: app draft show Jo Park --json
 ```
 
-Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”
+Answer: Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”
 
 ### T2 run 2
 
@@ -83,7 +83,7 @@ wrong turns:
   repeated: app draft show ej90am --json
 ```
 
-Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”
+Answer: Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”
 
 ### T3 run 1
 
@@ -157,7 +157,7 @@ Answer: I found your last message, but the edit was blocked by a permission requ
   [0] app look r82dfi --limit 5 --json
 ```
 
-Answer: I found the group chat with Alex, Riley, and Sam. I’ll watch for the next reply. Riley replied in your group chat: “Offsite update: we moved to the Lakeside room, 9:30 start.”
+Answer: I found the group chat with Alex, Riley, and Jo. I’ll watch for the next reply. Riley replied in your group chat: “Offsite update: we moved to the Lakeside room, 9:30 start.”
 
 ### T5 run 2
 
@@ -183,5 +183,5 @@ chat_id = 'c:00000000cccc0000cccc000000000003'
 baseline_id = '17000010800
 ```
 
-Answer: I found the group chat with Alex, Riley, and Sam. I’m waiting for a new reply there. I found the chat with Alex, Riley, and Sam, but permission to run the reply monitor was denied. No notification watch is active.
+Answer: I found the group chat with Alex, Riley, and Jo. I’m waiting for a new reply there. I found the chat with Alex, Riley, and Jo, but permission to run the reply monitor was denied. No notification watch is active.
 

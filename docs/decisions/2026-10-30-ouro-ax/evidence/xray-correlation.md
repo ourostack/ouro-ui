@@ -7,7 +7,7 @@ Wrong turns a claim names: v0.1 0 of 12; v0.2 7 of 12.
 
 | Run | Wrong turn | v0.1 claim | v0.2 claim |
 |---|---|---|---|
-| T2/1 | repeated: `app draft show Sam Example --json` | none | none |
+| T2/1 | repeated: `app draft show Jo Park --json` | none | none |
 | T2/2 | repeated: `app draft show ej90am --json` | none | none |
 | T3/1 | denied by tool permissions: `printf '%s' 'The new banner is final.' \| app send '19:00000000aaaa0000aaaa000000000` | none | cli.text-as-argument |
 | T3/2 | denied by tool permissions: `printf '%s' 'The new banner is final.' \| app send '19:00000000aaaa0000aaaa000000000` | none | cli.text-as-argument |
@@ -29,7 +29,7 @@ Wrong turns a claim names: v0.1 0 of 7; v0.2 3 of 7.
 
 | Run | Wrong turn | v0.1 claim | v0.2 claim |
 |---|---|---|---|
-| T2/2 | repeated: `app draft show Sam Example --json` | none | none |
+| T2/2 | repeated: `app draft show Jo Park --json` | none | none |
 | T4/2 | repeated: `app edit-sent --help` | none | none |
 | T5/1 | exit 2: `app watch r82dfi --timeout 8h --json` | none | cli.wait-on-refs |
 | T5/1 | exit 2: `app watch chat:r82dfi --timeout 8h --json` | none | cli.wait-on-refs |
@@ -52,7 +52,7 @@ Wrong turns a claim names: v0.1 0 of 3; v0.2 0 of 3.
 
 | Run | Wrong turn | v0.1 claim | v0.2 claim |
 |---|---|---|---|
-| T2/1 | repeated: `app draft show Sam Example --json` | none | none |
-| T2/2 | repeated: `app draft show Sam Example --json` | none | none |
+| T2/1 | repeated: `app draft show Jo Park --json` | none | none |
+| T2/2 | repeated: `app draft show Jo Park --json` | none | none |
 | T3/2 | exit 2: `app send nxrlt3 The new banner is final. --agent copilot --why User asked: Riley as` | none | none |
 

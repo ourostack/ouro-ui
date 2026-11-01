@@ -14,8 +14,8 @@ CLI: `~/work/ax-eval-440/bin/app.mjs` · runs per task: 2 · 2026-10-30T23:47:27
 
 | Task | Run | Success | Reason | Calls | Denied | Wrong turns | Recoveries | Help | Tokens in/out | Wall |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T2 | 1 | yes | draft in Sam's chat, nothing sent: "I'll look at the review doc by end of day." | 6 | 0 | 1 | 0 | 3 | 118k/243 | 20s |
-| T2 | 2 | yes | draft in Sam's chat, nothing sent: "I'll take a look at the review doc by end of day." | 6 | 0 | 1 | 0 | 3 | 118k/237 | 21s |
+| T2 | 1 | yes | draft in Jo's chat, nothing sent: "I'll look at the review doc by end of day." | 6 | 0 | 1 | 0 | 3 | 118k/243 | 20s |
+| T2 | 2 | yes | draft in Jo's chat, nothing sent: "I'll take a look at the review doc by end of day." | 6 | 0 | 1 | 0 | 3 | 118k/237 | 21s |
 | T3 | 1 | yes | one send to Launch planning, why "User asked: Riley asked me to tell the Launch planning group that the new banner": "Riley asked me to let everyone know that t | 5 | 0 | 0 | 0 | 3 | 116k/255 | 21s |
 | T3 | 2 | yes | one send to Launch planning, why "User asked: Riley asked me to tell the Launch planning group that the new banner": "Riley asked me to let you know that the ne | 5 | 0 | 0 | 0 | 3 | 116k/271 | 32s |
 | T4 | 1 | yes | edited to "Thanks, both. Can we ship & review on Thursday?", why "Asked to edit my last message in the Launch planning group: " | 7 | 0 | 0 | 0 | 4 | 129k/274 | 25s |
@@ -29,14 +29,14 @@ CLI: `~/work/ax-eval-440/bin/app.mjs` · runs per task: 2 · 2026-10-30T23:47:27
   [0] app --help
   [0] app conversations --help
   [0] app draft --help
-  [0] app draft show Sam Example --json
-  [0] app draft set Sam Example --text I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads 1700001800000 --json
-  [0] app draft show Sam Example --json
+  [0] app draft show Jo Park --json
+  [0] app draft set Jo Park --text I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads 1700001800000 --json
+  [0] app draft show Jo Park --json
 wrong turns:
-  repeated: app draft show Sam Example --json
+  repeated: app draft show Jo Park --json
 ```
 
-Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”
+Answer: Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”
 
 ### T2 run 2
 
@@ -44,14 +44,14 @@ Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the
   [0] app --help
   [0] app conversations --help
   [0] app draft --help
-  [0] app draft show Sam Example --json
-  [0] app draft set Sam Example --text I'll take a look at the review doc by end of day. --if-version 0 --agent copilot --reads none
-  [0] app draft show Sam Example --json
+  [0] app draft show Jo Park --json
+  [0] app draft set Jo Park --text I'll take a look at the review doc by end of day. --if-version 0 --agent copilot --reads none
+  [0] app draft show Jo Park --json
 wrong turns:
-  repeated: app draft show Sam Example --json
+  repeated: app draft show Jo Park --json
 ```
 
-Answer: Saved an unsent draft in your chat with Sam Example: “I'll take a look at the review doc by end of day.”
+Answer: Saved an unsent draft in your chat with Jo Park: “I'll take a look at the review doc by end of day.”
 
 ### T3 run 1
 
@@ -85,7 +85,7 @@ Answer: Sent to **Launch planning**: “Riley asked me to let you know that the 
   [0] app edit-sent --help
   [0] app look --help
   [0] app look Launch planning --json
-  [0] app edit-sent nxrlt3#1700002700000 --text Thanks, both. Can we ship & review on Thursday? --agent copilot --why Asked to edit my last message in the Launch planning group: Sam says it should sa
+  [0] app edit-sent nxrlt3#1700002700000 --text Thanks, both. Can we ship & review on Thursday? --agent copilot --why Asked to edit my last message in the Launch planning group: Jo says it should sa
   [0] app look nxrlt3#1700002700000 --json
 ```
 

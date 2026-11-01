@@ -121,9 +121,9 @@ describe("ImageField", () => {
 
   it("shows the saved photo with its alt text, offers Change photo, and Remove only with onRemove", async () => {
     const onRemove = vi.fn();
-    const { root, preview } = await render(<ImageField label="Photo" src={saved} alt="Sam smiling" />);
+    const { root, preview } = await render(<ImageField label="Photo" src={saved} alt="Jo smiling" />);
     expect(preview()!.getAttribute("src")).toBe(saved);
-    expect(preview()!.alt).toBe("Sam smiling");
+    expect(preview()!.alt).toBe("Jo smiling");
     await expect.element(page.getByRole("button", { name: "Change photo" })).toBeVisible();
     expect(document.querySelector('[data-ouro-part="remove"]')).toBeNull();
     await act(async () => root.render(<ImageField label="Photo" src={saved} onRemove={onRemove} />));

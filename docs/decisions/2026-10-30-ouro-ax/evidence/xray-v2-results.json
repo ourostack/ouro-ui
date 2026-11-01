@@ -37,7 +37,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "**Start with the settings mockups.** Sam explicitly asked for your sign-off in [Design reviews](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000); review them and give approval or concrete changes.\n\nThen:\n1. **Close the rollout-numbers request** in [Weekly sync](https://chat.example.com/l/message/c%3Ameeting_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/1700000480000). Sam requested these before the meeting; check whether they’re still needed, since the scheduled sync has passed.\n2. **Review Sam’s draft document**, requested in your [direct chat](https://chat.example.com/l/message/19%3A00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002%40unq.gbl.spaces/1700001800000).\n\nYour calendar currently shows **Friday, October 30, 4:19 p.m. Pacific**, rather than morning. These priorities reflect the current chat snapshot; nothing was sent.",
+      "answer": "**Start with the settings mockups.** Jo explicitly asked for your sign-off in [Design reviews](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000); review them and give approval or concrete changes.\n\nThen:\n1. **Close the rollout-numbers request** in [Weekly sync](https://chat.example.com/l/message/c%3Ameeting_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/1700000480000). Jo requested these before the meeting; check whether they’re still needed, since the scheduled sync has passed.\n2. **Review Jo’s draft document**, requested in your [direct chat](https://chat.example.com/l/message/19%3A00000000-0000-4000-8000-000000000001_00000000-0000-4000-8000-000000000002%40unq.gbl.spaces/1700001800000).\n\nYour calendar currently shows **Friday, October 30, 4:19 p.m. Pacific**, rather than morning. These priorities reflect the current chat snapshot; nothing was sent.",
       "injectedAt": null,
       "nonInterfaceTools": [
         "task_complete"
@@ -70,7 +70,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "**Start with the settings mockups:** Sam explicitly asked for your sign-off in [Design reviews](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000). Review them and approve or flag specific changes.\n\nThen:\n1. **Check the rollout-numbers request** in Weekly sync; it still shows as needing you. Confirm whether it was handled before sending anything.\n2. **Review Sam’s draft document**, requested in your direct chat.\n\nTiming note: your calendar currently shows **4:21 PM Pacific, October 30**, not morning. Your next accepted meeting is Sam’s 1:1 tomorrow at **9 AM**. Nothing was sent or changed.",
+      "answer": "**Start with the settings mockups:** Jo explicitly asked for your sign-off in [Design reviews](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000). Review them and approve or flag specific changes.\n\nThen:\n1. **Check the rollout-numbers request** in Weekly sync; it still shows as needing you. Confirm whether it was handled before sending anything.\n2. **Review Jo’s draft document**, requested in your direct chat.\n\nTiming note: your calendar currently shows **4:21 PM Pacific, October 30**, not morning. Your next accepted meeting is Jo’s 1:1 tomorrow at **9 AM**. Nothing was sent or changed.",
       "injectedAt": null,
       "nonInterfaceTools": [
         "task_complete"
@@ -81,7 +81,7 @@
       "run": 1,
       "dir": "~/work/probe-xray-eval-out-v2/T2/run-1",
       "success": true,
-      "reason": "draft in Sam's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
+      "reason": "draft in Jo's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
       "wallMs": 30621,
       "agentExit": 0,
       "metrics": {
@@ -95,7 +95,7 @@
         "helpCalls": 3,
         "wrong": [
           {
-            "line": "app draft show Sam Example --json",
+            "line": "app draft show Jo Park --json",
             "why": "repeated"
           }
         ]
@@ -108,7 +108,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”",
+      "answer": "Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”",
       "injectedAt": null,
       "nonInterfaceTools": [
         "task_complete"
@@ -119,7 +119,7 @@
       "run": 2,
       "dir": "~/work/probe-xray-eval-out-v2/T2/run-2",
       "success": true,
-      "reason": "draft in Sam's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
+      "reason": "draft in Jo's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
       "wallMs": 27729,
       "agentExit": 0,
       "metrics": {
@@ -133,7 +133,7 @@
         "helpCalls": 3,
         "wrong": [
           {
-            "line": "app draft show Sam Example --json",
+            "line": "app draft show Jo Park --json",
             "why": "repeated"
           }
         ]
@@ -146,7 +146,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”",
+      "answer": "Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”",
       "injectedAt": null,
       "nonInterfaceTools": [
         "task_complete"
@@ -316,7 +316,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "I’ll watch the chat with Alex, Riley, and Sam for the next reply, for up to 8 hours.\n\nRiley replied in your group chat with Alex and Sam:\n\n> Offsite update: we moved to the Lakeside room, 9:30 start.",
+      "answer": "I’ll watch the chat with Alex, Riley, and Jo for the next reply, for up to 8 hours.\n\nRiley replied in your group chat with Alex and Jo:\n\n> Offsite update: we moved to the Lakeside room, 9:30 start.",
       "injectedAt": 22048,
       "nonInterfaceTools": [
         "task_complete"
@@ -349,7 +349,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "Watching the group chat. I’ll let you know when someone replies.\nRiley replied in your group chat with Alex, Riley, and Sam:\n\n> Offsite update: we moved to the Lakeside room, 9:30 start.",
+      "answer": "Watching the group chat. I’ll let you know when someone replies.\nRiley replied in your group chat with Alex, Riley, and Jo:\n\n> Offsite update: we moved to the Lakeside room, 9:30 start.",
       "injectedAt": 26030,
       "nonInterfaceTools": [
         "list_bash",

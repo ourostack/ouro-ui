@@ -6,7 +6,7 @@ import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 
 const recipes = [
   { slug: "short-ribs", title: "Braised short ribs", by: "Ari · 4 servings" },
-  { slug: "lemon-pasta", title: "Lemon pasta", by: "Sam · 2 servings" },
+  { slug: "lemon-pasta", title: "Lemon pasta", by: "Jo · 2 servings" },
   { slug: "green-curry", title: "Green curry", by: "Noor · 6 servings" },
 ];
 

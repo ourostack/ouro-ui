@@ -22,7 +22,7 @@ function week(): { date: string; events: TimeGridEvent[] } {
       { id: "lunch", title: "Lunch with Maya", start: day(0, 12), end: day(0, 13), status: "free", tone: "secondary" },
       { id: "interview", title: "Interview: front-end engineer", start: day(1, 14), end: day(1, 15), tone: "warning" },
       { id: "design", title: "Design review", start: day(2, 11), end: day(2, 12), description: "Room 2" },
-      { id: "pairing", title: "Pairing with Sam", start: day(2, 11, 30), end: day(2, 13), status: "tentative" },
+      { id: "pairing", title: "Pairing with Jo", start: day(2, 11, 30), end: day(2, 13), status: "tentative" },
       { id: "forum", title: "Architecture forum", start: day(3, 10), end: day(3, 11), status: "unanswered", description: "Main auditorium" },
       { id: "focus", title: "Focus time", start: day(3, 10, 30), end: day(3, 12), tone: "secondary" },
       { id: "retro", title: "Retro", start: day(3, 15), end: day(3, 16), status: "cancelled" },

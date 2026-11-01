@@ -2636,19 +2636,19 @@
       "claim": "cli.missing-arg",
       "surface": "note",
       "verdict": "pass",
-      "note": "`app note` → exit 2; stderr: app: which meeting? app prep note <meeting> --text \"...\" (or --file <path>), for example: app prep note next --text \"Sam asks for the rollout numbers.\""
+      "note": "`app note` → exit 2; stderr: app: which meeting? app prep note <meeting> --text \"...\" (or --file <path>), for example: app prep note next --text \"Jo asks for the rollout numbers.\""
     },
     {
       "claim": "cli.one-line-error",
       "surface": "note (no argument)",
       "verdict": "pass",
-      "note": "app: which meeting? app prep note <meeting> --text \"...\" (or --file <path>), for example: app prep note next --text \"Sam asks for the rollout numbers.\""
+      "note": "app: which meeting? app prep note <meeting> --text \"...\" (or --file <path>), for example: app prep note next --text \"Jo asks for the rollout numbers.\""
     },
     {
       "claim": "cli.error-teaches",
       "surface": "note (no argument)",
       "verdict": "pass",
-      "note": "app: which meeting? app prep note <meeting> --text \"...\" (or --file <path>), for example: app prep note next --text \"Sam asks for the rollout numbers.\""
+      "note": "app: which meeting? app prep note <meeting> --text \"...\" (or --file <path>), for example: app prep note next --text \"Jo asks for the rollout numbers.\""
     },
     {
       "claim": "cli.unknown-flag",

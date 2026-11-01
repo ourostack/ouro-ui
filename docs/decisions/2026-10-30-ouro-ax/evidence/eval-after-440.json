@@ -15,7 +15,7 @@
       "run": 1,
       "dir": "~/work/ax-eval-out/after-440/T2/run-1",
       "success": true,
-      "reason": "draft in Sam's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
+      "reason": "draft in Jo's chat, nothing sent: \"I'll look at the review doc by end of day.\"",
       "wallMs": 19971,
       "agentExit": 0,
       "metrics": {
@@ -29,7 +29,7 @@
         "helpCalls": 3,
         "wrong": [
           {
-            "line": "app draft show Sam Example --json",
+            "line": "app draft show Jo Park --json",
             "why": "repeated"
           }
         ]
@@ -42,7 +42,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”",
+      "answer": "Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”",
       "injectedAt": null,
       "nonInterfaceTools": [
         "task_complete"
@@ -53,7 +53,7 @@
       "run": 2,
       "dir": "~/work/ax-eval-out/after-440/T2/run-2",
       "success": true,
-      "reason": "draft in Sam's chat, nothing sent: \"I'll take a look at the review doc by end of day.\"",
+      "reason": "draft in Jo's chat, nothing sent: \"I'll take a look at the review doc by end of day.\"",
       "wallMs": 20884,
       "agentExit": 0,
       "metrics": {
@@ -67,7 +67,7 @@
         "helpCalls": 3,
         "wrong": [
           {
-            "line": "app draft show Sam Example --json",
+            "line": "app draft show Jo Park --json",
             "why": "repeated"
           }
         ]
@@ -80,7 +80,7 @@
         "source": "session.usage_checkpoint (gpt-6.1-sol)"
       },
       "premiumRequests": 1,
-      "answer": "Saved an unsent draft in your chat with Sam Example: “I'll take a look at the review doc by end of day.”",
+      "answer": "Saved an unsent draft in your chat with Jo Park: “I'll take a look at the review doc by end of day.”",
       "injectedAt": null,
       "nonInterfaceTools": [
         "task_complete"

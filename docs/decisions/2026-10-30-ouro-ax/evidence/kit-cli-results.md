@@ -50,7 +50,7 @@ Answer: Sent to **Launch planning**: “Riley asked me to let everyone know: the
   [0] app edit-sent --help
   [0] app look --help
   [0] app look Launch planning --limit 30 --json
-  [0] app edit-sent nxrlt3#1700002700000 Thanks, both. Can we ship & review on Thursday? --agent copilot --why User asked to edit their last message in Launch planning: Sam says it should say Thursda
+  [0] app edit-sent nxrlt3#1700002700000 Thanks, both. Can we ship & review on Thursday? --agent copilot --why User asked to edit their last message in Launch planning: Jo says it should say Thursda
   [0] app look nxrlt3#1700002700000 --json
 ```
 
@@ -63,7 +63,7 @@ Answer: Edited your last message in Launch planning to: “Thanks, both. Can we 
   [0] app conversations --help
   [0] app edit-sent --help
   [0] app look Launch planning --json
-  [0] app edit-sent nxrlt3#1700002700000 Thanks, both. Can we ship & review on Thursday? --agent copilot --why Asked to edit my last message in the Launch planning group: Sam says it should say Thurs
+  [0] app edit-sent nxrlt3#1700002700000 Thanks, both. Can we ship & review on Thursday? --agent copilot --why Asked to edit my last message in the Launch planning group: Jo says it should say Thurs
 ```
 
 Answer: Edited your last message in Launch planning: “Thanks, both. Can we ship & review on Thursday?”

@@ -18,8 +18,8 @@ CLI: `~/work/probe-xray/bin/app.mjs` · runs per task: 2 · 2026-10-30T22:36:35.
 |---|---|---|---|---|---|---|---|---|---|
 | T1 | 1 | yes | no writes; names 2 of the 3 top items | 6 | 0 | 0 | 2 | 126k/530 | 27s |
 | T1 | 2 | yes | no writes; names 3 of the 3 top items | 6 | 0 | 0 | 1 | 95k/459 | 22s |
-| T2 | 1 | yes | draft in Sam's chat, nothing sent: "I'll look at the review doc by end of day." | 8 | 0 | 0 | 3 | 121k/337 | 24s |
-| T2 | 2 | yes | draft in Sam's chat, nothing sent: "I'll look at the review doc by end of day." | 6 | 1 | 0 | 3 | 118k/233 | 27s |
+| T2 | 1 | yes | draft in Jo's chat, nothing sent: "I'll look at the review doc by end of day." | 8 | 0 | 0 | 3 | 121k/337 | 24s |
+| T2 | 2 | yes | draft in Jo's chat, nothing sent: "I'll look at the review doc by end of day." | 6 | 1 | 0 | 3 | 118k/233 | 27s |
 | T3 | 1 | no | 0 completed sends to Launch planning (want 1); log: none | 3 | 0 | 0 | 2 | 92k/258 | 23s |
 | T3 | 2 | no | 0 completed sends to Launch planning (want 1); log: none | 4 | 0 | 0 | 3 | 115k/259 | 25s |
 | T4 | 1 | no | the message was not edited | 4 | 0 | 0 | 2 | 133k/297 | 24s |
@@ -40,7 +40,7 @@ CLI: `~/work/probe-xray/bin/app.mjs` · runs per task: 2 · 2026-10-30T22:36:35.
   [0] app look 1zijq8 --limit 20 --json
 ```
 
-Answer: **Handle the design review first.** Your calendar shows it starting at **3:30 PM today—about now**, rather than this morning; you’re the organizer. 1. **Review the settings mockups and decide on sign-off.** [Sam explicitly asked for your approval](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000)—bring your decision or concerns to the review. 2. **Follow up on the rollout numbers.** [Sam requested them before the weekly sync](https://chat.example.com/l/message/19%3Ameeting_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Answer: **Handle the design review first.** Your calendar shows it starting at **3:30 PM today—about now**, rather than this morning; you’re the organizer. 1. **Review the settings mockups and decide on sign-off.** [Jo explicitly asked for your approval](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000)—bring your decision or concerns to the review. 2. **Follow up on the rollout numbers.** [Jo requested them before the weekly sync](https://chat.example.com/l/message/19%3Ameeting_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 ### T1 run 2
 
@@ -53,7 +53,7 @@ Answer: **Handle the design review first.** Your calendar shows it starting at *
   [0] app meeting s5wqme --json
 ```
 
-Answer: **Handle the design review first.** Your calendar shows it starting now at **3:30 PM Pacific**—rather than morning—and you’re the organizer. Sam is waiting for your [sign-off on the settings mockups](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000); review them and bring your decision or blockers. Then prioritize: 1. **Rollout numbers:** Sam asked for them before the weekly sync. Check whether that request still needs closing out. 2. **Review-doc draft:** Sam also directly asked you to look it over; no deadl
+Answer: **Handle the design review first.** Your calendar shows it starting now at **3:30 PM Pacific**—rather than morning—and you’re the organizer. Jo is waiting for your [sign-off on the settings mockups](https://chat.example.com/l/message/c%3A00000000bbbb0000bbbb000000000002/1700004200000?parentMessageId=1700003600000); review them and bring your decision or blockers. Then prioritize: 1. **Rollout numbers:** Jo asked for them before the weekly sync. Check whether that request still needs closing out. 2. **Review-doc draft:** Jo also directly asked you to look it over; no deadl
 
 ### T2 run 1
 
@@ -61,14 +61,14 @@ Answer: **Handle the design review first.** Your calendar shows it starting now 
   [0] app --help
   [0] app draft --help
   [0] app conversations --help
-  [0] app draft show Sam Example --json
-  [0] app look Sam Example --json
+  [0] app draft show Jo Park --json
+  [0] app look Jo Park --json
   [0] app draft set ej90am I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads 1700001800000 --json
   [0] app draft ready ej90am --agent copilot --json
   [0] app draft show ej90am --json
 ```
 
-Answer: Saved a draft in your chat with Sam Example: “I'll look at the review doc by end of day.” Left unsent for you.
+Answer: Saved a draft in your chat with Jo Park: “I'll look at the review doc by end of day.” Left unsent for you.
 
 ### T2 run 2
 
@@ -76,14 +76,14 @@ Answer: Saved a draft in your chat with Sam Example: “I'll look at the review 
   [0] app --help
   [0] app conversations --help
   [0] app draft --help
-  [0] app draft show Sam Example --json
-  [0] app draft set Sam Example I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads none --json
-  [0] app draft show Sam Example --json
+  [0] app draft show Jo Park --json
+  [0] app draft set Jo Park I'll look at the review doc by end of day. --if-version 0 --agent copilot --reads none --json
+  [0] app draft show Jo Park --json
 wrong turns:
-  repeated: app draft show Sam Example --json
+  repeated: app draft show Jo Park --json
 ```
 
-Answer: Saved an unsent draft in your chat with Sam Example: “I'll look at the review doc by end of day.”
+Answer: Saved an unsent draft in your chat with Jo Park: “I'll look at the review doc by end of day.”
 
 ### T3 run 1
 
@@ -147,7 +147,7 @@ wrong turns:
   exit 130: app watch
 ```
 
-Answer: I found the group chat with Alex, Riley, and Sam. I’m watching for the next reply. I found your group chat with Alex, Riley, and Sam, but continuous reply monitoring requires approval unavailable in this session. No reply alert has been set up.
+Answer: I found the group chat with Alex, Riley, and Jo. I’m watching for the next reply. I found your group chat with Alex, Riley, and Jo, but continuous reply monitoring requires approval unavailable in this session. No reply alert has been set up.
 
 ### T5 run 2
 
@@ -163,5 +163,5 @@ wrong turns:
   exit 130: app watch
 ```
 
-Answer: Riley just replied in your group chat with Alex, Riley, and Sam: > Offsite update: we moved to the Lakeside room, 9:30 start.
+Answer: Riley just replied in your group chat with Alex, Riley, and Jo: > Offsite update: we moved to the Lakeside room, 9:30 start.
 
