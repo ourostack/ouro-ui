@@ -66,6 +66,7 @@ describe("finding controls", () => {
         <textarea aria-label="area" />
         <div contentEditable suppressContentEditableWarning aria-label="editor" />
         <div tabIndex={0}>scroller</div>
+        <article tabIndex={0}>a message in a list</article>
         <div role="treeitem group" tabIndex={0} aria-selected="false">first role wins</div>
       </div>
     ));
@@ -87,6 +88,7 @@ describe("finding controls", () => {
       "textbox",
       "textbox",
       "generic",
+      "article",
       "treeitem",
     ]);
   });

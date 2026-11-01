@@ -18,9 +18,16 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
     </Message>
   ))}
 </MessageList>
-<MessageList label="Team chat" className="flex-1">
+<MessageList
+  label="Team chat"
+  className="flex-1"
+  onMessageKeyDown={(message, event) => {
+    const reaction = quickReactions[Number(event.key) - 1];
+    if (reaction) react(message.id, reaction);
+  }}
+>
   {posts.map((post) => (
-    <article key={post.id} data-ouro-message-list-item="" data-role={post.mine ? "user" : "assistant"}>
+    <article key={post.id} id={post.id} data-ouro-message-list-item="" data-role={post.mine ? "user" : "assistant"}>
       <span data-ouro-message-author="">{post.author}</span>
       <p data-ouro-message-content="">{post.text}</p>
     </article>
@@ -32,7 +39,9 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
 
 Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
 
-Your own message components work too: mark each one's root `data-ouro-message-list-item`, the reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its author's name and its text in elements marked `data-ouro-message-author` and `data-ouro-message-content`, as `Message` does. The list keeps the reader's place among them and announces them as it does `Message`s. Leave `data-ouro="message"` to Ouro's `Message`: it names the element Ouro's Message, and X-ray outlines it as one.
+The messages are one Tab stop. Tab lands on the newest message in view (or the one focused last, while it shows), and the arrow keys, Home, End, Page Up and Page Down move between messages, with a focus ring; a message taller than the list scrolls through first. The right arrow (the left one, right to left) goes into the focused message's toolbar, such as its action bar, else its first control, and Tab goes through its controls. Tab never stops on the other messages' controls, so the next Tab after a message's own controls leaves the list. A new message never takes focus, and when the focused message goes, focus goes to the one now in its place. Each message that is an article carries its place among them for screen readers (`aria-posinset`, `aria-setsize`). `onMessageKeyDown` adds keys of your own on the focused message, such as 1 to 6 for quick reactions.
+
+Your own message components work too: mark each one's root `data-ouro-message-list-item`, the reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its author's name and its text in elements marked `data-ouro-message-author` and `data-ouro-message-content`, as `Message` does. The list keeps the reader's place among them and announces them as it does `Message`s, and moves focus among them. Give your component a focus ring (`focus-visible:outline-2`), as `Message` has. Leave `data-ouro="message"` to Ouro's `Message`: it names the element Ouro's Message, and X-ray outlines it as one.
 
 ## Use instead when
 
@@ -49,6 +58,7 @@ Type: `MessageListProps`.
 | `jumpLabel` | `string` | `"Jump to latest"` | The button that appears once the reader scrolls up, for other languages. |
 | `label` (required) | `string` |  | What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. |
 | `newMessageLabel` | `((author: string, text: string) => string)` | (author, text) => `${author}: ${text}` | What screen readers hear when a new message arrives, for other languages. It gets the author's name and the message's text. The user's own messages are not read back. |
+| `onMessageKeyDown` | `((message: HTMLElement, event: KeyboardEvent<HTMLElement>) => void)` |  | A key pressed while a message itself has focus, not a control inside it, before the list's own keys: shortcuts on the focused message, such as 1 to 6 for quick reactions. `message` is the message's element (its `id` or `data-*` attributes say which one it is). Call `event.preventDefault()` to keep the list from acting on the key as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 
 ## Native attributes
