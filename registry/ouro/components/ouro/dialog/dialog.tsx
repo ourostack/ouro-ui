@@ -103,6 +103,9 @@ export interface DialogBaseProps {
    * phones. Put the primary action last, so it sits on the right on wider
    * screens and at the bottom, nearest the thumb, on phones:
    * `footer={<><Button variant="outline" tone="secondary">Cancel</Button><Button>Save</Button></>}`.
+   * Mark the primary action `default` (`<Button default onClick={save}>Save</Button>`) and Return
+   * presses it from the dialog's fields, as a Mac dialog's default button does.
+   * @claim "Mark the primary action `default`" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::footer > presses the footer's default action on Return from a field, in a dialog and in a sheet)
    */
   footer?: ReactNode;
   /** The body. It scrolls when the dialog is taller than the screen. */

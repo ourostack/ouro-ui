@@ -1045,6 +1045,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-page-scroll-hold",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-router-link",
         "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-touch-target",
@@ -4755,6 +4756,11 @@
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/button/button.default.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/button/button.default.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/button/button.stories.tsx",
           "type": "registry:component",
