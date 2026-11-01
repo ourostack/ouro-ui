@@ -5,6 +5,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   buttonsClass,
@@ -304,6 +305,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     else if (had.closest("[inert]") && viewportRef.current!.contains(had)) viewportRef.current!.focus();
   });
 
+  const reduced = useReducedMotion();
   const go = (step: 1 | -1) => {
     // scrollend updates the ref before React commits the rendered index.
     const from = heading.current ?? Math.min(settled.current, lastIndex);
@@ -312,8 +314,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     if (!loop && (requested < 0 || requested > lastIndex)) return;
     const target = requested > lastIndex ? 0 : requested < 0 ? lastIndex : requested;
     heading.current = target;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    scrollToSlide(target, reduce ? "instant" : "smooth");
+    scrollToSlide(target, reduced ? "instant" : "smooth");
   };
 
   return (

@@ -20,6 +20,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -1186,6 +1187,29 @@ describe("Inspector", () => {
     await drawn(3);
     await expect.poll(() => into.mock.calls.length).toBe(1);
     expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "instant" }]);
+  });
+
+  it("scrolls to the spotlit item at once under OuroProvider's motion=\"reduced\", and smoothly under \"full\", whatever the device says", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    await render(
+      <OuroProvider motion="reduced">
+        <Far spotlight="badge" />
+      </OuroProvider>,
+    );
+    await drawn(3);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]![0]).toEqual(expect.objectContaining({ behavior: "instant" }));
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await render(
+      <OuroProvider motion="full">
+        <Far spotlight="badge" />
+      </OuroProvider>,
+    );
+    await drawn(3);
+    await expect.poll(() => into.mock.calls.length).toBe(2);
+    expect(into.mock.calls[1]![0]).toEqual(expect.objectContaining({ behavior: "smooth" }));
   });
 
   it("says when the page has no spotlit item, and points one out when it appears", async () => {

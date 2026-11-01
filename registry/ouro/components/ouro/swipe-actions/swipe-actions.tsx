@@ -18,6 +18,7 @@ import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/
 import { renamedTones, type ToneName } from "@/registry/ouro/lib/ouro/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag } from "@/registry/ouro/lib/ouro/use-drag";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
 import {
@@ -232,6 +233,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
     rightActions,
     onDelete,
   } = props;
+  const reduced = useReducedMotion();
   const leading = leadingProp ?? [];
   const trailing = trailingProp ?? [];
   const all = [...leading, ...trailing];
@@ -336,6 +338,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
         to: target,
         velocity,
         damping: flick ? 0.8 : 1,
+        reduced,
         element: root,
         onUpdate: place,
         onRest: () => {
@@ -345,7 +348,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       // With reduced motion the spring was a jump, and the row is at rest already.
       if (handle.running) settling.current = handle;
     },
-    [hold, place],
+    [hold, place, reduced],
   );
 
   // An open row closes on a press outside it, when anything else scrolls and on Escape.

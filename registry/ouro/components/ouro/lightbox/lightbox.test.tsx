@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Lightbox, type LightboxImage, type LightboxProps, type LightboxWithThumbnailsProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
@@ -297,6 +298,25 @@ describe("Lightbox navigation", () => {
     await userEvent.keyboard("{Home}");
     await expect.poll(position).toBe("1 of 4");
     expect(slideInView()).toBe(0);
+  });
+
+  it("jumps to the last image with End under OuroProvider's motion=\"reduced\", whatever the device says", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const { host } = await render(<OuroProvider motion="reduced">{lightbox()}</OuroProvider>);
+    await openAt(host, 1);
+    const scrollTo = vi.spyOn(viewport(), "scrollTo");
+    await userEvent.keyboard("{End}");
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(popup).toBeNull();
+  });
+
+  it("glides to the last image with End under OuroProvider's motion=\"full\", whatever the device says", async () => {
+    const { host } = await render(<OuroProvider motion="full">{lightbox()}</OuroProvider>);
+    await openAt(host, 1);
+    const scrollTo = vi.spyOn(viewport(), "scrollTo");
+    await userEvent.keyboard("{End}");
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
   });
 
   it("goes to the first and the last image with Home and End", async () => {

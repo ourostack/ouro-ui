@@ -331,5 +331,16 @@ describe("spring", () => {
       expect(onRest).toHaveBeenCalledTimes(2);
       expect(asked).not.toHaveBeenCalled();
     });
+
+    it("follows reduced over the device: true jumps to the target, false runs", async () => {
+      const onUpdate = vi.fn();
+      const still = spring({ from: 0, to: 100, onUpdate, reduced: true });
+      expect(onUpdate.mock.calls).toEqual([[100, 0]]);
+      expect(still.running).toBe(false);
+      await commands.emulateMedia({ reducedMotion: "reduce" });
+      const moving = spring({ from: 0, to: 100, onUpdate: () => {}, reduced: false });
+      expect(moving.running).toBe(true);
+      moving.stop();
+    });
   });
 });

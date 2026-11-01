@@ -5,6 +5,7 @@ import { commands, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { springAt } from "@/registry/ouro/lib/ouro/spring";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -138,6 +139,34 @@ function expectAtRest(messages: HTMLElement[]) {
 }
 
 describe("MessageList springs", () => {
+  it("follows OuroProvider's motion over the device: reduced moves nothing, full springs", async () => {
+    const still = await render(
+      <OuroProvider motion="reduced">
+        <Chat count={40} />
+      </OuroProvider>,
+    );
+    await scrollInCode(still.scroller, 600);
+    const frames = holdFrames();
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    wheel(still.scroller, 30, still.scroller.getBoundingClientRect().top);
+    expect(asked).not.toHaveBeenCalled();
+    frames.step(16);
+    expectAtRest(still.messages());
+
+    await reduceMotion(true);
+    const moving = await render(
+      <OuroProvider motion="full">
+        <Chat count={40} />
+      </OuroProvider>,
+    );
+    await scrollInCode(moving.scroller, 600);
+    wheel(moving.scroller, 30, moving.scroller.getBoundingClientRect().top);
+    frames.step(16);
+    expect(moving.scroller.querySelector("[data-ouro-settling]")).not.toBeNull();
+    frames.step(1000);
+    await reduceMotion(false);
+  });
+
   it("trails the wheel the more the farther a message is from the pointer, and settles back to no transform", async () => {
     const { scroller, messages } = await render(<Chat count={40} />);
     await scrollInCode(scroller, 600);

@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -655,6 +656,27 @@ describe("Carousel motion", () => {
     const scrollTo = vi.spyOn(screen.viewport, "scrollTo");
     await userEvent.click(screen.button("Next slide"));
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
+  });
+
+  it("follows OuroProvider's motion over the device: reduced jumps, full scrolls smoothly", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const still = await render(
+      <OuroProvider motion="reduced">
+        <Carousel label="Recipe photos">{photos()}</Carousel>
+      </OuroProvider>,
+    );
+    const stillScroll = vi.spyOn(still.viewport, "scrollTo");
+    await userEvent.click(still.button("Next slide"));
+    expect(stillScroll).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const moving = await render(
+      <OuroProvider motion="full">
+        <Carousel label="Menu photos">{photos()}</Carousel>
+      </OuroProvider>,
+    );
+    const movingScroll = vi.spyOn(moving.viewport, "scrollTo");
+    await userEvent.click(moving.button("Next slide"));
+    expect(movingScroll).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
   });
 
   it("scrolls smoothly when motion is allowed", async () => {
