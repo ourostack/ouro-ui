@@ -2,7 +2,7 @@
 
 # Command
 
-A command palette: a searchable list of every action in the app, in a dialog. Typing filters the commands by label and keywords (ignoring case and accents), the arrow keys move the highlight, and Enter runs the highlighted command. Commands come in labelled groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px it is a full-height bottom sheet, whose search input stays put while the results filter. A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`, so a palette that jumps to any chat shows who each one is with and what is new.
+A command palette: a searchable list of every action in the app, in a dialog. Typing filters the commands by label and keywords (ignoring case and accents), the arrow keys move the highlight, and Enter runs the highlighted command. Commands come in labelled groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px it is a full-height bottom sheet, whose search input stays put while the results filter. Above it, the dialog fits its commands, from 32rem up to 40rem, and keeps that width while they filter. A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`, so a palette that jumps to any chat shows who each one is with and what is new.
 
 ```tsx
 import { Command } from "@/registry/ouro/components/ouro/command/command";
