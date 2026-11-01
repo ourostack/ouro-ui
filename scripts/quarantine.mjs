@@ -1,17 +1,19 @@
 // The quarantine: tests known to fail now and then (.github/quarantine.json), each with the open
-// issue that tracks it and an owner. Release and its rehearsal, and nothing else, retry a CI run's
-// failed jobs once when every check they judge failed only because of quarantined tests: each
-// failed job either failed in one step only, a test step, whose Vitest run names only listed tests
-// (and the failed count it reports is exactly those), or is a gate (ci, install (variant, preset))
-// whose failing step only read the result of such jobs, none of them skipped, or is a job skipped
-// because a job it needs failed so. Any other failure, a listed test without an open issue, a run
-// already attempted more than once, or a second failure, is not retried, so the release still
-// stops on it. Each retry is written to the step summary and the log, and commented on the entry's
-// issue, once its rerun has started; Release repeats its rehearsal's retries in its own summary.
-// An entry whose issue is closed is stale: a warning asks to remove it.
+// issue that tracks it, an owner and when to remove it. Release and its rehearsal, and nothing
+// else, retry a CI run's failed jobs once when every check they judge failed only because of
+// quarantined tests: each failed job either failed in one step only, a test step, whose Vitest or
+// Playwright run names only listed tests (and the failed count it reports is exactly those), or is
+// a gate (ci, install (variant, preset)) whose failing step only read the result of such jobs, none
+// of them skipped, or is a job skipped because a job it needs failed so. Any other failure, a
+// listed test without an open issue, a run already attempted more than once, or a second failure,
+// is not retried, so the release still stops on it. Each retry is written to the step summary and
+// the log, and commented on the entry's issue, once its rerun has started; Release repeats its
+// rehearsal's retries in its own summary. An entry whose issue is closed is stale: a warning asks
+// to remove it.
 //
 //   node scripts/quarantine.mjs check
-//       fails when an entry lacks its test (project, file, title), its issue URL or its owner
+//       fails when an entry lacks its test (project, file, title), its issue URL, its owner or when
+//       to remove it
 //   node scripts/quarantine.mjs retry [--also <check>]... <run id>...
 //       after scripts/required-ci.sh failed on these runs: exits 0 once it has started the retry
 //       (scripts/required-ci.sh then waits for it and judges again), 1 when nothing may be retried.
@@ -34,13 +36,16 @@ export const quarantineFile = join(root, ".github/quarantine.json");
 
 const issuePattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/;
 
-/** What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL and an owner. */
+/**
+ * What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL,
+ * an owner, and `remove`, when the entry leaves (the fix it waits for, or a date).
+ */
 export function entryProblems(entries) {
   if (!Array.isArray(entries)) return ["the quarantine must be a JSON array of entries"];
   return entries.flatMap((entry, index) => {
     const label = `entry ${index + 1}${typeof entry?.title === "string" ? ` (${entry.title})` : ""}`;
     const problems = [];
-    for (const key of ["project", "file", "title", "owner"]) {
+    for (const key of ["project", "file", "title", "owner", "remove"]) {
       if (typeof entry?.[key] !== "string" || entry[key].trim() === "") problems.push(`${label} has no ${key}`);
     }
     if (typeof entry?.issue !== "string" || !issuePattern.test(entry.issue)) problems.push(`${label} has no issue URL (https://github.com/<owner>/<repo>/issues/<number>)`);
@@ -50,6 +55,9 @@ export function entryProblems(entries) {
 
 /** The Vitest test a `FAIL` line names: `{ project, file, title }`, or undefined for a file-level failure. */
 const failLine = /^\s*FAIL\s+(\S+) \((\w+)\)\s+(\S+\.[cm]?[jt]sx?) > (.+?)\s*$/;
+
+/** A test in the list under Playwright's "n failed" summary: `[project] › file:line:column › title path`. */
+const playwrightFailed = /^\s+\[([^\]]+)\] › (\S+\.[cm]?[jt]sx?):\d+:\d+ › (.+?)\s*$/;
 
 // eslint-disable-next-line no-control-regex -- strips the colours in a log, as escapes or as gh prints them (^[[31m)
 const colours = /\x1b\[[0-9;]*m|\^\[\[[0-9;]*m/g;
@@ -63,20 +71,38 @@ const text = (line) =>
 
 /**
  * The failed tests a job's log shows: `{ tests: [{ project, file, title }], failed, unexplained }`,
- * where `failed` adds up Vitest's "Tests  n failed" summaries, and `unexplained` lists what fails
- * without naming a test (a file that did not load, an unhandled error).
+ * where `failed` adds up Vitest's "Tests  n failed" and Playwright's "n failed" summaries, and
+ * `unexplained` lists what fails without naming a test (a file that did not load, an unhandled
+ * error, a Playwright test that was interrupted or did not run). A Playwright test is read from
+ * the list under its summary, its title path joined with " > " as Vitest's is.
  */
 export function failedTests(log) {
   const tests = new Map();
   const unexplained = [];
   let failed = 0;
+  let playwright = false;
   for (const line of log.split("\n").map(text)) {
+    if (playwright) {
+      const listed = playwrightFailed.exec(line);
+      if (listed) {
+        const title = listed[3].split(" › ").join(" > ");
+        tests.set(`${listed[1]}\t${listed[2]}\t${title}`, { project: listed[1], file: listed[2], title });
+        continue;
+      }
+      playwright = false;
+    }
     const match = failLine.exec(line);
     if (match) tests.set(`${match[1]}\t${match[3]}\t${match[4]}`, { project: match[1], file: match[3], title: match[4] });
     else if (/^\s*FAIL\s/.test(line)) unexplained.push(line.trim());
     const summary = /^\s*Tests\s+(\d+) failed\b/.exec(line);
     if (summary) failed += Number(summary[1]);
     if (/^\s*Errors\s+\d+ errors?\b/.test(line)) unexplained.push(line.trim());
+    const playwrightSummary = /^\s*(\d+) failed\s*$/.exec(line);
+    if (playwrightSummary) {
+      failed += Number(playwrightSummary[1]);
+      playwright = true;
+    }
+    if (/^\s*\d+ (?:interrupted|did not run)\s*$|^\s*\d+ errors? (?:was|were) not a part of any test\b/.test(line)) unexplained.push(line.trim());
   }
   return { tests: [...tests.values()], failed, unexplained };
 }
@@ -115,8 +141,8 @@ export function stepBlock(block, name) {
   );
 }
 
-/** Whether a step runs tests: Vitest, directly or through the impact plan, or the install test. */
-const runsTests = (step) => /\bvitest\b|scripts\/install-test\.sh/.test(step.replace(/^ {6}(?:- | {2})name: .*$/m, ""));
+/** Whether a step runs tests: Vitest, directly or through the impact plan, the install test, or the latency job's Playwright run. */
+const runsTests = (step) => /\bvitest\b|scripts\/install-test\.sh|\bpnpm test:latency\b/.test(step.replace(/^ {6}(?:- | {2})name: .*$/m, ""));
 
 /** A job's block in a workflow's text. */
 const jobBlock = (workflow, id) => workflow.split("\njobs:\n")[1]?.split(/\n(?= {2}[\w-]+:\n)/).find((candidate) => candidate.startsWith(`  ${id}:`));
@@ -206,11 +232,11 @@ export function retryPlan({ runs, contexts, entries }) {
 
 /** The record of one retry, for the step summary, the log and the entry's issue. */
 export const record = ({ entry, test, job, url }, by) =>
-  `Retried once, as quarantined: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner @${entry.owner}.${by ? ` By ${by}.` : ""}`;
+  `Retried once, as quarantined: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner @${entry.owner}, remove ${entry.remove}.${by ? ` By ${by}.` : ""}`;
 
 /** The record of a retry whose rerun GitHub refused, for the log and the step summary. */
 export const refused = ({ entry, test, job, url }, by) =>
-  `Retry requested but the rerun failed: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner @${entry.owner}.${by ? ` By ${by}.` : ""}`;
+  `Retry requested but the rerun failed: ${test.project} ${test.file} > ${test.title} failed in ${job} (${url}). Issue ${entry.issue}, owner @${entry.owner}, remove ${entry.remove}.${by ? ` By ${by}.` : ""}`;
 
 /** The warning for an entry whose issue is closed. */
 export const staleWarning = (entry) => `::warning title=Stale quarantine entry::${entry.issue} is closed: remove the quarantine entry for ${entry.project} ${entry.file} > ${entry.title}.`;

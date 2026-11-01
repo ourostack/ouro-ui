@@ -1,9 +1,10 @@
 [
   {
-    "project": "ouro-webkit",
-    "file": "registry/ouro/components/ouro/calendar/calendar.test.tsx",
-    "title": "Calendar > range > picks a start and an end, in either order, and previews the range in between",
-    "issue": "https://github.com/ourostack/ouro-ui/issues/351",
-    "owner": "arimendelow"
+    "project": "site-latency",
+    "file": "site/e2e/chapter-three.latency.spec.ts",
+    "title": "Chapter III interaction latency > organ answers within 100 ms (p95 of 20, median within 128 ms) on a 4× slower CPU",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/401",
+    "owner": "ci-speed",
+    "remove": "when #337 lands (latency judged against the runner's speed)"
   }
 ]

@@ -2092,17 +2092,26 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   assert.ok(check.indexOf("release-rehearsal.yml") > check.indexOf('[ "$conclusion" = success ]'));
 });
 
-test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
+test("every quarantined test names its test (project, file and title), an issue, an owner and when to remove it, and its file has that test", () => {
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
   assert.deepEqual(entryProblems(entries), []);
   for (const entry of entries) {
     assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
-    assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
+    const source = readFileSync(join(root, entry.file), "utf8");
+    // A title a loop builds is a template literal: each ${...} in it stands for a number or for
+    // text the file has (a control's id, say).
+    const templates = [...source.matchAll(/`((?:[^`\\]|\\.)*\$\{(?:[^`\\]|\\.)*)`/g)].map(
+      ([, template]) => new RegExp(`^${template.split(/(\$\{[^}]*\})/).map((part) => (part.startsWith("${") ? "(.+?)" : part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))).join("")}$`),
+    );
+    const built = (part) => templates.some((template) => template.exec(part)?.slice(1).every((value) => /^\d+$/.test(value) || source.includes(value)));
+    for (const part of entry.title.split(" > ")) {
+      assert.ok(source.includes(part) || built(part), `${entry.file} has no test "${entry.title}" ("${part}")`);
+    }
   }
   // Each part is required.
-  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", remove: "when #2 lands" };
   assert.deepEqual(entryProblems([whole]), []);
-  for (const key of ["project", "file", "title", "issue", "owner"]) {
+  for (const key of ["project", "file", "title", "issue", "owner", "remove"]) {
     const without = { ...whole };
     delete without[key];
     assert.equal(entryProblems([without]).length, 1, key);
@@ -2133,8 +2142,26 @@ const diveLog = logLines("browser (5/6)", [
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
   "##[error]TimeoutError: locator.click: Timeout 12185ms exceeded.",
 ]);
-const calendarEntry = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", open: true };
-const diveEntry = { project: "site", file: "site/src/voyage/dive/dive.test.tsx", title: diveTitle, issue: "https://github.com/ourostack/ouro-ui/issues/2", owner: "someone", open: true };
+const calendarEntry = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", remove: "when #355 lands", open: true };
+const diveEntry = { project: "site", file: "site/src/voyage/dive/dive.test.tsx", title: diveTitle, issue: "https://github.com/ourostack/ouro-ui/issues/2", owner: "someone", remove: "when #338 lands", open: true };
+// The latency job's failure in the v1.3.1 rehearsal (CI run 41321836644, job 124894080458): one
+// control's p95 over the 100 ms budget, in Playwright's list reporter.
+const organTitle = "Chapter III interaction latency > organ answers within 100 ms (p95 of 20, median within 128 ms) on a 4× slower CPU";
+const organListed = "[site-latency] › site/e2e/chapter-three.latency.spec.ts:126:5 › Chapter III interaction latency › organ answers within 100 ms (p95 of 20, median within 128 ms) on a 4× slower CPU";
+const latencyLines = (listed = organListed, { failed = 1 } = {}) => [
+  "Running 47 tests using 1 worker",
+  "latency organ: p95 104 ms (≤ 100), median 64 ms (≤ 128, baseline 64); samples in order: 56, 88, 120, 64, 64, 64, 64, 64, 64, 56, 64, 64, 64, 64, 64, 64, 64, 72, 64, 104",
+  `  ✘  18 ${listed} (32.3s)`,
+  `  1) ${listed} `,
+  "    Error: organ p95 104 ms (≤ 100), median 64 ms (≤ 128, baseline 64); samples in order: 56, 88, 120, 64, 64, 64, 64, 64, 64, 56, 64, 64, 64, 64, 64, 64, 64, 72, 64, 104",
+  "    expect(received).toBeLessThanOrEqual(expected)",
+  `  ${failed} failed`,
+  `    ${listed} `,
+  "  46 passed (8.3m)",
+  " ELIFECYCLE  Command failed with exit code 1.",
+  "##[error]Process completed with exit code 1.",
+];
+const organLog = logLines("latency", latencyLines());
 
 test("the quarantine reads a job's failed Vitest tests from its log, and anything else that failed", () => {
   assert.deepEqual(failedTests(calendarLog), { tests: [{ project: "ouro-webkit", file: "src/components/ouro/calendar/calendar.test.tsx", title: calendarTitle }], failed: 1, unexplained: [] });
@@ -2154,6 +2181,61 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
   assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
 });
 
+test("the quarantine reads the latency job's failed Playwright tests, and retries the organ test alone, once", () => {
+  const organ = { project: "site-latency", file: "site/e2e/chapter-three.latency.spec.ts", title: organTitle };
+  assert.deepEqual(failedTests(organLog), { tests: [organ], failed: 1, unexplained: [] });
+  // As gh prints it, with the job and step columns.
+  assert.deepEqual(failedTests(organLog.replaceAll("UNKNOWN STEP", "Run pnpm test:latency")).tests, [organ]);
+  // What fails without naming a test, or a test that never finished.
+  assert.equal(failedTests(logLines("latency", ["  1 interrupted", "    [site-latency] › site/e2e/a.latency.spec.ts:1:1 › a"])).unexplained.length, 1);
+  assert.equal(failedTests(logLines("latency", ["  2 did not run"])).unexplained.length, 1);
+  assert.equal(failedTests(logLines("latency", ["  1 error was not a part of any test, see above for details"])).unexplained.length, 1);
+  // The live entry names the organ test only: not another control, nor the organ judged by another
+  // median ceiling (a new baseline), nor another project or file.
+  const entries = JSON.parse(readFileSync(quarantineFile, "utf8")).map((entry) => ({ ...entry, open: true }));
+  const entry = entries.find((candidate) => names(candidate, organ));
+  assert.ok(entry, "the quarantine lists the organ test");
+  assert.deepEqual({ issue: entry.issue, owner: entry.owner }, { issue: "https://github.com/ourostack/ouro-ui/issues/401", owner: "ci-speed" });
+  assert.match(entry.remove, /#337/);
+  const feathers = organTitle.replace("organ", "feathers").replace("128 ms", "80 ms");
+  for (const other of [{ ...organ, title: feathers }, { ...organ, title: organTitle.replace("128 ms", "160 ms") }, { ...organ, project: "site" }, { ...organ, file: "site/e2e/chapter-two.latency.spec.ts" }]) {
+    assert.ok(!entries.some((candidate) => names(candidate, other)), JSON.stringify(other));
+  }
+
+  const ciYml = workflow("ci.yml");
+  const contexts = ["ci", "latency"];
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  const runWith = (latency, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: [job(1, "ci", "success"), latency] }];
+  const latency = (log, extra = {}) => job(3, "latency", "failure", { failedSteps: ["Run pnpm test:latency"], log, ...extra });
+
+  // The v1.3.1 rehearsal's failure: retried once, recorded with its issue, owner and removal.
+  const plan = retryPlan({ runs: runWith(latency(organLog)), contexts, entries });
+  assert.equal(plan.retry, true, plan.problems.join("; "));
+  assert.equal(
+    record(plan.retried[0]),
+    `Retried once, as quarantined: site-latency site/e2e/chapter-three.latency.spec.ts > ${organTitle} failed in latency (https://github.com/o/r/actions/runs/5/job/3). Issue ${entry.issue}, owner @ci-speed, remove ${entry.remove}.`,
+  );
+  // A regression that fails the organ test again: the second attempt is never retried.
+  const twice = retryPlan({ runs: runWith(latency(organLog), 2), contexts, entries });
+  assert.equal(twice.retry, false);
+  assert.match(twice.problems.join("\n"), /already on attempt 2/);
+  // A regression that fails another control, alone or beside the organ: not retried.
+  const feathersListed = organListed.replace("organ", "feathers").replace("128 ms", "80 ms");
+  const other = retryPlan({ runs: runWith(latency(logLines("latency", latencyLines(feathersListed)))), contexts, entries });
+  assert.equal(other.retry, false);
+  assert.match(other.problems.join("\n"), /site-latency site\/e2e\/chapter-three\.latency\.spec\.ts > Chapter III interaction latency > feathers .* is not quarantined/);
+  const both = logLines("latency", latencyLines(organListed, { failed: 2 }).flatMap((line) => (line.trim() === organListed ? [line, `    ${feathersListed} `] : [line])));
+  assert.equal(failedTests(both).tests.length, 2);
+  assert.equal(retryPlan({ runs: runWith(latency(both)), contexts, entries }).retry, false);
+  // More failures than the list names, a step other than the tests, or no failed summary at all
+  // (the preview server never started): not retried.
+  assert.equal(retryPlan({ runs: runWith(latency(logLines("latency", latencyLines(organListed, { failed: 2 })))), contexts, entries }).retry, false);
+  assert.equal(retryPlan({ runs: runWith(latency(organLog, { failedSteps: ["Run pnpm i --frozen-lockfile"] })), contexts, entries }).retry, false);
+  const server = retryPlan({ runs: runWith(latency(logLines("latency", ["Error: Timed out waiting 180000ms from config.webServer.", "##[error]Process completed with exit code 1."]))), contexts, entries });
+  assert.equal(server.retry, false);
+  assert.match(server.problems.join("\n"), /latency \(run 5\) failed without a test failure in its log/);
+});
+
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
   const ciYml = workflow("ci.yml");
   // The name GitHub gave install-latest's unnamed test step in run 41270773113.
@@ -2171,7 +2253,7 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.equal(plan.retried.length, 1);
   assert.equal(
     record(plan.retried[0], "https://github.com/o/r/actions/runs/9"),
-    `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow. By https://github.com/o/r/actions/runs/9.`,
+    `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow, remove when #355 lands. By https://github.com/o/r/actions/runs/9.`,
   );
   // A test that is not listed fails at once: tonight's Dive failure (fixed by #338, so not listed).
   const unlisted = retryPlan({ runs: runWith(dive), contexts, entries: [calendarEntry] });
@@ -2225,34 +2307,43 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   const calls = join(bin, "calls.log");
   const summary = join(bin, "summary.md");
   const attempts = join(bin, "attempts");
-  writeFileSync(join(bin, "calendar.log"), calendarLog);
-  // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
-  // $STATE, and a rerun moves the run to attempt 2.
+  writeFileSync(join(bin, "latency.log"), organLog);
+  // A stand-in gh: run 5, on attempt $(cat attempts), failed latency on the organ test, its issue
+  // is $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
     join(bin, "gh"),
-    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":3,"name":"install (shadcn@latest, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run SHADCN_VERSION=latest scripts/install-test.sh shadcn \\"$RUNNER_TEMP/latest\\" abc"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") [ -z "$REFUSE" ] || exit 1; echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci latency ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '%s\\t.github/workflows/ci.yml\\n' "$(cat "${attempts}")" ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":2,"name":"install (shadcn@latest, nova)","conclusion":"success","url":"u2","failedSteps":[]}' '{"id":3,"name":"latency","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run pnpm test:latency"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "latency.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") [ -z "$REFUSE" ] || exit 1; echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
   );
   chmodSync(join(bin, "gh"), 0o755);
-  const retry = (state, refuse = "") => {
+  const retry = (state, { refuse = "", attempt = 1 } = {}) => {
     writeFileSync(calls, "");
     writeFileSync(summary, "");
-    writeFileSync(attempts, "1");
+    writeFileSync(attempts, String(attempt));
     return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse },
     });
   };
+  // The live entry for the organ test.
+  const entry = JSON.parse(readFileSync(quarantineFile, "utf8")).find((candidate) => candidate.title === organTitle);
+  assert.ok(entry, "the quarantine lists the organ test");
   const open = retry("OPEN");
   assert.equal(open.status, 0, open.stdout + open.stderr);
-  const line = `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow. By https://github.com/o/r/actions/runs/9.`;
+  const line = `Retried once, as quarantined: site-latency site/e2e/chapter-three.latency.spec.ts > ${organTitle} failed in latency (https://github.com/o/r/actions/runs/5/job/3). Issue ${entry.issue}, owner @${entry.owner}, remove ${entry.remove}. By https://github.com/o/r/actions/runs/9.`;
   assert.match(open.stdout, new RegExp(`^::warning title=Quarantined test retried::${line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
   assert.equal(readFileSync(summary, "utf8"), `- ${line}\n`);
   const made = readFileSync(calls, "utf8").split("\n");
-  assert.ok(made.includes(`issue comment https://github.com/ourostack/ouro-ui/issues/351 --body ${line}`));
+  assert.ok(made.includes(`issue comment ${entry.issue} --body ${line}`));
   assert.equal(made.filter((call) => call.startsWith("run rerun")).length, 1);
+  // A regression fails both attempts: the second is not retried, so the caller fails.
+  const again = retry("OPEN", { attempt: 2 });
+  assert.equal(again.status, 1);
+  assert.match(again.stdout, /^Not retried: .*already on attempt 2: a quarantined test is retried only once/m);
+  assert.equal(readFileSync(summary, "utf8"), "");
+  assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
   // GitHub refuses the rerun: recorded as such, not as retried, nothing commented, and the caller fails.
-  const refusedRun = retry("OPEN", "yes");
+  const refusedRun = retry("OPEN", { refuse: "yes" });
   assert.equal(refusedRun.status, 1);
   const refusal = line.replace("Retried once, as quarantined", "Retry requested but the rerun failed");
   assert.equal(readFileSync(summary, "utf8"), `- ${refusal}\n`);
@@ -2264,7 +2355,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   const closed = retry("CLOSED");
   assert.equal(closed.status, 1);
   assert.match(closed.stdout, /^Not retried: .*its issue is not open/m);
-  assert.ok(closed.stdout.includes(staleWarning(calendarEntry)));
+  assert.ok(closed.stdout.includes(staleWarning(entry)));
   assert.equal(readFileSync(summary, "utf8"), "");
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
 });
@@ -2286,6 +2377,7 @@ test("only Release and its rehearsal retry, and only after scripts/required-ci.s
   }
   // No test runner retries anything of its own: the quarantine is the only retry.
   assert.doesNotMatch(readFileSync(join(root, "vitest.config.ts"), "utf8"), /\bretry:/);
+  assert.match(readFileSync(join(root, "playwright.latency.config.ts"), "utf8"), /^ {2}retries: 0,$/m);
 });
 
 test("a stale quarantine entry, its issue closed, gets a warning to remove it and fails nothing; Release shows the retries its rehearsal recorded", () => {
