@@ -2,7 +2,7 @@
 
 # ShowMore
 
-"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
+"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
 
 ```tsx
 import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more";
