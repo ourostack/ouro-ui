@@ -32,14 +32,16 @@ import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 export interface MomentOwnProps {
   /**
    * What the moment is about. `empty`: nothing here yet. `loading`: on its way, with a
-   * spinner when there is no art. `error`: something failed. `welcome`: a first run.
+   * spinner when there is no art. `error`: something failed. `first-run`: a first run or a
+   * welcome (`welcome` is the same kind by its older name, and the root says `first-run`).
    * `success`: something finished, which celebrates (see `celebrate`). The kind colours the
    * art's `currentColor` from the theme and is on the root as `data-moment`.
    * @default "empty"
    * @claim "`loading`: on its way, with a" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > shows a spinner for a loading moment without art, sized to the layout)
+   * @claim "`welcome` is the same kind by" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > takes welcome as first-run's older name, and says first-run)
    * @claim "The kind colours the art's `currentColor`" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > names its kind in data-moment and colours the art from the theme by kind)
    */
-  kind?: "empty" | "loading" | "error" | "welcome" | "success" | (string & { 'Use "empty", "loading", "error", "welcome" or "success"; info is "empty"': never }) | undefined;
+  kind?: "empty" | "loading" | "error" | "first-run" | "welcome" | "success" | (string & { 'Use "empty", "loading", "error", "first-run" or "success"; info is "empty"': never }) | undefined;
   /**
    * What happened or what is here, in a few words: "Inbox cleared". Required, because it is
    * what a screen reader finds.
@@ -270,7 +272,9 @@ export function Moment(props: MomentProps): JSX.Element | null {
     variant,
     ...rest
   } = props;
-  const kind: MomentKind = Object.hasOwn(kindToneClass, kindProp) ? (kindProp as MomentKind) : "empty";
+  // `welcome` is first-run's older name.
+  const named = kindProp === "welcome" ? "first-run" : kindProp;
+  const kind: MomentKind = Object.hasOwn(kindToneClass, named) ? (named as MomentKind) : "empty";
   const provided = useContext(MomentContext);
   const quiet = quietProp ?? provided;
   const layout = sizeProp === "inline" ? "inline" : quiet ? "quiet" : "default";
@@ -292,7 +296,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
     process.env.NODE_ENV !== "production"
       ? () => [
           !title && ["title is required; it says what the moment is about", '<Moment title="No messages yet">'],
-          kind !== kindProp && [`kind="${String(kindProp)}" is not a kind; use "empty", "loading", "error", "welcome", "success"`, '<Moment kind="empty">'],
+          kind !== named && [`kind="${String(kindProp)}" is not a kind; use "empty", "loading", "error", "first-run", "success"`, '<Moment kind="empty">'],
           !(sizes as readonly string[]).includes(sizeProp) && [`size="${String(sizeProp)}" is not a size; use "default", "inline"`, "<Moment quiet>"],
           headingLevel !== undefined && level !== headingLevel && [`headingLevel must be 2, 3, 4, 5 or 6, got ${String(headingLevel)}`, "<Moment headingLevel={2}>"],
           cap !== undefined && per !== cap.per && [`cap per "${String(cap.per)}" is not a period; use "day", "week", "month", "ever"`, '<Moment cap={{ times: 1, per: "day" }}>'],

@@ -23,7 +23,7 @@ export {
 // app's Tailwind finds them when it compiles.
 
 /** What a moment is about. @internal */
-type MomentKind = "empty" | "loading" | "error" | "welcome" | "success";
+type MomentKind = "empty" | "loading" | "error" | "first-run" | "success";
 
 /** How long a celebration cap counts showings for. @internal */
 type MomentPeriod = "day" | "week" | "month" | "ever";
@@ -142,7 +142,7 @@ const kindToneClass: Record<MomentKind, string> = {
   empty: "text-muted-foreground",
   loading: "text-muted-foreground",
   error: "text-destructive",
-  welcome: "text-primary",
+  "first-run": "text-primary",
   success: "text-success",
 };
 

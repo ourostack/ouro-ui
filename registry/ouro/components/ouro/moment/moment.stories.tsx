@@ -95,7 +95,7 @@ const meta = {
   parameters: { layout: "padded" },
   args: { title: "No messages yet", description: "Messages you send show up here.", art: <TrayArt /> },
   argTypes: {
-    kind: { control: "inline-radio", options: ["empty", "loading", "error", "welcome", "success"] },
+    kind: { control: "inline-radio", options: ["empty", "loading", "error", "first-run", "success"] },
     size: { control: "inline-radio", options: ["default", "inline"] },
     art: { control: false },
   },
@@ -118,7 +118,7 @@ export const Kinds: Story = {
           <Moment art={<TrayArt />} title="No messages yet" description="Messages you send show up here." action={<Button>New message</Button>} />
         </Panel>
         <Panel>
-          <Moment kind="welcome" art={<DoorwayArt />} title="Welcome in" description="Three short steps and you're set." action={<Button>Start</Button>} secondaryAction={<Button variant="plain">Later</Button>} />
+          <Moment kind="first-run" art={<DoorwayArt />} title="Welcome in" description="Three short steps and you're set." action={<Button>Start</Button>} secondaryAction={<Button variant="plain">Later</Button>} />
         </Panel>
         <Panel>
           <Moment kind="error" art={<BrokenLineArt />} title="Couldn't load messages" description="Check your connection, then try again." action={<Button variant="outline">Try again</Button>} />
@@ -163,7 +163,7 @@ export const Celebration: Story = {
       <Page width={480}>
         <Panel>
           {state === "idle" ? (
-            <Moment kind="welcome" art={<DoorwayArt />} title="Say hello" description="Your first message starts the conversation." action={<Button onClick={() => setState("sent")}>Send hello</Button>} />
+            <Moment kind="first-run" art={<DoorwayArt />} title="Say hello" description="Your first message starts the conversation." action={<Button onClick={() => setState("sent")}>Send hello</Button>} />
           ) : (
             <Moment kind="success" announce art={<TickArt />} title="Hello sent" description="Replies show up here." action={<Button variant="outline" onClick={() => setState("idle")}>Start over</Button>} />
           )}
@@ -179,7 +179,7 @@ export const Dismissible: Story = {
     const [open, setOpen] = useState(true);
     return (
       <Page width={480}>
-        <Panel>{open ? <Moment kind="welcome" art={<DoorwayArt />} title="Welcome in" description="Close this whenever you like." onDismiss={() => setOpen(false)} /> : <div style={{ padding: 16 }}>Closed.</div>}</Panel>
+        <Panel>{open ? <Moment kind="first-run" art={<DoorwayArt />} title="Welcome in" description="Close this whenever you like." onDismiss={() => setOpen(false)} /> : <div style={{ padding: 16 }}>Closed.</div>}</Panel>
         <Button variant="outline" onClick={() => setOpen(true)}>
           Show the welcome again
         </Button>
