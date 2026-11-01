@@ -58,3 +58,26 @@ test.skipIf(server.browser !== "chromium")("drag with hold keeps the button down
   target.remove();
   expect(events).toEqual(["mousedown", "mouseup"]);
 });
+
+test("pointerPress click presses and releases in one command, leaving the page's scroll alone", async () => {
+  // userEvent.click scrolls its target into view first, and a page with scroll-padding counts a
+  // target under a sticky header as out of view.
+  const events: string[] = [];
+  const page = document.createElement("div");
+  page.style.cssText = "height:5000px;";
+  page.innerHTML = '<header style="position:sticky;top:0;height:100px"><button data-click-here style="height:40px">Press</button></header>';
+  document.body.append(page);
+  window.scrollTo({ top: 2000, behavior: "instant" });
+  document.documentElement.style.scrollPaddingTop = "120px";
+  const target = page.querySelector("button")!;
+  for (const type of ["mousedown", "mouseup", "click"]) target.addEventListener(type, () => events.push(type));
+  try {
+    await commands.pointerPress({ selector: "[data-click-here]", action: "click" });
+    expect(events).toEqual(["mousedown", "mouseup", "click"]);
+    expect(window.scrollY).toBe(2000);
+  } finally {
+    document.documentElement.style.removeProperty("scroll-padding-top");
+    window.scrollTo({ top: 0, behavior: "instant" });
+    page.remove();
+  }
+});

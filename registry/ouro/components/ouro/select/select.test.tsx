@@ -550,10 +550,9 @@ describe("Select and the page's scroll", () => {
         };
         requestAnimationFrame(read);
         const opener = document.querySelector<HTMLElement>('[data-ouro-control="select"][data-ouro-part="trigger"]')!;
-        if (input === "pointer") {
-          await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "down" });
-          await commands.pointerPress({ action: "up" });
-        } else {
+        // One click, so the release follows the press at once, over the option the list opens under it.
+        if (input === "pointer") await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "click" });
+        else {
           opener.focus({ preventScroll: true });
           await userEvent.keyboard("{ArrowDown}");
         }
@@ -593,10 +592,10 @@ describe("Select and the page's scroll", () => {
     document.addEventListener("pointerdown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
     let atPress = "";
     window.addEventListener("pointerdown", () => (atPress = document.documentElement.style.scrollBehavior), { once: true });
-    // Released at once: the list opens over the trigger with the chosen option under the pointer, and
-    // a release there a moment later would choose it and close the list.
-    await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "down" });
-    await commands.pointerPress({ action: "up" });
+    // Released at once, in one click: the list opens over the trigger with an option under the
+    // pointer, and a release there 400ms or more after it opens chooses that option and closes the
+    // list. A press and a release sent as two commands can be that far apart on a loaded runner.
+    await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "click" });
     await expect.poll(() => {
       const open = popup();
       return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
