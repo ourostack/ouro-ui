@@ -2,7 +2,7 @@
 
 # DescriptionList
 
-One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. On a phone each term sits above its details; from 640px the terms form a column beside them, with a line between the pairs.
+One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. In a narrow space, a phone or a side sheet, each term sits above its details; once the list is 28rem wide the terms form a column beside them, with a line between the pairs. It takes the width it is given.
 
 ```tsx
 import { DescriptionList } from "@/registry/ouro/components/ouro/description-list/description-list";
@@ -33,7 +33,7 @@ Type: `DescriptionListProps`.
 | `className` | `string` |  | Layout only: margins, width (`mt-6`, `max-w-2xl`). Appearance classes warn in development. |
 | `items` (required) | `readonly DescriptionListItem[]` |  | The pairs, in order: `{ term, details }`. |
 | `ref` | `Ref<HTMLDListElement>` |  | Reaches the rendered element. |
-| `stackBelow` | `"sm" \| "md"` | `"sm"` | Below this breakpoint each term sits above its details, as on a phone; from it up, the terms form a column beside them. |
+| `stackBelow` | `"sm" \| "md"` | `"sm"` | While the list itself is narrower than this, each term sits above its details, as on a phone or in a narrow sheet; from it up, the terms form a column beside them. `sm` is 28rem (448px), `md` 32rem (512px). The list's own width decides, not the window's, so a list in a side sheet stacks on a wide screen too. |
 
 ## Native attributes
 
