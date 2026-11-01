@@ -540,7 +540,6 @@ export function Command(props: CommandProps): JSX.Element {
   // The command the person has highlighted, by its value, and what was typed when it was. Base UI
   // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
   const held = useRef<{ value: string; query: string } | null>(null);
-  const committed = useRef(groups);
 
   const run = (item: CommandItem) => {
     keepFocus.current = item.restoreFocus === false;
@@ -635,7 +634,7 @@ export function Command(props: CommandProps): JSX.Element {
             )}
           </CommandList>
         </div>
-        <KeepHighlight heldRef={held} query={query} groups={groups} committedRef={committed} />
+        <KeepHighlight heldRef={held} query={query} />
         <ResultCount query={query} loading={loading} label={resultsLabel} />
       </div>
     </Autocomplete.Root>
@@ -706,27 +705,19 @@ const valueOf = (item: CommandItem) => item.value ?? item.label;
 function KeepHighlight({
   heldRef,
   query,
-  groups,
-  committedRef,
 }: {
   heldRef: { current: { value: string; query: string } | null };
   query: string;
-  groups: readonly Group[];
-  committedRef: { current: readonly Group[] };
 }): JSX.Element {
   // A mark of its own in the palette, since a dialog and a sheet may both be mounted while one replaces the other.
   const mark = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
-    const changed = groups !== committedRef.current;
-    committedRef.current = groups;
-    // Stryker disable next-line ConditionalExpression: with the results as they were, the held command is the highlighted one, so putting it back does nothing.
-    if (!changed) return;
     const want = heldRef.current;
     if (want === null || want.query !== query) return;
     const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
     const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
     if (!row) return;
-    // Stryker disable next-line ConditionalExpression: moving the highlight onto the row it is already on changes nothing.
+    // Stryker disable next-line ConditionalExpression,StringLiteral: moving the highlight onto the row it is already on changes nothing.
     if (row.hasAttribute("data-highlighted")) return;
     // movementX, so WebKit does not take it for a pointer that stands still.
     row.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, movementX: 1 }));
@@ -747,7 +738,7 @@ function ResultCount({ query, loading, label }: { query: string; loading: boolea
   const count = filtered.reduce((sum, group) => sum + group.items.length, 0);
   const [said, setSaid] = useState("");
   useEffect(() => {
-    if (loading || query.trim() === "") return undefined;
+    if (loading || query === "") return undefined;
     const timer = setTimeout(() => setSaid(count > 0 ? label(count) : ""), 400);
     return () => clearTimeout(timer);
   }, [loading, query, count, label]);

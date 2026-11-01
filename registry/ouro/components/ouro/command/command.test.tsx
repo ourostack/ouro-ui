@@ -424,13 +424,14 @@ describe("Command results that stream in", () => {
       await render(palette(["Launch planning", "Weekly sync"], { loading: true }));
       await settled();
       await userEvent.type(input(), "la");
+      // Two answers in quick succession: only the settled one is said.
       await arrive(palette(["Launch planning", "Launch review", "Lab notes"], { loading: false }));
-      await expect.poll(() => said.count("3 results")).toBe(1);
-      const region = said.matching("3 results")[0]!.region;
-      expect(region.getAttribute("role")).toBe("status");
-      await arrive(palette(["Launch planning"], { loading: false, resultsLabel: (count: number) => `${count} match` }));
-      await expect.poll(() => said.count("1 match")).toBe(1);
-      expect(said.count("3 results")).toBe(1);
+      await arrive(palette(["Launch planning"], { loading: false }));
+      await expect.poll(() => said.count("1 result")).toBe(1);
+      expect(said.count("3 results")).toBe(0);
+      expect(said.matching("1 result")[0]!.region.getAttribute("role")).toBe("status");
+      await arrive(palette(["Launch planning", "Lab notes"], { loading: false, resultsLabel: (count: number) => `${count} matches` }));
+      await expect.poll(() => said.count("2 matches")).toBe(1);
       // With nothing found, the empty state speaks, and the count goes quiet.
       await arrive(palette([], { loading: false }));
       await expect.poll(() => document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
