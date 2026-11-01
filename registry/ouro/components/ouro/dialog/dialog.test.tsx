@@ -668,7 +668,11 @@ describe("Dialog's top edge while its content changes", () => {
     await settled();
     const opened = box();
     await rerender(<Steps count={24} />);
-    await expect.poll(() => box().bottom).toBeCloseTo(800 - 16, 0);
+    await expect.poll(() => box().height).toBe(800 - 32);
+    // The hold runs in a resize observer before the next paint: read after it has.
+    await nextFrame();
+    await nextFrame();
+    expect(box().bottom).toBeCloseTo(800 - 16, 0);
     expect(box().top).toBeLessThan(opened.top);
     expect(box().top).toBeGreaterThanOrEqual(16);
   });

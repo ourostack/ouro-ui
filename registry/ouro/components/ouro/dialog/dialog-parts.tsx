@@ -273,6 +273,7 @@ function useHeldTop(): (popup: HTMLElement) => () => void {
       const lowest = viewport.clientHeight - parseFloat(getComputedStyle(viewport).paddingBottom) - height;
       held ??= natural;
       // Taller than the room, it stays where the viewport puts it; otherwise as near the held top as it fits.
+      // Stryker disable next-line EqualityOperator: at natural === lowest the popup fills the room, so held >= lowest and both give 0.
       popup.style.top = `${natural > lowest ? 0 : Math.min(held, lowest) - natural}px`;
     };
     place();
@@ -286,10 +287,14 @@ function useHeldTop(): (popup: HTMLElement) => () => void {
       place();
     });
     screen.observe(viewport);
+    // Stryker disable next-line BlockStatement: the observers watch a popup and viewport that are leaving the page, so no test sees them stop.
     return () => {
+      // Stryker disable next-line CallExpression: as above.
       content.disconnect();
+      // Stryker disable next-line CallExpression: as above.
       screen.disconnect();
     };
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
   }, []);
 }
 
