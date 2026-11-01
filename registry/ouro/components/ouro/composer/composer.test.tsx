@@ -422,6 +422,16 @@ describe("Composer expanded", () => {
     expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
   });
 
+  it("gives the expanded text the whole width, with the buttons on a row under it", async () => {
+    const { textarea, send, frame, rerender } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />, 600);
+    expect(textarea.getBoundingClientRect().right).toBeGreaterThan(send.getBoundingClientRect().left);
+    expect(textarea.getBoundingClientRect().width).toBeGreaterThan(frame.getBoundingClientRect().width * 0.9);
+    expect(send.getBoundingClientRect().top).toBeGreaterThanOrEqual(textarea.getBoundingClientRect().bottom);
+    await rerender(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(send.getBoundingClientRect().top).toBeLessThan(textarea.getBoundingClientRect().bottom);
+  });
+
   it("shows no expand button, and the toolbar as passed, in a composer that does not expand", async () => {
     const { root } = await render(<Composer label="Reply" toolbar={formatting} onSend={() => {}} />);
     expect(expandButton()).toBeNull();
@@ -532,13 +542,6 @@ describe("Composer expanded", () => {
     expect(onExpandedChange).not.toHaveBeenCalled();
   });
 
-  it("does not animate when expanding leaves the box its height", async () => {
-    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />);
-    await userEvent.click(expandButton()!);
-    expect(textarea.getAnimations()).toEqual([]);
-    expect(textarea.classList.contains("transition-[height]")).toBe(false);
-  });
-
   it("is controlled with expanded and onExpandedChange", async () => {
     const onExpandedChange = vi.fn();
     const { root, rerender } = await render(<Composer label="Reply" expanded={false} onExpandedChange={onExpandedChange} onSend={() => {}} />);
@@ -551,36 +554,56 @@ describe("Composer expanded", () => {
   });
 
   it("grows and shrinks in height over a moment, and at once with reduced motion", async () => {
-    const heights = (textarea: HTMLTextAreaElement) => textarea.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
-    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const heights = (element: Element) => element.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
+    const { root, textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    const settled = () => heights(body).length === 0 && body.style.height === "" && !body.classList.contains("transition-[height]");
     await userEvent.click(expandButton()!);
-    expect(heights(textarea)).toEqual(["height"]);
-    await expect.poll(() => heights(textarea).length === 0 && !textarea.classList.contains("transition-[height]")).toBe(true);
+    expect(heights(body)).toEqual(["height"]);
+    expect(getComputedStyle(body).overflow).toBe("hidden");
+    // The text has its new height at once; the row around it shows it as it grows.
+    expect(textarea.rows).toBe(6);
+    expect(heights(textarea)).toEqual([]);
+    await expect.poll(settled).toBe(true);
+    const expandedHeight = body.getBoundingClientRect().height;
     // Typing grows the box at once, as before.
     await userEvent.keyboard("a");
-    expect(heights(textarea)).toEqual([]);
+    expect(heights(body)).toEqual([]);
     await userEvent.click(expandButton()!);
-    expect(heights(textarea)).toEqual(["height"]);
-    await expect.poll(() => heights(textarea).length === 0 && !textarea.classList.contains("transition-[height]")).toBe(true);
-    // Collapsed again mid-way: a second transition replaces the first, and the classes stay until it ends.
-    textarea.parentElement!.style.setProperty("--ouro-duration-base", "10s");
+    expect(heights(body)).toEqual(["height"]);
+    await expect.poll(settled).toBe(true);
+    // Collapsed again mid-way: it turns back from the height it shows, not from the full height, and ends at its own.
+    const small = body.getBoundingClientRect().height;
+    body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
     await userEvent.click(expandButton()!);
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    expect(heights(textarea)).toEqual(["height"]);
-    expect(textarea.classList.contains("transition-[height]")).toBe(true);
-    await act(async () => textarea.getAnimations().forEach((animation) => animation.finish()));
-    await expect.poll(() => textarea.classList.contains("transition-[height]")).toBe(false);
-    textarea.parentElement!.style.removeProperty("--ouro-duration-base");
+    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
+    expect(heights(body)).toEqual(["height"]);
+    await act(async () => body.getAnimations().forEach((animation) => animation.finish()));
+    await expect.poll(settled).toBe(true);
+    // A render that is no expand or collapse ends a change at once.
+    await userEvent.click(expandButton()!);
+    expect(heights(body)).toEqual(["height"]);
+    await userEvent.keyboard("b");
+    expect(settled()).toBe(true);
+    body.style.removeProperty("--ouro-duration-base");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     try {
       await userEvent.click(expandButton()!);
-      expect(heights(textarea)).toEqual([]);
-      expect(textarea.classList.contains("transition-[height]")).toBe(false);
-      expect(textarea.rows).toBe(6);
+      expect(heights(body)).toEqual([]);
+      expect(settled()).toBe(true);
+      expect(textarea.rows).toBe(1);
     } finally {
       await commands.emulateMedia({ reducedMotion: "no-preference" });
     }
+  });
+
+  it("does not animate when expanding leaves the box its height", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />, 200);
+    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    await userEvent.click(expandButton()!);
+    expect(body.getAnimations()).toEqual([]);
+    expect(body.style.height).toBe("");
   });
 });
 

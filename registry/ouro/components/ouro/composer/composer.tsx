@@ -147,9 +147,9 @@ const frameClass =
   "outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0";
 
-// The textarea's height transition while it expands or collapses: the classes are added for that
-// moment only, so TextArea's autoGrow sets the height at once as the person types.
-const growClasses = ["transition-[height]", "duration-(--ouro-duration-base)", "ease-(--ouro-ease-out)"];
+// The row's height transition while the box expands or collapses, clipped: the classes are added
+// for that moment only.
+const growClasses = ["overflow-hidden", "transition-[height]", "duration-(--ouro-duration-base)", "ease-(--ouro-ease-out)"];
 
 /** Arrows: out to expand, in to collapse. */
 function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
@@ -272,7 +272,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const [own, setOwn] = useState(defaultValue ?? "");
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  // The box's height after the last render, from which it grows or shrinks when it expands or collapses.
+  // The row around the text, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
+  const rowRef = useRef<HTMLDivElement | null>(null);
   const height = useRef<{ expanded: boolean; px: number } | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const id = useId();
@@ -326,22 +327,31 @@ export function Composer(props: ComposerProps): JSX.Element {
     textareaRef.current!.focus({ preventScroll: true });
   };
   // After every render, once TextArea has fitted the box: a render that expands or collapses it
-  // grows or shrinks it from the height it had.
+  // grows or shrinks the row around the text from the height it had, clipped, while the text takes
+  // its new height at once (so autoGrow measures it as ever). Any other render ends that at once.
   useLayoutEffect(() => {
-    const textarea = textareaRef.current!;
-    const px = textarea.offsetHeight;
+    const row = rowRef.current!;
+    const animating = row.style.height !== "";
+    // What shows now: a running change's height, or the row's own.
+    const shown = row.offsetHeight;
+    if (animating) row.style.height = "";
+    const px = row.offsetHeight;
     const before = height.current;
     height.current = { expanded, px };
-    if (before === null || before.expanded === expanded || before.px === px || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // From the old height to the new one, as a transition, which leaves the box to TextArea's autoGrow once it ends.
-    const to = textarea.style.height;
-    textarea.style.height = `${before.px}px`;
-    void textarea.offsetHeight;
-    textarea.classList.add(...growClasses);
-    textarea.style.height = to;
-    // Once it ends, or is cancelled with nothing after it (collapsed again mid-way starts another), the classes go.
-    void Promise.allSettled(textarea.getAnimations().map((animation) => animation.finished)).then(() => {
-      if (textarea.getAnimations().length === 0) textarea.classList.remove(...growClasses);
+    const from = animating ? shown : before?.px;
+    if (before === null || before.expanded === expanded || from === px || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (animating) row.classList.remove(...growClasses);
+      return;
+    }
+    row.style.height = `${from}px`;
+    void row.offsetHeight;
+    row.classList.add(...growClasses);
+    row.style.height = `${px}px`;
+    // Once it ends, or is cancelled with nothing after it, the row takes its own height again.
+    void Promise.allSettled(row.getAnimations().map((animation) => animation.finished)).then(() => {
+      if (row.getAnimations().length > 0) return;
+      row.classList.remove(...growClasses);
+      row.style.height = "";
     });
   });
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -374,7 +384,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             {toolbar}
           </div>
         )}
-        <div className="flex min-w-0 flex-wrap items-end gap-x-1 p-1">
+        <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end gap-x-1 p-1">
           <TextArea
             {...rest}
             ref={setRef}
@@ -393,7 +403,8 @@ export function Composer(props: ComposerProps): JSX.Element {
             onHighlightsChange={onHighlightsChange}
             onKeyDown={keyDown}
             aria-describedby={describedBy}
-            className="min-w-[min(12rem,100%)] flex-1 basis-48 px-2 py-2"
+            // Expanded, the text takes the whole width, and the buttons go on a row under it.
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 px-2 py-2", expanded && "w-full flex-auto")}
           />
           <div className="ms-auto flex shrink-0 items-center gap-0.5">
             {canExpand && (
