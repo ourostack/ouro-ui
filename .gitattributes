@@ -1,0 +1,4 @@
+# Text is checked out with LF line endings everywhere, as it is committed. The generators that
+# `pnpm i` runs (scripts/generate.mjs) parse docs, manifests and llms.txt as LF text, and a
+# Windows checkout (the screen-reader lane's NVDA job) would otherwise turn them into CRLF.
+* text=auto eol=lf
