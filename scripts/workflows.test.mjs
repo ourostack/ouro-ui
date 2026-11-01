@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
+import { assemble } from "./changes.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 
@@ -572,6 +573,54 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   const check = release.indexOf('node scripts/published-release.mjs "$TAG" --wait');
   assert.ok(deploy > release.indexOf('gh release create "$TAG"'), "Pages is deployed after the release is created");
   assert.ok(check > deploy, "and the published pages are checked last");
+});
+
+/** Runs "Tag and publish the release" in a folder holding this registry.json and UPGRADING.md and the CHANGES.md given, with git and gh logged; returns the notes it published. */
+function publishRelease(changes) {
+  const fixture = scratchDir("ouro-release-notes-");
+  const temp = join(fixture, "runner-temp");
+  mkdirSync(temp);
+  for (const file of ["registry.json", "UPGRADING.md"]) copyFileSync(join(root, file), join(fixture, file));
+  writeFileSync(join(fixture, "CHANGES.md"), changes);
+  const calls = join(fixture, "calls.log");
+  const published = join(fixture, "published.md");
+  const stubs = `
+git() { printf 'git %s\\n' "$*" >> "${calls}"; }
+gh() {
+  printf 'gh %s\\n' "$*" >> "${calls}"
+  case "$*" in "release create "*) cp "\${@: -1}" "${published}" ;; esac
+}
+`;
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Tag and publish the release")], {
+    cwd: fixture,
+    encoding: "utf8",
+    env: { ...process.env, TAG: "v9.9.9", BRANCH: "release/v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", RUNNER_TEMP: temp },
+  });
+  return { ...result, temp, calls: existsSync(calls) ? readFileSync(calls, "utf8") : "", notes: existsSync(published) ? readFileSync(published, "utf8") : undefined };
+}
+
+test("Release's notes list the items by name and stay well under GitHub's 125,000-character limit for this registry", () => {
+  // v1.3.0's release (run 41279874378) failed at `gh release create`: with every item's description, the notes were over the limit.
+  const changes = assemble(join(root, "changes"));
+  const { status, stdout, stderr, calls, notes, temp } = publishRelease(changes);
+  assert.equal(status, 0, stdout + stderr);
+  assert.ok([...notes].length < 100_000, `the notes are ${[...notes].length} characters; keep them under 100,000 so growth fails here before GitHub refuses them`);
+  assert.match(notes, /^npx shadcn@latest add ourostack\/ouro-ui\/ouro-base#v9\.9\.9 ourostack\/ouro-ui\/dialog#v9\.9\.9$/m);
+  assert.ok(notes.includes(changes.replace(/^# /, "### ")), "the notes hold CHANGES.md");
+  assert.match(notes, /^### Upgrading from v0\.1\.0$/m);
+  assert.ok(notes.includes("https://github.com/ourostack/ouro-ui/blob/v9.9.9/registry.json"), "the notes link the tag's registry.json for the descriptions");
+  const { items } = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
+  assert.equal(notes.split("\n").at(-2), items.map(({ name }) => `\`${name}\``).join(", "));
+  assert.ok(!notes.includes(items[0].description), "an item's description is in the notes");
+  assert.deepEqual(calls.trim().split("\n"), ["git tag v9.9.9", "git push origin v9.9.9", `gh release create v9.9.9 --verify-tag --title v9.9.9 --notes-file ${join(temp, "notes.md")}`, "git push origin --delete release/v9.9.9"]);
+});
+
+test("Release tags nothing when its notes would be over GitHub's limit", () => {
+  const { status, stdout, calls, notes } = publishRelease(`# Changes in this release\n\n${"- A change.\n".repeat(12_000)}`);
+  assert.equal(status, 1);
+  assert.match(stdout, /^::error::The release notes are \d+ bytes, over GitHub's 125,000-character limit, so v9\.9\.9 is not tagged\./m);
+  assert.equal(calls, "", "it tagged, pushed or released");
+  assert.equal(notes, undefined);
 });
 
 test("every wait of Release, and of its rehearsal, on a CI run judges only the checks main's rules require, through scripts/required-ci.sh", () => {
