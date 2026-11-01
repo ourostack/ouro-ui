@@ -215,6 +215,7 @@
         "ourostack/ouro-ui/lib-form-answer",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
+        "ourostack/ouro-ui/lib-navigation-key",
         "ourostack/ouro-ui/lib-open-mode",
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-page-scroll-hold",
@@ -663,6 +664,19 @@
           "path": "registry/ouro/lib/ouro/last-input.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/last-input.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-navigation-key",
+      "type": "registry:lib",
+      "title": "lib-navigation-key",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/navigation-key.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/navigation-key.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/navigation-key.ts"
         }
       ]
     },
@@ -3053,6 +3067,7 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-navigation-key",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-spring",
         "ourostack/ouro-ui/lib-touch-target",
@@ -3760,6 +3775,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-current-path",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-navigation-key",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-router-link",
         "ourostack/ouro-ui/lib-use-dev-messages",
@@ -3790,6 +3806,7 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-navigation-key",
         "ourostack/ouro-ui/lib-router-link",
         "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-touch-target",
@@ -4339,6 +4356,31 @@
           "path": "registry/ouro/lib/ouro/last-input.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/last-input.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-navigation-key-tests",
+      "type": "registry:item",
+      "title": "lib-navigation-key tests",
+      "description": "Optional: the Vitest browser tests for lib-navigation-key, and the tests of everything it installs. Add it beside lib-navigation-key: add lib-navigation-key lib-navigation-key-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-navigation-key",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/navigation-key.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/navigation-key.test.ts"
         }
       ],
       "meta": {
@@ -9253,6 +9295,7 @@
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-navigation-key-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -9332,6 +9375,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-navigation-key-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -11300,6 +11344,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-navigation-key-tests",
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -11373,6 +11418,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-navigation-key-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -11714,6 +11760,7 @@
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-navigation-key-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -11806,6 +11853,7 @@
         "ourostack/ouro-ui/lib-form-answer-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-navigation-key-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
