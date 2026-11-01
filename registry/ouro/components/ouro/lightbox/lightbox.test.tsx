@@ -457,7 +457,7 @@ describe("Lightbox viewer", () => {
     await userEvent.keyboard("{ArrowRight}");
     expect(held).toBeDefined();
     expect(counter.textContent).toBe("2 of 4");
-    expect(counter.hasAttribute("data-pending")).toBe(true);
+    expect(counter.getAttribute("data-pending")).toBe("");
     expect(page.getByRole("dialog", { name: "Kitchen photos, 2 of 4", exact: true }).element()).toBe(popup());
     expect(onIndexChange).not.toHaveBeenCalled();
     expect(announcements.count("2 of 4")).toBe(0);
@@ -492,6 +492,18 @@ describe("Lightbox viewer", () => {
     scroller.scrollTo(held!);
     await expect.poll(position).toBe("1 of 4");
     announcements.stop();
+  });
+
+  it("keeps a chosen position within the images left when the app removes some", async () => {
+    const { host, rerender } = await render(lightbox());
+    await openAt(host, 0);
+    const scroller = viewport();
+    scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
+    await userEvent.keyboard("{End}");
+    const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+    expect(counter.textContent).toBe("4 of 4");
+    await rerender(lightbox({ images: kitchen.slice(0, 2) }));
+    expect(counter.textContent).toBe("2 of 2");
   });
 
   it("links to the image's original in a new tab, only when it has one", async () => {
