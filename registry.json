@@ -3904,6 +3904,39 @@
       ]
     },
     {
+      "name": "moment",
+      "type": "registry:ui",
+      "title": "Moment",
+      "description": "A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished.",
+      "docs": "A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished. Import: import { Moment } from \"@/components/ouro/moment/moment\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, heading, spinner, text, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/moment.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/lib-announce",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-focus-handoff",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/spinner",
+        "ourostack/ouro-ui/text"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/moment/moment-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/moment/moment-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/moment/moment.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/moment/moment.tsx"
+        }
+      ]
+    },
+    {
       "name": "lib-announce-tests",
       "type": "registry:item",
       "title": "lib-announce tests",
@@ -11570,6 +11603,72 @@
       }
     },
     {
+      "name": "moment-tests",
+      "type": "registry:item",
+      "title": "Moment tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for moment, and the tests of everything it installs. Add it beside moment: add moment moment-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "moment's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/heading",
+        "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/lib-announce-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/moment",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/spinner-tests",
+        "ourostack/ouro-ui/text-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/moment/moment.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/moment/moment.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/moment/moment.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/moment/moment.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/moment/moment.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/moment/moment.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/moment/moment.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/moment/moment.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/moment.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/moment.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "ouro-lib-tests",
       "type": "registry:item",
       "title": "Ouro lib tests",
@@ -11705,6 +11804,7 @@
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message-list-tests",
         "ourostack/ouro-ui/message-tests",
+        "ourostack/ouro-ui/moment-tests",
         "ourostack/ouro-ui/native-select-tests",
         "ourostack/ouro-ui/navbar-tests",
         "ourostack/ouro-ui/navigation-menu-tests",

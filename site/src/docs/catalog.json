@@ -357,6 +357,12 @@
     ]
   },
   {
+    "name": "moment",
+    "title": "Moment",
+    "group": "Feedback",
+    "summary": "A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished."
+  },
+  {
     "name": "skeleton",
     "title": "Skeleton",
     "group": "Display",

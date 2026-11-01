@@ -1,0 +1,23 @@
+{
+  "order": 2650,
+  "components": ["moment"],
+  "controls": {
+    "moment": [
+      {"part": "dismiss", "role": "button", "portal": false}
+    ]
+  },
+  "motion": {
+    "moment": {
+      "states": {
+        "data-open": {
+          "kind": "motion",
+          "parts": {
+            "halo": {"properties": ["opacity", "transform"], "reduced": ["opacity"]},
+            "sparkle": {"properties": ["opacity", "transform"], "reduced": []}
+          },
+          "tests": ["registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > swells the disc and grows the sparks when it celebrates, and with reduced motion only fades the disc"]
+        }
+      }
+    }
+  }
+}

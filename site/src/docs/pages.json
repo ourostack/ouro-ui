@@ -424,6 +424,14 @@
     "summary": "Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up."
   },
   {
+    "name": "moment-provider",
+    "title": "MomentProvider",
+    "kind": "export",
+    "group": "Feedback",
+    "markdown": "docs/MomentProvider.md",
+    "summary": "Sets `quiet` for every `Moment` inside it, so an app can make its moments compact everywhere, for a dense layout or for people who asked for less."
+  },
+  {
     "name": "reset-timer",
     "title": "resetTimer",
     "kind": "export",
