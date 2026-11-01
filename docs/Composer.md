@@ -2,7 +2,7 @@
 
 # Composer
 
-A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach, formatting), `toolbar` a formatting bar above the text while it is on, and `attachments` the files waiting to go. `sendDisabledReason` turns sending off and says why, while the person can still write, and `highlights` marks words in the text, as TextArea's do.
+A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never sends mid-word in an input method. A press anywhere around the text, out to the frame's edge, puts the caret where it lands, as in a text field. `actions` holds the buttons before Send (emoji, attach, formatting), `toolbar` a formatting bar above the text while it is on, and `attachments` the files waiting to go. `sendDisabledReason` turns sending off and says why, while the person can still write, and `highlights` marks words in the text, as TextArea's do.
 
 ```tsx
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
