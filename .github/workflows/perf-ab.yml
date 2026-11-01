@@ -1,5 +1,5 @@
 # PROBE (never merge): museum and organ on main against this branch, across runners.
-name: Perf AB contain
+name: Perf AB art
 on:
   pull_request:
 permissions:

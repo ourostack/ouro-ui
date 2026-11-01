@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PROBE (never merge): museum and organ on main (base) and on this branch (v1), and on v1 with a
-# style on the chapters (contain: content, contain: paint, isolation: isolate), interleaved twice.
+# the chapters' drawings skipped while off screen (art), interleaved twice.
 set -u
 mkdir -p probe-out
 grep -m1 'model name' /proc/cpuinfo | tee probe-out/cpu.txt
@@ -27,11 +27,10 @@ pass() {
   echo "$name exit $? in $((SECONDS - start)) s"
 }
 pair='(museum|organ) answers within'
+art='.site-porthole, figure:has(> svg.site-blueprint), figure:has(> svg.site-chart), figure:has(> svg.site-organ) { content-visibility: auto; contain-intrinsic-size: auto 600px; }'
 for round in 1 2; do
   serve base; pass "base-$round" "$pair"
   serve v1; pass "v1-$round" "$pair"
-  pass "content-$round" "$pair" PROBE_STYLE="contain: content;"
-  pass "paint-$round" "$pair" PROBE_STYLE="contain: paint;"
-  pass "isolate-$round" "$pair" PROBE_STYLE="isolation: isolate;"
+  pass "art-$round" "$pair" PROBE_CSS="$art"
 done
 exit 0
