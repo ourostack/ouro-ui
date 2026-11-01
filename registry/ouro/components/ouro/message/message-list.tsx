@@ -403,7 +403,8 @@ interface Spoken {
  * (history fetched after mount), older messages loaded above, and a message whose `key` changes in place (a temporary id
  * swapped for the server's). Older messages loaded above a scrolled-up reader leave the
  * message they are reading where it was, and so does a message above them that moves, such as
- * a post a reply moves to the end. A scroll up from the end stops the list following new
+ * a post a reply moves to the end. When the message they are on is the one that moves, the
+ * messages around it keep their place. A scroll up from the end stops the list following new
  * messages at once, before the browser reports it. Scrolling is never announced.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
@@ -482,6 +483,8 @@ interface Spoken {
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply that was streaming when the list mounted, once it finishes)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > does not read back the user's own message)
  * @claim "and so does a message above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place when a message above them moves to the end and the list keeps its height)
+ * @claim "When the message they are on is the one that moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place by the messages around the one they are on when it moves to the end)
+ * @claim "When the message they are on is the one that moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place by the other message in view when the one they are on moves to the end)
  * @claim "A scroll up from the end" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stops following the newest message once the list is scrolled up, even before the scroll event comes)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
@@ -586,9 +589,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
     // The messages whose top is in view (else the one filling it), each with where it sits in the
-    // content. The first one still in the page is held in place: it may itself have been
-    // replaced (a key change). Where a message sits in the content does not change as the list
-    // scrolls, so the reader's own scrolling in the same frame is never taken back.
+    // content. Those still in the page are held in place, by the ones that moved together: one may
+    // itself have been replaced (a key change), or moved away on its own (a post that a reply moved
+    // to the end). Where a message sits in the content does not change as the list scrolls, so the
+    // reader's own scrolling in the same frame is never taken back.
     // Stryker disable next-line ArrayDeclaration: keepAnchor fills it below, before the observer can first read it.
     let anchors: { node: Element; at: number }[] = [];
     // The content's height when the anchors were taken. A scroll event that finds it changed came
@@ -613,7 +617,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     keepAnchor();
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
     const hold = () => {
-      const anchor = anchors.find(({ node }) => node.isConnected);
       // A scroll up away from the end that the scroll event has not reported yet (code scrolled to a message, a key) stops the following.
       // Stryker disable next-line EqualityOperator: a list exactly half a pixel above where it was is where zoom's fractions leave it either way.
       const up = scroller.scrollTop < lastTop.current - 0.5;
@@ -628,8 +631,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression,StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so whether a second correction lands depends on timing a test cannot hold.
       const native = getComputedStyle(scroller).overflowAnchor === "auto";
       if (pinned.current) toBottom();
-      else if (anchor && near && !native) {
-        const moved = atOf(anchor.node) - anchor.at;
+      else if (near && !native) {
+        // Each message held that is still in the page, with where it sat in the content and how far it moved since. With each, how many
+        // of the others it passed or fell behind: a message that moved on its own (a post that a reply moved to the end) passed them.
+        const held = anchors.filter(({ node }) => node.isConnected).map(({ node, at }) => ({ at, moved: atOf(node) - at }));
+        const ranked = held.map((message) => ({
+          moved: message.moved,
+          // Stryker disable next-line EqualityOperator: two messages never sit at one place, and a message compared with itself is alike either way.
+          passed: held.filter((other) => other.at < message.at !== other.at + other.moved < message.at + message.moved).length,
+        }));
+        // The place is held by the messages that moved together, not one that moved away: of those, the one that moved least (with only
+        // one other in view, the one that did not go), and the first of those that moved alike.
+        const moved = ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0;
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
