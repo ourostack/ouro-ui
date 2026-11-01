@@ -2423,7 +2423,8 @@
       "ConversationList/Empty",
       "ConversationList/Sections",
       "ConversationList/Filtered",
-      "ConversationList/EmojiInTitles"
+      "ConversationList/EmojiInTitles",
+      "ConversationList/Activity"
     ]
   },
   {
@@ -2441,7 +2442,8 @@
       "ConversationList/Empty",
       "ConversationList/Sections",
       "ConversationList/Filtered",
-      "ConversationList/EmojiInTitles"
+      "ConversationList/EmojiInTitles",
+      "ConversationList/Activity"
     ]
   },
   {

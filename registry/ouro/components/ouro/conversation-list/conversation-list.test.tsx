@@ -186,6 +186,42 @@ describe("ConversationList", () => {
     expect(ada!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AL");
   });
 
+  it("shows a context line between the title and the preview, which the mark ends when there is no preview", async () => {
+    const { rows, rerender, host } = await render(
+      <ConversationList
+        label="Activity"
+        items={[
+          { id: "mention", title: "Sam Example", context: <>mentioned you in <b>Design reviews</b></>, preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
+          { id: "react", title: "Alex Example", context: "reacted in Launch planning", time: "12:43 PM", mark: <Badge>2</Badge> },
+          { id: "reply", title: "Riley Example", subtitle: "Launch team", context: "replied in Design reviews", time: "12:27 PM", unread: true },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const [mention, react, reply] = rows;
+    const top = (element: Element) => element.getBoundingClientRect().top;
+    const title = mention!.querySelector("[data-ouro-conversation-title]")!;
+    const context = mention!.querySelector<HTMLElement>("[data-ouro-conversation-context]")!;
+    const preview = mention!.querySelector("[data-ouro-conversation-preview]")!;
+    expect(context.textContent).toBe("mentioned you in Design reviews");
+    expect(top(title)).toBeLessThan(top(context));
+    expect(top(context)).toBeLessThan(top(preview));
+    expect(getComputedStyle(context).fontSize).toBe(getComputedStyle(preview).fontSize);
+    // The unread dot ends the preview's line; with no preview, the mark ends the context's.
+    expect(preview.parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
+    expect(mention!.querySelectorAll("[data-ouro-conversation-unread]")).toHaveLength(1);
+    expect(react!.querySelector("[data-ouro-conversation-context]")!.parentElement!.querySelector("[data-ouro-conversation-mark]")!.textContent).toBe("2");
+    expect(react!.querySelectorAll("[data-ouro-conversation-mark]")).toHaveLength(1);
+    // Under a subtitle, the context line is still the one the dot ends.
+    expect(reply!.querySelectorAll("[data-ouro-conversation-unread]")).toHaveLength(1);
+    expect(reply!.querySelector("[data-ouro-conversation-context]")!.parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
+    await rerender(
+      <ConversationList label="Activity" density="compact" items={[{ id: "mention", title: "Sam Example", context: "mentioned you in Design reviews", preview: "Can you sign off?", time: "1:02 PM" }]} onSelect={() => {}} />,
+    );
+    expect(host.querySelector("[data-ouro-conversation-context]")!.textContent).toBe("mentioned you in Design reviews");
+    expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();
+  });
+
   it("shows a text title without a name as plain text", async () => {
     const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
     const title = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;

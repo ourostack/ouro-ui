@@ -225,3 +225,24 @@ export const EmojiInTitles: Story = {
     </Surface>
   ),
 };
+
+/**
+ * An activity feed: the title names the person, `context` says what happened and where on its
+ * own line, so the place is never cut off, and the preview gives the message.
+ */
+export const Activity: Story = {
+  render: () => (
+    <Surface>
+      <ConversationList
+        label="Activity"
+        items={[
+          { id: "mention", title: "Sam Example", context: "mentioned you in Design reviews", preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
+          { id: "thread", title: "Alex Example", context: "posted in a thread you follow", preview: "Looks great to me.", time: "12:57 PM", unread: true },
+          { id: "reaction", title: "Alex Example", context: "reacted in Launch planning", preview: "Thanks, both. Can we ship and review on Friday?", time: "12:43 PM" },
+          { id: "reply", title: "Riley Example", context: "replied in Design reviews", preview: "Same here, see you at the review.", time: "12:27 PM" },
+        ]}
+        onSelect={() => {}}
+      />
+    </Surface>
+  ),
+};

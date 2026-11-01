@@ -28,6 +28,14 @@ export interface ConversationListItemFields {
   where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
+  /**
+   * A line between the title and the preview that says what happened and where, as an activity
+   * feed shows it: the title names the person, this line "mentioned you in Design reviews", and
+   * the preview the message. Text, or content such as `<EmojiText>`. It keeps to `density="compact"`.
+   *
+   * @claim "A line between the title and the preview" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a context line between the title and the preview, which the mark ends when there is no preview)
+   */
+  context?: ReactNode;
   /** The latest message, cut to one line. `density="compact"` hides it. */
   preview?: ReactNode;
   /** When the latest message arrived, already formatted ("9:41", `<RelativeTime>`). */
@@ -302,9 +310,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const rowFor = (item: ConversationListItem) => {
     const key = `row:${item.id}`;
     const withPreview = density === "comfortable" && shown(item.preview);
-    // The mark and the unread dot end the last line: the preview's, else the subtitle's, else the title's.
-    const endsTitle = !withPreview && !item.subtitle;
-    const endsSubtitle = !withPreview && !!item.subtitle;
+    // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
+    const withContext = shown(item.context);
+    const endsTitle = !withPreview && !withContext && !item.subtitle;
+    const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
     const hasMark = shown(item.mark);
     const end = (
       <>
@@ -376,6 +385,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                   {item.subtitle}
                 </span>
                 {endsSubtitle && end}
+              </span>
+            )}
+            {withContext && (
+              <span className="flex min-w-0 items-center gap-2">
+                <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
+                  {item.context}
+                </span>
+                {!withPreview && end}
               </span>
             )}
             {withPreview && (

@@ -100,6 +100,12 @@ interface ConversationListItemFields {
   where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
+  /**
+   * A line between the title and the preview that says what happened and where, as an activity
+   * feed shows it: the title names the person, this line "mentioned you in Design reviews", and
+   * the preview the message. Text, or content such as `<EmojiText>`. It keeps to `density="compact"`.
+   */
+  context?: ReactNode;
   /** The latest message, cut to one line. `density="compact"` hides it. */
   preview?: ReactNode;
   /** When the latest message arrived, already formatted ("9:41", `<RelativeTime>`). */
