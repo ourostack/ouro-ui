@@ -2629,7 +2629,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2645,7 +2647,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2661,7 +2665,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2677,7 +2683,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {
@@ -2693,7 +2701,9 @@
       "EmojiPicker/InsertIntoText",
       "EmojiPicker/SkinTone",
       "EmojiPicker/Sheet",
-      "EmojiPicker/ChoosingSkinTone"
+      "EmojiPicker/ChoosingSkinTone",
+      "EmojiPicker/ImageCatalogue",
+      "EmojiPicker/ImageCatalogueSkinTone"
     ]
   },
   {

@@ -2,7 +2,7 @@
 
 # EmojiPicker
 
-An emoji picker for reactions and for putting emoji into text. It has a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the emoji by category, with names and keywords in its own language, and the person's frequently used ones.
+An emoji picker for reactions and for putting emoji into text. It has a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the emoji by category, with names and keywords in its own language, and the person's frequently used ones. With `catalogue` it offers an image catalogue's emoji instead (a standard set and an organization's custom emoji), drawn only as the catalogue's images, an animated one playing while it is in focus or under the mouse, and gives `onSelect` the emoji's id and the `:shortcode:` token to put into text.
 
 ```tsx
 import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
@@ -21,11 +21,19 @@ import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-
   onSkinToneChange={setTone}
   onSelect={(selection) => react(message.id, selection.emoji)}
 />
+<EmojiPicker
+  label="Add a reaction"
+  trigger={<Button variant="plain" aria-label="Add a reaction"><SmileIcon /></Button>}
+  catalogue={catalogue}
+  frequent={recentIds}
+  quick={["like", "heart", "laugh"]}
+  onSelect={(selection) => react(message.id, selection.id)}
+/>
 ```
 
 ## Usage
 
-The search matches the start of any word in an emoji's name or keywords, ignoring case and accents, and announces how many it found. The grid is one Tab stop: the arrow keys move through it, Home and End go to the ends of a row (with Ctrl, of the grid), Page Down and Page Up go to the next and previous category, and Enter chooses. Every emoji is named for screen readers, and the one in focus shows large with its name under the grid. Choosing one calls `onSelect` and closes the picker; Escape closes it too.
+The search matches the start of any word in an emoji's name, keywords or shortcodes, ignoring case and accents, and announces how many it found. The grid is one Tab stop: the arrow keys move through it, Home and End go to the ends of a row (with Ctrl, of the grid), Page Down and Page Up go to the next and previous category, and Enter chooses. Every emoji is named for screen readers, and the one in focus shows large with its name under the grid. Choosing one calls `onSelect` and closes the picker; Escape closes it too.
 
 ## Use instead when
 
@@ -39,20 +47,15 @@ The props the modes share. Type: `EmojiPickerProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"center"` | How the popover lines up with the trigger along that side. |
-| `categories` (required) | `readonly EmojiPickerCategory[]` |  | Every emoji the picker offers, by category, in order. The app supplies them, so it picks the set, the names and the language. |
 | `categoriesLabel` | `string` | `"Categories"` | What screen readers hear for the category bar. |
 | `className` | `string` |  | Layout only, applied to the panel inside the popover: width (`w-96`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the popover's close button, which only screen-reader and keyboard users see. |
-| `frequent` | `readonly EmojiPickerEmoji[]` |  | The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. |
 | `frequentLabel` | `string` | `"Frequently used"` | The heading of the frequently used emoji. |
 | `label` (required) | `string` |  | What the picker is for, which names it for screen readers: `"Add a reaction"`, `"Insert emoji"`. Required. |
 | `noResultsLabel` | `string` | `"No emoji found"` | What shows, and is announced, when nothing matches the search. |
-| `onSelect` (required) | `(selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` |  | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
 | `onSkinToneChange` | `((skinTone: EmojiSkinTone) => void)` |  | Called with the new skin tone when the person picks one, so the app can keep it. |
 | `presentation` | `"popover" \| "auto" \| "sheet"` | `"auto"` | `auto`, the default, is a popover from 640px up and a bottom sheet below. `popover` stays beside the trigger at every width; `sheet` is always a bottom sheet. |
-| `quick` | `readonly EmojiPickerEmoji[]` |  | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
 | `quickLabel` | `string` | `"Quick reactions"` | What screen readers hear for the `quick` row. |
-| `renderEmoji` | `EmojiRender` |  | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
 | `resultsLabel` | `string` | `"{count} emoji"` | The heading of the search results, also announced as they change; `{count}` is the number found. |
 | `searchLabel` | `string` | `"Search emoji"` | The search field's label and placeholder. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the popover sits on; it flips when there is no room. |
@@ -64,31 +67,83 @@ The props the modes share. Type: `EmojiPickerProps`.
 
 `EmojiPickerProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
-### Controlled: `EmojiPickerControlledProps`
+### Catalogue controlled: `EmojiPickerCatalogueControlledProps`
 
-A controlled EmojiPicker: you own `open`, update it in `onOpenChange`, and say what it points at with `anchor`.
+A controlled EmojiPicker of an image catalogue's emoji: you own `open`, update it in `onOpenChange`, and say what it points at with `anchor`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `anchor` (required) | `RefObject<HTMLElement \| null>` | The element the picker points at, usually the button that toggles it: `anchor={buttonRef}`. |
+| `catalogue` (required) | `EmojiCatalogue` | The emoji the picker offers, as images, by category, in order: a standard set, and an organization's custom emoji in a category of their own. The search matches their names, shortcodes and keywords. |
+| `frequent` | `readonly string[]` | The ids of the person's frequently used or recent emoji, which the app keeps (a tone's id shows its emoji). Shown first, under `frequentLabel`. An id the catalogue no longer has is left out. |
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the person dismisses the picker (Escape, an outside press, the close button) or chooses an emoji. |
+| `onSelect` (required) | `(selection: EmojiPickerCatalogueSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
 | `open` (required) | `boolean` | Whether the picker is open. |
+| `quick` | `readonly string[]` | The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. |
 
 Not in this mode (typed `never`):
 
+- `categories`: Not with `catalogue`. The emoji come from the catalogue: remove `categories`.
+- `renderEmoji`: Not with `catalogue`. The picker draws the catalogue's images.
 - `trigger`: Not with `open`. Remove `open`, `onOpenChange` and `anchor` to let a trigger open the picker.
 
-### With trigger: `EmojiPickerWithTriggerProps`
+### Catalogue with trigger: `EmojiPickerCatalogueWithTriggerProps`
 
-An uncontrolled EmojiPicker: `trigger` opens and closes it.
+An uncontrolled EmojiPicker of an image catalogue's emoji: `trigger` opens and closes it.
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `catalogue` (required) | `EmojiCatalogue` | The emoji the picker offers, as images, by category, in order: a standard set, and an organization's custom emoji in a category of their own. The search matches their names, shortcodes and keywords. |
+| `frequent` | `readonly string[]` | The ids of the person's frequently used or recent emoji, which the app keeps (a tone's id shows its emoji). Shown first, under `frequentLabel`. An id the catalogue no longer has is left out. |
+| `onSelect` (required) | `(selection: EmojiPickerCatalogueSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
+| `quick` | `readonly string[]` | The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. |
 | `trigger` (required) | `ReactElement` | The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. |
 
 Not in this mode (typed `never`):
 
 - `anchor`: Not with `trigger`. The picker sits beside its trigger.
+- `categories`: Not with `catalogue`. The emoji come from the catalogue: remove `categories`.
+- `onOpenChange`: Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`.
+- `open`: Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`.
+- `renderEmoji`: Not with `catalogue`. The picker draws the catalogue's images.
+
+### Controlled: `EmojiPickerControlledProps`
+
+A controlled EmojiPicker of the platform's emoji: you own `open`, update it in `onOpenChange`, and say what it points at with `anchor`.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `anchor` (required) | `RefObject<HTMLElement \| null>` | The element the picker points at, usually the button that toggles it: `anchor={buttonRef}`. |
+| `categories` (required) | `readonly EmojiPickerCategory[]` | Every emoji the picker offers, by category, in order. The app supplies them, so it picks the set, the names and the language. |
+| `frequent` | `readonly EmojiPickerEmoji[]` | The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. |
+| `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the person dismisses the picker (Escape, an outside press, the close button) or chooses an emoji. |
+| `onSelect` (required) | `(selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
+| `open` (required) | `boolean` | Whether the picker is open. |
+| `quick` | `readonly EmojiPickerEmoji[]` | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
+| `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
+
+Not in this mode (typed `never`):
+
+- `catalogue`: Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead.
+- `trigger`: Not with `open`. Remove `open`, `onOpenChange` and `anchor` to let a trigger open the picker.
+
+### With trigger: `EmojiPickerWithTriggerProps`
+
+An uncontrolled EmojiPicker of the platform's emoji: `trigger` opens and closes it.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `categories` (required) | `readonly EmojiPickerCategory[]` | Every emoji the picker offers, by category, in order. The app supplies them, so it picks the set, the names and the language. |
+| `frequent` | `readonly EmojiPickerEmoji[]` | The person's frequently used emoji, which the app keeps. Shown first, under `frequentLabel`, with its own button in the category bar. |
+| `onSelect` (required) | `(selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
+| `quick` | `readonly EmojiPickerEmoji[]` | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
+| `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row and the preview, for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
+| `trigger` (required) | `ReactElement` | The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. |
+
+Not in this mode (typed `never`):
+
+- `anchor`: Not with `trigger`. The picker sits beside its trigger.
+- `catalogue`: Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead.
 - `onOpenChange`: Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`.
 - `open`: Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`.
 
@@ -111,6 +166,117 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: use the `align` prop.
 
 ## Types
+
+### `EmojiCatalogue`
+
+An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app.
+
+```ts
+interface EmojiCatalogue {
+  /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
+  categories: readonly EmojiCatalogueCategory[];
+}
+```
+
+### `EmojiCatalogueCategory`
+
+A category of a catalogue: its name, the icon its button shows, and its emoji in order.
+
+```ts
+interface EmojiCatalogueCategory {
+  /** Identifies the category, unique in the catalogue: `"people"`, `"custom"`. */
+  id: string;
+  /** Its name, shown as its heading and read for its button: `"People"`, or the organization's name for its custom emoji. */
+  label: string;
+  /** What its button in a picker's category bar shows: an icon element. Defaults to its first emoji's image. */
+  icon?: ReactNode;
+  /** Its emoji, in the order they show. */
+  items: readonly EmojiItem[];
+}
+```
+
+### `EmojiItem`
+
+One emoji in an image catalogue: its id, its name and the image that draws it. An app maps its own emoji set to this, whether a standard set or an organization's custom emoji.
+
+```ts
+interface EmojiItem {
+  /** Identifies the emoji, unique in the catalogue: `"party"`. Reactions, recents and `:id:` tokens use it. */
+  id: string;
+  /** Its name, which is the image's `alt`, what screen readers hear and what the search matches first: `"Party popper"`. */
+  name: string;
+  /**
+   * The still image's address. It shows whenever the emoji is not playing, and always with reduced motion.
+   */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"party-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /**
+   * An animated image (GIF, animated WebP or PNG), which plays while the pointer is on the emoji
+   * or on the button around it, or that button has focus. With reduced motion it never plays.
+   */
+  animatedSrc?: string | undefined;
+  /** Short names typed between colons, without them: `["party", "tada"]`. The first makes the emoji's token, `:party:`. */
+  shortcodes?: readonly string[] | undefined;
+  /** More words the search matches: `["celebrate", "hooray"]`. */
+  keywords?: readonly string[] | undefined;
+  /**
+   * The emoji as plain text, such as its Unicode character (`"🎉"`), for places an image cannot
+   * go (a copied message, a notification). `EmojiText` finds it in messages and draws the image;
+   * Ouro never draws it as text.
+   */
+  text?: string | undefined;
+  /** It is the organization's or app's own emoji rather than one of the standard set. Ouro draws it the same; apps can label or treat it apart. */
+  custom?: boolean | undefined;
+  /**
+   * The emoji in Unicode's five skin tones, light to dark; leave it out for an emoji without tones.
+   */
+  skinTones?: readonly EmojiItemTone[] | undefined;
+}
+```
+
+### `EmojiItemTone`
+
+An emoji's image in one skin tone: `skinTones` on an `EmojiItem`.
+
+```ts
+interface EmojiItemTone {
+  /** Identifies the emoji in this tone, unique in the catalogue: `"thumbs-up-tone3"`. Reactions and tokens use it. */
+  id: string;
+  /** The still image's address. */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"wave-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /** An animated image (GIF, animated WebP or PNG), shown while the emoji plays; the still one shows otherwise. */
+  animatedSrc?: string | undefined;
+  /**
+   * The emoji in this tone as text (`"👍🏽"`), which `EmojiText` finds in messages; Ouro never draws it as text.
+   */
+  text?: string | undefined;
+}
+```
+
+### `EmojiPickerCatalogueSelection`
+
+What `onSelect` receives from a picker with a `catalogue`: the emoji chosen, in the skin tone it was chosen in.
+
+```ts
+interface EmojiPickerCatalogueSelection {
+  /** The emoji's id, or its tone's id when it was chosen in a skin tone: `"thumbs-up-tone3"`. Keep it to react with, or among the person's frequently used emoji. */
+  id: string;
+  /** Its name: `"Thumbs up"`. */
+  name: string;
+  /**
+   * The text to put into a message for it, `:shortcode:` (its first shortcode, else its id, and
+   * in a tone the tone's id), which `EmojiText` draws as the image: `":party:"`.
+   */
+  token: string;
+  /** The skin tone it was chosen in; `"default"` for an emoji without tones. */
+  skinTone: EmojiSkinTone;
+  /** The catalogue's emoji, as the app passed it. */
+  item: EmojiItem;
+}
+```
 
 ### `EmojiPickerCategory`
 

@@ -2,10 +2,13 @@ import { createElement, type ComponentProps, type RefObject, type KeyboardEvent,
 import { expectTypeOf } from "vitest";
 import {
   EmojiPicker,
+  type EmojiPickerCatalogueProps,
+  type EmojiPickerCatalogueSelection,
   type EmojiPickerCategory,
   type EmojiPickerEmoji,
   type EmojiPickerProps,
   type EmojiPickerSelection,
+  type EmojiPickerUnicodeProps,
   type EmojiSkinTone,
 } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 
@@ -53,7 +56,8 @@ expectTypeOf<{ label: "Food"; icon: null; emoji: readonly EmojiPickerEmoji[] }>(
 expectTypeOf<{ emoji: "👍" }>().not.toExtend<EmojiPickerEmoji>();
 
 // onSelect gets the selection and the event.
-expectTypeOf<Parameters<EmojiPickerProps["onSelect"]>>().toEqualTypeOf<[EmojiPickerSelection, MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>]>();
+expectTypeOf<Parameters<EmojiPickerUnicodeProps["onSelect"]>>().toEqualTypeOf<[EmojiPickerSelection, MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>]>();
+expectTypeOf<Parameters<EmojiPickerCatalogueProps["onSelect"]>>().toEqualTypeOf<[EmojiPickerCatalogueSelection, MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>]>();
 expectTypeOf<EmojiPickerSelection["skinTone"]>().toEqualTypeOf<EmojiSkinTone>();
 
 // The label and onSelect are required, and a picker opens one way only.

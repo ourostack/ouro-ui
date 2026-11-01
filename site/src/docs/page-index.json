@@ -390,6 +390,12 @@
     "summary": "The tooltip for a recharts chart inside `Chart`: the category, then each series' marker, label and value from the chart's `config`, in the theme's popover colors."
   },
   {
+    "name": "emoji-text",
+    "title": "EmojiText",
+    "kind": "export",
+    "summary": "A message's text with its emoji drawn from an image catalogue: each token (`:party:`, an emoji's first shortcode or else its id, as `EmojiPicker` and `Autocomplete` put into a `Composer`) and each emoji's `text` the catalogue lists becomes the emoji's image, which screen readers hear by name."
+  },
+  {
     "name": "color-scheme-provider",
     "title": "ColorSchemeProvider",
     "kind": "export",

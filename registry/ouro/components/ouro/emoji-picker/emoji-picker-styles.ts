@@ -1,3 +1,5 @@
+import { emojiSkinTones, matchWords, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+
 export {
   barButtonClass,
   barClass,
@@ -22,18 +24,7 @@ export type { EmojiSkinTone, ToneableEmoji };
 
 // Class strings, value lists and helpers for EmojiPicker, apart from the component so its file
 // exports only components (React Fast Refresh). Class strings are literal so the app's Tailwind
-// finds them.
-
-/**
- * A skin tone: the default (no tone) or one of Unicode's five, light to dark.
- *
- * @claim "one of Unicode's five" https://www.unicode.org/reports/tr51/#Diversity verify:urlOk(https://www.unicode.org/reports/tr51/#Diversity)
- * @claim "one of Unicode's five" registry/ouro/components/ouro/emoji-picker/emoji-picker-styles.ts verify:fileLine(registry/ouro/components/ouro/emoji-picker/emoji-picker-styles.ts, /\["default", "light", "medium-light", "medium", "medium-dark", "dark"\]/)
- */
-type EmojiSkinTone = "default" | "light" | "medium-light" | "medium" | "medium-dark" | "dark";
-
-/** The skin tones, in the order the picker offers them. @internal */
-const emojiSkinTones: readonly EmojiSkinTone[] = ["default", "light", "medium-light", "medium", "medium-dark", "dark"];
+// finds them. The skin tones come from Emoji, which draws a catalogue's images.
 
 /**
  * What screen readers hear for each skin tone, unless the app passes its own words. @internal
@@ -59,6 +50,10 @@ interface ToneableEmoji {
   name: string;
   keywords?: readonly string[] | undefined;
   skinTones?: boolean | readonly string[] | undefined;
+  /** A catalogue emoji's shortcodes, which the search matches whole or by their words. */
+  shortcodes?: readonly string[] | undefined;
+  /** A catalogue emoji's text, which a search for that text finds. */
+  text?: string | undefined;
 }
 
 /**
@@ -78,27 +73,19 @@ function toned(item: Pick<ToneableEmoji, "emoji" | "skinTones">, tone: EmojiSkin
   return `${first}${String.fromCodePoint(0x1f3fa + index)}${tail.join("")}`;
 }
 
-/** Lower case, without accents, so "Café" matches "cafe". */
-function fold(text: string): string {
-  // Stryker disable next-line MethodExpression: both sides of every comparison fold the same way, so upper case matches as lower case does.
-  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-}
-
 /**
- * Whether an emoji matches the search: every word typed starts a word of its name or
- * keywords, ignoring case and accents, or the search is the emoji itself. @internal
+ * Whether an emoji matches the search: every word typed starts a word of its name, keywords or
+ * shortcodes (or a whole shortcode), ignoring case and accents and colons around a shortcode, or
+ * the search is the emoji itself or its text. @internal
  *
  * @claim "every word typed starts" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker search > matches the start of any word in the name or keywords, ignoring case and accents, and hides the categories)
  * @claim "every word typed starts" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker search > finds an emoji pasted into the search, and lists one found twice only once)
+ * @claim "or a whole shortcode" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > searches by shortcode, with or without colons, by keyword and by the emoji's text)
  */
 function matchEmoji(item: ToneableEmoji, query: string): boolean {
   const typed = query.trim();
-  if (typed === item.emoji) return true;
-  // Runs of separators leave empty words and terms, which match nothing and everything, so they change no result.
-  const words = fold([item.name, ...(item.keywords ?? [])].join(" ")).split(/[\s_:-]/);
-  return fold(typed)
-    .split(/\s/)
-    .every((term) => words.some((word) => word.startsWith(term)));
+  if (typed === item.emoji || (item.text !== undefined && typed.replace(/\uFE0F/g, "") === item.text.replace(/\uFE0F/g, ""))) return true;
+  return matchWords([item.name, ...(item.keywords ?? []), ...(item.shortcodes ?? [])], typed);
 }
 
 /**
