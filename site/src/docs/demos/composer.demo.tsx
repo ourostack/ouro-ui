@@ -18,10 +18,7 @@ export default function ComposerDemo(): JSX.Element {
       ))}
       <Composer
         label="Message Mia"
-        placeholder="Write a message"
-        defaultValue="Thanks for the recipe!"
-        highlights={[{ start: 0, end: 22, label: "Suggested by your assistant" }]}
-        description="Your assistant's suggestion is underlined."
+        placeholder="Write a reply"
         quote={quoted && { ...quoted, onRemove: () => setQuoted(undefined) }}
         onSend={(text) => {
           setSent([...sent, { text, quoted }]);
