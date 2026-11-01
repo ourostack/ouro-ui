@@ -967,7 +967,8 @@
       "Command/Shortcut",
       "Command/Empty",
       "Command/ServerSearch",
-      "Command/Media"
+      "Command/Media",
+      "Command/EmojiInLabels"
     ]
   },
   {
@@ -983,7 +984,8 @@
       "Command/Shortcut",
       "Command/Empty",
       "Command/ServerSearch",
-      "Command/Media"
+      "Command/Media",
+      "Command/EmojiInLabels"
     ]
   },
   {
@@ -999,7 +1001,8 @@
       "Command/Shortcut",
       "Command/Empty",
       "Command/ServerSearch",
-      "Command/Media"
+      "Command/Media",
+      "Command/EmojiInLabels"
     ]
   },
   {
