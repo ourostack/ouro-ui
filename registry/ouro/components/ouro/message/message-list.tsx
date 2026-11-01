@@ -1004,8 +1004,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         <div
           ref={contentRef}
           data-ouro-message-list-content=""
-          className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3"
-          style={maxWidth === undefined ? undefined : { boxSizing: "border-box", maxWidth, marginInline: "auto" }}
+          className="box-border flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3"
+          style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
         >
           {children}
         </div>
