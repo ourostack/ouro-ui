@@ -3054,6 +3054,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-spring",
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable"
@@ -9222,6 +9223,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-spring-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
@@ -9300,6 +9302,8 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-spring",
+        "ourostack/ouro-ui/lib-spring-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
@@ -9315,6 +9319,16 @@
         "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.springs.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message-list.springs.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/message/message-list.springs.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/message/message-list.springs.touch.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/message/message-list.stories.tsx",
           "type": "registry:component",

@@ -5,6 +5,7 @@ import type { HTMLAttributes, JSX, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
@@ -31,6 +32,25 @@ export interface MessageListOwnProps {
    * @claim "A key pressed while a message itself has focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > hands the app a key pressed on the focused message, and not one pressed in a control inside it)
    */
   onMessageKeyDown?: ((message: HTMLElement, event: KeyboardEvent<HTMLElement>) => void) | undefined;
+  /**
+   * Whether the messages spring as the reader scrolls, as in a phone's messages app: each one
+   * trails the scroll a little, the farther from where the reader scrolls (the finger, the
+   * pointer, the focused message) the more, and catches up on a spring. A fling, or a push past
+   * either end, spreads the messages apart and they settle back. It draws with `transform` alone:
+   * the list's scroll position never moves for it, and at rest no message has a transform. Only the
+   * messages in or near view move, so a long conversation costs what a short one does. It runs for
+   * the reader's own wheel, trackpad, touch and keys, never for scrolling the list or your code
+   * does (following new messages, setting `scrollTop`), and never with `prefers-reduced-motion: reduce`.
+   * @default true
+   * @claim "each one trails the scroll a little" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
+   * @claim "A fling, or a push past" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
+   * @claim "the list's scroll position never moves" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
+   * @claim "Only the messages in or near" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves only the messages in or near view, reading as few in a thousand as in fifty, on one frame loop)
+   * @claim "It runs for the reader's own" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > follows the keys, with the focused message where the scroll starts, and its focus ring moves with it)
+   * @claim "never for scrolling the list or" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never springs for scrolling the reader did not do: new messages it follows, or scrollTop set in code)
+   * @claim "and never with `prefers-reduced-motion: reduce`" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
+   */
+  springy?: boolean | undefined;
   /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
@@ -91,6 +111,262 @@ const AT_BOTTOM = 4;
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
 
+// The springs (`springy`). Tuned to feel like a phone's messages app, subtle rather than wobbly:
+// a slow trackpad scroll opens the messages farthest from the pointer by a few pixels, a fling by
+// up to SPREAD, and they close again in about half a second with an overshoot of a pixel or less.
+/** Apple's response (seconds) and damping fraction: a little under critical, so a spread closes with a hint of overshoot. */
+const SPRING = { response: 0.42, damping: 0.72 };
+/**
+ * The share of each scroll a message trails by, once it is REACH px or more from where the reader scrolls.
+ * @claim "The share of each scroll a" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
+ */
+const LAG = 0.14;
+/**
+ * How far from where the reader scrolls, in px, a message trails fully; nearer, it trails in proportion.
+ * @claim "How far from where the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
+ */
+const REACH = 400;
+/**
+ * The most a message trails by, in px: it eases into this limit and never passes it.
+ * @claim "The most a message trails by" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
+ * @claim "The most a message trails by" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /SPREAD\s\*\sMath\.tanh\(value\s\/\sSPREAD\)/)
+ */
+const SPREAD = 20;
+/** The share of a push past either end (a wheel or finger with nowhere left to scroll) that the messages follow. */
+const STRETCH = 0.25;
+/** How long a scroll counts as the reader's after their last wheel, touch or key, in ms: momentum keeps it going. */
+const ARMED = 250;
+/** A message this close to its place, in px, and this slow, in px/ms, is at rest. */
+const REST = 0.25;
+const REST_SPEED = 0.01;
+
+/**
+ * How far the springs draw each message from where it is laid out, in px, while it moves.
+ * @claim "How far the springs draw each" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
+ */
+const shifts = new WeakMap<Element, number>();
+
+/** Where an element is laid out: its box, less the spring of the message it is in. */
+function boxOf(element: Element): { top: number; bottom: number; height: number } {
+  const box = element.getBoundingClientRect();
+  let shift = 0;
+  for (let item = element.closest(items); item !== null; item = item.parentElement!.closest(items)) shift += shifts.get(item) ?? 0;
+  return { top: box.top - shift, bottom: box.bottom - shift, height: box.height };
+}
+
+/**
+ * The springs of one list: `moved` tells them the list scrolled itself, so no message trails it.
+ * @claim "The springs of one list: `moved`" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > follows only the reader's part of a scroll the list adds to as it follows a new message)
+ */
+interface Springs {
+  moved(by: number): void;
+  stop(): void;
+}
+
+/**
+ * Springs the messages as the reader scrolls. One frame loop for the whole list, running only
+ * while a message moves; each frame finds the messages in or near view by halving, so a long
+ * conversation costs what a short one does, reads their boxes, then writes their transforms.
+ * @claim "One frame loop for the whole" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves only the messages in or near view, reading as few in a thousand as in fifty, on one frame loop)
+ */
+function springs(scroller: HTMLElement, content: HTMLElement): Springs {
+  // Asked afresh each time, so a change of the preference counts at once.
+  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const moving = new Map<HTMLElement, SpringState>();
+  let list = topItems(content);
+  // The scroll position the springs last followed, less the list's own scrolling since.
+  let top = scroller.scrollTop;
+  // How far the reader pushed past an end since the last frame.
+  let pushed = 0;
+  // Where the reader scrolls from: the pointer or finger, or, null, the focused message, for the keys.
+  let finger: number | null = null;
+  let armedUntil = Number.NEGATIVE_INFINITY;
+  let touchY = 0;
+  let touchTop = 0;
+  let frame = 0;
+  let then = 0;
+  // The messages near view at the last frame.
+  let seen = new Set<HTMLElement>();
+
+  const draw = (item: HTMLElement, value: number) => {
+    // Stryker disable next-line ConditionalExpression: setting them again each frame changes nothing in the page.
+    if (!shifts.has(item)) {
+      item.style.willChange = "transform";
+      // Stryker disable next-line StringLiteral: the attribute's presence is what styles and tests read.
+      item.setAttribute("data-ouro-settling", "");
+    }
+    shifts.set(item, value);
+    item.style.transform = `translateY(${value}px)`;
+  };
+  // At rest a message has no transform, and no layer of its own, so its text is drawn crisp.
+  const rest = (item: HTMLElement) => {
+    moving.delete(item);
+    shifts.delete(item);
+    item.style.removeProperty("transform");
+    item.style.removeProperty("will-change");
+    if (item.getAttribute("style") === "") item.removeAttribute("style");
+    item.removeAttribute("data-ouro-settling");
+  };
+  const middle = (box: { top: number; bottom: number }) => (box.top + box.bottom) / 2;
+  // The messages within half the list's height of its view, found by halving the list.
+  const nearby = (view: DOMRect) => {
+    const above = view.top - view.height / 2;
+    const below = view.bottom + view.height / 2;
+    let low = 0;
+    let high = list.length;
+    while (low < high) {
+      const at = (low + high) >> 1;
+      // Stryker disable next-line EqualityOperator: a message whose edge meets the band's edge to the pixel is out of sight either way.
+      if (boxOf(list[at]!).bottom <= above) low = at + 1;
+      else high = at;
+    }
+    const band: { item: HTMLElement; box: { top: number; bottom: number } }[] = [];
+    for (let at = low; at < list.length; at++) {
+      const box = boxOf(list[at]!);
+      // Stryker disable next-line EqualityOperator: a message whose edge meets the band's edge to the pixel is out of sight either way.
+      if (box.top >= below) break;
+      band.push({ item: list[at]!, box });
+    }
+    return band;
+  };
+
+  const tick = (now: number) => {
+    frame = 0;
+    const elapsed = Math.max(now - then, 0);
+    then = now;
+    const view = scroller.getBoundingClientRect();
+    const scrolled = scroller.scrollTop - top;
+    top = scroller.scrollTop;
+    const push = pushed;
+    pushed = 0;
+    if (reduced()) return [...moving.keys()].forEach(rest);
+    // A move of a list's height or more is a jump (End from far up, a link to an old message), not a scroll.
+    const kick = Math.abs(scrolled) < view.height ? scrolled : 0;
+    const band = nearby(view);
+    const near = new Set(band.map(({ item }) => item));
+    // A message that leaves the band is out of sight: it rests at once.
+    for (const item of moving.keys()) if (!near.has(item)) rest(item);
+    if (kick !== 0 || push !== 0) {
+      // Where the scroll starts: the pointer or finger, or, for the keys, the focused message, which
+      // lands exactly where they put it while the others trail.
+      const held = finger === null ? scroller.ownerDocument.activeElement!.closest<HTMLElement>(items) : null;
+      const anchor = held === null ? { top: finger!, bottom: finger! } : boxOf(held);
+      const known = band.filter(({ item }) => moving.has(item)).map(({ item, box }) => ({ at: middle(box), state: moving.get(item)! }));
+      for (const { item, box } of band) {
+        if (item === held) {
+          rest(item);
+          continue;
+        }
+        const at = middle(box);
+        const reach = Math.min(Math.max(anchor.top - at, at - anchor.bottom, 0) / REACH, 1);
+        // A message that comes near mid-scroll starts where its nearest moving neighbour is, so no gap opens at the band's edge.
+        const neighbour = seen.has(item) ? undefined : known.reduce<(typeof known)[number] | undefined>((best, other) => (best === undefined || Math.abs(other.at - at) < Math.abs(best.at - at) ? other : best), undefined);
+        const state = moving.get(item) ?? neighbour?.state ?? { value: 0, velocity: 0 };
+        const value = state.value + kick * LAG * reach - push * (1 - reach);
+        moving.set(item, { value: SPREAD * Math.tanh(value / SPREAD), velocity: state.velocity });
+      }
+    }
+    seen = near;
+    for (const [item, state] of moving) {
+      const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
+      if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) rest(item);
+      else {
+        moving.set(item, next);
+        draw(item, next.value);
+      }
+    }
+    if (moving.size > 0) frame = requestAnimationFrame(tick);
+  };
+  const run = () => {
+    if (frame !== 0 || reduced()) return;
+    then = performance.now();
+    frame = requestAnimationFrame(tick);
+  };
+  const arm = () => {
+    armedUntil = performance.now() + ARMED;
+  };
+  // Whether the list is at the end it is being pushed toward: the top for `delta` up, the bottom for down.
+  const atEnd = (delta: number) => {
+    // Stryker disable next-line EqualityOperator: a push of 0 moves nothing, whichever end it is checked against.
+    if (delta < 0) return scroller.scrollTop <= 0;
+    return scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1;
+  };
+
+  const onScroll = () => {
+    if (performance.now() <= armedUntil) {
+      arm();
+      run();
+    } else top = scroller.scrollTop;
+  };
+  const onWheel = (event: WheelEvent) => {
+    finger = event.clientY;
+    arm();
+    const delta = event.deltaMode === 0 ? event.deltaY : event.deltaY * LINE;
+    if (!atEnd(delta)) return;
+    pushed += delta * STRETCH;
+    run();
+  };
+  const onTouchStart = (event: TouchEvent) => {
+    finger = touchY = event.touches[0]!.clientY;
+    touchTop = scroller.scrollTop;
+    arm();
+  };
+  const onTouchMove = (event: TouchEvent) => {
+    const y = event.touches[0]!.clientY;
+    // A finger moving up scrolls down, as a positive wheel does.
+    const delta = touchY - y;
+    finger = touchY = y;
+    // Pushing past an end, where the list did not scroll.
+    if (scroller.scrollTop === touchTop && atEnd(delta)) {
+      pushed += delta * STRETCH;
+      run();
+    }
+    touchTop = scroller.scrollTop;
+    arm();
+  };
+  const onKey = () => {
+    finger = null;
+    arm();
+  };
+  // A message the keys move focus to lands where they put it at once, its ring with it.
+  const onFocus = (event: FocusEvent) => {
+    const item = (event.target as Element).closest<HTMLElement>(items);
+    if (finger === null && item !== null) rest(item);
+  };
+  const observer = new MutationObserver((records) => {
+    // Stryker disable next-line ConditionalExpression: finding the messages again when none came or went finds the same ones.
+    if (records.some(touchesItems)) list = topItems(content);
+  });
+  observer.observe(content, { childList: true, subtree: true });
+  // Stryker disable ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for these listeners.
+  scroller.addEventListener("scroll", onScroll, { passive: true });
+  scroller.addEventListener("wheel", onWheel, { passive: true });
+  scroller.addEventListener("touchstart", onTouchStart, { passive: true });
+  scroller.addEventListener("touchmove", onTouchMove, { passive: true });
+  // Stryker restore ObjectLiteral,BooleanLiteral
+  scroller.addEventListener("keydown", onKey);
+  scroller.addEventListener("focusin", onFocus);
+  return {
+    moved(by) {
+      top += by;
+    },
+    stop() {
+      // Stryker disable next-line all: a frame left after this finds no message moving, and asks for none.
+      cancelAnimationFrame(frame);
+      [...moving.keys()].forEach(rest);
+      scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("wheel", onWheel);
+      scroller.removeEventListener("touchmove", onTouchMove);
+      // Stryker disable all: with the listeners above gone, nothing reads what these change; removing them frees memory only.
+      observer.disconnect();
+      scroller.removeEventListener("touchstart", onTouchStart);
+      scroller.removeEventListener("keydown", onKey);
+      scroller.removeEventListener("focusin", onFocus);
+      // Stryker restore all
+    },
+  };
+}
+
 /**
  * The "Jump to latest" pill: a raised quiet button over the newest messages, 16px text and
  * a 44px target on a coarse pointer, fading in where motion is allowed.
@@ -121,6 +397,12 @@ interface Spoken {
  * message they are reading where it was. Scrolling is never announced.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
+ *
+ * The messages spring as the reader scrolls, as in a phone's messages app: each trails the scroll a
+ * little and catches up, the farther from the pointer, finger or focused message the more, and a
+ * fling or a push past either end spreads them apart for a moment. The scroll position never moves
+ * for it, and at rest no message has a transform. `springy={false}` turns it off, and it is off with
+ * reduced motion.
  *
  * The messages are one Tab stop. Tab lands on the newest message in view (or the one focused
  * last, while it shows), and the arrow keys, Home, End, Page Up and Page Down move between
@@ -169,6 +451,10 @@ interface Spoken {
  *     </article>
  *   ))}
  * </MessageList>
+ * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
+ * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
+ * @claim "The scroll position never moves" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
+ * @claim "`springy={false}` turns it off" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
  * @claim "Your own message components work too" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages)
  * @claim "A conversation: `Message`s in a scrolling" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > is a named region that opens at the newest message, which is its Tab stop)
  * @claim "The messages are one Tab stop" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > is one Tab stop: Tab lands on the newest message, goes through its controls, and leaves the list)
@@ -196,6 +482,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     jumpLabel = "Jump to latest",
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
+    springy = true,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -254,10 +541,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const keyboardRef = useKeyboardScrollable<HTMLDivElement>(!hasItems);
   const setScroller = useMergedRef<HTMLDivElement | null>(keyboardRef, scrollerRef);
 
+  // The springs, while `springy`: told when the list scrolls itself, so no message trails that.
+  const springsRef = useRef<Springs | null>(null);
+  useLayoutEffect(() => {
+    if (!springy) return;
+    const handle = springs(scrollerRef.current!, contentRef.current!);
+    springsRef.current = handle;
+    return () => {
+      handle.stop();
+      // Stryker disable next-line all: a stopped handle's `moved` changes nothing in the page.
+      springsRef.current = null;
+    };
+  }, [springy]);
+
   const toBottom = useCallback(() => {
     const scroller = scrollerRef.current!;
+    const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
     lastTop.current = scroller.scrollTop;
+    springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
   // Open at the newest message, then follow growth (new messages, streaming text, images
@@ -282,16 +584,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let height = 0;
     // The scroll position then: the reader's scrolling since is what the correction leaves alone.
     let taken = 0;
-    const atOf = (node: Element) => node.getBoundingClientRect().top - content.getBoundingClientRect().top;
+    const atOf = (node: Element) => boxOf(node).top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
       const all = [...content.querySelectorAll(items)];
       // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading.
       // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
-      const below = all.filter((message) => message.getBoundingClientRect().top >= view.top && message.getBoundingClientRect().top < view.bottom);
+      const below = all.filter((message) => boxOf(message).top >= view.top && boxOf(message).top < view.bottom);
       // When none starts in view, the message filling it, then those below.
       // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
-      anchors = (below.length > 0 ? below : all.filter((message) => message.getBoundingClientRect().bottom > view.top)).map((node) => ({ node, at: atOf(node) }));
+      anchors = (below.length > 0 ? below : all.filter((message) => boxOf(message).bottom > view.top)).map((node) => ({ node, at: atOf(node) }));
       height = content.getBoundingClientRect().height;
       taken = scroller.scrollTop;
     };
@@ -309,8 +611,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       else if (anchor && near && !native) {
         const moved = atOf(anchor.node) - anchor.at;
         if (Math.abs(moved) >= 0.5) {
+          const before = scroller.scrollTop;
           scroller.scrollTop += moved;
           lastTop.current = scroller.scrollTop;
+          springsRef.current?.moved(scroller.scrollTop - before);
         }
       }
       keepAnchor();
@@ -447,7 +751,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const itemOf = (node: Element, list = topItems(content)): HTMLElement | null => list.find((item) => item.contains(node)) ?? null;
     // Whether any of a message shows in the list's view, or, `whole`, all of it.
     const shows = (item: Element, whole = false) => {
-      const box = item.getBoundingClientRect();
+      const box = boxOf(item);
       const view = scroller.getBoundingClientRect();
       // Stryker disable next-line EqualityOperator: a message whose edge meets the list's edge to the pixel counts either way.
       return whole ? box.top >= view.top && box.bottom <= view.bottom : box.bottom > view.top && box.top < view.bottom;
@@ -461,7 +765,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Scrolls the list, and only the list, until the element shows, with room for its focus ring:
     // its top when it is taller than the list.
     const reveal = (element: Element) => {
-      const box = element.getBoundingClientRect();
+      const box = boxOf(element);
       const view = scroller.getBoundingClientRect();
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
       const atTop = box.top < view.top + EDGE || box.height > view.height - 2 * EDGE;
@@ -577,7 +881,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const list = topItems(content);
       const at = list.indexOf(item);
-      const box = item.getBoundingClientRect();
+      const box = boxOf(item);
       const view = scroller.getBoundingClientRect();
       let goal: HTMLElement | undefined;
       switch (event.key) {
@@ -614,7 +918,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const step = forward ? 1 : -1;
           const near = list.filter(
             // Stryker disable next-line EqualityOperator: a message that starts exactly a list's height away counts either way.
-            (other, index) => (forward ? index > at : index < at) && Math.abs(other.getBoundingClientRect().top - box.top) <= view.height,
+            (other, index) => (forward ? index > at : index < at) && Math.abs(boxOf(other).top - box.top) <= view.height,
           );
           goal = paging ? (near.at(forward ? -1 : 0) ?? list[at + step]) : list[at + step];
           break;
