@@ -324,8 +324,16 @@ describe("Lightbox navigation", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     const { host } = await render(lightbox());
     await openAt(host, 0);
+    // The glide is the browser's smooth scroll, asked for by the press: a busy runner can draw its
+    // first frame after the glide's whole length, so the test reads the request, not the frames.
+    const requested: (ScrollBehavior | undefined)[] = [];
+    const scrollTo = viewport().scrollTo.bind(viewport());
+    viewport().scrollTo = ((options: ScrollToOptions) => {
+      requested.push(options.behavior);
+      scrollTo(options);
+    }) as typeof Element.prototype.scrollTo;
     await userEvent.keyboard("{End}");
-    expect(slideInView()).not.toBe(3);
+    expect(requested).toEqual(["smooth"]);
     await expect.poll(position).toBe("4 of 4");
     expect(slideInView()).toBe(3);
   });
