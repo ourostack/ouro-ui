@@ -266,6 +266,19 @@ describe("Moment sizes", () => {
     }
   });
 
+  it("gives hero art 220px, and 96px in a pane narrower than 24rem", async () => {
+    for (const [width, px] of [
+      [640, 220],
+      [376, 96],
+    ] as const) {
+      const { moment, frame, art } = await render(<Moment size="hero" art={<Art />} title="Pick a conversation" />, width);
+      expect(frame!.getBoundingClientRect().height).toBe(px);
+      expect(art!.querySelector("svg")!.getBoundingClientRect().height).toBe(px);
+      expect(getComputedStyle(moment!).flexDirection).toBe("column");
+    }
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("is one row inline, with a plain-text title unless given a heading level", async () => {
     const { moment } = await render(<Moment size="inline" kind="loading" title="Syncing" description="12 of 40 messages" />);
     expect(getComputedStyle(moment!).flexDirection).toBe("row");
@@ -703,7 +716,7 @@ describe("Moment dismissal", () => {
 describe("Moment development messages", () => {
   it.each([
     ["kind", { title: "x", kind: "info" }, 'kind="info" is not a kind; use "empty", "loading", "error", "welcome", "success"', '<Moment kind="empty">'],
-    ["size", { title: "x", size: "small" }, 'size="small" is not a size; use "default", "inline"', "<Moment quiet>"],
+    ["size", { title: "x", size: "small" }, 'size="small" is not a size; use "default", "hero", "inline"', "<Moment quiet>"],
     ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Moment headingLevel={2}>"],
     ["cap per", { title: "x", id: "a", cap: { times: 1, per: "hour" } }, 'cap per "hour" is not a period; use "day", "week", "month", "ever"', '<Moment cap={{ times: 1, per: "day" }}>'],
     ["cap times", { title: "x", id: "a", cap: { times: 1.5, per: "day" } }, "cap times must be a whole number, 0 or more, got 1.5", '<Moment cap={{ times: 1, per: "day" }}>'],
