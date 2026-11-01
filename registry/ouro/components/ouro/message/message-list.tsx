@@ -1023,9 +1023,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <p key={item.id}>{item.text}</p>
         ))}
       </div>
-      {/* Over the list, never in it, so it moves no message. Always in the page, so screen readers hear it as it shows; a live region without the status role, so an app's own status stays the page's only one. */}
-      <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
-        <div aria-live="polite" data-ouro-message-list-older="">
+      {/* Over the list, never in it, so it moves no message. Always in the page, so screen readers hear it as it shows; a live region without the status role, so an app's own status stays the page's only one. Marked, so an app can set it lower, below a header of its own over the list. */}
+      <div data-ouro-message-list-older="" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+        <div aria-live="polite">
           {loadingOlder && (
             <span className={olderClass}>
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
