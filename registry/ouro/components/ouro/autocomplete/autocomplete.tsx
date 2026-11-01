@@ -129,7 +129,7 @@ const sameMatch = (a: AutocompleteMatch | null, b: AutocompleteMatch | null) =>
 const popupClass = cn(
   floatingSurfaceClass,
   floatingMotionClass,
-  "max-h-[min(16rem,var(--available-height))] w-max min-w-56 max-w-[min(22rem,var(--available-width))] overflow-y-auto overscroll-contain p-1 scroll-py-1",
+  "relative max-h-[min(16rem,var(--available-height))] w-max min-w-56 max-w-[min(22rem,var(--available-width))] overflow-y-auto overscroll-contain p-1 scroll-py-1",
 );
 
 const optionClass =
@@ -145,12 +145,15 @@ const optionClass =
  * the character. The arrow keys move through it, Enter or Tab inserts the suggestion in place
  * of the trigger and its query, and Escape closes it. Focus stays in the text throughout: the
  * text control points at the active suggestion with `aria-activedescendant`, and screen readers
- * hear how many suggestions there are. The typed part of a suggestion's label shows in bold
+ * hear how many suggestions there are. Only the list scrolls to show the active suggestion,
+ * never a box around it or the page. The typed part of a suggestion's label shows in bold
  * where it starts the label or one of its words. One control can have several triggers.
  *
  * Insertion goes through the browser's own text editing, so Undo takes it back and the
  * control's `onChange` and `onValueChange` run, controlled or not. `TextArea`'s `autoGrow`
- * grows with it. In a `Composer`, the Enter that picks a suggestion does not send. A trigger
+ * grows with it. In a `Composer`, the Enter that picks a suggestion does not send. The text a
+ * pick inserted keeps the list closed, even after the caret leaves it and comes back, until the
+ * person edits it, so the next Enter sends. A trigger
  * with an image emoji `catalogue` suggests its emoji as images and inserts their `:shortcode:`
  * tokens, which `EmojiText` draws as images in the sent message.
  *
@@ -160,6 +163,9 @@ const optionClass =
  * @group Forms
  * @see https://ui.ouro.bot/docs/autocomplete
  * @claim "In a `Composer`, the Enter that picks" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > picks with Enter in a Composer without sending, and leaves the next Enter to send)
+ * @claim "Only the list scrolls to show" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > scrolls only its own list to the active suggestion, never a box around it)
+ * @claim "The text a pick inserted keeps" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > keeps a picked name closed when a selection change leaves it and comes back, as an app's update of the text can make, so the next Enter sends)
+ * @claim "The text a pick inserted keeps" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > opens again once the person edits a picked name)
  *
  * @example
  * <Autocomplete
@@ -185,8 +191,7 @@ export function Autocomplete(props: AutocompleteProps): JSX.Element {
   const { match, trigger, items, open, current } = state;
 
   const pick = (item: AutocompleteItem, element: HTMLTextAreaElement | HTMLInputElement) => {
-    insertPick(element, match!, trigger!, item);
-    state.setDismissed(match!.start);
+    state.setPicked({ start: match!.start, query: insertPick(element, match!, trigger!, item) });
   };
 
   useAnnouncedCount(open ? resultsLabel(items.length, trigger!) : null);
@@ -286,6 +291,12 @@ function hintWarnings(props: AutocompleteProps): DevWarning[] {
   ];
 }
 
+/** A suggestion's text where it was inserted: its trigger's position and what follows the trigger. */
+interface PickedText {
+  start: number;
+  query: string;
+}
+
 /** What Autocomplete knows about the caret: the trigger it is in, its suggestions, and whether the list is open. */
 interface SuggestionState {
   match: AutocompleteMatch | null;
@@ -297,6 +308,7 @@ interface SuggestionState {
   setActive: (index: number) => void;
   setFocused: (focused: boolean) => void;
   setDismissed: (start: number) => void;
+  setPicked: (picked: PickedText) => void;
   evaluate: (element: HTMLTextAreaElement | HTMLInputElement) => void;
 }
 
@@ -304,9 +316,11 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
   const [match, setMatch] = useState<AutocompleteMatch | null>(null);
   const [active, setActive] = useState(0);
   const [focused, setFocused] = useState(false);
-  // The trigger the person closed with Escape, or picked from: it stays closed until the caret
-  // leaves it.
+  // The trigger the person closed with Escape: it stays closed until the caret leaves it.
   const [dismissed, setDismissed] = useState<number | null>(null);
+  // The suggestion last inserted: its own text stays closed, though a selection change (the app
+  // updating the text, the caret moving away and back) leaves it, until the person edits it.
+  const [picked, setPicked] = useState<PickedText | null>(null);
   const [anchorAt, setAnchorAt] = useState(0);
 
   const trigger = match ? triggers[match.trigger] : undefined;
@@ -317,7 +331,8 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     if (trigger.catalogue) return searchCatalogue(trigger.catalogue, query, 8).map(emojiSuggestion);
     return typeof trigger.items === "function" ? trigger.items(query) : filterItems(trigger.items ?? [], query);
   }, [match, trigger]);
-  const open = focused && match !== null && dismissed !== match.start && items.length > 0;
+  const finished = picked !== null && match !== null && picked.start === match.start && picked.query === match.query;
+  const open = focused && match !== null && dismissed !== match.start && !finished && items.length > 0;
   const current = Math.min(active, items.length - 1);
 
   const evaluate = (element: HTMLTextAreaElement | HTMLInputElement) => {
@@ -330,7 +345,7 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     if (next?.start !== dismissed) setDismissed(null);
   };
 
-  return { match, trigger, items, open, current, anchorAt, setActive, setFocused, setDismissed, evaluate };
+  return { match, trigger, items, open, current, anchorAt, setActive, setFocused, setDismissed, setPicked, evaluate };
 }
 
 /** A catalogue's emoji as a suggestion: its name, its token as the description and what it inserts, and its image. */
@@ -339,11 +354,16 @@ function emojiSuggestion(item: EmojiItem): AutocompleteItem {
   return { value: item.id, label: item.name, description: token, emoji: item, insert: `${token} ` };
 }
 
-/** Inserts the pick in place of the trigger and its query, then tells the trigger's `onPick`. */
-function insertPick(element: HTMLTextAreaElement | HTMLInputElement, match: AutocompleteMatch, trigger: AutocompleteTrigger, item: AutocompleteItem): void {
+/**
+ * Inserts the pick in place of the trigger and its query, then tells the trigger's `onPick`.
+ * Returns what now follows the trigger: the pick's text after the trigger character.
+ */
+function insertPick(element: HTMLTextAreaElement | HTMLInputElement, match: AutocompleteMatch, trigger: AutocompleteTrigger, item: AutocompleteItem): string {
   const { start, query } = match;
-  insertText(element, start, start + 1 + query.length, item.insert ?? `${trigger.char}${item.label} `);
+  const text = item.insert ?? `${trigger.char}${item.label} `;
+  insertText(element, start, start + 1 + query.length, text);
   trigger.onPick?.(item, query);
+  return text.slice(trigger.char.length);
 }
 
 /**
@@ -372,7 +392,17 @@ function useActiveInView(activeId: string | undefined): void {
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression: with no active suggestion, no element has the id, and nothing scrolls.
     if (activeId === undefined) return;
-    document.getElementById(activeId)?.scrollIntoView({ block: "nearest" });
+    const option = document.getElementById(activeId);
+    const list = option?.closest<HTMLElement>('[role="listbox"]');
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: the active id is always an option in the list.
+    if (!option || !list) return;
+    // Only the list scrolls, to its scroll padding: scrollIntoView would scroll every box around it, and the page.
+    // The list is its options' offset parent, so these are layout positions, which its opening scale does not change.
+    const style = getComputedStyle(list);
+    const top = list.scrollTop + parseFloat(style.scrollPaddingTop);
+    const bottom = list.scrollTop + list.clientHeight - parseFloat(style.scrollPaddingBottom);
+    if (option.offsetTop < top) list.scrollTop -= top - option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > bottom) list.scrollTop += option.offsetTop + option.offsetHeight - bottom;
   }, [activeId]);
 }
 
