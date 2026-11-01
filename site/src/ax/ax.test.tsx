@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
-import { resetRooms } from "@/registry/ouro/ax/example-cli";
+import { resetRooms, rooms } from "@/registry/ouro/ax/example-cli";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { AX_SECTION } from "../copy";
 import mainReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-main.json";
 import adoptionReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-tandem-pr459.json";
 import { routes } from "../routes";
 import { runNotes, say, splitArgs } from "./run";
+import { ASKS, asksDone, EGGS, eggFor, heardFrom, progressOf, type Heard } from "./asks";
 import { cast, CAST } from "./cast";
-import { MORNING } from "./story";
+import { MORNING, MORNING_ART_ALT } from "./story";
 import transcripts from "./transcripts.json";
 
 // Every source of the site's AX copy but the cast itself and this test, to hold the names to one file.
@@ -98,7 +99,7 @@ describe("Ouro AX page", () => {
 
   it("draws Sam and Sam's agent between the hero and the morning, in the page's colours, with words for it", async () => {
     await renderPage("/ax/");
-    const art = page.getByRole("img", { name: cast("{person} and {agent} share a desk on a sunny morning. {person} holds a coffee and talks; the agent sends {person.their} note from its terminal to a room of three people.") });
+    const art = page.getByRole("img", { name: MORNING_ART_ALT });
     await expect.element(art).toBeInTheDocument();
     const element = art.element();
     const svg = element.querySelector("svg")!;
@@ -124,7 +125,7 @@ describe("Ouro AX page", () => {
     await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
     await page.getByRole("button", { name: "Reply as someone in the room" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/Happened: a message in "Design sync"\./);
-    await expect.poll(() => page.getByTestId("ax-room").element().textContent).toMatch(new RegExp(`${CAST.replier.full} Got it, thanks for the heads-up`));
+    await expect.poll(() => page.getByTestId("ax-room").element().textContent).toMatch(new RegExp(`${CAST.replier.full} Sounds good, we'll begin with the dates`));
     expect(log.element().textContent, "the reply carries the browser's clock").not.toContain("1970-01-01");
     expect(log.element().textContent).toContain(`${new Date().toISOString().slice(0, 10)}T`);
     expect(page.getByTestId("ax-notes").query()).toBeNull();
@@ -136,6 +137,60 @@ describe("Ouro AX page", () => {
     await field.fill("notes edit abc123");
     await page.getByRole("button", { name: "Run", exact: true }).click();
     await expect.poll(() => log.element().textContent).toMatch(/"edit" could mean 2 things, so it does nothing/);
+  });
+
+  it("checks off the person's three asks from the tool's own state, not from a button press", async () => {
+    resetRooms();
+    let heard: Heard | null = null;
+    const done = () => asksDone(progressOf(rooms["abc123"], heard));
+    expect(done()).toBe(0);
+    await runNotes(cast('notes post abc123 "Back soon" --why "{person} asked me to say so" --dry-run'));
+    expect(done(), "a preview reaches no one").toBe(0);
+    await runNotes(cast('notes note abc123 "ask {replier} about the dates"'));
+    expect(done(), "the asks go in order").toBe(0);
+    await runNotes(cast('notes post abc123 "Back soon" --why "{person} asked me to say so"'));
+    expect(done()).toBe(1);
+    const waiting = runNotes("notes watch abc123 --timeout 2m");
+    // Someone answers once the wait has taken its place in the room, as a press of "Reply" would.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    say("abc123", CAST.replier.full, "Sounds good", "2026-10-30T16:11:00.000Z");
+    heard = heardFrom(await waiting);
+    expect(heard).toEqual({ at: "2026-10-30T16:11:00.000Z", by: CAST.replier.full, text: "Sounds good" });
+    expect(done()).toBe(ASKS.length);
+  });
+
+  it("notes, once each, what no agent in our runs did: a misspelt flag, a preview, plain words", async () => {
+    resetRooms();
+    expect(eggFor(await runNotes("notes rooms --limt 3"))).toBe("flag");
+    expect(eggFor(await runNotes(cast('notes post abc123 "Back soon" --why "{person} asked me to say so" --dry-run')))).toBe("preview");
+    expect(eggFor(await runNotes("what can you do?"))).toBe("words");
+    expect(eggFor(await runNotes("please tell the room hello"))).toBe("words");
+    for (const plain of ["notes rooms", "notes --help", "rooms", "notes post abc123 hi"]) expect(eggFor(await runNotes(plain)), plain).toBeNull();
+    await renderPage("/ax/");
+    await page.getByRole("button", { name: "Misspell a flag" }).click();
+    await expect.poll(() => page.getByTestId("ax-egg").element().textContent).toBe(EGGS.flag);
+  });
+
+  it("walks the three asks in the page, keeps the keyboard on the reply during a wait, and lets start over end it", async () => {
+    await renderPage("/ax/");
+    const asks = page.getByTestId("ax-asks");
+    const log = page.getByRole("log", { name: cast("What {agent} sees") });
+    await expect.element(asks).toHaveAttribute("data-asks-done", "0");
+    await page.getByRole("button", { name: "Wait for a reply" }).click();
+    await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
+    expect(document.activeElement?.textContent).toBe("Reply as someone in the room");
+    await page.getByRole("button", { name: "Start over" }).click();
+    await expect.poll(() => log.element().textContent).not.toMatch(/Waiting inside the tool/);
+    await page.getByRole("button", { name: "Post it" }).click();
+    await expect.element(asks).toHaveAttribute("data-asks-done", "1");
+    await page.getByRole("button", { name: "Wait for a reply" }).click();
+    await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
+    await page.getByRole("button", { name: "Reply as someone in the room" }).click();
+    await expect.element(asks).toHaveAttribute("data-asks-done", "2");
+    await page.getByRole("button", { name: "Add a private note" }).click();
+    await expect.element(asks).toHaveAttribute("data-asks-done", "3");
+    await expect.poll(() => asks.element().textContent).toContain(ASKS[2]!.thanks);
+    expect(asks.element().querySelector(".ax-reward svg")).not.toBeNull();
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in %s once the morning, the playground and the X-ray have loaded, nor does the home page's Ouro AX section", async (scheme) => {

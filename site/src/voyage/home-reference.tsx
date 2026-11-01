@@ -5,7 +5,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import generated from "../generated/agent-messages.json";
 import { AX_SECTION } from "../copy";
-import { Screen, Transcript } from "../ax/parts";
+import { FigureValue, Screen, Transcript } from "../ax/parts";
 import { cast } from "../ax/cast";
 import { TRANSCRIPTS } from "../ax/story";
 import { latestRelease } from "../latest-release";
@@ -166,7 +166,9 @@ export function Agents(): JSX.Element {
 function Figure({ value, children }: { value: string; children: ReactNode }): JSX.Element {
   return (
     <li className="grid content-start gap-2 border-t border-border/70 pt-4">
-      <span className="ax-figure">{value}</span>
+      <span className="ax-figure">
+        <FigureValue value={value} />
+      </span>
       <p className="m-0 text-sm text-muted-foreground">{children}</p>
     </li>
   );
@@ -227,8 +229,11 @@ export function OuroAx(): JSX.Element {
           </Figure>
         </ul>
         <div className="mt-12 flex flex-wrap gap-3">
-          <Button href={href("/ax/")}>{AX_SECTION.morning}</Button>
-          <Button href={href("/docs/ax/")} variant="outline" tone="secondary">
+          <Button href={href("/ax/#be-the-agent")}>{cast("Be {agent}")}</Button>
+          <Button href={href("/ax/")} variant="outline" tone="secondary">
+            {AX_SECTION.morning}
+          </Button>
+          <Button href={href("/docs/ax/")} variant="plain" tone="secondary">
             {AX_SECTION.guide}
           </Button>
         </div>

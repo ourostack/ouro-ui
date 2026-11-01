@@ -53,16 +53,33 @@ export function Transcript({ label, steps, waiting, after }: { label: string; st
   );
 }
 
+/** A measured figure, "5 → 10", read aloud as "from 5 to 10" rather than "right arrow". */
+export function FigureValue({ value }: { value: string }): JSX.Element {
+  const [from, to] = value.split("→").map((part) => part.trim());
+  if (to === undefined) return <>{value}</>;
+  return (
+    <>
+      <span aria-hidden="true">{value}</span>
+      <span className="sr-only">
+        from {from} to {to}
+      </span>
+    </>
+  );
+}
+
 /** One thing the person sees: a line of their chat with the agent, a message in the room, a notification or a private note. */
-function SeenItem({ item }: { item: Seen }): JSX.Element {
+export function SeenItem({ item, fresh }: { item: Seen; fresh?: boolean | undefined }): JSX.Element {
+  const arrive = fresh ? " ax-new" : "";
   switch (item.kind) {
+    case "quiet":
+      return <p className={`m-0 text-sm text-muted-foreground italic${arrive}`}>{item.text}</p>;
     case "person":
-      return <p className="ax-bubble ax-bubble-sam">{item.text}</p>;
+      return <p className={`ax-bubble ax-bubble-sam${arrive}`}>{item.text}</p>;
     case "agent":
-      return <p className="ax-bubble">{item.text}</p>;
+      return <p className={`ax-bubble${arrive}`}>{item.text}</p>;
     case "room":
       return (
-        <div className="ax-card">
+        <div className={`ax-card${arrive}`}>
           <span className="ax-card-head">Design sync</span>
           <span>
             <strong className="font-semibold">{item.by}</strong> {item.text}
@@ -72,7 +89,7 @@ function SeenItem({ item }: { item: Seen }): JSX.Element {
       );
     case "ping":
       return (
-        <div className="ax-card">
+        <div className={`ax-card${arrive}`}>
           <span className="ax-card-head">
             Notification{item.time && <span className="site-mono normal-case"> · {item.time}</span>}
           </span>
@@ -81,7 +98,7 @@ function SeenItem({ item }: { item: Seen }): JSX.Element {
       );
     case "private":
       return (
-        <div className="ax-card">
+        <div className={`ax-card${arrive}`}>
           <span className="ax-card-head">Your note, only you see it</span>
           <span>{item.text}</span>
         </div>
