@@ -550,7 +550,7 @@ describe("MessageList", () => {
   /** A conversation whose messages carry ids, so it can open at one, as an app does at a message found by search. */
   function Found({ items, initialAnchor }: { items: Item[]; initialAnchor?: string }) {
     return (
-      <MessageList label="Conversation" style={{ height: 300 }} initialAnchor={initialAnchor}>
+      <MessageList label="Conversation" style={{ height: 300, marginTop: 120 }} initialAnchor={initialAnchor}>
         {items.map((item) => (
           <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
             {item.text}

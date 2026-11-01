@@ -647,10 +647,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const box = boxOf(target);
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
-      // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
-      pinned.current = farthest() - scroller.scrollTop <= AT_BOTTOM;
-      // Held from here, so older messages loading before the browser reports this scroll leave it where it opened.
+      // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
+      // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
+      pinned.current = atBottom();
     };
     toBottom();
     keepAnchor();
