@@ -65,19 +65,20 @@ const popupClass =
 /**
  * With `fullScreen`, the viewer covers the whole screen at every width: it steps over the
  * dialog's margin and drops its corners, hairline and shadow, so only the image and its bar show.
- * The viewport keeps the safe-area insets past that margin. It dims behind the image in both
- * themes, as picture viewers do: a near-opaque scrim in the backdrop colour, with the theme's dark
- * palette inside (the `dark` class, Ouro's dark mode), so the title, the position and the buttons
- * read on it. In forced colours it is the system's opaque Canvas. @internal
+ * The viewport keeps the safe-area insets past that margin. Behind the image it is one solid,
+ * quiet field in both themes, as picture viewers draw it: the backdrop colour, fully opaque, so
+ * nothing of the page shows through, with the theme's dark palette inside (the `dark` class, Ouro's
+ * dark mode), so the title, the position and the buttons read on it. In forced colours it is the
+ * system's opaque Canvas. @internal
  *
- * @claim "It dims behind the image in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > dims behind the image in the light theme too, with readable controls)
+ * @claim "Behind the image it is one solid," registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > hides the page behind one solid field in the light theme too, with readable controls)
  * @claim "In forced colours it is the" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx, /chromiumOnly\(\"leaves forced colours to the system\"/)
  *
  * @claim "With `fullScreen`, the viewer covers the" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
  */
 const fullScreenClass =
   "dark -m-4 h-[calc(100%+2rem)] max-h-none w-[calc(100%+2rem)] max-w-none rounded-none ring-0 shadow-none " +
-  "bg-[color-mix(in_oklab,var(--ouro-backdrop-color)_94%,transparent)] text-foreground forced-colors:bg-[Canvas]";
+  "bg-(--ouro-backdrop-color) text-foreground forced-colors:bg-[Canvas]";
 
 /** The mosaic's frame: rounded corners and a hairline, with the card colour in the gaps between its pictures. @internal */
 const mosaicClass =
@@ -131,8 +132,16 @@ const titleClass = "min-w-0 flex-1";
 /** @internal */
 const counterClass = "shrink-0 text-sm tabular-nums text-muted-foreground";
 
-/** The carousel fills the rest: the image row takes what the buttons leave. @internal */
-const stageClass = "min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] px-3 pb-5 sm:px-5";
+/**
+ * The carousel fills the rest: the image row takes what the buttons leave. Keyboard focus on the
+ * images draws its ring around the image shown, not around the whole stage (imageClass); in forced colours the
+ * stage keeps the system's ring as well. @internal
+ *
+ * @claim "Keyboard focus on the images draws" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > rings the image shown, not the stage, when the images have keyboard focus)
+ */
+const stageClass =
+  "min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] px-3 pb-5 sm:px-5 " +
+  "[&_[data-ouro-carousel-viewport]]:not-forced-colors:focus-visible:outline-none";
 
 /**
  * The image and its caption, centred together: the image's row takes what the caption leaves,
@@ -149,7 +158,9 @@ const figureClass =
  *
  * @claim "as large as fits and never cropped" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > fits the image to the screen, uncropped, with the caption right under it, on a phone and on a desktop)
  */
-const imageClass = "block min-h-0 max-h-full max-w-full object-contain rounded-lg ring-1 ring-border/60";
+const imageClass =
+  "block min-h-0 max-h-full max-w-full object-contain rounded-lg ring-1 ring-border/60 outline-ring outline-offset-2 " +
+  "in-[[data-ouro-carousel-viewport]:focus-visible]:outline-2 in-[[data-ouro-carousel-viewport]:focus-visible]:outline-solid";
 
 /**
  * A zoomed image's scroller, over the whole slide: one finger, a trackpad or the arrow keys move

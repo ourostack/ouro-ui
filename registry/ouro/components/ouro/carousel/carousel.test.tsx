@@ -361,6 +361,35 @@ describe("Carousel navigation", () => {
     expect(onIndexChange.mock.calls).toEqual([[3]]);
   });
 
+  it("reports the slide a press is moving to at once, and null when the scroll settles", async () => {
+    const onIndexChange = vi.fn();
+    const onTargetChange = vi.fn();
+    const record = recordAnnouncements("Target");
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange} onTargetChange={onTargetChange} slideLabel="Target {n} of {total}">
+        {photos(3)}
+      </Carousel>,
+    );
+    // Hold the scroll the press asks for, so it is still on its way.
+    const scrollTo = screen.viewport.scrollTo.bind(screen.viewport);
+    let held: ScrollToOptions | undefined;
+    screen.viewport.scrollTo = ((options: ScrollToOptions) => {
+      held = options;
+    }) as typeof screen.viewport.scrollTo;
+    await userEvent.click(screen.button("Next slide"));
+    expect(onTargetChange.mock.calls).toEqual([[1]]);
+    expect(held).toBeDefined();
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(record.texts).toEqual([]);
+    // Where it settles is reported and announced as before, and the target is done.
+    screen.viewport.scrollTo = scrollTo;
+    screen.viewport.scrollTo(held!);
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    await expect.poll(() => record.texts).toEqual(["Target 2 of 3"]);
+    expect(onTargetChange).toHaveBeenLastCalledWith(null);
+    record.stop();
+  });
+
   it("follows the reading direction in a right-to-left page", async () => {
     const onIndexChange = vi.fn();
     const screen = await render(
