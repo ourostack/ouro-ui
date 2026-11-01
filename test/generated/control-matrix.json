@@ -2784,6 +2784,26 @@
   {
     "item": "time-grid",
     "stem": "time-grid",
+    "mode": "button",
+    "part": "stack",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "TimeGrid/Playground",
+      "TimeGrid/WorkWeek",
+      "TimeGrid/Day",
+      "TimeGrid/Statuses",
+      "TimeGrid/Locales",
+      "TimeGrid/NowAdornment",
+      "TimeGrid/BackgroundEvents",
+      "TimeGrid/BackgroundEventsDay",
+      "TimeGrid/WithToolbar"
+    ]
+  },
+  {
+    "item": "time-grid",
+    "stem": "time-grid",
     "mode": "link",
     "part": "event-link",
     "role": "link",
