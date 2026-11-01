@@ -89,3 +89,39 @@ test("the posts are one Tab stop: the arrow keys move between them, and a key of
   await expect(posts.last()).toBeFocused();
   await expect(posts.last()).toHaveAttribute("aria-posinset", "6");
 });
+
+test("the messages spring as the wheel scrolls them, and settle back with no transform, the scroll position where the wheel left it", async ({ page }) => {
+  await openStory(page, "chat-messagelist--springs");
+  const scroller = page.getByRole("region", { name: "Conversation with Ouro" });
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  // Records whether any message was drawn moved, from inside the page, so no frame is missed.
+  await scroller.evaluate((el) => {
+    const record = el as HTMLElement & { sprang?: boolean };
+    new MutationObserver(() => {
+      record.sprang ||= el.querySelector("[data-ouro-settling]") !== null;
+    }).observe(el, { attributes: true, subtree: true, attributeFilter: ["data-ouro-settling"] });
+  });
+  await wheelOver(page, scroller, -400);
+  await expect.poll(() => scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(true);
+  await expect(page.locator("[data-ouro-settling]")).toHaveCount(0);
+  const top = await scrollTop(scroller);
+  await settle(scroller);
+  expect(await scrollTop(scroller)).toBe(top);
+  expect(await page.locator('[data-ouro="message"][style]').count()).toBe(0);
+});
+
+test("with reduced motion, the wheel scrolls the messages and moves none of them", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openStory(page, "chat-messagelist--springs");
+  const scroller = page.getByRole("region", { name: "Conversation with Ouro" });
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  await scroller.evaluate((el) => {
+    const record = el as HTMLElement & { sprang?: boolean };
+    new MutationObserver(() => {
+      record.sprang = true;
+    }).observe(el, { attributes: true, subtree: true, attributeFilter: ["style", "data-ouro-settling"] });
+  });
+  await wheelOver(page, scroller, -400);
+  expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(false);
+  expect(await distanceFromBottom(scroller)).toBeGreaterThan(100);
+});
