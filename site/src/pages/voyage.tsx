@@ -1,21 +1,19 @@
 // First, so the page's own rules below come after Tailwind's and win.
 import "../voyage/voyage-tailwind.css";
-import { Suspense, useEffect, useState, useSyncExternalStore, type JSX } from "react";
-import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
+import { lazy, Suspense, useEffect, useState, useSyncExternalStore, type JSX } from "react";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
 import { href, normalizePath } from "../paths";
-import { AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland } from "../voyage/chapters/island";
+import { AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland, RepaintIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
 import { Hero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
 import { StoryOpening } from "../voyage/nautilus";
-import { Repaint } from "../voyage/repaint";
 import { openXray, setXray, spotlightFrom, useXray } from "../voyage/xray-store";
 import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
@@ -24,13 +22,18 @@ import "../voyage/chapters/chapters.css";
 
 const docsHref = (item: string) => href(`/docs/${item}/`);
 
+/** HX Inspector's code loads only once someone turns X-ray on, so the page's first JavaScript carries none of it. */
+const Inspector = lazy(() => import("@/registry/ouro/components/ouro/inspector/inspector").then((module) => ({ default: module.Inspector })));
+
 /**
  * X-ray: HX Inspector over the page. It opens in the frame after the press has painted (two
  * animation frames), because it measures every HX component on the page, so the Switch or the
  * button answers first; it closes at once.
  */
-function Xray(): JSX.Element {
+function Xray(): JSX.Element | null {
   const on = useXray();
+  const [wanted, setWanted] = useState(false);
+  if (on && !wanted) setWanted(true);
   const spotlight = useSpotlight();
   const [painted, setPainted] = useState(false);
   useEffect(() => {
@@ -43,7 +46,11 @@ function Xray(): JSX.Element {
       setPainted(false);
     };
   }, [on]);
-  return <Inspector open={on && painted} onOpenChange={setXray} docsHref={docsHref} spotlight={spotlight} />;
+  return wanted ? (
+    <Suspense>
+      <Inspector open={on && painted} onOpenChange={setXray} docsHref={docsHref} spotlight={spotlight} />
+    </Suspense>
+  ) : null;
 }
 
 /** X-ray on at load when the address asks for it (`?xray`), as the home page's "X-ray it" link does. */
@@ -107,9 +114,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
             <main>
               <Hero onXray={openXray} />
               <TwoShips />
-              <HydrateInTurn name="themes">
-                <Repaint />
-              </HydrateInTurn>
+              <RepaintIsland />
               <HomeReferenceIsland />
               <Popups />
             </main>
