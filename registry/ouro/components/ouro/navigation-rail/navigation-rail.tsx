@@ -208,7 +208,7 @@ function wordTooWide(text: HTMLElement): boolean {
     range.setStart(words, word.index);
     range.setEnd(words, word.index + word[0].length);
     const lines = range.getClientRects();
-    // Stryker disable next-line EqualityOperator: a word as wide as the label to the half pixel fits either way.
+    // Stryker disable next-line EqualityOperator,ArithmeticOperator: a word within half a pixel of the label's width fits either way.
     return lines.length > 1 || lines[0]!.width > text.clientWidth + 0.5;
   });
 }
@@ -293,9 +293,10 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
   const isSqueezed = (text: HTMLElement) => text.hasAttribute("data-ouro-navigation-rail-squeezed");
   return {
     hidden: indexes.filter((index) => !kept.has(index)),
-    // A label cut short: by its two lines, by a word too wide, or by a word too wide even a size smaller, which breaks within it.
+    // A label cut short: by its two lines, or by a word too wide even a size smaller, which breaks within it. (A word too
+    // wide at the label's own size sets it smaller first.)
     truncated: [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")]
-      .filter((text) => text.scrollHeight > text.clientHeight || text.scrollWidth > text.clientWidth || (isSqueezed(text) && wordTooWide(text)))
+      .filter((text) => text.scrollHeight > text.clientHeight || (isSqueezed(text) && wordTooWide(text)))
       .map((text) => Number(text.dataset.ouroNavigationRailLabel)),
     // A label with a word too wide is set a size smaller, and stays so while its words stay the same: a size smaller, it would measure as fitting.
     squeezed: labels.filter((text) => isSqueezed(text) || wordTooWide(text)).map((text) => text.firstChild!.textContent!),
@@ -424,7 +425,7 @@ function RailEntry({
   countLabel: string;
   hidden: boolean;
   truncated: boolean;
-  squeezed: boolean;
+  squeezed: ReadonlySet<string>;
   separatorShown: boolean;
   onFocus: (key: string) => void;
 }) {
@@ -447,7 +448,7 @@ function RailEntry({
     onFocus: () => onFocus(key),
     className: itemClass[look],
   };
-  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels, squeezed);
+  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels, squeezed.has(entry.label));
   return (
     <li data-ouro-navigation-rail-entry={key} className={cn("flex shrink-0", hidden && "hidden")}>
       {withTip(
@@ -646,7 +647,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
             countLabel={countLabel}
             hidden={hidden.has(index)}
             truncated={truncated.has(index)}
-            squeezed={entry.type !== "separator" && squeezed.has(entry.label)}
+            squeezed={squeezed}
             separatorShown={shownSeparatorSet.has(index)}
             onFocus={setFocused}
           />

@@ -578,8 +578,9 @@ describe("NavigationRail labels", () => {
     const words = ["Customers", "Workspaces", "Developers", "Approvals", "Assistants", "Downloads", "Favourites", "Documents"];
     const { items: links } = await render(
       <div lang="zxx" style={{ display: "flex" }}>
-        <NavigationRail label="Main" items={[...words, "Supercalifragilistic"].map((word) => ({ label: word, href: `/${word}`, icon: icon(word) }))} />
+        <NavigationRail label="Main" items={[...words, "Supercalifragilistic", "Supercalifragilistic and more"].map((word) => ({ label: word, href: `/${word}`, icon: icon(word) }))} />
       </div>,
+      900,
     );
     const labels = links.map((link) => link.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!);
     const room = labels[0]!.clientWidth;
@@ -608,11 +609,11 @@ describe("NavigationRail labels", () => {
         expect(Math.abs(text.left - box.left - (box.right - text.right))).toBeLessThanOrEqual(1);
         await userEvent.hover(links[index]!);
         await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
-      } else if (word === "Supercalifragilistic") {
+      } else if (word.startsWith("Supercalifragilistic")) {
         // Too wide even then: it breaks within the word, ends in an ellipsis past two lines, and shows whole in a tooltip.
         expect(size).toBe(small);
         await userEvent.hover(links[index]!);
-        await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Supercalifragilistic");
+        await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(word);
       } else if (widthAt(word, `${natural}px`, "500") < room - 1) {
         expect(size).toBe(natural);
       }
