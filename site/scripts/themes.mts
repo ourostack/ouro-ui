@@ -51,9 +51,9 @@ export interface Preset {
   heading: string;
 }
 
-/** The six presets, in the order the picker shows them. Sleek is the default. */
+/** The six presets, in the order the picker shows them. Pearl is the default. */
 export const presets: readonly Preset[] = [
-  { name: "sleek", label: "Sleek", mood: "Cool greys, glass and ink", heading: "Geist" },
+  { name: "pearl", label: "Pearl", mood: "Clean white, soft glass and one clear blue", heading: "Geist" },
   { name: "abyss", label: "Abyss", mood: "Pale aqua, then a cyan glow in the dark", heading: "Space Grotesk" },
   { name: "brass", label: "Brass", mood: "Ivory, walnut and polished brass", heading: "Cormorant Garamond" },
   { name: "chart", label: "Chart", mood: "Parchment and ink, like a sea chart", heading: "Chart Fell" },
@@ -372,6 +372,8 @@ export function checkCookbook(css: string): string[] {
 export interface Outputs {
   "presets.generated.css": string;
   "themes.json": string;
+  /** The presets without their CSS: what the pickers need on first load. The CSS loads when copied. */
+  "presets.json": string;
 }
 
 export function build(read: (file: string) => string = (file) => readFileSync(join(themesDir, file), "utf8")): Outputs {
@@ -385,6 +387,7 @@ export function build(read: (file: string) => string = (file) => readFileSync(jo
   return {
     "presets.generated.css": `${css}\n`,
     "themes.json": `${JSON.stringify(built.map((preset) => preset.built), null, 2)}\n`,
+    "presets.json": `${JSON.stringify(built.map(({ built: { name, label, mood, heading, radius, fonts } }) => ({ name, label, mood, heading, radius, fonts })), null, 2)}\n`,
   };
 }
 
@@ -426,7 +429,7 @@ function main(args: string[]): void {
     console.error(problems.join("\n"));
     process.exit(1);
   }
-  console.log(check ? "themes are current" : "wrote presets.generated.css and themes.json");
+  console.log(check ? "themes are current" : "wrote presets.generated.css, themes.json and presets.json");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main(process.argv.slice(2));

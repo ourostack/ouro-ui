@@ -126,7 +126,7 @@ export interface MessageOwnProps {
   actions?: readonly MessageAction[] | undefined;
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
-   * entries as Menu's `items`. The bar stays while the menu is open. The bar renders in the
+   * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
    * browser once its code loads, so server HTML has the message without it; Menu's code loads the
    * first time someone opens a message's menu.
    *

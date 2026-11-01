@@ -335,6 +335,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://www.w3.org/WAI/WCAG22/Understanding/label-in-name": {
+    "status": 200,
+    "checked": "2026-10-31"
+  },
   "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html": {
     "status": 200,
     "checked": "2026-10-30"

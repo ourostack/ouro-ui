@@ -1,0 +1,1 @@
+- Changed: X-ray's bar (`Inspector`) fits a narrow phone: its label stays on one line, and while it names a spotlit item its buttons take a second row. It sits above a `TabBar` that shows, and above `--ouro-inspector-bottom` when the app sets it for chrome of its own.

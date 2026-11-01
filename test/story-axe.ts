@@ -46,6 +46,7 @@ export interface StoryViolation {
  * Returns each flagged node, the scan as text (empty when there are none) and the phases scanned.
  */
 export async function scanStoryViolations(id: string, Story: ComponentType): Promise<{ violations: StoryViolation[]; text: string; phases: string[] }> {
+  await parkPointer();
   const host = await renderStoryPage(Story);
   await settle();
   const violations: StoryViolation[] = [];
@@ -78,6 +79,15 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
     await settle();
   }
   return { violations, text: found.join("\n\n"), phases };
+}
+
+/**
+ * Moves the real mouse off the test's page, so a story is scanned at rest. Otherwise the mouse
+ * stays where the last story's overlay trigger left it, and WebKit sends a mouse move to whatever
+ * mounts under it: TimeGrid's slot preview then shows in the "closed" scan.
+ */
+async function parkPointer(): Promise<void> {
+  await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
 }
 
 /** How long a popup may take to open or close on a loaded CI runner. */

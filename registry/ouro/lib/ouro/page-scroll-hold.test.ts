@@ -1,5 +1,6 @@
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { holdPageAtPress, holdPageScroll } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 
 // A tall page scrolled to (40, 2000), and a portal like a Base UI overlay's, its popup open.
 // Performance's clock is held, so how long the person's scroll lasts is set by the test.
@@ -36,6 +37,8 @@ beforeEach(async () => {
 
 afterEach(async () => {
   releases.splice(0).forEach((release) => release());
+  // A press's hold ends on its own clock: end it, so the next test starts with nothing holding the page.
+  vi.runOnlyPendingTimers();
   vi.useRealTimers();
   document.documentElement.removeAttribute("style");
   document.body.replaceChildren();
@@ -219,5 +222,205 @@ describe("holdPageScroll", () => {
     page.dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
     again.release();
     expect(html.style.scrollBehavior).toBe("auto");
+  });
+});
+
+describe("holdPageAtPress", () => {
+  // The press's hold ends on the timer clock, held here too.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["performance", "setTimeout", "clearTimeout"] });
+  });
+
+  /** Presses a trigger with the primary button, or another, as React hands the press to it. */
+  type Kind = keyof typeof holdPageAtPress;
+  const pointerDown = (button = 0, kind: Kind = "listButton", nativeEvent = new PointerEvent("pointerdown", { button })) =>
+    holdPageAtPress[kind].onPointerDown({ button, currentTarget: page, nativeEvent } as unknown as ReactPointerEvent<HTMLElement>);
+  /** Presses a key on a trigger: a real keydown that reaches the window after the trigger's handler. */
+  const keyDown = (key: string, kind: Kind = "listButton") => {
+    const trigger = page.appendChild(document.createElement("button"));
+    trigger.setAttribute("aria-expanded", page.getAttribute("aria-expanded") ?? "false");
+    trigger.addEventListener("keydown", (event) => holdPageAtPress[kind].onKeyDown({ key, currentTarget: trigger, nativeEvent: event } as unknown as ReactKeyboardEvent<HTMLElement>), { once: true });
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key }));
+    trigger.remove();
+  };
+
+  it("stops a smooth scroll in flight where it is, at a press of the primary button or an opening key", async () => {
+    document.documentElement.style.scrollBehavior = "smooth";
+    for (const [name, act] of [
+      ["pointer", () => pointerDown()],
+      ...["Enter", " ", "ArrowDown", "ArrowUp"].map((key) => [`key ${key}`, () => keyDown(key)] as const),
+    ] as const) {
+      window.scrollBy({ top: 1500 });
+      await frame();
+      act();
+      const stopped = at();
+      const scrolls: number[][] = [];
+      const record = () => scrolls.push(at());
+      window.addEventListener("scroll", record);
+      const seen: number[][] = [];
+      for (let index = 0; index < 10; index++) {
+        await frame();
+        seen.push(at());
+      }
+      window.removeEventListener("scroll", record);
+      expect([name, seen]).toEqual([name, Array.from({ length: 10 }, () => stopped)]);
+      // Stopped at once, not taken back a step at a time: the page never moved again.
+      expect([name, scrolls]).toEqual([name, []]);
+      vi.advanceTimersByTime(1000);
+      await scrollTo(40, 2000);
+    }
+  });
+
+  it("makes the page's scrolls instant and holds the page from the press, until a second passes with no popup", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    pointerDown();
+    expect(html.style.scrollBehavior).toBe("auto");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    // A second press starts the second again.
+    vi.advanceTimersByTime(600);
+    keyDown("Enter");
+    vi.advanceTimersByTime(999);
+    expect(html.style.scrollBehavior).toBe("auto");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    vi.advanceTimersByTime(1);
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+  });
+
+  it("hands the press's hold to the popup that opens from it, from where the press stopped the page", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    const add = vi.spyOn(document, "addEventListener");
+    pointerDown();
+    const { popup, release } = portal();
+    // One set of listeners for the press and the popup.
+    expect(add).toHaveBeenCalledTimes(5);
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    // The popup alone holds the page now: once it is closing, nothing does, though the press was just now.
+    popup.removeAttribute("data-open");
+    expect(await scrollTo(40, 2600)).toEqual([40, 2600]);
+    popup.setAttribute("data-open", "");
+    vi.advanceTimersByTime(1000);
+    expect(html.style.scrollBehavior).toBe("auto");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2600]);
+    release();
+    expect(html.style.scrollBehavior).toBe("smooth");
+  });
+
+  it("holds the page while a press is pending, though the popup that was open closes", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    const { release } = portal();
+    // The person scrolls, then presses a trigger: the press ends their scroll.
+    page.dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
+    pointerDown();
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    release();
+    expect(html.style.scrollBehavior).toBe("auto");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    vi.advanceTimersByTime(1000);
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+  });
+
+  it("holds the page only at the keys that open each kind of trigger's popup", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    for (const [kind, opening, others] of [
+      ["button", ["Enter", " "], ["ArrowDown", "ArrowUp"]],
+      ["listButton", ["Enter", " ", "ArrowDown", "ArrowUp"], []],
+      ["listInput", ["ArrowDown", "ArrowUp"], ["Enter", " "]],
+    ] as const) {
+      for (const key of others) {
+        keyDown(key, kind);
+        expect([kind, key, html.style.scrollBehavior]).toEqual([kind, key, "smooth"]);
+      }
+      for (const key of opening) {
+        keyDown(key, kind);
+        expect([kind, key, html.style.scrollBehavior]).toEqual([kind, key, "auto"]);
+        vi.advanceTimersByTime(1000);
+      }
+      pointerDown(0, kind);
+      expect([kind, "pointer", html.style.scrollBehavior]).toEqual([kind, "pointer", "auto"]);
+      vi.advanceTimersByTime(1000);
+    }
+  });
+
+  it("holds the page from a dialog trigger's press until its click, leaving scroll-behavior alone", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    pointerDown(0, "dialog");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    // The click opens the dialog, whose scroll lock holds the page from then: the hold stops listening.
+    const remove = vi.spyOn(document, "removeEventListener");
+    page.click();
+    expect(remove.mock.calls.map(([type]) => type)).toContain("scroll");
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+    // A key: only Enter and Space click a button.
+    keyDown("ArrowDown", "dialog");
+    keyDown("ArrowUp", "dialog");
+    expect(await scrollTo(40, 3100)).toEqual([40, 3100]);
+    for (const key of ["Enter", " "]) {
+      keyDown(key, "dialog");
+      expect([key, html.style.scrollBehavior, await scrollTo(40, 3500)]).toEqual([key, "smooth", [40, 3100]]);
+      // No click came (the key's button is gone): the press lets go a second later.
+      vi.advanceTimersByTime(1000);
+      expect([key, await scrollTo(40, 3200)]).toEqual([key, [40, 3200]]);
+      await scrollTo(40, 3100);
+    }
+  });
+
+  it("leaves a press to the first handler that takes it, and a dialog trigger's click to its own press", async () => {
+    // An Ouro Button that opens a dialog, under a popover's trigger: one press, the popover's.
+    const event = new PointerEvent("pointerdown");
+    pointerDown(0, "listButton", event);
+    pointerDown(0, "dialog", event);
+    page.click();
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    vi.advanceTimersByTime(1000);
+    // A dialog trigger's press that no click ended leaves no click behind it to end a later press.
+    pointerDown(0, "dialog");
+    vi.advanceTimersByTime(1000);
+    pointerDown();
+    page.click();
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+  });
+
+  it("does not take a press of another button, or another key, for a press that opens a popup", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    pointerDown(2);
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+    keyDown("a");
+    keyDown("Escape");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 2500)).toEqual([40, 2500]);
+  });
+
+  it("leaves the page to the open popup's hold at a press on its trigger, which closes it", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    page.setAttribute("aria-expanded", "true");
+    pointerDown();
+    keyDown("Enter");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
+    page.setAttribute("aria-expanded", "false");
+    pointerDown();
+    expect(html.style.scrollBehavior).toBe("auto");
+  });
+
+  it("does not take the key that pressed a trigger for the person scrolling, though nothing handled it", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    keyDown(" ");
+    expect(html.style.scrollBehavior).toBe("auto");
+    expect(await scrollTo(40, 3000)).toEqual([40, 2000]);
+    // The next Space nothing handles is theirs.
+    page.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: " " }));
+    expect(await scrollTo(40, 3000)).toEqual([40, 3000]);
   });
 });

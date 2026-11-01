@@ -54,6 +54,12 @@
     "summary": "Ouro UI's tests install beside each component and run in your app, in real browsers, against your theme."
   },
   {
+    "name": "theming",
+    "title": "Theming",
+    "kind": "guide",
+    "summary": "Ouro HX parts paint themselves from a small set of CSS variables, the ones a shadcn/ui theme sets."
+  },
+  {
     "name": "why-no-skill-app-shell",
     "title": "Comparison results: app-shell",
     "kind": "guide",

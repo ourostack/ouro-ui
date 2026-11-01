@@ -19,7 +19,7 @@ async function dive(): Promise<void> {
 beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
   await page.viewport(1280, 800);
-  root.setAttribute("data-theme", "sleek");
+  root.setAttribute("data-theme", "pearl");
   setScheme("light");
 });
 afterEach(async () => {
@@ -100,7 +100,7 @@ describe("pressing Dive", () => {
       expect(shown.getAttribute("aria-hidden")).toBe("true");
       // Painted in the chosen preset's own dark colours.
       expect(shown.classList.contains("dark")).toBe(true);
-      expect(shown.getAttribute("data-theme")).toBe("sleek");
+      expect(shown.getAttribute("data-theme")).toBe("pearl");
       expect(shown.closest("[data-site-sample]")).not.toBeNull();
       const names = () => document.getAnimations().map((animation) => (animation as CSSAnimation).animationName);
       expect(names()).toContain("dive-flood");

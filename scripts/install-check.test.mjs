@@ -39,7 +39,7 @@ const app = (variant, css, stage = "tests") => {
   const devDependencies = stage === "tests" ? { vitest: "^5.0.3", storybook: "^10.6.1" } : { vite: "^8.3.2" };
   write("package.json", JSON.stringify({ dependencies: { react: "^19.3.0" }, devDependencies }));
   for (const file of files) write(file, 'import { cn } from "~/lib/ouro/cn";\nimport { useState } from "react";\n');
-  const primary = variant === "ouro" ? "#2261eb" : "oklch(0.205 0 0)";
+  const primary = variant === "ouro" ? "#0066cc" : "oklch(0.205 0 0)";
   const index = css ?? `:root {\n  --primary: ${primary};\n  --success: #157d3c;\n  --success-foreground: #fff;\n  --warning: #b05109;\n  --warning-foreground: #fff;\n  --destructive-foreground: #fff;\n  --ouro-spring-duration: 750ms;\n  --ouro-ease-spring: linear(0, 1);\n  --ouro-press-scale: 0.97;\n  --ouro-backdrop-color: #000;\n  --input: #e5e5e5;\n  --radius: 0.625rem;\n}\n@theme inline {\n  --color-input: var(--input);\n  --radius-md: calc(var(--radius) * 0.8);\n  --color-success: var(--success);\n  --color-warning: var(--warning);\n  @keyframes ouro-spin { to { rotate: 1turn; } }\n  @keyframes ouro-pulse { 50% { opacity: 0.4; } }\n}\n@utility press { scale: 1; }\n`;
   write("src/index.css", index);
   write("dist/assets/index.css", "@keyframes ouro-spin{} :root{--ouro-spring-duration:750ms;--success:#157d3c}");

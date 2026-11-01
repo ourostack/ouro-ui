@@ -56,7 +56,15 @@ function Posts() {
         name="Jonah Vale"
         time="7:30 AM"
         subject="Agenda for Friday's design review"
-        thread={<ThreadSummary count={4} repliers={repliers} lastReply="7:44 AM" onOpen={() => setOpened("Opened the thread under Jonah Vale's post")} />}
+        thread={
+          <ThreadSummary
+            count={4}
+            repliers={repliers}
+            lastReply="7:44 AM"
+            label="4 replies to Jonah Vale's post Agenda for Friday's design review"
+            onOpen={() => setOpened("Opened the thread under Jonah Vale's post")}
+          />
+        }
       >
         We will look at the new onboarding flow first, then the settings page.
       </Message>
@@ -65,7 +73,7 @@ function Posts() {
         role="assistant"
         name="Mara Quill"
         time="8:02 AM"
-        thread={<ThreadSummary count={0} onOpen={() => setOpened("Started a thread under Mara Quill's post")} />}
+        thread={<ThreadSummary count={0} label="Reply to Mara Quill's post" onOpen={() => setOpened("Started a thread under Mara Quill's post")} />}
       >
         The mockups are in the Files tab.
       </Message>

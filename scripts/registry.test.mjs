@@ -188,9 +188,9 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
 
   const theme = item("ouro-theme");
   assert.equal(theme.type, "registry:theme");
-  assert.equal(theme.cssVars.light.primary, "#2261eb");
-  assert.equal(theme.cssVars.light.radius, "0.5rem");
-  assert.equal(theme.cssVars.dark.primary, "#60a5fa");
+  assert.equal(theme.cssVars.light.primary, "#0066cc");
+  assert.equal(theme.cssVars.light.radius, "0.75rem");
+  assert.equal(theme.cssVars.dark.primary, "#2997ff");
   assert.equal(theme.files, undefined);
 });
 

@@ -152,8 +152,8 @@ export function checkInstall(app, variant, stage) {
     if (!css.includes(rule)) problems.push(`${cssPath} has no ${rule}`);
   }
   const primary = css.match(/:root\s*\{[^}]*?--primary:\s*([^;]+);/)?.[1]?.trim();
-  if (variant === "ouro" && primary !== "#2261eb") problems.push(`--primary is ${primary}, not the Ouro theme's #2261eb`);
-  if ((variant === "shadcn" || variant === "next") && (!primary || primary === "#2261eb")) problems.push(`--primary is ${primary}; the app's shadcn theme was not kept`);
+  if (variant === "ouro" && primary !== "#0066cc") problems.push(`--primary is ${primary}, not the Ouro theme's #0066cc`);
+  if ((variant === "shadcn" || variant === "next") && (!primary || primary === "#0066cc")) problems.push(`--primary is ${primary}; the app's shadcn theme was not kept`);
 
   const builder = variant === "next" ? { dir: ".next/static", name: "next build" } : { dir: "dist/assets", name: "vite build" };
   const built = files(builder.dir)

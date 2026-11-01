@@ -46,10 +46,10 @@ afterEach(async () => {
 });
 
 describe("the theme before first paint", () => {
-  it("defaults to Sleek and follows the OS until the reader picks Surfaced or Submerged", () => {
+  it("defaults to Pearl and follows the OS until the reader picks Surfaced or Submerged", () => {
     const fake = fakeRoot();
-    expect(applyStoredTheme(storage(null), fake, true, PRESET_NAMES)).toEqual({ preset: "sleek", mode: undefined });
-    expect(fake.attributes.get("data-theme")).toBe("sleek");
+    expect(applyStoredTheme(storage(null), fake, true, PRESET_NAMES)).toEqual({ preset: "pearl", mode: undefined });
+    expect(fake.attributes.get("data-theme")).toBe("pearl");
     expect(fake.classes.has("dark")).toBe(true);
     applyStoredTheme(storage('{"preset":"brass","mode":"light"}'), fake, true, PRESET_NAMES);
     expect(fake.attributes.get("data-theme")).toBe("brass");
@@ -61,16 +61,16 @@ describe("the theme before first paint", () => {
   it("ignores a stored value it does not know, and a refused or broken storage", () => {
     for (const value of ["{", '"abyss"', '{"preset":"neon","mode":"dusk"}', "null"]) {
       const fake = fakeRoot();
-      expect(applyStoredTheme(storage(value), fake, false, PRESET_NAMES)).toEqual({ preset: "sleek", mode: undefined });
+      expect(applyStoredTheme(storage(value), fake, false, PRESET_NAMES)).toEqual({ preset: "pearl", mode: undefined });
     }
-    expect(applyStoredTheme(null, fakeRoot(), false, PRESET_NAMES).preset).toBe("sleek");
+    expect(applyStoredTheme(null, fakeRoot(), false, PRESET_NAMES).preset).toBe("pearl");
   });
 
   it("runs from the inline script the head carries, first, on every page", () => {
     const fake = fakeRoot();
     const run = new Function("localStorage", "document", "matchMedia", prepaintScript);
     // Once the body is parsed, the stored preset's buttons read as pressed, before any hydration.
-    const buttons = ["sleek", "chart"].map((name) => {
+    const buttons = ["pearl", "chart"].map((name) => {
       const attributes = new Map([["data-site-preset", name]]);
       return { attributes, getAttribute: (key: string) => attributes.get(key) ?? null, setAttribute: (key: string, value: string) => void attributes.set(key, value) };
     });
@@ -130,15 +130,15 @@ describe("the header and the theme section", () => {
   });
 
   it("repaint the page from the header's picker, and remember it", async () => {
-    root.setAttribute("data-theme", "sleek");
+    root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     const background = () => getComputedStyle(document.body).backgroundColor;
-    const sleek = background();
-    await userEvent.click(page.getByRole("button", { name: /Theme: Sleek/ }));
-    await userEvent.click(page.getByRole("radio", { name: "Abyss" }));
-    expect(root.getAttribute("data-theme")).toBe("abyss");
+    const pearl = background();
+    await userEvent.click(page.getByRole("button", { name: /Theme: Pearl/ }));
+    await userEvent.click(page.getByRole("group", { name: "Themes" }).getByRole("button", { name: "Abyss", exact: true }));
+    await expect.poll(() => root.getAttribute("data-theme")).toBe("abyss");
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
-    expect(background()).not.toBe(sleek);
+    expect(background()).not.toBe(pearl);
     await expect.element(page.getByRole("button", { name: /Theme: Abyss/ })).toBeInTheDocument();
     await userEvent.click(page.getByRole("radio", { name: "Submerged" }));
     expect(root.classList.contains("dark")).toBe(true);
@@ -148,27 +148,33 @@ describe("the header and the theme section", () => {
   });
 
   it("repaints from the swatches, which say which preset is on", async () => {
-    root.setAttribute("data-theme", "sleek");
+    root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     const presets = page.getByRole("group", { name: "Presets" });
     for (const preset of presetList) {
       await userEvent.click(presets.getByRole("button", { name: preset.label, exact: true }));
-      expect(root.getAttribute("data-theme")).toBe(preset.name);
+      await expect.poll(() => root.getAttribute("data-theme")).toBe(preset.name);
       await expect.element(presets.getByRole("button", { name: preset.label, exact: true })).toHaveAttribute("aria-pressed", "true");
       expect(presets.getByRole("button", { pressed: true }).elements()).toHaveLength(1);
+      // While the circle reveal runs, its view transition takes the page's clicks; the next press waits for it.
+      await expect.poll(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition")).length).toBe(0);
     }
   });
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
     const writes: string[] = [];
+    // The copy goes through clipboard.write with a ClipboardItem where there is one, writeText elsewhere.
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
+    const itemSpy = vi.spyOn(navigator.clipboard, "write").mockImplementation(async (items) => {
+      for (const item of items) writes.push(await (await item.getType("text/plain")).text());
+    });
     // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
     // announcements are recorded as they happen.
     const announced = watchAnnouncements();
     try {
       root.setAttribute("data-theme", "brass");
       await renderPage("/");
-      const brass = presetList.find((preset) => preset.name === "brass")!;
+      const brass = themes.find((preset) => preset.name === "brass")!;
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
       await expect.poll(() => announced.count("Copied the Brass theme")).toBe(1);
       await userEvent.click(page.getByRole("button", { name: "Copy tokens only", exact: true }));
@@ -179,11 +185,13 @@ describe("the header and the theme section", () => {
     } finally {
       announced.stop();
       spy.mockRestore();
+      itemSpy.mockRestore();
     }
   });
 
   it("says so when the clipboard is refused", async () => {
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    const itemSpy = vi.spyOn(navigator.clipboard, "write").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
     const announced = watchAnnouncements();
     try {
       await renderPage("/");
@@ -193,6 +201,7 @@ describe("the header and the theme section", () => {
     } finally {
       announced.stop();
       spy.mockRestore();
+      itemSpy.mockRestore();
     }
   });
 
@@ -209,7 +218,7 @@ describe("the header and the theme section", () => {
   });
 
   it("opens the command palette on ⌘K and repaints from it", async () => {
-    root.setAttribute("data-theme", "sleek");
+    root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     await userEvent.keyboard(/Mac|iPhone|iPad/.test(navigator.platform) ? "{Meta>}k{/Meta}" : "{Control>}k{/Control}");
     const search = page.getByRole("combobox", { name: "Search commands" });

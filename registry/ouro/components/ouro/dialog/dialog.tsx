@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type JSX,
+  type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactElement,
@@ -18,6 +19,7 @@ import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
+import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { sheetHint } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
@@ -160,6 +162,7 @@ type TriggerProps = {
   ref?: Ref<HTMLElement> | undefined;
   onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
   onPointerDown?: ((event: PointerEvent<HTMLElement>) => void) | undefined;
+  onKeyDown?: ((event: KeyboardEvent<HTMLElement>) => void) | undefined;
   "aria-haspopup"?: string;
   "aria-expanded"?: boolean;
 };
@@ -391,6 +394,11 @@ export function DialogFrame({
       onPointerDown: (event: PointerEvent<HTMLElement>) => {
         triggerProps.onPointerDown?.(event);
         setLastPointer(event.pointerType);
+        holdPageAtPress.dialog.onPointerDown(event);
+      },
+      onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+        triggerProps.onKeyDown?.(event);
+        holdPageAtPress.dialog.onKeyDown(event);
       },
       onClick: (event: MouseEvent<HTMLElement>) => {
         triggerProps.onClick?.(event);

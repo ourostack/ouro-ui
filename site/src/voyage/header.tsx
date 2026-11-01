@@ -13,19 +13,20 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/registry/ouro/components/ouro/popover/popover-parts";
-import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { HxLogo } from "../components/brand";
 import { GITHUB, href } from "../paths";
-import type { Mode, PresetName } from "../themes/prepaint";
-import { ByPreset, presetList, Swatch } from "./presets";
-import { useSiteTheme } from "./theme-store";
+import type { Mode } from "../themes/prepaint";
+import { ByPreset, choiceList, Swatch } from "./presets";
+import { useLiveClock, useSiteTheme } from "./theme-store";
+import { ThemeDots } from "./theme-dots";
 import { openXray, setXray, useXray } from "./xray-store";
 
-/** Surfaced is light, Submerged is dark: the SegmentedControl's two segments. */
+/** Follow the device, or pin Surfaced (light) or Submerged (dark): the SegmentedControl's three segments. */
 export const MODE_ITEMS = [
+  { value: "system", label: "Auto" },
   { value: "light", label: "Surfaced" },
   { value: "dark", label: "Submerged" },
 ] as const;
@@ -39,23 +40,24 @@ function ChevronIcon(): JSX.Element {
 }
 
 /**
- * The six presets and Surfaced or Submerged, in a Popover from the header. Built from the
- * Popover parts to focus the panel itself when it opens: the panel is not yet positioned on
- * the frame Base UI moves focus in, so focusing its first radio scrolled the page to the
- * popup's unplaced position. Tab reaches the presets from there.
+ * Live and the six presets, and Auto, Light or Dark, in a Popover from the header. Built from the
+ * Popover parts to focus the panel itself when it opens: the panel is not yet positioned on the
+ * frame Base UI moves focus in, so focusing its first button scrolled the page to the popup's
+ * unplaced position. Tab reaches the choices from there.
  */
 export function ThemePicker(): JSX.Element {
-  const { preset, mode, setPreset, setMode } = useSiteTheme();
+  const { preset, scheme, setMode } = useSiteTheme();
+  useLiveClock(preset === "live");
   const popup = useRef<HTMLDivElement>(null);
   return (
     <PopoverRoot>
       <PopoverTrigger
         render={
-          <Button variant="plain" tone="secondary" size="sm" data-site-theme-trigger="">
+          <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger">
             <ByPreset>
               {(item) => (
                 <span className="inline-flex items-center gap-2">
-                  <Swatch preset={item.name} />
+                  <Swatch preset={item.name} size="md" />
                   <span className="max-sm:sr-only">
                     <span className="sr-only">Theme: </span>
                     {item.label}
@@ -69,34 +71,19 @@ export function ThemePicker(): JSX.Element {
       />
       <PopoverPortal>
         <PopoverPositioner side="bottom" align="end">
-          <PopoverPopup ref={popup} initialFocus={popup} className="w-80">
+          <PopoverPopup ref={popup} initialFocus={popup} className="w-[22rem] max-w-[calc(100vw-2rem)]">
             <div className="grid gap-1">
               <PopoverTitle>Theme</PopoverTitle>
               <PopoverDescription>
-                {claim("Every preset is a plain shadcn/ui theme.", {
+                {claim("Pick one and the whole ship repaints, down to the last rivet.", {
                   source: { file: "site/scripts/themes.mts" },
                   verify: { testExists: "site/scripts/themes.test.mjs::theme files parse into their top-level blocks and refuse anything else" },
                 })}
               </PopoverDescription>
             </div>
-            <div className="mt-2 grid gap-5">
-              <RadioGroup
-                legend="Preset"
-                hideLegend
-                value={preset}
-                onValueChange={(value) => setPreset(value as PresetName)}
-                options={presetList.map((item) => ({
-                  value: item.name,
-                  label: item.label,
-                  description: (
-                    <span className="inline-flex items-center gap-2">
-                      <Swatch preset={item.name} />
-                      {item.mood}
-                    </span>
-                  ),
-                }))}
-              />
-              <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={mode} onValueChange={(value) => setMode(value as Mode)} />
+            <div className="mt-3 grid gap-4">
+              <ThemeDots label="Themes" size="md" />
+              <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={scheme} onValueChange={(value) => setMode(value as Mode | "system")} />
             </div>
             <PopoverClose />
           </PopoverPopup>
@@ -151,9 +138,10 @@ function SiteCommand(): JSX.Element {
               {
                 label: "Repaint",
                 items: [
-                  ...presetList.map((item) => ({ label: `${item.label} theme`, onSelect: () => setPreset(item.name), keywords: [item.mood] })),
+                  ...choiceList.map((item) => ({ label: `${item.label} theme`, onSelect: () => setPreset(item.name), keywords: [item.mood] })),
                   { label: "Surface (light)", onSelect: () => setMode("light"), keywords: ["light mode", "surfaced"] },
                   { label: "Submerge (dark)", onSelect: () => setMode("dark"), keywords: ["dark mode", "submerged"] },
+                  { label: "Follow my device (auto)", onSelect: () => setMode("system"), keywords: ["auto", "system"] },
                 ],
               },
               { label: "Tools", items: [{ label: "X-ray", onSelect: openXray, keywords: ["inspector", "outline", "components"] }] },

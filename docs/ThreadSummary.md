@@ -30,6 +30,7 @@ Type: `ThreadSummaryProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins (`mt-1`). Appearance classes warn in development. |
 | `count` (required) | `number` |  | How many replies the thread has. With none, the summary is a single "Reply" button that opens the thread to write the first one. |
+| `label` | `string` |  | What screen readers hear for the button, when its words alone ("2 replies") would repeat from post to post: "2 replies to Riley's post Settings mockups". Start it with the words the button shows, so speech input that says them still finds it (WCAG's label in name). |
 | `lastReply` | `string` |  | When the last reply came, already formatted for the reader ("7:44 AM"). |
 | `lastReplyDateTime` | `string` |  | The same moment for machines, as an ISO date: the `<time>` element's `dateTime`. |
 | `lastReplyLabel` | `((time: string) => string)` | (time) => `Last reply ${time}` | The words around the last reply's time, for other languages. |
