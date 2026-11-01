@@ -324,9 +324,23 @@ describe("Lightbox navigation", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     const { host } = await render(lightbox());
     await openAt(host, 0);
+    // PROBE (never merge): what the press saw.
+    const log: string[] = [];
+    const t0 = performance.now();
+    const v = viewport();
+    const scrollTo = v.scrollTo.bind(v);
+    v.scrollTo = ((options: ScrollToOptions) => {
+      log.push(`scrollTo ${JSON.stringify(options)} at ${(performance.now() - t0).toFixed(0)} reduce=${matchMedia("(prefers-reduced-motion: reduce)").matches}`);
+      return scrollTo(options);
+    }) as typeof v.scrollTo;
+    v.addEventListener("scroll", () => log.push(`scroll ${v.scrollLeft.toFixed(0)} at ${(performance.now() - t0).toFixed(0)}`));
+    v.addEventListener("scrollend", () => log.push(`scrollend ${v.scrollLeft.toFixed(0)} at ${(performance.now() - t0).toFixed(0)}`));
+    const cs = getComputedStyle(v);
+    const state = `visibility=${document.visibilityState} focus=${document.hasFocus()} inner=${innerWidth}x${innerHeight} vp=${v.clientWidth}/${v.scrollWidth} snap=${cs.scrollSnapType} behavior=${cs.scrollBehavior} dpr=${devicePixelRatio} reduce=${matchMedia("(prefers-reduced-motion: reduce)").matches} ua=${navigator.userAgent.slice(-40)}`;
     await userEvent.keyboard("{End}");
-    expect(slideInView()).not.toBe(3);
+    const after = slideInView();
     await expect.poll(position).toBe("4 of 4");
+    console.log(`GLIDE-PROBE ${after === 3 ? "JUMPED" : "glided"} ${state} :: ${log.join(" | ")}`);
     expect(slideInView()).toBe(3);
   });
 
