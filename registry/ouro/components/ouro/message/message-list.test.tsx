@@ -435,7 +435,7 @@ describe("MessageList", () => {
     expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
   });
 
-  it("keeps the reader's place in a message that fills the view when older history loads above", async () => {
+  it("keeps the reader's place in a message that fills the view as it grows, and as a message above it grows", async () => {
     const items: Item[] = [...history(3, 10), { id: 13, role: "assistant", text: "A long reply that runs on. ".repeat(80) }, ...history(3, 14)];
     const { scroller, rerender } = await render(<Chat items={items} />);
     const long = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')][3]!;
@@ -443,7 +443,12 @@ describe("MessageList", () => {
     scroller.scrollTop += long.getBoundingClientRect().top - scroller.getBoundingClientRect().top + 200;
     await settle(scroller);
     const top = long.getBoundingClientRect().top;
-    await rerender(<Chat items={[...history(10), ...items]} />);
+    const grown = items.map((item, at) => (at === 3 ? { ...item, text: `${item.text} ${"more ".repeat(80)}` } : item));
+    await rerender(<Chat items={grown} />);
+    await settle(scroller);
+    expect(Math.abs(long.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    // And a message above it grows.
+    await rerender(<Chat items={grown.map((item, at) => (at === 0 ? { ...item, text: `${item.text} ${"more ".repeat(40)}` } : item))} />);
     await settle(scroller);
     expect(Math.abs(long.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
@@ -455,6 +460,8 @@ describe("MessageList", () => {
     await act(async () => {
       flushSync(() => roots.at(-1)!.render(<Chat items={items.map((item, at) => (at === 0 ? { ...item, text: `${item.text} ${"more ".repeat(40)}` } : item))} />));
       scroller.scrollTop = 0;
+      // The scroll event comes before the list has kept the reader's place, as the browser sends it for a scroll by input.
+      scroller.dispatchEvent(new Event("scroll"));
     });
     await settle(scroller);
     expect(scroller.scrollTop).toBe(0);
@@ -1618,6 +1625,8 @@ describe("MessageList keyboard", () => {
     const bare = sized.getBoundingClientRect().height;
     await act(async () => void (document.getElementById("sizer")!.style.height = `${scroller.clientHeight - 8 - bare}px`));
     near(sized.getBoundingClientRect().height, scroller.clientHeight - 8);
+    // The list keeps the reader's place as the message grows, in a frame before the scroll to the top below.
+    await settle(scroller);
     await act(async () => document.getElementById("short")!.focus());
     await act(async () => void (scroller.scrollTop = 0));
     await settle(scroller);

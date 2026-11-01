@@ -275,6 +275,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // content. The first one still in the page is held in place: it may itself have been
     // replaced (a key change). Where a message sits in the content does not change as the list
     // scrolls, so the reader's own scrolling in the same frame is never taken back.
+    // Stryker disable next-line ArrayDeclaration: keepAnchor fills it below, before the observer can first read it.
     let anchors: { node: Element; at: number }[] = [];
     // The content's height when the anchors were taken. A scroll event that finds it changed came
     // after messages came, went or grew, and before the resize observer has kept the reader's place.
@@ -284,14 +285,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const atOf = (node: Element) => node.getBoundingClientRect().top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      const shown = [...content.querySelectorAll(items)].filter((message) => {
-        const box = message.getBoundingClientRect();
-        return box.bottom > view.top && box.top < view.bottom;
-      });
-      // Not a message partly above the view, whose growth the reader is not reading, unless one message fills the view.
-      // Stryker disable next-line EqualityOperator: a message whose top meets the view's to the pixel is the same anchor either way.
-      const below = shown.filter((message) => message.getBoundingClientRect().top >= view.top);
-      anchors = (below.length > 0 ? below : shown).map((node) => ({ node, at: atOf(node) }));
+      const all = [...content.querySelectorAll(items)];
+      // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading.
+      // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
+      const below = all.filter((message) => message.getBoundingClientRect().top >= view.top && message.getBoundingClientRect().top < view.bottom);
+      // When none starts in view, the message filling it, then those below.
+      // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
+      anchors = (below.length > 0 ? below : all.filter((message) => message.getBoundingClientRect().bottom > view.top)).map((node) => ({ node, at: atOf(node) }));
       height = content.getBoundingClientRect().height;
       taken = scroller.scrollTop;
     };
@@ -299,10 +299,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     keepAnchor();
     const follow = new ResizeObserver(() => {
       const anchor = anchors.find(({ node }) => node.isConnected);
-      if (pinned.current) toBottom();
-      // A scroll of the list's height or more since (to the top, to a message far off) set its own place, and the held message has left the view.
+      // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
-      else if (anchor && Math.abs(scroller.scrollTop - taken) < scroller.clientHeight && getComputedStyle(scroller).overflowAnchor !== "auto") {
+      const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
+      // Where an app turned the browser's own anchoring back on, the browser corrects.
+      // Stryker disable next-line StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so a second correction does not always land where a test can see it.
+      const native = getComputedStyle(scroller).overflowAnchor === "auto";
+      if (pinned.current) toBottom();
+      else if (anchor && near && !native) {
         const moved = atOf(anchor.node) - anchor.at;
         if (Math.abs(moved) >= 0.5) {
           scroller.scrollTop += moved;
