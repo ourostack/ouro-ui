@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [1, 2, 3]
+        n: [1, 2, 3, 4]
     name: bisect (${{ matrix.n }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,20 +33,22 @@ jobs:
         run: |
           grep -m1 'model name' /proc/cpuinfo
           mkdir -p out
-          declare -A sha=([a328]=b0503b28 [b329]=e72adbbd [c330]=9509a7bc [dmain]=bb78088a)
-          for k in a328 b329 c330 dmain; do
+          declare -A sha=([a328]=b0503b28 [dmain]=bb78088a)
+          for k in a328 dmain; do
             git worktree add -q "../w-$k" "${sha[$k]}"
+            cp site/e2e/museum-probe.latency.spec.ts "../w-$k/site/e2e/"
             (cd "../w-$k" && pnpm i --frozen-lockfile > /dev/null 2>&1 && pnpm site:build > "$GITHUB_WORKSPACE/out/build-$k.log" 2>&1) || { echo "build $k failed"; tail -30 "out/build-$k.log"; exit 1; }
           done
           set +e
           for round in 1 2 3; do
-            for k in a328 b329 c330 dmain; do
+            for k in a328 dmain; do
               cd "../w-$k"
               node_modules/.bin/vite preview --config site/vite.config.ts --host 127.0.0.1 --port 4179 --strictPort > /dev/null 2>&1 &
               pid=$!
               node -e 'const go=async()=>{for(let i=0;i<120;i++){try{if((await fetch("http://127.0.0.1:4179/")).ok)return;}catch{}await new Promise(r=>setTimeout(r,500));}process.exit(1)};go()'
-              env CI= pnpm exec playwright test --config playwright.latency.config.ts site/e2e/chapter-two.latency.spec.ts -g "(museum|classify|catalogue-code|sort) answers" --repeat-each 2 --reporter=list > "$GITHUB_WORKSPACE/out/$k-$round.log" 2>&1
-              grep -E "latency (museum|classify|catalogue-code|sort): p95" "$GITHUB_WORKSPACE/out/$k-$round.log" | sed -E "s/^.*latency /$k r$round /; s/ \(≤ [0-9]+\)//; s/, baseline [0-9]+\)/)/"
+              if [ $k = a328 ]; then v=plain,gutter; else v=plain,gutter,shadows,font; fi
+              env CI= VARIANTS=$v pnpm exec playwright test --config playwright.latency.config.ts site/e2e/museum-probe.latency.spec.ts --repeat-each 2 --reporter=list > "$GITHUB_WORKSPACE/out/$k-$round.log" 2>&1
+              grep -E "probe [a-z]+: widths" "$GITHUB_WORKSPACE/out/$k-$round.log" | sed -E "s/^.*probe /$k r$round /"
               kill $pid || true; wait $pid 2>/dev/null || true; sleep 1
               cd "$GITHUB_WORKSPACE"
             done
