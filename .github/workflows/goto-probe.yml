@@ -16,9 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        protocol: [h2, h1tls, h1]
+        variant: [same, idle, fresh, blank]
         n: [1, 2, 3]
-    name: goto (${{ matrix.protocol }}, ${{ matrix.n }})
+    name: goto (${{ matrix.variant }}, ${{ matrix.n }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,9 +31,10 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: pnpm site:build > build.log 2>&1 || { tail -40 build.log; exit 1; }
       - name: Probe
-        shell: bash
+        shell: bash {0}
         env:
-          PAGES_PROTOCOL: ${{ matrix.protocol }}
+          PAGES_PROTOCOL: h2
+          VARIANT: ${{ matrix.variant }}
           TESTS: "150"
         run: |
           node site/scripts/serve-pages.mjs 4179 > server.out 2>&1 &
@@ -42,11 +43,11 @@ jobs:
           node site/e2e/goto-probe.mts || true
           echo "--- server log around failures"
           grep -c "" pages-server.log || true
-          grep -vE "tcp connection|session [0-9]+ (open|close)$" pages-server.log | head -60
+          grep -vE "tcp connection|session [0-9]+ (open|close)$" pages-server.log | head -60 || true
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: goto-${{ matrix.protocol }}-${{ matrix.n }}
+          name: goto-${{ matrix.variant }}-${{ matrix.n }}
           path: |
             goto-probe.log
             pages-server.log
