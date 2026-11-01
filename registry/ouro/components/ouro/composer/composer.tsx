@@ -212,7 +212,8 @@ function SendIcon(): JSX.Element {
  * A chat message box: text that grows from one line as the person writes, a send button, and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
  * Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never
- * sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach,
+ * sends mid-word in an input method. A press anywhere around the text, out to the frame's
+ * edge, puts the caret where it lands, as in a text field. `actions` holds the buttons before Send (emoji, attach,
  * formatting), `toolbar` a formatting bar above the text while it is on, `attachments`
  * the files waiting to go, and `quote` the message a reply quotes, which Escape in the empty
  * box removes. `sendDisabledReason` turns sending off and says why, while the
@@ -256,6 +257,8 @@ function SendIcon(): JSX.Element {
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > never sends on the Enter that ends a word an input method is composing)
  * @claim "an `Autocomplete` trigger with `catalogue` inserts them" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > inserts the picked emoji's token and a space in a Composer, which EmojiText draws as its image)
  * @claim "gives its `selection.token` to put at the caret" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > chooses an emoji: onSelect gets its id, name, token, tone and catalogue item, and the token draws as its image)
+ * @claim "A press anywhere around the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer presses around the text > puts the caret at the start of the text on a press in the box's top left corner)
+ * @claim "A press anywhere around the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer presses around the text > puts the caret at the end of a line on a press between the line and the send button)
  * @claim "room for the rest of a composer" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > draws one focus outline, on the frame, while the text has focus, and none on the text itself)
  */
 export function Composer(props: ComposerProps): JSX.Element {
@@ -400,7 +403,8 @@ export function Composer(props: ComposerProps): JSX.Element {
             </div>
           </div>
         )}
-        <div className="flex min-w-0 flex-wrap items-end gap-x-1 p-1">
+        {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
+        <div className="flex min-w-0 flex-wrap items-end">
           <TextArea
             {...rest}
             ref={setRef}
@@ -419,9 +423,9 @@ export function Composer(props: ComposerProps): JSX.Element {
             onHighlightsChange={onHighlightsChange}
             onKeyDown={keyDown}
             aria-describedby={describedBy}
-            className="min-w-[min(12rem,100%)] flex-1 basis-48 px-2 py-2"
+            className="min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:py-3 [&_textarea]:ps-3 [&_textarea]:pe-2"
           />
-          <div className="ms-auto flex shrink-0 items-center gap-0.5">
+          <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
             {actions}
             <Tooltip content={sendLabel}>
               <Button
