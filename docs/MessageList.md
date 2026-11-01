@@ -59,6 +59,8 @@ Type: `MessageListProps`.
 | `className` | `string` |  | Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that height, so give it one. Appearance classes warn in development. |
 | `jumpLabel` | `string` | `"Jump to latest"` | The button that appears once the reader scrolls up, for other languages. |
 | `label` (required) | `string` |  | What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. |
+| `loadingOlder` | `boolean` |  | Whether older messages are loading above, as after the reader reaches the top: a small "Loading older messages" shows over the top of the list, and screen readers hear it once. It sits over the messages, not among them, so starting and ending it moves no message. |
+| `loadingOlderLabel` | `string` | `"Loading older messages"` | What shows while older messages load, for other languages. |
 | `newMessageLabel` | `((author: string, text: string) => string)` | (author, text) => `${author}: ${text}` | What screen readers hear when a new message arrives, for other languages. It gets the author's name and the message's text. The user's own messages are not read back. |
 | `onMessageKeyDown` | `((message: HTMLElement, event: KeyboardEvent<HTMLElement>) => void)` |  | A key pressed while a message itself has focus, not a control inside it, before the list's own keys: shortcuts on the focused message, such as 1 to 6 for quick reactions. `message` is the message's element (its `id` or `data-*` attributes say which one it is). Call `event.preventDefault()` to keep the list from acting on the key as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |

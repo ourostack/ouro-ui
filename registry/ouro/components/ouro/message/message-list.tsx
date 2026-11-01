@@ -19,6 +19,16 @@ export interface MessageListOwnProps {
   /** The button that appears once the reader scrolls up, for other languages. @default "Jump to latest" */
   jumpLabel?: string | undefined;
   /**
+   * Whether older messages are loading above, as after the reader reaches the top: a small
+   * "Loading older messages" shows over the top of the list, and screen readers hear it once.
+   * It sits over the messages, not among them, so starting and ending it moves no message.
+   * @claim "Whether older messages are loading above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
+   * @claim "It sits over the messages, not" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
+   */
+  loadingOlder?: boolean | undefined;
+  /** What shows while older messages load, for other languages. @default "Loading older messages" */
+  loadingOlderLabel?: string | undefined;
+  /**
    * What screen readers hear when a new message arrives, for other languages. It gets the
    * author's name and the message's text. The user's own messages are not read back.
    * @default (author, text) => `${author}: ${text}`
@@ -108,6 +118,14 @@ const LINE = 40;
 
 /** How close to the bottom, in pixels, counts as "at the bottom" (zoom leaves fractions). */
 const AT_BOTTOM = 4;
+/**
+ * "Loading older messages": a raised pill over the top of the list, fading in where motion is allowed, its ring
+ * spinning (pulsing with reduced motion).
+ */
+const olderClass =
+  "relative m-0 box-border inline-flex h-8 items-center gap-2 rounded-full border border-solid border-border bg-background px-3 " +
+  "text-sm text-muted-foreground shadow-(--shadow-md) whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
+
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
 
@@ -488,6 +506,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     label,
     children,
     jumpLabel = "Jump to latest",
+    loadingOlder = false,
+    loadingOlderLabel = "Loading older messages",
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
     springy = true,
@@ -1002,6 +1022,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
         {spoken.map((item) => (
           <p key={item.id}>{item.text}</p>
         ))}
+      </div>
+      {/* Over the list, never in it, so it moves no message. Always in the page, so screen readers hear it as it shows. */}
+      <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+        <div role="status" data-ouro-message-list-older="" data-ouro-part="older">
+          {loadingOlder && (
+            <span className={olderClass}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
+                <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+              {loadingOlderLabel}
+            </span>
+          )}
+        </div>
       </div>
       {showJump && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">

@@ -56,7 +56,18 @@ function firstVisible(scroller: HTMLElement): { message: Element; top: number } 
   return { message, top: message.getBoundingClientRect().top };
 }
 
-function Chat({ items, label = "Conversation", ...rest }: { items: Item[]; label?: string; jumpLabel?: string; newMessageLabel?: (author: string, text: string) => string }) {
+function Chat({
+  items,
+  label = "Conversation",
+  ...rest
+}: {
+  items: Item[];
+  label?: string;
+  jumpLabel?: string;
+  newMessageLabel?: (author: string, text: string) => string;
+  loadingOlder?: boolean;
+  loadingOlderLabel?: string;
+}) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
@@ -510,6 +521,32 @@ describe("MessageList", () => {
     await settle(scroller);
     expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
     expect(firstVisible(scroller).message).toBe(before.message);
+  });
+
+  it("shows older messages loading over the top of the list, moving no message as it starts or ends", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const before = tops();
+    const height = scroller.scrollHeight;
+    await rerender(<Chat items={items} loadingOlder />);
+    const status = page.getByText("Loading older messages");
+    await expect.element(status).toBeVisible();
+    // Screen readers hear it once, politely, as it shows.
+    expect(status.element().closest('[role="status"]')).not.toBeNull();
+    // Over the list, not in it: no message moved, and the list grew by nothing.
+    expect(tops()).toEqual(before);
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.contains(status.element())).toBe(false);
+    await rerender(<Chat items={items} />);
+    await expect.element(status).not.toBeInTheDocument();
+    expect(tops()).toEqual(before);
+  });
+
+  it("takes a translated label for older messages loading", async () => {
+    await render(<Chat items={history(3)} loadingOlder loadingOlderLabel="Cargando mensajes anteriores" />);
+    await expect.element(page.getByText("Cargando mensajes anteriores")).toBeVisible();
   });
 
   it("keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages", async () => {
