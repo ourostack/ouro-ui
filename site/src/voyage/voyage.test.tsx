@@ -167,7 +167,7 @@ describe("the header and the theme section", () => {
     await expect.poll(corners).toBe("0.75rem");
     await userEvent.click(page.getByRole("radiogroup", { name: "Corners" }).getByRole("radio", { name: "Pebble" }));
     await expect.poll(corners).toBe("1rem");
-    await expect.element(page.getByText("Your paint", { exact: true })).toBeVisible();
+    await expect.poll(() => document.querySelector<HTMLElement>("[data-site-sample]")?.innerText).toContain("Your paint");
     await userEvent.click(page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Pearl", exact: true }), { force: true });
     await expect.poll(corners).toBe("0.75rem");
     // Leave no reveal running into the next test.
