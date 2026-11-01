@@ -32,6 +32,7 @@
 @source not "../../../registry/ouro/components/ouro/local-date";
 @source not "../../../registry/ouro/components/ouro/message/attachment.tsx";
 @source not "../../../registry/ouro/components/ouro/message/thread-summary.tsx";
+@source not "../../../registry/ouro/components/ouro/moment";
 @source not "../../../registry/ouro/components/ouro/navigation-rail";
 @source not "../../../registry/ouro/components/ouro/number-field";
 @source not "../../../registry/ouro/components/ouro/otp-field";

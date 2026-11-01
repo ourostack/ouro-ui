@@ -481,6 +481,7 @@
     "registry/ouro/e2e/ouro/menu.spec.ts": 18971,
     "registry/ouro/e2e/ouro/message-list.spec.ts": 34400,
     "registry/ouro/e2e/ouro/message.spec.ts": 4179,
+    "registry/ouro/e2e/ouro/moment.spec.ts": 6000,
     "registry/ouro/e2e/ouro/native-select.spec.ts": 2100,
     "registry/ouro/e2e/ouro/navbar.spec.ts": 6277,
     "registry/ouro/e2e/ouro/navigation-menu.spec.ts": 8394,

@@ -105,5 +105,6 @@
   "time-grid": "registry/ouro/components/ouro/time-grid/time-grid.tsx",
   "toolbar": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
   "autocomplete": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx",
-  "emoji": "registry/ouro/components/ouro/emoji/emoji.tsx"
+  "emoji": "registry/ouro/components/ouro/emoji/emoji.tsx",
+  "moment": "registry/ouro/components/ouro/moment/moment.tsx"
 }

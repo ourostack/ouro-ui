@@ -2851,5 +2851,22 @@
       "Autocomplete/Open",
       "Autocomplete/SingleLine"
     ]
+  },
+  {
+    "item": "moment",
+    "stem": "moment",
+    "mode": "default",
+    "part": "dismiss",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Moment/Playground",
+      "Moment/Kinds",
+      "Moment/QuietAndInline",
+      "Moment/Celebration",
+      "Moment/Dismissible",
+      "Moment/AnimatedArt"
+    ]
   }
 ]

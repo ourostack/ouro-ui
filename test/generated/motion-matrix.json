@@ -572,5 +572,37 @@
       "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
       "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases"
     ]
+  },
+  {
+    "item": "moment",
+    "stem": "moment",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "halo",
+    "properties": [
+      "opacity",
+      "transform"
+    ],
+    "reduced": [
+      "opacity"
+    ],
+    "tests": [
+      "registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > swells the disc and grows the sparks when it celebrates, and with reduced motion only fades the disc"
+    ]
+  },
+  {
+    "item": "moment",
+    "stem": "moment",
+    "state": "data-open",
+    "kind": "motion",
+    "part": "sparkle",
+    "properties": [
+      "opacity",
+      "transform"
+    ],
+    "reduced": [],
+    "tests": [
+      "registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > swells the disc and grows the sparks when it celebrates, and with reduced motion only fades the disc"
+    ]
   }
 ]

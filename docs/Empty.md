@@ -21,7 +21,7 @@ import { Empty } from "@/registry/ouro/components/ouro/empty/empty";
 
 ## Use instead when
 
-- Use `Alert` instead for an error or a warning, and `Skeleton` while the content is still loading.
+- Use `Alert` instead for an error or a warning, `Skeleton` while the content is still loading, and `Moment` for a state with art of its own, a first run, a success that celebrates, or one the person can dismiss.
 
 ## Props
 
