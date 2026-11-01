@@ -38,9 +38,20 @@ function editManifest(dir, folder, edit) {
   writeFileSync(file, JSON.stringify(manifest));
 }
 
-test("the committed control matrix is up to date", () => {
-  const result = run("--check");
-  assert.equal(result.status, 0, result.stderr);
+test("the matrices are written where they are read, never committed", () => {
+  const files = ["test/generated/control-matrix.json", "test/generated/motion-matrix.json"];
+  const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  assert.equal(git("ls-files", "--", ...files).stdout, "", "a matrix is committed: git rm --cached it");
+  for (const file of files) assert.equal(git("check-ignore", "-q", "--no-index", file).status, 0, `${file} is not in .gitignore`);
+  // Every Vitest run writes them before a test file imports them, and so does the type check.
+  assert.match(readFileSync(join(root, "vitest.config.ts"), "utf8"), /^writeMatrices\(\);$/m);
+  assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts.typecheck, /^node scripts\/control-matrix\.mts && tsc /);
+  const dir = scratch();
+  const out = join(dir, "control-matrix.json");
+  const motionOut = join(dir, "motion-matrix.json");
+  assert.equal(run("--check", "--out", out, "--motion-out", motionOut).status, 1, "--check passes on missing files");
+  assert.equal(run("--out", out, "--motion-out", motionOut).status, 0);
+  assert.equal(run("--check", "--out", out, "--motion-out", motionOut).status, 0);
 });
 
 test("--check fails when the control matrix is stale, and names the fix", () => {
@@ -105,7 +116,9 @@ test("each row is one part of one mode, found by its own stories, portaled parts
 });
 
 test("the matrix holds only plain data a browser test can import", () => {
-  const file = JSON.parse(readFileSync(join(root, "test/generated/control-matrix.json"), "utf8"));
+  const out = join(scratch(), "control-matrix.json");
+  assert.equal(run("--out", out, "--motion-out", join(dirname(out), "motion-matrix.json")).status, 0);
+  const file = JSON.parse(readFileSync(out, "utf8"));
   assert.deepEqual(file, matrix);
   for (const row of file) assert.deepEqual(Object.keys(row), ["item", "stem", "mode", "part", "role", "portal", "touch", "stories"]);
   // A part only a coarse pointer reaches (Combobox's sheet) is checked in the ouro-touch project.

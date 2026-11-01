@@ -832,7 +832,9 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: pnpm registry --check
-      - run: pnpm controls:matrix --check
+      # The control and motion matrices are not committed: writing them checks every manifest's
+      # controls, modes and motion against the source, and the browser tests read what it wrote.
+      - run: pnpm controls:matrix
       - run: npx --yes $SHADCN registry validate ./registry.json
       # The registry as GitHub serves it at this commit: the CLI fetches each of its few hundred
       # files, and now and then one fetch fails (a different file each time), so the fetch is
