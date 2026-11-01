@@ -28,6 +28,12 @@ export type MessageRole = "user" | "assistant" | "system";
  */
 export type MessageVariant = "default" | "chat" | "post" | "reply";
 
+/**
+ * Where a `chat` or `reply` message's action bar sits: `corner` over the bubble's top corner, raised
+ * over the line above it, or `beside` the bubble, past its end and level with its top.
+ */
+export type MessageActionsPlacement = "corner" | "beside";
+
 /** One action in a message's action bar: an icon button with a tooltip. */
 export interface MessageAction {
   /** Identifies the action among the message's actions ("reply"). */
@@ -116,15 +122,29 @@ export interface MessageOwnProps {
   /** Under a post: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**
-   * The message's actions, as icon buttons with tooltips in a small bar at the top corner of
-   * the bubble or card. The bar shows while the pointer is over the message, while focus is
-   * in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
+   * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
+   * (`actionsPlacement`) or over a post card's corner. The bar shows while the pointer is over
+   * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
    * keys moving between its buttons.
    *
    * @claim "It is a toolbar: one Tab" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > is one Tab stop, and the arrow keys, Home and End move between its buttons)
    * @claim "The bar shows while the pointer" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > shows the bar on hover and while focus is in the message, and hides it otherwise)
    */
   actions?: readonly MessageAction[] | undefined;
+  /**
+   * Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the
+   * bubble's end, level with its top, so it covers neither the name nor the message and stays
+   * with the bubble however wide the row; where the row has no room left, it ends at the row's
+   * edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble.
+   * `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is
+   * over its card's corner, and the default layout's over its bubble's.
+   *
+   * @default "beside" on a `reply`, "corner" on a `chat`
+   * @claim "`beside` puts it just past the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > puts a reply's bar beside its text, level with its top, clear of the name)
+   * @claim "where the row has no room left" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > ends a bar beside a bubble at the row's edge when the bubble fills the row, with an avatar or without, right to left too)
+   * @claim "On the user's own `chat` message" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > puts a chat bar beside the bubble when asked: past others' bubbles, before the user's own)
+   */
+  actionsPlacement?: MessageActionsPlacement | (string & { 'Use "corner" or "beside"': never }) | undefined;
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
    * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
@@ -204,6 +224,8 @@ const roles = ["user", "assistant", "system"] as const;
 
 const variants = ["default", "chat", "post", "reply"] as const;
 
+const placements = ["corner", "beside"] as const;
+
 const bubbles = {
   user: "rounded-2xl rounded-ee-md bg-primary px-3.5 py-2 text-primary-foreground",
   assistant: "rounded-2xl rounded-es-md bg-muted px-3.5 py-2 text-foreground",
@@ -269,6 +291,7 @@ export function Message(props: MessageProps): JSX.Element {
     footer,
     thread,
     actions,
+    actionsPlacement,
     menu,
     actionsLabel = "Message actions",
     menuLabel = "More actions",
@@ -288,6 +311,7 @@ export function Message(props: MessageProps): JSX.Element {
   // A role that is not one of Ouro UI's (a type error) warns and renders as the assistant's.
   const role = (roles as readonly string[]).includes(roleProp) ? (roleProp as MessageRole) : "assistant";
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as MessageVariant) : "default";
+  const placement = (placements as readonly unknown[]).includes(actionsPlacement) ? (actionsPlacement as MessageActionsPlacement) : variant === "reply" ? "beside" : "corner";
   useAppearanceClassNameCheck(
     "Message",
     className,
@@ -302,6 +326,8 @@ export function Message(props: MessageProps): JSX.Element {
           nameProp === undefined && ["name is missing, so screen readers cannot say who wrote it", `<Message role="${role}" name="Ouro">`],
           role !== roleProp && [`role="${String(roleProp)}" is not a role; use "user", "assistant" or "system"`, '<Message role="assistant" name="Ouro">'],
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "default", "chat", "post" or "reply"`, '<Message variant="chat" role="assistant" name="Grace">'],
+          actionsPlacement !== undefined &&
+            placement !== actionsPlacement && [`actionsPlacement="${String(actionsPlacement)}" is not a placement; use "corner" or "beside"`, '<Message variant="chat" actionsPlacement="beside">'],
           from !== undefined && ["from is not a prop", '<Message role="user" name="Ada">'],
           (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ada">'],
           content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
@@ -356,8 +382,18 @@ export function Message(props: MessageProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: the bar's code for a message without one renders nothing; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
     if (hasBar) void loadBar().then((Loaded) => setBar(() => Loaded));
   }, [hasBar]);
+  // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
+  // avatar's column takes (w-8 and the row's gap-2) when it is at the start.
+  const beside =
+    placement === "beside" && (variant === "chat" || variant === "reply") && role !== "system"
+      ? avatar === false || (variant === "chat" && role === "user")
+        ? "0px"
+        : "2.5rem"
+      : undefined;
   const bar =
-    hasBar && Bar ? <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} card={variant === "post"} /> : null;
+    hasBar && Bar ? (
+      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} card={variant === "post"} beside={beside} />
+    ) : null;
 
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";
@@ -462,6 +498,8 @@ export function Message(props: MessageProps): JSX.Element {
       data-ouro-message-active={active ? "" : undefined}
       aria-busy={streaming || rest["aria-busy"]}
       onPointerUp={tap}
+      // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
+      style={hasBar && beside !== undefined ? { ...rest.style, containerType: "inline-size" } : rest.style}
       className={cn("group/message box-border flex w-full min-w-0 items-start gap-2 text-base pointer-fine:text-sm", focusRing, end && "flex-row-reverse", className)}
     >
       {!end && avatar !== false && (

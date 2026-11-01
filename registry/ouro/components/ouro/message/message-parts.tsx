@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
+import { useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { Menu as MenuComponent, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
-// The action bar: a small raised pill above the bubble's top corner (over a post card's corner),
-// shown on hover (a mouse's only), while focus is in the message, after a tap, and while its menu
-// is open; keyboard focus shows it at once. A mouse over the hidden bar is over the message, which
-// shows it; on a touch screen the hidden bar lets taps through, so a tap on the message above
-// never lands on it.
+// The action bar: a small raised pill above the bubble's top corner (over a post card's corner)
+// or beside the bubble's top end, shown on hover (a mouse's only), while focus is in the message,
+// after a tap, and while its menu is open; keyboard focus shows it at once. A mouse over the
+// hidden bar is over the message, which shows it; on a touch screen the hidden bar lets taps
+// through, so a tap on the message above never lands on it.
 const barClass =
-  "absolute z-10 flex items-center gap-0.5 rounded-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
+  "z-10 flex items-center gap-0.5 rounded-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
   "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100 group-focus-within/message:transition-none " +
   "group-data-ouro-message-active/message:opacity-100 data-menu-open:opacity-100 " +
@@ -46,6 +46,7 @@ export function MessageActionBar({
   menuLabel,
   start,
   card,
+  beside,
 }: {
   actions: readonly MessageAction[];
   menu: readonly MenuEntry[] | undefined;
@@ -53,6 +54,12 @@ export function MessageActionBar({
   menuLabel: string;
   start: boolean;
   card: boolean;
+  /**
+   * Beside the bubble rather than over its corner: the space from the bubble's end to the
+   * message's (`start`: from the message's start to the bubble's), less `beside`, the room the
+   * avatar's column takes before the bubble. Undefined puts the bar over the corner.
+   */
+  beside?: string | undefined;
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   // Menu, once this bar's menu button has been pressed: until then the button stands alone.
@@ -85,7 +92,7 @@ export function MessageActionBar({
   };
   const iconButton = "w-(--ouro-button-h) px-0";
   const more = <MoreIcon aria-hidden="true" className="size-4" />;
-  return (
+  const bar = (
     <div
       role="toolbar"
       aria-label={label}
@@ -93,7 +100,9 @@ export function MessageActionBar({
       data-menu-open={menuOpen ? "" : undefined}
       onKeyDown={keyDown}
       onFocus={focus}
-      className={cn(barClass, start ? "start-2" : "end-2", card ? "-top-5" : "-top-8")}
+      className={cn(barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", card ? "-top-5" : "-top-8"] : "pointer-events-auto")}
+      // A little way from the bubble while there is room; with none, the auto margin goes and the bar ends at the message's edge.
+      style={beside === undefined ? undefined : { marginInline: start ? "auto 0.25rem" : "0.25rem auto" }}
     >
       {actions.map((action) => {
         const button = (
@@ -164,6 +173,23 @@ export function MessageActionBar({
             {more}
           </Button>
         ))}
+    </div>
+  );
+  if (beside === undefined) return bar;
+  // The room beside the bubble, level with its top, out to the message's edge: 100cqw is the
+  // message's width (Message makes it a container) and 100% the bubble's.
+  const room: CSSProperties = {
+    position: "absolute",
+    top: 0,
+    ...(start ? { insetInlineEnd: "100%" } : { insetInlineStart: "100%" }),
+    width: `calc(100cqw - 100% - ${beside})`,
+    display: "flex",
+    justifyContent: start ? "flex-start" : "flex-end",
+    pointerEvents: "none",
+  };
+  return (
+    <div data-ouro-message-actions-room="" style={room}>
+      {bar}
     </div>
   );
 }
