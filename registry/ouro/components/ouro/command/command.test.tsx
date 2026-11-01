@@ -266,7 +266,11 @@ describe("Command width", () => {
   });
 
   it("widens to fit a longer command, up to 40rem", async () => {
-    const medium = "Export the open recipe as a printable page, with its photos, notes and ratings";
+    // A label about 560px wide in this browser's font, so the test holds wherever the text measures differently.
+    const probe = (await openPalette({ items: [{ label: "probe", onSelect: run }] })).querySelector<HTMLElement>("[data-ouro-command-label]")!;
+    probe.textContent = "recipe ".repeat(20);
+    const medium = "recipe ".repeat(Math.round((560 / probe.scrollWidth) * 20)).trim();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     const fitting = await openPalette({ items: [{ label: medium, onSelect: run }] });
     expect(width(fitting)).toBeGreaterThan(512);
     expect(width(fitting)).toBeLessThan(640);
