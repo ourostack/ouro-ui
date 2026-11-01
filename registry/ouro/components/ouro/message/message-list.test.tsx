@@ -448,6 +448,18 @@ describe("MessageList", () => {
     expect(Math.abs(long.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
 
+  it("leaves a scroll to the top in the same frame as a message above the reader grows where it put the list", async () => {
+    const items = history(20, 10);
+    const { scroller } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Chat items={items.map((item, at) => (at === 0 ? { ...item, text: `${item.text} ${"more ".repeat(40)}` } : item))} />));
+      scroller.scrollTop = 0;
+    });
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(0);
+  });
+
   it("leaves the correction to the browser where it anchors the scroll itself, so the reader's place moves once, not twice", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);
