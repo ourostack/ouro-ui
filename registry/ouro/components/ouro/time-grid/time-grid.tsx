@@ -15,6 +15,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -42,6 +43,8 @@ import {
   stepTo,
   plainFillClass,
   slotSizes,
+  stackMinWidth,
+  stacksOf,
   statusClass,
   statuses,
   timedClass,
@@ -212,6 +215,14 @@ export interface TimeGridOwnProps {
    */
   backgroundLabel?: string | undefined;
   /**
+   * The words on a stack of a day's background events drawn as one: in a day too narrow to label
+   * each of them, overlapping background events show as one block with their count, which opens
+   * their list. Translate it with your app.
+   * @default (count) => `${count} events`
+   * @claim "overlapping background events show as one block" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws a day's background events too narrow to read as one count that opens their list)
+   */
+  stackLabel?: ((count: number) => string) | undefined;
+  /**
    * The id of the event whose popover of your own is open: it says so to screen readers
    * (`aria-expanded`) and gets an outline until you clear it.
    * @claim "it says so to screen readers" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > tells onEventSelect which element was pressed, and marks the one whose popover is open)
@@ -365,6 +376,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     onEventSelect,
     backgroundEvents = [],
     backgroundLabel = "Other calendars",
+    stackLabel = (count: number) => `${count} events`,
     expandedId,
     renderDaySummary,
     onSlotSelect,
@@ -551,10 +563,25 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  // A week's background events are bars too thin for text; a day has room to label them.
+  const labelBackground = view === "day";
+  // In a day, a stack of background events too narrow to label each is drawn as one count that
+  // opens their list. It needs the lane's width, which only a measure knows; server HTML, and
+  // the first render before it, draw each event.
+  const [laneWidth, setLaneWidth] = useState(0);
+  const stacks = behind.map((placements) =>
+    labelBackground && laneWidth > 0
+      ? stacksOf(placements).filter((stack) => stack.length > 1 && stack.some((placed) => (laneWidth * placed.span) / placed.columns < stackMinWidth))
+      : [],
+  );
+  // Each folded event's stack, by its key; the stack goes by its first event's key.
+  const stackOf = new Map(stacks.flat().flatMap((stack) => stack.map((placed) => [placed.key, stack] as const)));
+  const reachable = pieces.filter((piece) => (stackOf.get(piece.key)?.[0]!.key ?? piece.key) === piece.key);
+
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
   const [active, setActive] = useState<string | null>(null);
-  const tabStop =
-    pieces.find((piece) => piece.key === active)?.key ?? pieces.find((piece) => piece.event.id === selectedId)?.key ?? pieces[0]?.key;
+  const stopFor = (key: string | undefined) => (key === undefined ? undefined : (stackOf.get(key)?.[0]!.key ?? key));
+  const tabStop = stopFor(pieces.find((piece) => piece.key === active)?.key ?? pieces.find((piece) => piece.event.id === selectedId)?.key ?? pieces[0]?.key);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const setRoot = (element: HTMLDivElement | null) => {
@@ -613,6 +640,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
 
+  // The day's background lane, measured for its stacks (above). Every day's lane is as wide.
+  const hasLane = labelBackground && hasBackground;
+  useLayoutEffect(() => {
+    if (!hasLane) return;
+    const lane = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-background]")!;
+    const measure = () => setLaneWidth(lane.getBoundingClientRect().width);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(lane);
+    // Stryker disable next-line ArrowFunction: once the lane is gone, nothing reads what the observer would set.
+    return () => observer.disconnect();
+  }, [hasLane]);
+
   const focusPiece = (key: string) => {
     setActive(key);
     rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!.focus();
@@ -622,7 +662,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     onKeyDownProp?.(event);
     const key = (event.target as HTMLElement).dataset.ouroEventKey;
     if (key === undefined || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
-    const next = stepTo(pieces, key, event.key, getComputedStyle(event.currentTarget).direction === "rtl");
+    const next = stepTo(reachable, key, event.key, getComputedStyle(event.currentTarget).direction === "rtl");
     if (next === undefined) return;
     event.preventDefault();
     focusPiece(next);
@@ -647,8 +687,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     .trim();
   const hourLabels = Array.from({ length: 23 }, (_, index) => index + 1).filter((hour) => !nowAt || todayIndex < 0 || Math.abs(hour * 60 - nowAt.minutes) > 20);
 
-  // A week's background events are bars too thin for text; a day has room to label them.
-  const labelBackground = view === "day";
   const renderEvent = (piece: Piece, placed?: { top: number; bottom: number }) => {
     const { event, status, background } = piece;
     const bar = background && !labelBackground;
@@ -759,6 +797,53 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         </li>
       );
     });
+
+  // A stack of a day's background events drawn as one: their count and their time, which opens
+  // their list, each item choosing its event as a press on it would.
+  const stackItem = (stack: ReadonlyArray<DayPlacement<string>>) => {
+    const members = stack.map((placed) => pieces.find((piece) => piece.key === placed.key)!);
+    const key = stack[0]!.key;
+    const top = Math.min(...stack.map((placed) => placed.top));
+    const bottom = Math.max(...stack.map((placed) => placed.bottom));
+    const starts = members.map((piece) => toInstant(piece.event.start)!.getTime());
+    const ends = members.map((piece) => toInstant(piece.event.end!)!.getTime());
+    const element = () => rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!;
+    return (
+      <li key={key} className="pointer-events-auto absolute inset-x-0 pe-px" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)` }}>
+        <Menu
+          side="right"
+          trigger={
+            <button
+              type="button"
+              data-ouro-control="time-grid"
+              data-ouro-part="stack"
+              data-ouro-event-key={key}
+              data-background=""
+              tabIndex={key === tabStop ? 0 : -1}
+              aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
+              // The arrows move through the grid, as from any event; Enter and Space press it, which opens the list.
+              onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
+              onFocus={() => setActive(key)}
+              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9]")}
+            >
+              <TouchTarget />
+              <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <span className="truncate font-medium">{stackLabel(stack.length)}</span>
+                <span className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
+              </span>
+            </button>
+          }
+        >
+          {members.map((piece) => (
+            <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: true })}>
+              <span dir="auto">{piece.event.title}</span>
+              <span className={mutedClass}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
+            </MenuItem>
+          ))}
+        </Menu>
+      </li>
+    );
+  };
 
   return (
     <div
@@ -920,7 +1005,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       labelBackground && "border-0 border-e border-dashed border-border",
                     )}
                   >
-                    {placedItems(behind[index]!)}
+                    {placedItems(behind[index]!.filter((placed) => !stackOf.has(placed.key)))}
+                    {stacks[index]!.map(stackItem)}
                   </ul>
                 ) : null}
               </div>

@@ -1,0 +1,1 @@
+- New: in a TimeGrid day, overlapping background events too narrow to label are drawn as one block with their count and time, which opens their list; choosing one calls `onEventSelect` as a press on it would. `stackLabel` words the count. Before, their labels were cut to a few letters.

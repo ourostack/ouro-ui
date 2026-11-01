@@ -18,6 +18,8 @@ export {
   plainFillClass,
   slotSizes,
   statuses,
+  stackMinWidth,
+  stacksOf,
   statusClass,
   stepTo,
   timedClass,
@@ -149,6 +151,29 @@ interface DayPlacement<Key> {
   column: number;
   span: number;
   columns: number;
+}
+
+/**
+ * The narrowest a day's labelled background event may be, in pixels, before its stack of
+ * overlapping events is drawn as one count instead: narrower, its label would be cut to a few letters.
+ * @claim "The narrowest a day's labelled background event may be" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws a day's background events too narrow to read as one count that opens their list)
+ */
+const stackMinWidth = 96;
+
+/**
+ * A day's placements in their stacks: the runs of events that overlap one another, directly or
+ * through others, in the order `layoutDay` placed them.
+ * @claim "A day's placements in their stacks" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws a day's background events too narrow to read as one count that opens their list)
+ */
+function stacksOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>): Array<Array<DayPlacement<Key>>> {
+  const stacks: Array<Array<DayPlacement<Key>>> = [];
+  let end = -1;
+  for (const placed of placements) {
+    if (placed.top >= end) stacks.push([]);
+    stacks.at(-1)!.push(placed);
+    end = Math.max(end, placed.bottom);
+  }
+  return stacks;
 }
 
 /**

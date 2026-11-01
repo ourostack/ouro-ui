@@ -48,6 +48,7 @@ Type: `TimeGridProps`.
 | `renderDaySummary` | `((day: string) => ReactNode)` |  | Content of your own under each day's header, such as a count or a load bar. It gets the day as an ISO date. Screen readers read it, so give a bar words of its own. |
 | `selectedId` | `string \| null` |  | The selected event's id: it gets an outline and `aria-current`. |
 | `slotMinutes` | `15 \| 30 \| 60` | `30` | How long a slot `onSlotSelect` gets is, in minutes: 15, 30 or 60. |
+| `stackLabel` | `((count: number) => string)` | (count) => `${count} events` | The words on a stack of a day's background events drawn as one: in a day too narrow to label each of them, overlapping background events show as one block with their count, which opens their list. Translate it with your app. |
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
 | `timeZone` | `string` |  | The IANA time zone the grid's clock reads (`"Europe/Berlin"`): which day and hour each event falls on, where the now line is, and the times shown. Without it, the reader's own, once the page runs in the browser; the server writes UTC until then. |
 | `view` | `"day" \| "work-week" \| "week"` | `"week"` | `day`, `work-week` (the week without the locale's weekend) or `week`, from the locale's first day of the week. |

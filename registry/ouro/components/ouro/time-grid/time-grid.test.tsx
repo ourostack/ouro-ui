@@ -1287,6 +1287,45 @@ describe("TimeGrid background events", () => {
     expect(document.elementFromPoint(own.left + 2, own.top + 4)?.closest("[data-ouro-event-key]")).toBe(titled("Own sync"));
   });
 
+  it("draws a day's background events too narrow to read as one count that opens their list", async () => {
+    const crowd: TimeGridEvent[] = ["Engineering sync", "Evaluation review", "Search experiments", "Partner briefing"].map((title, index) => ({
+      id: `crowd-${index}`,
+      title,
+      start: at(12, `09:${String(index * 10).padStart(2, "0")}`),
+      end: at(12, "10:00"),
+    }));
+    const onEventSelect = vi.fn();
+    const { rerender } = await render({ view: "day", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[20rem]", onEventSelect, stackLabel: (count) => `${count} crowd` });
+    // Four side by side in a 112px lane would be 28px each: one block with their count and time instead.
+    const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
+    await expect.poll(stack).not.toBeNull();
+    expect(plain(stack()!.textContent)).toBe("4 crowd9:00 – 10:00 AM");
+    await expect.element(page.getByRole("button", { name: /^4 crowd/ })).toBeVisible();
+    expect(crowd.map((event) => events().some((element) => (element.getAttribute("aria-label") ?? "").startsWith(`${event.title}, `)))).toEqual([false, false, false, false]);
+    // All hands, alone at its time, keeps its own label.
+    expect(spokenAs("All hands")).toBeDefined();
+    // The arrow keys reach the block as one stop, in time order with the rest.
+    titled("Architecture forum").focus();
+    await press("{ArrowUp}");
+    expect(document.activeElement).toBe(stack());
+    // Enter opens their list, and choosing one tells the app, as a press on it would.
+    await press("{Enter}");
+    const menu = page.getByRole("menu");
+    await expect.element(menu).toBeVisible();
+    expect([...menu.element().querySelectorAll('[role="menuitem"]')].map((item) => plain(item.textContent))).toEqual([
+      "Engineering sync 9:00 – 10:00 AM",
+      "Evaluation review 9:10 – 10:00 AM",
+      "Search experiments 9:20 – 10:00 AM",
+      "Partner briefing 9:30 – 10:00 AM",
+    ]);
+    await userEvent.click(menu.getByRole("menuitem", { name: /^Search experiments/ }));
+    expect(onEventSelect).toHaveBeenCalledWith(crowd[2], { element: stack(), background: true });
+    // Wide enough to read each: each draws as before.
+    await rerender({ view: "day", events: [forum], backgroundEvents: [...crowd, hands], className: "h-[30rem] w-[90rem]", onEventSelect });
+    await expect.poll(stack).toBeNull();
+    expect(crowd.every((event) => events().some((element) => (element.getAttribute("aria-label") ?? "").startsWith(`${event.title}, `)))).toBe(true);
+  });
+
   it("takes the arrow keys through background events in time order with the rest", async () => {
     await render({ view: "day", events: [forum, focus], backgroundEvents: [hands, { ...review, start: at(12, "09:00") }] });
     // The person's own events come first in the page, each day's background lane after them.
