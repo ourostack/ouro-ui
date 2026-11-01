@@ -694,9 +694,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // the list is held here first, and the resize observer then finds it held. At the end, the resize observer follows.
     const moves = new MutationObserver((records) => {
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
-      if (!opened) open();
+      if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: at the end the resize observer follows in the same frame, and holding when no message came, went or moved finds nothing moved; both only spare the work.
-      else if (!pinned.current && records.some(touchesItems)) hold();
+      if (!pinned.current && records.some(touchesItems)) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
