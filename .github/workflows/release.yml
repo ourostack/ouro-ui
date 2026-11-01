@@ -44,11 +44,12 @@ jobs:
       pull-requests: write # open, approve CI on and queue the PR that prepares main for the next release
       issues: write # report a screen-reader lane that failed twice on infrastructure (scripts/sr-infra-issue.sh)
     # Two CI runs, 45 minutes each with the runner pool's queues, on the release commit (with the
-    # shadcn@latest install, beside CI's other jobs) and on the pull request that prepares main;
-    # the screen-reader lane between them, 8 minutes, once more after an infrastructure failure;
-    # and the namespace checks, 2: 108, and 1.5 times that 162 (scripts/workflows.test.mjs, which
-    # holds the numbers). The merge queue, CI on main and Pages are later jobs with their own.
-    timeout-minutes: 165
+    # shadcn@latest install, beside CI's other jobs) and on the pull request that prepares main,
+    # and once more on the release commit for a quarantined test's retry; the screen-reader lane
+    # between them, 8 minutes, once more after an infrastructure failure; and the namespace checks,
+    # 2: 153, and 1.5 times that 230 (scripts/workflows.test.mjs, which holds the numbers). The
+    # merge queue, CI on main and Pages are later jobs with their own.
+    timeout-minutes: 230
     outputs:
       new: ${{ steps.check.outputs.new }}
       number: ${{ steps.prepare.outputs.number }}
@@ -172,8 +173,17 @@ jobs:
           # checks and on the release-only gates the rules cannot require, as main never runs them:
           # ci.yml's install-latest job. ci-budget does not decide.
           run=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
+          # A check that failed only because of quarantined tests (.github/quarantine.json) is retried
+          # once, recorded, and judged again (scripts/quarantine.mjs); any other failure, or a second
+          # one, stops the release.
           # shellcheck disable=SC2086 # one argument per run
-          scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run
+          if ! scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run; then
+            # shellcheck disable=SC2086 # one argument per run
+            node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $run || exit 1
+            # shellcheck disable=SC2086 # one argument per run
+            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run || { echo "- After the retry, CI still failed." >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+            echo "- After the retry, CI passed the checks main's rules require." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - if: steps.check.outputs.new == 'true'
         name: Pass the screen-reader lane on the release commit
         run: |

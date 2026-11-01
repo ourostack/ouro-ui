@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
+import { entryProblems, failedTests, names, quarantineFile, record, retryPlan } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
@@ -1879,8 +1880,13 @@ test("each release job's time limit is at least 1.5 times what it waits for, the
   const publishedWait = 15;
   const jobs = releaseJobs();
   const limit = (job) => Number(jobs[job].match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-  // The release job: CI on the release commit, the lane, CI on the pull request that prepares main.
-  assert.ok(limit("release") >= Math.ceil(1.5 * (2 * ci + 2 * lane + namespaceChecks)), `release: timeout-minutes ${limit("release")}`);
+  // The release job: CI on the release commit, once more for a quarantined test's retry
+  // (scripts/quarantine.mjs), the lane, CI on the pull request that prepares main.
+  const retry = ci;
+  assert.ok(limit("release") >= Math.ceil(1.5 * (2 * ci + retry + 2 * lane + namespaceChecks)), `release: timeout-minutes ${limit("release")}`);
+  // The rehearsal: CI on the rehearsal commit and its retry, beside the lane, and the namespace checks.
+  const rehearse = Number(workflow("release-rehearsal.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+  assert.ok(rehearse >= Math.ceil(1.5 * (ci + retry + lane + namespaceChecks)) && rehearse <= 360, `rehearse: timeout-minutes ${rehearse}`);
   // The queue job: CI on the queue's commit, once more after a rebuild, and on main when main moved
   // past the queue's commit.
   assert.ok(limit("queue") >= 3 * ci, `queue: timeout-minutes ${limit("queue")}`);
@@ -1983,7 +1989,11 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   const rehearsal = workflow("release-rehearsal.yml");
   assert.match(rehearsal, /^run-name: Release rehearsal v\$\{\{ inputs\.version \}\}$/m);
   assert.match(rehearsal, /^ {6}BRANCH: release\/v\$\{\{ inputs\.version \}\}-rehearsal$/m);
-  assert.match(rehearsal, /^ {10}ref: main$/m);
+  // One commit end to end: the dispatched one, which Release finds the rehearsal by, never main by name.
+  assert.match(rehearsal, /^ {10}ref: \$\{\{ github\.sha \}\}$/m);
+  assert.doesNotMatch(rehearsal, /ref: main\b|origin\/main|--ref main\b/);
+  assert.match(stepScript(rehearsal, "Check the version and the tag"), /^\[ "\$\(git rev-parse HEAD\)" = "\$DISPATCHED_SHA" \] \|\| \{ [^\n]+exit 1; \}$/m);
+  assert.match(rehearsal, /^ {10}DISPATCHED_SHA: \$\{\{ github\.sha \}\}$/m);
   // The same script as release.yml's release commit, then its namespace checks.
   const push = stepScript(rehearsal, "Push the rehearsal branch");
   assert.match(push, /^git switch -c "\$BRANCH"\n(?:#.*\n)?scripts\/release-commit\.sh "\$VERSION"\ngit add CHANGES\.md\ngit commit -am "Release \$TAG \(rehearsal\)"\ngit push --force origin "\$BRANCH"$/m);
@@ -1991,12 +2001,12 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   const run = stepScript(rehearsal, "Run CI and the screen-reader lane on the rehearsal commit");
   assert.match(run, /^ci=\$\(scripts\/dispatch-required\.sh "\$BRANCH" "\$sha"\)$/m);
   assert.match(run, /^gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"$/m);
-  assert.match(run, /scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)" \$ci >\/dev\/null \|\| /);
+  assert.match(run, /^if ! scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)" \$ci >\/dev\/null; then$/m);
   assert.match(run, /gh run watch "\$sr" --exit-status/);
   // It never tags, releases, merges or writes statuses, and it always deletes its branch.
   assert.doesNotMatch(rehearsal, /git tag|gh release|gh pr|statuses|pull-requests: write/);
   assert.match(rehearsal, /^ {6}- if: always\(\)\n {8}name: Delete the rehearsal branch\n {8}run: git push origin --delete "\$BRANCH"/m);
-  assert.match(rehearsal, /^ {4}permissions:\n {6}contents: write # [^\n]+\n {6}actions: write # [^\n]+\n {4}#/m);
+  assert.match(rehearsal, /^ {4}permissions:\n {6}contents: write # [^\n]+\n {6}actions: write # [^\n]+\n {6}issues: write # [^\n]+\n {4}#/m);
   // Release refuses to cut a version without a passing rehearsal of it on main's commit.
   const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
   assert.match(check, /gh run list --workflow release-rehearsal\.yml --commit "\$sha" --json conclusion,displayTitle/);
@@ -2007,4 +2017,175 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   assert.equal(conclusion([{ conclusion: "success", displayTitle: "Release rehearsal v1.1.1" }]), "null");
   assert.match(check, /\[ "\$rehearsal" = success \] \|\| \{ echo "::error::The release rehearsal of \$TAG on main \(\$sha\) is '\$\{rehearsal:-not run\}', not success\. Run it first: gh workflow run release-rehearsal\.yml -f version=\$VERSION"; exit 1; \}/);
   assert.ok(check.indexOf("release-rehearsal.yml") > check.indexOf('[ "$conclusion" = success ]'));
+});
+
+test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
+  const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
+  assert.deepEqual(entryProblems(entries), []);
+  for (const entry of entries) {
+    assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
+    assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
+  }
+  // Each part is required.
+  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  assert.deepEqual(entryProblems([whole]), []);
+  for (const key of ["project", "file", "title", "issue", "owner"]) {
+    const without = { ...whole };
+    delete without[key];
+    assert.equal(entryProblems([without]).length, 1, key);
+    assert.equal(entryProblems([{ ...whole, [key]: " " }]).length, 1, key);
+  }
+  assert.match(entryProblems([{ ...whole, issue: "#351" }])[0], /no issue URL/);
+  assert.deepEqual(entryProblems({}), ["the quarantine must be a JSON array of entries"]);
+});
+
+// A job's log as `gh run view --job <id> --log` prints it (job, step, timestamp), from the two
+// failures of the v1.2.15 rehearsals: CI runs 41270773113 (install (shadcn@latest, nova)) and
+// 41256825697 (browser (5/6), with the ci gate after it).
+const logLines = (job, lines) => lines.map((line) => `${job}\tUNKNOWN STEP\t2026-11-01T04:01:29.8723458Z ${line}`).join("\n");
+const calendarTitle = "Calendar > range > picks a start and an end, in either order, and previews the range in between";
+const calendarLog = logLines("install (shadcn@latest, nova)", [
+  "\x1b[31m❯\x1b[39m  ouro-webkit (webkit)  src/components/ouro/calendar/calendar.test.tsx (38 tests | 1 failed) 7350ms",
+  "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+  ` FAIL   ouro-webkit (webkit)  src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle}`,
+  "AssertionError: expected false to be true // Object.is equality",
+  " Test Files  1 failed | 372 passed (373)",
+  "      Tests  1 failed | 9828 passed | 1 expected fail | 29 skipped (9859)",
+  "##[error]Process completed with exit code 1.",
+]);
+const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
+const diveLog = logLines("browser (5/6)", [
+  ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
+  " Test Files  1 failed | 75 passed (76)",
+  "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
+  "##[error]TimeoutError: locator.click: Timeout 12185ms exceeded.",
+]);
+const calendarEntry = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", open: true };
+const diveEntry = { project: "site", file: "site/src/voyage/dive/dive.test.tsx", title: diveTitle, issue: "https://github.com/ourostack/ouro-ui/issues/2", owner: "someone", open: true };
+
+test("the quarantine reads a job's failed Vitest tests from its log, and anything else that failed", () => {
+  assert.deepEqual(failedTests(calendarLog), { tests: [{ project: "ouro-webkit", file: "src/components/ouro/calendar/calendar.test.tsx", title: calendarTitle }], failed: 1, unexplained: [] });
+  assert.deepEqual(failedTests(diveLog).tests, [{ project: "site", file: "site/src/voyage/dive/dive.test.tsx", title: diveTitle }]);
+  // gh's escaped colours too.
+  assert.equal(failedTests(calendarLog.replaceAll("\x1b[", "^[[")).tests.length, 1);
+  // A file that did not load, or an unhandled error, names no test.
+  assert.deepEqual(failedTests(logLines("j", [" FAIL   site (chromium)  site/src/a.test.tsx [ site/src/a.test.tsx ]"])).unexplained, ["FAIL   site (chromium)  site/src/a.test.tsx [ site/src/a.test.tsx ]"]);
+  assert.equal(failedTests(logLines("j", ["      Errors  1 error"])).unexplained.length, 1);
+  assert.deepEqual(failedTests(logLines("j", ["Type error: nothing failed in a test"])), { tests: [], failed: 0, unexplained: [] });
+  // The installed copy of a registry test is the same test; another project, file or title is not.
+  const installed = failedTests(calendarLog).tests[0];
+  assert.ok(names(calendarEntry, installed));
+  assert.ok(names(calendarEntry, { ...installed, file: calendarEntry.file }));
+  assert.ok(!names(calendarEntry, { ...installed, project: "ouro-chromium" }));
+  assert.ok(!names(calendarEntry, { ...installed, file: "src/components/ouro/calendar/other.test.tsx" }));
+  assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
+});
+
+test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
+  const ciYml = workflow("ci.yml");
+  const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/6)", "success"), job(5, "motion-coverage", "success")];
+  const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
+  const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: ["Run SHADCN_VERSION=latest scripts/install-test.sh shadcn"], log: calendarLog });
+  const dive = [job(4, "browser (5/6)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+
+  // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
+  const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
+  assert.equal(plan.retry, true, plan.problems.join("; "));
+  assert.equal(plan.retried.length, 1);
+  assert.equal(
+    record(plan.retried[0], "https://github.com/o/r/actions/runs/9"),
+    `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow. By https://github.com/o/r/actions/runs/9.`,
+  );
+  // A test that is not listed fails at once: tonight's Dive failure (fixed by #338, so not listed).
+  const unlisted = retryPlan({ runs: runWith(dive), contexts, entries: [calendarEntry] });
+  assert.equal(unlisted.retry, false);
+  assert.match(unlisted.problems.join("\n"), /site site\/src\/voyage\/dive\/dive\.test\.tsx > pressing Dive > .* is not quarantined/);
+  // Listed, it would be retried through the ci gate, whose failing step only read browser's result,
+  // and motion-coverage, skipped because ci, which it needs, failed.
+  const listed = retryPlan({ runs: runWith(dive), contexts, entries: [diveEntry] });
+  assert.equal(listed.retry, true, listed.problems.join("; "));
+  assert.equal(listed.retried.length, 1);
+  // Skipped with nothing it needs failed is not retried.
+  assert.equal(retryPlan({ runs: runWith([calendar, job(5, "motion-coverage", "skipped")]), contexts, entries: [calendarEntry] }).retry, false);
+  // The gate failing a step of its own (merged coverage), not reading a result, is not retried.
+  const coverage = [dive[0], { ...dive[1], failedSteps: ["Coverage of installed subsets"] }, dive[2]];
+  assert.equal(retryPlan({ runs: runWith(coverage), contexts, entries: [diveEntry] }).retry, false);
+  // A quarantined failure beside any other failure: not retried.
+  assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
+  const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
+  assert.equal(retryPlan({ runs: runWith([calendar, build]), contexts, entries: [calendarEntry] }).retry, false);
+  // A listed test whose issue is closed is no longer quarantined.
+  assert.equal(retryPlan({ runs: runWith([calendar]), contexts, entries: [{ ...calendarEntry, open: false }] }).retry, false);
+  // A listed test that fails twice still fails: the run's second attempt is never retried.
+  const twice = retryPlan({ runs: runWith([calendar], 2), contexts, entries: [calendarEntry] });
+  assert.equal(twice.retry, false);
+  assert.match(twice.problems.join("\n"), /already on attempt 2: a quarantined test is retried only once/);
+  // The log must account for every failed test it reports, and the job must have failed, not timed out.
+  const more = { ...calendar, log: calendarLog.replace("Tests  1 failed", "Tests  2 failed") };
+  assert.equal(retryPlan({ runs: runWith([more]), contexts, entries: [calendarEntry] }).retry, false);
+  assert.equal(retryPlan({ runs: runWith([{ ...calendar, conclusion: "timed_out" }]), contexts, entries: [calendarEntry] }).retry, false);
+  // Nothing failing, nothing to retry.
+  assert.equal(retryPlan({ runs: runWith([]), contexts, entries: [calendarEntry] }).retry, false);
+  // A judged check missing from the runs is not retried.
+  assert.equal(retryPlan({ runs: runWith([calendar]), contexts: [...contexts, "lighthouse"], entries: [calendarEntry] }).retry, false);
+});
+
+test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
+  const bin = scratchDir("ouro-quarantine-");
+  const calls = join(bin, "calls.log");
+  const summary = join(bin, "summary.md");
+  const attempts = join(bin, "attempts");
+  writeFileSync(join(bin, "calendar.log"), calendarLog);
+  // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
+  // $STATE, and a rerun moves the run to attempt 2.
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":3,"name":"install (shadcn@latest, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const retry = (state) => {
+    writeFileSync(calls, "");
+    writeFileSync(summary, "");
+    writeFileSync(attempts, "1");
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state },
+    });
+  };
+  const open = retry("OPEN");
+  assert.equal(open.status, 0, open.stdout + open.stderr);
+  const line = `Retried once, as quarantined: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (shadcn@latest, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow. By https://github.com/o/r/actions/runs/9.`;
+  assert.match(open.stdout, new RegExp(`^::warning title=Quarantined test retried::${line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  assert.equal(readFileSync(summary, "utf8"), `- ${line}\n`);
+  const made = readFileSync(calls, "utf8").split("\n");
+  assert.ok(made.includes(`issue comment https://github.com/ourostack/ouro-ui/issues/351 --body ${line}`));
+  assert.equal(made.filter((call) => call.startsWith("run rerun")).length, 1);
+  // The issue closed: the test is no longer quarantined, nothing is rerun and the caller fails.
+  const closed = retry("CLOSED");
+  assert.equal(closed.status, 1);
+  assert.match(closed.stdout, /^Not retried: .*its issue is not open/m);
+  assert.equal(readFileSync(summary, "utf8"), "");
+  assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+});
+
+test("only Release and its rehearsal retry, and only after scripts/required-ci.sh failed, judging the retry with it again", () => {
+  const users = workflows.filter(({ text }) => text.includes("quarantine.mjs")).map(({ file }) => file);
+  assert.deepEqual(users.sort(), ["release-rehearsal.yml", "release.yml"]);
+  for (const [file, step, runs] of [
+    ["release.yml", "Run CI on the release commit", "run"],
+    ["release-rehearsal.yml", "Run CI and the screen-reader lane on the rehearsal commit", "ci"],
+  ]) {
+    const script = stepScript(workflow(file), step);
+    const gate = `scripts/required-ci.sh --also "install (shadcn@latest, nova)" $${runs}`;
+    const first = script.indexOf(`if ! ${gate}`);
+    const retry = script.indexOf(`node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $${runs}`);
+    const again = script.indexOf(gate, retry);
+    assert.ok(first >= 0 && retry > first && again > retry, file);
+    assert.equal(script.split("quarantine.mjs retry").length, 2, `${file} retries once`);
+  }
+  // No test runner retries anything of its own: the quarantine is the only retry.
+  assert.doesNotMatch(readFileSync(join(root, "vitest.config.ts"), "utf8"), /\bretry:/);
 });
