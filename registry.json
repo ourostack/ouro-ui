@@ -342,6 +342,11 @@
           "target": "@lib/ouro/testing/popups.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/press.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/press.test.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/press.touch.test.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/press.touch.test.ts"

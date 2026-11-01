@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Combobox, type ComboboxProps } from "@/registry/ouro/components/ouro/combobox/combobox";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -758,14 +759,7 @@ describe("Combobox and the page's scroll", () => {
         </header>
       </div>,
     );
-    window.scrollTo({ top: 2000, behavior: "instant" });
-    document.documentElement.style.scrollBehavior = "smooth";
-    document.addEventListener("pointerdown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
-    let atPress = "";
-    window.addEventListener("pointerdown", () => (atPress = document.documentElement.style.scrollBehavior), { once: true });
-    await commands.pointerPress({ selector: '[data-ouro-control="combobox"][data-ouro-part="input"]', action: "down" });
-    for (let index = 0; index < 10; index++) await frame();
-    await commands.pointerPress({ action: "up" });
+    const { behaviorAtPress } = await pressDuringScroll('[data-ouro-control="combobox"][data-ouro-part="input"]', { from: 2000, to: 4000, scroll: "begins" });
     await expect.poll(() => {
       const open = popup();
       return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -773,7 +767,7 @@ describe("Combobox and the page's scroll", () => {
     await frame();
     await frame();
     expect(popup()!.hasAttribute("data-open")).toBe(true);
-    expect(atPress).toBe("auto");
+    expect(behaviorAtPress).toBe("auto");
     expect(window.scrollY).toBe(2000);
   });
 
@@ -788,14 +782,7 @@ describe("Combobox and the page's scroll", () => {
         </header>
       </div>,
     );
-    window.scrollTo({ top: 2000, behavior: "instant" });
-    document.documentElement.style.scrollBehavior = "smooth";
-    document.addEventListener("pointerdown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
-    let atPress = "";
-    window.addEventListener("pointerdown", () => (atPress = document.documentElement.style.scrollBehavior), { once: true });
-    await commands.pointerPress({ selector: '[data-ouro-control="combobox"][data-ouro-part="input"]', action: "down" });
-    for (let index = 0; index < 10; index++) await frame();
-    await commands.pointerPress({ action: "up" });
+    const { behaviorAtPress } = await pressDuringScroll('[data-ouro-control="combobox"][data-ouro-part="input"]', { from: 2000, to: 4000, scroll: "begins" });
     await expect.poll(() => {
       const open = popup();
       return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -803,7 +790,7 @@ describe("Combobox and the page's scroll", () => {
     await frame();
     await frame();
     expect(popup()!.hasAttribute("data-open")).toBe(true);
-    expect(atPress).toBe("auto");
+    expect(behaviorAtPress).toBe("auto");
     expect(window.scrollY).toBe(2000);
   });
 
