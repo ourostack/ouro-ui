@@ -263,32 +263,51 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Open at the newest message, then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
   // observer callbacks run before paint, so the view never flashes off the bottom.
-  // While unpinned, the message at the top of the view stays where it is, so older history
-  // loading above it never moves the reader. This replaces the browser's scroll anchoring,
-  // which is off: Chrome's adjustment read as the reader scrolling up, and Safari has none.
+  // While unpinned, the first message whose top is in view stays where it is, so older history
+  // loading above it never moves the reader, even in the frame they scroll. This replaces the
+  // browser's scroll anchoring, which is off: Chrome's adjustment read as the reader scrolling
+  // up, and Safari has none. Where an app turns the browser's anchoring back on
+  // (`overflow-anchor: auto` on the scroller) and the browser has it, the browser corrects alone.
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
-    // The messages in view, top first, with where each sits. The first one still in the page
-    // is held in place: the top one may itself have been replaced (a key change).
-    let anchors: { node: Element; offset: number }[] = [];
-    const offsetOf = (node: Element) => node.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    // The messages whose top is in view (else the one filling it), each with where it sits in the
+    // content. The first one still in the page is held in place: it may itself have been
+    // replaced (a key change). Where a message sits in the content does not change as the list
+    // scrolls, so the reader's own scrolling in the same frame is never taken back.
+    // Stryker disable next-line ArrayDeclaration: keepAnchor fills it below, before the observer can first read it.
+    let anchors: { node: Element; at: number }[] = [];
+    // The content's height when the anchors were taken. A scroll event that finds it changed came
+    // after messages came, went or grew, and before the resize observer has kept the reader's place.
+    let height = 0;
+    // The scroll position then: the reader's scrolling since is what the correction leaves alone.
+    let taken = 0;
+    const atOf = (node: Element) => node.getBoundingClientRect().top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      anchors = [...content.querySelectorAll(items)]
-        .filter((message) => {
-          const box = message.getBoundingClientRect();
-          return box.bottom > view.top && box.top < view.bottom;
-        })
-        .map((node) => ({ node, offset: offsetOf(node) }));
+      const all = [...content.querySelectorAll(items)];
+      // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading.
+      // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
+      const below = all.filter((message) => message.getBoundingClientRect().top >= view.top && message.getBoundingClientRect().top < view.bottom);
+      // When none starts in view, the message filling it, then those below.
+      // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
+      anchors = (below.length > 0 ? below : all.filter((message) => message.getBoundingClientRect().bottom > view.top)).map((node) => ({ node, at: atOf(node) }));
+      height = content.getBoundingClientRect().height;
+      taken = scroller.scrollTop;
     };
     toBottom();
     keepAnchor();
     const follow = new ResizeObserver(() => {
       const anchor = anchors.find(({ node }) => node.isConnected);
+      // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
+      // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
+      const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
+      // Where an app turned the browser's own anchoring back on, the browser corrects.
+      // Stryker disable next-line ConditionalExpression,StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so whether a second correction lands depends on timing a test cannot hold.
+      const native = getComputedStyle(scroller).overflowAnchor === "auto";
       if (pinned.current) toBottom();
-      else if (anchor) {
-        const moved = offsetOf(anchor.node) - anchor.offset;
+      else if (anchor && near && !native) {
+        const moved = atOf(anchor.node) - anchor.at;
         if (Math.abs(moved) >= 0.5) {
           scroller.scrollTop += moved;
           lastTop.current = scroller.scrollTop;
@@ -305,7 +324,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (top < lastTop.current - 0.5 && distance > 1) pinned.current = false;
       else if (distance <= AT_BOTTOM) pinned.current = true;
       lastTop.current = top;
-      keepAnchor();
+      // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
+      if (content.getBoundingClientRect().height === height) keepAnchor();
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
