@@ -488,7 +488,7 @@ describe("Composer quote", () => {
     await expect.element(page.getByRole("button", { name: "Zitat entfernen" })).toBeVisible();
   });
 
-  it("names the remove button after the author; the keyboard reaches it before the text, and it removes the quote and puts focus back in the box", async () => {
+  it("names the remove button after the author, which the keyboard reaches before the text and which removes the quote and puts focus back in the box", async () => {
     const onRemove = vi.fn();
     const { textarea, remove } = await render(<Quoting onRemove={onRemove} />);
     expect(remove!.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
