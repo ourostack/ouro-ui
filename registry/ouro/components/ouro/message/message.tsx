@@ -311,6 +311,7 @@ export function Message(props: MessageProps): JSX.Element {
   // A role that is not one of Ouro UI's (a type error) warns and renders as the assistant's.
   const role = (roles as readonly string[]).includes(roleProp) ? (roleProp as MessageRole) : "assistant";
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as MessageVariant) : "default";
+  // Stryker disable next-line StringLiteral: only "beside" is read; any other placement is the corner.
   const placement = (placements as readonly unknown[]).includes(actionsPlacement) ? (actionsPlacement as MessageActionsPlacement) : variant === "reply" ? "beside" : "corner";
   useAppearanceClassNameCheck(
     "Message",

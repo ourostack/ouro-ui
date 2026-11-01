@@ -184,7 +184,8 @@ export function MessageActionBar({
     ...(start ? { insetInlineEnd: "100%" } : { insetInlineStart: "100%" }),
     width: `calc(100cqw - 100% - ${beside})`,
     display: "flex",
-    justifyContent: start ? "flex-start" : "flex-end",
+    // Where the bar does not fit, it ends at the message's edge (flex-start, the default, before the user's own bubble).
+    justifyContent: start ? undefined : "flex-end",
     pointerEvents: "none",
   };
   return (
