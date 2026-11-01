@@ -9,7 +9,8 @@
     ],
     "message": [
       {"part": "action", "role": "button", "portal": false},
-      {"part": "menu", "role": "button", "portal": false}
+      {"part": "menu", "role": "button", "portal": false},
+      {"part": "quote", "role": "button", "portal": false}
     ],
     "message-list": [
       {"part": "scroller", "role": "region", "portal": false},

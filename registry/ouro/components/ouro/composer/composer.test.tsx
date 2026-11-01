@@ -2,10 +2,12 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Composer, type ComposerProps } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
@@ -37,6 +39,12 @@ async function render(node: ReactNode, width = 480) {
     },
     get send() {
       return host.querySelector<HTMLButtonElement>('[data-ouro-control="composer"][data-ouro-part="send"]')!;
+    },
+    get quote() {
+      return host.querySelector<HTMLElement>("[data-ouro-composer-quote]");
+    },
+    get remove() {
+      return host.querySelector<HTMLButtonElement>('[data-ouro-control="composer"][data-ouro-part="remove"]');
     },
   };
 }
@@ -393,6 +401,282 @@ describe("Composer states", () => {
   });
 });
 
+const lunch = "Lunch on Friday? The bakery on the corner opens at noon, and they keep a long table for groups if you call ahead.";
+const quoteOf = (extra: Partial<ComposerQuote> = {}): ComposerQuote => ({ author: "Ada Lovelace", excerpt: lunch, onRemove: () => {}, ...extra });
+
+/** A composer whose quote its remove button and Escape clear, as an app keeps it. */
+function Quoting({ onRemove, ...props }: Partial<ComposerProps> & { onRemove?: () => void }) {
+  const [quoted, setQuoted] = useState(true);
+  return (
+    <Composer
+      label="Reply to Ada"
+      onSend={() => {}}
+      {...props}
+      quote={
+        quoted
+          ? quoteOf({
+              onRemove: () => {
+                onRemove?.();
+                setQuoted(false);
+              },
+            })
+          : undefined
+      }
+    />
+  );
+}
+
+/** The computed colour of a theme variable, as the browser writes colours. */
+function themeColor(variable: string) {
+  const probe = document.createElement("div");
+  probe.style.color = `var(${variable})`;
+  document.body.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+}
+
+describe("Composer quote", () => {
+  it("shows the quote inside the frame above the text: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis", async () => {
+    const { frame, textarea, quote } = await render(<Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />);
+    expect(frame.contains(quote)).toBe(true);
+    expect(quote!.getBoundingClientRect().bottom).toBeLessThanOrEqual(textarea.getBoundingClientRect().top);
+    const bar = quote!.querySelector<HTMLElement>("[data-ouro-composer-quote-bar]")!;
+    const author = quote!.querySelector<HTMLElement>("[data-ouro-composer-quote-author]")!;
+    const excerpt = quote!.querySelector<HTMLElement>("[data-ouro-composer-quote-excerpt]")!;
+    expect(bar.getAttribute("aria-hidden")).toBe("true");
+    expect(bar.getBoundingClientRect().width).toBe(4);
+    expect(getComputedStyle(bar).backgroundColor).toBe(themeColor("--primary"));
+    expect(author.textContent).toBe("Ada Lovelace");
+    expect(getComputedStyle(author).fontWeight).toBe("600");
+    expect(excerpt.textContent).toBe(lunch);
+    expect(getComputedStyle(excerpt).textOverflow).toBe("ellipsis");
+    expect(getComputedStyle(excerpt).whiteSpace).toBe("nowrap");
+    expect(excerpt.scrollWidth).toBeGreaterThan(excerpt.clientWidth);
+    expect(excerpt.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(excerpt).lineHeight), 0);
+  });
+
+  it("shows the author's avatar before the name", async () => {
+    const { quote } = await render(<Composer label="Reply to Ada" quote={quoteOf({ avatar: <Avatar name="Ada Lovelace" alt="" size="xs" /> })} onSend={() => {}} />);
+    const avatar = quote!.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
+    expect(avatar.compareDocumentPosition(quote!.querySelector("[data-ouro-composer-quote-author]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(quote!.querySelector("[data-ouro-composer-quote-bar]")!.compareDocumentPosition(avatar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("describes the text with the quote, so screen readers hear what the reply quotes", async () => {
+    const { host, textarea, rerender } = await render(
+      <>
+        <p id="hint">Replies go to the thread</p>
+        <Composer label="Reply to Ada" aria-describedby="hint" description="Ctrl+Enter to send" quote={quoteOf({ excerpt: "Lunch on Friday?" })} onSend={() => {}} />
+      </>,
+    );
+    expect(descriptions(textarea)).toEqual(["Replies go to the thread", "Quoting Ada Lovelace: ", "Lunch on Friday?", "Ctrl+Enter to send"]);
+    await expect.element(page.getByRole("textbox", { name: "Reply to Ada" })).toHaveAccessibleDescription("Replies go to the thread Quoting Ada Lovelace: Lunch on Friday? Ctrl+Enter to send");
+    expect(host.querySelector("[data-ouro-composer-quote-author]")!.getAttribute("aria-hidden")).toBe("true");
+    await rerender(
+      <>
+        <p id="hint">Replies go to the thread</p>
+        <Composer label="Reply to Ada" aria-describedby="hint" description="Ctrl+Enter to send" onSend={() => {}} />
+      </>,
+    );
+    expect(descriptions(textarea)).toEqual(["Replies go to the thread", "Ctrl+Enter to send"]);
+  });
+
+  it("reads label and removeLabel, for other languages", async () => {
+    const { textarea } = await render(<Composer label="Antwort an Ada" quote={quoteOf({ excerpt: "Mittagessen?", label: "Zitat von Ada", removeLabel: "Zitat entfernen" })} onSend={() => {}} />);
+    expect(descriptions(textarea)).toEqual(["Zitat von Ada: ", "Mittagessen?"]);
+    await expect.element(page.getByRole("button", { name: "Zitat entfernen" })).toBeVisible();
+  });
+
+  it("names the remove button after the author, which the keyboard reaches before the text and which removes the quote and puts focus back in the box", async () => {
+    const onRemove = vi.fn();
+    const { textarea, remove } = await render(<Quoting onRemove={onRemove} />);
+    expect(remove!.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
+    textarea.focus();
+    await pressTab({ shift: true });
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Remove quote from Ada Lovelace" }).element());
+    await userEvent.keyboard("{Enter}");
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(textarea);
+  });
+
+  it("puts focus back in the box after a press of the remove button, even while the app keeps the quote", async () => {
+    const onRemove = vi.fn();
+    const { textarea, remove, quote } = await render(<Composer label="Reply to Ada" quote={quoteOf({ onRemove })} onSend={() => {}} />);
+    await userEvent.click(remove!);
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    expect(quote!.isConnected).toBe(true);
+    expect(document.activeElement).toBe(textarea);
+  });
+
+  it("puts focus back in the box after the remove button without scrolling a box around it", async () => {
+    const { host, textarea, remove } = await render(
+      <div data-frame="" style={{ height: 80, overflow: "hidden" }}>
+        <div style={{ height: 400 }} />
+        <Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />
+      </div>,
+    );
+    await act(async () => remove!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(host.querySelector<HTMLElement>("[data-frame]")!.scrollTop).toBe(0);
+  });
+
+  it("removes the quote on Escape while the box is empty, and that Escape goes no further", async () => {
+    const onRemove = vi.fn();
+    const outer = vi.fn();
+    const onDocument = vi.fn();
+    document.addEventListener("keydown", onDocument);
+    try {
+      const { textarea, host } = await render(
+        <div onKeyDown={outer}>
+          <Quoting onRemove={onRemove} />
+        </div>,
+      );
+      textarea.focus();
+      await userEvent.keyboard("{Escape}");
+      expect(onRemove).toHaveBeenCalledTimes(1);
+      expect(host.querySelector("[data-ouro-composer-quote]")).toBeNull();
+      expect(outer).not.toHaveBeenCalled();
+      expect(onDocument).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(textarea);
+    } finally {
+      document.removeEventListener("keydown", onDocument);
+    }
+  });
+
+  it("takes the Escape it uses, so nothing else acts on it", async () => {
+    const { textarea } = await render(<Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />);
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void textarea.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+  });
+
+  it("leaves Escape alone while the box has text, while an input method composes, or after the app's onKeyDown prevents it", async () => {
+    const onRemove = vi.fn();
+    const outer = vi.fn();
+    const { textarea, rerender } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply to Ada" defaultValue="See you" quote={quoteOf({ onRemove })} onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+    await rerender(
+      <div onKeyDown={outer}>
+        <Composer label="Reply to Ada" value="" onValueChange={() => {}} quote={quoteOf({ onRemove })} onSend={() => {}} />
+      </div>,
+    );
+    for (const init of [{ isComposing: true }, { keyCode: 229 }]) {
+      await act(async () => void textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, ...init })));
+    }
+    expect(outer).toHaveBeenCalledTimes(3);
+    await rerender(
+      <div onKeyDown={outer}>
+        <Composer label="Reply to Ada" value="" onValueChange={() => {}} quote={quoteOf({ onRemove })} onKeyDown={(event) => event.preventDefault()} onSend={() => {}} />
+      </div>,
+    );
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(4);
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it("without a quote, lets Escape in the empty box go on to the app", async () => {
+    const outer = vi.fn();
+    const { textarea } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Message" onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays after a send until the app clears it", async () => {
+    const onRemove = vi.fn();
+    const onSend = vi.fn();
+    const { textarea, quote } = await render(<Composer label="Reply to Ada" quote={quoteOf({ onRemove })} onSend={onSend} />);
+    textarea.focus();
+    await userEvent.keyboard("Sounds good{Enter}");
+    expect(onSend).toHaveBeenCalledWith("Sounds good", expect.anything());
+    expect(quote!.isConnected).toBe(true);
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it("leaves focus in the box when a quote appears", async () => {
+    const { textarea, rerender } = await render(<Composer label="Reply to Ada" onSend={() => {}} />);
+    textarea.focus();
+    await rerender(<Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />);
+    expect(document.activeElement).toBe(textarea);
+  });
+
+  it("fades in with opacity only, and not at all with reduced motion", async () => {
+    const transitions = (element: Element) => element.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
+    const { host, rerender } = await render(<Composer label="Reply to Ada" onSend={() => {}} />);
+    await rerender(<Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />);
+    expect(transitions(host.querySelector("[data-ouro-composer-quote]")!)).toEqual(["opacity"]);
+    await rerender(<Composer label="Reply to Ada" onSend={() => {}} />);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await rerender(<Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />);
+      const quote = host.querySelector<HTMLElement>("[data-ouro-composer-quote]")!;
+      expect(transitions(quote)).toEqual([]);
+      expect(getComputedStyle(quote).opacity).toBe("1");
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+
+  it("is a button with onActivate, named by the quote, which the keyboard reaches before the remove button", async () => {
+    const onActivate = vi.fn();
+    const { host, textarea } = await render(<Composer label="Reply to Ada" quote={quoteOf({ excerpt: "Lunch on Friday?", onActivate })} onSend={() => {}} />);
+    const button = page.getByRole("button", { name: "Quoting Ada Lovelace: Lunch on Friday?" });
+    await userEvent.click(button);
+    expect(onActivate).toHaveBeenCalledTimes(1);
+    expect(button.element().getAttribute("type")).toBe("button");
+    expect(button.element().getAttribute("data-ouro-part")).toBe("quote");
+    textarea.focus();
+    await pressTab({ shift: true });
+    await pressTab({ shift: true });
+    expect(document.activeElement).toBe(button.element());
+    await userEvent.keyboard("{Enter}");
+    expect(onActivate).toHaveBeenCalledTimes(2);
+    expect(host.querySelectorAll("[data-ouro-composer-quote-bar]")).toHaveLength(1);
+  });
+
+  it("is no button without onActivate", async () => {
+    const { host } = await render(<Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />);
+    expect(host.querySelector('[data-ouro-part="quote"]')).toBeNull();
+    expect(host.querySelectorAll("button")).toHaveLength(2);
+  });
+
+  it("turns the remove button off with the rest of a disabled composer", async () => {
+    const { remove } = await render(<Composer label="Reply to Ada" disabled quote={quoteOf()} onSend={() => {}} />);
+    expect(remove!.disabled).toBe(true);
+  });
+
+  it("looks as Message's quote does once the reply is sent", async () => {
+    const { host } = await render(
+      <>
+        <Composer label="Reply to Ada" quote={quoteOf()} onSend={() => {}} />
+        <Message variant="chat" role="user" name="Priya Okafor" quote={{ author: "Ada Lovelace", excerpt: lunch }}>
+          Sounds good
+        </Message>
+      </>,
+    );
+    const composer = host.querySelector<HTMLElement>("[data-ouro-composer-quote]")!;
+    const sent = host.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    const same = (a: Element, b: Element, properties: string[]) => {
+      for (const property of properties) expect(getComputedStyle(a).getPropertyValue(property), property).toBe(getComputedStyle(b).getPropertyValue(property));
+    };
+    same(composer, sent, ["background-color", "border-radius", "box-shadow"]);
+    same(composer.querySelector("[data-ouro-composer-quote-bar]")!, sent.querySelector("[data-ouro-message-quote-bar]")!, ["width", "background-color", "border-radius"]);
+    same(composer.querySelector("[data-ouro-composer-quote-author]")!, sent.querySelector("[data-ouro-message-quote-author]")!, ["font-size", "font-weight", "color"]);
+    same(composer.querySelector("[data-ouro-composer-quote-excerpt]")!, sent.querySelector("[data-ouro-message-quote-excerpt]")!, ["font-size", "color", "text-overflow", "white-space"]);
+  });
+});
+
 describe("Composer development messages", () => {
   it.each([
     ["sendOn", { sendOn: "shift-enter" }, 'sendOn="shift-enter" is not a key; use "enter" or "mod-enter"', '<Composer sendOn="enter">'],
@@ -401,6 +685,7 @@ describe("Composer development messages", () => {
     ["enterToSend", { enterToSend: true }, "enterToSend is not a prop", '<Composer sendOn="enter">'],
     ["loading", { loading: true }, "loading is not a prop", "<Composer sending>"],
     ["sendDisabled", { sendDisabled: true }, "sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
+    ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>'],
   ])("says what to use instead of %s", async (name, extra, problem, fix) => {
     const props = { label: "Message", onSend: () => {}, ...extra } as unknown as ComposerProps;
     const { host } = await render(<Composer {...props} />);
@@ -438,6 +723,7 @@ describe("Composer development messages", () => {
         attachments={<Attachment name="menu.pdf" />}
         highlights={[{ start: 0, end: 2, label: "Suggested" }]}
         defaultValue="Hi there"
+        quote={{ author: "Ada Lovelace", excerpt: "Lunch?", avatar: <Avatar name="Ada Lovelace" alt="" size="xs" />, onRemove: () => {}, onActivate: () => {} }}
         className="mt-2"
         onSend={() => {}}
       />,
@@ -458,6 +744,31 @@ describe("Composer server rendering", () => {
     const textarea = doc.querySelector("textarea")!;
     expect(textarea.textContent).toBe("Hi");
     expect(textarea.getAttribute("aria-describedby")!.split(" ").map((id) => doc.getElementById(id)!.textContent)).toEqual(["Sending is off.", "Ctrl+Enter to send"]);
+  });
+
+  it("renders the quote and the text's description on the server, and hydrates with no error", async () => {
+    const quoted = (
+      <div>
+        <Composer label="Reply to Ada" quote={quoteOf({ excerpt: "Lunch on Friday?" })} onSend={() => {}} />
+      </div>
+    );
+    const html = renderToString(quoted);
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const textarea = doc.querySelector("textarea")!;
+    expect(textarea.getAttribute("aria-describedby")!.split(" ").map((id) => doc.getElementById(id)!.textContent)).toEqual(["Quoting Ada Lovelace: ", "Lunch on Friday?"]);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, quoted, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("hydrates with no hydration error", async () => {
