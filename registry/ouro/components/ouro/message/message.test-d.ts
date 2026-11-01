@@ -1,5 +1,6 @@
 import { createElement, type ComponentProps, type MouseEvent, type ReactElement } from "react";
 import { expectTypeOf } from "vitest";
+import type { AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 
 // Type tests: `pnpm typecheck` compiles this file.
@@ -25,6 +26,9 @@ expectTypeOf<{
 }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "post"; subject: "Agenda" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "reply" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Ada"; variant: "chat"; presence: "busy"; presenceLabel: "In a meeting" }>().toExtend<MessageProps>();
+// A presence that may be missing, with its label, type checks as it is.
+expectTypeOf<{ role: "assistant"; name: "Ada"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<MessageProps>();
 expectTypeOf<{ key: "reply"; label: "Reply"; icon: "↩"; onClick: (event: MouseEvent<HTMLElement>) => void; disabled: true }>().toExtend<MessageAction>();
 // An action needs a label, for its name and tooltip.
 expectTypeOf<{ key: "reply"; icon: "↩"; onClick: () => void }>().not.toExtend<MessageAction>();
@@ -39,6 +43,11 @@ expectTypeOf<{ role: "user"; name: "Ada"; content: "Hi" }>().not.toExtend<Messag
 expectTypeOf<{ role: "user"; name: "Ada"; variant: "bubble" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; own: true }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ada"; timestamp: "9:41" }>().not.toExtend<MessageProps>();
+// A presence needs the words it says; unknown presences name the fix.
+expectTypeOf<{ role: "assistant"; name: "Ada"; presence: "busy" }>().not.toExtend<MessageProps>();
+expectTypeOf<{ role: "assistant"; name: "Ada"; presence: "dnd"; presenceLabel: "Busy" }>().not.toExtend<MessageProps>();
 
 // @ts-expect-error name is required.
 createElement(Message, { role: "user" });
+// @ts-expect-error presence needs presenceLabel.
+createElement(Message, { role: "assistant", name: "Ada", presence: "busy" });

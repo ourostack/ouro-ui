@@ -49,7 +49,7 @@ function crewReacts(reactions: readonly Reaction[], key: ReactionKey): Reaction[
 /**
  * The ship's radio: a little chat with the crew, built from Ouro HX's chat parts. ConversationList
  * picks who you talk to, MessageList and Message hold the chat, Composer sends your line, Avatar
- * shows who is on the radio, and ReactionBar takes your emoji. The replies are scripted
+ * shows who is on the radio and each crew member's presence beside their lines, and ReactionBar takes your emoji. The replies are scripted
  * (radioReply): no network and no AI. Once the plan is done, or you mention the squid, or you send
  * a few messages, someone new calls: the squid, who comes to say hi in Chapter III.
  */
@@ -98,6 +98,12 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
   };
 
   const presenceOf = (name: (typeof CREW_NAMES)[number]) => (name === "Ned Land" && awake ? { presence: "available" as const, label: RADIO.awake } : RADIO.presence[name]);
+  // A crew member's line shows their dot on its avatar, as the list of who is on the air does.
+  const dotOf = (line: Line) => {
+    if (line.role !== "assistant" || !Object.hasOwn(RADIO.presence, line.name)) return {};
+    const { presence, label } = presenceOf(line.name as (typeof CREW_NAMES)[number]);
+    return { presence, presenceLabel: label };
+  };
   const captain = presenceOf("Captain Nemo");
   const channels: ConversationListItem[] = [
     { id: "crew", title: RADIO.crew, subtitle: RADIO.crewNote, avatar: <Avatar name={RADIO.crew} shape="square" alt="" /> },
@@ -140,6 +146,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
               key={line.id}
               role={line.role}
               name={line.name}
+              {...dotOf(line)}
               streaming={line.streaming}
               streamingLabel={RADIO.writing}
               attachments={

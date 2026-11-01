@@ -360,6 +360,12 @@ describe("Avatar shapes and icons", () => {
     expect(mark.left - box.left).toBeCloseTo(box.right - mark.right, 0);
     expect(mark.top - box.top).toBeCloseTo(box.bottom - mark.bottom, 0);
   });
+
+  it("shows the initials when the icon is null", async () => {
+    const { avatar } = await render(<Avatar name="Weekly sync" icon={null} />);
+    expect(avatar.textContent).toBe("WS");
+    expect(avatar.querySelector("[data-ouro-avatar-initials]")).not.toBeNull();
+  });
 });
 
 describe("Avatar presence", () => {
@@ -385,38 +391,58 @@ describe("Avatar presence", () => {
     }
   });
 
-  it.each(["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const)("keeps wide initials clear of the presence dot (%s)", async (size) => {
+  it.each(["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const)("keeps the initials in the middle with or without a dot, and the dot off them (%s)", async (size) => {
     const { host } = await render(
       <>
-        <Avatar name="Mona Example" initials="MW" size={size} data-plain="" />
-        {["MW", "WM", "ME", "WW"].map((initials) => (
-          <Avatar key={initials} name="Mona Example" initials={initials} size={size} presence="busy" presenceLabel="Busy" />
-        ))}
+        {["CN", "PA", "NL", "C", "MW", "WW"].flatMap((initials) => [
+          <Avatar key={initials} name="Mona Example" initials={initials} size={size} />,
+          <Avatar key={`${initials} busy`} name="Mona Example" initials={initials} size={size} presence="busy" presenceLabel="Busy" />,
+        ])}
       </>,
     );
-    // Without a dot, the initials stay in the middle.
-    const plain = host.querySelector<HTMLElement>("[data-plain]")!;
-    const plainBox = plain.getBoundingClientRect();
-    const plainRange = document.createRange();
-    plainRange.selectNodeContents(plain.firstElementChild!);
-    const plainText = plainRange.getClientRects()[0]!;
-    expect(Math.abs(plainBox.left + plainBox.width / 2 - (plainText.left + plainText.width / 2))).toBeLessThan(1);
-    expect(Math.abs(plainBox.top + plainBox.height / 2 - (plainText.top + plainText.height / 2))).toBeLessThan(1.5);
-    for (const avatar of host.querySelectorAll<HTMLElement>('[data-ouro="avatar"][data-presence]')) {
-      const dot = avatar.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!.getBoundingClientRect();
-      const range = document.createRange();
-      range.selectNodeContents(avatar.firstElementChild!);
-      for (const text of range.getClientRects()) {
-        // Half a pixel clear above the dot, for this font's line and for any line up to 1.3em tall.
-        const tallest = text.top + text.height / 2 + 0.65 * parseFloat(getComputedStyle(avatar).fontSize);
-        expect(dot.top - Math.max(text.bottom, tallest), `${size} ${avatar.textContent}: text ${JSON.stringify(text)} dot ${JSON.stringify(dot)}`).toBeGreaterThanOrEqual(0.5);
-        // The small sizes lean away from the dot, toward the start.
-        const box = avatar.getBoundingClientRect();
-        const lean = box.left + box.width / 2 - (text.left + text.width / 2);
-        if (["xs", "sm", "md"].includes(size)) expect(lean).toBeGreaterThanOrEqual(1.5);
-        else expect(Math.abs(lean)).toBeLessThan(1);
-      }
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(avatars.filter((avatar) => avatar.hasAttribute("data-presence"))).toHaveLength(6);
+    const fontSize = parseFloat(getComputedStyle(avatars[0]!).fontSize);
+    for (const avatar of avatars) {
+      const box = avatar.getBoundingClientRect();
+      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
+      const where = `${size} ${avatar.textContent}${avatar.dataset["presence"] ? " with a dot" : ""}: letters ${JSON.stringify(letters)} avatar ${JSON.stringify(box)}`;
+      // The initials' box runs from the top of the capitals to the baseline (a cap height, under
+      // 0.8em in any font, where the line would be at least 1em), so its middle is the letters' own.
+      expect(letters.height / fontSize, where).toBeGreaterThan(0.6);
+      expect(letters.height / fontSize, where).toBeLessThan(0.8);
+      expect(Math.abs(letters.left + letters.width / 2 - (box.left + box.width / 2)), where).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(letters.top + letters.height / 2 - (box.top + box.height / 2)), where).toBeLessThanOrEqual(0.5);
+      const dot = avatar.querySelector("[data-ouro-avatar-presence]")?.getBoundingClientRect();
+      if (dot) expect(dot.top, where).toBeGreaterThanOrEqual(letters.bottom);
     }
+  });
+
+  it("keeps an icon and a picture in the middle with a dot, as without one", async () => {
+    const icon = (
+      <svg viewBox="0 0 20 20">
+        <rect width="20" height="20" />
+      </svg>
+    );
+    const { host } = await render(
+      <>
+        <Avatar name="Weekly sync" icon={icon} size="lg" />
+        <Avatar name="Weekly sync" icon={icon} size="lg" presence="away" presenceLabel="Away" />
+        <Avatar name="Ada Lovelace" src={photo} size="lg" />
+        <Avatar name="Ada Lovelace" src={photo} size="lg" presence="away" presenceLabel="Away" />
+      </>,
+    );
+    await expect.poll(() => host.querySelectorAll('[data-ouro="avatar"][data-image="loaded"]').length).toBe(2);
+    const [plainIcon, dotIcon, plainPhoto, dotPhoto] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => {
+      const box = avatar.getBoundingClientRect();
+      const mark = avatar.querySelector("svg, img")!.getBoundingClientRect();
+      return { left: mark.left - box.left, top: mark.top - box.top, width: mark.width, height: mark.height };
+    });
+    expect(dotIcon).toEqual(plainIcon);
+    expect(plainIcon!.left).toBeCloseTo((48 - plainIcon!.width) / 2, 1);
+    expect(plainIcon!.top).toBeCloseTo((48 - plainIcon!.height) / 2, 1);
+    expect(dotPhoto).toEqual(plainPhoto);
+    expect(plainPhoto).toEqual({ left: 0, top: 0, width: 48, height: 48 });
   });
 
   const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;

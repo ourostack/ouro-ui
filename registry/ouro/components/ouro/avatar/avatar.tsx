@@ -101,9 +101,11 @@ export interface AvatarPresenceProps {
    * and a named tone (available: success; busy and do not disturb: destructive; away:
    * warning; offline: muted; out of office: primary). The dot's ring takes the surface's
    * color, `--ouro-avatar-ring` (default `--background`): set it on a card,
-   * `[--ouro-avatar-ring:var(--card)]`. The initials sit a little higher beside the dot, so
-   * even wide ones stay clear of it at every size.
-   * @claim "The initials sit a little higher" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > keeps wide initials clear of the presence dot (%s))
+   * `[--ouro-avatar-ring:var(--card)]`. The dot lies over the corner and takes no room, so
+   * the initials, icon or picture stay in the middle with or without it, and the dot stays
+   * below the letters at every size.
+   * @claim "The dot lies over the corner" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > keeps the initials in the middle with or without a dot, and the dot off them (%s))
+   * @claim "The dot lies over the corner" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > keeps an icon and a picture in the middle with a dot, as without one)
    * @claim "Each state has its own shape" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > draws each state in its own shape and tone)
    */
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
@@ -196,20 +198,6 @@ const presenceSizes = {
   "2xl": "size-5.5 p-0.5 end-0 bottom-0",
   "3xl": "size-7 p-0.75 end-0.5 bottom-0.5",
 } as const;
-
-// With a presence dot, the initials (or icon) sit a little higher, so a line of text up to
-// 1.3em tall, as wide initials ("MW") in any font are, ends at least half a pixel above the
-// dot, and the dot never covers the text it is measured against. The small sizes also lean
-// toward the start, so the initials look moved aside for the dot rather than just raised.
-// The largest size has room.
-const presenceLifts: Partial<Record<AvatarSize, string>> = {
-  xs: "pb-1.5 pe-1",
-  sm: "pb-[7px] pe-1",
-  md: "pb-1.5 pe-1",
-  lg: "pb-1",
-  xl: "pb-0.75",
-  "2xl": "pb-1.25",
-};
 
 // Each hue tints the surface and colors the initials, mixed toward the theme's background and
 // foreground so the pair keeps at least 4.5:1 in light and dark.
@@ -402,6 +390,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   // alt="" (the name written beside it) only the presence is read.
   const spoken = presence ? presenceLabel || presence.replaceAll("-", " ") : "";
   const label = [alt ?? name, spoken].filter(Boolean).join(", ");
+  const iconShown = icon !== undefined && icon !== null;
   const tint = color === "neutral" ? neutral : color === "brand" ? brand : hueOf(idForColor ?? name);
   return (
     <BaseAvatar.Root
@@ -428,8 +417,16 @@ export function Avatar(props: AvatarProps): JSX.Element {
           className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
         />
       )}
-      <BaseAvatar.Fallback className={cn("box-border flex size-full items-center justify-center *:size-[55%]", presence && presenceLifts[size])}>
-        {icon ?? initials ?? initialsOf(name)}
+      <BaseAvatar.Fallback className={cn("box-border flex size-full items-center justify-center", iconShown && "*:size-[55%]")}>
+        {iconShown ? (
+          icon
+        ) : (
+          // Trimmed to the letters' cap height and baseline, so the letters themselves sit in the
+          // middle, not their line with its room for accents and descenders.
+          <span data-ouro-avatar-initials="" className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic]">
+            {initials ?? initialsOf(name)}
+          </span>
+        )}
       </BaseAvatar.Fallback>
       {presence && (
         <span
