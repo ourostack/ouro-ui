@@ -163,8 +163,11 @@ describe("Autocomplete with a catalogue", () => {
     await userEvent.click(page.getByRole("radio", { name: "Medium", exact: true }));
     await userEvent.click(page.getByRole("button", { name: "Thumbs up" }));
     expect(onSelect.mock.lastCall![0]).toMatchObject({ id: "thumbs-up-tone3", token: ":thumbs-up-tone3:", skinTone: "medium" });
+    // Once the picker has closed and given focus back to its button, the person goes back to the box.
+    await expect.poll(() => document.querySelector('[data-ouro="emoji-picker"]')).toBeNull();
+    await userEvent.click(page.getByRole("textbox", { name: "Message" }));
+    await expect.poll(() => document.activeElement).toBe(control);
     // Now a suggestion shows and inserts the same tone; an emoji without tones is unchanged.
-    control.focus();
     await userEvent.keyboard(":th");
     await expect.poll(descriptions).toEqual([":thumbs-up-tone3:", ":thanks:"]);
     expect(options().map(art)).toEqual([image("thumbs tone3"), thanks.src]);
