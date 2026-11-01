@@ -49,6 +49,16 @@ export interface ToasterProps {
    * @claim "The accessible name of each toast's" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > translates the region name and the dismiss button with label and closeLabel)
    */
   closeLabel?: string | undefined;
+  /**
+   * A CSS selector for controls the toasts must stay clear of, such as a call's Join button in a
+   * corner. While one is on screen in the lower half of the window, under the toasts' column, the
+   * toasts rise to sit 8px above it, and they come back down when it goes. Mark the controls and
+   * pass the selector: `<Toaster avoid="[data-keep-clear]" />`.
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > keeps the toasts clear of a control the selector matches under them, and comes back down when it goes)
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > stays where it is for a matched control away from its column or in the window's top half)
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > rises above a control at the bottom of a phone, where the toasts span the width)
+   */
+  avoid?: string | undefined;
 
   /** Not a prop. Toasts default to the bottom: full width on phones, at the bottom end from `sm`; className adjusts viewport layout. */
   position?: { 'Not a prop: toasts show at the bottom. Use <Toaster />': never };
@@ -123,7 +133,7 @@ export interface ToasterProps {
  * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  */
 export function Toaster(props: ToasterProps): JSX.Element | null {
-  const { className, label = "Notifications", closeLabel = "Dismiss", position, richColors, theme, duration } = props;
+  const { className, label = "Notifications", closeLabel = "Dismiss", avoid, position, richColors, theme, duration } = props;
   const [active, setActive] = useState(false);
   useAppearanceClassNameCheck(
     "Toaster",
@@ -167,12 +177,68 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
             >
               <ToastList closeLabel={closeLabel} />
               <ToastAnnouncer />
+              {avoid !== undefined && <KeepClear avoid={avoid} />}
             </Toast.Viewport>
           </PortalScope>
         </Toast.Portal>
       )}
     </Toast.Provider>
   );
+}
+
+/** How far above a control the toasts sit when they keep clear of it, in px. */
+const CLEARANCE = 8;
+
+/**
+ * Keeps the toasts' viewport clear of the elements `avoid` matches: one on screen in the lower half
+ * of the window, across the viewport's column, lifts the viewport to sit above it. It measures again
+ * when the window resizes or scrolls, a matched element resizes, or the page changes (outside the
+ * toasts), once a frame at most. It lives in the viewport, so it runs while there are toasts.
+ */
+function KeepClear({ avoid }: { avoid: string }): JSX.Element {
+  const mark = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    const viewport = mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!;
+    const resize = new ResizeObserver(() => soon());
+    const place = () => {
+      viewport.style.removeProperty("bottom");
+      const column = viewport.getBoundingClientRect();
+      const height = document.documentElement.clientHeight;
+      let lift = 0;
+      resize.disconnect();
+      for (const element of document.querySelectorAll(avoid)) {
+        resize.observe(element);
+        const box = element.getBoundingClientRect();
+        if (!element.checkVisibility({ visibilityProperty: true, opacityProperty: true }) || box.top < height / 2 || box.right <= column.left || box.left >= column.right) continue;
+        lift = Math.max(lift, height - box.top + CLEARANCE);
+      }
+      // Stryker disable next-line EqualityOperator: at equal values the lift puts the viewport where it already is.
+      if (lift > height - column.bottom) viewport.style.bottom = `${lift}px`;
+    };
+    let frame = 0;
+    const soon = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        place();
+      });
+    };
+    const page = new MutationObserver((records) => {
+      if (records.some((record) => !viewport.contains(record.target))) soon();
+    });
+    page.observe(document.body, { childList: true, subtree: true, attributes: true });
+    addEventListener("resize", soon);
+    addEventListener("scroll", soon, { capture: true, passive: true });
+    place();
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      page.disconnect();
+      removeEventListener("resize", soon);
+      removeEventListener("scroll", soon, { capture: true });
+    };
+  }, [avoid]);
+  return <span ref={mark} hidden data-ouro-toaster-keep-clear="" />;
 }
 
 /** Whether a toast waits ahead of the others: a destructive one. */
