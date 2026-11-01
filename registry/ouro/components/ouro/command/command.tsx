@@ -43,8 +43,16 @@ import {
 
 /** One command in a Command palette's `items`. */
 export interface CommandItem {
-  /** The command's text, which the search matches. */
+  /** The command's text, which the search matches and screen readers hear. */
   label: string;
+  /**
+   * What the row shows in place of `label`, when plain text cannot draw it: a chat's name with
+   * its emoji as pictures (`<EmojiText text={chat.name} catalogue={catalogue} />`). `label`
+   * stays the text the search matches and the row's name for screen readers.
+   *
+   * @claim "`label` stays the text the search matches" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows labelContent in place of the label, while the search and the row's name still use the label)
+   */
+  labelContent?: ReactNode;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
   /**
@@ -550,7 +558,14 @@ export function Command(props: CommandProps): JSX.Element {
                         )
                       )}
                       <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
-                        {item.label}
+                        {item.labelContent === undefined ? (
+                          item.label
+                        ) : (
+                          <>
+                            <span aria-hidden="true">{item.labelContent}</span>
+                            <span className="sr-only">{item.label}</span>
+                          </>
+                        )}
                       </span>
                       {shown(item.mark) && (
                         <span data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
