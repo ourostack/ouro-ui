@@ -570,6 +570,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const scrollKey = `${days[0]}:${days.length}:${todayIndex}`;
   // Where today's first event starts, in minutes, or -1 with none today, which is never after now.
   const firstToday = todayIndex >= 0 && timed[todayIndex]!.length > 0 ? Math.min(...timed[todayIndex]!.map((placed) => placed.top)) : -1;
+  // Stryker disable next-line EqualityOperator,ConditionalExpression: any form of this flag changes exactly when today gains or loses its events, which is all the scroll reads it for.
+  const noneToday = firstToday < 0;
   // Where the grid last opened, so today's events arriving after it opened (fetched after mount)
   // move it once more, unless the reader has scrolled since.
   const opened = useRef<{ key: string; top: number } | null>(null);
@@ -582,10 +584,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
     opened.current = { key: scrollKey, top: viewport.scrollTop };
     // Only the days shown, whether today is among them, and whether today has events move the scroll.
-    // Stryker disable EqualityOperator,ConditionalExpression: any form of the flag changes exactly when today gains or loses its events.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollKey, firstToday < 0]);
-  // Stryker restore EqualityOperator,ConditionalExpression
+  }, [scrollKey, noneToday]);
 
   // The app's day summaries make the header as tall as they are, which only a measure knows;
   // events scrolled into view stop below it.
