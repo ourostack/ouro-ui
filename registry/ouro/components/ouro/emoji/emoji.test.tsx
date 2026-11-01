@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -230,11 +230,21 @@ describe("Emoji", () => {
     await rerender(<Emoji item={blink} play={false} />);
     expect(emoji(host).getAnimations()).toEqual([]);
     expect(emoji(host).getAttribute("src")).toBe(blink.src);
-    // A tall still image is no filmstrip: only a filmstrip that plays is stepped.
-    await rerender(<Emoji item={{ id: "tall", name: "Tall banner", src: strip("tall", 3) }} />);
-    await emoji(host).decode();
+    // A tall still image is no filmstrip: only a filmstrip that plays is stepped, and nothing fails.
+    const rejected = vi.fn();
+    window.addEventListener("unhandledrejection", rejected);
+    onTestFinished(() => window.removeEventListener("unhandledrejection", rejected));
+    const tall = await render(<Emoji item={{ id: "tall", name: "Tall banner", src: strip("tall", 3) }} />);
+    await emoji(tall.host).decode();
     await act(async () => {});
-    expect(emoji(host).getAnimations()).toEqual([]);
+    await new Promise(requestAnimationFrame);
+    expect(emoji(tall.host).getAnimations()).toEqual([]);
+    expect(rejected).not.toHaveBeenCalled();
+    // A fresh emoji stopped before its filmstrip is ready stops cleanly.
+    const fresh = await render(<Emoji item={{ ...blink, filmstrip: { src: strip("fresh", 4), fps: 8 } }} play />);
+    await fresh.rerender(<Emoji item={{ ...blink, filmstrip: { src: strip("fresh", 4), fps: 8 } }} play={false} />);
+    expect(emoji(fresh.host).getAttribute("src")).toBe(blink.src);
+    expect(emoji(fresh.host).getAnimations()).toEqual([]);
   });
 
   it("plays and stops with play, plays for the image itself outside a button, and never without an animated image", async () => {
