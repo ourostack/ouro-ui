@@ -235,6 +235,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://support.apple.com/en-us/102650": {
+    "status": 200,
+    "checked": "2026-11-01"
+  },
   "https://support.apple.com/guide/safari/advanced-ibrw1075/mac": {
     "status": 200,
     "checked": "2026-10-30"

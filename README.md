@@ -380,6 +380,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-form-answer`,
 `lib-key-shortcuts`,
 `lib-last-input`,
+`lib-navigation-key`,
 `lib-open-mode`,
 `lib-ouro-provider`,
 `lib-page-scroll-hold`,

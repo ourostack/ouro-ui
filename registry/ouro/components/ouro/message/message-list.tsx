@@ -5,6 +5,7 @@ import type { HTMLAttributes, JSX, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -886,13 +887,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // A key in a control inside a message is the control's.
       if (itemOf(item) !== item) return;
       keyFor.current?.(item, reactEvent);
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      // ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a Mac are its Home, End, Page Up and Page Down.
+      const key = navigationKey(event);
+      if (event.defaultPrevented || key === null) return;
       const list = topItems(content);
       const at = list.indexOf(item);
       const box = boxOf(item);
       const view = scroller.getBoundingClientRect();
       let goal: HTMLElement | undefined;
-      switch (event.key) {
+      switch (key) {
         case getComputedStyle(item).direction === "rtl" ? "ArrowLeft" : "ArrowRight": {
           const inside = tabbables(item);
           goal = inside.find((element) => element.closest('[role="toolbar"]') !== null) ?? inside[0];
@@ -912,8 +915,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         case "PageDown":
         case "ArrowUp":
         case "PageUp": {
-          const forward = event.key.endsWith("Down");
-          const paging = event.key.startsWith("Page");
+          const forward = key.endsWith("Down");
+          const paging = key.startsWith("Page");
           // A message taller than the list scrolls through first, a line or a page at a time.
           const beyond = forward ? box.bottom - view.bottom + EDGE : view.top + EDGE - box.top;
           // Stryker disable next-line EqualityOperator: a pixel past the edge is a rounding, not more message.

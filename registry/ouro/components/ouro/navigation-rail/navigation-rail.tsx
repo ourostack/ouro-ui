@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent, type M
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
+import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -324,12 +325,14 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
 
 /** The rail's keys: Up and Down move along its shown stops, wrapping, and Home and End go to the ends. */
 function moveAlongRail(event: KeyboardEvent<HTMLUListElement>) {
-  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !rovingKeys.has(event.key)) return;
+  // ⌘↑ and ⌘↓ on a Mac are its Home and End.
+  const key = navigationKey(event);
+  if (key === null || !rovingKeys.has(key)) return;
   const stops = [...event.currentTarget.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-stop]")].filter((element) => element.getClientRects().length > 0);
   const at = stops.indexOf(event.target as HTMLElement);
   if (at === -1) return;
   event.preventDefault();
-  const to = event.key === "ArrowDown" ? at + 1 : event.key === "ArrowUp" ? at - 1 : event.key === "Home" ? 0 : stops.length - 1;
+  const to = key === "ArrowDown" ? at + 1 : key === "ArrowUp" ? at - 1 : key === "Home" ? 0 : stops.length - 1;
   stops[(to + stops.length) % stops.length]!.focus();
 }
 

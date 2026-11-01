@@ -19,6 +19,7 @@ import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-a
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { renamedTones } from "@/registry/ouro/lib/ouro/tones";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -588,8 +589,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     onKeyDownProp?.(event);
     const key = (event.target as HTMLElement).dataset.ouroEventKey;
-    if (key === undefined || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
-    const next = stepTo(pieces, key, event.key, getComputedStyle(event.currentTarget).direction === "rtl");
+    // ⌘↑ and ⌘↓ on a Mac are its Home and End. Shift changes nothing here.
+    const pressed = navigationKey({ key: event.key, altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, shiftKey: false });
+    if (key === undefined || event.defaultPrevented || pressed === null) return;
+    const next = stepTo(pieces, key, pressed, getComputedStyle(event.currentTarget).direction === "rtl");
     if (next === undefined) return;
     event.preventDefault();
     focusPiece(next);
