@@ -889,7 +889,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       keyFor.current?.(item, reactEvent);
       // ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a Mac are its Home, End, Page Up and Page Down.
       const key = navigationKey(event);
-      if (event.defaultPrevented || key === null) return;
+      if (event.defaultPrevented) return;
       const list = topItems(content);
       const at = list.indexOf(item);
       const box = boxOf(item);

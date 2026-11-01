@@ -31,6 +31,16 @@ describe("navigationKey", () => {
     }
   });
 
+  it("asks User-Agent Client Hints for the platform first, and navigator.platform without them", () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    Object.defineProperty(navigator, "userAgentData", { configurable: true, get: () => ({ platform: "macOS" }) });
+    expect(navigationKey(press("ArrowUp", { metaKey: true }))).toBe("Home");
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    Object.defineProperty(navigator, "userAgentData", { configurable: true, get: () => undefined });
+    expect(navigationKey(press("ArrowUp", { metaKey: true }))).toBe("Home");
+    delete (navigator as unknown as Record<string, unknown>).userAgentData;
+  });
+
   it("leaves a key with a modifier alone, and the same keys elsewhere than an Apple platform", () => {
     onPlatform("MacIntel");
     expect(navigationKey(press("ArrowLeft", { metaKey: true }))).toBeNull();

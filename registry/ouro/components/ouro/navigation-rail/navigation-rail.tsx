@@ -327,7 +327,7 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
 function moveAlongRail(event: KeyboardEvent<HTMLUListElement>) {
   // ⌘↑ and ⌘↓ on a Mac are its Home and End.
   const key = navigationKey(event);
-  if (key === null || !rovingKeys.has(key)) return;
+  if (!rovingKeys.has(key ?? "")) return;
   const stops = [...event.currentTarget.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-stop]")].filter((element) => element.getClientRects().length > 0);
   const at = stops.indexOf(event.target as HTMLElement);
   if (at === -1) return;
