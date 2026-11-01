@@ -2,7 +2,7 @@ import type { JSX } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
-import { FigureValue, Mark, OutputLine, RuleText, Screen, Terminal, Transcript } from "./parts";
+import { FigureValue, Mark, OutputLine, RuleText, Screen, Terminal, Transcript, WRAP } from "./parts";
 import Playground from "./playground";
 import { cast } from "./cast";
 import { MORNING, MORNING_ART_ALT, TRANSCRIPTS, type Beat } from "./story";
@@ -58,7 +58,7 @@ function BeatRow({ beat }: { beat: Beat }): JSX.Element {
             <Transcript label={cast("What {agent} sees")} steps={beat.steps} waiting={beat.waiting} />
           ) : (
             <Terminal label={cast("What {agent} sees")} role="group" aria-label={cast("What {agent} sees")}>
-              <pre className="ax-term-body">
+              <pre className="ax-term-body" style={WRAP}>
                 <OutputLine text={CHECKED} />
                 <span className="ax-term-gap" aria-hidden="true" />
                 <span className="ax-term-line ax-term-aside">{cast("{agent} moves on without reading the room back.")}</span>

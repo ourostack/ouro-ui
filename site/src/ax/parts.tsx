@@ -3,6 +3,12 @@ import { InlineCode } from "../components/code";
 import type { Seen, Step } from "./story";
 import "./ax.css";
 
+/**
+ * A terminal's text wraps even before ax.css has loaded: the home page's section is server-rendered far below the
+ * first screen, and its stylesheet loads only with its island, so without this a long line would widen the page.
+ */
+export const WRAP = { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } as const;
+
 /** A line of the tool's output, coloured by what it says: a refusal, a check that held, or plain output. */
 export function OutputLine({ text, refused, fresh }: { text: string; refused?: boolean | undefined; fresh?: boolean | undefined }): JSX.Element {
   const tone = refused ? "ax-term-refused" : text.startsWith("Checked:") ? "ax-term-held" : "ax-term-out";
@@ -31,7 +37,7 @@ export function Terminal({ label, children, ...rest }: { label: string; children
 export function Transcript({ label, steps, waiting, after }: { label: string; steps: readonly Step[]; waiting?: string | undefined; after?: string | undefined }): JSX.Element {
   return (
     <Terminal label={label} role="group" aria-label={label}>
-      <pre className="ax-term-body">
+      <pre className="ax-term-body" style={WRAP}>
         {steps.map((step, index) => (
           <Fragment key={`${index}-${step.command}`}>
             {index > 0 && <span className="ax-term-gap" aria-hidden="true" />}
