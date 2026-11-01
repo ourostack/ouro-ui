@@ -4,11 +4,10 @@ import { Suspense, useEffect, useState, useSyncExternalStore, type JSX } from "r
 import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
-import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
 import { href, normalizePath } from "../paths";
-import { AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland } from "../voyage/chapters/island";
+import { ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
@@ -36,7 +35,8 @@ function Xray(): JSX.Element {
   useEffect(() => {
     if (!on) return;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => setPainted(true));
+      // PROBE (never merge): open the Inspector 100 ms later, to see whether its frame merges with the press's.
+      frame = requestAnimationFrame(() => (import.meta.env["VITE_XRAY_PROBE_DELAY"] ? window.setTimeout(() => setPainted(true), 100) : setPainted(true)));
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -71,12 +71,11 @@ const noSubscription = () => () => {};
 
 /**
  * The voyage pages ("Mobilis in mobili", site-design.md), one chunk and stylesheet: the home page
- * (the porthole stage, the two ships, the themes, agents and install), the Nautilus's own page
- * (the story's opening, its chapters, then Chapter I) and Ouro AX's (a morning with an agent, an island).
+ * (the porthole stage, the two ships, the themes, agents and install) and the Nautilus's own page
+ * (the story's opening, its chapters, then Chapter I).
  */
 export default function VoyagePage({ path }: { path: string }): JSX.Element {
-  const page = normalizePath(path);
-  const nautilus = page === "/nautilus/";
+  const nautilus = normalizePath(path) === "/nautilus/";
   useXrayFromAddress();
   useEggs(nautilus);
   // Leaving the page turns X-ray off, so the next page starts without it.
@@ -87,15 +86,9 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
         {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : "/"} />
+            <VoyageHeader path={nautilus ? "/nautilus/" : "/"} />
           </Suspense>
-          {page === "/ax/" ? (
-            <main>
-              <AxHero exhibit={<AxExhibitIsland />} />
-              <AxIsland />
-              <Popups />
-            </main>
-          ) : nautilus ? (
+          {nautilus ? (
             <main>
               <StoryOpening />
               <ChapterOneIsland />
