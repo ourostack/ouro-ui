@@ -30,11 +30,11 @@ import {
   allDayLanes,
   backgroundBarClass,
   backgroundBarFillClass,
-  backgroundBarHitClass,
   backgroundFillClass,
   barStatusClass,
   dayLength,
   eventClass,
+  eventHitClass,
   isIsoDate,
   layoutDay,
   lineCount,
@@ -703,11 +703,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const body = (
       <>
         <TouchTarget />
+        <span aria-hidden="true" data-ouro-time-grid-hit="" className={eventHitClass} />
         {bar ? (
-          <>
-            <span aria-hidden="true" data-ouro-time-grid-hit="" className={backgroundBarHitClass} />
-            <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
-          </>
+          <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
           <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
         )}

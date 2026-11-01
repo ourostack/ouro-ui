@@ -641,6 +641,18 @@ describe("TimeGrid", () => {
     expect(document.activeElement).toBe(titled("Standup"));
   });
 
+  it("gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller", async () => {
+    await render({ view: "day", events: [{ ...standup, start: at(12, "09:30"), end: at(12, "09:45") }, { id: "closed", title: "Office closed", start: "2026-03-12" }] });
+    for (const title of ["Standup", "Office closed"]) {
+      const event = titled(title);
+      event.scrollIntoView({ block: "center" });
+      const box = event.getBoundingClientRect();
+      expect(box.height).toBeLessThan(24);
+      const missed = [0.5, 6, 12, 18, 23.5].filter((dy) => document.elementFromPoint(box.left + 8, box.top + dy)?.closest("[data-ouro-event-key]") !== event);
+      expect(missed).toEqual([]);
+    }
+  });
+
   it("puts the Tab stop on the selected event, outlines it and marks it current", async () => {
     const { rerender } = await render({ events: [forum, focus, standup], selectedId: "focus" });
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Focus time")]);

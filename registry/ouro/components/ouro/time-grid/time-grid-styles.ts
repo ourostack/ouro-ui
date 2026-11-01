@@ -5,11 +5,11 @@ export {
   allDayLanes,
   backgroundBarClass,
   backgroundBarFillClass,
-  backgroundBarHitClass,
   backgroundFillClass,
   barStatusClass,
   dayLength,
   eventClass,
+  eventHitClass,
   isIsoDate,
   layoutDay,
   lineCount,
@@ -368,13 +368,15 @@ const backgroundFillClass =
 const backgroundBarClass = "group/bar border-0 bg-transparent p-0";
 
 /**
- * A week's bar's hit area: at least 24px square to a mouse too, invisible, from the bar's top
- * start corner toward the end and down, so a bar a few pixels wide is still easy to point at.
- * It grows away from the bars placed before it, which therefore stay under the pointer where they
- * show, and the person's own events stay above it.
- * @claim "A week's bar's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > gives a week's thin bar a hit area at least 24px square to a mouse from its top corner, without growing the bar)
+ * An event's hit area: at least 24px square to a mouse too, invisible, from its top start corner
+ * toward the end and down, so a short event, an all-day one and a week's bar a few pixels wide are
+ * easy to point at without being drawn bigger. It grows away from the events placed before it,
+ * which therefore stay under the pointer where they show, and a background event's stays under
+ * the person's own events.
+ * @claim "An event's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > gives a week's thin bar a hit area at least 24px square to a mouse from its top corner, without growing the bar)
+ * @claim "An event's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller)
  */
-const backgroundBarHitClass = "absolute top-0 start-0 size-[max(100%,1.5rem)]";
+const eventHitClass = "absolute top-0 start-0 size-[max(100%,1.5rem)]";
 
 /**
  * The slim bar a week draws for a background event: 4px, and 6px under a mouse or while its popover is open, with no motion.
