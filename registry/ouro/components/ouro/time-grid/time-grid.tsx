@@ -591,8 +591,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const key = (event.target as HTMLElement).dataset.ouroEventKey;
     // ⌘↑ and ⌘↓ on a Mac are its Home and End. Shift changes nothing here.
     const pressed = navigationKey({ key: event.key, altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, shiftKey: false });
-    if (key === undefined || event.defaultPrevented || pressed === null) return;
-    const next = stepTo(pieces, key, pressed, getComputedStyle(event.currentTarget).direction === "rtl");
+    if (key === undefined || event.defaultPrevented) return;
+    // A modified key the grid leaves alone is null, which moves to no event.
+    const next = stepTo(pieces, key, pressed as string, getComputedStyle(event.currentTarget).direction === "rtl");
     if (next === undefined) return;
     event.preventDefault();
     focusPiece(next);
