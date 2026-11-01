@@ -268,7 +268,7 @@ describe("CodeBlock emoji", () => {
         id: "symbols",
         label: "Symbols",
         items: [
-          { id: "party", name: "Party popper", shortcodes: ["party"], text: "🎉", src: image("party") },
+          { id: "party", name: "Party popper", shortcodes: ["party"], text: "🎉", src: image("party"), animatedSrc: image("party moving") },
           { id: "rocket", name: "Rocket", text: "🚀", src: image("rocket") },
         ],
       },
@@ -305,6 +305,7 @@ describe("CodeBlock emoji", () => {
       const drawnBox = picture.getBoundingClientRect();
       expect(Math.abs(drawnBox.left + drawnBox.width / 2 - (box.left + box.width / 2))).toBeLessThan(1);
     }
+    // Code stays still: an animated emoji shows its still picture.
     expect(emoji[0]!.querySelector("img")!.getAttribute("src")).toBe(image("party"));
   });
 
