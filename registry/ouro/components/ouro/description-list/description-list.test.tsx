@@ -56,9 +56,9 @@ describe("DescriptionList", () => {
     ]);
   });
 
-  it("puts each term beside its details in a list 24rem wide or more, in one shared column of terms", async () => {
+  it("puts each term beside its details in a list 28rem wide or more, in one shared column of terms", async () => {
     await page.viewport(1280, 800);
-    const { list } = await render(<DescriptionList items={items} />, 384);
+    const { list } = await render(<DescriptionList items={items} />, 448);
     const [dt1, dd1, dt2, dd2] = boxes(list);
     expect(dd1!.rect.top).toBe(dt1!.rect.top);
     expect(dd1!.rect.left).toBeGreaterThanOrEqual(dt1!.rect.right);
@@ -76,7 +76,7 @@ describe("DescriptionList", () => {
     expect(getComputedStyle(list.children[0]!).fontSize).toBe("14px");
   });
 
-  it("stacks each term above its details in a list narrower than 24rem, however wide the window", async () => {
+  it("stacks each term above its details in a list narrower than 28rem, however wide the window", async () => {
     await page.viewport(1280, 800);
     // A side sheet's content width.
     const { list } = await render(<DescriptionList items={items} />, 352);
@@ -97,7 +97,7 @@ describe("DescriptionList", () => {
       </div>,
       600,
     );
-    expect(list.getBoundingClientRect().width).toBeGreaterThan(384);
+    expect(list.getBoundingClientRect().width).toBeGreaterThan(448);
     const [dt1, dd1] = boxes(list);
     expect(dd1!.rect.top).toBe(dt1!.rect.top);
   });
@@ -130,14 +130,14 @@ describe("DescriptionList", () => {
     for (const cell of list.children) expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth);
   });
 
-  it("stacks below 28rem with stackBelow=md", async () => {
-    const { list: md } = await render(<DescriptionList items={items} stackBelow="md" />, 440);
+  it("stacks below 32rem with stackBelow=md", async () => {
+    const { list: md } = await render(<DescriptionList items={items} stackBelow="md" />, 500);
     const [dt, dd] = boxes(md);
     expect(dd!.rect.top).toBeGreaterThanOrEqual(dt!.rect.bottom - 1);
-    const { list: sm } = await render(<DescriptionList items={items} />, 440);
+    const { list: sm } = await render(<DescriptionList items={items} />, 500);
     const [smDt, smDd] = boxes(sm);
     expect(smDd!.rect.top).toBe(smDt!.rect.top);
-    const { list: wide } = await render(<DescriptionList items={items} stackBelow="md" />, 448);
+    const { list: wide } = await render(<DescriptionList items={items} stackBelow="md" />, 512);
     const [wideDt, wideDd] = boxes(wide);
     expect(wideDd!.rect.top).toBe(wideDt!.rect.top);
     expect(getComputedStyle(wide.children[3]!).borderTopWidth).toBe("1px");
@@ -185,7 +185,7 @@ describe("DescriptionList development messages", () => {
   });
 
   it("stacks below sm for an unknown breakpoint", async () => {
-    const { list } = await render(<DescriptionList {...({ items, stackBelow: "lg" } as unknown as Parameters<typeof DescriptionList>[0])} />, 440);
+    const { list } = await render(<DescriptionList {...({ items, stackBelow: "lg" } as unknown as Parameters<typeof DescriptionList>[0])} />, 500);
     const [dt, dd] = boxes(list);
     expect(dd!.rect.top).toBe(dt!.rect.top);
   });
