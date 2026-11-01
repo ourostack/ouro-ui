@@ -670,6 +670,8 @@ describe("Lightbox controlled", () => {
     await userEvent.click(button("Next image"));
     expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
     await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
+    // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
     await settled();
     expect(position()).toBe("4 of 4");
   });
