@@ -17,18 +17,36 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
-/** One conversation in a {@link ConversationList}. */
-export interface ConversationListItem {
+/** What a {@link ConversationList} row shows of a conversation, whichever way its title comes. */
+export interface ConversationListItemFields {
   /** Identifies the conversation; `onSelect` receives it. */
   id: string;
-  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
-  title: string;
-  /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
-  where?: string | undefined;
+  /**
+   * A muted name after the title, on its line, such as the team a channel belongs to: "Design
+   * reviews · Launch team". Text, or content such as `<EmojiText>` to draw its emoji as pictures.
+   */
+  where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
+  /**
+   * A line between the title and the preview that says what happened and where, as an activity
+   * feed shows it: the title names the person, this line "mentioned you in Design reviews", and
+   * the preview the message. Text, or content such as `<EmojiText>`. It keeps to `density="compact"`.
+   *
+   * @claim "A line between the title and the preview" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a context line between the title and the preview, which the mark ends when there is no preview)
+   */
+  context?: ReactNode;
   /** The latest message, cut to one line. `density="compact"` hides it. */
   preview?: ReactNode;
+  /**
+   * The first words of a message the person started here and has not sent. They show in place
+   * of the preview after `draftLabel` ("Draft:"), in the destructive tone as chat apps mark a
+   * draft, so a half-written reply is visible from the list. `density="compact"` hides it with
+   * the preview.
+   *
+   * @claim "They show in place of the preview" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a draft in place of the preview, after its label in the destructive tone, and hides it when compact)
+   */
+  draft?: ReactNode;
   /** When the latest message arrived, already formatted ("9:41", `<RelativeTime>`). */
   time?: ReactNode;
   /** There are messages the person has not read: the title is bold and a dot shows. */
@@ -51,6 +69,33 @@ export interface ConversationListItem {
   /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
   section?: string | undefined;
 }
+
+/** A conversation whose title is text. */
+export interface ConversationListTextTitle {
+  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
+  title: string;
+  /** The name screen readers hear in place of `title`, and the avatar's initials come from. @default the title */
+  name?: string | undefined;
+}
+
+/**
+ * A conversation whose title is content, such as its name with emoji drawn as pictures
+ * (`<EmojiText text={chat.name} catalogue={catalogue} />`), with its name as text beside it.
+ */
+export interface ConversationListContentTitle {
+  /** What the row shows as the conversation's name. */
+  title: ReactNode;
+  /**
+   * The conversation's name as text: what screen readers hear in place of the title, and the
+   * avatar's initials come from it.
+   *
+   * @claim "what screen readers hear in place of the title" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a title and where given as content, with the name screen readers hear and the avatar's initials come from)
+   */
+  name: string;
+}
+
+/** One conversation in a {@link ConversationList}: its title as text, or as content with a `name`. */
+export type ConversationListItem = ConversationListItemFields & (ConversationListTextTitle | ConversationListContentTitle);
 
 /** A group of rows in a {@link ConversationList}, under a header that opens and closes it. */
 export interface ConversationListSection {
@@ -93,6 +138,8 @@ export interface ConversationListOwnProps {
   density?: ConversationListDensity | (string & { 'Use "comfortable" or "compact"': never }) | undefined;
   /** What screen readers hear for an unread row's dot, and a closed section's, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
+  /** The words before a row's `draft`, for other languages. @default "Draft:" */
+  draftLabel?: string | undefined;
   /** Layout only: width, margins, grid placement (`w-80`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -201,6 +248,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     empty = "Nothing here yet",
     density: densityProp = "comfortable",
     unreadLabel = "Unread",
+    draftLabel = "Draft:",
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     value,
@@ -273,10 +321,12 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   const rowFor = (item: ConversationListItem) => {
     const key = `row:${item.id}`;
-    const withPreview = density === "comfortable" && shown(item.preview);
-    // The mark and the unread dot end the last line: the preview's, else the subtitle's, else the title's.
-    const endsTitle = !withPreview && !item.subtitle;
-    const endsSubtitle = !withPreview && !!item.subtitle;
+    const drafted = shown(item.draft);
+    const withPreview = density === "comfortable" && (drafted || shown(item.preview));
+    // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
+    const withContext = shown(item.context);
+    const endsTitle = !withPreview && !withContext && !item.subtitle;
+    const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
     const hasMark = shown(item.mark);
     const end = (
       <>
@@ -307,7 +357,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
               {item.avatar}
             </span>
           ) : (
-            <Avatar name={item.title} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
+            <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
           )}
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="flex min-w-0 items-center gap-2">
@@ -318,9 +368,16 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                   </span>
                 )}
                 <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
-                  {item.title}
+                  {item.name === undefined ? (
+                    item.title
+                  ) : (
+                    <>
+                      <span aria-hidden="true">{item.title}</span>
+                      <span className="sr-only">{item.name}</span>
+                    </>
+                  )}
                 </span>
-                {item.where && (
+                {shown(item.where) && (
                   <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
                     <span aria-hidden="true">· </span>
                     {item.where}
@@ -343,10 +400,27 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 {endsSubtitle && end}
               </span>
             )}
+            {withContext && (
+              <span className="flex min-w-0 items-center gap-2">
+                <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
+                  {item.context}
+                </span>
+                {!withPreview && end}
+              </span>
+            )}
             {withPreview && (
               <span className="flex min-w-0 items-center gap-2">
                 <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
-                  {item.preview}
+                  {drafted ? (
+                    <>
+                      <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
+                        {draftLabel}
+                      </span>{" "}
+                      {item.draft}
+                    </>
+                  ) : (
+                    item.preview
+                  )}
                 </span>
                 {end}
               </span>

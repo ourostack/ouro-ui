@@ -10845,12 +10845,15 @@
         "ourostack/ouro-ui/badge",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/conversation-list",
+        "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [

@@ -56,3 +56,8 @@ expectTypeOf<{ id: "a"; title: "Trail crew"; avatar: true }>().not.toExtend<Conv
 
 // @ts-expect-error label is required.
 createElement(ConversationList, { items, onSelect: () => {} });
+
+// A title as content needs its name as text; a text title may take one.
+expectTypeOf<{ id: "launch"; title: ReactElement; name: "Launch team"; where: ReactElement }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "ada"; title: "Ada Lovelace"; name: "Ada L." }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "launch"; title: ReactElement }>().not.toExtend<ConversationListItem>();
