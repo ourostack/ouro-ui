@@ -938,7 +938,13 @@ describe("Button and a page scroll at the press", () => {
 
   /** Presses the button as a smooth scroll starts, and returns where the page is once the press is over. */
   async function pressAsScrollStarts(input: "pointer" | "Enter" | "ArrowDown") {
-    window.scrollTo({ top: 2000, behavior: "instant" });
+    // The page rests at 2000 for two frames before the press, so the compositor, which runs a
+    // keyboard scroll, has it there too, and nothing from an earlier test is still moving it.
+    for (let still = 0; still < 2; ) {
+      if (window.scrollY !== 2000) window.scrollTo({ top: 2000, behavior: "instant" });
+      await frame();
+      still = window.scrollY === 2000 ? still + 1 : 0;
+    }
     document.documentElement.style.scrollBehavior = "smooth";
     document.addEventListener(input === "pointer" ? "pointerdown" : "keydown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
     if (input === "pointer") {
