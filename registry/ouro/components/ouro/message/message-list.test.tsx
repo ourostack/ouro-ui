@@ -534,7 +534,9 @@ describe("MessageList", () => {
     const status = page.getByText("Loading older messages");
     await expect.element(status).toBeVisible();
     // Screen readers hear it once, politely, as it shows.
-    expect(status.element().closest('[role="status"]')).not.toBeNull();
+    expect(status.element().closest('[aria-live="polite"]')).not.toBeNull();
+    // An app's own status stays the page's only one.
+    expect(document.querySelectorAll('[role="status"]')).toHaveLength(0);
     // Over the list, not in it: no message moved, and the list grew by nothing.
     expect(tops()).toEqual(before);
     expect(scroller.scrollHeight).toBe(height);
