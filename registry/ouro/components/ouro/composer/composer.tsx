@@ -1,7 +1,7 @@
 "use client";
 
 import { Children, useId, useRef, useState } from "react";
-import type { JSX, KeyboardEvent, MouseEvent, ReactNode, Ref, TextareaHTMLAttributes } from "react";
+import type { JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextArea, type TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -13,6 +13,27 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** What sent the message: the Enter key in the box, or a press of the send button. */
 export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement> | MouseEvent<HTMLButtonElement>;
+
+/** The message a reply quotes, for Composer's `quote`: who wrote it and a line of what they wrote. */
+export interface ComposerQuote {
+  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  author: string;
+  /**
+   * What they wrote, or its start. One line shows, cut with an ellipsis.
+   * @claim "One line shows, cut with" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows the quote inside the frame above the text: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
+   */
+  excerpt: string;
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  avatar?: ReactElement | undefined;
+  /** Removes the quote: called by the remove button, and by Escape while the box is empty. Set `quote` to `undefined` in it. */
+  onRemove: () => void;
+  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  onActivate?: (() => void) | undefined;
+  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  label?: string | undefined;
+  /** The remove button's name, which its tooltip shows too. @default `Remove quote from ${author}` */
+  removeLabel?: string | undefined;
+}
 
 /** The props Composer adds to the `<textarea>` attributes it passes through. */
 export interface ComposerOwnProps {
@@ -66,6 +87,22 @@ export interface ComposerOwnProps {
   attachments?: ReactNode;
   /** A name for the attachments row, for screen readers. @default "Attachments" */
   attachmentsLabel?: string | undefined;
+  /**
+   * The message this one replies to, shown inside the box above the text until it is sent or
+   * removed: a bar, the author, a line of what they wrote and a remove button. Screen readers
+   * hear it as part of the text's description. Escape in the empty box removes it, as the
+   * remove button does, and that Escape goes no further, so a dialog around the composer stays
+   * open. The quote fades in (opacity only, and not at all with reduced motion) and takes no
+   * focus: focus stays in the box. It stays after a send, so clear it in `onSend`.
+   *
+   * @claim "Screen readers hear it as part" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > describes the text with the quote, so screen readers hear what the reply quotes)
+   * @claim "Escape in the empty box removes" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > removes the quote on Escape while the box is empty, and that Escape goes no further)
+   * @claim "Escape in the empty box removes" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > leaves Escape alone while the box has text, while an input method composes, or after the app's onKeyDown prevents it)
+   * @claim "The quote fades in (opacity" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > fades in with opacity only, and not at all with reduced motion)
+   * @claim "takes no focus: focus stays in" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > leaves focus in the box when a quote appears)
+   * @claim "It stays after a send, so" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > stays after a send until the app clears it)
+   */
+  quote?: ComposerQuote | undefined;
   /** Buttons before the send button: emoji, attach a file, show formatting. Ouro `Button`s with `variant="plain"` and an `aria-label`. */
   actions?: ReactNode;
   /**
@@ -100,6 +137,8 @@ export interface ComposerOwnProps {
   loading?: { 'Use <Composer sending>': never };
   /** Not a prop. Ouro UI uses `sendDisabledReason`: `<Composer sendDisabledReason="Sending is off">`. */
   sendDisabled?: { 'Use <Composer sendDisabledReason="Sending is off">': never };
+  /** Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>`. */
+  replyTo?: { 'Use <Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>': never };
 }
 
 /** Props for {@link Composer}: its own props and the `<textarea>` attributes it passes through (`onKeyDown`, `onPaste`, `readOnly`). */
@@ -113,6 +152,51 @@ const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-lg border border-solid border-input bg-card text-card-foreground " +
   "outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0";
+
+// The quote: a box on the muted surface with a hairline, which fades in when it appears (not
+// with reduced motion). Message's quote looks the same (message.tsx).
+const quoteBoxClass =
+  "flex min-w-0 items-center gap-1 rounded-md bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
+  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:transition-none";
+const quoteBodyClass = "flex min-w-0 flex-1 items-center gap-2 p-1.5";
+// The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
+// with two lines of text it is taller than a touch target already.
+const quoteButtonClass =
+  `${quoteBodyClass} m-0 cursor-pointer rounded-md border-0 bg-transparent text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent ` +
+  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/**
+ * What the quote shows: the bar, the avatar, the author and the excerpt. Screen readers hear the
+ * label ("Quoting Ada") in place of the author's name, then the excerpt.
+ */
+function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Element {
+  return (
+    <>
+      <span aria-hidden="true" data-ouro-composer-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      {quote.avatar}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span id={`${id}-quote`} className="sr-only">
+          {quote.label ?? `Quoting ${quote.author}`}:{" "}
+        </span>
+        <span aria-hidden="true" data-ouro-composer-quote-author="" className="truncate text-xs font-semibold text-foreground">
+          {quote.author}
+        </span>
+        <span id={`${id}-excerpt`} data-ouro-composer-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+          {quote.excerpt}
+        </span>
+      </span>
+    </>
+  );
+}
+
+/** A cross: remove. */
+function RemoveIcon(): JSX.Element {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4 shrink-0">
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </svg>
+  );
+}
 
 /** A paper plane. */
 function SendIcon(): JSX.Element {
@@ -129,8 +213,9 @@ function SendIcon(): JSX.Element {
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
  * Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never
  * sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach,
- * formatting), `toolbar` a formatting bar above the text while it is on, and `attachments`
- * the files waiting to go. `sendDisabledReason` turns sending off and says why, while the
+ * formatting), `toolbar` a formatting bar above the text while it is on, `attachments`
+ * the files waiting to go, and `quote` the message a reply quotes, which Escape in the empty
+ * box removes. `sendDisabledReason` turns sending off and says why, while the
  * person can still write, and `highlights` marks words in the text, as TextArea's do.
  *
  * The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an
@@ -160,6 +245,13 @@ function SendIcon(): JSX.Element {
  *   attachments={files.length > 0 && files.map((file) => <Attachment key={file.name} name={file.name} onRemove={() => remove(file)} />)}
  *   sendDisabledReason={offline ? "You're offline. Sending resumes when you reconnect." : undefined}
  * />
+ *
+ * @example
+ * <Composer
+ *   label="Reply to Ada"
+ *   quote={quoted && { author: quoted.author, excerpt: quoted.text, onRemove: () => setQuoted(undefined), onActivate: () => scrollTo(quoted.id) }}
+ *   onSend={(text) => { send(text, quoted?.id); setQuoted(undefined); }}
+ * />
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > starts a new line on Shift+Enter, and sends on Ctrl+Enter or Command+Enter too)
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > never sends on the Enter that ends a word an input method is composing)
  * @claim "an `Autocomplete` trigger with `catalogue` inserts them" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > inserts the picked emoji's token and a space in a Composer, which EmojiText draws as its image)
@@ -182,6 +274,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     disabled = false,
     attachments,
     attachmentsLabel = "Attachments",
+    quote,
     actions,
     toolbar,
     description,
@@ -200,6 +293,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     enterToSend,
     loading,
     sendDisabled,
+    replyTo,
     ...rest
   } = props;
   // Any other value is enter, as the default.
@@ -231,6 +325,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           enterToSend !== undefined && ["enterToSend is not a prop", '<Composer sendOn="enter">'],
           loading !== undefined && ["loading is not a prop", "<Composer sending>"],
           sendDisabled !== undefined && ["sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
+          replyTo !== undefined && ["replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
@@ -248,10 +343,23 @@ export function Composer(props: ComposerProps): JSX.Element {
     // After a press of Send, the person goes on writing; after Enter, focus is there already.
     textareaRef.current!.focus();
   };
+  const removeQuote = () => {
+    quote!.onRemove();
+    // The remove button goes with the quote, so focus goes back to the text.
+    textareaRef.current!.focus();
+  };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     onKeyDown?.(event);
-    // A word an input method is still composing ends with Enter; that Enter is the input method's.
-    if (event.defaultPrevented || event.key !== "Enter" || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
+    if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.key === "Escape" && quote && text === "") {
+      // This Escape is the quote's: a dialog around the composer stays open.
+      event.preventDefault();
+      event.stopPropagation();
+      quote.onRemove();
+      return;
+    }
+    if (event.key !== "Enter") return;
     const sends = modEnter ? event.metaKey || event.ctrlKey : !event.shiftKey;
     if (!sends) return;
     event.preventDefault();
@@ -259,7 +367,9 @@ export function Composer(props: ComposerProps): JSX.Element {
   };
 
   const notes = [sendDisabledReason !== undefined && !disabled ? `${id}-reason` : undefined, description ? `${id}-description` : undefined];
-  const describedBy = [describedByProp, ...notes].filter(Boolean).join(" ") || undefined;
+  const quoteIds = quote ? [`${id}-quote`, `${id}-excerpt`] : [];
+  const removeLabel = quote && (quote.removeLabel ?? `Remove quote from ${quote.author}`);
+  const describedBy = [describedByProp, ...quoteIds, ...notes].filter(Boolean).join(" ") || undefined;
 
   return (
     <div data-ouro="composer" data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
@@ -267,6 +377,27 @@ export function Composer(props: ComposerProps): JSX.Element {
         {toolbar && (
           <div data-ouro-composer-toolbar="" className="flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1">
             {toolbar}
+          </div>
+        )}
+        {quote && (
+          <div className="px-1 pt-1">
+            <div data-ouro-composer-quote="" className={quoteBoxClass}>
+              {quote.onActivate ? (
+                <button type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
+                  <QuoteBody quote={quote} id={id} />
+                </button>
+              ) : (
+                <div className={quoteBodyClass}>
+                  <QuoteBody quote={quote} id={id} />
+                </div>
+              )}
+              <Tooltip content={removeLabel}>
+                <Button data-ouro-control="composer" data-ouro-part="remove" variant="plain" tone="secondary" size="sm" disabled={disabled} onClick={removeQuote} className="px-1.5">
+                  <RemoveIcon />
+                  <span className="sr-only">{removeLabel}</span>
+                </Button>
+              </Tooltip>
+            </div>
           </div>
         )}
         <div className="flex min-w-0 flex-wrap items-end gap-x-1 p-1">

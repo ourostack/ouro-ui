@@ -277,3 +277,49 @@ export const Thread: Story = {
     </Surface>
   ),
 };
+
+function Replies() {
+  const [shown, setShown] = useState("");
+  const show = (who: string) => () => setShown(`Showing ${who}'s message`);
+  return (
+    <Surface>
+      <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+        Morning! The venue confirmed the long table for Friday. Can someone bring the extension cord for the projector?
+      </Message>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Theo Brandt"
+        time="9:43 AM"
+        dateTime="2026-05-04T09:43"
+        quote={{
+          author: "Mara Quill",
+          excerpt: "Morning! The venue confirmed the long table for Friday. Can someone bring the extension cord for the projector?",
+          avatar: <Avatar name="Mara Quill" alt="" size="xs" />,
+          onActivate: show("Mara Quill"),
+        }}
+      >
+        I have one. I will bring it with the speakers.
+      </Message>
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" dateTime="2026-05-04T09:45" quote={{ author: "Theo Brandt", excerpt: "I have one. I will bring it with the speakers.", onActivate: show("Theo Brandt") }}>
+        Perfect, thank you.
+      </Message>
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ouro", excerpt: "About an hour, covered, somewhere warm." }}>
+        And if the kitchen is cold?
+      </Message>
+      <p role="status" style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)" }}>
+        {shown}
+      </p>
+    </Surface>
+  );
+}
+
+/**
+ * Replies that quote the message they answer (`quote`): a bar, the author and a line of what
+ * they wrote, at the top of the bubble. With `onActivate` the quote is a button that shows the
+ * quoted message; without it, a plain quote.
+ */
+export const Quote: Story = {
+  parameters: { screenshot: { name: "message-quote" } },
+  render: () => <Replies />,
+};

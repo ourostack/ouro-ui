@@ -46,7 +46,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Message presence="busy" presenceLabel="Busy">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message07",
+    habit: "replyTo for the message a reply quotes",
+    tsc: [hint("string", 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>')],
+    dev: '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04"];
+export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04", "messageOk05"];
