@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -201,61 +202,143 @@ export const Chat: Story = {
   render: () => <ChatConversation />,
 };
 
+// Made-up pictures for the channel stories, drawn here: a settings page mockup and a photo of a lake at dusk.
+const drawing = (width: number, height: number, body: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${body}</svg>`)}`;
+const mockup = drawing(
+  1600,
+  1000,
+  '<rect width="1600" height="1000" fill="#f4f4f6"/><rect width="360" height="1000" fill="#e9e9ee"/>' +
+    '<rect x="48" y="56" width="180" height="24" rx="6" fill="#6264a7"/>' +
+    [140, 200, 260, 320, 380].map((y) => `<rect x="48" y="${y}" width="${y === 260 ? 260 : 200}" height="18" rx="5" fill="${y === 260 ? "#c5c6e6" : "#d3d3db"}"/>`).join("") +
+    '<rect x="440" y="64" width="420" height="40" rx="8" fill="#2b2b33"/><rect x="440" y="124" width="620" height="18" rx="5" fill="#b9b9c4"/>' +
+    '<rect x="440" y="190" width="300" height="190" rx="14" fill="#fff" stroke="#6264a7" stroke-width="4"/><rect x="770" y="190" width="300" height="190" rx="14" fill="#2b2b33"/><rect x="1100" y="190" width="300" height="190" rx="14" fill="#fff" stroke="#d3d3db" stroke-width="2"/>' +
+    [440, 560, 680, 800].map((y) => `<rect x="440" y="${y}" width="960" height="92" rx="12" fill="#fff" stroke="#e1e1e8" stroke-width="2"/><rect x="472" y="${y + 26}" width="260" height="18" rx="5" fill="#3b3b44"/><rect x="472" y="${y + 56}" width="420" height="14" rx="5" fill="#c4c4ce"/>`).join("") +
+    '<rect x="440" y="912" width="180" height="48" rx="10" fill="#6264a7"/>',
+);
+const lake = drawing(
+  1200,
+  800,
+  '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f7a"/><stop offset="0.55" stop-color="#e8907a"/><stop offset="1" stop-color="#f6c89f"/></linearGradient>' +
+    '<linearGradient id="w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d98572"/><stop offset="1" stop-color="#2f3466"/></linearGradient></defs>' +
+    '<rect width="1200" height="800" fill="url(#s)"/><circle cx="820" cy="430" r="70" fill="#fde3c0"/>' +
+    '<path d="M0 470 L180 360 L330 430 L520 310 L700 420 L880 350 L1200 460 L1200 520 L0 520Z" fill="#2c2f5a"/>' +
+    '<rect y="520" width="1200" height="280" fill="url(#w)"/><path d="M0 640 L460 600 L520 800 L0 800Z" fill="#1f2246"/>',
+);
+
+/** Who replied, for the stories' thread summaries. */
+const repliers = [{ name: "Mara Quill" }, { name: "Theo Brandt" }, { name: "Priya Okafor" }];
+
+/** A channel's own surface: posts run edge to edge on it, with no gap of the story's own between them. */
+function Channel({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: "4px 12px", maxWidth: 720 }}>
+      <MessageList label={label}>{children}</MessageList>
+    </div>
+  );
+}
+
 function ChannelPosts() {
   const [reactions, setReactions] = useState<Reaction[]>([{ key: "like", label: "Like", emoji: "👍", count: 4, mine: true }]);
   const [opened, setOpened] = useState("");
   const react = (key: string) => setReactions((current) => toggle(current, key));
-  const actions = actionsFor(react, () => setOpened("Replying to Jonah Vale"));
+  // A post's Reply is its thread's (on its name line, or the summary), so its bar holds the rest.
+  const actions: readonly MessageAction[] = [{ key: "like", label: "Like", icon: "👍", onClick: () => react("like") }];
   return (
-    <Surface>
-      <Message
-        variant="post"
-        role="assistant"
-        name="Jonah Vale"
-        presence="busy"
-        presenceLabel="In a meeting"
-        time="7:30 AM"
-        dateTime="2026-05-04T07:30"
-        subject="Agenda for Friday's design review"
-        actions={actions}
-        menu={menu}
-        footer={<ReactionBar reactions={reactions} quick={quick} onReact={react} />}
-        thread={
-          <ThreadSummary
-            count={3}
-            repliers={[{ name: "Mara Quill" }, { name: "Theo Brandt" }, { name: "Priya Okafor" }]}
-            lastReply="7:44 AM"
-            lastReplyDateTime="2026-05-04T07:44"
-            onOpen={() => setOpened("Opened the thread: Agenda for Friday's design review")}
-          />
-        }
-      >
-        We will look at the new onboarding flow first, then the settings page. Add your questions to this thread before Thursday so we can group them.
-      </Message>
-      <Message
-        variant="post"
-        role="user"
-        name="Priya Okafor"
-        time="8:02 AM"
-        dateTime="2026-05-04T08:02"
-        actions={actions}
-        menu={menu}
-        thread={<ThreadSummary count={0} onOpen={() => setOpened("Started a thread under Priya Okafor's post")} />}
-      >
-        The mockups are in the Files tab.
-      </Message>
-      <p role="status" style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)" }}>
+    <>
+      <Channel label="Design reviews">
+        <Message
+          variant="post"
+          role="assistant"
+          name="Jonah Vale"
+          presence="busy"
+          presenceLabel="In a meeting"
+          time="7:30 AM"
+          dateTime="2026-05-04T07:30"
+          subject="Agenda for Friday's design review"
+          actions={actions}
+          menu={menu}
+          footer={<ReactionBar reactions={reactions} onReact={react} />}
+          thread={
+            <ThreadSummary
+              count={3}
+              repliers={repliers}
+              lastReply="7:44 AM"
+              lastReplyDateTime="2026-05-04T07:44"
+              label="3 replies to Jonah Vale's post Agenda for Friday's design review"
+              onOpen={() => setOpened("Opened the thread: Agenda for Friday's design review")}
+            />
+          }
+        >
+          We will look at the new onboarding flow first, then the settings page. Add your questions to this thread before Thursday so we can group them.
+        </Message>
+        <Message
+          variant="post"
+          role="assistant"
+          name="Build bot"
+          nameTag="App"
+          avatar={<Avatar name="Build bot" alt="" size="sm" shape="square" />}
+          time="7:52 AM"
+          dateTime="2026-05-04T07:52"
+          actions={actions}
+          menu={menu}
+          thread={<ThreadSummary count={0} label="Reply to Build bot's post" onOpen={() => setOpened("Started a thread under Build bot's post")} />}
+        >
+          Build 1432 of the settings page passed. Every check is green.
+        </Message>
+        <Message
+          variant="post"
+          role="assistant"
+          name="Mara Quill"
+          presence="available"
+          presenceLabel="Available"
+          time="8:05 AM"
+          dateTime="2026-05-04T08:05"
+          subject="Settings mockups"
+          actions={actions}
+          menu={menu}
+          attachments={<Lightbox label="Settings mockups, from Mara Quill" layout="mosaic" images={[{ src: mockup, alt: "The settings page mockup: Appearance, with light, dark and system themes", width: 1600, height: 1000 }]} />}
+          thread={
+            <ThreadSummary
+              count={2}
+              repliers={repliers.slice(1)}
+              lastReply="8:15 AM"
+              lastReplyDateTime="2026-05-04T08:15"
+              label="2 replies to Mara Quill's post Settings mockups"
+              onOpen={() => setOpened("Opened the thread: Settings mockups")}
+            />
+          }
+        >
+          New mockups for the settings page are ready. The appearance section now has a system option, which follows the computer's own setting.
+        </Message>
+        <Message
+          variant="post"
+          role="user"
+          name="Priya Okafor"
+          time="8:21 AM"
+          dateTime="2026-05-04T08:21"
+          actions={actions}
+          menu={menu}
+          thread={<ThreadSummary count={0} label="Reply to your post" onOpen={() => setOpened("Started a thread under your post")} />}
+        >
+          The mockups are in the Files tab too.
+        </Message>
+      </Channel>
+      <p role="status" style={{ margin: "8px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
         {opened}
       </p>
-    </Surface>
+    </>
   );
 }
 
 /**
- * Posts in a channel (`variant="post"`): a card as wide as the list under the author's name and
- * time, with a subject, reactions inside the card, and the thread's summary under it.
+ * A threaded channel's posts (`variant="post"`): calm rows rather than boxes, each with the
+ * author's picture, name and time, a subject, the text, reactions and the thread's summary under
+ * it, and a hairline between posts. A post nobody has answered offers Reply on hover and focus
+ * (always on a touch screen), and a picture stays a chat's size until it is opened.
  */
 export const Posts: Story = {
+  parameters: { screenshot: { name: "message-posts" } },
   render: () => <ChannelPosts />,
 };
 
@@ -266,15 +349,22 @@ const threadActions = actionsFor(
 );
 
 /**
- * A post's thread: the post, then its replies (`variant="reply"`), unboxed, with runs grouped.
- * Hover a reply, or Tab to it, for its action bar, just past the reply's text.
+ * A post's thread, as a thread view shows it: the post, how many replies follow, then the
+ * replies (`variant="reply"`), unboxed, their text starting where the post's does, with runs from
+ * one author grouped (`continued`). Hover a reply, or Tab to it, for its action bar, just past
+ * the reply's text.
  */
 export const Thread: Story = {
+  parameters: { screenshot: { name: "message-thread" } },
   render: () => (
-    <Surface>
-      <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM" subject="Agenda for Friday's design review">
-        We will look at the new onboarding flow first, then the settings page.
+    <Channel label="Thread: Agenda for Friday's design review">
+      <Message variant="post" role="assistant" name="Jonah Vale" presence="busy" presenceLabel="In a meeting" time="7:30 AM" subject="Agenda for Friday's design review" actions={threadActions} menu={menu}>
+        We will look at the new onboarding flow first, then the settings page. Add your questions to this thread before Thursday so we can group them.
       </Message>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, paddingInlineStart: 44, fontSize: 12, color: "var(--muted-foreground)" }}>
+        <span>3 replies</span>
+        <span style={{ flex: 1, borderTop: "1px solid var(--border)" }} />
+      </div>
       <Message variant="reply" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="7:36 AM" actions={threadActions} menu={menu}>
         Can we start with the settings page? Theo is out after lunch.
       </Message>
@@ -284,8 +374,62 @@ export const Thread: Story = {
       <Message variant="reply" role="user" name="Priya Okafor" time="7:44 AM" actions={threadActions} menu={menu}>
         Swapped. Settings page first.
       </Message>
-    </Surface>
+    </Channel>
   ),
+};
+
+function FlatChannelMessages() {
+  const [opened, setOpened] = useState("");
+  return (
+    <>
+      <Channel label="Launch crew">
+        <Message variant="chat" role="assistant" name="Theo Brandt" presence="away" presenceLabel="Away" time="9:02 AM" dateTime="2026-05-04T09:02">
+          Morning! Venue is confirmed for Friday.
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:04 AM" dateTime="2026-05-04T09:04">
+          Great news.
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:04 AM" dateTime="2026-05-04T09:04" continued>
+          I will bring the long extension cord and the clicker.
+        </Message>
+        <Message
+          variant="chat"
+          role="assistant"
+          name="Mara Quill"
+          time="9:05 AM"
+          dateTime="2026-05-04T09:05"
+          continued
+          attachments={<Lightbox label="Photo from Mara Quill" layout="mosaic" images={[{ src: lake, alt: "The lake beside the venue at dusk", width: 1200, height: 800 }]} />}
+          thread={
+            <ThreadSummary count={2} repliers={repliers.slice(1)} lastReply="9:20 AM" label="2 replies to Mara Quill's photo" onOpen={() => setOpened("Opened the thread under Mara Quill's photo")} />
+          }
+        />
+        {/* An hour and a half later: a quiet time says why the gap is there, so the message under it needs no time of its own. */}
+        <p style={{ margin: 0, textAlign: "center", fontSize: 12, color: "var(--muted-foreground)" }}>
+          <time dateTime="2026-05-04T10:31">10:31 AM</time>
+        </p>
+        <Message variant="chat" role="user" name="Priya Okafor">
+          Seating plan is printed.
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" time="10:31 AM" dateTime="2026-05-04T10:31" continued>
+          Two copies, one for the door.
+        </Message>
+      </Channel>
+      <p role="status" style={{ margin: "8px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
+        {opened}
+      </p>
+    </>
+  );
+}
+
+/**
+ * A channel without threads reads as a chat (`variant="chat"`): runs from one author grouped with
+ * `continued`, a quiet time before a run that comes long after the last, the user's own at the end, and a
+ * message's thread summary under it when it has replies.
+ */
+export const FlatChannel: Story = {
+  parameters: { screenshot: { name: "message-flat-channel" } },
+  render: () => <FlatChannelMessages />,
 };
 
 function Replies() {
