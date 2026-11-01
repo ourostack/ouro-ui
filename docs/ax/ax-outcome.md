@@ -5,7 +5,7 @@
 The outcome of an action: what became of it, who can see it, whether that was checked, how to find it again and what to run next, in one shape over a CLI's `--json`, an HTTP route and an MCP tool.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-outcome#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-outcome#v1.3.1
 ```
 
 It installs `lib/ouro/ax/outcome.ts`, with `ax-effects`, `ax-exit-codes`, `ax-problem`. Its tests are `ax-outcome-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

@@ -5,7 +5,7 @@
 One result, two renderings: `--json` prints the data, text prints what the command's text() makes of the same data. Long results are cut predictably, and lists page with a cursor, so an agent can read a long answer in pieces.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-output#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-output#v1.3.1
 ```
 
 It installs `lib/ouro/ax/output.ts`. Its tests are `ax-output-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

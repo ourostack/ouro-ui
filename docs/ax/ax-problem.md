@@ -5,7 +5,7 @@
 One error shape for every agent surface: the CLI's stderr line, its `--json` error and an MCP tool error all carry the same fields, so an agent learns one repair loop. The line mirrors Ouro HX's dev message format: `<tool>: <thing>: <what's wrong>. Fix: <exact code>.`
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-problem#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-problem#v1.3.1
 ```
 
 It installs `lib/ouro/ax/problem.ts`. Its tests are `ax-problem-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

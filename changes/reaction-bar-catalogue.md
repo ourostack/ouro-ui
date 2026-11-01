@@ -1,1 +1,0 @@
-- New: ReactionBar takes `catalogue`, an image emoji catalogue: reactions and quick reactions go by emoji id and show the catalogue's images, named by the emoji's name, an animated one playing while its button is under the mouse or in focus.

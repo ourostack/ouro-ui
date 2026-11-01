@@ -1,2 +1,0 @@
-- New: EmojiPicker takes `catalogue`, an image emoji catalogue, in place of `categories`: it draws only the catalogue's images (an organization's custom emoji in a category of their own), searches names, shortcodes and keywords, takes frequently used and quick emoji by id, and gives `onSelect` the emoji's id and its `:shortcode:` token. A category's button now shows its first emoji through `renderEmoji` too.
-- Fixed: EmojiPicker's skin tone button and its choices draw the app's emoji through `renderEmoji` (the first emoji with tones), not a hand character.

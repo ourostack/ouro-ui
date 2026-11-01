@@ -1,1 +1,0 @@
-- Added: the test kit's `pressDuringScroll(selector, { from, to, scroll })` and `pressAndLetGo(selector)` (`testing/press.ts`, with their own tests in `press.test.ts`) press the real mouse during a smooth page scroll and let go with the page's clock held from the press until the release lands, so a test of an overlay pressed mid-scroll holds on a busy machine.

@@ -5,7 +5,7 @@
 A typed wait: the agent names a reference it already holds, the tool waits (polling, if it must, where the agent cannot see it) until something happens or the time limit passes, and returns what happened with the cursor that resumes the wait. The agent waits with one call instead of a polling loop of its own.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-wait#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-wait#v1.3.1
 ```
 
 It installs `lib/ouro/ax/wait.ts`, with `ax-exit-codes`, `ax-outcome`. Its tests are `ax-wait-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

@@ -5,7 +5,7 @@
 A tool's voice: an optional line of character after the facts, for a person at a terminal, never where an agent parses. The kit prints a voice line only when stdout is a terminal, not under `--json` or `--quiet`, and not when the `CI` environment variable is set; never on stderr and never in an error. Each line is one line of plain ASCII, at most 72 characters, and comes after the fact it follows. Variants rotate, and a process celebrates (`done`) at most once.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-voice#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-voice#v1.3.1
 ```
 
 It installs `lib/ouro/ax/voice.ts`, with `ax-outcome`. Its tests are `ax-voice-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

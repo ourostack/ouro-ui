@@ -5,7 +5,7 @@
 A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift. Codes 0, 1 and 2 mean the same thing in every Ouro AX tool.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-exit-codes#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-exit-codes#v1.3.1
 ```
 
 It installs `lib/ouro/ax/exit-codes.ts`. Its tests are `ax-exit-codes-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

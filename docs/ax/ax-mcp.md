@@ -5,7 +5,7 @@
 The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It follows [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18).
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-mcp#v1.3.0
+npx shadcn@latest add ourostack/ouro-ui/ax-mcp#v1.3.1
 ```
 
 It installs `lib/ouro/ax/mcp.ts`, with `ax-cli`, `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-wait`. Its tests are `ax-mcp-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
