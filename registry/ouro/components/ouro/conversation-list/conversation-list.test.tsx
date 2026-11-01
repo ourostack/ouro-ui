@@ -374,6 +374,36 @@ describe("ConversationList", () => {
     await expect.element(page.getByRole("button", { name: /^Design reviews Launch team 9:12/ })).toBeVisible();
   });
 
+  it("shows a quiet name tag after the title, read after it, and shortens the title first", async () => {
+    const { rows } = await render(
+      <div style={{ width: 260 }}>
+        <ConversationList
+          label="Chats"
+          items={[
+            { id: "halden", title: "Halden", nameTag: "AI agent", preview: "I'll post the summary by 4:00.", time: "3:31" },
+            { id: "long", title: "Halden, the launch planning agent for the spring release", nameTag: "AI agent", time: "3:31" },
+          ]}
+          onSelect={() => {}}
+        />
+      </div>,
+    );
+    const parts = (row: HTMLElement) => [row.querySelector<HTMLElement>("[data-ouro-conversation-title]")!, row.querySelector<HTMLElement>("[data-ouro-conversation-name-tag]")!] as const;
+    const [title, tag] = parts(rows[0]!);
+    expect(tag.textContent).toBe(", AI agent");
+    expect(tag.querySelector(".sr-only")!.textContent).toBe(", ");
+    expect(Math.round(tag.getBoundingClientRect().top)).toBeLessThan(Math.round(title.getBoundingClientRect().bottom));
+    expect(tag.getBoundingClientRect().left).toBeGreaterThanOrEqual(title.getBoundingClientRect().right);
+    expect(getComputedStyle(tag).color).not.toBe(getComputedStyle(title).color);
+    expect(parseFloat(getComputedStyle(tag).fontSize)).toBeLessThan(parseFloat(getComputedStyle(title).fontSize));
+    expect(getComputedStyle(tag).fontWeight).toBe("400");
+    await expect.element(page.getByRole("button", { name: /^Halden ?, AI agent/ })).toBeVisible();
+    const [longTitle, longTag] = parts(rows[1]!);
+    expect(longTitle.scrollWidth).toBeGreaterThan(longTitle.clientWidth);
+    expect(longTag.scrollWidth).toBe(longTag.clientWidth);
+    expect(rows[1]!.querySelector("[data-ouro-conversation-name-tag]")).not.toBeNull();
+    expect(rows[0]!.parentElement!.parentElement!.querySelectorAll("[data-ouro-conversation-name-tag]")).toHaveLength(2);
+  });
+
   it("gives up the where before the title when the row is narrow", async () => {
     const { rows } = await render(
       <div style={{ width: 240 }}>

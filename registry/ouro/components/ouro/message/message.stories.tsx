@@ -277,3 +277,43 @@ export const Thread: Story = {
     </Surface>
   ),
 };
+
+/**
+ * A chat with an AI agent: its rounded hexagon avatar (no presence dot, since an agent has none) and a quiet
+ * "AI agent" tag after its name, which screen readers hear after the name.
+ */
+export const Agent: Story = {
+  parameters: { screenshot: { name: "message-agent" } },
+  render: () => (
+    <Surface>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Halden"
+        nameTag="AI agent"
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" color="neutral" />}
+        time="3:24 PM"
+        dateTime="2026-05-04T15:24"
+      >
+        Hi, I'm Halden. Ask me about the launch plan.
+      </Message>
+      <Message variant="chat" role="user" name="Priya Okafor" time="3:29 PM" dateTime="2026-05-04T15:29">
+        Can you summarize the launch notes for the team?
+      </Message>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Halden"
+        nameTag="AI agent"
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" color="neutral" />}
+        time="3:31 PM"
+        dateTime="2026-05-04T15:31"
+      >
+        I'll post the summary of the launch notes by 4:00.
+      </Message>
+      <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="3:33 PM" dateTime="2026-05-04T15:33">
+        Thanks, Halden. I'll add the photos.
+      </Message>
+    </Surface>
+  ),
+};
