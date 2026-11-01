@@ -2,7 +2,7 @@
 
 # Dialog
 
-A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). It handles focus, Escape, outside presses, scroll locking and a close button.
+A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). It handles focus, Escape, outside presses, scroll locking and a close button. Once open, a centered dialog keeps its top edge where it opened while its content grows or shrinks, as a macOS sheet does, and moves up only as far as it must to stay on the screen.
 
 ```tsx
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
