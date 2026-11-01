@@ -214,9 +214,9 @@ export async function earlierWork({ attempt, jobs, graph, attemptJobs, previous 
   return seconds === null ? { seconds: null, from: null } : { seconds, from: "the pull request's previous full run" };
 }
 
-/** Whether a run's ci-timings record shows every job but ci-budget passed or was skipped. */
+/** Whether a run's ci-timings record shows every job but ci-budget and fail-fast passed or was skipped. */
 export function recordPassed(record) {
-  const others = (record?.jobs ?? []).filter((job) => job.job !== self);
+  const others = (record?.jobs ?? []).filter((job) => job.job !== self && job.job !== watcher);
   return others.length > 0 && others.every((job) => job.conclusion === "success" || job.conclusion === "skipped");
 }
 
@@ -244,11 +244,13 @@ export function baseline(runs, count = budget.baselineRuns) {
 
 /**
  * The work time (`workPathSeconds`) of a pull request's previous full run: the newest of its earlier
- * runs' ci-timings records (newest first, null where a run kept none) that ran the full suite and
- * not as a fallback. Null when there is none.
+ * runs' ci-timings records (newest first, null where a run kept none) that ran the full suite, not
+ * as a fallback, and passed (`recordPassed`): a run with a failed job, one fail-fast did not cancel
+ * (a fork's pull request, a rate-limit stop, its deadline), ends its chain early, and its shorter
+ * work time would excuse a real regression. Null when there is none.
  */
 export function previousFull(records) {
-  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record.workPathSeconds === "number");
+  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record.workPathSeconds === "number" && recordPassed(record));
   return found ? found.workPathSeconds : null;
 }
 
