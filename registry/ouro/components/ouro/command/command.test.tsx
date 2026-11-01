@@ -9,7 +9,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/components/ouro/command/command";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
-import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
+import { audit, axeExclude, describeFindings, measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
@@ -457,6 +457,104 @@ describe("Command results that stream in", () => {
       expect(document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
     } finally {
       said.stop();
+    }
+  });
+});
+
+describe("Command match highlighting", () => {
+  const run = () => {};
+  const recipes: CommandEntry[] = [
+    { label: "Import from a link", description: "Paste a link to any recipe page", onSelect: run },
+    { label: "Weeknight dinners", description: "Quick recipes for a busy night", onSelect: run },
+  ];
+  const marks = (row: Element) => [...row.querySelectorAll("mark")].map((mark) => mark.textContent);
+  const row = (label: string) => [...document.querySelectorAll('[role="option"]')].find((option) => option.querySelector("[data-ouro-command-label]")!.textContent === label)!;
+
+  it("marks the words of the search in each command's label and description, and keeps the text as it was", async () => {
+    await openPalette({ items: recipes, highlightMatches: true });
+    expect(document.querySelectorAll('[role="option"] mark')).toHaveLength(0);
+    await userEvent.type(input(), "link Recipe");
+    await expect.poll(options).toEqual(["Import from a link"]);
+    const option = row("Import from a link");
+    expect(marks(option)).toEqual(["link", "link", "recipe"]);
+    expect(option.querySelector("[data-ouro-command-label]")!.textContent).toBe("Import from a link");
+    expect(option.querySelector("[data-ouro-command-description]")!.textContent).toBe("Paste a link to any recipe page");
+    await expect.element(page.getByRole("option", { name: /^Import from a link/ })).toBeVisible();
+  });
+
+  it("marks what the app's ranges say, in place of the search's words", async () => {
+    await openPalette({
+      items: [{ label: "Launch planning", description: "Notes from the launch review", highlight: { label: [[0, 6]], description: [[15, 21], [100, 120]] }, onSelect: run }],
+      highlightMatches: true,
+    });
+    expect(marks(row("Launch planning"))).toEqual(["Launch", "launch"]);
+  });
+
+  it("merges the search's words where they meet or overlap, in the text's order", async () => {
+    await openPalette({
+      items: [
+        { label: "Import from a link", description: "Paste a link to any recipe page", onSelect: run },
+        { label: "Labs", onSelect: run },
+      ],
+      highlightMatches: true,
+    });
+    await userEvent.type(input(), "link in paste");
+    await expect.poll(() => marks(row("Import from a link"))).toEqual(["link", "Paste", "link"]);
+    await userEvent.clear(input());
+    await userEvent.type(input(), "la bs");
+    await expect.poll(() => marks(row("Labs"))).toEqual(["Labs"]);
+  });
+
+  it("marks nothing in a text whose letters folding would change in number, and only the part an app's ranges leave out", async () => {
+    await openPalette({
+      items: [
+        { label: "한글 notes", onSelect: run },
+        { label: "Launch notes", description: "Notes from the review", highlight: { label: [[0, 6]] }, onSelect: run },
+      ],
+      highlightMatches: true,
+    });
+    await userEvent.type(input(), "notes");
+    await expect.poll(options).toEqual(["한글 notes", "Launch notes"]);
+    expect(marks(row("한글 notes"))).toEqual([]);
+    expect(marks(row("Launch notes"))).toEqual(["Launch"]);
+  });
+
+  it("marks nothing without highlightMatches, and searches a command's description", async () => {
+    await openPalette({ items: recipes });
+    await userEvent.type(input(), "busy");
+    await expect.poll(options).toEqual(["Weeknight dinners"]);
+    expect(document.querySelectorAll('[role="option"] mark')).toHaveLength(0);
+  });
+
+  it("draws marked words that keep their contrast in light and dark, highlighted or not, and in forced colours", async () => {
+    for (const dark of [false, true]) {
+      document.documentElement.classList.toggle("dark", dark);
+      try {
+        await openPalette({ items: recipes, highlightMatches: true });
+        await userEvent.type(input(), "link");
+        await expect.poll(() => document.querySelectorAll('[role="option"] mark').length).toBe(2);
+        for (const mark of document.querySelectorAll('[role="option"] mark')) {
+          expect(await measureTextContrast(mark, 4.5), `${dark ? "dark" : "light"}: ${mark.textContent}`).toEqual({ pass: true });
+          expect(getComputedStyle(mark).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+        }
+        await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      } finally {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await openPalette({ items: recipes, highlightMatches: true });
+      await userEvent.type(input(), "link");
+      const mark = await expect.poll(() => document.querySelector('[role="option"] mark')).not.toBeNull().then(() => document.querySelector<HTMLElement>('[role="option"] mark')!);
+      const probe = document.createElement("span");
+      probe.style.cssText = "background: Mark; color: MarkText";
+      document.body.append(probe);
+      mounted.push(probe);
+      expect(getComputedStyle(mark).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+      expect(getComputedStyle(mark).color).toBe(getComputedStyle(probe).color);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
     }
   });
 });
