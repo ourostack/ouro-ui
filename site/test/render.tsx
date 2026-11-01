@@ -55,17 +55,20 @@ export function setScheme(scheme: "light" | "dark"): void {
 }
 
 /**
- * Waits for transitions started by a render or a click to finish: every finite
- * animation and transition in the document, checked again a frame later in case one
- * started meanwhile. A condition, not a timer, so a loaded runner only waits longer.
+ * Brings the page to rest after a render or a click: every finite animation and transition in the
+ * document is finished, which ends it as playing it out would (its last frame, its finish events),
+ * and checked again two frames later in case one started meanwhile. Finished, not waited for: the
+ * Nautilus's squid stirs for 7.8 seconds after load, and waiting for it spent that much of every
+ * scan's time limit on that page before the scan began.
  */
 export async function settle(): Promise<void> {
   for (let round = 0; round < 50; round++) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document
       .getAnimations()
-      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
+      .filter((animation) => Number.isFinite(animation.effect?.getComputedTiming().endTime) && animation.playState === "running");
     if (running.length === 0) return;
+    for (const animation of running) animation.finish();
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }
   throw new Error("animations did not settle");
