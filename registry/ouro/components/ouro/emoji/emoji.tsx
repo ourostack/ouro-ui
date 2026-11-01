@@ -193,11 +193,13 @@ function useHostActive(image: { current: HTMLImageElement | null }, watch: boole
 }
 
 /**
- * The filmstrip animation each emoji's image runs, at most one.
+ * Cancels the image's filmstrip animation, at most one: the image runs no other.
  *
  * @claim "at most one" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays an animated image over a filmstrip, a tone's filmstrip in that tone, leaves one frame or a broken strip still, and starts a strip once)
  */
-const filmstrips = new WeakMap<HTMLImageElement, Animation>();
+function stopAnimations(image: HTMLImageElement): void {
+  for (const animation of image.getAnimations()) animation.cancel();
+}
 
 /**
  * Steps a filmstrip through its frames while `strip` is set: one Web Animation on the image's
@@ -215,21 +217,18 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
       () => {
         const frames = Math.round(own.naturalHeight / own.naturalWidth);
         // One animation an emoji: a start for an earlier pace gives way to this one.
-        filmstrips.get(own)?.cancel();
+        stopAnimations(own);
         if (!(frames > 1)) return;
-        filmstrips.set(
-          own,
-          own.animate([{ objectPosition: "50% 0%" }, { objectPosition: "50% 100%" }], {
-            duration: (frames / fps!) * 1000,
-            iterations: Infinity,
-            easing: `steps(${frames}, jump-none)`,
-          }),
-        );
+        own.animate([{ objectPosition: "50% 0%" }, { objectPosition: "50% 100%" }], {
+          duration: (frames / fps!) * 1000,
+          iterations: Infinity,
+          easing: `steps(${frames}, jump-none)`,
+        });
       },
       // A filmstrip that fails to load leaves the still image.
       () => {},
     );
-    return () => filmstrips.get(own)?.cancel();
+    return () => stopAnimations(own);
   }, [image, src, fps]);
 }
 

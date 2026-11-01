@@ -57,27 +57,33 @@ const images = (host: Element) => [...host.querySelectorAll<HTMLImageElement>('[
 const messages = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 let warn: ReturnType<typeof vi.spyOn>;
-// Motion is let through for the file; the reduced motion tests turn it on and back off.
+// Reduced motion for the file, so an emoji under a mouse left resting from elsewhere plays
+// nothing; the tests of playing let motion through with `motion()`.
 beforeAll(async () => {
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  await commands.emulateMedia({ reducedMotion: "reduce" });
 });
 afterAll(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
-beforeEach(() => {
+/** Lets motion through until the test ends. */
+async function motion() {
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  onTestFinished(() => commands.emulateMedia({ reducedMotion: "reduce" }));
+}
+beforeEach(async () => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  // The mouse rests far from where the test draws, so no emoji there plays for it.
+  const corner = document.createElement("div");
+  corner.style.cssText = "position:fixed;right:0;bottom:0;width:4px;height:4px";
+  document.body.append(corner);
+  await userEvent.hover(corner);
+  corner.remove();
 });
 afterEach(async () => {
   vi.restoreAllMocks();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  // The mouse rests far from where the next test draws, so no emoji there plays for it.
-  const corner = document.createElement("div");
-  corner.style.cssText = "position:fixed;right:0;bottom:0;width:4px;height:4px";
-  document.body.append(corner);
-  await userEvent.hover(corner);
-  corner.remove();
 });
 
 describe("Emoji", () => {
@@ -108,6 +114,7 @@ describe("Emoji", () => {
   });
 
   it("plays while the mouse is on its button or the button has focus, and stops after", async () => {
+    await motion();
     const { host } = await render(
       <>
         <button type="button">
@@ -133,6 +140,7 @@ describe("Emoji", () => {
   });
 
   it("keeps playing while focus moves within its host, stops when focus or the mouse leaves, and plays for no touch", async () => {
+    await motion();
     const { host, rerender } = await render(
       <div role="option" aria-selected="false" tabIndex={0}>
         <Emoji item={party} />
@@ -171,6 +179,7 @@ describe("Emoji", () => {
   });
 
   it("plays a filmstrip by stepping through its frames at its fps while its button is under the mouse, and shows the still image after", async () => {
+    await motion();
     const { host } = await render(
       <>
         <button type="button">
@@ -202,6 +211,7 @@ describe("Emoji", () => {
   });
 
   it("plays an animated image over a filmstrip, a tone's filmstrip in that tone, leaves one frame or a broken strip still, and starts a strip once", async () => {
+    await motion();
     const both: EmojiItem = { ...blink, animatedSrc: image("blink moving") };
     const toned: EmojiItem = { ...wave, animatedSrc: undefined, skinTones: tones.map((tone) => ({ ...tone, animatedSrc: undefined, filmstrip: { src: strip(tone.id, 3), fps: 6 } })) };
     const { host, rerender } = await render(<Emoji item={both} play />);
@@ -248,6 +258,7 @@ describe("Emoji", () => {
   });
 
   it("plays and stops with play, plays for the image itself outside a button, and never without an animated image", async () => {
+    await motion();
     const { host, rerender } = await render(<Emoji item={party} play />);
     expect(emoji(host).getAttribute("src")).toBe(party.animatedSrc);
     await rerender(<Emoji item={party} play={false} />);
@@ -268,31 +279,27 @@ describe("Emoji", () => {
   });
 
   it("shows the still image with reduced motion, whatever play says or the pointer does", async () => {
-    await commands.emulateMedia({ reducedMotion: "reduce" });
-    try {
-      const { host } = await render(
-        <>
-          <Emoji item={party} play />
-          <button type="button">
-            <Emoji item={wave} />
-          </button>
-          <Emoji item={blink} play />
-        </>,
-      );
-      const [played, inButton, filmstrip] = images(host);
-      expect(filmstrip!.getAttribute("src")).toBe(blink.src);
-      expect(filmstrip!.getAnimations()).toEqual([]);
-      expect(played!.getAttribute("src")).toBe(party.src);
-      expect(played!.getAttribute("srcset")).toBe(party.srcSet);
-      await userEvent.hover(host.querySelector("button")!);
-      await act(async () => host.querySelector("button")!.focus());
-      expect(inButton!.getAttribute("src")).toBe(wave.src);
-    } finally {
-      await commands.emulateMedia({ reducedMotion: "no-preference" });
-    }
+    const { host } = await render(
+      <>
+        <Emoji item={party} play />
+        <button type="button">
+          <Emoji item={wave} />
+        </button>
+        <Emoji item={blink} play />
+      </>,
+    );
+    const [played, inButton, filmstrip] = images(host);
+    expect(filmstrip!.getAttribute("src")).toBe(blink.src);
+    expect(filmstrip!.getAnimations()).toEqual([]);
+    expect(played!.getAttribute("src")).toBe(party.src);
+    expect(played!.getAttribute("srcset")).toBe(party.srcSet);
+    await userEvent.hover(host.querySelector("button")!);
+    await act(async () => host.querySelector("button")!.focus());
+    expect(inButton!.getAttribute("src")).toBe(wave.src);
   });
 
   it("renders the still image on the server and hydrates to it without a mismatch", async () => {
+    await motion();
     const node = <Emoji item={party} play />;
     const html = renderToString(node);
     expect(html).toContain(`src="${party.src.replaceAll("&", "&amp;")}"`);
