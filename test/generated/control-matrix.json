@@ -2616,7 +2616,8 @@
       "Composer/SendingOff",
       "Composer/Sending",
       "Composer/ModEnter",
-      "Composer/Disabled"
+      "Composer/Disabled",
+      "Composer/EmojiTokens"
     ]
   },
   {

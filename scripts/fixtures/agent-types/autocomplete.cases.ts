@@ -18,4 +18,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid autocomplete snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["autocompleteOk"];
+export const validSnippets: string[] = ["autocompleteOk", "autocompleteOk02"];

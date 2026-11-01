@@ -25,6 +25,10 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 />
 ```
 
+## Usage
+
+The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message is sent.
+
 ## Use instead when
 
 - Use `TextArea` instead for a long text that is saved rather than sent, and `Message` for a message once it is sent.

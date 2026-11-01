@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode, type SVGProps } from "react";
+import { useRef, useState, type ReactNode, type SVGProps } from "react";
+import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
@@ -62,6 +65,133 @@ const AttachIcon = icon(<path d="m15.5 9.5-5.6 5.6a3.5 3.5 0 0 1-5-5l6-6a2.3 2.3
 const BoldIcon = icon(<path d="M6 4h5a3 3 0 0 1 0 6H6zM6 10h6a3 3 0 0 1 0 6H6z" />);
 const ItalicIcon = icon(<path d="M12 4H8.5M11.5 16H8M11 4 9 16" />);
 const ListIcon = icon(<path d="M8 6h8M8 10h8M8 14h8M4.5 6h.01M4.5 10h.01M4.5 14h.01" strokeWidth="1.75" />);
+
+// A made-up image catalogue for the emoji story: simple emoji drawn here as SVG, a few animated (SMIL), one with skin tones,
+// and a custom category an organization would add. An app passes its own set.
+const svg = (body: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`)}`;
+const wobble = '<animateTransform attributeName="transform" type="rotate" values="-10 16 16;10 16 16;-10 16 16" dur="0.9s" repeatCount="indefinite"/>';
+const ink = "#5b3a1e";
+const face = (mouth: string, extra = "") => `<circle cx="16" cy="16" r="14" fill="#ffc83d"/><circle cx="11" cy="13" r="2" fill="${ink}"/><circle cx="21" cy="13" r="2" fill="${ink}"/>${mouth}${extra}`;
+const smile = `<path d="M10 19q6 6 12 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+const drawings: Record<string, string> = {
+  smile: face(smile),
+  laugh: face(`<path d="M9 18h14q-1 8-7 8t-7-8z" fill="${ink}"/>`),
+  wow: face(`<ellipse cx="16" cy="22" rx="3" ry="3.6" fill="${ink}"/>`),
+  sad: face(`<path d="M11 23q5-5 10 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`, '<path d="M22 16q2 4 0 5q-2-1 0-5z" fill="#4aa8ff"/>'),
+  heart: '<path d="M16 28C6 20 3 15 3 10.5a6.5 6.5 0 0 1 13-2a6.5 6.5 0 0 1 13 2C29 15 26 20 16 28z" fill="#e8435a"/>',
+  star: '<path d="m16 3 3.9 8.2 9 1.1-6.6 6.2 1.7 8.9L16 23l-8 4.4 1.7-8.9-6.6-6.2 9-1.1z" fill="#ffb400"/>',
+  party: '<path d="M5 28 12 9l11 11z" fill="#7c5cff"/><circle cx="22" cy="6" r="2" fill="#e8435a"/><circle cx="27" cy="12" r="2" fill="#2bb673"/><circle cx="17" cy="4" r="1.6" fill="#ffb400"/>',
+  check: '<rect x="3" y="3" width="26" height="26" rx="7" fill="#2bb673"/><path d="m9 16.5 4.5 4.5L23 11" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  fern: '<path d="M16 29V5" stroke="#2f7d4f" stroke-width="2" stroke-linecap="round"/><path d="M16 9q-6-1-8-5q6 0 8 5zm0 0q6-1 8-5q-6 0-8 5zm0 6q-7-1-10-5q7 0 10 5zm0 0q7-1 10-5q-7 0-10 5zm0 6q-7-1-10-5q7 0 10 5zm0 0q7-1 10-5q-7 0-10 5z" fill="#4caf73"/>',
+  mug: '<path d="M6 10h16v12a5 5 0 0 1-5 5h-6a5 5 0 0 1-5-5z" fill="#b5651d"/><path d="M22 13h2a4 4 0 0 1 0 8h-2" stroke="#b5651d" stroke-width="2.4" fill="none"/><path d="M10 4q2 2 0 4m5-4q2 2 0 4" stroke="#9aa0a6" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
+};
+const hand = (fill: string) =>
+  `<g fill="${fill}" stroke="${ink}" stroke-width="0.8"><rect x="8.5" y="4" width="3.4" height="14" rx="1.7"/><rect x="12.4" y="2.5" width="3.4" height="15" rx="1.7"/><rect x="16.3" y="3" width="3.4" height="15" rx="1.7"/><rect x="20.2" y="5" width="3.2" height="13" rx="1.6"/><rect x="3.5" y="13" width="9" height="3.6" rx="1.8" transform="rotate(35 8 15)"/><rect x="8.5" y="12" width="15" height="17" rx="6"/></g>`;
+const tones = ["#f7dece", "#e0bb95", "#bf8f68", "#9b643d", "#594539"];
+const still = (name: string) => svg(drawings[name]!);
+const animated = (body: string) => svg(`<g>${body}${wobble}</g>`);
+const emoji = (id: string, name: string, shortcodes: string[], keywords: string[], extra: Partial<EmojiItem> = {}): EmojiItem => ({ id, name, shortcodes, keywords, src: still(id), ...extra });
+const wave: EmojiItem = {
+  id: "wave",
+  name: "Waving hand",
+  shortcodes: ["wave"],
+  keywords: ["hello", "bye"],
+  text: "👋",
+  src: svg(hand("#ffc83d")),
+  animatedSrc: animated(hand("#ffc83d")),
+  skinTones: tones.map((fill, index) => ({ id: `wave-tone${index + 1}`, src: svg(hand(fill)), animatedSrc: animated(hand(fill)) })),
+};
+const catalogue: EmojiCatalogue = {
+  categories: [
+    {
+      id: "smileys",
+      label: "Smileys",
+      items: [
+        emoji("smile", "Smiling face", ["smile"], ["happy"], { text: "🙂", animatedSrc: animated(drawings.smile!) }),
+        emoji("laugh", "Laughing face", ["laugh", "lol"], ["funny"], { text: "😆", animatedSrc: animated(drawings.laugh!) }),
+        emoji("wow", "Surprised face", ["wow"], ["amazed"], { text: "😮" }),
+        emoji("sad", "Sad face", ["sad"], ["tear"], { text: "😢" }),
+        wave,
+      ],
+    },
+    {
+      id: "symbols",
+      label: "Symbols",
+      items: [
+        emoji("heart", "Red heart", ["heart"], ["love"], { text: "❤️", animatedSrc: animated(drawings.heart!) }),
+        emoji("star", "Star", ["star"], ["favorite"], { text: "⭐" }),
+        emoji("party", "Party popper", ["party", "tada"], ["celebrate"], { text: "🎉", animatedSrc: animated(drawings.party!) }),
+        emoji("check", "Check mark", ["check", "done"], ["yes"], { text: "✅" }),
+      ],
+    },
+    {
+      id: "custom",
+      label: "Fernwood",
+      items: [emoji("fern", "Fernwood fern", ["fern"], ["team", "logo"], { custom: true }), emoji("mug", "Team coffee", ["coffee_time"], ["break"], { custom: true })],
+    },
+  ],
+};
+
+/** A smiling face, the emoji button's icon. */
+function SmileIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width="20" height="20" {...props}>
+      <circle cx="10" cy="10" r="7.25" />
+      <path d="M7 11.5c.7 1 1.8 1.6 3 1.6s2.3-.6 3-1.6" />
+      <path d="M7.5 8h.01M12.5 8h.01" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function EmojiTokensStory() {
+  const [text, setText] = useState("");
+  const [sent, setSent] = useState(["Release notes are out :party: thanks all", ":heart: :fern:"]);
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const anchor = useRef<HTMLButtonElement>(null);
+  return (
+    <Surface>
+      <ol aria-label="Sent" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8, justifyItems: "end" }}>
+        {sent.map((message, index) => (
+          <li key={index} style={{ background: "var(--muted)", borderRadius: "calc(var(--radius) + 4px)", padding: "6px 12px", whiteSpace: "pre-wrap", maxWidth: "80%" }}>
+            <EmojiText text={message} catalogue={catalogue} enlarge />
+          </li>
+        ))}
+      </ol>
+      <Autocomplete triggers={[{ char: ":", label: "Emoji", minQueryLength: 2, catalogue }]}>
+        <Composer
+          ref={box}
+          label="Message the release team"
+          placeholder="Type : and two letters for emoji"
+          value={text}
+          onValueChange={setText}
+          onSend={(message) => {
+            setSent((list) => [...list, message]);
+            setText("");
+          }}
+          actions={
+            <Button ref={anchor} variant="plain" tone="secondary" aria-label="Insert emoji" aria-expanded={open} onClick={() => setOpen(!open)}>
+              <SmileIcon />
+            </Button>
+          }
+        />
+      </Autocomplete>
+      <EmojiPicker
+        label="Insert emoji"
+        catalogue={catalogue}
+        open={open}
+        onOpenChange={setOpen}
+        anchor={anchor}
+        side="top"
+        align="end"
+        onSelect={(selection) => {
+          const { selectionStart, selectionEnd } = box.current!;
+          setText((current) => `${current.slice(0, selectionStart)}${selection.token}${current.slice(selectionEnd)}`);
+        }}
+      />
+    </Surface>
+  );
+}
 
 const meta = {
   title: "Chat/Composer",
@@ -219,4 +349,14 @@ export const Disabled: Story = {
       <Composer label="Message Mia" placeholder="You left this chat" disabled onSend={() => {}} />
     </Surface>
   ),
+};
+
+/**
+ * Emoji from an image catalogue go into the text as `:shortcode:` tokens: type `:` and two
+ * letters for suggestions, or pick one from the emoji button. The sent messages draw the
+ * tokens as the catalogue's images with `EmojiText`.
+ */
+export const EmojiTokens: Story = {
+  parameters: { plainOpeners: ["Insert emoji"] },
+  render: () => <EmojiTokensStory />,
 };

@@ -21,6 +21,8 @@ import {
   type SyntheticEvent,
 } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Emoji, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { emojiToken, searchCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -44,6 +46,11 @@ export interface AutocompleteItem {
   /** A small picture before the label instead of an avatar, such as an emoji: `glyph: "🎉"`. */
   glyph?: ReactNode;
   /**
+   * An image catalogue's emoji, drawn before the label instead of an avatar or glyph; an
+   * animated one plays while the suggestion is active. A trigger with `catalogue` sets it.
+   */
+  emoji?: EmojiItem | undefined;
+  /**
    * The text that replaces the trigger and what follows it when the suggestion is picked.
    * @default the trigger character, the label and a space: "@Avery Kim "
    */
@@ -57,12 +64,22 @@ export interface AutocompleteTrigger {
   /** Names the list for screen readers: "People", "Emoji". */
   label: string;
   /**
+   * An image emoji catalogue to suggest from instead of `items`: the emoji whose shortcode,
+   * name or keyword starts with what follows the character, shortcodes first, at most eight,
+   * each drawn as its image with its `:shortcode:` token. Picking one inserts the token and a
+   * space, which `EmojiText` draws as the image once the message is sent.
+   *
+   * @claim "shortcodes first, at most eight" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > suggests emoji by shortcode, name and keyword, shortcodes first, drawn as images)
+   * @claim "Picking one inserts the token and a space" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > inserts the picked emoji's token and a space in a Composer, which EmojiText draws as its image)
+   */
+  catalogue?: EmojiCatalogue | undefined;
+  /**
    * The suggestions: a list, which shows the items whose label, a word of it, or whose value
    * starts with what follows the character, or a function of that text (`query`, "" just
    * after the character) that filters and caps them itself. The list closes when none match.
    * @claim "The list closes when none match" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > filters by what follows the trigger, and closes when nothing matches)
    */
-  items: readonly AutocompleteItem[] | ((query: string) => readonly AutocompleteItem[]);
+  items?: readonly AutocompleteItem[] | ((query: string) => readonly AutocompleteItem[]) | undefined;
   /** Called after a suggestion is inserted, with the suggestion and the query it replaced. */
   onPick?: ((item: AutocompleteItem, query: string) => void) | undefined;
   /** How many characters must follow the trigger before the list opens: a couple for emoji shortcodes, so a colon in a time stays quiet. @default 0 */
@@ -133,7 +150,9 @@ const optionClass =
  *
  * Insertion goes through the browser's own text editing, so Undo takes it back and the
  * control's `onChange` and `onValueChange` run, controlled or not. `TextArea`'s `autoGrow`
- * grows with it. In a `Composer`, the Enter that picks a suggestion does not send.
+ * grows with it. In a `Composer`, the Enter that picks a suggestion does not send. A trigger
+ * with an image emoji `catalogue` suggests its emoji as images and inserts their `:shortcode:`
+ * tokens, which `EmojiText` draws as images in the sent message.
  *
  * Use `Combobox` instead to choose one value for a field from a list, and `Command` for a
  * command palette.
@@ -146,7 +165,7 @@ const optionClass =
  * <Autocomplete
  *   triggers={[
  *     { char: "@", label: "People", allowSpaces: true, items: (query) => people.filter((p) => p.label.toLowerCase().includes(query.toLowerCase())).slice(0, 6) },
- *     { char: ":", label: "Emoji", minQueryLength: 2, items: (query) => emoji.filter((e) => e.value.startsWith(query)).slice(0, 8) },
+ *     { char: ":", label: "Emoji", minQueryLength: 2, catalogue },
  *   ]}
  * >
  *   <TextArea label="Message" hideLabel autoGrow rows={1} maxRows={8} value={text} onValueChange={setText} />
@@ -247,11 +266,13 @@ function triggerWarnings(triggers: readonly AutocompleteTrigger[]): DevWarning[]
   const long = triggers.find((candidate) => [...candidate.char].length !== 1);
   const repeated = chars.find((char, index) => chars.indexOf(char) !== index);
   const unnamed = triggers.find((candidate) => !candidate.label);
+  const empty = triggers.find((candidate) => !candidate.items && !candidate.catalogue);
   return [
     triggers.length === 0 && ["triggers is empty, so nothing opens suggestions", '<Autocomplete triggers={[{ char: "@", label: "People", items }]}>'],
     long && [`char "${long.char}" is not one character`, `{ char: "${[...long.char][0] ?? "@"}", label: "${long.label}", items }`],
     repeated !== undefined && [`two triggers use "${repeated}"`, "give each trigger its own char"],
     unnamed && [`the "${unnamed.char}" trigger's label is empty, so its list has no name`, `{ char: "${unnamed.char}", label: "People", items }`],
+    empty && [`the "${empty.char}" trigger has neither items nor catalogue, so it suggests nothing`, `{ char: "${empty.char}", label: "${empty.label}", items }`],
   ];
 }
 
@@ -293,7 +314,8 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     // No trigger without a match, or when `triggers` no longer has the match's.
     if (!trigger) return [];
     const { query } = match!;
-    return typeof trigger.items === "function" ? trigger.items(query) : filterItems(trigger.items, query);
+    if (trigger.catalogue) return searchCatalogue(trigger.catalogue, query, 8).map(emojiSuggestion);
+    return typeof trigger.items === "function" ? trigger.items(query) : filterItems(trigger.items ?? [], query);
   }, [match, trigger]);
   const open = focused && match !== null && dismissed !== match.start && items.length > 0;
   const current = Math.min(active, items.length - 1);
@@ -309,6 +331,12 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
   };
 
   return { match, trigger, items, open, current, anchorAt, setActive, setFocused, setDismissed, evaluate };
+}
+
+/** A catalogue's emoji as a suggestion: its name, its token as the description and what it inserts, and its image. */
+function emojiSuggestion(item: EmojiItem): AutocompleteItem {
+  const token = emojiToken(item, "default");
+  return { value: item.id, label: item.name, description: token, emoji: item, insert: `${token} ` };
 }
 
 /** Inserts the pick in place of the trigger and its query, then tells the trigger's `onPick`. */
@@ -405,7 +433,7 @@ function SuggestionList({ open, listId, label, query, items, current, anchor, on
                   onMouseMove={() => onHover(index)}
                   onClick={() => onPick(item)}
                 >
-                  <OptionContent item={item} query={query!} />
+                  <OptionContent item={item} query={query!} active={index === current} />
                 </div>
               ))}
             </BasePopover.Popup>
@@ -416,12 +444,16 @@ function SuggestionList({ open, listId, label, query, items, current, anchor, on
   );
 }
 
-/** A suggestion's row: its avatar or glyph, its label with the typed part in bold, and its description. */
-function OptionContent({ item, query }: { item: AutocompleteItem; query: string }): JSX.Element {
+/** A suggestion's row: its avatar, emoji or glyph, its label with the typed part in bold, and its description. */
+function OptionContent({ item, query, active }: { item: AutocompleteItem; query: string; active: boolean }): JSX.Element {
   const at = matchAt(item.label, query);
   return (
     <>
-      {item.avatar ? (
+      {item.emoji ? (
+        <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
+          <Emoji item={item.emoji} play={active} />
+        </span>
+      ) : item.avatar ? (
         <Avatar name={item.label} alt="" size="xs" src={item.avatar.src} initials={item.avatar.initials} className="shrink-0" />
       ) : item.glyph !== undefined ? (
         <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">

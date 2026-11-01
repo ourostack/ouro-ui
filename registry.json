@@ -3846,12 +3846,13 @@
       "type": "registry:ui",
       "title": "Autocomplete",
       "description": "Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character.",
-      "docs": "Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character. Import: import { Autocomplete } from \"@/components/ouro/autocomplete/autocomplete\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/autocomplete.md",
+      "docs": "Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character. Import: import { Autocomplete } from \"@/components/ouro/autocomplete/autocomplete\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, emoji, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/autocomplete.md",
       "dependencies": [
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
         "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/lib-announce",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-dev",
@@ -11074,9 +11075,16 @@
       "registryDependencies": [
         "ourostack/ouro-ui/attachment",
         "ourostack/ouro-ui/attachment-tests",
+        "ourostack/ouro-ui/autocomplete",
+        "ourostack/ouro-ui/autocomplete-tests",
+        "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/composer",
+        "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-picker",
+        "ourostack/ouro-ui/emoji-picker-tests",
+        "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
@@ -11089,8 +11097,14 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/popover-tests",
+        "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/text-area",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field-tests",
@@ -11441,6 +11455,8 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/composer",
         "ourostack/ouro-ui/composer-tests",
+        "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
@@ -11454,6 +11470,7 @@
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text-area",
         "ourostack/ouro-ui/text-area-tests",
@@ -11462,6 +11479,11 @@
         "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/autocomplete/autocomplete.catalogue.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/autocomplete/autocomplete.stories.tsx",
           "type": "registry:component",
