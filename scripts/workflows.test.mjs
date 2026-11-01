@@ -1231,7 +1231,7 @@ test("the ci check passes only when its parts passed and the browser shards' mer
   assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: coverage-fallback-\*\n {10}path: \$\{\{ runner\.temp \}\}\/coverage\n/m);
   assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}name: Full suite coverage\n/m);
   const merge = stepScript(block, "Full suite coverage");
-  assert.match(runStep(merge, { RUNNER_TEMP: "/r", FALLBACK_SHARDS: "12" }).calls, /^CALL node scripts\/coverage-merge\.mjs \/r\/coverage --shards 12$/m);
+  assert.match(runStep(merge, { RUNNER_TEMP: "/r", FALLBACK_SHARDS: "16" }).calls, /^CALL node scripts\/coverage-merge\.mjs \/r\/coverage --shards 16$/m);
 });
 
 test("the themes shards pass as not affected when a pull request changes no component, and scan only the selected stories otherwise", () => {
