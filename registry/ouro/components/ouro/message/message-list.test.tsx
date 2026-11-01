@@ -1219,9 +1219,23 @@ describe("MessageList keyboard", () => {
     expect(positions()).toEqual(["40/200", "null/null", "null/null", "3/5", "4/5", "5/5"]);
     expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-part")).toBe("item");
+    expect(document.getElementById("plain-item")!.getAttribute("data-ouro-control")).toBe("message-list");
     // The focus ring rounds on Ouro's Message only; an app's message keeps its corners.
     expect(getComputedStyle(document.getElementById("post-0")!).borderTopLeftRadius).not.toBe("0px");
     expect(getComputedStyle(document.getElementById("plain-item")!).borderTopLeftRadius).toBe("0px");
+  });
+
+  it("counts a message that arrives inside a group already there, such as today's messages, and takes it out of the Tab order", async () => {
+    const day = (count: number) => (
+      <MessageList label="Channel" style={{ height: 300 }}>
+        <section aria-label="Today">{posts(count)}</section>
+      </MessageList>
+    );
+    const { rerender } = await render(day(2));
+    await rerender(day(3));
+    expect(document.getElementById("post-2")!.getAttribute("aria-posinset")).toBe("3");
+    expect(document.getElementById("post-0")!.getAttribute("aria-setsize")).toBe("3");
+    expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
   });
 
   it("keeps a list inside a message to its own messages", async () => {
