@@ -37,7 +37,7 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
 
 ## Usage
 
-Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
+Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it. Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view scrolls the list, not the page around it.
 
 The messages spring as the reader scrolls, as in a phone's messages app: each trails the scroll a little and catches up, the farther from the pointer, finger or focused message the more, and a fling or a push past either end spreads them apart for a moment. The scroll position never moves for it, and at rest no message has a transform. `springy={false}` turns it off, and it is off with reduced motion.
 

@@ -131,6 +131,27 @@ describe("MessageList", () => {
     }
   });
 
+  it("keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it", async () => {
+    const { host, scroller } = await render(
+      <div data-frame="" style={{ height: 400, overflow: "hidden" }}>
+        <div style={{ height: 100 }} />
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {posts(14)}
+        </MessageList>
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    // Everything placed absolutely in the list, such as each message's screen-reader text, stays in the list's overflow.
+    expect(frame.scrollHeight).toBe(frame.clientHeight);
+    const first = document.getElementById("post-0")!;
+    await act(async () => first.focus());
+    first.scrollIntoView({ block: "start" });
+    await settle(scroller);
+    expect(scroller.scrollTop).toBeLessThan(scroller.scrollHeight - scroller.clientHeight);
+    expect(frame.scrollTop).toBe(0);
+    expect(document.scrollingElement!.scrollTop).toBe(0);
+  });
+
   it("is a named region that opens at the newest message, which is its Tab stop", async () => {
     const { scroller } = await render(<Chat items={history(20)} />);
     await expect.element(page.getByRole("region", { name: "Conversation" })).toBeVisible();
