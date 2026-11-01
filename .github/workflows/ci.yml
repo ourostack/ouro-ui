@@ -394,13 +394,14 @@ jobs:
           fi
   browser-fallback:
     # The full browser suite, when a reduced pull request's coverage fell short (the coverage job's
-    # `fallback`), run as a full run's browser shards run it, in twice as many shards since it starts
-    # only after them: in the same Playwright image, with the same fonts and browsers (on the plain
-    # runner, text laid out wider and layout tests failed that passed in every shard: Dialog's 65ch
-    # measure, 814 px against 800, on #321), each with the files whose measured times make up its
-    # share and its slice of the sliced suites (scripts/vitest-shards.mts). Each uploads its coverage,
-    # which the ci job merges and holds to 100%, and its motion evidence, which motion-coverage reads
-    # in place of the browser shards'. Part of the ci check.
+    # `fallback`), run as a full run's browser shards run it, in more shards, since it starts only
+    # after them and the whole run must still fit in ten minutes. In the same Playwright image, with
+    # the same fonts and browsers: on the plain runner, text laid out wider and layout tests failed
+    # that passed in every shard (Dialog's 65ch measure, 814 px against 800, on #321). Each shard runs
+    # the files whose measured times make up its share and its slice of the sliced suites
+    # (scripts/vitest-shards.mts), and uploads its coverage, which the ci job merges and holds to
+    # 100%, and its motion evidence, which motion-coverage reads in place of the browser shards'.
+    # Part of the ci check.
     needs: [plan, coverage]
     if: ${{ !cancelled() && needs.coverage.outputs.fallback == 'true' }}
     runs-on: ubuntu-24.04
@@ -414,10 +415,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    name: browser fallback (${{ matrix.shard }}/12)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    name: browser fallback (${{ matrix.shard }}/16)
     env:
-      SHARD: ${{ matrix.shard }}/12
+      SHARD: ${{ matrix.shard }}/16
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -461,7 +462,7 @@ jobs:
       fallback: ${{ needs.coverage.outputs.fallback }}
     env:
       FALLBACK: ${{ needs.coverage.outputs.fallback }}
-      FALLBACK_SHARDS: 12
+      FALLBACK_SHARDS: 16
     steps:
       - name: Every part passed
         env:
@@ -521,7 +522,7 @@ jobs:
     timeout-minutes: 10
     env:
       MOTION_PARTITIONS: ouro-chromium:6,ouro-webkit:6,ouro-touch:6,site:6
-      FULL_SUITE_PARTITIONS: ouro-chromium:12,ouro-webkit:12,ouro-touch:12,site:12
+      FULL_SUITE_PARTITIONS: ouro-chromium:16,ouro-webkit:16,ouro-touch:16,site:16
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
       FALLBACK: ${{ needs.ci.outputs.fallback }}
