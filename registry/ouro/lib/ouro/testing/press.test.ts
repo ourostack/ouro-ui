@@ -57,10 +57,11 @@ it("pressDuringScroll presses as a smooth scroll begins, and while one is under 
   const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   // Nothing on this page holds it, so the scroll the press found goes on.
   const begins = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "begins" });
-  expect(begins).toEqual({ pressedAt: 2000, heading: 4000, behaviorAtPress: "smooth" });
+  expect(begins).toEqual({ pressedAt: 2000, heading: 4000, moving: false, behaviorAtPress: "smooth" });
   await expect.poll(() => window.scrollY).toBe(4000);
   await frame();
   const underway = await pressDuringScroll("[data-press-here]", { from: 2000, to: 14000, scroll: "underway" });
-  expect(underway.heading).not.toBe(underway.pressedAt);
+  expect(underway.moving).toBe(true);
   expect(window.scrollY).not.toBe(underway.pressedAt);
+  await expect.poll(() => window.scrollY).toBe(underway.heading);
 });

@@ -65,7 +65,7 @@ const runDue = () => act(async () => vi.advanceTimersByTime(0));
  * timers still waiting run, and the clock is the page's again.
  *
  * @example
- * await pressAndLetGo('[data-ouro-control="select"][data-ouro-part="trigger"]');
+ * await pressAndLetGo('[data-ouro="button"]');
  * @claim "lets go `frames` animation frames later" registry/ouro/lib/ouro/testing/press.ts verify:fileLine(registry/ouro/lib/ouro/testing/press.ts, /\{ frames = 10 \}: \{ frames\?: number \| undefined \} = \{\}/)
  * @claim "Base UI takes a release over" https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx verify:urlOk(https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx)
  * @claim "a timer set to run at once runs" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressAndLetGo runs a timer set to run at once before the release, and one set for later only once the release has landed)
@@ -86,8 +86,11 @@ export async function pressAndLetGo(selector: string, { frames = 10 }: { frames?
     await commands.pointerPress({ action: "up" });
     await released;
   } finally {
-    await act(async () => vi.runOnlyPendingTimers());
-    vi.useRealTimers();
+    try {
+      await act(async () => vi.runOnlyPendingTimers());
+    } finally {
+      vi.useRealTimers();
+    }
   }
 }
 
@@ -97,6 +100,12 @@ export interface ScrollPress {
   pressedAt: number;
   /** Where the page's smooth scroll was heading as those handlers ran. */
   heading: number;
+  /**
+   * Whether the page moved between the last two frames before the press: false with `scroll: "begins"`, where the scroll starts at the press.
+   *
+   * @claim "Whether the page moved between" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressDuringScroll presses as a smooth scroll begins, and while one is under way)
+   */
+  moving: boolean;
   /** The page's inline `scroll-behavior` once the press had reached the window. */
   behaviorAtPress: string;
 }
@@ -105,18 +114,18 @@ export interface ScrollPress {
  * Presses an element during a smooth page scroll, and lets go with `pressAndLetGo`. The page is put
  * at `from` with `scroll-behavior: smooth` on its root; with `scroll: "begins"`, a smooth scroll to
  * `to` starts as the press goes down, ahead of the pressed element's own handlers. With
- * `scroll: "underway"`, the page sways between `from` and `to` until the press, and a press that
- * finds it at rest starts the next sway before those handlers see it. WebKit ends a smooth scroll
- * within about 200ms whatever its length, sooner than a loaded runner's press may follow, so a
- * single scroll could be over before the press came. Put the pressed point where it is on the
- * element all the way from `from` to `to`.
+ * `scroll: "underway"`, the page sways between `from` and `to`, turning back each time it arrives,
+ * and the press is sent once the page is seen moving. WebKit ends a smooth scroll within about
+ * 200ms whatever its length, sooner than a loaded runner's press may follow, so a single scroll
+ * could be over before the press came. Put the pressed point where it is on the element all the
+ * way from `from` to `to`.
  *
  * @example
- * const { pressedAt, heading } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway" });
+ * const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway" });
+ * expect(moving).toBe(true);
  * expect(window.scrollY).toBe(pressedAt);
- * expect(heading).not.toBe(pressedAt);
  * @claim "a smooth scroll to" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressDuringScroll presses as a smooth scroll begins, and while one is under way)
- * @claim "a press that finds it at rest" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressDuringScroll presses as a smooth scroll begins, and while one is under way)
+ * @claim "the press is sent once the page is seen moving" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressDuringScroll presses as a smooth scroll begins, and while one is under way)
  * @claim "WebKit ends a smooth scroll" https://github.com/ourostack/ouro-ui/pull/354 verify:urlOk(https://github.com/ourostack/ouro-ui/pull/354)
  */
 export async function pressDuringScroll(
@@ -130,30 +139,42 @@ export async function pressDuringScroll(
   let pressed = false;
   let pressedAt = -1;
   let behaviorAtPress = "";
+  let last = Number.NaN;
+  let moving = false;
+  let movingAtPress = false;
+  let seenMoving = () => {};
+  const inMotion = new Promise<void>((resolve) => (seenMoving = resolve));
   const sway = () => {
     heading = heading === from ? to : from;
     window.scrollTo({ top: heading });
   };
   const swaying = () => {
     if (pressed) return;
+    moving = window.scrollY !== last && !Number.isNaN(last);
+    last = window.scrollY;
+    if (moving) seenMoving();
     if (window.scrollY === heading) sway();
     requestAnimationFrame(swaying);
   };
   const onPress = () => {
     pressed = true;
     pressedAt = window.scrollY;
-    if (scroll === "begins" || pressedAt === heading) sway();
+    movingAtPress = moving;
+    if (scroll === "begins") sway();
   };
   const atPress = () => (behaviorAtPress = html.style.scrollBehavior);
   document.addEventListener("pointerdown", onPress, { capture: true, once: true });
   window.addEventListener("pointerdown", atPress, { once: true });
-  if (scroll === "underway") swaying();
   try {
+    if (scroll === "underway") {
+      swaying();
+      await inMotion;
+    }
     await pressAndLetGo(selector, { frames });
   } finally {
     pressed = true;
     document.removeEventListener("pointerdown", onPress, { capture: true });
     window.removeEventListener("pointerdown", atPress);
   }
-  return { pressedAt, heading, behaviorAtPress };
+  return { pressedAt, heading, moving: movingAtPress, behaviorAtPress };
 }

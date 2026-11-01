@@ -1287,7 +1287,7 @@ describe("Menu and the page's scroll", () => {
         </div>,
       );
       await userEvent.hover(document.querySelector("[data-rest-here]")!);
-      const { pressedAt, heading } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway" });
+      const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway" });
       await expect.poll(() => {
         const open = menu();
         return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -1296,8 +1296,8 @@ describe("Menu and the page's scroll", () => {
       await frame();
       expect(menu()!.hasAttribute("data-open")).toBe(true);
       expect(window.scrollY).toBe(pressedAt);
-      // The page was on its way somewhere else when the press found it.
-      expect(heading).not.toBe(pressedAt);
+      // The page was moving when the press found it.
+      expect(moving).toBe(true);
     });
   }
 });

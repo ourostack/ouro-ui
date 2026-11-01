@@ -1135,7 +1135,7 @@ describe("Dialog and the page's scroll", () => {
           </div>,
         );
         await userEvent.hover(document.querySelector("[data-rest-here]")!);
-        const { pressedAt, heading } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 14000, scroll: "underway" });
+        const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 14000, scroll: "underway" });
         await expect.poll(() => {
           const open = popup();
           return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -1143,8 +1143,8 @@ describe("Dialog and the page's scroll", () => {
         await frame();
         await frame();
         expect(window.scrollY).toBe(pressedAt);
-        // The page was on its way somewhere else when the press found it.
-        expect(heading).not.toBe(pressedAt);
+        // The page was moving when the press found it.
+        expect(moving).toBe(true);
       });
     }
   }
