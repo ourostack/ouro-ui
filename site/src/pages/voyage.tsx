@@ -25,21 +25,30 @@ import "../voyage/chapters/chapters.css";
 const docsHref = (item: string) => href(`/docs/${item}/`);
 
 /**
- * X-ray: HX Inspector over the page. It opens in the frame after the press has painted (two
- * animation frames), because it measures every HX component on the page, so the Switch or the
- * button answers first; it closes at once.
+ * X-ray: HX Inspector over the page. It opens a beat after the press has painted (two animation
+ * frames, then INSPECTOR_AFTER_PRESS_MS), because it measures every HX component on the page, so the
+ * Switch or the button answers first and the Inspector follows; it closes at once. Two frames say
+ * the press's frame was painted, not shown: where the compositor ran behind the page, the
+ * Inspector's frame was shown together with the press's and held its answer back.
  */
+/** How long after the press's paint the Inspector opens: long enough for a frame the compositor is behind on to be shown first. */
+const INSPECTOR_AFTER_PRESS_MS = 100;
+
 function Xray(): JSX.Element {
   const on = useXray();
   const spotlight = useSpotlight();
   const [painted, setPainted] = useState(false);
   useEffect(() => {
     if (!on) return;
+    let timer: number | undefined;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => setPainted(true));
+      frame = requestAnimationFrame(() => {
+        timer = window.setTimeout(() => setPainted(true), INSPECTOR_AFTER_PRESS_MS);
+      });
     });
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
       setPainted(false);
     };
   }, [on]);
