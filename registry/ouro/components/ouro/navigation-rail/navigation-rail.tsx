@@ -391,7 +391,7 @@ function itemInside(text: string, icon: ReactNode, count: number, countLabel: st
       </span>
       <span
         data-ouro-navigation-rail-label={index}
-        data-ouro-navigation-rail-squeezed={squeezed ? "" : undefined}
+        data-ouro-navigation-rail-squeezed={squeezed || undefined}
         className={hideLabels ? "sr-only" : labelClass[squeezed ? "squeezed" : "fits"]}
       >
         {text}
