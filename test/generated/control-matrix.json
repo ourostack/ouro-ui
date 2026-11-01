@@ -1858,7 +1858,8 @@
       "Message/WithAttachments",
       "Message/Chat",
       "Message/Posts",
-      "Message/Thread"
+      "Message/Thread",
+      "Message/Quote"
     ]
   },
   {
@@ -1876,7 +1877,27 @@
       "Message/WithAttachments",
       "Message/Chat",
       "Message/Posts",
-      "Message/Thread"
+      "Message/Thread",
+      "Message/Quote"
+    ]
+  },
+  {
+    "item": "message",
+    "stem": "message",
+    "mode": "default",
+    "part": "quote",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Message/Playground",
+      "Message/Roles",
+      "Message/Streaming",
+      "Message/WithAttachments",
+      "Message/Chat",
+      "Message/Posts",
+      "Message/Thread",
+      "Message/Quote"
     ]
   },
   {
@@ -2604,6 +2625,48 @@
     "item": "composer",
     "stem": "composer",
     "mode": "default",
+    "part": "quote",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Composer/Playground",
+      "Composer/Basic",
+      "Composer/Suggested",
+      "Composer/WithTools",
+      "Composer/Quoting",
+      "Composer/SendingOff",
+      "Composer/Sending",
+      "Composer/ModEnter",
+      "Composer/Disabled",
+      "Composer/EmojiTokens"
+    ]
+  },
+  {
+    "item": "composer",
+    "stem": "composer",
+    "mode": "default",
+    "part": "remove",
+    "role": "button",
+    "portal": false,
+    "touch": false,
+    "stories": [
+      "Composer/Playground",
+      "Composer/Basic",
+      "Composer/Suggested",
+      "Composer/WithTools",
+      "Composer/Quoting",
+      "Composer/SendingOff",
+      "Composer/Sending",
+      "Composer/ModEnter",
+      "Composer/Disabled",
+      "Composer/EmojiTokens"
+    ]
+  },
+  {
+    "item": "composer",
+    "stem": "composer",
+    "mode": "default",
     "part": "send",
     "role": "button",
     "portal": false,
@@ -2613,6 +2676,7 @@
       "Composer/Basic",
       "Composer/Suggested",
       "Composer/WithTools",
+      "Composer/Quoting",
       "Composer/SendingOff",
       "Composer/Sending",
       "Composer/ModEnter",
