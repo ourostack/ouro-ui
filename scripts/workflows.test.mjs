@@ -337,7 +337,7 @@ test("Required checks compares the file with main's live rules hourly, on a chan
     const block = text.split(new RegExp(`^ {2}${event}:\n`, "m"))[1].split(/\n {2}\S/)[0];
     for (const path of [".github/required-checks.json", "scripts/required-checks.mjs", ".github/workflows/required-checks.yml"]) assert.ok(block.includes(`- ${path}`), `${event} ${path}`);
   }
-  assert.match(text, /^permissions:\n {2}contents: read\njobs:/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n(#.*\n)*concurrency:\n/m);
   assert.match(text, /^ {8}id: compare\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/required-checks\.mjs$/m);
   assert.match(text, /^ {4}outputs:\n {6}drift: \$\{\{ steps\.compare\.outputs\.drift \}\}$/m);
   const report = text.slice(text.indexOf("\n  report:\n"));
@@ -1093,11 +1093,11 @@ test("a push to main whose commit the merge queue already tested runs only insta
   assert.equal(check([]), "");
   // When the API cannot answer, everything runs.
   assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")], 1), "");
-  // Every job but the plan, the GitHub install and the release-only install skips on it, gates
-  // included; motion-coverage waits on ci. Nothing else reads it.
+  // Every job but the plan, the GitHub install, the release-only install and fail-fast (pull
+  // requests only) skips on it, gates included; motion-coverage waits on ci. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "fail-fast"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
   for (const id of skipping) assert.match(jobs[id], /^ {4}needs: \[plan[\],]/m, `${id} needs the plan`);
@@ -1159,7 +1159,7 @@ test("every required check is still a job that reports, under the name the rules
     // A job a required check names never skips itself on a pull request or in the merge queue: at
     // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
-    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
+    if (!["fail-fast", "install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
@@ -1594,9 +1594,10 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   assert.match(block, /^ {10}HEAD_REF: \$\{\{ github\.head_ref \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
-  // Every job no other job needs: the ends of the run's chains.
+  // Every job no other job needs: the ends of the run's chains, but fail-fast, which watches this
+  // job too and stops once it has finished (scripts/ci-fail-fast.mjs).
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
-  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && !needed.has(id));
+  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && !needed.has(id));
   assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
@@ -1991,11 +1992,14 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
-    if (file === "ci.yml" || !/^concurrency:$/m.test(text)) continue;
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
     const events = [...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]);
+    // A push to a pull request cancels the run it replaces, in every workflow a pull request starts.
+    if (events.includes("pull_request")) assert.match(text, /^concurrency:$/m, `${file} runs on pull requests but cancels no superseded run`);
+    if (file === "ci.yml" || !/^concurrency:$/m.test(text)) continue;
     const block = text.split(/^concurrency:\n/m)[1].split(/\n(?=\S)/)[0];
     assert.doesNotMatch(text.split(/^jobs:\n/m)[1], /^\s+concurrency:/m, `${file}: no job has a group of its own`);
     if (!events.includes("pull_request")) {
