@@ -512,6 +512,67 @@ describe("MessageList", () => {
     expect(firstVisible(scroller).message).toBe(before.message);
   });
 
+  it("keeps the reader's place when a message above them moves to the end and the list keeps its height", async () => {
+    const items = history(20, 10);
+    const list = (order: Item[], note: string) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        {order.map((item) => (
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+        <p key={note}>Seen</p>
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(items, "first"));
+    await wheel(scroller, -400);
+    const before = firstVisible(scroller);
+    // A reply to the first message moves it to the end, as a channel orders posts by their latest activity, and a
+    // note that is no message is replaced by another of its size.
+    await rerender(list([...items.slice(1), items[0]!], "second"));
+    await settle(scroller);
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place once when a message above them moves to the end as older history loads", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const before = firstVisible(scroller);
+    await rerender(<Chat items={[...history(10), ...items.slice(1), items[0]!]} />);
+    await settle(scroller);
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("stops following the newest message once the list is scrolled up, even before the scroll event comes", async () => {
+    const items = history(20, 10);
+    const { scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    let top = 0;
+    await act(async () => {
+      // Code scrolls the list up from its end (to a post's summary as a thread closes), and a message arrives before
+      // the browser sends the scroll event.
+      scroller.scrollTop -= 200;
+      top = scroller.scrollTop;
+      flushSync(() => roots.at(-1)!.render(<Chat items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} />));
+    });
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(top);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
+  it("keeps following the end when the newest message goes, as the list's end comes up to meet it", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await rerender(<Chat items={items.slice(0, -1)} />);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await rerender(<Chat items={[...items.slice(0, -1), { id: 30, role: "assistant", text: "A new reply." }]} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
   it("keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages", async () => {
     /** An app's own message, not Ouro's Message, marked for the list. */
     function Post({ item }: { item: Item }) {

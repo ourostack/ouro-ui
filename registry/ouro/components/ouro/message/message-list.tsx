@@ -402,7 +402,9 @@ interface Spoken {
  * announced: the messages it mounts with, several messages filling an empty list at once
  * (history fetched after mount), older messages loaded above, and a message whose `key` changes in place (a temporary id
  * swapped for the server's). Older messages loaded above a scrolled-up reader leave the
- * message they are reading where it was. Scrolling is never announced.
+ * message they are reading where it was, and so does a message above them that moves, such as
+ * a post a reply moves to the end. A scroll up from the end stops the list following new
+ * messages at once, before the browser reports it. Scrolling is never announced.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  *
@@ -479,6 +481,8 @@ interface Spoken {
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply still streaming in the first messages to fill an empty list, once it finishes)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply that was streaming when the list mounted, once it finishes)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > does not read back the user's own message)
+ * @claim "and so does a message above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place when a message above them moves to the end and the list keeps its height)
+ * @claim "A scroll up from the end" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stops following the newest message once the list is scrolled up, even before the scroll event comes)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
@@ -607,8 +611,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     toBottom();
     keepAnchor();
-    const follow = new ResizeObserver(() => {
+    // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
+    const hold = () => {
       const anchor = anchors.find(({ node }) => node.isConnected);
+      // A scroll up away from the end that the scroll event has not reported yet (code scrolled to a message, a key) stops the following.
+      // Stryker disable next-line EqualityOperator: a list exactly half a pixel above, or exactly AT_BOTTOM from its end, is where zoom's fractions leave it either way.
+      if (scroller.scrollTop < lastTop.current - 0.5 && scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > AT_BOTTOM) pinned.current = false;
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -626,9 +634,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
       }
       keepAnchor();
-    });
+    };
+    const follow = new ResizeObserver(hold);
     follow.observe(content);
     follow.observe(scroller);
+    // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: the
+    // anchor is held as they move, before the browser draws. A move that also resizes the list is held here first,
+    // and the resize observer then finds it held.
+    const moves = new MutationObserver((records) => {
+      // Stryker disable next-line ConditionalExpression: holding when no message came, went or moved finds nothing moved; this only spares the work.
+      if (records.some(touchesItems)) hold();
+    });
+    moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
       const top = scroller.scrollTop;
       const distance = scroller.scrollHeight - top - scroller.clientHeight;
@@ -643,6 +660,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     scroller.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       follow.disconnect();
+      moves.disconnect();
       scroller.removeEventListener("scroll", onScroll);
     };
   }, [toBottom]);
