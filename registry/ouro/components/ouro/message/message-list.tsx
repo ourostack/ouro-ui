@@ -395,7 +395,9 @@ interface Spoken {
 
 /**
  * A conversation: `Message`s in a scrolling, labeled region that opens at the newest one.
- * While the reader is at the bottom it follows new messages and streaming text; once they
+ * A short conversation sits at the region's bottom, by the composer under it, as in a chat
+ * app; put what starts it (who it is with, a way to older history) first among the children,
+ * and it sits right above the first message. While the reader is at the bottom it follows new messages and streaming text; once they
  * scroll up, nothing moves their view, and a "Jump to latest" button appears. Each new
  * message from someone else is read to screen readers once, politely: a streamed reply
  * when it finishes, and a first reply in a list that mounted empty. History is never
@@ -482,6 +484,8 @@ interface Spoken {
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
+ * @claim "A short conversation sits at" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits a short conversation at its bottom, by the composer under it, with the room above it empty)
+ * @claim "put what starts it (who" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits what starts a short conversation, its first child, right above the first message)
  */
 export function MessageList(props: MessageListProps): JSX.Element {
   const {
@@ -992,7 +996,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
         <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
-        <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">
+        <div ref={contentRef} data-ouro-message-list-content="" className="flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3">
           {children}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
