@@ -1,0 +1,107 @@
+# Museum and organ at 4x CPU, main against perf/museum-organ-press, on 18 CI runners
+#
+# Three probe workflow runs (branches never merged): https://github.com/ourostack/ouro-ui/actions/runs/41340435497
+# (probe/museum-organ-ab), https://github.com/ourostack/ouro-ui/actions/runs/41348858488 and
+# https://github.com/ourostack/ouro-ui/actions/runs/41351063045 (probe/museum-organ-contain). On each runner the
+# site was built from main (3de00b2b) and from the pull request's change, and
+# site/e2e/chapter-two.latency.spec.ts and site/e2e/chapter-three.latency.spec.ts measured museum and organ
+# against each build in turn: 20 presses after two warm-ups per round, as the latency job takes them.
+# Run 41340435497 ran two rounds and then the whole latency suite on each build (a third value per line);
+# the others ran two rounds. Each line: run, runner, CPU, control, build (main or pr), then each round's
+# p95 and median in ms. The pooled lines put together every sample of the runs on EPYC 7763s, and on
+# the other CPUs.
+#
+# Whole suite (run 41340435497, six runners, 47 checks each): the other 45 checks moved their median by
+# between -6.7 and +9.3 ms on average; main failed museum once (p95 104 on ab-3) and the pull request
+# failed leave once (p95 104 on ab-3).
+#
+# Tried and not kept: content-visibility: auto on section[data-chapter], on top of this change: on the
+# 7763s, pooled museum p95/median 64/48 and organ 56/40 (run 41340435497, 160 samples each). In site-webkit
+# Chapter II's and III's dialogs, sheets and menus didn't open with it (CI runs 41343294690 and
+# 41346176929); probe run https://github.com/ourostack/ouro-ui/actions/runs/41350269253 showed the alarm
+# press focusing its button with no dialog and no scroll lock.
+# Containment on the chapters (contain: content, contain: paint, isolation: isolate; run 41348858488) and
+# content-visibility on the chapters' drawings only (run 41351063045): pooled museum p95/median on the
+# 7763s 72/56, 72/56, 64/56 and 72/56, against this change's 72/56 in the same runs.
+#
+41340435497 ab-1 7763 museum main: p95 72 64 72 | median 56 56 64
+41340435497 ab-1 7763 museum pr: p95 48 48 48 | median 40 40 40
+41340435497 ab-1 7763 organ main: p95 64 72 56 | median 56 52 48
+41340435497 ab-1 7763 organ pr: p95 48 56 40 | median 48 48 40
+41340435497 ab-2 7763 museum main: p95 72 72 72 | median 60 72 72
+41340435497 ab-2 7763 museum pr: p95 56 56 72 | median 56 48 56
+41340435497 ab-2 7763 organ main: p95 64 64 56 | median 64 60 48
+41340435497 ab-2 7763 organ pr: p95 56 64 64 | median 48 48 48
+41340435497 ab-3 7763 museum main: p95 80 104 104 | median 72 88 88
+41340435497 ab-3 7763 museum pr: p95 80 88 88 | median 72 80 72
+41340435497 ab-3 7763 organ main: p95 72 96 80 | median 56 64 80
+41340435497 ab-3 7763 organ pr: p95 64 64 64 | median 64 64 64
+41340435497 ab-4 8573C museum main: p95 72 72 72 | median 72 72 64
+41340435497 ab-4 8573C museum pr: p95 72 56 72 | median 56 56 64
+41340435497 ab-4 8573C organ main: p95 72 64 72 | median 64 64 64
+41340435497 ab-4 8573C organ pr: p95 64 64 64 | median 48 64 64
+41340435497 ab-5 9V45 museum main: p95 56 56 56 | median 56 56 48
+41340435497 ab-5 9V45 museum pr: p95 56 40 32 | median 40 40 32
+41340435497 ab-5 9V45 organ main: p95 48 48 32 | median 40 40 32
+41340435497 ab-5 9V45 organ pr: p95 48 40 32 | median 48 32 32
+41340435497 ab-6 7763 museum main: p95 88 72 72 | median 72 72 64
+41340435497 ab-6 7763 museum pr: p95 72 72 56 | median 56 56 48
+41340435497 ab-6 7763 organ main: p95 64 88 72 | median 64 64 64
+41340435497 ab-6 7763 organ pr: p95 48 64 80 | median 40 48 40
+41348858488 ab-1 7763 museum main: p95 72 72 | median 64 64
+41348858488 ab-1 7763 museum pr: p95 56 72 | median 56 72
+41348858488 ab-1 7763 organ main: p95 64 64 | median 52 48
+41348858488 ab-1 7763 organ pr: p95 64 64 | median 52 48
+41348858488 ab-2 7763 museum main: p95 88 96 | median 68 88
+41348858488 ab-2 7763 museum pr: p95 56 80 | median 48 72
+41348858488 ab-2 7763 organ main: p95 64 80 | median 64 64
+41348858488 ab-2 7763 organ pr: p95 64 56 | median 48 48
+41348858488 ab-3 9V45 museum main: p95 56 48 | median 40 40
+41348858488 ab-3 9V45 museum pr: p95 40 40 | median 40 36
+41348858488 ab-3 9V45 organ main: p95 40 48 | median 32 40
+41348858488 ab-3 9V45 organ pr: p95 48 40 | median 48 32
+41348858488 ab-4 7763 museum main: p95 72 72 | median 72 64
+41348858488 ab-4 7763 museum pr: p95 56 56 | median 48 56
+41348858488 ab-4 7763 organ main: p95 64 64 | median 64 48
+41348858488 ab-4 7763 organ pr: p95 64 48 | median 48 40
+41348858488 ab-5 8370C museum main: p95 88 72 | median 72 72
+41348858488 ab-5 8370C museum pr: p95 56 72 | median 56 56
+41348858488 ab-5 8370C organ main: p95 72 64 | median 64 64
+41348858488 ab-5 8370C organ pr: p95 48 88 | median 44 48
+41348858488 ab-6 7763 museum main: p95 80 80 | median 72 64
+41348858488 ab-6 7763 museum pr: p95 64 56 | median 48 48
+41348858488 ab-6 7763 organ main: p95 64 64 | median 64 64
+41348858488 ab-6 7763 organ pr: p95 56 72 | median 44 48
+41351063045 ab-1 9V45 museum main: p95 64 88 | median 40 56
+41351063045 ab-1 9V45 museum pr: p95 40 40 | median 40 32
+41351063045 ab-1 9V45 organ main: p95 48 64 | median 48 48
+41351063045 ab-1 9V45 organ pr: p95 48 56 | median 48 48
+41351063045 ab-2 7763 museum main: p95 64 88 | median 56 72
+41351063045 ab-2 7763 museum pr: p95 56 72 | median 56 56
+41351063045 ab-2 7763 organ main: p95 72 64 | median 64 64
+41351063045 ab-2 7763 organ pr: p95 48 64 | median 40 44
+41351063045 ab-3 7763 museum main: p95 72 72 | median 64 72
+41351063045 ab-3 7763 museum pr: p95 56 72 | median 56 56
+41351063045 ab-3 7763 organ main: p95 56 56 | median 48 48
+41351063045 ab-3 7763 organ pr: p95 48 64 | median 40 60
+41351063045 ab-4 7763 museum main: p95 88 104 | median 72 88
+41351063045 ab-4 7763 museum pr: p95 48 56 | median 48 48
+41351063045 ab-4 7763 organ main: p95 72 64 | median 64 64
+41351063045 ab-4 7763 organ pr: p95 64 64 | median 48 64
+41351063045 ab-5 9V74 museum main: p95 72 104 | median 56 72
+41351063045 ab-5 9V74 museum pr: p95 64 72 | median 56 68
+41351063045 ab-5 9V74 organ main: p95 56 72 | median 48 64
+41351063045 ab-5 9V74 organ pr: p95 64 104 | median 48 48
+41351063045 ab-6 9V74 museum main: p95 56 64 | median 48 56
+41351063045 ab-6 9V74 museum pr: p95 40 56 | median 40 56
+41351063045 ab-6 9V74 organ main: p95 48 64 | median 40 60
+41351063045 ab-6 9V74 organ pr: p95 48 56 | median 48 48
+#
+pooled 7763 museum main: p95 88 median 72 samples 520
+pooled 7763 museum pr: p95 72 median 56 samples 520
+pooled 7763 organ main: p95 80 median 64 samples 520
+pooled 7763 organ pr: p95 64 median 48 samples 520
+pooled other museum main: p95 72 median 56 samples 320
+pooled other museum pr: p95 72 median 48 samples 320
+pooled other organ main: p95 64 median 48 samples 320
+pooled other organ pr: p95 64 median 48 samples 320
