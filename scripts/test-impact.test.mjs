@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { storyFileSelected } from "../test/story-selection.ts";
 import { decideReducedRun, e2eArgs, runBrowserShard, storyFolders, testImpact, vitestArgs } from "./test-impact.mjs";
+import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const components = "registry/ouro/components/ouro";
@@ -186,7 +187,7 @@ test("a docs demo selects its component; the site's stylesheet, which the text-s
   assert.ok(toggle.components.includes("toggle"), toggle.components.join());
   assert.ok(toggle.reasons.includes("toggle: its tests, stories or docs demo import checkbox"), toggle.reasons.join("\n"));
   // Every demo in this repository is named after a component, so none forces a full run.
-  const demos = readdirSync(join(root, "site/src/docs/demos"), { recursive: true }).map(String).filter((file) => file.endsWith(".demo.tsx"));
+  const demos = treeFiles(join(root, "site/src/docs/demos")).filter((file) => file.endsWith(".demo.tsx"));
   assert.ok(demos.length > 0);
   for (const demo of demos) assert.equal(testImpact([`site/src/docs/demos/${demo}`]).full, false, demo);
 });
@@ -210,7 +211,7 @@ test("with no component selected, the reduced Vitest run measures no coverage an
 });
 
 test("each project in the reduced run has test files in test/ or site/, so none goes missing from the motion evidence", () => {
-  const files = (dir) => readdirSync(join(root, dir), { recursive: true }).map(String);
+  const files = (dir) => treeFiles(join(root, dir));
   const shared = files("test").filter((file) => !file.startsWith("themes") && !file.includes("install-fixture") && !file.includes("form-answer"));
   assert.ok(shared.some((file) => /(?<!\.touch|\.visual)\.test\.tsx?$/.test(file)), "ouro-chromium and ouro-webkit");
   assert.ok(shared.some((file) => /\.touch\.test\.tsx?$/.test(file)), "ouro-touch");
