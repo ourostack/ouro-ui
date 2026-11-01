@@ -1,6 +1,7 @@
 export {
   artFrameClass,
   dismissedKey,
+  dismissPeriods,
   haloClass,
   isDismissed,
   kindToneClass,
@@ -23,7 +24,7 @@ export {
 // app's Tailwind finds them when it compiles.
 
 /** What a moment is about. @internal */
-type MomentKind = "empty" | "loading" | "error" | "welcome" | "success";
+type MomentKind = "empty" | "loading" | "error" | "welcome" | "success" | "ask";
 
 /** How long a celebration cap counts showings for. @internal */
 type MomentPeriod = "day" | "week" | "month" | "ever";
@@ -94,10 +95,21 @@ function subscribeMoments(onChange: () => void): () => void {
   };
 }
 
-/** Whether the moment with this key was dismissed. @internal */
-function isDismissed(key: string): boolean {
-  return read(dismissedKey(key)) !== null;
+/**
+ * Whether the moment with this key was dismissed: for good, or, with `forMs`, less than that
+ * long ago. A dismissal kept for good stays so.
+ *
+ * @internal
+ */
+function isDismissed(key: string, forMs: number | undefined, now: number): boolean {
+  const value = read(dismissedKey(key));
+  if (value === null) return false;
+  const at = Number(value);
+  return forMs === undefined || value === "1" || now - at < forMs;
 }
+
+/** How long a dismissal with `dismissFor` lasts, in milliseconds. @internal */
+const dismissPeriods = { hour: 60 * 60 * 1000, day: 24 * 60 * 60 * 1000, week: 7 * 24 * 60 * 60 * 1000, month: 30 * 24 * 60 * 60 * 1000 } as const;
 
 /**
  * Remembers that the moment with this key was dismissed, and tells every moment on the page.
@@ -105,8 +117,8 @@ function isDismissed(key: string): boolean {
  * @internal
  * @claim "Remembers that the moment with this" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment dismissal > closes every copy of a moment on the page at once)
  */
-function keepDismissed(key: string): void {
-  write(dismissedKey(key), "1");
+function keepDismissed(key: string, at: number | undefined): void {
+  write(dismissedKey(key), at === undefined ? "1" : String(at));
   for (const listener of [...listeners]) listener();
 }
 
@@ -144,6 +156,7 @@ const kindToneClass: Record<MomentKind, string> = {
   error: "text-destructive",
   welcome: "text-primary",
   success: "text-success",
+  ask: "text-primary",
 };
 
 /** The root, by layout. @internal */
