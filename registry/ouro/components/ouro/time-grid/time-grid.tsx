@@ -609,8 +609,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     observer.observe(head);
     // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
+  []);
 
   const focusPiece = (key: string) => {
     setActive(key);

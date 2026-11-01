@@ -957,7 +957,12 @@ describe("TimeGrid", () => {
   });
 
   it("grows its hours to fill a grid taller than a day, so the day ends at the grid's foot, and shrinks them back with it", async () => {
-    await page.viewport(1280, 1600);
+    await page.viewport(1280, 1800);
+    // No scroll bar to come and go, so each change below reaches the grid only through the box it changes.
+    const still = document.createElement("style");
+    still.textContent = "[data-ouro='time-grid'] [data-scroll-viewport] { scrollbar-width: none; overflow-y: hidden !important }";
+    document.head.append(still);
+    mounted.push(still);
     const { grid, rerender } = await render({ className: "h-[1500px]" });
     const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
     const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
@@ -965,10 +970,14 @@ describe("TimeGrid", () => {
     await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
     expect(body.offsetHeight).toBeGreaterThan(48 * 24);
     expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1);
-    // A taller header, with a row of all-day events, leaves the hours less room, and they follow.
-    await rerender({ className: "h-[1500px]", events: [{ id: "all", title: "Holiday", start: "2026-03-12" }, { id: "all2", title: "Offsite", start: "2026-03-12" }] });
+    // A taller grid gives them more room.
+    await rerender({ className: "h-[1700px]" });
     await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
-    // Shorter than a day again: 48px hours, and the day scrolls.
+    // A taller header, with a row of all-day events, leaves the hours less room, and they follow.
+    await rerender({ className: "h-[1700px]", events: [{ id: "all", title: "Holiday", start: "2026-03-12" }, { id: "all2", title: "Offsite", start: "2026-03-12" }] });
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
+    // Shorter than a day again: 48px hours.
+    still.remove();
     await rerender({ className: "h-[30rem]" });
     await expect.poll(() => body.offsetHeight).toBe(48 * 24);
   });
