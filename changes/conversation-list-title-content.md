@@ -1,2 +1,3 @@
 - New: a ConversationList row's `title` and `where` take content, as `preview` does, such as a name with its emoji as pictures through `EmojiText`; a title given as content takes `name`, the text screen readers hear and the avatar's initials come from. `ConversationListItem` is now a type rather than an interface.
 - New: a ConversationList row takes `context`, a line between the title and the preview that says what happened and where ("mentioned you in Design reviews"), as an activity feed shows it.
+- New: a ConversationList row takes `draft`, a message started and not sent, shown as "Draft:" and its first words in place of the preview (`draftLabel` for other languages).

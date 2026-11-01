@@ -38,6 +38,15 @@ export interface ConversationListItemFields {
   context?: ReactNode;
   /** The latest message, cut to one line. `density="compact"` hides it. */
   preview?: ReactNode;
+  /**
+   * The first words of a message the person started here and has not sent. They show in place
+   * of the preview after `draftLabel` ("Draft:"), in the destructive tone as chat apps mark a
+   * draft, so a half-written reply is visible from the list. `density="compact"` hides it with
+   * the preview.
+   *
+   * @claim "They show in place of the preview" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows a draft in place of the preview, after its label in the destructive tone, and hides it when compact)
+   */
+  draft?: ReactNode;
   /** When the latest message arrived, already formatted ("9:41", `<RelativeTime>`). */
   time?: ReactNode;
   /** There are messages the person has not read: the title is bold and a dot shows. */
@@ -129,6 +138,8 @@ export interface ConversationListOwnProps {
   density?: ConversationListDensity | (string & { 'Use "comfortable" or "compact"': never }) | undefined;
   /** What screen readers hear for an unread row's dot, and a closed section's, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
+  /** The words before a row's `draft`, for other languages. @default "Draft:" */
+  draftLabel?: string | undefined;
   /** Layout only: width, margins, grid placement (`w-80`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -237,6 +248,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     empty = "Nothing here yet",
     density: densityProp = "comfortable",
     unreadLabel = "Unread",
+    draftLabel = "Draft:",
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     value,
@@ -309,7 +321,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   const rowFor = (item: ConversationListItem) => {
     const key = `row:${item.id}`;
-    const withPreview = density === "comfortable" && shown(item.preview);
+    const drafted = shown(item.draft);
+    const withPreview = density === "comfortable" && (drafted || shown(item.preview));
     // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
     const withContext = shown(item.context);
     const endsTitle = !withPreview && !withContext && !item.subtitle;
@@ -398,7 +411,16 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             {withPreview && (
               <span className="flex min-w-0 items-center gap-2">
                 <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
-                  {item.preview}
+                  {drafted ? (
+                    <>
+                      <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
+                        {draftLabel}
+                      </span>{" "}
+                      {item.draft}
+                    </>
+                  ) : (
+                    item.preview
+                  )}
                 </span>
                 {end}
               </span>

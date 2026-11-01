@@ -222,6 +222,29 @@ describe("ConversationList", () => {
     expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();
   });
 
+  it("shows a draft in place of the preview, after its label in the destructive tone, and hides it when compact", async () => {
+    const drafts: ConversationListItem[] = [
+      { id: "launch", title: "Launch planning", preview: "Ship it Friday.", draft: "Can we move the review to", time: "9:41" },
+      { id: "ada", title: "Ada Lovelace", draft: <i>Notes on the engine</i>, time: "Tue", unread: true },
+      { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Mon" },
+    ];
+    const { rows, rerender, host } = await render(<ConversationList label="Conversations" items={drafts} onSelect={() => {}} />);
+    const preview = (row: Element) => row.querySelector<HTMLElement>("[data-ouro-conversation-preview]")!;
+    expect(preview(rows[0]!).textContent).toBe("Draft: Can we move the review to");
+    expect(preview(rows[1]!).querySelector("i")!.textContent).toBe("Notes on the engine");
+    expect(preview(rows[2]!).textContent).toBe("Seed swap moved to Sunday.");
+    expect(preview(rows[2]!).querySelector("[data-ouro-conversation-draft]")).toBeNull();
+    const label = preview(rows[0]!).querySelector<HTMLElement>("[data-ouro-conversation-draft]")!;
+    expect(getComputedStyle(label).color).not.toBe(getComputedStyle(preview(rows[0]!)).color);
+    // The unread dot still ends a drafted row's line.
+    expect(preview(rows[1]!).parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
+    await expect.element(page.getByRole("button", { name: /Launch planning.*Draft: Can we move the review to/ })).toBeVisible();
+    await rerender(<ConversationList label="Gespräche" items={drafts} draftLabel="Entwurf:" onSelect={() => {}} />);
+    expect(preview(host.querySelectorAll('[data-ouro-part="row"]')[0]!).textContent).toBe("Entwurf: Can we move the review to");
+    await rerender(<ConversationList label="Conversations" items={drafts} density="compact" onSelect={() => {}} />);
+    expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();
+  });
+
   it("shows a text title without a name as plain text", async () => {
     const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
     const title = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;

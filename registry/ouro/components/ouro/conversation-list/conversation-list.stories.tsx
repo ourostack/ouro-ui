@@ -246,3 +246,21 @@ export const Activity: Story = {
     </Surface>
   ),
 };
+
+/** A row with a `draft`, a reply started and not sent, shows "Draft:" and its first words in place of the preview. */
+export const Drafts: Story = {
+  render: () => (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        items={[
+          { id: "launch", title: "Launch planning", preview: "Ship it Friday.", draft: "Can we move the review to Thursday so", time: "9:41" },
+          { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15", unread: true },
+          { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", draft: "I can bring tomato seedlings", time: "Tue" },
+        ]}
+        selectedId="ada"
+        onSelect={() => {}}
+      />
+    </Surface>
+  ),
+};
