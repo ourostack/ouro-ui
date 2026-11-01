@@ -191,7 +191,7 @@ describe("ConversationList", () => {
       <ConversationList
         label="Activity"
         items={[
-          { id: "mention", title: "Sam Example", context: <>mentioned you in <b>Design reviews</b></>, preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
+          { id: "mention", title: "Noor Example", context: <>mentioned you in <b>Design reviews</b></>, preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
           { id: "react", title: "Alex Example", context: "reacted in Launch planning", time: "12:43 PM", mark: <Badge>2</Badge> },
           { id: "reply", title: "Riley Example", subtitle: "Launch team", context: "replied in Design reviews", time: "12:27 PM", unread: true },
         ]}
@@ -216,7 +216,7 @@ describe("ConversationList", () => {
     expect(reply!.querySelectorAll("[data-ouro-conversation-unread]")).toHaveLength(1);
     expect(reply!.querySelector("[data-ouro-conversation-context]")!.parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
     await rerender(
-      <ConversationList label="Activity" density="compact" items={[{ id: "mention", title: "Sam Example", context: "mentioned you in Design reviews", preview: "Can you sign off?", time: "1:02 PM" }]} onSelect={() => {}} />,
+      <ConversationList label="Activity" density="compact" items={[{ id: "mention", title: "Noor Example", context: "mentioned you in Design reviews", preview: "Can you sign off?", time: "1:02 PM" }]} onSelect={() => {}} />,
     );
     expect(host.querySelector("[data-ouro-conversation-context]")!.textContent).toBe("mentioned you in Design reviews");
     expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();

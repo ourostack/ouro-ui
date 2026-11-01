@@ -236,7 +236,7 @@ export const Activity: Story = {
       <ConversationList
         label="Activity"
         items={[
-          { id: "mention", title: "Sam Example", context: "mentioned you in Design reviews", preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
+          { id: "mention", title: "Noor Example", context: "mentioned you in Design reviews", preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
           { id: "thread", title: "Alex Example", context: "posted in a thread you follow", preview: "Looks great to me.", time: "12:57 PM", unread: true },
           { id: "reaction", title: "Alex Example", context: "reacted in Launch planning", preview: "Thanks, both. Can we ship and review on Friday?", time: "12:43 PM" },
           { id: "reply", title: "Riley Example", context: "replied in Design reviews", preview: "Same here, see you at the review.", time: "12:27 PM" },
