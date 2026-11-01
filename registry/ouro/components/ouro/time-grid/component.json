@@ -5,7 +5,8 @@
   "controls": {
     "time-grid": [
       {"part": "event", "role": "button", "portal": false, "modes": ["button"]},
-      {"part": "event-link", "role": "link", "portal": false, "modes": ["link"]}
+      {"part": "event-link", "role": "link", "portal": false, "modes": ["link"]},
+      {"part": "stack", "role": "button", "portal": false, "modes": ["button"]}
     ]
   }
 }
