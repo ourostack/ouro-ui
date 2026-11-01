@@ -37,8 +37,13 @@ beforeEach(async () => {
   root.removeAttribute("data-theme");
   setScheme("light");
 });
+/** A theme reveal still running holds the page's pointer events, so the next test's first click would miss. */
+const revealAnimations = () => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition"));
+
 afterEach(async () => {
   toast.dismiss();
+  for (const animation of revealAnimations()) animation.finish();
+  await expect.poll(() => revealAnimations().length).toBe(0);
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
@@ -170,8 +175,6 @@ describe("the header and the theme section", () => {
     await expect.poll(() => document.querySelector<HTMLElement>("[data-site-sample]")?.innerText).toContain("Your paint");
     await userEvent.click(page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Pearl", exact: true }), { force: true });
     await expect.poll(corners).toBe("0.75rem");
-    // Leave no reveal running into the next test.
-    await expect.poll(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition")).length).toBe(0);
   });
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {
