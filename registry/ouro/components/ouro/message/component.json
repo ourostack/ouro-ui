@@ -13,6 +13,7 @@
     ],
     "message-list": [
       {"part": "scroller", "role": "region", "portal": false},
+      {"part": "item", "role": "article", "portal": false},
       {"part": "jump", "role": "button", "portal": false}
     ],
     "thread-summary": [
