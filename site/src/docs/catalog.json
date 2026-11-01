@@ -609,7 +609,8 @@
     "name": "time-grid",
     "title": "TimeGrid",
     "group": "Data",
-    "summary": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app."
+    "summary": "A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app.",
+    "parts": "TimeGrid"
   },
   {
     "name": "message",

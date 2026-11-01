@@ -1,0 +1,1 @@
+- Changed: a TimeGrid event's name starts with the words it shows, in the order it shows them: its title, its time as shown and, when it has room, its description, then its day, what background events are, and its status. It started with the day and time, which put the visible title out of its name's start.

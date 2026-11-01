@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { itemFor } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
@@ -450,6 +451,10 @@ describe("Inspector geometry", () => {
 });
 
 describe("Inspector", () => {
+  it("tags a part's own root with the item it ships in, and its docs", () => {
+    expect([itemFor("time-grid-nav"), itemFor("toast"), itemFor("time-grid")]).toEqual(["time-grid", "toaster", "time-grid"]);
+  });
+
   it("outlines every Ouro component on the page, each tagged with its item and linked to its docs", async () => {
     const { host } = await render(<Page />);
     const components = pageRoots(host);

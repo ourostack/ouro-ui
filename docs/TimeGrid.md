@@ -2,7 +2,7 @@
 
 # TimeGrid
 
-A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Each day has a column under a header, today's marked; all-day events have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by side, each a button (a link with `href`) that shows its title first and is named for screen readers by its day, its time, its title and its status ("Thursday, 9 – 10 AM, Design review, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time order (Up and Down) and across days (Left and Right), Home and End go to the first and the last, and Enter opens one. It opens scrolled to now or to the working day, and a now line runs across today, under events so it never crosses their text.
+A day, work week or week of hours, with events placed by their times: the calendar grid of a mail or meeting app. Each day has a column under a header, today's marked; all-day events have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by side, each a button (a link with `href`) that shows its title first and is named for screen readers by the words it shows, in their order, then its day and its status ("Design review, 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time order (Up and Down) and across days (Left and Right), Home and End go to the first and the last, and Enter opens one. It opens scrolled to now or to the working day (to today's first event when now is before it), and a now line runs across today, under events so it never crosses their text.
 
 ```tsx
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
@@ -33,8 +33,8 @@ Type: `TimeGridProps`.
 | --- | --- | --- | --- |
 | `allDayLabel` | `string` | `"All day"` | The all-day row's name, shown beside it and heard in each all-day event's name. Translate it with your app. |
 | `backgroundEvents` | `readonly TimeGridEvent[]` |  | Events that are not the person's own, such as a shared calendar, a colleague's or a room's. Each day draws them in a lane of their own at its start, beside the person's events: thin bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events only: those that are all day, or 24 hours or longer, are left out. |
-| `backgroundLabel` | `string` | `"Other calendars"` | What the background events are, heard before each one's title and as the name of each day's lane: `"Shared calendar"`. Translate it with your app. |
-| `className` | `string` |  | Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes warn in development. |
+| `backgroundLabel` | `string` | `"Other calendars"` | What the background events are, heard after each one's title, time and day, and as the name of each day's lane: `"Shared calendar"`. Translate it with your app. |
+| `className` | `string` |  | Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes warn in development. In a grid taller than a day, the hours grow so the day ends at its foot. |
 | `date` (required) | `string` |  | The day to show, as an ISO date (`"2026-03-12"`). `week` and `work-week` show the week it is in. Move it with your own Today, Previous and Next buttons. |
 | `events` (required) | `readonly TimeGridEvent[]` |  | The events. Each shows on every day it covers that the grid shows; the rest are left out. |
 | `expandedId` | `string \| null` |  | The id of the event whose popover of your own is open: it says so to screen readers (`aria-expanded`) and gets an outline until you clear it. |
@@ -42,16 +42,18 @@ Type: `TimeGridProps`.
 | `locale` | `string` | `"en-US"` | The BCP 47 locale for the day names, the hours (`"9 AM"`, `"09"`), the times and the first day of the week: `"en-GB"` starts weeks on Monday. The default is the same on the server and in the browser, so hydration matches. |
 | `now` | `Date \| string \| number` |  | The current time, when your app keeps the clock (a demo, a test, a time it shares with other views). Without it, the grid reads the browser's clock and moves the now line each minute. |
 | `nowAdornment` | `ReactNode` |  | Something small drawn where the now line meets the hours: a mascot, an avatar. Decoration only; screen readers skip it. |
+| `onDateChange` | `((date: string) => void)` |  | Called with the ISO date to show when a key moves the days while focus is in the grid: Page Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before, and ⌥⇧Y (Alt+Shift+Y) today, as in Teams. Set `date` to it. `TimeGridNav` gives the same moves as buttons, with these keys in their tooltips. |
 | `onEventSelect` | `((event: TimeGridEvent, details: TimeGridSelectDetails) => void)` |  | Called with the event when someone presses it, or presses Enter on it, and with its element and whether it is a background event, so a popover of your own can point at it. |
 | `onSlotSelect` | `((slot: TimeGridSlot) => void)` |  | Called when someone presses an empty part of a day, with the slot under the pointer, for a new event there. A mouse shows the slot before the press. Slots answer a pointer only, so give keyboards a New event button of your own as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | The grid's root element. |
 | `renderDaySummary` | `((day: string) => ReactNode)` |  | Content of your own under each day's header, such as a count or a load bar. It gets the day as an ISO date. Screen readers read it, so give a bar words of its own. |
 | `selectedId` | `string \| null` |  | The selected event's id: it gets an outline and `aria-current`. |
 | `slotMinutes` | `15 \| 30 \| 60` | `30` | How long a slot `onSlotSelect` gets is, in minutes: 15, 30 or 60. |
+| `stackLabel` | `((count: number) => string)` | (count) => `${count} events` | The words on a stack of a day's background events drawn as one: in a day too narrow to label each of them, overlapping background events show as one block with their count, which opens their list. Translate it with your app. |
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
 | `timeZone` | `string` |  | The IANA time zone the grid's clock reads (`"Europe/Berlin"`): which day and hour each event falls on, where the now line is, and the times shown. Without it, the reader's own, once the page runs in the browser; the server writes UTC until then. |
 | `view` | `"day" \| "work-week" \| "week"` | `"week"` | `day`, `work-week` (the week without the locale's weekend) or `week`, from the locale's first day of the week. |
-| `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens scrolled to its start unless today is shown, when it opens at now. |
+| `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens scrolled to its start unless today is shown, when it opens at now, or at today's first event when now is before it. |
 
 ## Native attributes
 
@@ -74,6 +76,10 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Parts
+
+For what these props cannot express, pass as children the parts in `@/registry/ouro/components/ouro/time-grid/time-grid-parts`. See [parts.md](parts.md#timegrid-parts) for the required nesting.
 
 ## Types
 
