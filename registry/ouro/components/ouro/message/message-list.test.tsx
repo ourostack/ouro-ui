@@ -1488,6 +1488,28 @@ describe("MessageList keyboard", () => {
     expect(focusedId()).toBe("with-thread");
   });
 
+  it("leaves Tab into a radio group in a message to the browser, which enters it at the checked radio", async () => {
+    await render(
+      <Channel>
+        {posts(1)}
+        <Message role="assistant" name="Grace" id="poll">
+          Lunch?
+          <label>
+            <input type="radio" name="lunch" value="soup" /> Soup
+          </label>
+          <label>
+            <input type="radio" name="lunch" value="salad" defaultChecked /> Salad
+          </label>
+        </Message>
+      </Channel>,
+    );
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("poll");
+    await pressTab();
+    expect((document.activeElement as HTMLInputElement).value).toBe("salad");
+  });
+
   it("leaves focus where a component puts it after removing the focused control", async () => {
     function Swap() {
       const [swapped, setSwapped] = useState(false);

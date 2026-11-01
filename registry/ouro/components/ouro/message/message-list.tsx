@@ -889,6 +889,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The list moves focus itself, so each browser's own Tab order (WebKit's on a Mac, which can skip
       // buttons; a popup's focus guards) never decides it. A radio is the browser's: Tab enters its group
       // at the checked one.
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: in Chromium the browser's Tab goes where the list's would; only WebKit's own Tab order differs.
       if (next === pick(tabbables(scroller)) && next.matches('input[type="radio"]')) return;
       event.preventDefault();
       // Stryker disable next-line ObjectLiteral,BooleanLiteral: reveal, next, scrolls the list to the same place.
