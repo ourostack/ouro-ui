@@ -132,8 +132,14 @@ describe("pressing Dive", () => {
       await userEvent.click(hatch);
       await dive();
       expect(scene()!.querySelector(".dive-splash")).not.toBeNull();
-      // The click lands on the sea, not on the checklist beneath it.
-      await userEvent.click(scene()!, { position: { x: 120, y: 160 } });
+      // The click lands on the sea, not on the checklist beneath it, once the dialog's backdrop has
+      // gone from over it. It is aimed through the page's body, because a locator made from the scene
+      // matches it by its text, which the depth gauge changes every frame once she starts down.
+      const sea = scene()!.getBoundingClientRect();
+      const at = { x: sea.left + 120, y: sea.top + 160 };
+      await expect.poll(() => document.elementFromPoint(at.x, at.y)?.closest("[data-site-dive]")).not.toBeNull();
+      const body = document.body.getBoundingClientRect();
+      await userEvent.click(page.elementLocator(document.body), { position: { x: at.x - body.left, y: at.y - body.top } });
       await expect.poll(scene, { timeout: 2000 }).toBeNull();
       await expect.element(hatch).not.toBeChecked();
       await expect.poll(() => announced.count("Back up, and a little wet")).toBe(1);
