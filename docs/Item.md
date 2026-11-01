@@ -35,7 +35,7 @@ The props the modes share. Type: `ItemProps`.
 | `as` | `"div" \| "article" \| "li"` | `"div"` | The element to render. `ItemGroup` already wraps each Item in an `<li>`. |
 | `className` | `string` |  | Layout only: margins, grid placement (`mt-2`). Appearance classes warn in development; use `variant`. |
 | `description` | `ReactNode` |  | A short line under the title. Pass `<Text lines={2}>` to clamp a long one. With `href`, it also describes the link (`aria-describedby`), so a screen reader that lands on the row hears its title and then this line: a result's byline and snippet, a recipe's time. |
-| `media` | `ReactNode` |  | Leading media: an `<img>` (cropped square), an `Avatar`, or an icon with `mediaSize="icon"`. Give an image `alt=""` when the title already names it. |
+| `media` | `ReactNode` |  | Leading media: an `<img>` (cropped square), an `Avatar`, or an icon with `mediaSize="icon"`. Give an image `alt=""` when the title already names it. Beside a description, it lines up with the title and the description's first line, so it stays level with the title however long the description runs; beside a title alone, it is centered. |
 | `mediaAbove` | `"sm" \| "md" \| "always"` |  | Below this breakpoint the media leaves the row and runs full width above the text, at 4:3, as a recipe list shows its photos on a phone; above it, it sits beside the text at `mediaSize`. `always` keeps it above at every width. |
 | `mediaSize` | `"sm" \| "md" \| "lg" \| "icon"` | `"sm"` | The media's size: `icon` puts an icon in a muted 40px tile (and hides it from screen readers); `sm` is 40px, `md` 64px, `lg` 112px for a recipe photo. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
