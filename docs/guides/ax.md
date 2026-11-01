@@ -20,7 +20,7 @@ The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node r
 This tool has a read and an action other people see. The kit gives it the rest:
 
 ```ts
-import { runCli } from "./lib/ouro/ax/cli.ts";
+import { quietPipes, runCli } from "./lib/ouro/ax/cli.ts";
 import { defineCli, defineCommand } from "./lib/ouro/ax/command.ts";
 import { AxError } from "./lib/ouro/ax/problem.ts";
 import { outcome } from "./lib/ouro/ax/outcome.ts";
@@ -50,6 +50,7 @@ const cli = defineCli({
     }),
   ],
 });
+quietPipes(process);
 process.exitCode = await runCli(cli, process.argv.slice(2), process);
 ```
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { page, render, truncate } from "./output.ts";
+import { emptyText, page, render, truncate } from "./output.ts";
 
 test("one result renders as JSON or as its text, with one trailing newline", () => {
   assert.equal(render({ a: 1 }, { json: true, text: () => "x" }), '{\n  "a": 1\n}\n');
@@ -28,4 +28,9 @@ test("page walks a list with a cursor and refuses a cursor it did not give", () 
 
 test("text that already ends with a newline gets no second one", () => {
   assert.equal(render({ a: 1 }, { json: false, text: () => "a\n" }), "a\n");
+});
+
+test("an empty list says what is empty and what to run next", () => {
+  assert.equal(emptyText("unread"), "Nothing unread.");
+  assert.equal(emptyText("unread. ", { command: "tool today", why: "what needs the person" }), "Nothing unread.\nNext: tool today  (what needs the person)");
 });

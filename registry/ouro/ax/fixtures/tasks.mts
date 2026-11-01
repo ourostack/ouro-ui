@@ -1,4 +1,4 @@
-import { runCli } from "../cli.ts";
+import { quietPipes, runCli } from "../cli.ts";
 import { defineCli, defineCommand } from "../command.ts";
 import { AxError } from "../problem.ts";
 import { outcome } from "../outcome.ts";
@@ -28,4 +28,5 @@ const cli = defineCli({
     }),
   ],
 });
+quietPipes(process);
 process.exitCode = await runCli(cli, process.argv.slice(2), process);

@@ -1,4 +1,4 @@
-export { DEFAULT_OUTCOME_EXITS, isOutcome, nextStep, OUTCOME_STATES, OUTCOME_VERSION, outcome, outcomeExit, outcomeText, validateOutcome };
+export { DEFAULT_OUTCOME_EXITS, isGenericAudience, isOutcome, nextStep, OUTCOME_STATES, OUTCOME_VERSION, outcome, outcomeExit, outcomeText, validateOutcome };
 export type { AxRef, NextStep, Outcome, OutcomeExits, OutcomeFields, OutcomeHuman, OutcomeState, Postcondition, Receipt, Validation };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -138,6 +138,16 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 const isText = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const isStep = (v: unknown): v is NextStep => isRecord(v) && isText(v["command"]) && isText(v["why"]);
 
+/**
+ * Whether an audience's `who` names no one in particular ("other people", "someone", "everyone"), so an agent reading
+ * the JSON learns less than one reading the text.
+ *
+ * @claim "names no one in particular" registry/ouro/ax/outcome.test.mts verify:testExists(registry/ouro/ax/outcome.test.mts::an action for other people that names no one is warned about)
+ */
+function isGenericAudience(who: string): boolean {
+  return /^(?:other people|others|people|someone|somebody|anyone|anybody|everyone|everybody|the audience|recipients|users?)\.?$/i.test(who.trim());
+}
+
 /** Whether a value is an outcome of this version (its shape only; {@link validateOutcome} checks its meaning). */
 function isOutcome(v: unknown): v is Outcome {
   return isRecord(v) && v["ax"] === OUTCOME_VERSION && (OUTCOME_STATES as readonly unknown[]).includes(v["state"]);
@@ -162,6 +172,7 @@ function validateOutcome(v: unknown): Validation {
   if (v.effect !== "private" && v.effect !== "others") errors.push('effect is "private" or "others"');
   if (!isRecord(v.audience) || typeof v.audience.only !== "boolean" || !isText(v.audience.who)) errors.push("audience needs only (true or false) and who (words)");
   else if (v.effect === "others" && v.audience.only) errors.push("an effect other people see cannot have an audience of only you");
+  else if (v.effect === "others" && isGenericAudience(v.audience.who)) warnings.push(`audience.who is "${v.audience.who}", which names no one: say who will see it, as the text does (everyone in "Design sync", Sam Lee)`);
   if (v.target !== null && !(isRecord(v.target) && isText(v.target.kind) && isText(v.target.id))) errors.push("target is null or { kind, id }");
   if (!isText(v.summary)) errors.push("summary is empty");
   const p: unknown = v.postcondition;

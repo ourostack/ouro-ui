@@ -1,4 +1,4 @@
-export { checkSafety, claimSetHash, compareInventory, harvest, main, misspell, parseArgs, refusalVerdict, renderHtml, renderMarkdown, renderText, requiredWords, splitCommand, stateDelta, summarize, usageWords, xray, XRAY_VERSION };
+export { audienceWho, checkSafety, claimSetHash, compareInventory, harvest, main, misspell, parseArgs, refsOf, refusalVerdict, renderHtml, renderMarkdown, renderText, requiredWords, splitCommand, stateDelta, summarize, usageWords, xray, XRAY_VERSION };
 export type { CheckResult, Inventory, InventoryCompare, Report, Safety, Verdict, XrayOptions };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -11,7 +11,7 @@ import { homedir } from "node:os";
 import { basename, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
-import { isOutcome, validateOutcome } from "./outcome.ts";
+import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
 import { isWait, validateWait } from "./wait.ts";
 import { checkWorkEvent } from "./work-event.ts";
 
@@ -26,7 +26,7 @@ import { checkWorkEvent } from "./work-event.ts";
  * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
  * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
-const XRAY_VERSION = "1.0.0";
+const XRAY_VERSION = "1.1.0";
 
 type Verdict = "pass" | "fail" | "skip";
 
@@ -91,6 +91,8 @@ const NO_SUCH_FLAG = "--ax-xray-no-such-flag";
 const WHY = "ax-xray conformance probe: nobody asked, so this must not reach anyone";
 const READ_WORDS = new Set(["show", "list", "status", "profile", "catalog", "get"]);
 const AMBIGUOUS = ["edit", "delete", "remove"];
+/** The most bytes a command's help may take (`cli.help-size`). */
+const HELP_BYTES = 6000;
 /** An instruction to a person or agent at the start of a clause: "; open the window", "Tell them, do not retry". */
 const IMPERATIVE = /(^|[;:.!?]\s+|, )(open|tell|ask|run|use|try|give|wait|restart|start|turn|name|pass|add|choose|pick|check)\b/i;
 /** Environment variable names that carry credentials; the X-ray refuses to pass any to what it checks. */
@@ -143,12 +145,14 @@ interface RunResult {
 }
 
 /** Runs argv with exactly `env` (nothing inherited); resolves its exit code and output. */
-function run(argv: readonly string[], env: Record<string, string>, timeoutMs: number, input: string | null = null): Promise<RunResult> {
+function run(argv: readonly string[], env: Record<string, string>, timeoutMs: number, input: string | null = null, closed = false): Promise<RunResult> {
   return new Promise((done) => {
     let stdout = "";
     let stderr = "";
     let timedOut = false;
     const child = spawn(argv[0]!, argv.slice(1), { env, stdio: ["pipe", "pipe", "pipe"] });
+    // A reader that has already gone, as `tool --help | head -0` leaves the tool.
+    if (closed) child.stdout.destroy();
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGKILL");
@@ -261,6 +265,23 @@ function harvest(value: unknown, samples: Record<string, string>, key: string | 
     for (const [k, v] of Object.entries(value)) harvest(v, samples, k);
   }
   return samples;
+}
+
+/** Every `ref` the items of a JSON answer's lists carry, as a read's text should show them (`cli.text-refs`). */
+function refsOf(value: unknown, out: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (isRecord(item) && typeof item["ref"] === "string" && item["ref"] && !out.includes(item["ref"])) out.push(item["ref"]);
+      refsOf(item, out);
+    }
+  } else if (isRecord(value)) for (const v of Object.values(value)) refsOf(v, out);
+  return out;
+}
+
+/** An outcome's `audience.who`, or "" when it has none. */
+function audienceWho(value: unknown): string {
+  const audience = isRecord(value) ? value["audience"] : null;
+  return isRecord(audience) && typeof audience["who"] === "string" ? audience["who"] : "";
 }
 
 /** Drops one inner letter: --limit becomes --limt. */
@@ -400,9 +421,9 @@ async function checkCli(ctx: Context) {
   const base = splitCommand(opts.cli!);
   const name = opts.name ?? basename(base[base.length - 1]!).replace(/\.[cm]?[jt]s$/, "");
   const calls: (RunResult & { args: string[]; shown: string })[] = [];
-  const call = async (args: string[], input: string | null = null, timeoutMs = opts.timeoutMs) => {
-    const r = await run([...base, ...args], env, timeoutMs, input);
-    const c = { args, shown: [name, ...args].map(shellWord).join(" "), ...r };
+  const call = async (args: string[], input: string | null = null, timeoutMs = opts.timeoutMs, closed = false) => {
+    const r = await run([...base, ...args], env, timeoutMs, input, closed);
+    const c = { args, shown: `${[name, ...args].map(shellWord).join(" ")}${closed ? " | head -0" : ""}`, ...r };
     calls.push(c);
     return c;
   };
@@ -443,6 +464,10 @@ async function checkCli(ctx: Context) {
   }
   const overview = await call(["--help"]);
   const overviewLines = lines(overview.stdout);
+  // The overview into a pipe that is already closed: the tool should end quietly, not with a stack trace.
+  await call(["--help"], null, opts.timeoutMs, true);
+  /** The fixed voice lines the CLI declares (`help --json` `voice`), which must never reach a pipe or `--json`. */
+  const voiceLines = help && Array.isArray(help["voice"]) ? help["voice"].filter((v): v is string => typeof v === "string" && v.trim() !== "").map((v) => v.trim()) : [];
   const commands: CliCommand[] = help ? commandsOf(help, name) : [];
   if (!help) {
     // Without help JSON, commands come from the text: an indented word, two spaces, then words.
@@ -492,6 +517,8 @@ async function checkCli(ctx: Context) {
     const ok = c.code === 0 && c.stdout.trim() !== "" && !c.stderr.trim();
     rec.add("cli.command-help", n, ok ? "pass" : "fail", ok ? `${lines(c.stdout).length} lines` : brief(c));
     if (ok) {
+      const bytes = new TextEncoder().encode(c.stdout).length;
+      rec.add("cli.help-size", `${n} --help`, bytes <= HELP_BYTES ? "pass" : "fail", `${bytes} bytes${bytes > HELP_BYTES ? `, over ${HELP_BYTES}` : ""}`);
       const w = tooWide(c.stdout);
       rec.add("cli.help-width", `${n} --help`, w.length ? "fail" : "pass", w.length ? `${w.length} lines over ${width} columns, first (${[...w[0]!].length}): ${clip(w[0]!, 140)}` : `every line ≤ ${width} columns`);
     }
@@ -579,6 +606,12 @@ async function checkCli(ctx: Context) {
     const ok = c.code === 0 && j.ok && !c.stderr.trim();
     rec.add("cli.read-json", cmd.name, ok ? "pass" : "fail", ok ? `\`${c.shown}\` → one JSON document` : `${brief(c)}${c.code === 0 && !j.ok ? "; stdout is not one JSON document" : ""}`);
     if (j.ok) harvest(j.value, samples, cmd.name.split(" ").at(-1)!);
+    const refs = ok && j.ok ? refsOf(j.value) : [];
+    if (refs.length) {
+      const t = await call(args);
+      const missing = refs.filter((r) => !t.stdout.includes(r));
+      rec.add("cli.text-refs", cmd.name, t.code === 0 && !missing.length ? "pass" : "fail", t.code !== 0 ? brief(t) : missing.length ? `\`${clip(t.shown, 120)}\` leaves out ${missing.length} of ${refs.length} refs, first: ${missing[0]}` : `each of ${refs.length} refs is in the text`);
+    }
   }
   for (const { cmd, plan } of plans) {
     if (plan || cmd.usage.some((u) => requiredWords(u).length === cmd.name.split(" ").length)) continue;
@@ -654,7 +687,7 @@ async function checkCli(ctx: Context) {
   const others = commands.filter((c) => c.effect === "others");
   const fill = (word: string, value: (key: string) => string | undefined) => word.replace(/<([^>]+)>/g, (_, p: string) => (/^name$/i.test(p) ? "ax-xray" : (value(placeholderKey(`<${p}>`)) ?? BOGUS)));
   if (others.length && !ctx.safety.ok) {
-    for (const cmd of others) for (const id of ["cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.outcome"]) rec.add(id, cmd.name, "skip", refusedNote(ctx.safety));
+    for (const cmd of others) for (const id of ["cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.outcome", "cli.fact-before-voice", "cli.audience-named"]) rec.add(id, cmd.name, "skip", refusedNote(ctx.safety));
   }
   for (const cmd of ctx.safety.ok ? others : []) {
     const head = cmd.name.split(" ");
@@ -689,7 +722,7 @@ async function checkCli(ctx: Context) {
     }
     if (!/--dry-run\b/.test(helpText[cmd.name]!)) {
       rec.add("cli.others-preview", cmd.name, "fail", `\`${name} ${cmd.name} --help\` offers no --dry-run, so who will see it can only be learnt by doing it`);
-      rec.add("cli.outcome", cmd.name, "skip", "no --dry-run to read an outcome from");
+      for (const id of ["cli.outcome", "cli.fact-before-voice", "cli.audience-named"]) rec.add(id, cmd.name, "skip", "no --dry-run to read an outcome from");
       continue;
     }
     // A sample may name a whole word (`--sample "<conversation>#<message id>=abc#123"`), or a word in one command (`react:<...>=...`).
@@ -706,7 +739,7 @@ async function checkCli(ctx: Context) {
     const missing = target.filter((w) => wholeSample(w) === undefined).flatMap((w) => [...w.matchAll(/<([^>]+)>/g)].map((m) => placeholderKey(`<${m[1]}>`))).filter((k) => k !== "name" && !samples[k]);
     if (missing.length) {
       rec.add("cli.others-preview", cmd.name, "skip", `no sample for <${missing[0]}>; pass --sample ${missing[0]}=<value>`);
-      rec.add("cli.outcome", cmd.name, "skip", `no sample for <${missing[0]}>`);
+      for (const id of ["cli.outcome", "cli.fact-before-voice", "cli.audience-named"]) rec.add(id, cmd.name, "skip", `no sample for <${missing[0]}>`);
       continue;
     }
     const real = target.map(realWord);
@@ -719,12 +752,21 @@ async function checkCli(ctx: Context) {
     const ok = dry.code === 0 && /\b(see|sees|seen|visible|will get|will know|notified)\b/i.test(dry.stdout) && unchanged;
     rec.add("cli.others-preview", cmd.name, ok ? "pass" : "fail", `${brief(dry)}${!unchanged ? "; the state changed" : ""}`);
     const j = parseJson(dryJson.stdout);
-    if (!j.ok || !isOutcome(j.value)) rec.add("cli.outcome", cmd.name, "fail", `${brief(dryJson)}; not an outcome/1`);
-    else if (j.value.state !== "planned") rec.add("cli.outcome", cmd.name, "fail", `outcome/1 in state ${j.value.state}, not planned`);
+    if (!j.ok || !isOutcome(j.value)) {
+      rec.add("cli.outcome", cmd.name, "fail", `${brief(dryJson)}; not an outcome/1`);
+      for (const id of ["cli.fact-before-voice", "cli.audience-named"]) rec.add(id, cmd.name, "skip", "no outcome/1 to compare with");
+      continue;
+    }
+    if (j.value.state !== "planned") rec.add("cli.outcome", cmd.name, "fail", `outcome/1 in state ${j.value.state}, not planned`);
     else {
       const v = validateOutcome(j.value);
       rec.add("cli.outcome", cmd.name, v.ok ? "pass" : "fail", v.ok ? `outcome/1, planned, audience: ${j.value.audience.who}` : v.errors.join("; "));
     }
+    const summary = firstLine(j.value.summary);
+    const first = firstLine(dry.stdout);
+    rec.add("cli.fact-before-voice", cmd.name, first === summary ? "pass" : "fail", first === summary ? `starts: ${clip(first, 120)}` : `the text starts ${JSON.stringify(clip(first, 100))}, not the summary ${JSON.stringify(clip(summary, 100))}`);
+    const who = audienceWho(j.value);
+    rec.add("cli.audience-named", cmd.name, isGenericAudience(who) || !who.trim() ? "fail" : "pass", `audience.who: ${JSON.stringify(who)}`);
   }
 
   // Work events, read through the interface.
@@ -745,6 +787,41 @@ async function checkCli(ctx: Context) {
     const v = refusalVerdict(d);
     rec.add("cli.refusals-change-nothing", "the whole run", v.ok ? "pass" : "fail", v.ok ? `planned effects: none; ${v.note}` : `an unplanned write: ${v.note}`);
     if (!d.same) ctx.effects.push({ surface: "the whole run", note: v.note });
+  }
+
+  // Across every call: voice only on a terminal, JSON alone under --json, commands named are listed.
+  const isVoice = (l: string) => voiceLines.includes(l.trim());
+  const voiced = (c: RunResult) => lines(`${c.stdout}\n${c.stderr}`).find(isVoice);
+  const jsonCalls = calls.filter((c) => c.args.includes("--json") && !c.timedOut);
+  const jsonAlone = (out: string) => out === "" || parseJson(out).ok || lines(out).filter((l) => l.trim()).every((l) => parseJson(l).ok);
+  const notJsonAlone = jsonCalls.filter((c) => voiced(c) !== undefined || !jsonAlone(c.stdout.trim()));
+  for (const c of notJsonAlone) rec.add("cli.voice-off-in-json", c.shown, "fail", voiced(c) !== undefined ? `prints the voice line ${JSON.stringify(voiced(c))}` : `stdout is not JSON alone: ${clip(firstLine(c.stdout), 160)}`);
+  if (!notJsonAlone.length) rec.add("cli.voice-off-in-json", `all ${jsonCalls.length} --json calls`, "pass", "JSON alone");
+  if (!voiceLines.length) rec.add("cli.voice-off-when-piped", "help --json", "skip", "the CLI lists no voice lines in help --json (voice)");
+  else {
+    const loud = calls.filter((c) => voiced(c) !== undefined);
+    for (const c of loud) rec.add("cli.voice-off-when-piped", c.shown, "fail", `prints the voice line ${JSON.stringify(voiced(c))} into a pipe`);
+    if (!loud.length) rec.add("cli.voice-off-when-piped", `all ${calls.length} calls`, "pass", `none of ${voiceLines.length} voice lines appears`);
+  }
+  {
+    const listedHeads = new Set(overviewLines.flatMap((l) => {
+      const m = /^ {2,4}([a-z][\w-]*(?:, [a-z][\w-]*)*):? {2,}\S/.exec(l);
+      return m ? m[1]!.split(", ") : [];
+    }));
+    const heads = new Set(unique.map((n) => n.split(" ")[0]!));
+    const namedBy = new Map<string, string>();
+    const pattern = new RegExp(`(?:^|[\\s"'\`(])${escapeRe(name)} ([a-z][\\w-]*)`, "g");
+    for (const c of calls) {
+      // A command's own help names it; that is not a pointer to it.
+      const own = c.args.at(-1) === "--help" && c.args.length > 1 ? c.args[0] : null;
+      for (const m of `${c.stdout}\n${c.stderr}`.matchAll(pattern)) {
+        const word = m[1]!;
+        if (word !== own && heads.has(word) && !namedBy.has(word)) namedBy.set(word, c.shown);
+      }
+    }
+    const unlisted = [...namedBy].filter(([word]) => !listedHeads.has(word));
+    for (const [word, where] of unlisted) rec.add("cli.named-is-listed", word, "fail", `\`${clip(where, 120)}\` names \`${name} ${word}\`, which ${name} --help does not list`);
+    if (!unlisted.length) rec.add("cli.named-is-listed", `${namedBy.size} commands named`, "pass", namedBy.size ? `each is in --help: ${[...namedBy.keys()].join(", ")}` : "no output names a command");
   }
 
   // Across every call.
