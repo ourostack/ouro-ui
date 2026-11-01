@@ -157,10 +157,12 @@ export interface CommandBaseProps {
    */
   onQueryChange?: ((query: string, context: { signal: AbortSignal }) => void) | undefined;
   /**
-   * Whether results are on their way: shows `loadingLabel` beside the input, announces it
-   * politely for the first load of each opening (not again while typing goes on), and holds
-   * back the empty state. Set it back to false when the request fails or aborts.
+   * Whether results are on their way: shows `loadingLabel` beside the input, or under the
+   * empty state while nothing matches yet ("No chats by that name." over "Searching the
+   * directory…"), and announces it politely for the first load of each opening (not again while
+   * typing goes on). Set it back to false when the request fails or aborts.
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > says it is searching politely, once while typing goes on, and shows the empty state only after loading)
+   * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > announces loading again after the palette closes and opens)
    */
   loading?: boolean | undefined;
@@ -519,18 +521,20 @@ export function Command(props: CommandProps): JSX.Element {
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
-          {loading && (
-            <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
-              {loadingLabel}
-            </span>
-          )}
+          {loading && <SearchingLabel label={loadingLabel} />}
 
           <span data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
             {announcement === "on" ? loadingLabel : ""}
           </span>
         </div>
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
-          <Autocomplete.Empty>{!loading && <div className={commandEmptyClass}>{emptyLabel}</div>}</Autocomplete.Empty>
+          {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
+          <Autocomplete.Empty>
+            <div data-ouro-command-empty="" className={commandEmptyClass}>
+              {emptyLabel}
+              {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
+            </div>
+          </Autocomplete.Empty>
           <CommandList>
             {(group: Group, index: number) => (
               <Autocomplete.Group key={group.label ?? `loose-${index}`} items={group.items} data-ouro-command-group="">
@@ -629,6 +633,20 @@ export function Command(props: CommandProps): JSX.Element {
         </DialogRoot>
       )}
     </>
+  );
+}
+
+/**
+ * The loading label beside the input, while there are results to show; with an empty list, the
+ * empty state carries it instead, so it shows once.
+ * @claim "The loading label beside the" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends)
+ */
+function SearchingLabel({ label }: { label: string }): JSX.Element | null {
+  if (Autocomplete.useFilteredItems().length === 0) return null;
+  return (
+    <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
+      {label}
+    </span>
   );
 }
 
