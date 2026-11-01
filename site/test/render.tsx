@@ -15,6 +15,9 @@ export async function renderPage(path: string): Promise<HTMLElement> {
   // The header is an island on the docs pages: the server's HTML has it, but a client render shows
   // it once its chunk loads, and it pushes the page down then. Wait for it, so nothing moves mid-test.
   await expect.poll(() => host.querySelector("[data-site-brand]")).not.toBeNull();
+  // The Ouro AX page's body and its hero's exhibit are islands (voyage/chapters/island.tsx): a client render shows
+  // them once their chunks load, which adds the page's headings. Wait for both, so a scan never sees the page change.
+  if (path === "/ax/") await expect.poll(() => host.querySelector("#ax") !== null && host.querySelector("#ax-exhibit") !== null).toBe(true);
   const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
   if (name && docsItems.some((item) => item.name === name)) {
     await expect.poll(() => host.querySelector(`[data-site-demo="${name}"]`)?.childElementCount ?? 0).toBeGreaterThan(0);
