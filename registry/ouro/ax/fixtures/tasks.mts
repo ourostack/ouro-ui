@@ -3,7 +3,7 @@ import { defineCli, defineCommand } from "../command.ts";
 import { AxError } from "../problem.ts";
 import { outcome } from "../outcome.ts";
 
-const tasks = new Map([["t1", { title: "Book the room", owner: "Sam" }]]);
+const tasks = new Map([["t1", { title: "Book the room", owner: "Jo" }]]);
 const team = { only: false, who: "the team" };
 function task(id: unknown) {
   const found = tasks.get(String(id));
@@ -17,7 +17,7 @@ const cli = defineCli({
   commands: [
     defineCommand({ name: "list", summary: "The tasks, with their ids.", effect: "private", readOnly: true, examples: ["tasks list"], run: () => [...tasks].map(([ref, t]) => ({ ref, ...t })) }),
     defineCommand({
-      name: "assign", summary: "Give a task to someone; the team sees it.", effect: "others", examples: ['tasks assign t1 Ana --why "Sam asked"'],
+      name: "assign", summary: "Give a task to someone; the team sees it.", effect: "others", examples: ['tasks assign t1 Ana --why "Jo asked"'],
       args: [{ name: "task", description: "A task id.", required: true, source: "list" }, { name: "person", description: "Who takes it.", required: true }],
       plan: (i) => outcome({ action: "assign", effect: "others", audience: team, state: "planned", summary: `Would give "${task(i["task"]).title}" to ${String(i["person"])}; the team will see it.` }),
       run: (i) => {

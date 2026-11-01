@@ -39,7 +39,7 @@ function effectAnnotations(effect: Effect, readOnly: boolean): { readOnlyHint: b
 }
 
 /**
- * "Sam Lee", "Sam Lee and Ana Ruiz", "Sam Lee, Ana Ruiz and 3 others".
+ * "Jo Park", "Jo Park and Ana Ruiz", "Jo Park, Ana Ruiz and 3 others".
  *
  * @claim "Ana Ruiz and 3 others" registry/ouro/ax/effects.test.mts verify:testExists(registry/ouro/ax/effects.test.mts::names read as a person would say them)
  */
@@ -52,7 +52,7 @@ function namesLine(names: readonly string[], max: number = 2): string {
 
 /**
  * The audience preview an "others" action prints before it runs, and the line its result states.
- * @example audienceLines({ doing: "Sending", done: "Sent", where: '"Design sync"', as: "the person", who: ["Sam Lee", "Ana Ruiz"] })
+ * @example audienceLines({ doing: "Sending", done: "Sent", where: '"Design sync"', as: "the person", who: ["Jo Park", "Ana Ruiz"] })
  */
 function audienceLines(a: { doing: string; done: string; where: string; as: string; who: readonly string[] | "everyone" }): { preview: string; result: string } {
   const who = a.who === "everyone" ? `Everyone in ${a.where}` : namesLine(a.who);

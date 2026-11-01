@@ -111,7 +111,7 @@ type OutcomeFields = Pick<Outcome, "action" | "state" | "summary"> & {
  * @example
  * outcome({ action: "message.send", effect: "others", audience: { only: false, who: 'everyone in "Design sync"' },
  *   state: "queued", summary: 'Queued for "Design sync".',
- *   receipt: { id: "a1b2c3", at: new Date().toISOString(), by: "agent:planner", why: "Sam asked" },
+ *   receipt: { id: "a1b2c3", at: new Date().toISOString(), by: "agent:planner", why: "Jo asked" },
  *   next: [nextStep("tool outcome a1b2c3 --timeout 60s", "wait until it is sent")] });
  *
  * @claim "Builds an outcome with honest defaults" registry/ouro/ax/outcome.test.mts verify:testExists(registry/ouro/ax/outcome.test.mts::outcome fills honest defaults: private, only you, nothing checked, no receipt; an error gets its message)
@@ -172,7 +172,7 @@ function validateOutcome(v: unknown): Validation {
   if (v.effect !== "private" && v.effect !== "others") errors.push('effect is "private" or "others"');
   if (!isRecord(v.audience) || typeof v.audience.only !== "boolean" || !isText(v.audience.who)) errors.push("audience needs only (true or false) and who (words)");
   else if (v.effect === "others" && v.audience.only) errors.push("an effect other people see cannot have an audience of only you");
-  else if (v.effect === "others" && isGenericAudience(v.audience.who)) warnings.push(`audience.who is "${v.audience.who}", which names no one: say who will see it, as the text does (everyone in "Design sync", Sam Lee)`);
+  else if (v.effect === "others" && isGenericAudience(v.audience.who)) warnings.push(`audience.who is "${v.audience.who}", which names no one: say who will see it, as the text does (everyone in "Design sync", Jo Park)`);
   if (v.target !== null && !(isRecord(v.target) && isText(v.target.kind) && isText(v.target.id))) errors.push("target is null or { kind, id }");
   if (!isText(v.summary)) errors.push("summary is empty");
   const p: unknown = v.postcondition;

@@ -34,7 +34,7 @@ function audienceLines(a: { doing: string; done: string; where: string; as: stri
 Example:
 
 ```ts
-audienceLines({ doing: "Sending", done: "Sent", where: '"Design sync"', as: "the person", who: ["Sam Lee", "Ana Ruiz"] })
+audienceLines({ doing: "Sending", done: "Sent", where: '"Design sync"', as: "the person", who: ["Jo Park", "Ana Ruiz"] })
 ```
 
 ### `DEFAULT_HEADINGS`
@@ -78,7 +78,7 @@ interface EffectHeadings {
 
 ### `namesLine`
 
-"Sam Lee", "Sam Lee and Ana Ruiz", "Sam Lee, Ana Ruiz and 3 others".
+"Jo Park", "Jo Park and Ana Ruiz", "Jo Park, Ana Ruiz and 3 others".
 
 ```ts
 function namesLine(names: readonly string[], max?: number): string

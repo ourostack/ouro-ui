@@ -25,7 +25,7 @@ import { defineCli, defineCommand } from "./lib/ouro/ax/command.ts";
 import { AxError } from "./lib/ouro/ax/problem.ts";
 import { outcome } from "./lib/ouro/ax/outcome.ts";
 
-const tasks = new Map([["t1", { title: "Book the room", owner: "Sam" }]]);
+const tasks = new Map([["t1", { title: "Book the room", owner: "Jo" }]]);
 const team = { only: false, who: "the team" };
 function task(id: unknown) {
   const found = tasks.get(String(id));
@@ -39,7 +39,7 @@ const cli = defineCli({
   commands: [
     defineCommand({ name: "list", summary: "The tasks, with their ids.", effect: "private", readOnly: true, examples: ["tasks list"], run: () => [...tasks].map(([ref, t]) => ({ ref, ...t })) }),
     defineCommand({
-      name: "assign", summary: "Give a task to someone; the team sees it.", effect: "others", examples: ['tasks assign t1 Ana --why "Sam asked"'],
+      name: "assign", summary: "Give a task to someone; the team sees it.", effect: "others", examples: ['tasks assign t1 Ana --why "Jo asked"'],
       args: [{ name: "task", description: "A task id.", required: true, source: "list" }, { name: "person", description: "Who takes it.", required: true }],
       plan: (i) => outcome({ action: "assign", effect: "others", audience: team, state: "planned", summary: `Would give "${task(i["task"]).title}" to ${String(i["person"])}; the team will see it.` }),
       run: (i) => {
@@ -59,11 +59,11 @@ What the agent gets, from that definition alone:[^tool]
 ```text
 $ tasks assign t1 Ana
 tasks: assign: other people will see this as the person's, so it needs --why: who asked you, and what they said. Fix: tasks assign t1 Ana --why "<who asked you, and what they said>".
-$ tasks assign t9 Ana --why "Sam asked"
+$ tasks assign t9 Ana --why "Jo asked"
 tasks: task: there is no task "t9". Fix: tasks list.
-$ tasks assign t1 Ana --why "Sam asked" --dry-run
+$ tasks assign t1 Ana --why "Jo asked" --dry-run
 Would give "Book the room" to Ana; the team will see it.
-$ tasks assign t1 Ana --why "Sam asked"
+$ tasks assign t1 Ana --why "Jo asked"
 Gave "Book the room" to Ana.
 Checked: read the task back.
 Receipt: a-t1
@@ -127,7 +127,7 @@ const send = defineFlow({
   steps: [
     { id: "rooms", run: ["rooms", "--json"], expect: { exit: 0, jsonShape: ["[].ref"] }, save: { room: "[0].ref" } },
     { id: "no-why", run: ["post", "{room}", "Running late"], expect: { exit: 2, stderrRules: ["oneLine", "namesFix", "noStack"] } },
-    { id: "preview", run: ["post", "{room}", "Running late", "--why", "Sam asked", "--dry-run", "--json"], expect: { exit: 0, fields: { "audience.who": { re: "^everyone in" } } } },
+    { id: "preview", run: ["post", "{room}", "Running late", "--why", "Jo asked", "--dry-run", "--json"], expect: { exit: 0, fields: { "audience.who": { re: "^everyone in" } } } },
   ],
 });
 

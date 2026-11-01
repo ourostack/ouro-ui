@@ -21,7 +21,7 @@ const rooms: Record<string, { title: string; members: string[]; notes: string[];
 /** Puts the toy's one room back as it started. */
 function resetRooms() {
   for (const k of Object.keys(rooms)) delete rooms[k];
-  rooms["abc123"] = { title: "Design sync", members: ["Sam Lee", "Ana Ruiz", "Kim Ito"], notes: [], messages: [] };
+  rooms["abc123"] = { title: "Design sync", members: ["Jo Park", "Ana Ruiz", "Kim Ito"], notes: [], messages: [] };
 }
 resetRooms();
 
@@ -98,7 +98,7 @@ const exampleCli = defineCli({
       ],
       flags: { tone: { type: "enum", values: ["plain", "markdown"], description: "How the text is formatted." } },
       output: "an outcome (outcome/1)",
-      examples: ['notes post abc123 "Running late" --why "Sam asked me to tell the room"', 'notes post abc123 "Running late" --why "Sam asked" --dry-run'],
+      examples: ['notes post abc123 "Running late" --why "Jo asked: tell the room Jo is running late"', 'notes post abc123 "Running late" --why "Jo asked" --dry-run'],
       plan: (input) => {
         const ref = String(input["room"]);
         const r = room(ref);
