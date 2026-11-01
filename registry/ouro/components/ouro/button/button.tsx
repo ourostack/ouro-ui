@@ -19,6 +19,7 @@ import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/a
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -151,6 +152,8 @@ export type ButtonLinkProps = ButtonBaseProps &
     type?: never;
     /** A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link. */
     disabled?: never;
+    /** A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`. */
+    default?: never;
     ref?: Ref<HTMLAnchorElement> | undefined;
   };
 
@@ -167,6 +170,25 @@ export type ButtonButtonProps = ButtonBaseProps &
      * @claim "never submits a form by accident" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > renders a native button with type=button and data-ouro)
      */
     type?: "button" | "submit" | "reset" | (string & { 'Use "button", "submit" or "reset"; for looks use tone and variant': never }) | undefined;
+    /**
+     * The dialog's default action, as on a Mac: Return presses it from anywhere in the dialog
+     * around it, unless focus is in a multi-line field (where Command or Control Return presses
+     * it), on a control that takes Return itself (another button, a link, an option) or in a
+     * list that is open, or Shift or Option is held. Return calls `onClick` with the key's own
+     * `KeyboardEvent`, so an action that needs a person's gesture still gets one, and a submit
+     * button then sends its form once. It tells assistive technology so with
+     * `aria-keyshortcuts`. Give it to one button per dialog, the main action, and keep
+     * the solid look; outside a dialog it does nothing, since Return there belongs to the page.
+     * @claim "The dialog's default action, as" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > is what Return presses from a field in its dialog, with the key's own trusted event)
+     * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return to a multi-line field, and takes Command or Control Return from it)
+     * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return to a control that takes it itself: another button, a link, a list's option and an open list)
+     * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return alone with Shift or Option held, while an input method composes, or when the app took it)
+     * @claim "Return calls `onClick` with the" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > is what Return presses from a field in its dialog, with the key's own trusted event)
+     * @claim "and a submit button then" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > sends its form once as a submit button, and calls onClick alone without a form)
+     * @claim "It tells assistive technology so" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > says so to assistive technology, and looks like the dialog's main action)
+     * @claim "Give it to one button" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > does nothing outside a dialog, where Return belongs to the page)
+     */
+    default?: boolean | undefined;
     ref?: Ref<HTMLButtonElement> | undefined;
   };
 
@@ -306,6 +328,20 @@ function Spinner(): JSX.Element {
 
 const preventDefault = (event: MouseEvent) => event.preventDefault();
 
+/** What takes Return itself, so a dialog's default action leaves it be: controls, links, options and an open list. */
+const takesReturn =
+  "button,a[href],select,[contenteditable]:not([contenteditable=false]),input:is([type=button],[type=submit],[type=reset],[type=checkbox],[type=radio],[type=file])," +
+  "[role=button],[role=link],[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option],[role=checkbox],[role=radio],[role=switch],[role=tab],[role=treeitem],[aria-expanded=true]";
+
+/** Whether this key press is Return for the default action of the dialog `root`. */
+function returnPresses(event: globalThis.KeyboardEvent, root: Element): boolean {
+  if (event.key !== "Enter" || event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.shiftKey || event.altKey) return false;
+  const target = event.target as Element;
+  if (!root.contains(target)) return false;
+  if (target.matches("textarea")) return event.metaKey || event.ctrlKey;
+  return !target.matches(takesReturn);
+}
+
 /**
  * A button, or a link styled as one. The obvious name for any action: pressing
  * it gives physical feedback, it has a 44px touch target on phones, and `loading`
@@ -350,6 +386,7 @@ export function Button(props: ButtonProps): JSX.Element {
     leftIcon,
     rightIcon,
     reloadDocument,
+    default: isDefault,
     ...rest
   } = props;
   // A tone, variant or size that is not one of Ouro UI's (a type error) warns and renders the default.
@@ -403,6 +440,31 @@ export function Button(props: ButtonProps): JSX.Element {
     wasLoading.current = loading;
   }, [loading, loadingLabel]);
 
+  // The default action listens on the document, after React's own handlers, so a key the app took
+  // (an open list's Return) is seen as taken; the button's latest onClick gets the key's own event.
+  const own = useRef<HTMLElement | null>(null);
+  const press = useRef<((event: globalThis.KeyboardEvent) => void) | undefined>(undefined);
+  const onClick = (rest as { onClick?: (event: globalThis.KeyboardEvent) => void }).onClick;
+  useEffect(() => {
+    press.current = onClick;
+  });
+  const pressable = isDefault && rest.href === undefined && !(rest as { disabled?: boolean }).disabled && !loading;
+  useEffect(() => {
+    const root = pressable ? own.current!.closest("[role=dialog],[role=alertdialog]") : null;
+    if (!root) return undefined;
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (!returnPresses(event, root)) return;
+      event.preventDefault();
+      press.current?.(event);
+      // A submit button sends its form, once: the browser's own submit on Return was prevented above.
+      const button = own.current as HTMLButtonElement;
+      if (button.type === "submit") button.form?.requestSubmit(button);
+    };
+    root.ownerDocument.addEventListener("keydown", onKeyDown);
+    return () => root.ownerDocument.removeEventListener("keydown", onKeyDown);
+  }, [pressable]);
+
+  const buttonRef = useMergedRef((rest as { ref?: Ref<HTMLElement> }).ref, own);
   const classes = cn(base, sizes[size], looks[variant][tone], fullWidth && "w-full", className);
 
   // The touch target comes first and the label is positioned, so the label paints above
@@ -450,7 +512,7 @@ export function Button(props: ButtonProps): JSX.Element {
     );
   }
 
-  const { ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  const { ref: _ref, disabled, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
   // A button that opens a dialog (its own, or a component's trigger) holds the page from the press,
   // so a release during a smooth scroll lands on it and its click opens the dialog.
   const holdsPage =
@@ -474,7 +536,7 @@ export function Button(props: ButtonProps): JSX.Element {
       data-ouro-part="root"
       {...buttonProps}
       {...holdsPage}
-      ref={ref as Ref<HTMLElement> | undefined}
+      ref={buttonRef}
       type={type}
       disabled={Boolean(disabled || loading)}
       focusableWhenDisabled={Boolean(loading && !disabled)}
@@ -482,6 +544,8 @@ export function Button(props: ButtonProps): JSX.Element {
       data-ouro="button"
       data-variant={variant}
       data-loading={loading ? "" : undefined}
+      data-default={isDefault ? "" : undefined}
+      aria-keyshortcuts={isDefault ? "Enter" : buttonProps["aria-keyshortcuts"]}
       aria-busy={loading || buttonProps["aria-busy"]}
     >
       {content}
