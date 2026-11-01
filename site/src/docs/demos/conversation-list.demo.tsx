@@ -21,7 +21,7 @@ const conversations: ConversationListItem[] = [
   },
   { id: "design", title: "Design reviews", where: "Lantern Labs", preview: "Odile: Can you sign off on the mockups?", time: "9:12", section: "recent" },
   { id: "ada", title: "Ada Lovelace", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
-  { id: "halden", title: "Halden", nameTag: "AI agent", avatar: <Avatar name="Halden" alt="" size="sm" shape="hexagon" color="neutral" />, preview: "I'll post the summary by 4:00.", time: "8:02", section: "recent" },
+  { id: "halden", title: "Halden", nameTag: "AI agent", avatar: <Avatar name="Halden" alt="" size="sm" shape="hexagon" />, preview: "I'll post the summary by 4:00.", time: "8:02", section: "recent" },
 ];
 
 export default function ConversationListDemo(): JSX.Element {

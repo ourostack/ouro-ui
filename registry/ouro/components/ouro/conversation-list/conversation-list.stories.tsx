@@ -146,7 +146,7 @@ const chats: ConversationListItem[] = [
     id: "halden",
     title: "Halden",
     nameTag: "AI agent",
-    avatar: <Avatar name="Halden" alt="" size="sm" shape="hexagon" color="neutral" />,
+    avatar: <Avatar name="Halden" alt="" size="sm" shape="hexagon" />,
     preview: "I'll post the summary of the launch notes by 4:00.",
     time: "8:52",
     section: "recent",

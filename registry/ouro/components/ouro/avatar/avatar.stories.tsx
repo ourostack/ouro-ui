@@ -177,8 +177,8 @@ export const Shapes: Story = {
           <Avatar name="Design reviews" shape="square" size={size} />
           <Avatar name="Release notes" shape="square" size={size} src={people[2]!.src} />
           <Avatar name="Build helper" shape="square" size={size} color="brand" icon={<Icon d={bot} />} />
-          <Avatar name="Halden" shape="hexagon" size={size} color="neutral" />
-          <Avatar name="Launch helper" shape="hexagon" size={size} src={people[1]!.src} />
+          <Avatar name="Halden" shape="hexagon" size={size} />
+          <Avatar name="Launch helper" shape="hexagon" size={size} src={people[4]!.src} />
         </div>
       ))}
     </Surface>

@@ -291,7 +291,7 @@ export const Agent: Story = {
         role="assistant"
         name="Halden"
         nameTag="AI agent"
-        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" color="neutral" />}
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" />}
         time="3:24 PM"
         dateTime="2026-05-04T15:24"
       >
@@ -305,7 +305,7 @@ export const Agent: Story = {
         role="assistant"
         name="Halden"
         nameTag="AI agent"
-        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" color="neutral" />}
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" />}
         time="3:31 PM"
         dateTime="2026-05-04T15:31"
       >
