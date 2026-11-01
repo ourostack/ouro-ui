@@ -63,6 +63,7 @@
 @source not "../../../registry/ouro/e2e";
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
+@source not "../ax/art/manifest.json";
 @source not "../components/docs-header.tsx";
 @source not "../components/docs-shell.tsx";
 @source not "../components/docs-sidebar.tsx";

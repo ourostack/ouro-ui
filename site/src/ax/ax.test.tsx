@@ -96,6 +96,22 @@ describe("Ouro AX page", () => {
     expect(page.getByRole("group", { name: cast("What {agent} sees") }).elements().length).toBe(MORNING.length);
   });
 
+  it("draws Sam and Sam's agent between the hero and the morning, in the page's colours, with words for it", async () => {
+    await renderPage("/ax/");
+    const art = page.getByRole("img", { name: cast("{person} and {agent} share a desk on a sunny morning. {person} holds a coffee and talks; the agent sends {person.their} note from its terminal to a room of three people.") });
+    await expect.element(art).toBeInTheDocument();
+    const element = art.element();
+    const svg = element.querySelector("svg")!;
+    expect(svg.getAttribute("aria-hidden")).toBe("true");
+    expect(svg.getAttribute("stroke")).toBe("currentColor");
+    expect(svg.querySelector("title")).toBeNull();
+    const morning = page.getByRole("heading", { level: 2, name: cast("{person}'s morning") }).element();
+    const hero = page.getByRole("heading", { level: 1, name: "A morning with an agent" }).element();
+    expect(hero.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(element.compareDocumentPosition(morning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(element).getPropertyValue("--duo-heart").trim()).toBe(getComputedStyle(document.documentElement).getPropertyValue("--warning").trim());
+  });
+
   it("lets the visitor be the agent: a post without --why is refused, and a wait ends when someone in the room replies", async () => {
     await renderPage("/ax/");
     const log = page.getByRole("log", { name: cast("What {agent} sees") });

@@ -190,6 +190,23 @@
     border: 1px dashed var(--border);
     color: var(--muted-foreground);
   }
+  /*
+   * The drawing between the hero and the morning (art/morning-with-an-agent.svg): its lines take the text colour,
+   * Sam's heart the theme's amber, and the agent's eyes and visor their own fallbacks (the theme's primary, a navy).
+   * Its content sits in the middle of a 1200 by 500 view box, so a phone shows a centred 4:3 crop of it.
+   */
+  .ax-art {
+    --duo-heart: var(--warning);
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    color: var(--foreground);
+  }
+  .ax-art > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
   /* Layout: the Ouro AX page's bands, beats and pairs (Tailwind's breakpoints: sm 40rem, md 48rem, lg 64rem, xl 80rem). */
   .site-hero.ax-hero {
     padding-block: calc(var(--spacing) * 10) calc(var(--spacing) * 16);
@@ -213,6 +230,9 @@
     max-height: 26rem;
   }
   @media (width >= 40rem) {
+    .ax-art {
+      aspect-ratio: 12 / 5;
+    }
     .ax-finding {
       grid-template-columns: auto minmax(0, 1fr);
       align-items: baseline;

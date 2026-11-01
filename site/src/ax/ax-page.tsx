@@ -7,6 +7,7 @@ import Playground from "./playground";
 import { cast } from "./cast";
 import { MORNING, TRANSCRIPTS, type Beat } from "./story";
 import xray from "./xray-tandem.json";
+import morningSource from "./art/morning-with-an-agent.svg?raw";
 
 /*
  * The Ouro AX page's body (/ax/), under its hero (hero.tsx): a morning with an agent, told twice, as the person sees
@@ -14,6 +15,26 @@ import xray from "./xray-tandem.json";
  * after. An island of the voyage page (island.tsx): the server renders it whole, and its script, with the kit, loads
  * only on this page.
  */
+
+/** The drawing's markup without its title and notes: the band names it once, in plain words (art/manifest.json says who drew it). */
+const morningArt = morningSource
+  .replace(/<!--[\s\S]*?-->/g, "")
+  .replace(/<title>[\s\S]*?<\/title>/, "")
+  .replace("<svg ", '<svg aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid slice" ');
+
+/** The person and their agent at one desk, in the page's own colours: between the hero and the morning it tells. */
+function MorningArt(): JSX.Element {
+  return (
+    <Container>
+      <div
+        role="img"
+        aria-label={cast("{person} and {agent} share a desk on a sunny morning. {person} holds a coffee and talks; the agent sends {person.their} note from its terminal to a room of three people.")}
+        className="ax-art"
+        dangerouslySetInnerHTML={{ __html: morningArt }}
+      />
+    </Container>
+  );
+}
 
 const EVIDENCE = "https://github.com/ourostack/ouro-ui/tree/main/docs/decisions/2026-10-30-ouro-ax/evidence";
 
@@ -74,6 +95,7 @@ export default function AxPage(): JSX.Element {
   const held = xray.must.filter((item) => item.before === "holds");
   return (
     <div id="ax">
+      <MorningArt />
       <section aria-labelledby="morning-title" className="ax-band">
         <Container>
           <h2 id="morning-title" className="site-h2">
