@@ -78,6 +78,13 @@ const items = '[data-ouro="message"], [data-ouro-message-list-item]';
 const tabbableSelector =
   'a[href], area[href], button, input:not([type="hidden"]), select, textarea, iframe, summary, audio[controls], video[controls], [tabindex], [contenteditable]:not([contenteditable="false"])';
 
+/**
+ * Focus guards: the hidden sentinels an open menu puts around its button, in the Tab order. A guard
+ * closes the menu as it takes focus and sends focus back the way it came, so Tab onto one from the
+ * message would land on the message again.
+ */
+const guards = '[data-base-ui-focus-guard][tabindex="0"], [data-floating-ui-focus-guard][tabindex="0"]';
+
 /** The elements under `root` that Tab stops on, in document order. */
 function tabbables(root: Element): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>(tabbableSelector)].filter(
@@ -405,6 +412,8 @@ interface Spoken {
  * message they are reading where it was. Scrolling is never announced.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
+ * Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view
+ * scrolls the list, not the page around it.
  *
  * The messages spring as the reader scrolls, as in a phone's messages app: each trails the scroll a
  * little and catches up, the farther from the pointer, finger or focused message the more, and a
@@ -417,7 +426,9 @@ interface Spoken {
  * messages, with a focus ring; a message taller than the list scrolls through first. The right
  * arrow (the left one, right to left) goes into the focused message's toolbar, such as its action
  * bar, else its first control, and Tab goes through its controls. Tab never stops on the other
- * messages' controls, so the next Tab after a message's own controls leaves the list. A new
+ * messages' controls, so the next Tab after a message's own controls leaves the list. Nor does it
+ * stop on the focus guards an open menu puts around its button, so Tab from a message whose menu
+ * is open goes on through its controls rather than back to the message. A new
  * message never takes focus, and when the focused message goes, focus goes to the one now in its
  * place. Each message that is an article carries its place among them for screen readers
  * (`aria-posinset`, `aria-setsize`). `onMessageKeyDown` adds keys of your own on the focused
@@ -472,6 +483,7 @@ interface Spoken {
  * @claim "a message taller than the list scrolls" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > scrolls through a message taller than the list, a line or a page at a time, before moving on)
  * @claim "The right arrow (the left one, right to" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > goes into the focused message's toolbar with the right arrow, else its first control, and the left arrow right to left)
  * @claim "Tab never stops on the other" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reaches a control between messages in the Tab order, and passes over the other messages' controls)
+ * @claim "Nor does it stop on the focus guards" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > passes over the focus guards around an open menu's button, so Tab never bounces back to the message)
  * @claim "A new message never takes focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > keeps focus where it is when a message arrives, and the Tab stop on the message focused last while it shows)
  * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app)
  * @claim "Each message that is an article carries" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives each message its place among them for screen readers, and keeps an app's own)
@@ -481,6 +493,7 @@ interface Spoken {
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > does not read back the user's own message)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
+ * @claim "Nothing in it overflows the boxes around it" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
  */
 export function MessageList(props: MessageListProps): JSX.Element {
@@ -802,6 +815,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // After React's commit, so it reads no layout unless the Tab stop went: reading where messages
     // are here would lay the page out before the browser does, at every new message.
     const sync = (changed: boolean) => {
+      // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
+      // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
+      for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
       if (focused?.isConnected === false && doc.activeElement === doc.body) {
         focused = null;
         const left = topItems(content);
@@ -870,8 +886,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         (back ? startRef : endRef).current!.focus({ preventScroll: true });
         return;
       }
-      // Stryker disable next-line ConditionalExpression: focusing what the browser would focus, and revealing it, ends in the same place.
-      if (next === pick(tabbables(scroller))) return;
+      // The list moves focus itself, so each browser's own Tab order (WebKit's on a Mac, which can skip
+      // buttons; a popup's focus guards) never decides it. A radio is the browser's: Tab enters its group
+      // at the checked one.
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: in Chromium the browser's Tab goes where the list's would; only WebKit's own Tab order differs.
+      if (next === pick(tabbables(scroller)) && next.matches('input[type="radio"]')) return;
       event.preventDefault();
       // Stryker disable next-line ObjectLiteral,BooleanLiteral: reveal, next, scrolls the list to the same place.
       next.focus({ preventScroll: true });
@@ -980,7 +999,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   return (
     <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
-      {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. */}
+      {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
+          parts placed absolutely inside it (screen-reader text, the list's edges) stay in its overflow, not its
+          ancestors': there they would let focus or scrollIntoView scroll the page around the list. */}
       <div
         ref={setScroller}
         role="region"
@@ -989,7 +1010,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         data-ouro-control="message-list"
         data-ouro-part="scroller"
         onKeyDown={(event) => keyHandler.current!(event)}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
+        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
         <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
         <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">

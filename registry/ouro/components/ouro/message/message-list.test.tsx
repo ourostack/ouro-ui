@@ -131,6 +131,27 @@ describe("MessageList", () => {
     }
   });
 
+  it("keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it", async () => {
+    const { host, scroller } = await render(
+      <div data-frame="" style={{ height: 400, overflow: "hidden" }}>
+        <div style={{ height: 100 }} />
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {posts(14)}
+        </MessageList>
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    // Everything placed absolutely in the list, such as each message's screen-reader text, stays in the list's overflow.
+    expect(frame.scrollHeight).toBe(frame.clientHeight);
+    const first = document.getElementById("post-0")!;
+    await act(async () => first.focus());
+    first.scrollIntoView({ block: "start" });
+    await settle(scroller);
+    expect(scroller.scrollTop).toBeLessThan(scroller.scrollHeight - scroller.clientHeight);
+    expect(frame.scrollTop).toBe(0);
+    expect(document.scrollingElement!.scrollTop).toBe(0);
+  });
+
   it("is a named region that opens at the newest message, which is its Tab stop", async () => {
     const { scroller } = await render(<Chat items={history(20)} />);
     await expect.element(page.getByRole("region", { name: "Conversation" })).toBeVisible();
@@ -796,6 +817,12 @@ function Channel({ children, height = 300, onMessageKeyDown }: { children: React
 }
 
 const focusedId = () => document.activeElement?.id ?? "";
+/** The ids of the list's messages in the Tab order; every other message has `tabindex="-1"`. */
+const tabStops = (scroller: HTMLElement) => {
+  const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro-part="item"]')];
+  expect(messages.every((message) => ["0", "-1"].includes(message.getAttribute("tabindex")!))).toBe(true);
+  return messages.filter((message) => message.getAttribute("tabindex") === "0").map((message) => message.id);
+};
 /** Within a pixel: layout lands on fractions at some zoom levels. */
 const near = (value: number, expected: number) => expect(Math.abs(value - expected)).toBeLessThanOrEqual(1);
 const button = (name: string) => page.getByRole("button", { name, exact: true }).element() as HTMLElement;
@@ -1354,7 +1381,10 @@ describe("MessageList keyboard", () => {
     // A message that arrives in the same change as an edit inside another is counted too.
     await rerender(list(3, true));
     expect(positions()).toEqual(["40/200", "null/null", "null/null", "3/5", "4/5", "5/5"]);
-    expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
+    // Once the list has followed the new message, the scroll puts the Tab stop on it, the newest in view; until then
+    // the stop stays where it was. Read it after the scroll, so the result never depends on when the scroll event lands.
+    await settle(scroller);
+    expect(tabStops(scroller)).toEqual(["post-2"]);
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-part")).toBe("item");
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-control")).toBe("message-list");
     // The focus ring rounds on Ouro's Message only; an app's message keeps its corners.
@@ -1416,6 +1446,68 @@ describe("MessageList keyboard", () => {
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.activeElement).toBe(more());
+  });
+
+  it("passes over the focus guards around an open menu's button, so Tab never bounces back to the message", async () => {
+    await render(
+      <Channel>
+        {posts(2)}
+        <Message
+          variant="post"
+          role="assistant"
+          name="Mara Quill"
+          id="with-thread"
+          menu={[{ label: "Copy link", onClick: () => {} }]}
+          footer={
+            <button type="button" aria-label="2 replies">
+              2 replies
+            </button>
+          }
+        >
+          Settings mockups.
+        </Message>
+      </Channel>,
+    );
+    const message = document.getElementById("with-thread")!;
+    const more = () => message.querySelector<HTMLElement>('[data-ouro-part="menu"]');
+    await expect.poll(more).not.toBeNull();
+    await userEvent.click(more()!);
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    // The menu's guards stand around its button while it is open, as a screen reader's cursor or a click lands on the message.
+    expect(message.querySelector("[data-base-ui-focus-guard]")).not.toBeNull();
+    await act(async () => message.focus());
+    // Before the fix, the guard ahead of the menu's button took this Tab, closed the menu and dropped focus to the page.
+    const reached: string[] = [];
+    for (let press = 0; press < 3; press++) {
+      await pressTab();
+      reached.push(document.activeElement!.getAttribute("aria-label") || document.activeElement!.id || document.activeElement!.textContent);
+    }
+    expect(reached.slice(0, 2).toSorted()).toEqual(["2 replies", "More actions"]);
+    expect(reached[2]).toBe("After");
+    await pressTab({ shift: true });
+    expect(focusedId()).toBe("with-thread");
+  });
+
+  it("leaves Tab into a radio group in a message to the browser, which enters it at the checked radio", async () => {
+    await render(
+      <Channel>
+        {posts(1)}
+        <Message role="assistant" name="Grace" id="poll">
+          Lunch?
+          <label>
+            <input type="radio" name="lunch" value="soup" /> Soup
+          </label>
+          <label>
+            <input type="radio" name="lunch" value="salad" defaultChecked /> Salad
+          </label>
+        </Message>
+      </Channel>,
+    );
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("poll");
+    await pressTab();
+    expect((document.activeElement as HTMLInputElement).value).toBe("salad");
   });
 
   it("leaves focus where a component puts it after removing the focused control", async () => {

@@ -1,0 +1,1 @@
+- Fixed: Tab from a message in a MessageList whose menu is open goes on through the message's controls, not back to the message: the list passes over the focus guards the open menu puts around its button, which used to drop focus to the page so the next Tab landed on the same message again.
