@@ -1595,23 +1595,6 @@ describe("Toaster avoid", () => {
     expect(Math.round(800 - item.getBoundingClientRect().bottom)).toBe(24);
   });
 
-  it("measures to the pixel: a control that ends where the column starts, starts where it ends or can't be seen is clear of it, and one at the window's middle is under it", async () => {
-    await page.viewport(1280, 800);
-    // At 1280px the column runs from 896px to 1256px (360px wide, 24px from the end).
-    const clear = [
-      corner("left", "bottom", "left: 756px"),
-      corner("right", "bottom", "right: 0; width: 24px"),
-      corner("right", "bottom", "visibility: hidden"),
-      corner("right", "bottom", "opacity: 0"),
-    ];
-    await render(<Toaster avoid="[data-keep-clear]" />);
-    const item = await show("Recording saved", { duration: Infinity });
-    expect(Math.round(800 - item.getBoundingClientRect().bottom)).toBe(24);
-    for (const element of clear) element.remove();
-    const middle = corner("right", "bottom", "bottom: auto; top: 400px");
-    await until(() => above(item, middle), 8);
-  });
-
   it("measures again when the window resizes: a control beside the column on a wide screen is under it on a phone", async () => {
     await page.viewport(1280, 800);
     const join = corner("left");
@@ -1619,16 +1602,6 @@ describe("Toaster avoid", () => {
     const item = await show("Recording saved", { duration: Infinity });
     expect(overlaps(item.getBoundingClientRect(), join.getBoundingClientRect())).toBe(false);
     await page.viewport(390, 844);
-    await until(() => above(item, join), 8);
-  });
-
-  it("measures when the page changes in the same moment as the toasts do", async () => {
-    await page.viewport(1280, 800);
-    const join = corner("right", "bottom", "display: none");
-    await render(<Toaster avoid="[data-keep-clear]" />);
-    const item = await show("Recording saved", { duration: Infinity });
-    item.setAttribute("data-seen", "");
-    join.style.display = "";
     await until(() => above(item, join), 8);
   });
 

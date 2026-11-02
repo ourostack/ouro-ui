@@ -10,6 +10,7 @@ import { useFocusHandoff, type FocusHandoffOptions } from "@/registry/ouro/lib/o
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
+import { keepClear } from "@/registry/ouro/lib/ouro/keep-clear";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
@@ -159,7 +160,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   // Stryker disable next-line ConditionalExpression: without a selector it would match the tag name "undefined", which no page has.
-  const keepClear = avoid !== undefined && <KeepClear avoid={avoid} />;
+  const keepingClear = avoid !== undefined && <KeepClear avoid={avoid} />;
   return (
     <Toast.Provider limit={VISIBLE}>
       <Connect onActive={setActive} />
@@ -181,7 +182,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
             >
               <ToastList closeLabel={closeLabel} />
               <ToastAnnouncer />
-              {keepClear}
+              {keepingClear}
             </Toast.Viewport>
           </PortalScope>
         </Toast.Portal>
@@ -190,44 +191,13 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
   );
 }
 
-/** How far above a control the toasts sit when they keep clear of it, in px. */
-const CLEARANCE = 8;
-
 /**
- * Keeps the toasts' viewport clear of the elements `avoid` matches: one on screen in the lower half
- * of the window, across the viewport's column, lifts the viewport to sit above it. It measures again
- * when the page changes outside the toasts (an element added, removed, restyled or moved) and when
- * the window resizes. It lives in the viewport, so it runs while there are toasts.
+ * Keeps the toasts' viewport clear of the elements `avoid` matches (see keepClear). It lives in the
+ * viewport, so it runs while there are toasts.
  */
 function KeepClear({ avoid }: { avoid: string }): JSX.Element {
   const mark = useRef<HTMLSpanElement | null>(null);
-  useEffect(() => {
-    const viewport = mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!;
-    const place = () => {
-      viewport.style.removeProperty("bottom");
-      const column = viewport.getBoundingClientRect();
-      const height = document.documentElement.clientHeight;
-      let lift = 0;
-      for (const element of document.querySelectorAll(avoid)) {
-        const box = element.getBoundingClientRect();
-        if (!element.checkVisibility({ visibilityProperty: true, opacityProperty: true }) || box.top < height / 2 || box.right <= column.left || box.left >= column.right) continue;
-        lift = Math.max(lift, height - box.top + CLEARANCE);
-      }
-      // Stryker disable next-line EqualityOperator: at equal values the lift puts the viewport where it already is.
-      if (lift > height - column.bottom) viewport.style.bottom = `${lift}px`;
-    };
-    // The viewport's own changes, its lift among them, are not the page's: measuring on them would never end.
-    const page = new MutationObserver((records) => {
-      if (records.some((record) => !viewport.contains(record.target))) place();
-    });
-    page.observe(document.body, { childList: true, subtree: true, attributes: true });
-    addEventListener("resize", place);
-    place();
-    return () => {
-      page.disconnect();
-      removeEventListener("resize", place);
-    };
-  }, [avoid]);
+  useEffect(() => keepClear(mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!, avoid), [avoid]);
   return <span ref={mark} hidden data-ouro-toaster-keep-clear="" />;
 }
 

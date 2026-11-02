@@ -213,6 +213,7 @@
         "ourostack/ouro-ui/lib-floating",
         "ourostack/ouro-ui/lib-focus-handoff",
         "ourostack/ouro-ui/lib-form-answer",
+        "ourostack/ouro-ui/lib-keep-clear",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
         "ourostack/ouro-ui/lib-navigation-key",
@@ -643,6 +644,19 @@
           "path": "registry/ouro/lib/ouro/form-answer.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/form-answer.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-keep-clear",
+      "type": "registry:lib",
+      "title": "lib-keep-clear",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/keep-clear.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/keep-clear.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/keep-clear.ts"
         }
       ]
     },
@@ -1718,6 +1732,7 @@
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-focus-handoff",
+        "ourostack/ouro-ui/lib-keep-clear",
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-spring",
@@ -4329,6 +4344,31 @@
       }
     },
     {
+      "name": "lib-keep-clear-tests",
+      "type": "registry:item",
+      "title": "lib-keep-clear tests",
+      "description": "Optional: the Vitest browser tests for lib-keep-clear, and the tests of everything it installs. Add it beside lib-keep-clear: add lib-keep-clear lib-keep-clear-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-keep-clear",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/keep-clear.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/keep-clear.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-key-shortcuts-tests",
       "type": "registry:item",
       "title": "lib-key-shortcuts tests",
@@ -6235,6 +6275,7 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-keep-clear-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -8862,6 +8903,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-keep-clear-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -11789,6 +11831,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-keep-clear-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-navigation-key-tests",
@@ -11882,6 +11925,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-keep-clear-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-navigation-key-tests",
