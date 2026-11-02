@@ -222,6 +222,7 @@
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-router-link",
+        "ourostack/ouro-ui/lib-scroll-fade",
         "ourostack/ouro-ui/lib-server-element",
         "ourostack/ouro-ui/lib-share",
         "ourostack/ouro-ui/lib-spring",
@@ -780,6 +781,19 @@
           "path": "registry/ouro/lib/ouro/router-link.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/router-link.ts"
+        }
+      ]
+    },
+    {
+      "name": "lib-scroll-fade",
+      "type": "registry:lib",
+      "title": "lib-scroll-fade",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/scroll-fade.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/scroll-fade.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/scroll-fade.ts"
         }
       ]
     },
@@ -2352,6 +2366,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-scroll-fade",
         "ourostack/ouro-ui/lib-use-dev-messages"
       ],
       "files": [
@@ -3018,6 +3033,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-scroll-fade",
         "ourostack/ouro-ui/lib-use-dev-messages"
       ],
       "files": [
@@ -3341,6 +3357,8 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-scroll-fade",
         "ourostack/ouro-ui/lib-use-dev-messages"
       ],
       "files": [
@@ -4475,6 +4493,33 @@
           "path": "registry/ouro/lib/ouro/portal-container.test.tsx",
           "type": "registry:lib",
           "target": "@lib/ouro/portal-container.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
+      "name": "lib-scroll-fade-tests",
+      "type": "registry:item",
+      "title": "lib-scroll-fade tests",
+      "description": "Optional: the Vitest browser tests for lib-scroll-fade, and the tests of everything it installs. Add it beside lib-scroll-fade: add lib-scroll-fade lib-scroll-fade-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-scroll-fade",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/scroll-fade.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/scroll-fade.test.tsx"
         }
       ],
       "meta": {
@@ -7387,6 +7432,7 @@
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
@@ -7624,6 +7670,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/scroll-area",
@@ -8400,6 +8447,7 @@
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/scroll-area-tests",
@@ -9249,6 +9297,7 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
@@ -9300,6 +9349,9 @@
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/code-block",
+        "ourostack/ouro-ui/code-block-tests",
+        "ourostack/ouro-ui/copy-button-tests",
         "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/kbd-tests",
@@ -9316,6 +9368,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-spring-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
@@ -9328,6 +9381,9 @@
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/reaction-bar",
         "ourostack/ouro-ui/reaction-bar-tests",
+        "ourostack/ouro-ui/scroll-area-tests",
+        "ourostack/ouro-ui/table",
+        "ourostack/ouro-ui/table-tests",
         "ourostack/ouro-ui/thread-summary",
         "ourostack/ouro-ui/thread-summary-tests",
         "ourostack/ouro-ui/tooltip-tests"
@@ -10163,6 +10219,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -11452,6 +11509,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
@@ -11795,6 +11853,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-share-tests",
         "ourostack/ouro-ui/lib-spring-tests",
@@ -11888,6 +11947,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-scroll-fade-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-share-tests",
         "ourostack/ouro-ui/lib-spring-tests",

@@ -148,6 +148,16 @@ describe("Chart", () => {
     expect(chart.querySelector("[data-ouro-chart-table]")!.getBoundingClientRect().width).toBeGreaterThan(100);
   });
 
+  it("fades its visible table out at the side that hides more, and the hidden one never", async () => {
+    const { chart, rerender } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />, 120);
+    const wrapper = chart.querySelector<HTMLElement>("[data-ouro-chart-table]")!;
+    await act(async () => new Promise(requestAnimationFrame));
+    expect(wrapper.hasAttribute("data-ouro-scroll-fade")).toBe(false);
+    await rerender(<Chart title="Cooking" data={rows} categoryKey="month" config={config} showTable />);
+    await expect.poll(() => wrapper.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+    expect(getComputedStyle(wrapper).maskImage).toContain("linear-gradient");
+  });
+
   it("formats values with formatValue in the table, the axis and the tooltip", async () => {
     const formatValue = (value: number) => `${value} €`;
     const { chart } = await render(<Chart title="Spend" data={rows} categoryKey="month" config={config} formatValue={formatValue} />);
