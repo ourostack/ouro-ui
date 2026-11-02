@@ -192,7 +192,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
       data-ouro="code-block"
       data-language={language}
       className={cn(
-        "[@layer_ouro-reset]:m-0 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-solid border-border bg-muted text-foreground",
+        "group/code-block [@layer_ouro-reset]:m-0 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-solid border-border bg-muted text-foreground",
         bar ? "grid-rows-[minmax(calc(var(--spacing)*11),auto)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
         className,
       )}
@@ -217,12 +217,23 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
           className="col-start-2 row-start-1 self-center me-1.5"
         />
       ) : null}
+      {/* The code's focus ring, over it in the same cell, so the code's edge fade never hides it. It comes before the
+          code, so a selection that runs to the code's end in WebKit gains no line break from a block after it. */}
+      <span
+        aria-hidden
+        data-slot="focus-ring"
+        className={cn(
+          "pointer-events-none relative z-1 col-span-2 col-start-1 outline-ring -outline-offset-2",
+          "group-has-[>[data-ouro-part=code]:focus-visible]/code-block:outline-2 group-has-[>[data-ouro-part=code]:focus-visible]/code-block:outline-solid",
+          bar ? "row-start-2" : "row-start-1",
+        )}
+      />
       <pre
         ref={scrollable}
         data-ouro-control="code-block"
         data-ouro-part="code"
         className={cn(
-          "peer col-span-2 col-start-1 m-0 min-h-0 overflow-auto p-4 font-mono text-sm leading-6 outline-none",
+          "col-span-2 col-start-1 m-0 min-h-0 overflow-auto p-4 font-mono text-sm leading-6 outline-none",
           scrollFadeClass,
           bar ? "row-start-2 border-0 border-t border-solid border-border" : "row-start-1",
           wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre",
@@ -230,15 +241,6 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
       >
         <code className={cn("[font-family:inherit]", wrap ? "block" : "block w-max min-w-full")}>{catalogue ? <CodeWithEmoji code={code} catalogue={catalogue} /> : code}</code>
       </pre>
-      {/* The code's focus ring, over it in the same cell, so the code's edge fade never hides it. */}
-      <span
-        aria-hidden
-        data-slot="focus-ring"
-        className={cn(
-          "pointer-events-none col-span-2 col-start-1 outline-ring -outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-solid",
-          bar ? "row-start-2" : "row-start-1",
-        )}
-      />
     </figure>
   );
 }
