@@ -933,7 +933,8 @@ describe("Composer expanded", () => {
     const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
     const settled = () => heights(body).length === 0 && body.style.height === "" && !body.classList.contains("transition-[height]");
     await userEvent.click(expandButton()!);
-    expect(heights(body)).toEqual(["height"]);
+    // WebKit on Linux can start the change a frame after the click.
+    await expect.poll(() => heights(body)).toEqual(["height"]);
     expect(getComputedStyle(body).overflow).toBe("hidden");
     // The text has its new height at once; the row around it shows it as it grows.
     expect(textarea.rows).toBe(6);
