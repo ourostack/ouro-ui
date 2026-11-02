@@ -1012,7 +1012,7 @@ function runStep(script, env, { nodeStatus = 0 } = {}) {
       printf 'CALL node %s\\n' "$*" >&2
       case "$2" in
         stories) echo checkbox ;;
-        e2e) echo "registry/ouro/e2e/ouro/checkbox.spec.ts site/e2e/" ;;
+        e2e) if [ "$1" = scripts/shard.mjs ] && [ -n "\${SHARD_SPECS+set}" ]; then echo "$SHARD_SPECS"; else echo "registry/ouro/e2e/ouro/checkbox.spec.ts site/e2e/"; fi ;;
         plan) printf 'full=false\\ncomponents=checkbox\\n' >> "$GITHUB_OUTPUT" ;;
       esac
       return "$NODE_STATUS"
@@ -1406,7 +1406,7 @@ test("the mutation job merges the shards' results and keeps them under the plan'
   assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
 });
 
-test("the e2e shards run every spec, or the selected components' and the site's, and the e2e check passes when they all did", async () => {
+test("the e2e shards run every spec, or the selected components' and the site's, each shard its share by measured time, and the e2e check passes when they all did", async () => {
   const jobs = ciJobs();
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
@@ -1422,7 +1422,16 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const shares = Array.from({ length: count }, (_, index) => shardKeys(e2eFiles(), { index: index + 1, count }, readTimings("e2e")));
   assert.deepEqual(shares.flat().sort(), e2eFiles());
   assert.ok(shares.every((share) => share.length > 0));
-  assert.match(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4" }).calls, /^CALL pnpm test:e2e --pass-with-no-tests --shard=1\/4 registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
+  // A reduced run: the same split by measured time, of the selected components' specs and the site's.
+  const reduced = runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4", SHARD_SPECS: "site/e2e/home.spec.ts" });
+  assert.equal(reduced.status, 0);
+  assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs e2e checkbox\nCALL node scripts\/shard\.mjs e2e 1\/4 registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/\nCALL pnpm test:e2e site\/e2e\/home\.spec\.ts$/m);
+  // A reduced shard the split leaves no spec passes without running Playwright, which would run every spec.
+  const empty = runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "4/4", SHARD_SPECS: "" });
+  assert.equal(empty.status, 0);
+  assert.doesNotMatch(empty.calls, /CALL pnpm/);
+  // A failing selection or split fails the shard rather than running nothing or everything.
+  assert.notEqual(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4" }, { nodeStatus: 1 }).status, 0);
   assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard\]$/m);
   const gate = stepScript(jobs.e2e, "Every shard passed");
   assert.equal(runStep(gate, { SHARDS: "success" }).status, 0);

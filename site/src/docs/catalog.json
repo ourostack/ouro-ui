@@ -548,7 +548,7 @@
     "name": "stacked-layout",
     "title": "StackedLayout",
     "group": "Navigation",
-    "summary": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column."
+    "summary": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column."
   },
   {
     "name": "auth-layout",

@@ -24,6 +24,12 @@
     "summary": "Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server."
   },
   {
+    "name": "ci-speed",
+    "title": "CI speed and the merge queue",
+    "kind": "guide",
+    "summary": "How to keep Ouro UI's CI fast without hiding a failure: queue pull requests cleanly, read a latency failure before you blame the change, rehearse a release on the commit it tests, and quarantine a test only on the record."
+  },
+  {
     "name": "claims",
     "title": "Claims",
     "kind": "guide",

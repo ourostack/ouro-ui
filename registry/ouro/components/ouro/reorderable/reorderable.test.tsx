@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { Reorderable, type ReorderableProps } from "@/registry/ouro/components/ouro/reorderable/reorderable";
 import { dropIndex, edgeSpeed, EDGE, MAX_SPEED, moveItem, scrollParent } from "@/registry/ouro/components/ouro/reorderable/reorderable-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -1270,5 +1271,22 @@ describe("Reorderable", () => {
     expect(html).toContain("Press Enter for a menu of moves. Press Space to pick up,");
     expect(html).toContain('aria-haspopup="menu"');
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("Reorderable motion", () => {
+  it("drops a row into place at once under OuroProvider's motion=\"reduced\", and springs it there under \"full\", whatever the device says", async () => {
+    onTestFinished(() => commands.emulateMedia({ reducedMotion: "no-preference" }));
+    const element = await render(<OuroProvider motion="reduced">{list()}</OuroProvider>);
+    const [x, y] = await dragBy("Sear", 60);
+    await pointer(window, "pointerup", x, y);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    expect(rows(element).every((row) => row.style.transform === "")).toBe(true);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await render(<OuroProvider motion="full">{list()}</OuroProvider>);
+    const [x2, y2] = await dragBy("Deglaze", 60);
+    await pointer(window, "pointerup", x2, y2);
+    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    await rest(element);
   });
 });

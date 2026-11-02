@@ -14,6 +14,15 @@ expectTypeOf<{ navbar: "x" }>().not.toExtend<StackedLayoutProps>();
 expectTypeOf<{ navbar: "x"; children: "Page"; sidebar: "x" }>().not.toExtend<StackedLayoutProps>();
 expectTypeOf<{ navbar: "x"; children: "Page"; header: "x" }>().not.toExtend<StackedLayoutProps>();
 
+// The toolbar takes any node; navbarBehavior is one of three, and the guessed props name the fix.
+expectTypeOf<{ navbar: "x"; children: "Page"; toolbar: "Tools"; toolbarLabel: "Week tools" }>().toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; navbarBehavior: "sticky" }>().toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; navbarBehavior: "static" }>().toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; navbarBehavior: "auto-hide" }>().toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; navbarBehavior: "fixed" }>().not.toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; hideOnScroll: true }>().not.toExtend<StackedLayoutProps>();
+expectTypeOf<{ navbar: "x"; children: "Page"; sticky: false }>().not.toExtend<StackedLayoutProps>();
+
 // The page's element is main or div.
 expectTypeOf<{ navbar: "x"; children: "Page"; as: "div" }>().toExtend<StackedLayoutProps>();
 expectTypeOf<{ navbar: "x"; children: "Page"; as: "section" }>().not.toExtend<StackedLayoutProps>();

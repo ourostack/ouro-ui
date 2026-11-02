@@ -37,6 +37,11 @@
       "reason": "a latency run's record: the lines the latency spec printed on CI's runners, kept as a pull request's evidence"
     },
     {
+      "match": "^docs/guides/evidence/",
+      "mode": "evidence",
+      "reason": "a guide's evidence: records copied as GitHub's API returned them, so a guide's claim about GitHub's behaviour can be checked"
+    },
+    {
       "match": "^scripts/agent-usability/(screens|arms)/",
       "mode": "input",
       "reason": "what the benchmark gives each agent, frozen with its cohort"

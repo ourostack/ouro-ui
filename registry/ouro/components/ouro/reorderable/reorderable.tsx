@@ -20,6 +20,7 @@ import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag } from "@/registry/ouro/lib/ouro/use-drag";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
 import {
   contentClass,
@@ -257,6 +258,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
     onDragEnd,
     axis,
   } = props;
+  const reduced = useReducedMotion();
 
   useAppearanceClassNameCheck(
     "Reorderable",
@@ -362,6 +364,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
       to: 0,
       velocity,
       damping: flick ? 0.8 : 1,
+      reduced,
       element: row,
       onUpdate: (value) => shiftRow(row, value),
       onRest: () => track(row, undefined),

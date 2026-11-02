@@ -4,7 +4,8 @@ import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
-import { catalogueIndex, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import { catalogueIndex, emojiTextToTokens, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Runs in Chromium and WebKit.
@@ -278,6 +279,30 @@ describe("Emoji", () => {
     expect(emoji(host).getAttribute("src")).toBe(heart.src);
   });
 
+  it("follows OuroProvider's motion over the device: reduced shows the still image, full plays", async () => {
+    // The device asks for reduced motion here (the file's setting).
+    const { host } = await render(
+      <>
+        <OuroProvider motion="full">
+          <Emoji item={party} play />
+        </OuroProvider>
+        <OuroProvider motion="system">
+          <Emoji item={party} play />
+        </OuroProvider>
+      </>,
+    );
+    const [full, system] = images(host);
+    expect(full!.getAttribute("src")).toBe(party.animatedSrc);
+    expect(system!.getAttribute("src")).toBe(party.src);
+    await motion();
+    const still = await render(
+      <OuroProvider motion="reduced">
+        <Emoji item={party} play />
+      </OuroProvider>,
+    );
+    expect(emoji(still.host).getAttribute("src")).toBe(party.src);
+  });
+
   it("shows the still image with reduced motion, whatever play says or the pointer does", async () => {
     const { host } = await render(
       <>
@@ -461,6 +486,19 @@ describe("Emoji helpers", () => {
     expect(emojiToken(wave, "medium-dark")).toBe(":wave-tone4:");
     expect(emojiToken(party, "dark")).toBe(":party:");
     expect(emojiToken(fern)).toBe(":Fern:");
+  });
+
+  it("turns each emoji the catalogue lists as text into its token, a whole character at a time", () => {
+    const coder: EmojiItem = { id: "technologist", name: "Technologist", text: "👩‍💻", src: image("coder") };
+    const thumbs: EmojiItem = { id: "thumbs", name: "Thumbs up", shortcodes: ["thumbsup"], text: "👍", src: image("thumbs") };
+    const more: EmojiCatalogue = { categories: [...catalogue.categories, { id: "more", label: "More", items: [coder, thumbs] }] };
+    expect(emojiTextToTokens("Hi 👋🎉!", more)).toBe("Hi :wave::party:!");
+    // A skin tone modifier makes the toned emoji, a joined sequence its own emoji, and a variation selector changes nothing.
+    expect(emojiTextToTokens("👋🏽 👩‍💻 ❤️ ❤", more)).toBe(":wave-tone3: :technologist: :heart: :heart:");
+    // Only a whole character the catalogue lists changes: a toned form it lacks, a sequence it lacks and other emoji stay.
+    expect(emojiTextToTokens("👍🏽 👍 👩‍🔬 🦄", more)).toBe("👍🏽 :thumbsup: 👩‍🔬 🦄");
+    expect(emojiTextToTokens("Done :party: at 9:30", more)).toBe("Done :party: at 9:30");
+    expect(emojiTextToTokens("🎉", { categories: [{ id: "custom", label: "Fernwood", items: [fern] }] })).toBe("🎉");
   });
 
   it("matches every typed word to the start of a word, a part of one, or a whole one, ignoring case, accents and colons", () => {

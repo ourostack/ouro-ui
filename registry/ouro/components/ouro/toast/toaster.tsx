@@ -13,6 +13,7 @@ import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { PortalScope } from "@/registry/ouro/lib/ouro/portal-container";
 import {
   actionClass,
@@ -594,6 +595,7 @@ type Axis = "x" | "y";
  * @claim "With reduced motion it still follows" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > is taken without a jump when caught above rest, where it was held back)
  */
 function useSwipeAway(dismiss: () => void, ending: boolean) {
+  const reduced = useReducedMotion();
   const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });
 
   const write = useCallback((offset: number) => {
@@ -615,13 +617,14 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
         velocity,
         damping: flick ? 0.8 : 1,
         element: now.element,
+        reduced,
         onUpdate: write,
         onRest: () => {
           now.axis = null;
         },
       });
     },
-    [write],
+    [write, reduced],
   );
 
   // A toast sent again with the id of one that is on its way out comes back on the same
@@ -688,7 +691,7 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
     // Before the close: a swiped toast fades on its way, and does not slide down as a closed one does.
     now.element!.setAttribute("data-ouro-swiped", "");
     // With reduced motion it fades where it is.
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!reduced) {
       now.settle = spring({ from: offset, to: offset + Math.sign(offset) * size() * 1.5, velocity, onUpdate: write });
     }
     dismiss();
