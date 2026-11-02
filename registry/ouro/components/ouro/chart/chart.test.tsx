@@ -258,12 +258,10 @@ describe("Chart", () => {
     const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
     // A pointer resting over the plot (left there by an earlier test) holds the tooltip at its
-    // point, so park it in the page's corner, outside the chart.
-    const parking = document.createElement("div");
-    Object.assign(parking.style, { position: "fixed", top: "0", left: "0", width: "4px", height: "4px" });
-    document.body.append(parking);
-    mounted.push(parking);
-    await userEvent.hover(parking);
+    // point, so park it on the chart's own caption, above the plot. A spot outside the chart, such
+    // as the frame's corner, can lie outside what Playwright counts as the viewport when many test
+    // files share the browser (a mutation run's), and the hover then never lands.
+    await userEvent.hover(chart.querySelector("figcaption")!, { position: { x: 2, y: 2 } });
     await pressTab();
     expect(document.activeElement).toBe(chart.querySelector(".recharts-surface"));
     // Focus shows the first point; the arrow keys move along.

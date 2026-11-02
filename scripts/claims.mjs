@@ -31,7 +31,8 @@ const releaseStamp = (text) => {
   return typeof version === "string" ? text.replaceAll(` Ouro UI v${version}.`, ` Ouro UI v${mask(version)}.`) : text;
 };
 const prepare = (file, text) => {
-  if (syncedFiles.includes(file)) return text.replace(/([#@])v\d+\.\d+\.\d+\b/g, (tag) => tag[0] + mask(tag.slice(1)));
+  // site/public/llms.txt is site/llms.txt with its items filled in, so it names the same tag.
+  if (syncedFiles.includes(file) || file === "site/public/llms.txt") return text.replace(/([#@])v\d+\.\d+\.\d+\b/g, (tag) => tag[0] + mask(tag.slice(1)));
   return file === "registry.json" ? releaseStamp(text) : text;
 };
 
