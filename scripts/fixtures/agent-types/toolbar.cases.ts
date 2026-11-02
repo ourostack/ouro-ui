@@ -50,7 +50,28 @@ export const agentCases: AgentCase[] = [
     dev: "<Toolbar autoHide={3000} autoHideArea={stageRef}>",
     names: ["tsc", "dev"],
   },
+  {
+    id: "toolbar08",
+    habit: "visible, as other libraries name a shown state, to show the bar for the app's own shortcuts",
+    tsc: [hint("boolean", "Use <Toolbar autoHide={3000} hidden={hidden} onHiddenChange={setHidden}>")],
+    dev: "<Toolbar autoHide={3000} hidden={hidden} onHiddenChange={setHidden}>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "toolbar09",
+    habit: "hidden without onHiddenChange, so the bar never fades or comes back on its own",
+    tsc: [],
+    dev: "<Toolbar autoHide={3000} hidden={hidden} onHiddenChange={setHidden}>",
+    names: ["dev"],
+  },
+  {
+    id: "toolbar10",
+    habit: "hidden without autoHide, as if it faded the bar by itself",
+    tsc: [],
+    dev: "<Toolbar autoHide={3000} hidden={hidden} onHiddenChange={setHidden}>",
+    names: ["dev"],
+  },
 ];
 
 /** Valid toolbar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["toolbarOk", "toolbarOk02", "toolbarOk03"];
+export const validSnippets: string[] = ["toolbarOk", "toolbarOk02", "toolbarOk03", "toolbarOk04"];

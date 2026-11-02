@@ -1,3 +1,4 @@
+import { createContext } from "react";
 import { radiusFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 
 export {
@@ -10,6 +11,7 @@ export {
   floatingMotionClass,
   floatingSurfaceClass,
   floatingHint,
+  TooltipsHidden,
 };
 export type { FloatingSide, FloatingAlign };
 
@@ -142,3 +144,10 @@ function floatingHint(open: string, close: string) {
     return ":root { --popover: …; } .dark { --popover: …; }";
   };
 }
+
+/**
+ * Internal: whether a container hides the controls inside it, as an auto-hiding `Toolbar` does
+ * once it fades. A `Tooltip` inside closes as it turns true, so it never stays beside a control
+ * no one can see; it opens again as usual after.
+ */
+const TooltipsHidden = createContext(false);

@@ -83,4 +83,30 @@ test("fades after the pointer rests, stays reachable, and comes back on a move o
   // Keyboard focus holds it however long the pointer rests.
   await page.clock.runFor(10_000);
   await expect(toolbar).not.toHaveAttribute("data-hidden");
+  // Back to the mouse: neither the focus on Mute nor the tooltip Tab showed holds it, and the tooltip goes with it.
+  await page.mouse.move(box.x + 80, box.y + 40);
+  await page.clock.runFor(3000);
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
+  await expect(toolbar.getByRole("button", { name: "Mute" })).toBeFocused();
+  await page.clock.runFor(1000);
+  await expect(page.locator('[data-ouro="tooltip"]')).toHaveCount(0);
+});
+
+test("comes back for the app's own mute shortcut, and for no other key", async ({ page }) => {
+  await page.clock.install();
+  await openStory(page, "actions-toolbar--auto-hide");
+  await holdClock(page);
+  const toolbar = page.getByRole("toolbar", { name: "Call controls" });
+  const box = (await page.getByRole("group", { name: "Design review" }).boundingBox())!;
+  await page.mouse.click(box.x + 40, box.y + 40);
+  await page.clock.runFor(3000);
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
+  await page.keyboard.press("m");
+  await page.keyboard.press("Shift+M");
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
+  await page.keyboard.press("ControlOrMeta+Shift+M");
+  await expect(toolbar).not.toHaveAttribute("data-hidden");
+  await expect(toolbar.getByRole("button", { name: "Mute" })).toHaveAttribute("aria-pressed", "true");
+  await page.clock.runFor(3000);
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
 });

@@ -58,6 +58,10 @@ expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; auto
 expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: RefObject<HTMLDivElement | null> }>().toExtend<ToolbarProps>();
 expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: null }>().toExtend<ToolbarProps>();
 expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: "#stage" }>().not.toExtend<ToolbarProps>();
+// hidden is a flag the app controls with onHiddenChange; visible is a type error whose hint names hidden.
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; hidden: boolean; onHiddenChange: (hidden: boolean) => void }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; hidden: "true" }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; visible: true }>().not.toExtend<ToolbarProps>();
 
 // The same checks through JSX.
 // @ts-expect-error a Toolbar is a row.
@@ -66,3 +70,5 @@ createElement(Toolbar, { label: "Formatting", items, orientation: "vertical" });
 createElement(Toolbar, { label: "Formatting", items, children: "Bold" });
 // @ts-expect-error autoHide takes the milliseconds of rest.
 createElement(Toolbar, { label: "Call controls", items, autoHide: true });
+// @ts-expect-error the bar is controlled with hidden.
+createElement(Toolbar, { label: "Call controls", items, autoHide: 3000, visible: true });

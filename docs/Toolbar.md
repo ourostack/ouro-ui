@@ -21,13 +21,33 @@ import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
     { label: "Insert link", icon: LinkIcon, hideLabel: true, shortcut: ["mod", "k"], onClick: insertLink },
   ]}
 />
+// Show the bar when the person uses the app's call shortcuts (⇧⌘M mutes, Ctrl+Shift+M off
+// Apple platforms), and never for other keys, such as typing in the chat.
+const [hidden, setHidden] = useState(false);
+useEffect(() => {
+  const onKey = (event: KeyboardEvent) => {
+    if (!((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "m")) return;
+    toggleMute();
+    setHidden(false);
+  };
+  addEventListener("keydown", onKey);
+  return () => removeEventListener("keydown", onKey);
+}, []);
+<Toolbar
+  label="Call controls"
+  floating
+  autoHide={3000}
+  hidden={hidden}
+  onHiddenChange={setHidden}
+  items={[{ type: "toggle", label: "Mute", icon: MicOffIcon, hideLabel: true, shortcut: ["shift", "mod", "m"], pressed: muted, onPressedChange: toggleMute }]}
+/>
 ```
 
 ## Usage
 
 `keepFocus` leaves focus in a text editor when a control is pressed with a mouse or a finger, so its selection stays.
 
-`floating` draws the bar as glass over content, such as a calling app's controls over video, and `autoHide` fades it out while the pointer rests, until the pointer moves or a key is pressed: `<Toolbar label="Call controls" floating autoHide={3000} items={controls} />`, in a wrapper your layout places over the video (`pointer-events-none absolute inset-x-0 bottom-4 flex justify-center` inside the `relative` stage, so the wrapper does not take presses meant for the pictures beside the bar; a floating bar takes its own). `autoHideArea` names the stage when the layout cannot, and `onHiddenChange` tells your layout when the bar fades and comes back.
+`floating` draws the bar as glass over content, such as a calling app's controls over video, and `autoHide` fades it out while the pointer rests, until the pointer moves over the stage or focus enters it: `<Toolbar label="Call controls" floating autoHide={3000} items={controls} />`, in a wrapper your layout places over the video (`pointer-events-none absolute inset-x-0 bottom-4 flex justify-center` inside the `relative` stage, so the wrapper does not take presses meant for the pictures beside the bar; a floating bar takes its own). `autoHideArea` names the stage when the layout cannot, and `onHiddenChange` tells your layout when the bar fades and comes back. Keys pressed outside the bar leave it faded, so typing in a chat never shows it; to show it when the person uses your app's own call shortcuts, control it with `hidden`, as the second example does.
 
 Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent to read or do, so it declares no agent side; the controls inside declare their own, and a calling app declares its call controls once, in the component that holds them, not in the bar.
 
@@ -41,16 +61,17 @@ Type: `ToolbarProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `autoHide` | `number \| (boolean & { 'Pass the milliseconds of rest: autoHide={3000}': never })` |  | Fades the bar out after this many milliseconds of pointer rest, as a calling app's controls fade over video (`3000` is usual). It fades with opacity alone, over the theme's base duration with its ease-out, the same with reduced motion. A pointer move over its area (`autoHideArea`) brings it back, and so does focus entering it, from Tab, a screen reader or Voice Control. Keys pressed elsewhere, such as typing in a chat or holding Space to talk, leave it as it is. It never fades while the pointer is over it, while a menu, popover or tooltip from one of its controls is open, while focus is in a dialog or popover that one of its controls opened, such as a share picker, or while keyboard focus is inside it, until the pointer moves on its area. A control pressed with the mouse keeps no hold, so the bar still fades after a click on Mute. While faded it stays in the accessibility tree and focusable, so assistive technology still reaches every control; it only takes no pointer presses, drops its blur, and has `data-hidden` on the root. |
+| `autoHide` | `number \| (boolean & { 'Pass the milliseconds of rest: autoHide={3000}': never })` |  | Fades the bar out after this many milliseconds of pointer rest, as a calling app's controls fade over video (`3000` is usual). It fades with opacity alone, over the theme's base duration with its ease-out, the same with reduced motion, and its tooltips close as it goes. A pointer move over its area (`autoHideArea`) brings it back, and so do focus entering it, from Tab, a screen reader or Voice Control, and a key pressed in it. Keys pressed elsewhere, such as typing in a chat or holding Space to talk, leave it as it is; to show it for your app's own shortcuts, control it with `hidden`. It never fades while the pointer is over it, while its More menu is open, while a dialog, popover or other top-layer element that one of its controls opened is open, such as a share picker, or while keyboard focus is inside it, until the pointer moves on its area. A control's tooltip holds it only as the pointer or keyboard focus does, so a tooltip that Tab showed lets it go once the pointer moves. A control pressed with the mouse keeps no hold, so the bar still fades after a click on Mute. While faded it stays in the accessibility tree and focusable, so assistive technology still reaches every control; it only takes no pointer presses, drops its blur, and has `data-hidden` on the root. |
 | `autoHideArea` | `Element \| RefObject<Element \| null> \| null` |  | With `autoHide`: the element whose pointer moves bring the bar back, such as the call's stage, as an element or a ref. Without it, the bar finds the element it floats over from the layout: its offset parent (its nearest positioned ancestor), or, when that is an absolutely placed or fixed wrapper around the bar, the wrapper's own, and so on up. That default needs nothing wired up for a bar in a wrapper on a `relative` stage, but a stage that is itself absolutely placed (`absolute inset-0`) widens it past the stage, and a bar in a `relative` wrapper narrows it to the wrapper: pass the stage then. A bar with no positioned ancestor, or in a fixed wrapper, listens to the whole page. |
 | `className` | `string` |  | Layout only: margins, width, flex and grid placement (`flex-1`, `mt-2`). Appearance classes warn in development. |
 | `disabled` | `boolean` |  | Disables every control. They stay reachable with the arrow keys. |
 | `floating` | `boolean` |  | Draws the bar as glass that floats over content, as a calling app's controls float over video: a translucent surface that blurs what is behind it, with a hairline edge, a soft shadow and rounded corners, all from the theme. It turns solid, with no blur, when the system asks for reduced transparency, and solid with a defined edge when it asks for more contrast. It is the look only: where the bar floats stays your layout, such as an absolutely placed wrapper over the stage. |
+| `hidden` | `boolean` |  | With `autoHide`: whether the bar is faded, when your app controls it. Pair it with `onHiddenChange={setHidden}`, which asks for each fade and return, so the bar still fades after a rest and comes back on a pointer move. Set it to `false` yourself to show the bar for something only your app knows about, such as the person using your app's call shortcuts; a new rest starts then. Keys anywhere else, such as typing in a chat, still never show it. Without it, the bar keeps its own state. |
 | `items` (required) | `readonly ToolbarEntry[]` |  | The controls, in order: buttons, toggles, groups of them and separators. |
 | `keepFocus` | `boolean` |  | A press with a mouse or a finger leaves focus where it was, so a text editor beside the toolbar keeps its caret and selection. With nothing focused, the control takes focus as usual. The keyboard still reaches the toolbar with Tab. |
 | `label` (required) | `string` |  | Names the toolbar for screen readers ("Formatting"). It is not shown. |
 | `moreLabel` | `string` | `"More"` | The name of the button that opens the controls that do not fit, and its tooltip. |
-| `onHiddenChange` | `((hidden: boolean) => void)` |  | With `autoHide`: called with `true` as the bar starts to fade out and `false` as it starts to come back, so your layout can move into its space and back. |
+| `onHiddenChange` | `((hidden: boolean) => void)` |  | With `autoHide`: called with `true` as the bar starts to fade out and `false` as it starts to come back, so your layout can move into its space and back. With `hidden`, it is how the bar asks, and it fades or comes back once you pass the new value. |
 | `ref` | `Ref<HTMLDivElement>` |  | The toolbar element (`role="toolbar"`). |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | Every control's size, as Button's and Toggle's. |
 
@@ -64,6 +85,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `children`: Not a prop. The controls come from `items`: `<Toolbar items={[{ label: "Bold", type: "toggle" }]}>`.
 - `glass`: Not a prop. Use `floating` for the glass look: `<Toolbar floating>`.
 - `orientation`: Not a prop. A Toolbar is a row; controls that do not fit move into its More menu.
+- `visible`: Not a prop. To control whether the bar shows, pass `hidden` with `onHiddenChange`: `<Toolbar autoHide={3000} hidden={hidden} onHiddenChange={setHidden}>`.
 
 ## `className` is for layout only
 

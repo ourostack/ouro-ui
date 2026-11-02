@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode, type SVGProps } from "react";
+import { useEffect, useState, type ReactNode, type SVGProps } from "react";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toolbar, type ToolbarEntry } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
@@ -234,14 +234,32 @@ export const Floating: Story = {
   ),
 };
 
-/** `autoHide={3000}`: the bar fades 3 seconds after the pointer rests, and comes back on a pointer move over the stage or when focus enters it (Tab). It stays while the pointer is over it, a control's tooltip is open, or keyboard focus is in it until the pointer moves. Faded, it is still in the accessibility tree. */
+/**
+ * `autoHide={3000}`: the bar fades 3 seconds after the pointer rests, and comes back on a pointer
+ * move over the stage or when focus enters it (Tab). It stays while the pointer is over it or
+ * keyboard focus is in it until the pointer moves, and a tooltip Tab showed goes with it. The app
+ * controls it with `hidden`, so its own mute shortcut, ⇧⌘M (Ctrl+Shift+M elsewhere), shows it,
+ * and no other key does. Faded, it is still in the accessibility tree.
+ */
 export const AutoHide: Story = {
   render: function Render() {
     const [hidden, setHidden] = useState(false);
+    const [muted, setMuted] = useState(false);
+    useEffect(() => {
+      const onKey = (event: KeyboardEvent) => {
+        if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.key.toLowerCase() !== "m") return;
+        event.preventDefault();
+        setMuted((value) => !value);
+        setHidden(false);
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, []);
+    const items = callControls.map((entry) => (entry.type === "toggle" && entry.label === "Mute" ? { ...entry, pressed: muted, onPressedChange: setMuted } : entry));
     return (
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "minmax(0, 720px)" }}>
         <Stage>
-          <Toolbar label="Call controls" floating autoHide={3000} onHiddenChange={setHidden} size="lg" items={callControls} />
+          <Toolbar label="Call controls" floating autoHide={3000} hidden={hidden} onHiddenChange={setHidden} size="lg" items={items} />
         </Stage>
         <output style={{ fontSize: 13, color: "var(--muted-foreground)" }}>{hidden ? "Controls faded" : "Controls showing"}</output>
       </div>
