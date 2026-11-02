@@ -56,7 +56,19 @@ function firstVisible(scroller: HTMLElement): { message: Element; top: number } 
   return { message, top: message.getBoundingClientRect().top };
 }
 
-function Chat({ items, label = "Conversation", ...rest }: { items: Item[]; label?: string; jumpLabel?: string; newMessageLabel?: (author: string, text: string) => string }) {
+function Chat({
+  items,
+  label = "Conversation",
+  ...rest
+}: {
+  items: Item[];
+  label?: string;
+  jumpLabel?: string;
+  initialAnchor?: string;
+  newMessageLabel?: (author: string, text: string) => string;
+  loadingOlder?: boolean;
+  loadingOlderLabel?: string;
+}) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
@@ -160,6 +172,27 @@ describe("MessageList", () => {
     }
   });
 
+  it("keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it", async () => {
+    const { host, scroller } = await render(
+      <div data-frame="" style={{ height: 400, overflow: "hidden" }}>
+        <div style={{ height: 100 }} />
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {posts(14)}
+        </MessageList>
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    // Everything placed absolutely in the list, such as each message's screen-reader text, stays in the list's overflow.
+    expect(frame.scrollHeight).toBe(frame.clientHeight);
+    const first = document.getElementById("post-0")!;
+    await act(async () => first.focus());
+    first.scrollIntoView({ block: "start" });
+    await settle(scroller);
+    expect(scroller.scrollTop).toBeLessThan(scroller.scrollHeight - scroller.clientHeight);
+    expect(frame.scrollTop).toBe(0);
+    expect(document.scrollingElement!.scrollTop).toBe(0);
+  });
+
   it("is a named region that opens at the newest message, which is its Tab stop", async () => {
     const { scroller } = await render(<Chat items={history(20)} />);
     await expect.element(page.getByRole("region", { name: "Conversation" })).toBeVisible();
@@ -179,6 +212,36 @@ describe("MessageList", () => {
     const grown = [...items, { id: 20, role: "assistant" as const, text: "Rest the dough. ".repeat(40), streaming: true }];
     await rerender(<Chat items={grown} />);
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("follows its end at the bottom when something in a message reaches past it, though no message changes size", async () => {
+    const items = history(20);
+    // Placed from the newest message's text, and reaching far below it, as a reply's action bar does beside a short last line.
+    const Overhang = ({ late }: { late: boolean }) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        {items.map((item, index) => (
+          <Message key={item.id} role={item.role} name="Ada">
+            <span style={{ position: "relative", display: "block" }}>
+              {item.text}
+              {late && index === items.length - 1 && <span data-overhang="" style={{ position: "absolute", insetInlineStart: 0, top: 0, width: 8, height: 400 }} />}
+            </span>
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(<Overhang late={false} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const height = content.getBoundingClientRect().height;
+    const top = scroller.scrollTop;
+    await rerender(<Overhang late />);
+    // Nothing changed size: only the end moved.
+    expect(content.getBoundingClientRect().height).toBe(height);
+    expect(scroller.scrollHeight - scroller.clientHeight).toBeGreaterThan(top + 100);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await settle(scroller);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
@@ -541,6 +604,323 @@ describe("MessageList", () => {
     expect(firstVisible(scroller).message).toBe(before.message);
   });
 
+  it("keeps the reader's place when a message above them moves to the end and the list keeps its height", async () => {
+    const items = history(20, 10);
+    // The messages sit in a group, as under a day's heading, so the move happens inside it.
+    const list = (order: Item[], note: string) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <section aria-label="Today">
+          {order.map((item) => (
+            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+              {item.text}
+            </Message>
+          ))}
+        </section>
+        <p key={note}>Seen</p>
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(items, "first"));
+    await wheel(scroller, -400);
+    const before = firstVisible(scroller);
+    // A reply to the first message moves it to the end, as a channel orders posts by their latest activity, and a
+    // note that is no message is replaced by another of its size.
+    await rerender(list([...items.slice(1), items[0]!], "second"));
+    await settle(scroller);
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place once when a message above them moves to the end as older history loads", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const before = firstVisible(scroller);
+    await rerender(<Chat items={[...history(10), ...items.slice(1), items[0]!]} />);
+    await settle(scroller);
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  /** A conversation whose messages carry ids, so it can open at one, as an app does at a message found by search. */
+  function Found({ items, initialAnchor }: { items: Item[]; initialAnchor?: string }) {
+    return (
+      <MessageList label="Conversation" style={{ height: 300, marginTop: 120 }} initialAnchor={initialAnchor}>
+        {items.map((item) => (
+          <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    );
+  }
+  /** Whether the message with this id shows whole in the list's view. */
+  const inView = (scroller: HTMLElement, id: string) => {
+    const view = scroller.getBoundingClientRect();
+    const box = document.getElementById(id)!.getBoundingClientRect();
+    return box.top >= view.top - 1 && box.bottom <= view.bottom + 1;
+  };
+  /** Where the list is scrolled in the next frame, before the browser draws it. */
+  const nextFrame = (scroller: HTMLElement) => new Promise<number>((resolve) => requestAnimationFrame(() => resolve(scroller.scrollTop)));
+
+  it("opens at the message initialAnchor names, never drawing the newest first, and stops following new messages", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found items={items} initialAnchor="found-5" />);
+    const first = await nextFrame(scroller);
+    // In the middle of the view, with no transform: it opens there at once, with no movement.
+    expect(inView(scroller, "found-5")).toBe(true);
+    const view = scroller.getBoundingClientRect();
+    const box = document.getElementById("found-5")!.getBoundingClientRect();
+    expect(Math.abs(box.top - view.top - (view.bottom - box.bottom))).toBeLessThanOrEqual(2);
+    expect(inView(scroller, "found-29")).toBe(false);
+    expect([...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].every((message) => message.style.transform === "")).toBe(true);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    // A new message leaves the reader where they are, and does not take them back to the message they opened at.
+    await wheel(scroller, 200);
+    const top = scroller.scrollTop;
+    expect(top).toBeGreaterThan(first);
+    await rerender(<Found items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} initialAnchor="found-5" />);
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(top);
+  });
+
+  it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found items={[]} />);
+    await rerender(<Found items={items} initialAnchor="found-5" />);
+    await nextFrame(scroller);
+    expect(inView(scroller, "found-5")).toBe(true);
+    expect(inView(scroller, "found-29")).toBe(false);
+    // Only the first messages open it: an anchor named later moves nothing.
+    await rerender(<Found items={items} initialAnchor="found-20" />);
+    await settle(scroller);
+    expect(inView(scroller, "found-5")).toBe(true);
+  });
+
+  it("opens at the newest message when initialAnchor names no message in the list, or the newest itself", async () => {
+    const { scroller } = await render(<Found items={history(30)} initialAnchor="gone" />);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    const { scroller: near } = await render(<Found items={history(30)} initialAnchor="found-29" />);
+    expect(distanceFromBottom(near)).toBeLessThanOrEqual(1);
+    // An empty name names no message, not one without an id.
+    const { scroller: unnamed } = await render(<Chat items={history(30)} initialAnchor="" />);
+    expect(distanceFromBottom(unnamed)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
+    const items = history(30, 10);
+    const { scroller } = await render(<Found items={[]} />);
+    let top = 0;
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Found items={items} initialAnchor="found-15" />));
+      // The list opens as it sees the messages arrive, before the browser draws.
+      await Promise.resolve();
+      top = document.getElementById("found-15")!.getBoundingClientRect().top;
+      flushSync(() => roots.at(-1)!.render(<Found items={[...history(10), ...items]} initialAnchor="found-15" />));
+    });
+    await settle(scroller);
+    expect(Math.abs(document.getElementById("found-15")!.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("puts pages of older messages in a few at a time, holding the reader's message in place in every frame", async () => {
+    let items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    // How many messages went into the list in each frame, how far the reader's message moved by any frame, and how much the
+    // layout shifted (where the browser measures it).
+    const added = [0];
+    let moved = 0;
+    const shifts: number[] = [];
+    const counting = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element && node.matches('[data-ouro="message"]')) added.push(added.pop()! + 1);
+    });
+    counting.observe(scroller, { childList: true, subtree: true });
+    const layout = new PerformanceObserver((list) => list.getEntries().forEach((entry) => shifts.push((entry as PerformanceEntry & { value: number }).value)));
+    if (PerformanceObserver.supportedEntryTypes.includes("layout-shift")) layout.observe({ type: "layout-shift" });
+    let watching = true;
+    const frame = () => {
+      moved = Math.max(moved, Math.abs(reading.message.getBoundingClientRect().top - reading.top));
+      added.push(0);
+      if (watching) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    for (let page = 1; page <= 3; page++) {
+      // A page of 100: five frames' worth, so the test stays well inside its time on a busy runner.
+      items = [...history(100, -100 * page), ...items];
+      await rerender(<Found items={items} />);
+      // The app drawing the list again for something else, in the same frame, puts no more in.
+      await act(async () => {
+        flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+        flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+      });
+      await expect.poll(() => scroller.querySelectorAll('[data-ouro="message"]').length).toBe(200 + 100 * page);
+    }
+    await settle(scroller);
+    watching = false;
+    counting.disconnect();
+    layout.disconnect();
+    expect(moved).toBeLessThanOrEqual(1);
+    expect(Math.max(...added)).toBeLessThanOrEqual(20);
+    expect(shifts.reduce((sum, shift) => sum + shift, 0)).toBeLessThan(0.01);
+  });
+
+  it("puts a few older messages in at once", async () => {
+    const items = history(30, 20);
+    const { scroller, rerender } = await render(<Found items={items} />);
+    await rerender(<Found items={[...history(20), ...items]} />);
+    expect(scroller.querySelectorAll('[data-ouro="message"]')).toHaveLength(50);
+  });
+
+  it("keeps following the end, with no Jump to latest, when the newest message goes and the browser reports the scroll first", async () => {
+    const items = history(20, 10);
+    const { scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Chat items={items.slice(0, -1)} />));
+      // The list's end came up to meet it: the browser reports that scroll before the list sees itself shrink.
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Not for a frame either: the list is at its end as it is now, though not as it was.
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("stays at a message an app scrolls to as the first messages arrive, instead of following to the newest", async () => {
+    const items = history(30);
+    const { scroller } = await render(<Found items={[]} />);
+    await act(async () => {
+      flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+      // The app scrolls to a found message itself, before the list has seen its messages arrive.
+      document.getElementById("found-5")!.scrollIntoView({ block: "start" });
+    });
+    await settle(scroller);
+    expect(inView(scroller, "found-5")).toBe(true);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
+  /** A channel of an app's own posts, each `height` px tall, in the order given, so which of them start in the view is known. */
+  function Tall({ order, height }: { order: number[]; height: number }) {
+    return (
+      <MessageList label="Channel" style={{ height: 300 }}>
+        {order.map((n) => (
+          <article key={n} id={`tall-${n}`} data-ouro-message-list-item="" data-role="user" style={{ height, margin: 0 }}>
+            <p data-ouro-message-content="" style={{ margin: 0 }}>
+              Post {n}
+            </p>
+          </article>
+        ))}
+      </MessageList>
+    );
+  }
+  const tall = (n: number) => document.getElementById(`tall-${n}`)!.getBoundingClientRect().top;
+  /** Renders posts 0 to 19 and scrolls post 10's top just inside the view. */
+  async function scrolledTo10(height: number) {
+    const order = Array.from({ length: 20 }, (_, n) => n);
+    const { scroller, rerender } = await render(<Tall order={order} height={height} />);
+    await settle(scroller);
+    scroller.scrollTop += tall(10) - scroller.getBoundingClientRect().top - 1;
+    await settle(scroller);
+    return { order, scroller, rerender };
+  }
+
+  it("keeps the reader's place by the messages around the one they are on when it moves to the end", async () => {
+    // Posts 90px tall, so several start in the view, and the first of them gets a reply and moves to the end.
+    const { order, scroller, rerender } = await scrolledTo10(90);
+    const before = tall(11);
+    await rerender(<Tall order={[...order.filter((n) => n !== 10), 10]} height={90} />);
+    await settle(scroller);
+    expect(Math.abs(tall(11) - before)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place by the other message in view when the one they are on moves to the end", async () => {
+    // Posts 160px tall, so only two start in the view: the one that stayed tells the list where the reader is.
+    const { order, scroller, rerender } = await scrolledTo10(160);
+    const before = tall(11);
+    await rerender(<Tall order={[...order.filter((n) => n !== 10), 10]} height={160} />);
+    await settle(scroller);
+    expect(Math.abs(tall(11) - before)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place when the other message in view moves away to the start", async () => {
+    // Two posts start in the view, and the second moves to the start of the list: it moved farther, so the place is held by the first.
+    const { order, scroller, rerender } = await scrolledTo10(160);
+    const before = tall(10);
+    await rerender(<Tall order={[11, ...order.filter((n) => n !== 11)]} height={160} />);
+    await settle(scroller);
+    expect(Math.abs(tall(10) - before)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place by the messages that moved together, when one in view moves above the others as older history loads", async () => {
+    // Posts 120px tall, so 10, 11 and 12 start in the view. Older posts load above, and 12 moves above 10: it moved
+    // least, but past the others, so the place is held by 10.
+    const { order, scroller, rerender } = await scrolledTo10(120);
+    const before = tall(10);
+    const older = Array.from({ length: 4 }, (_, n) => 100 + n);
+    await rerender(<Tall order={[...older, ...order.slice(0, 10), 12, 10, 11, ...order.slice(13)]} height={120} />);
+    await settle(scroller);
+    expect(Math.abs(tall(10) - before)).toBeLessThanOrEqual(1);
+  });
+
+  it("stops following the newest message once the list is scrolled up, even before the scroll event comes", async () => {
+    const items = history(20, 10);
+    const { scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    let top = 0;
+    await act(async () => {
+      // Code scrolls the list up from its end (to a post's summary as a thread closes), and a message arrives before
+      // the browser sends the scroll event.
+      scroller.scrollTop -= 200;
+      top = scroller.scrollTop;
+      flushSync(() => roots.at(-1)!.render(<Chat items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} />));
+    });
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(top);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
+  it("keeps following the end when the newest message goes, as the list's end comes up to meet it", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await rerender(<Chat items={items.slice(0, -1)} />);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await rerender(<Chat items={[...items.slice(0, -1), { id: 30, role: "assistant", text: "A new reply." }]} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("shows older messages loading over the top of the list, moving no message as it starts or ends", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const before = tops();
+    const height = scroller.scrollHeight;
+    await rerender(<Chat items={items} loadingOlder />);
+    const status = page.getByText("Loading older messages");
+    await expect.element(status).toBeVisible();
+    // Screen readers hear it once, politely, as it shows.
+    expect(status.element().closest('[aria-live="polite"]')).not.toBeNull();
+    // An app's own status stays the page's only one.
+    expect(document.querySelectorAll('[role="status"]')).toHaveLength(0);
+    // Over the list, not in it: no message moved, and the list grew by nothing.
+    expect(tops()).toEqual(before);
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.contains(status.element())).toBe(false);
+    await rerender(<Chat items={items} />);
+    await expect.element(status).not.toBeInTheDocument();
+    expect(tops()).toEqual(before);
+  });
+
+  it("takes a translated label for older messages loading", async () => {
+    await render(<Chat items={history(3)} loadingOlder loadingOlderLabel="Cargando mensajes anteriores" />);
+    await expect.element(page.getByText("Cargando mensajes anteriores")).toBeVisible();
+  });
+
   it("keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages", async () => {
     /** An app's own message, not Ouro's Message, marked for the list. */
     function Post({ item }: { item: Item }) {
@@ -852,6 +1232,12 @@ function Channel({ children, height = 300, onMessageKeyDown }: { children: React
 }
 
 const focusedId = () => document.activeElement?.id ?? "";
+/** The ids of the list's messages in the Tab order; every other message has `tabindex="-1"`. */
+const tabStops = (scroller: HTMLElement) => {
+  const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro-part="item"]')];
+  expect(messages.every((message) => ["0", "-1"].includes(message.getAttribute("tabindex")!))).toBe(true);
+  return messages.filter((message) => message.getAttribute("tabindex") === "0").map((message) => message.id);
+};
 /** Within a pixel: layout lands on fractions at some zoom levels. */
 const near = (value: number, expected: number) => expect(Math.abs(value - expected)).toBeLessThanOrEqual(1);
 const button = (name: string) => page.getByRole("button", { name, exact: true }).element() as HTMLElement;
@@ -1437,8 +1823,7 @@ describe("MessageList keyboard", () => {
     // Once the list has followed the new message, the scroll puts the Tab stop on it, the newest in view; until then
     // the stop stays where it was. Read it after the scroll, so the result never depends on when the scroll event lands.
     await settle(scroller);
-    expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("0");
-    expect(document.getElementById("post-1")!.getAttribute("tabindex")).toBe("-1");
+    expect(tabStops(scroller)).toEqual(["post-2"]);
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-part")).toBe("item");
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-control")).toBe("message-list");
     // The focus ring rounds on Ouro's Message only; an app's message keeps its corners.
@@ -1500,6 +1885,72 @@ describe("MessageList keyboard", () => {
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.activeElement).toBe(more());
+  });
+
+  it("passes over the focus guards around an open menu's button, so Tab never bounces back to the message", async () => {
+    await render(
+      <Channel>
+        {posts(2)}
+        <Message
+          variant="post"
+          role="assistant"
+          name="Mara Quill"
+          id="with-thread"
+          menu={[{ label: "Copy link", onClick: () => {} }]}
+          footer={
+            <button type="button" aria-label="2 replies">
+              2 replies
+            </button>
+          }
+        >
+          Settings mockups.
+        </Message>
+      </Channel>,
+    );
+    const message = document.getElementById("with-thread")!;
+    const more = () => message.querySelector<HTMLElement>('[data-ouro-part="menu"]');
+    await expect.poll(more).not.toBeNull();
+    await userEvent.click(more()!);
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    // The menu's guards stand around its button while it is open, as a screen reader's cursor or a click lands on the message.
+    expect(message.querySelector("[data-base-ui-focus-guard]")).not.toBeNull();
+    // The menu takes focus on the frame after it opens. In WebKit, where the click left focus on the page, that frame can
+    // come after the menu shows, and would take focus from the message back into the menu: let it pass first.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await act(async () => message.focus());
+    expect(document.activeElement).toBe(message);
+    // Before the fix, the guard ahead of the menu's button took this Tab, closed the menu and dropped focus to the page.
+    const reached: string[] = [];
+    for (let press = 0; press < 3; press++) {
+      await pressTab();
+      reached.push(document.activeElement!.getAttribute("aria-label") || document.activeElement!.id || document.activeElement!.textContent);
+    }
+    expect(reached.slice(0, 2).toSorted()).toEqual(["2 replies", "More actions"]);
+    expect(reached[2]).toBe("After");
+    await pressTab({ shift: true });
+    expect(focusedId()).toBe("with-thread");
+  });
+
+  it("leaves Tab into a radio group in a message to the browser, which enters it at the checked radio", async () => {
+    await render(
+      <Channel>
+        {posts(1)}
+        <Message role="assistant" name="Grace" id="poll">
+          Lunch?
+          <label>
+            <input type="radio" name="lunch" value="soup" /> Soup
+          </label>
+          <label>
+            <input type="radio" name="lunch" value="salad" defaultChecked /> Salad
+          </label>
+        </Message>
+      </Channel>,
+    );
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("poll");
+    await pressTab();
+    expect((document.activeElement as HTMLInputElement).value).toBe("salad");
   });
 
   it("leaves focus where a component puts it after removing the focused control", async () => {

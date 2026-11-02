@@ -57,12 +57,13 @@ function Surface({ children }: { children: ReactNode }) {
   );
 }
 
-function ChatHistory({ items }: { items: Item[] }) {
+function ChatHistory({ items, initialAnchor }: { items: Item[]; initialAnchor?: string }) {
   return (
-    <MessageList label="Conversation with Ouro" style={{ height: 420 }}>
+    <MessageList label="Conversation with Ouro" style={{ height: 420 }} initialAnchor={initialAnchor}>
       {items.map((item) => (
         <Message
           key={item.id}
+          id={initialAnchor ? `found-${item.id}` : undefined}
           role={item.role}
           name={item.role === "user" ? "Ada Lovelace" : "Ouro"}
           presence={item.role === "assistant" ? "available" : undefined}
@@ -246,4 +247,38 @@ export const ReadingWidth: Story = {
       </MessageList>
     </div>
   ),
+};
+
+/**
+ * Opened at a message found by search, with `initialAnchor`: the list starts with that message in
+ * the middle of its view, never showing the newest first, and "Jump to latest" takes the reader to
+ * the end, where it follows new messages again.
+ */
+export const OpenedAtMessage: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => (
+    <Surface>
+      <ChatHistory items={longChat} initialAnchor="found-20" />
+    </Surface>
+  ),
+};
+
+/** Older messages loading over the top of a conversation scrolled back to its start: no message moves as it shows. */
+export const LoadingOlder: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => (
+    <Surface>
+      <MessageList label="Conversation with Ouro" style={{ height: 420 }} loadingOlder>
+        {start.map((item) => (
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada Lovelace" : "Ouro"}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    canvasElement.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollTop = 0;
+    await frameUntil(() => canvasElement.querySelector("[data-ouro-message-list-jump]"));
+  },
 };

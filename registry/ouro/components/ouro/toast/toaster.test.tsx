@@ -6,6 +6,7 @@ import { commands, page, server, userEvent } from "vitest/browser";
 import { Toaster, type ToasterProps } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast, type ToastOptions } from "@/registry/ouro/lib/ouro/toast";
 import { springAt } from "@/registry/ouro/lib/ouro/spring";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
@@ -1412,6 +1413,62 @@ describe("swiping", () => {
     // One and a half times its height, down and off the screen.
     expect(slidesTo(closed)).toBeCloseTo(closed.offsetHeight * 1.5, 0);
     await gone("Closed");
+  });
+
+  it("throws a swiped toast on under OuroProvider's motion=\"full\", and lets it fade where it is under \"reduced\", whatever the device says", async () => {
+    const swipeAway = async (item: HTMLElement) => {
+      const send = pointerOn(item);
+      send("pointerdown", 0, 0);
+      send("pointermove", 15, 15);
+      send("pointermove", 30, 30);
+      await act(async () => send("pointerup", 30, 30));
+    };
+    const { unmount } = await render(
+      <OuroProvider motion="reduced">
+        <Toaster />
+      </OuroProvider>,
+    );
+    const still = await show("Still", { duration: 0 });
+    await swipeAway(still);
+    const seen: string[] = [];
+    await expect.poll(() => (seen.push(still.style.translate), still.isConnected)).toBe(false);
+    expect([...new Set(seen.map((translate) => parseFloat(translate)))]).toEqual([30]);
+    await unmount();
+
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await render(
+      <OuroProvider motion="full">
+        <Toaster />
+      </OuroProvider>,
+    );
+    const thrown = await show("Thrown", { duration: 0 });
+    thrown.style.transitionDuration = "20s";
+    await swipeAway(thrown);
+    await expect.poll(() => parseFloat(thrown.style.translate)).toBeGreaterThan(30);
+    for (const animation of thrown.getAnimations()) animation.finish();
+    await gone("Thrown");
+  });
+
+  it("brings a toast let go short of a swipe back at once after OuroProvider's motion changes to \"reduced\"", async () => {
+    const { root } = await render(
+      <OuroProvider motion="full">
+        <Toaster />
+      </OuroProvider>,
+    );
+    const item = await show("Held", { duration: 0 });
+    await act(async () =>
+      root.render(
+        <OuroProvider motion="reduced">
+          <Toaster />
+        </OuroProvider>,
+      ),
+    );
+    const send = pointerOn(item);
+    send("pointerdown", 0, 0);
+    send("pointermove", 10, 100);
+    send("pointermove", 20, 400);
+    await act(async () => send("pointerup", 20, 800));
+    expect(item.style.translate).toBe("");
   });
 
   it("shows a toast sent again with the id of one just swiped away, where a toast belongs, and it can be swiped again", async () => {

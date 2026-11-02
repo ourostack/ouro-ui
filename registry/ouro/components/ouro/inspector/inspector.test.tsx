@@ -16,11 +16,13 @@ import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
+import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { TabBar } from "@/registry/ouro/components/ouro/tab-bar/tab-bar";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -766,6 +768,25 @@ describe("Inspector", () => {
     expect(onCopy).toHaveBeenCalledOnce();
   }, 15_000);
 
+  it("outlines a non-modal sheet and the page beside it, whose components stay within reach", async () => {
+    await page.viewport(1280, 800);
+    await render(
+      <Page>
+        <Sheet title="Look" side="right" modal={false} open onOpenChange={() => {}}>
+          <Badge>Ocean</Badge>
+        </Sheet>
+      </Page>,
+    );
+    await expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
+    const sheet = document.querySelector<HTMLElement>('[data-ouro="sheet"]')!;
+    await expect.poll(() => outlines().some((outline) => onTarget(outline, sheet))).toBe(true);
+    expect(tags().map((tag) => tag.textContent)).toEqual(expect.arrayContaining(["button", "badge", "checkbox", "sheet"]));
+    expect(layer()!.hasAttribute("data-modal")).toBe(false);
+    const save = page.getByRole("button", { name: "Save recipe" }).element() as HTMLElement;
+    const box = save.getBoundingClientRect();
+    expect(save.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))).toBe(true);
+  }, 15_000);
+
   it("hides the tag of a component an open menu covers, and leaves the menu's items within reach", async () => {
     await page.viewport(1280, 800);
     const onEdit = vi.fn();
@@ -1191,6 +1212,29 @@ describe("Inspector", () => {
     await drawn(3);
     await expect.poll(() => into.mock.calls.length).toBe(1);
     expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "instant" }]);
+  });
+
+  it("scrolls to the spotlit item at once under OuroProvider's motion=\"reduced\", and smoothly under \"full\", whatever the device says", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    await render(
+      <OuroProvider motion="reduced">
+        <Far spotlight="badge" />
+      </OuroProvider>,
+    );
+    await drawn(3);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]![0]).toEqual(expect.objectContaining({ behavior: "instant" }));
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await render(
+      <OuroProvider motion="full">
+        <Far spotlight="badge" />
+      </OuroProvider>,
+    );
+    await drawn(3);
+    await expect.poll(() => into.mock.calls.length).toBe(2);
+    expect(into.mock.calls[1]![0]).toEqual(expect.objectContaining({ behavior: "smooth" }));
   });
 
   it("says when the page has no spotlit item, and points one out when it appears", async () => {
