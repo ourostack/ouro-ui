@@ -562,6 +562,7 @@ export function Command(props: CommandProps): JSX.Element {
 
   // The command the person has highlighted, by its value, and what was typed when it was. Base UI
   // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
+  // Stryker disable next-line ObjectLiteral,StringLiteral: before any highlight, every start moves it to the first command, where autoHighlight puts it anyway.
   const held = useRef<{ value: string; query: string }>({ value: "", query: "" });
 
   // The app's ranges for a command, or the search's words when the palette marks matches.
@@ -587,6 +588,7 @@ export function Command(props: CommandProps): JSX.Element {
       inputRef={markInput}
       onItemHighlighted={(item: CommandItem | undefined) => {
         // No highlight holds no command: when the results come back, the first one is highlighted.
+        // Stryker disable next-line StringLiteral: a value no command has falls back to the first command, as the empty one does.
         held.current = { value: item ? valueOf(item) : "", query };
       }}
       onValueChange={(next: string) => {
