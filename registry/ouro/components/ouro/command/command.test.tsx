@@ -7,6 +7,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/components/ouro/command/command";
+import { queryRanges } from "@/registry/ouro/components/ouro/command/command-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { audit, axeExclude, describeFindings, measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -513,6 +514,14 @@ describe("Command match highlighting", () => {
       highlightMatches: true,
     });
     expect(marks(row("Launch planning"))).toEqual(["Launch", "launch"]);
+  });
+
+  it("finds where each word of the search starts and ends in a text, each time it appears", () => {
+    expect(queryRanges("Paste a link to any recipe page", "LINK pa")).toEqual([
+      [0, 2],
+      [8, 12],
+      [27, 29],
+    ]);
   });
 
   it("merges the search's words where they meet or overlap, in the text's order", async () => {
