@@ -17,7 +17,7 @@ test("a caption band is a region named by its label, two lines tall, with interi
 
 test("read aloud: a final line is announced at once, and the next waits for the 2-second gap", async ({ page }) => {
   await page.clock.install();
-  await openStory(page, "display-livecaptions--readaloud");
+  await openStory(page, "display-livecaptions--read-aloud");
   await holdClock(page);
   const say = page.getByRole("button", { name: "Say the next line" });
   const announcer = page.locator("[data-ouro-announcer]");
@@ -32,7 +32,7 @@ test("read aloud: a final line is announced at once, and the next waits for the 
 });
 
 test("the band keeps its height as lines come, at every size", async ({ page }) => {
-  await openStory(page, "display-livecaptions--reducedmotion");
+  await openStory(page, "display-livecaptions--reduced-motion");
   const band = page.getByRole("region", { name: "Captions" });
   const height = (await band.boundingBox())!.height;
   for (let press = 0; press < 3; press += 1) {
