@@ -31,7 +31,8 @@ import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { caretRect, filterItems, findMatch, insertText, matchAt, type AutocompleteMatch } from "@/registry/ouro/components/ouro/autocomplete/autocomplete-styles";
+import { caretRect, filterItems, findMatch, matchAt, type AutocompleteMatch } from "@/registry/ouro/components/ouro/autocomplete/autocomplete-styles";
+import { insertText } from "@/registry/ouro/lib/ouro/insert-text";
 
 /** One suggestion in the list a trigger opens. */
 export interface AutocompleteItem {
