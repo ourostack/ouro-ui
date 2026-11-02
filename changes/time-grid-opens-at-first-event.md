@@ -1,0 +1,1 @@
+- Fixed: a TimeGrid showing today opens at today's first event, half an hour before it, when now is before it, instead of an hour and a half before now, which could open on empty hours in the night; now stays in view when the event is close. Today's events that arrive after the grid opened move it once, unless the reader has scrolled.

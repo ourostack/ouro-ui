@@ -27,6 +27,7 @@ Type: `ConversationListProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: width, margins, grid placement (`w-80`). Appearance classes warn in development. |
 | `density` | `"comfortable" \| "compact"` | `"comfortable"` | `compact` drops the preview line and uses a smaller avatar. |
+| `draftLabel` | `string` | `"Draft:"` | The words before a row's `draft`, for other languages. |
 | `empty` | `ReactNode` | `"Nothing here yet"` | What shows when `items` is empty. |
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |
@@ -61,22 +62,65 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
-### `ConversationListItem`
+### `ConversationListContentTitle`
 
-One conversation in a `ConversationList`.
+A conversation whose title is content, such as its name with emoji drawn as pictures (`<EmojiText text={chat.name} catalogue={catalogue} />`), with its name as text beside it.
 
 ```ts
-interface ConversationListItem {
+interface ConversationListContentTitle {
+  /** What the row shows as the conversation's name. */
+  title: ReactNode;
+  /**
+   * The conversation's name as text: what screen readers hear in place of the title, and the
+   * avatar's initials come from it.
+   */
+  name: string;
+}
+```
+
+### `ConversationListItem`
+
+One conversation in a `ConversationList`: its title as text, or as content with a `name`.
+
+```ts
+type ConversationListItem = ConversationListItemFields & (ConversationListTextTitle | ConversationListContentTitle);
+```
+
+### `ConversationListItemFields`
+
+What a `ConversationList` row shows of a conversation, whichever way its title comes.
+
+```ts
+interface ConversationListItemFields {
   /** Identifies the conversation; `onSelect` receives it. */
   id: string;
-  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
-  title: string;
-  /** A muted name after the title, on its line, such as the team a channel belongs to: "Design reviews · Launch team". */
-  where?: string | undefined;
+  /**
+   * A quiet tag right after the title, such as "AI agent" for an agent or "Guest": small and muted, not a badge, and
+   * read after the title ("Halden, AI agent"). In a narrow row the title shortens and the tag stays whole.
+   */
+  nameTag?: string | undefined;
+  /**
+   * A muted name after the title, on its line, such as the team a channel belongs to: "Design
+   * reviews · Launch team". Text, or content such as `<EmojiText>` to draw its emoji as pictures.
+   */
+  where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
   subtitle?: string | undefined;
+  /**
+   * A line between the title and the preview that says what happened and where, as an activity
+   * feed shows it: the title names the person, this line "mentioned you in Design reviews", and
+   * the preview the message. Text, or content such as `<EmojiText>`. It keeps to `density="compact"`.
+   */
+  context?: ReactNode;
   /** The latest message, cut to one line. `density="compact"` hides it. */
   preview?: ReactNode;
+  /**
+   * The first words of a message the person started here and has not sent. They show in place
+   * of the preview after `draftLabel` ("Draft:"), in the destructive tone as chat apps mark a
+   * draft, so a half-written reply is visible from the list. `density="compact"` hides it with
+   * the preview.
+   */
+  draft?: ReactNode;
   /** When the latest message arrived, already formatted ("9:41", `<RelativeTime>`). */
   time?: ReactNode;
   /** There are messages the person has not read: the title is bold and a dot shows. */
@@ -117,6 +161,19 @@ interface ConversationListSection {
   defaultOpen?: boolean | undefined;
   /** Whether the section is open, when the app keeps the state with `onSectionOpenChange`. */
   open?: boolean | undefined;
+}
+```
+
+### `ConversationListTextTitle`
+
+A conversation whose title is text.
+
+```ts
+interface ConversationListTextTitle {
+  /** The conversation's name: a person, a group or a topic. The avatar's initials come from it. */
+  title: string;
+  /** The name screen readers hear in place of `title`, and the avatar's initials come from. @default the title */
+  name?: string | undefined;
 }
 ```
 

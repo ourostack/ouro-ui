@@ -36,6 +36,7 @@ Type: `CarouselProps`.
 | `loop` | `boolean` |  | Next on the last slide goes back to the first, and Previous on the first goes to the last. |
 | `nextLabel` | `string` | `"Next slide"` | The Next button's accessible name. |
 | `onIndexChange` | `((index: number) => void)` |  | Called with the index of the first visible slide when the user moves to another slide, once per change. |
+| `onTargetChange` | `((index: number \| null) => void)` |  | Called at once with the slide a Previous or Next press is moving to, before the scroll gets there, and with null when the scroll settles: show that position straight away, so a counter never names the slide being left. `onIndexChange` still reports, and the carousel announces, only where the scroll settles. |
 | `previousLabel` | `string` | `"Previous slide"` | The Previous button's accessible name. |
 | `roleDescription` | `string` | `"carousel"` | What a screen reader calls the carousel, after its label: "Recipe photos, carousel". |
 | `slideLabel` | `string` | `"Slide {n} of {total}"` | Names each slide and is announced when the position changes: `{n}` is the slide's number and `{total}` the number of slides. |

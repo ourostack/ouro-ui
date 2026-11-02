@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { expectTypeOf } from "vitest";
-import { Composer, type ComposerProps } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.
@@ -21,6 +21,7 @@ expectTypeOf<{
   disabled: false;
   attachments: null;
   attachmentsLabel: "Files";
+  quote: { author: "Ada"; excerpt: "Lunch?"; onRemove: () => void; onActivate: () => void; label: "Quoting Ada"; removeLabel: "Remove quote" };
   actions: null;
   toolbar: false;
   description: "Ctrl+Enter to send";
@@ -37,6 +38,12 @@ expectTypeOf<{
 expectTypeOf<{ onSend: (text: string) => void }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message" }>().not.toExtend<ComposerProps>();
 
+// A quote says who wrote it and what, and how to remove it.
+expectTypeOf<{ author: "Ada"; excerpt: "Lunch?"; onRemove: () => void }>().toExtend<ComposerQuote>();
+expectTypeOf<{ author: "Ada"; excerpt: "Lunch?" }>().not.toExtend<ComposerQuote>();
+expectTypeOf<{ excerpt: "Lunch?"; onRemove: () => void }>().not.toExtend<ComposerQuote>();
+expectTypeOf<{ author: "Ada"; onRemove: () => void }>().not.toExtend<ComposerQuote>();
+
 // sendOn is a named key.
 for (const sendOn of ["enter", "mod-enter"] as const) createElement(Composer, { label: "Message", onSend: () => {}, sendOn });
 expectTypeOf<{ label: "Message"; onSend: () => void; sendOn: "shift-enter" }>().not.toExtend<ComposerProps>();
@@ -47,6 +54,7 @@ expectTypeOf<{ label: "Message"; onSend: () => void; submitOnEnter: true }>().no
 expectTypeOf<{ label: "Message"; onSend: () => void; enterToSend: true }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; loading: true }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; sendDisabled: true }>().not.toExtend<ComposerProps>();
+expectTypeOf<{ label: "Message"; onSend: () => void; replyTo: "message-1" }>().not.toExtend<ComposerProps>();
 
 // The same checks through JSX.
 // @ts-expect-error onSend is required.

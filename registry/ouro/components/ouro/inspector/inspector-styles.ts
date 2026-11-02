@@ -21,6 +21,7 @@ const aliases: Readonly<Record<string, string>> = {
   "resizable-handle": "resizable",
   "resizable-panel": "resizable",
   "select-popup": "select",
+  "time-grid-nav": "time-grid",
   toast: "toaster",
 };
 

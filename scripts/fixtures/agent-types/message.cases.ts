@@ -46,7 +46,28 @@ export const agentCases: AgentCase[] = [
     dev: '<Message presence="busy" presenceLabel="Busy">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "message07",
+    habit: "replyTo for the message a reply quotes",
+    tsc: [hint("string", 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>')],
+    dev: '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "message08",
+    habit: "a side for the action bar",
+    tsc: [notAssignable('"right"', `MessageActionsPlacement | (string & { 'Use "corner" or "beside"': never; }) | undefined`)],
+    dev: '<Message variant="chat" actionsPlacement="beside">',
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "message09",
+    habit: "a status for a message that did not send",
+    tsc: [hint("string", 'Use <Message role="user" failed={{ onRetry: retry }}>')],
+    dev: '<Message role="user" failed={{ onRetry: retry }}>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04"];
+export const validSnippets: string[] = ["messageOk01", "messageOk02", "messageOk03", "messageOk04", "messageOk05", "messageOk06", "messageOk07"];

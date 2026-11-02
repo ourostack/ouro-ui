@@ -43,8 +43,16 @@ import {
 
 /** One command in a Command palette's `items`. */
 export interface CommandItem {
-  /** The command's text, which the search matches. */
+  /** The command's text, which the search matches and screen readers hear. */
   label: string;
+  /**
+   * What the row shows in place of `label`, when plain text cannot draw it: a chat's name with
+   * its emoji as pictures (`<EmojiText text={chat.name} catalogue={catalogue} />`). `label`
+   * stays the text the search matches and the row's name for screen readers.
+   *
+   * @claim "`label` stays the text the search matches" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows labelContent in place of the label, while the search and the row's name still use the label)
+   */
+  labelContent?: ReactNode;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
   /**
@@ -123,6 +131,13 @@ export interface CommandBaseProps {
   /** What shows when nothing matches the search. @default "No results" */
   emptyLabel?: string | undefined;
   /**
+   * Content for the empty state in place of `emptyLabel`, such as a picture with words:
+   * `empty={<Empty icon={<SearchIcon />} title="Nothing matches" />}`. While `loading`, the loading
+   * line still shows under it.
+   * @claim "Content for the empty state" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > takes content for its empty state, such as a picture with words, with the loading line under it while loading)
+   */
+  empty?: ReactNode;
+  /**
    * The label of the close button, hidden until it has keyboard focus, so screen-reader
    * users on phones (who have no Escape key) can always close the palette. @default "Close"
    * @claim "The label of the close button" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > labels the search input and its close button, translated)
@@ -157,10 +172,12 @@ export interface CommandBaseProps {
    */
   onQueryChange?: ((query: string, context: { signal: AbortSignal }) => void) | undefined;
   /**
-   * Whether results are on their way: shows `loadingLabel` beside the input, announces it
-   * politely for the first load of each opening (not again while typing goes on), and holds
-   * back the empty state. Set it back to false when the request fails or aborts.
+   * Whether results are on their way: shows `loadingLabel` beside the input, or under the
+   * empty state while nothing matches yet ("No chats by that name." over "Searching the
+   * directory…"), and announces it politely for the first load of each opening (not again while
+   * typing goes on). Set it back to false when the request fails or aborts.
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > says it is searching politely, once while typing goes on, and shows the empty state only after loading)
+   * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > announces loading again after the palette closes and opens)
    */
   loading?: boolean | undefined;
@@ -274,6 +291,11 @@ function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
  *
  * @claim "A 16px magnifier in the text" registry/ouro/components/ouro/command/command.tsx verify:fileLine(registry/ouro/components/ouro/command/command.tsx, /<svg\saria-hidden="true"\sviewBox="0\s0\s16\s16"\sfill="none">/)
  */
+/** Sets the palette's floor to its width now, so its width can grow and not shrink while it is open. */
+function holdWidth(popup: HTMLElement): void {
+  popup.style.minWidth = `min(100%, ${getComputedStyle(popup).width})`;
+}
+
 /** Marks the hidden input Base UI keeps the query in. */
 const markInput = controlRef("command", "hidden-input");
 
@@ -292,6 +314,8 @@ function SearchIcon(): JSX.Element {
  * move the highlight, and Enter runs the highlighted command. Commands come in labelled
  * groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px
  * it is a full-height bottom sheet, whose search input stays put while the results filter.
+ * Above it, the dialog fits its commands, from 32rem up to 40rem, and keeps that width while
+ * they filter.
  * A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`,
  * so a palette that jumps to any chat shows who each one is with and what is new.
  *
@@ -337,6 +361,8 @@ function SearchIcon(): JSX.Element {
  *     mark: chat.unread > 0 && <Badge>{chat.unread}</Badge>,
  *   }))}
  * />
+ * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > widens to fit a longer command, up to 40rem)
+ * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while results filter)
  * @claim "A command can lead with an" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
  * @claim "Below 640px it is a full-height" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > is a full-height bottom sheet below 640px, whose search input stays put while results filter)
  * @claim "A command palette: a searchable list" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > opens a dialog named by its title, with the search input focused and every group listed)
@@ -350,6 +376,7 @@ export function Command(props: CommandProps): JSX.Element {
     placeholder = "Type a command or search…",
     searchLabel = "Search commands",
     emptyLabel = "No results",
+    empty,
     closeLabel = "Close",
     className,
     onQueryChange,
@@ -416,7 +443,12 @@ export function Command(props: CommandProps): JSX.Element {
   const sheet = useSheetPresentation("auto");
 
   const triggerRef = useRef<HTMLElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  // The dialog fits its commands, from 32rem to 40rem, and then never narrows while it is open: its floor is the
+  // widest it has been, taken after every render, so filtering or a server's answer never moves the input or the rows.
+  useLayoutEffect(() => {
+    if (popupRef.current) holdWidth(popupRef.current);
+  });
   // A Server Component's trigger can arrive as a lazy wrapper; resolve it before cloning.
   const triggerElement = serverElement(trigger);
   const triggerProps = (triggerElement?.props ?? {}) as TriggerProps;
@@ -505,18 +537,20 @@ export function Command(props: CommandProps): JSX.Element {
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
-          {loading && (
-            <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
-              {loadingLabel}
-            </span>
-          )}
+          {loading && <SearchingLabel label={loadingLabel} />}
 
           <span data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
             {announcement === "on" ? loadingLabel : ""}
           </span>
         </div>
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
-          <Autocomplete.Empty>{!loading && <div className={commandEmptyClass}>{emptyLabel}</div>}</Autocomplete.Empty>
+          {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
+          <Autocomplete.Empty>
+            <div data-ouro-command-empty="" className={commandEmptyClass}>
+              {empty ?? emptyLabel}
+              {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
+            </div>
+          </Autocomplete.Empty>
           <CommandList>
             {(group: Group, index: number) => (
               <Autocomplete.Group key={group.label ?? `loose-${index}`} items={group.items} data-ouro-command-group="">
@@ -550,7 +584,14 @@ export function Command(props: CommandProps): JSX.Element {
                         )
                       )}
                       <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
-                        {item.label}
+                        {item.labelContent === undefined ? (
+                          item.label
+                        ) : (
+                          <>
+                            <span aria-hidden="true">{item.labelContent}</span>
+                            <span className="sr-only">{item.label}</span>
+                          </>
+                        )}
                       </span>
                       {shown(item.mark) && (
                         <span data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
@@ -597,8 +638,8 @@ export function Command(props: CommandProps): JSX.Element {
               <DialogPopupUnchecked
                 data-ouro-instant=""
                 ref={popupRef}
-                size="lg"
-                className={className}
+                size="auto"
+                className={cn("max-w-[min(100%,40rem)]", className)}
                 // The input after a key press or click; the palette itself after a touch or pen
                 // tap, so no software keyboard pops up.
                 initialFocus={() => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true)}
@@ -615,6 +656,20 @@ export function Command(props: CommandProps): JSX.Element {
         </DialogRoot>
       )}
     </>
+  );
+}
+
+/**
+ * The loading label beside the input, while there are results to show; with an empty list, the
+ * empty state carries it instead, so it shows once.
+ * @claim "The loading label beside the" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends)
+ */
+function SearchingLabel({ label }: { label: string }): JSX.Element | null {
+  if (Autocomplete.useFilteredItems().length === 0) return null;
+  return (
+    <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
+      {label}
+    </span>
   );
 }
 

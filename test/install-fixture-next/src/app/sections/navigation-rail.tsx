@@ -4,7 +4,8 @@ import { NavigationRail } from "@/components/ouro/navigation-rail/navigation-rai
 // expect: aria-label="Ouro rail"
 // The current item is marked in the server HTML, from currentPath, and every item is there.
 // expect: aria-current="page"[^>]*>.*Ouro rail chat
-// expect: aria-label="Ouro rail activity, 3 new"
+// The count is part of the item's name, after its label: "Ouro rail activity, 3 new".
+// expect: Ouro rail activity<span[^>]*>, \(<!-- -->\)*3 new</span>
 // expect: href="/navigation-rail-files"
 export default function NavigationRailSection() {
   return (

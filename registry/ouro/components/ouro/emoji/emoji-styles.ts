@@ -65,6 +65,12 @@ interface CatalogueIndex {
   byText: ReadonlyMap<string, FoundEmoji>;
   /** Finds a token's colon and name, up to its closing colon, and the emoji text the catalogue lists, longest text first. */
   pattern: RegExp;
+  /**
+   * Finds only the emoji text the catalogue lists, longest first, and nothing when it lists none.
+   *
+   * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
+   */
+  textPattern: RegExp;
 }
 
 const indexes = new WeakMap<EmojiCatalogue, CatalogueIndex>();
@@ -95,34 +101,39 @@ function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
   // Longest first, so a sequence wins over the emoji it starts with; a variation selector may follow any character.
   const texts = [...byText.keys()].sort((a, b) => b.length - a.length).map((text) => Array.from(text, (char) => `${escape(char)}\\uFE0F?`).join(""));
   const pattern = new RegExp([":[^\\s:]+(?=:)", ...texts].join("|"), "gu");
-  const index = { items, byId, byToken, byText, pattern };
+  // (?!) matches nothing, for a catalogue that lists no text.
+  const textPattern = new RegExp(["(?!)", ...texts].join("|"), "gu");
+  const index = { items, byId, byToken, byText, pattern, textPattern };
   indexes.set(catalogue, index);
   return index;
 }
 
-/** A run of text, or an emoji found in it. */
-type EmojiTextPart = string | FoundEmoji;
+/** A run of text, or an emoji found in it with the text it was found as. */
+type EmojiTextPart = string | (FoundEmoji & { source: string });
 
 /**
  * Splits text into runs of text and the emoji its tokens (`:shortcode:`, `:id:`) and emoji
- * text name in the catalogue. A token the catalogue does not know stays text, and its closing
- * colon can still open the next one. @internal
+ * text name in the catalogue, each with the text it was found as. A token the catalogue does not
+ * know stays text, and its closing colon can still open the next one. With `tokens` false, only
+ * the emoji text counts, for text such as code where `:name:` means something else. @internal
  *
+ * @claim "each with the text it was found as" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
  * @claim "A token the catalogue does not know stays text" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > draws shortcode, id and tone id tokens as their images, and leaves unknown ones as text)
  */
-function splitEmojiText(text: string, catalogue: EmojiCatalogue): EmojiTextPart[] {
-  const { byToken, byText, pattern } = catalogueIndex(catalogue);
+function splitEmojiText(text: string, catalogue: EmojiCatalogue, tokens = true): EmojiTextPart[] {
+  const { byToken, byText, pattern, textPattern } = catalogueIndex(catalogue);
   const parts: EmojiTextPart[] = [];
   let plainFrom = 0;
-  for (const match of text.matchAll(pattern)) {
+  for (const match of text.matchAll(tokens ? pattern : textPattern)) {
     // A token's closing colon, already taken, does not open another.
     if (match.index < plainFrom) continue;
     const token = match[0].startsWith(":");
     const found = token ? byToken.get(match[0].slice(1).toLowerCase()) : byText.get(match[0].replace(VARIATION, ""));
     if (!found) continue;
     if (match.index > plainFrom) parts.push(text.slice(plainFrom, match.index));
-    parts.push(found);
-    plainFrom = match.index + match[0].length + (token ? 1 : 0);
+    const end = match.index + match[0].length + (token ? 1 : 0);
+    parts.push({ ...found, source: text.slice(match.index, end) });
+    plainFrom = end;
   }
   if (plainFrom < text.length) parts.push(text.slice(plainFrom));
   return parts;

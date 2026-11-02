@@ -1,0 +1,1 @@
+- New: a Command item takes `labelContent`, what its row shows in place of `label` (such as a chat's name with its emoji as pictures through `EmojiText`), while `label` stays the text the search matches and screen readers hear.

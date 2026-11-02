@@ -40,7 +40,12 @@ const thumbnails = (host: Element) => [...host.querySelectorAll<HTMLButtonElemen
 const popup = () => document.querySelector<HTMLElement>('[data-ouro="dialog"]');
 const viewport = () => popup()!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
 const slides = () => [...popup()!.querySelectorAll<HTMLElement>("[data-ouro-carousel-slide]")];
-const position = () => popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent;
+// The position once the image has arrived: while the scroll is on its way the position already
+// names the image chosen, marked as pending.
+const position = () => {
+  const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+  return counter.hasAttribute("data-pending") ? `${counter.textContent} (on its way)` : counter.textContent;
+};
 const button = (name: string) => [...popup()!.querySelectorAll<HTMLElement>("button, a")].find((element) => element.getAttribute("aria-label") === name || element.textContent === name)!;
 
 /** The slide whose start edge lines up with the scroller's start edge. */
@@ -436,6 +441,71 @@ describe("Lightbox viewer", () => {
     announcements.stop();
   });
 
+  it("shows the position a key or button chose before the scroll gets there, and announces it once it does", async () => {
+    const onIndexChange = vi.fn();
+    const { host } = await render(lightbox({ onIndexChange }));
+    await openAt(host, 0);
+    const announcements = watchAnnouncements();
+    const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+    // Hold the scroll each press asks for, so the image is still on its way.
+    const scroller = viewport();
+    const scrollTo = scroller.scrollTo.bind(scroller);
+    let held: ScrollToOptions | undefined;
+    scroller.scrollTo = ((options: ScrollToOptions) => {
+      held = options;
+    }) as typeof scroller.scrollTo;
+    await userEvent.keyboard("{ArrowRight}");
+    expect(held).toBeDefined();
+    expect(counter.textContent).toBe("2 of 4");
+    expect(counter.getAttribute("data-pending")).toBe("");
+    expect(page.getByRole("dialog", { name: "Kitchen photos, 2 of 4", exact: true }).element()).toBe(popup());
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(announcements.count("2 of 4")).toBe(0);
+    // Once the image arrives: reported and announced once, and no longer pending.
+    scroller.scrollTo = scrollTo;
+    scroller.scrollTo(held!);
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    await expect.poll(() => announcements.count("2 of 4")).toBe(1);
+    expect(counter.textContent).toBe("2 of 4");
+    expect(counter.hasAttribute("data-pending")).toBe(false);
+    // The Next button and End too, and Home back to where it already is shows no pending position.
+    held = undefined;
+    scroller.scrollTo = ((options: ScrollToOptions) => {
+      held = options;
+    }) as typeof scroller.scrollTo;
+    await userEvent.click(button("Next image"));
+    expect(counter.textContent).toBe("3 of 4");
+    await userEvent.keyboard("{End}");
+    expect(counter.textContent).toBe("4 of 4");
+    expect(counter.hasAttribute("data-pending")).toBe(true);
+    scroller.scrollTo = scrollTo;
+    scroller.scrollTo(held!);
+    await expect.poll(position).toBe("4 of 4");
+    // Home too: the first image at once.
+    scroller.scrollTo = ((options: ScrollToOptions) => {
+      held = options;
+    }) as typeof scroller.scrollTo;
+    await userEvent.keyboard("{Home}");
+    expect(counter.textContent).toBe("1 of 4");
+    expect(counter.hasAttribute("data-pending")).toBe(true);
+    scroller.scrollTo = scrollTo;
+    scroller.scrollTo(held!);
+    await expect.poll(position).toBe("1 of 4");
+    announcements.stop();
+  });
+
+  it("keeps a chosen position within the images left when the app removes some", async () => {
+    const { host, rerender } = await render(lightbox());
+    await openAt(host, 0);
+    const scroller = viewport();
+    scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
+    await userEvent.keyboard("{End}");
+    const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+    expect(counter.textContent).toBe("4 of 4");
+    await rerender(lightbox({ images: kitchen.slice(0, 2) }));
+    expect(counter.textContent).toBe("2 of 2");
+  });
+
   it("links to the image's original in a new tab, only when it has one", async () => {
     const images = kitchen.map((image, index) => (index === 1 ? { ...image, href: "https://example.com/after.jpg" } : image));
     const { host } = await render(lightbox({ images }));
@@ -589,6 +659,21 @@ describe("Lightbox controlled", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
     // The app owns open: the viewer stays until it changes.
     expect(popup()).not.toBeNull();
+  });
+
+  it("drops a position chosen before the app moves the viewer to another image", async () => {
+    const images = kitchen;
+    const { rerender } = await render(<Lightbox label="Kitchen photos" images={images} open index={0} onOpenChange={() => {}} />);
+    await settled();
+    const scroller = viewport();
+    scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
+    await userEvent.click(button("Next image"));
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
+    await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
+    // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
+    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
+    await settled();
+    expect(position()).toBe("4 of 4");
   });
 
   it("opens on the first image without index", async () => {

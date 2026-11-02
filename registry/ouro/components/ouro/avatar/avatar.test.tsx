@@ -312,6 +312,9 @@ describe("Avatar shapes and icons", () => {
     const [circle, square] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     expect(circle!.getAttribute("data-shape")).toBe("circle");
     expect(square!.getAttribute("data-shape")).toBe("square");
+    // Only a hexagon is clipped.
+    expect(getComputedStyle(circle!).clipPath).toBe("none");
+    expect(getComputedStyle(square!).clipPath).toBe("none");
     expect(parseFloat(getComputedStyle(circle!).borderTopLeftRadius)).toBeGreaterThanOrEqual(24);
     const corner = parseFloat(getComputedStyle(square!).borderTopLeftRadius);
     expect(corner).toBeGreaterThan(0);
@@ -330,6 +333,60 @@ describe("Avatar shapes and icons", () => {
     const corners = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => parseFloat(getComputedStyle(avatar).borderTopLeftRadius));
     expect([...corners].sort((a, b) => a - b)).toEqual(corners);
     expect(corners[0]).toBeLessThan(corners.at(-1)!);
+  });
+
+  it("draws an agent as a rounded hexagon at every size, its initials and picture inside it", async () => {
+    const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
+    const { host } = await render(
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        {sizes.map((size) => (
+          <Avatar key={size} name="Halden Agent" shape="hexagon" size={size} />
+        ))}
+        <Avatar name="Halden Agent" shape="hexagon" size="xl" src={photo} />
+      </div>,
+    );
+    await expect.poll(() => host.querySelector("img")).not.toBeNull();
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    for (const avatar of avatars) {
+      expect(avatar.getAttribute("data-shape")).toBe("hexagon");
+      expect(getComputedStyle(avatar).clipPath).toMatch(/^polygon\(/);
+      expect(getComputedStyle(avatar).borderTopLeftRadius).toBe("0px");
+      const box = avatar.getBoundingClientRect();
+      const at = (x: number, y: number) => document.elementFromPoint(box.left + box.width * x, box.top + box.height * y);
+      // Point up: the middle and the top point are inside; the four box corners are clipped away.
+      expect(avatar.contains(at(0.5, 0.5))).toBe(true);
+      expect(avatar.contains(at(0.5, 0.08))).toBe(true);
+      for (const [x, y] of [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92]] as const) expect(avatar.contains(at(x, y)), `${box.width}px at ${x}, ${y}`).toBe(false);
+    }
+    for (const avatar of avatars.slice(0, -1)) {
+      const box = avatar.getBoundingClientRect();
+      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
+      expect(avatar.textContent).toBe("HA");
+      expect(Math.abs(letters.left + letters.width / 2 - (box.left + box.width / 2))).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(letters.top + letters.height / 2 - (box.top + box.height / 2))).toBeLessThanOrEqual(0.5);
+    }
+    const picture = avatars.at(-1)!;
+    expect(picture.querySelector("img")!.getBoundingClientRect().width).toBe(picture.getBoundingClientRect().width);
+  });
+
+  it("shows no presence on a hexagon, and names the fix", async () => {
+    const { avatar } = await render(<Avatar name="Halden" shape="hexagon" presence="available" presenceLabel="Available" />);
+    expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
+    expect(avatar.hasAttribute("data-presence")).toBe(false);
+    expect(avatar.getAttribute("aria-label")).toBe("Halden");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: an agent shows no presence, so a hexagon draws no dot. Fix: <Avatar name="Halden" shape="hexagon" />.');
+  });
+
+  it("asks nothing of a hexagon without presence, or of a circle with it", async () => {
+    await render(
+      <>
+        <Avatar name="Halden" shape="hexagon" />
+        <Avatar name="Ada Lovelace" presence="busy" presenceLabel="Busy" />
+        <Avatar name="Design reviews" shape="square" presence="away" presenceLabel="Away" />
+      </>,
+    );
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("clips a square's picture to its corners", async () => {
@@ -656,7 +713,8 @@ describe("Avatar development messages", () => {
   });
 
   it.each([
-    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square"', '<Avatar shape="square">'],
+    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square", "hexagon"', '<Avatar shape="square">'],
+    ["agent shape", { shape: "agent" }, 'shape="agent" is not a shape; use "circle", "square", "hexagon"', '<Avatar shape="hexagon">'],
     ["color", { color: "blue" }, 'color="blue" is not a color; use "colorful", "brand", "neutral"', '<Avatar color="colorful">'],
     [
       "presence",

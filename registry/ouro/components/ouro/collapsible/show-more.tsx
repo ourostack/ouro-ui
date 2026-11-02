@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidElement, useEffect, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -264,9 +264,10 @@ const DEFAULT_HEIGHT = 240;
  * to a number of lines, folds content of any kind (a long post with pictures) to a height
  * under a fade, or grows a list a page at a time from the server, and moves focus to
  * the first newly shown item, so keyboard and screen reader users land on what they asked
- * for. A list that loads more also says how many items now show. The visible items are in
- * the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping
- * element, and borders between rows on each item.
+ * for. A list that loads more also says how many items now show. The button names what it
+ * folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`).
+ * The visible items are in the server HTML. ShowMore draws the list itself: put a border
+ * around the list on a wrapping element, and borders between rows on each item.
  *
  * Use `Collapsible` instead to hide a whole section behind its title. Use `Pagination`
  * instead when people need to jump to a page or share its URL.
@@ -279,6 +280,8 @@ const DEFAULT_HEIGHT = 240;
  * <ShowMore lines={3}>{recipe.description}</ShowMore>
  * <ShowMore maxHeight={180}><Post body={post.body} /></ShowMore>
  * <ShowMore items={rows} hasMore={Boolean(nextCursor)} loading={loading} onShowMore={loadNext} href={nextHref} />
+ * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list, the text or the fold it opens and says whether it is open, in every mode that folds)
+ * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list a load adds to, and claims no open state, since loading more never folds)
  * @claim "folds content of any kind" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > folds long content to maxHeight under a fade, with Show more)
  * @claim "ShowMore draws the list itself: put" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)
  */
@@ -360,6 +363,7 @@ function ShowMoreText({
   // Measured after mount, so server HTML has no button and hydration matches.
   const [overflowing, setOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
+  const textId = useId();
   useEffect(() => {
     // Expanded, the text never overflows; keep the button that collapses it.
     if (expanded) return;
@@ -374,6 +378,7 @@ function ShowMoreText({
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
         ref={textRef}
+        id={textId}
         data-ouro-show-more-text=""
         className={cn(textClass, !expanded && "line-clamp-(--ouro-show-more-lines)")}
         style={{ "--ouro-show-more-lines": lines } as CSSProperties}
@@ -381,7 +386,17 @@ function ShowMoreText({
         {children}
       </div>
       {overflowing && (
-        <Button variant="plain" size="sm" className="-ms-(--ouro-button-px)" data-ouro-show-more-toggle="" data-ouro-control="show-more" data-ouro-part="toggle" onClick={() => setExpanded(!expanded)}>
+        <Button
+          variant="plain"
+          size="sm"
+          className="-ms-(--ouro-button-px)"
+          data-ouro-show-more-toggle=""
+          data-ouro-control="show-more"
+          data-ouro-part="toggle"
+          aria-expanded={expanded}
+          aria-controls={textId}
+          onClick={() => setExpanded(!expanded)}
+        >
           {expanded ? showLessLabel : showMoreLabel}
         </Button>
       )}
@@ -410,6 +425,7 @@ function ShowMoreHeight({
   const [fits, setFits] = useState<boolean | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const foldId = useId();
   useEffect(() => {
     const content = contentRef.current!;
     // The observer measures once as it starts, and again on every change of size.
@@ -440,6 +456,7 @@ function ShowMoreHeight({
   return (
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
+        id={foldId}
         data-ouro-show-more-fold=""
         data-folded={folded && fits === false ? "" : undefined}
         onFocus={reveal}
@@ -451,7 +468,18 @@ function ShowMoreHeight({
         </div>
       </div>
       {fits === false && (
-        <Button ref={buttonRef} variant="plain" size="sm" className="-ms-(--ouro-button-px)" data-ouro-show-more-toggle="" data-ouro-control="show-more" data-ouro-part="toggle" onClick={toggle}>
+        <Button
+          ref={buttonRef}
+          variant="plain"
+          size="sm"
+          className="-ms-(--ouro-button-px)"
+          data-ouro-show-more-toggle=""
+          data-ouro-control="show-more"
+          data-ouro-part="toggle"
+          aria-expanded={expanded}
+          aria-controls={foldId}
+          onClick={toggle}
+        >
           {expanded ? showLessLabel : showMoreLabel}
         </Button>
       )}
@@ -473,6 +501,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
   const pendingFirst = useRef<unknown>(undefined);
   const listRef = useRef<HTMLUListElement & HTMLOListElement>(null);
   const buttonRef = useRef<HTMLElement>(null);
+  const listId = useId();
   const loading = load?.loading === true;
   const visible = load || expanded ? items : items.slice(0, count);
   const hasButton = load ? load.hasMore : items.length > count;
@@ -553,6 +582,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       size="sm"
       className="-ms-(--ouro-button-px)"
       data-ouro-show-more-toggle="" data-ouro-control="show-more" data-ouro-part="toggle"
+      aria-controls={listId}
       loading={loading}
       loadingLabel={load.loadingLabel}
       onClick={press}
@@ -561,7 +591,18 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       {showMoreLabel}
     </Button>
   ) : (
-    <Button ref={buttonRef as Ref<HTMLButtonElement>} variant="plain" size="sm" className="-ms-(--ouro-button-px)" data-ouro-show-more-toggle="" data-ouro-control="show-more" data-ouro-part="toggle" onClick={press}>
+    <Button
+      ref={buttonRef as Ref<HTMLButtonElement>}
+      variant="plain"
+      size="sm"
+      className="-ms-(--ouro-button-px)"
+      data-ouro-show-more-toggle=""
+      data-ouro-control="show-more"
+      data-ouro-part="toggle"
+      aria-expanded={expanded}
+      aria-controls={listId}
+      onClick={press}
+    >
       {expanded ? showLessLabel : showMoreLabel}
     </Button>
   );
@@ -570,6 +611,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       {/* Safari drops list semantics from an unstyled list unless the role is explicit. */}
       <List
         ref={listRef}
+        id={listId}
         role="list"
         tabIndex={emptyEnd ? -1 : undefined}
         aria-label={emptyEnd ? noMoreLabel : undefined}

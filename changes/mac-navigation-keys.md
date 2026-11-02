@@ -1,0 +1,1 @@
+- New: on a Mac, MessageList, NavigationRail and TimeGrid read ⌘↑ and ⌘↓ as Home and End, and MessageList reads ⌥↑ and ⌥↓ as Page Up and Page Down, for keyboards without those keys. The mapping is `navigationKey` in `lib/ouro/navigation-key.ts`, for other lists and grids.

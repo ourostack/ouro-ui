@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -258,21 +259,201 @@ export const Posts: Story = {
   render: () => <ChannelPosts />,
 };
 
-/** A post's thread: the post, then its replies (`variant="reply"`), unboxed, with runs grouped. */
+/** The thread story's actions, which only show where they sit. */
+const threadActions = actionsFor(
+  () => {},
+  () => {},
+);
+
+/**
+ * A post's thread: the post, then its replies (`variant="reply"`), unboxed, with runs grouped.
+ * Hover a reply, or Tab to it, for its action bar, just past the reply's text.
+ */
 export const Thread: Story = {
   render: () => (
     <Surface>
       <Message variant="post" role="assistant" name="Jonah Vale" time="7:30 AM" subject="Agenda for Friday's design review">
         We will look at the new onboarding flow first, then the settings page.
       </Message>
-      <Message variant="reply" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="7:36 AM">
+      <Message variant="reply" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="7:36 AM" actions={threadActions} menu={menu}>
         Can we start with the settings page? Theo is out after lunch.
       </Message>
-      <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM" continued>
+      <Message variant="reply" role="assistant" name="Mara Quill" time="7:36 AM" continued actions={threadActions} menu={menu}>
         Either way works for me.
       </Message>
-      <Message variant="reply" role="user" name="Priya Okafor" time="7:44 AM">
+      <Message variant="reply" role="user" name="Priya Okafor" time="7:44 AM" actions={threadActions} menu={menu}>
         Swapped. Settings page first.
+      </Message>
+    </Surface>
+  ),
+};
+
+function Replies() {
+  const [shown, setShown] = useState("");
+  const show = (who: string) => () => setShown(`Showing ${who}'s message`);
+  return (
+    <Surface>
+      <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+        Morning! The venue confirmed the long table for Friday. Can someone bring the extension cord for the projector?
+      </Message>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Theo Brandt"
+        time="9:43 AM"
+        dateTime="2026-05-04T09:43"
+        quote={{
+          author: "Mara Quill",
+          excerpt: "Morning! The venue confirmed the long table for Friday. Can someone bring the extension cord for the projector?",
+          avatar: <Avatar name="Mara Quill" alt="" size="xs" />,
+          onActivate: show("Mara Quill"),
+        }}
+      >
+        I have one. I will bring it with the speakers.
+      </Message>
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" dateTime="2026-05-04T09:45" quote={{ author: "Theo Brandt", excerpt: "I have one. I will bring it with the speakers.", onActivate: show("Theo Brandt") }}>
+        Perfect, thank you.
+      </Message>
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ouro", excerpt: "About an hour, covered, somewhere warm." }}>
+        And if the kitchen is cold?
+      </Message>
+      <p role="status" style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)" }}>
+        {shown}
+      </p>
+    </Surface>
+  );
+}
+
+function NotSentConversation() {
+  const [state, setState] = useState<"failed" | "sent" | "deleted">("failed");
+  return (
+    <Surface>
+      <MessageList label="Chat with Mara Quill" style={{ height: 260 }}>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+          Are you joining the design review?
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" time="9:43 AM" dateTime="2026-05-04T09:43">
+          Yes, I will be there.
+        </Message>
+        {state !== "deleted" &&
+          (state === "failed" ? (
+            <Message variant="chat" role="user" name="Priya Okafor" time="9:44 AM" dateTime="2026-05-04T09:44" continued failed={{ onRetry: () => setState("sent"), onDelete: () => setState("deleted") }}>
+              I will bring the printed mockups.
+            </Message>
+          ) : (
+            <Message variant="chat" role="user" name="Priya Okafor" time="9:44 AM" dateTime="2026-05-04T09:44" continued>
+              I will bring the printed mockups.
+            </Message>
+          ))}
+      </MessageList>
+    </Surface>
+  );
+}
+
+/**
+ * Replies that quote the message they answer (`quote`): a bar, the author and a line of what
+ * they wrote, at the top of the bubble. With `onActivate` the quote is a button that shows the
+ * quoted message; without it, a plain quote.
+ */
+export const Quote: Story = {
+  parameters: { screenshot: { name: "message-quote" } },
+  render: () => <Replies />,
+};
+
+/**
+ * A reply's action bar, shown by keyboard focus: just past the reply's text and level with its
+ * top, clear of the name and time above it, however wide the thread.
+ */
+export const ReplyActions: Story = {
+  parameters: { screenshot: { name: "message-reply-actions", focus: true } },
+  render: () => (
+    <Surface>
+      <Message variant="reply" role="assistant" name="Theo Brandt" presence="available" presenceLabel="Available" time="7:44 AM" actions={threadActions} menu={menu}>
+        On it.
+      </Message>
+      <Message variant="reply" role="user" name="Priya Okafor" time="7:46 AM" actions={threadActions} menu={menu}>
+        Thanks! I will send the notes after the review.
+      </Message>
+    </Surface>
+  ),
+};
+
+/**
+ * The user's own message that did not send (`failed`): "Not sent" under it, with Retry and
+ * Delete, until the app sends it again or deletes it. Retry here sends it; Delete removes it.
+ */
+export const NotSent: Story = {
+  parameters: { screenshot: { name: "message-not-sent" } },
+  render: () => <NotSentConversation />,
+};
+
+// Made-up image emoji, drawn here, for names and messages that hold emoji.
+const svg = (body: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`)}`;
+const emoji: EmojiCatalogue = {
+  categories: [
+    {
+      id: "symbols",
+      label: "Symbols",
+      items: [
+        { id: "sparkles", name: "Sparkles", text: "✨", src: svg('<path d="m14 3 2.5 8.5L25 14l-8.5 2.5L14 25l-2.5-8.5L3 14l8.5-2.5z" fill="#ffb400"/><path d="m25 19 1.2 3.8L30 24l-3.8 1.2L25 29l-1.2-3.8L20 24l3.8-1.2z" fill="#7c5cff"/>') },
+        { id: "party", name: "Party popper", text: "🎉", src: svg('<path d="M5 28 12 9l11 11z" fill="#ffb400"/><circle cx="22" cy="6" r="2" fill="#e8435a"/><circle cx="27" cy="12" r="2" fill="#2bb673"/>') },
+      ],
+    },
+  ],
+};
+
+/**
+ * `nameContent` shows the author's name with its emoji as an app's own pictures (here through
+ * `EmojiText`), while `name` stays what screen readers hear and the initials come from.
+ */
+export const EmojiInNames: Story = {
+  render: () => (
+    <Surface>
+      <Message variant="chat" role="assistant" name="Riley Example ✨" nameContent={<EmojiText text="Riley Example ✨" catalogue={emoji} />} avatar={<Avatar name="Riley Example" alt="" size="sm" />} time="9:41 AM">
+        <EmojiText text="Demo went well 🎉" catalogue={emoji} />
+      </Message>
+      <Message variant="post" role="assistant" name="Release bot ✨" nameContent={<EmojiText text="Release bot ✨" catalogue={emoji} />} avatar={<Avatar name="Release bot" alt="" size="sm" />} time="9:45 AM" subject="v1.3.0 is out">
+        <EmojiText text="Notes are on the site 🎉" catalogue={emoji} />
+      </Message>
+    </Surface>
+  ),
+};
+
+/**
+ * A chat with an AI agent: its rounded hexagon avatar (no presence dot, since an agent has none) and a quiet
+ * "AI agent" tag after its name, which screen readers hear after the name.
+ */
+export const Agent: Story = {
+  parameters: { screenshot: { name: "message-agent" } },
+  render: () => (
+    <Surface>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Halden"
+        nameTag="AI agent"
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" />}
+        time="3:24 PM"
+        dateTime="2026-05-04T15:24"
+      >
+        Hi, I'm Halden. Ask me about the launch plan.
+      </Message>
+      <Message variant="chat" role="user" name="Priya Okafor" time="3:29 PM" dateTime="2026-05-04T15:29">
+        Can you summarize the launch notes for the team?
+      </Message>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Halden"
+        nameTag="AI agent"
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" />}
+        time="3:31 PM"
+        dateTime="2026-05-04T15:31"
+      >
+        I'll post the summary of the launch notes by 4:00.
+      </Message>
+      <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="3:33 PM" dateTime="2026-05-04T15:33">
+        Thanks, Halden. I'll add the photos.
       </Message>
     </Surface>
   ),

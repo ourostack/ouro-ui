@@ -36,7 +36,12 @@ const figure = (index = 0) => slides()[index]!.querySelector<HTMLElement>("[data
 const fittedImage = (index = 0) => figure(index).querySelector<HTMLImageElement>(":scope > img")!;
 const view = (index = 0) => figure(index).querySelector<HTMLElement>("[data-ouro-lightbox-zoom-view]");
 const zoomButton = () => popup()!.querySelector<HTMLButtonElement>('[data-ouro-part="zoom"]');
-const position = () => popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent;
+// The position once the image has arrived: while the scroll is on its way the position already
+// names the image chosen, marked as pending.
+const position = () => {
+  const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+  return counter.hasAttribute("data-pending") ? `${counter.textContent} (on its way)` : counter.textContent;
+};
 const zoomedImage = () => view()?.querySelector("img") ?? null;
 
 /** Opens the viewer on the first image and waits until its picture is loaded and measured. */
