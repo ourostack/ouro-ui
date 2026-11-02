@@ -20,6 +20,7 @@ import {
 } from "@/registry/ouro/components/ouro/menu/menu";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -642,9 +643,9 @@ describe("Menu focus", () => {
     await expect.poll(menu).toBeNull();
     expect(document.activeElement).toBe(before);
     // Left open, Base UI's focus guard before the trigger sent this Tab back to Before.
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement).toBe(trigger());
-    await userEvent.tab();
+    await pressTab();
     expect(document.activeElement?.textContent).toBe("After");
   });
 
