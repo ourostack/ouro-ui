@@ -2227,6 +2227,9 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   const summary = join(bin, "summary.md");
   const attempts = join(bin, "attempts");
   writeFileSync(join(bin, "calendar.log"), calendarLog);
+  // The Calendar test, quarantined as it was before its fix.
+  const list = join(bin, "quarantine.json");
+  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
@@ -2241,7 +2244,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
     return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse },
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse, OURO_QUARANTINE_FILE: list },
     });
   };
   const open = retry("OPEN");

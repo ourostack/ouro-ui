@@ -30,7 +30,8 @@ import { fileURLToPath } from "node:url";
 import { jobGraph } from "./ci-budget.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-export const quarantineFile = join(root, ".github/quarantine.json");
+// OURO_QUARANTINE_FILE lets the tests hand it a list of their own.
+export const quarantineFile = process.env.OURO_QUARANTINE_FILE ?? join(root, ".github/quarantine.json");
 
 const issuePattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/;
 
