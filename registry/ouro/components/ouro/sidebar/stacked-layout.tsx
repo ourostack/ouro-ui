@@ -21,12 +21,14 @@ export interface StackedLayoutProps {
   toolbarLabel?: string | undefined;
   /**
    * What the navbar, and the toolbar under it, do while the page scrolls. `"sticky"` keeps them
-   * at the top. `"static"` lets them scroll away with the page, for a document. `"auto-hide"`,
-   * for a reading surface with art that runs under the bars, slides them up out of view as the
-   * reader scrolls down and brings them back on any scroll up, at the top of the page, or when
-   * keyboard focus moves into them; they never hide while keyboard focus or an open menu is in
-   * them. Over the page they are translucent, with the page blurred behind them. With reduced
-   * motion they show and hide at once, without sliding.
+   * at the top. `"static"` lets them scroll away with the page, for a document. `"auto-hide"` is
+   * for a reading surface with art that runs under the bars: they slide up out of view as the
+   * reader scrolls down, and come back on a scroll up, at the top of the page, or when keyboard
+   * focus moves into them. Keyboard focus or an open menu in them holds them in view. Over the
+   * page they are translucent, with the page blurred behind them. With reduced motion they show
+   * and hide at once, without sliding.
+   * @claim "Keyboard focus or an open menu in them" registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout with navbarBehavior auto-hide > stays in view while keyboard focus is in it, and comes back when focus moves into it)
+   * @claim "Keyboard focus or an open menu in them" registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout with navbarBehavior auto-hide > stays in view while a menu opened from it is open)
    * @default "sticky"
    */
   navbarBehavior?: "sticky" | "static" | "auto-hide" | (string & { 'default is "sticky"; use "sticky", "static" or "auto-hide"': never }) | undefined;
