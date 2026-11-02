@@ -4,18 +4,21 @@ export {
   BARS_DEFAULT,
   BARS_MAX,
   BARS_MIN,
+  bandFor,
+  bandValues,
   barSizes,
   DB_FLOOR,
   HOLD_MS,
   levelFromAmplitude,
   litTones,
   LOUD_FROM,
+  mutedLit,
   QUIET_BELOW,
   READ_EVERY_MS,
   RELEASE_MS,
   rowSizes,
   stepToward,
-  wordFor,
+  type LevelMeterBand,
   type LevelMeterValueText,
 };
 
@@ -67,8 +70,9 @@ const QUIET_BELOW = 0.2;
 const LOUD_FROM = 0.8;
 
 /**
- * The words a meter's level is read as, one for each band of level.
+ * The words a meter's level is read as, one for each band of level, and one for a muted microphone.
  * @claim "The words a meter's level is read" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates)
+ * @claim "and one for a muted microphone." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
  */
 interface LevelMeterValueText {
   /**
@@ -86,16 +90,32 @@ interface LevelMeterValueText {
    * @claim "From -12 dBFS up:" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates)
    */
   loud: string;
+  /**
+   * While `muted`, whatever the level: "Muted".
+   * @claim "While `muted`, whatever the level:" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
+   */
+  muted: string;
+}
+
+/** A band of level, read as one word. @internal */
+type LevelMeterBand = "quiet" | "speaking" | "loud";
+
+/**
+ * The band a meter level from 0 to 1 falls in. @internal
+ * @claim "The band a meter level from 0" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates)
+ */
+function bandFor(level: number): LevelMeterBand {
+  if (level < QUIET_BELOW) return "quiet";
+  return level < LOUD_FROM ? "speaking" : "loud";
 }
 
 /**
- * The word for a meter level from 0 to 1. @internal
- * @claim "The word for a meter level from" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates)
+ * The value screen readers get for each band, the middle of the band as a percentage, so it
+ * changes only when the word does. A muted meter's value is 0. @internal
+ * @claim "The value screen readers get for each" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > is a meter named by its label, from 0 to 100, its value the middle of its word's band)
+ * @claim "A muted meter's value is 0." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
  */
-function wordFor(level: number, words: LevelMeterValueText): string {
-  if (level < QUIET_BELOW) return words.quiet;
-  return level < LOUD_FROM ? words.speaking : words.loud;
-}
+const bandValues = { quiet: 10, speaking: 50, loud: 90, muted: 0 } as const;
 
 /**
  * How fast the bars rise toward a louder level: the time constant, in milliseconds. @internal
@@ -127,7 +147,7 @@ function stepToward(shown: number, goal: number, elapsed: number): number {
 const HOLD_MS = 1500;
 /**
  * How often the reading screen readers hear may change, in milliseconds. @internal
- * @claim "How often the reading screen readers hear" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > updates its ARIA values at most twice a second, however often the level changes)
+ * @claim "How often the reading screen readers hear" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > changes its ARIA values only when its word changes, and at most twice a second)
  */
 const READ_EVERY_MS = 500;
 
@@ -144,23 +164,26 @@ const rowSizes = { sm: "h-3 gap-0.5", md: "h-4 gap-1", lg: "h-6 gap-1" } as cons
 const barSizes = { sm: "w-1", md: "w-1.5", lg: "w-2" } as const;
 
 /**
- * A bar: a pill the row's full height, an outline in the muted foreground while unlit and filled
- * in the tone while lit (`data-highlighted`), so lit and unlit differ in shape as well as colour.
- * Nothing moves or scales: a bar's colours cross-fade, in a third of `--ouro-duration-fast` as it
- * lights and over `--ouro-duration-fast` as it goes out, the same with reduced motion. Under forced
- * colours its edge is CanvasText and a lit bar is Highlight. @internal
+ * A bar: a pill the row's full height, filled in the input colour while unlit, a quiet track with
+ * no outline, and in the tone while lit (`data-highlighted`). Nothing moves or scales: a bar's
+ * colours cross-fade, in a third of `--ouro-duration-fast` as it lights and over
+ * `--ouro-duration-fast` as it goes out, the same with reduced motion. With more contrast an unlit
+ * bar is outlined in the muted foreground. Under forced colours its edge is CanvasText and a lit bar
+ * is Highlight. @internal
  * @claim "Nothing moves or scales: a bar's colours" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter motion > cross-fades a bar as it lights in a third of --ouro-duration-fast, the same with reduced motion, and nothing moves or scales)
+ * @claim "filled in the input colour while unlit," registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as a quiet filled track)
+ * @claim "With more contrast an unlit bar is" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > outlines unlit bars in the muted foreground with more contrast)
  * @claim "Under forced colours its edge is CanvasText" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > keeps an edge on every bar under forced colours, and fills a lit bar with Highlight)
  */
 const barClass =
-  "relative block h-full shrink-0 rounded-full box-border border border-solid border-muted-foreground bg-transparent " +
+  "relative block h-full shrink-0 rounded-full box-border border border-solid border-transparent bg-input " +
   "transition-[background-color,border-color] duration-(--ouro-duration-fast) ease-[ease] " +
-  "data-highlighted:duration-[calc(var(--ouro-duration-fast)/3)] " +
-  "forced-colors:border-[CanvasText] forced-colors:data-highlighted:border-[Highlight] forced-colors:data-highlighted:bg-[Highlight]";
+  "data-highlighted:duration-[calc(var(--ouro-duration-fast)/3)] contrast-more:not-data-highlighted:border-muted-foreground " +
+  "forced-colors:border-[CanvasText] forced-colors:bg-transparent forced-colors:data-highlighted:border-[Highlight] forced-colors:data-highlighted:bg-[Highlight]";
 
 /**
  * A lit bar's colour for each tone. @internal
- * @claim "A lit bar's colour for each tone." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as outlines in the muted foreground)
+ * @claim "A lit bar's colour for each tone." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as a quiet filled track)
  */
 const litTones = {
   primary: "data-highlighted:border-primary data-highlighted:bg-primary",
@@ -169,6 +192,15 @@ const litTones = {
   success: "data-highlighted:border-success data-highlighted:bg-success",
   warning: "data-highlighted:border-warning data-highlighted:bg-warning",
 } as const;
+
+/**
+ * A lit bar's colour while muted, whatever the tone: the muted foreground, and GrayText under
+ * forced colours. @internal
+ * @claim "A lit bar's colour while muted, whatever" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
+ */
+const mutedLit =
+  "data-highlighted:border-muted-foreground data-highlighted:bg-muted-foreground " +
+  "forced-colors:data-highlighted:border-[GrayText] forced-colors:data-highlighted:bg-[GrayText]";
 
 /**
  * LevelMeter's agent side, for Ouro AX's kit. It declares no reads and no actions: audio levels

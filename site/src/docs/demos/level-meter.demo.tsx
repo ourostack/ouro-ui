@@ -16,6 +16,7 @@ function voice(time: number): number {
 export default function LevelMeterDemo(): JSX.Element {
   const [decibels, setDecibels] = useState(-30);
   const [talking, setTalking] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [spoken, setSpoken] = useState(0);
   useEffect(() => {
     if (!talking) return;
@@ -26,15 +27,18 @@ export default function LevelMeterDemo(): JSX.Element {
   const rms = talking ? spoken : 10 ** (decibels / 20);
   return (
     <div className="grid w-full max-w-sm gap-6">
-      <LevelMeter label="Microphone level" value={rms} />
+      <LevelMeter label="Microphone level" value={rms} muted={muted} />
       <div className="flex items-center gap-3">
         <span className="text-sm">Menu row</span>
-        <LevelMeter label="Microphone level in a menu" hideLabel size="sm" bars={5} value={rms} />
+        <LevelMeter label="Microphone level in a menu" hideLabel size="sm" bars={5} value={rms} muted={muted} />
       </div>
       <Slider label="Input level (dBFS)" min={-60} max={0} value={decibels} onValueChange={setDecibels} showValue disabled={talking} />
       <div className="flex gap-3">
         <Button size="sm" variant="outline" tone="secondary" onClick={() => setTalking((current) => !current)}>
           {talking ? "Stop talking" : "Talk"}
+        </Button>
+        <Button size="sm" variant="outline" tone="secondary" aria-pressed={muted} onClick={() => setMuted((current) => !current)}>
+          Mute
         </Button>
       </div>
     </div>

@@ -14,7 +14,8 @@ expectTypeOf<{
   bars: 5;
   size: "sm";
   tone: "primary";
-  valueText: { quiet: "Leise"; speaking: "Spricht"; loud: "Laut" };
+  muted: true;
+  valueText: { quiet: "Leise"; speaking: "Spricht"; loud: "Laut"; muted: "Stumm" };
   className: "mt-2";
   id: "mic-level";
 }>().toExtend<LevelMeterProps>();
@@ -31,6 +32,7 @@ expectTypeOf<{ label: "Microphone level"; value: 0.03; tone: "danger" }>().not.t
 expectTypeOf<{ label: "Microphone level"; value: 0.03; size: "xl" }>().not.toExtend<LevelMeterProps>();
 // valueText needs a word for every band.
 expectTypeOf<{ label: "Microphone level"; value: 0.03; valueText: { quiet: "Leise" } }>().not.toExtend<LevelMeterProps>();
+expectTypeOf<{ label: "Microphone level"; value: 0.03; valueText: { quiet: "Leise"; speaking: "Spricht"; loud: "Laut" } }>().not.toExtend<LevelMeterProps>();
 // @ts-expect-error label is required.
 createElement(LevelMeter, { value: 0.03 });
 

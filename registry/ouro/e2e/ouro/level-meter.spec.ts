@@ -1,10 +1,10 @@
 import { expect, test } from "../ouro-fixtures";
 import { openStory } from "./story";
 
-test("a level meter is a meter named by its label, with its level in words", async ({ page }) => {
+test("a level meter is a meter named by its label, with its level in words, and Muted while muted", async ({ page }) => {
   await openStory(page, "feedback-levelmeter--states");
   const silent = page.getByRole("meter", { name: "Silent microphone" });
-  await expect(silent).toHaveAttribute("aria-valuenow", "0");
+  await expect(silent).toHaveAttribute("aria-valuenow", "10");
   await expect(silent).toHaveAttribute("aria-valuetext", "Quiet");
   const speaking = page.getByRole("meter", { name: "Microphone level" });
   await expect(speaking).toHaveAttribute("aria-valuenow", "50");
@@ -12,6 +12,10 @@ test("a level meter is a meter named by its label, with its level in words", asy
   await expect(speaking.locator("[data-highlighted]")).toHaveCount(4);
   await expect(page.getByRole("meter", { name: "Loud microphone" })).toHaveAttribute("aria-valuetext", "Loud");
   await expect(page.getByRole("meter", { name: "Hidden label" })).toHaveAttribute("aria-valuenow", "50");
+  const muted = page.getByRole("meter", { name: "Muted microphone" });
+  await expect(muted).toHaveAttribute("aria-valuetext", "Muted");
+  await expect(muted).toHaveAttribute("aria-valuenow", "0");
+  await expect(muted.locator("[data-highlighted]")).toHaveCount(4);
 });
 
 test("ordinary speech lights half the bars, every bar the same height, with motion or without", async ({ page }) => {

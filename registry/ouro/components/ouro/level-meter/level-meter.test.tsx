@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { LevelMeter, type LevelMeterProps } from "@/registry/ouro/components/ouro/level-meter/level-meter";
-import { levelFromAmplitude, levelMeterAx, wordFor } from "@/registry/ouro/components/ouro/level-meter/level-meter-styles";
+import { bandFor, levelFromAmplitude, levelMeterAx } from "@/registry/ouro/components/ouro/level-meter/level-meter-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -77,13 +77,13 @@ afterEach(async () => {
   vi.restoreAllMocks();
   for (const node of mounted) node.remove();
   mounted = [];
-  await commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" });
+  await commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none", contrast: "no-preference" });
 });
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("LevelMeter", () => {
-  it("is a meter named by its label, from 0 to 100, with the level rounded and in words", async () => {
+  it("is a meter named by its label, from 0 to 100, its value the middle of its word's band", async () => {
     const { meter, segments } = await render(<LevelMeter label="Microphone level" value={dB(-30)} />);
     await expect.element(page.getByRole("meter", { name: "Microphone level" })).toBeVisible();
     expect(meter.getAttribute("role")).toBe("meter");
@@ -91,6 +91,7 @@ describe("LevelMeter", () => {
     expect(meter.getAttribute("aria-valuemax")).toBe("100");
     expect(meter.getAttribute("aria-valuenow")).toBe("50");
     expect(meter.getAttribute("aria-valuetext")).toBe("Speaking");
+    expect(meter.hasAttribute("data-muted")).toBe(false);
     const name = meter.querySelector("[data-ouro-level-meter-label]")!;
     expect(name.getAttribute("data-ouro-level-meter-label")).toBe("");
     expect(name.getBoundingClientRect().width).toBeGreaterThan(1);
@@ -117,31 +118,31 @@ describe("LevelMeter", () => {
       return [litCount(segments), meter.getAttribute("aria-valuenow")];
     };
     // Quiet speech to a raised voice: -40, -30 and -20 dBFS.
-    expect(await lit(0.01)).toEqual([3, "33"]);
+    expect(await lit(0.01)).toEqual([3, "50"]);
     expect(await lit(dB(-30))).toEqual([4, "50"]);
-    expect(await lit(0.1)).toEqual([5, "67"]);
-    expect(await lit(0)).toEqual([0, "0"]);
-    expect(await lit(1)).toEqual([8, "100"]);
+    expect(await lit(0.1)).toEqual([5, "50"]);
+    expect(await lit(0)).toEqual([0, "10"]);
+    expect(await lit(1)).toEqual([8, "90"]);
     expect(warnings()).toEqual([]);
   });
 
   it("reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates", async () => {
-    const words = { quiet: "Quiet", speaking: "Speaking", loud: "Loud" };
-    expect(wordFor(0, words)).toBe("Quiet");
-    expect(wordFor(0.199, words)).toBe("Quiet");
-    expect(wordFor(0.2, words)).toBe("Speaking");
-    expect(wordFor(0.799, words)).toBe("Speaking");
-    expect(wordFor(0.8, words)).toBe("Loud");
-    expect(wordFor(1, words)).toBe("Loud");
+    expect(bandFor(0)).toBe("quiet");
+    expect(bandFor(0.199)).toBe("quiet");
+    expect(bandFor(0.2)).toBe("speaking");
+    expect(bandFor(0.799)).toBe("speaking");
+    expect(bandFor(0.8)).toBe("loud");
+    expect(bandFor(1)).toBe("loud");
     const text = async (value: number, valueText?: LevelMeterProps["valueText"]) =>
       (await render(<LevelMeter label="Mikrofonpegel" value={value} valueText={valueText} />)).meter.getAttribute("aria-valuetext");
     expect(await text(dB(-55))).toBe("Quiet");
     expect(await text(dB(-30))).toBe("Speaking");
     expect(await text(dB(-5))).toBe("Loud");
-    const german = { quiet: "Leise", speaking: "Spricht", loud: "Laut" };
+    const german = { quiet: "Leise", speaking: "Spricht", loud: "Laut", muted: "Stumm" };
     expect(await text(dB(-55), german)).toBe("Leise");
     expect(await text(dB(-30), german)).toBe("Spricht");
     expect(await text(dB(-5), german)).toBe("Laut");
+    expect((await render(<LevelMeter label="Mikrofonpegel" value={dB(-30)} valueText={german} muted />)).meter.getAttribute("aria-valuetext")).toBe("Stumm");
   });
 
   it("holds its reading at the loudest level of the last 1.5 seconds, so a pause after speech still reads Speaking", async () => {
@@ -154,29 +155,69 @@ describe("LevelMeter", () => {
     await pass(1000);
     expect(reading()).toEqual(["50", "Speaking"]);
     await pass(500);
-    expect(reading()).toEqual(["0", "Quiet"]);
+    expect(reading()).toEqual(["10", "Quiet"]);
     // The loudest of what it heard, not the latest.
     await rerender(<LevelMeter label="Microphone level" value={dB(-5)} />);
     await rerender(<LevelMeter label="Microphone level" value={dB(-30)} />);
     await pass(500);
-    expect(reading()).toEqual(["92", "Loud"]);
+    expect(reading()).toEqual(["90", "Loud"]);
   });
 
-  it("updates its ARIA values at most twice a second, however often the level changes", async () => {
+  it("changes its ARIA values only when its word changes, and at most twice a second", async () => {
     holdClock();
     const { meter, rerender } = await render(<LevelMeter label="Microphone level" value={0} />);
     const changes: MutationRecord[] = [];
     const observer = new MutationObserver((records) => changes.push(...records));
     observer.observe(meter, { attributes: true, attributeFilter: ["aria-valuenow", "aria-valuetext"] });
+    const updates = () => changes.filter((record) => record.attributeName === "aria-valuenow").length;
+    // Three seconds of speech that moves between -40 and -20 dBFS, 15 times a second: one word, so one change.
+    for (let step = 0; step < 45; step++) {
+      await rerender(<LevelMeter label="Microphone level" value={dB(-40 + ((step * 7) % 21))} />);
+      await pass(66);
+    }
+    expect([updates(), changes.filter((record) => record.attributeName === "aria-valuetext").length]).toEqual([1, 1]);
+    expect([meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuetext")]).toEqual(["50", "Speaking"]);
+    changes.splice(0);
     // Two seconds of a level that swings every 66 ms, 15 times a second.
     for (let step = 0; step < 30; step++) {
       await rerender(<LevelMeter label="Microphone level" value={step % 2 ? dB(-50) : dB(-5 - step)} />);
       await pass(66);
     }
     observer.disconnect();
-    const updates = changes.filter((record) => record.attributeName === "aria-valuenow").length;
-    expect(updates).toBeGreaterThan(0);
-    expect(updates).toBeLessThanOrEqual(4);
+    expect(updates()).toBeGreaterThan(0);
+    expect(updates()).toBeLessThanOrEqual(4);
+  });
+
+  it("dims its lit bars while muted, still showing the level, and reads Muted with a value of 0", async () => {
+    holdClock();
+    const meterAt = (value: number, muted?: boolean) => <LevelMeter label="Microphone level" value={value} bars={4} tone="primary" muted={muted} />;
+    const { meter, segments, rerender } = await render(meterAt(dB(-30), true));
+    const reading = () => [meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuetext")];
+    expect(meter.getAttribute("data-muted")).toBe("");
+    expect(reading()).toEqual(["0", "Muted"]);
+    expect(litPattern(segments)).toBe("1100");
+    const muted = themeColor("--muted-foreground");
+    expect([getComputedStyle(segments[0]!).backgroundColor, getComputedStyle(segments[0]!).borderTopColor]).toEqual([muted, muted]);
+    expect(getComputedStyle(segments[3]!).backgroundColor).toBe(themeColor("--input"));
+    // A louder voice while muted lights more bars, and the reading stays.
+    await rerender(meterAt(dB(-5), true));
+    await pass(600);
+    expect(litPattern(segments)).toBe("1111");
+    expect(reading()).toEqual(["0", "Muted"]);
+    // Unmuted, the bars take the tone and the reading the level's word.
+    await rerender(meterAt(dB(-5)));
+    expect(meter.hasAttribute("data-muted")).toBe(false);
+    expect(reading()).toEqual(["90", "Loud"]);
+    await expect.poll(() => getComputedStyle(segments[0]!).backgroundColor).toBe(themeColor("--primary"));
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    vi.useRealTimers();
+    // Under forced colours a muted lit bar is GrayText.
+    await commands.emulateMedia({ forcedColors: "active" });
+    const forced = await render(meterAt(dB(-30), true));
+    expect(getComputedStyle(forced.segments[0]!).backgroundColor).toBe(themeColor("GrayText"));
+    expect(getComputedStyle(forced.segments[0]!).borderTopColor).toBe(themeColor("GrayText"));
+    expect(getComputedStyle(forced.segments[3]!).borderTopColor).toBe(themeColor("CanvasText"));
+    expect(warnings()).toEqual([]);
   });
 
   it("is no live region, so nothing is announced as the level changes", async () => {
@@ -260,13 +301,13 @@ describe("LevelMeter", () => {
       const { meter, segments } = await render(<LevelMeter label="Level" value={value} bars={4} />);
       return [meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuetext"), litPattern(segments)];
     };
-    expect(await shown(1.5)).toEqual(["100", "Loud", "1111"]);
-    expect(await shown(-0.5)).toEqual(["0", "Quiet", "0000"]);
-    expect(await shown(Number.NaN)).toEqual(["0", "Quiet", "0000"]);
+    expect(await shown(1.5)).toEqual(["90", "Loud", "1111"]);
+    expect(await shown(-0.5)).toEqual(["10", "Quiet", "0000"]);
+    expect(await shown(Number.NaN)).toEqual(["10", "Quiet", "0000"]);
     expect(warnings()).toEqual(Array(3).fill("[ouro-ui] LevelMeter: value is a linear amplitude from 0 to 1, such as an analyser's RMS. Fix: <LevelMeter value={rms}>."));
   });
 
-  it("re-renders and changes the page only when a bar lights or goes out", async () => {
+  it("re-renders between values only when a bar lights or goes out or the word changes, and changes the page only there", async () => {
     holdClock();
     let commits = 0;
     const counted = (value: number) => (
@@ -287,19 +328,25 @@ describe("LevelMeter", () => {
     expect(commits).toBeGreaterThanOrEqual(9);
     expect(commits).toBeLessThanOrEqual(12);
     changes.splice(0);
-    // A level within the same lit bar changes nothing; one that crosses changes only those bars.
-    // Between two of the reading's checks (every 500 ms, at 2500 and 3000 here).
+    // A level within the same lit bar and word changes nothing, across two of the reading's checks (every 500 ms).
     await rerender(counted(dB(-30)));
     await pass(600);
     changes.splice(0);
     await rerender(counted(dB(-29)));
-    await pass(300);
+    await pass(1000);
     expect(changes).toEqual([]);
-    await rerender(counted(dB(-12)));
-    await pass(90);
-    observer.disconnect();
+    // One that crosses bars changes only those bars, and the reading once its word changes at the next check.
+    await rerender(counted(dB(-10)));
+    await pass(200);
     expect(changes.every((record) => record.attributeName === "data-highlighted" && (record.target as Element).getAttribute("data-ouro-part") === "segment")).toBe(true);
-    expect(changes.map((record) => segments.indexOf(record.target as HTMLElement))).toEqual([4, 5]);
+    expect(changes.map((record) => segments.indexOf(record.target as HTMLElement))).toEqual([4, 5, 6]);
+    changes.splice(0);
+    await pass(300);
+    observer.disconnect();
+    expect(changes.map((record) => [record.target, record.attributeName])).toEqual([
+      [meter, "aria-valuenow"],
+      [meter, "aria-valuetext"],
+    ]);
   });
 
   it("draws bars 12, 16 and 24px high, md by default", async () => {
@@ -314,20 +361,28 @@ describe("LevelMeter", () => {
     expect(await measure("lg")).toEqual([24, 8, 4]);
   });
 
-  it("lights its bars in the tone's colour, success by default, and draws unlit bars as outlines in the muted foreground", async () => {
+  it("lights its bars in the tone's colour, success by default, and draws unlit bars as a quiet filled track", async () => {
     const colours = async (tone?: LevelMeterProps["tone"]) => {
       const { segments } = await render(<LevelMeter label="Level" value={dB(-30)} bars={4} tone={tone} />);
       const lit = getComputedStyle(segments[0]!);
       const unlit = getComputedStyle(segments[3]!);
-      return { fill: lit.backgroundColor, edge: lit.borderTopColor, unlitFill: unlit.backgroundColor, unlitEdge: unlit.borderTopColor, unlitWidth: unlit.borderTopWidth, unlitStyle: unlit.borderTopStyle };
+      return { fill: lit.backgroundColor, edge: lit.borderTopColor, unlitFill: unlit.backgroundColor, unlitEdge: unlit.borderTopColor };
     };
-    const muted = themeColor("--muted-foreground");
+    const track = themeColor("--input");
     const defaults = await colours();
-    expect(defaults).toEqual({ fill: themeColor("--success"), edge: themeColor("--success"), unlitFill: "rgba(0, 0, 0, 0)", unlitEdge: muted, unlitWidth: "1px", unlitStyle: "solid" });
+    expect(defaults).toEqual({ fill: themeColor("--success"), edge: themeColor("--success"), unlitFill: track, unlitEdge: "rgba(0, 0, 0, 0)" });
     for (const [tone, variable] of [["primary", "--primary"], ["secondary", "--muted-foreground"], ["destructive", "--destructive"], ["success", "--success"], ["warning", "--warning"]] as const) {
       const shown = await colours(tone);
-      expect([shown.fill, shown.edge, shown.unlitEdge], tone).toEqual([themeColor(variable), themeColor(variable), muted]);
+      expect([shown.fill, shown.edge, shown.unlitFill, shown.unlitEdge], tone).toEqual([themeColor(variable), themeColor(variable), track, "rgba(0, 0, 0, 0)"]);
     }
+  });
+
+  it("outlines unlit bars in the muted foreground with more contrast", async () => {
+    await commands.emulateMedia({ contrast: "more" });
+    const { segments } = await render(<LevelMeter label="Level" value={dB(-30)} bars={4} />);
+    expect(getComputedStyle(segments[3]!).borderTopColor).toBe(themeColor("--muted-foreground"));
+    expect(getComputedStyle(segments[3]!).backgroundColor).toBe(themeColor("--input"));
+    expect(getComputedStyle(segments[0]!).borderTopColor).toBe(themeColor("--success"));
   });
 
   it("keeps an edge on every bar under forced colours, and fills a lit bar with Highlight", async () => {

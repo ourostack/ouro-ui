@@ -13,15 +13,18 @@ import { LevelMeter } from "@/registry/ouro/components/ouro/level-meter/level-me
 ```tsx
 <LevelMeter label="Microphone level" value={rms} />
 <LevelMeter label="Microphone level" hideLabel value={rms} size="sm" bars={5} />
+<LevelMeter label="Microphone level" value={rms} muted={micMuted} />
 ```
 
 ## Usage
 
-The bars move as an audio meter's do: they rise within about 50 ms and fall over about 350 ms, so they hold between syllables. Every bar is the row's full height: lit bars are filled in the tone and unlit ones are outlines. Nothing moves or scales; a bar's colours cross-fade as it lights and goes out, the same with reduced motion. Under forced colours each bar keeps an edge and a lit one is Highlight.
+The bars move as an audio meter's do: they rise within about 50 ms and fall over about 350 ms, so they hold between syllables. Every bar is the row's full height: lit bars are filled in the tone and unlit ones are a quiet track with no outline. Nothing moves or scales; a bar's colours cross-fade as it lights and goes out, the same with reduced motion. With more contrast unlit bars are outlined, and under forced colours each bar keeps an edge and a lit one is Highlight.
 
-It is a `meter` named by its label, from 0 to 100, with its level rounded and in words ("Quiet", "Speaking", "Loud"). What it reports is the loudest level of the last 1.5 seconds, so a person who speaks and then moves to the meter hears "Speaking", and its ARIA values change at most twice a second. It is no live region: screen readers read it when the person goes to it, and it never announces the level as it changes.
+With `muted` the lit bars dim to the muted foreground and still follow the level, so a person who speaks while muted sees that the microphone hears them and that nobody else does.
 
-Every update is cheap: the meter re-renders, and changes the page, only when a bar lights or goes out, and the bars that keep their state are memoised.
+It is a `meter` named by its label, from 0 to 100, with its level in words ("Quiet", "Speaking", "Loud", or "Muted") and a value at the middle of the word's band (10, 50 or 90; 0 while muted). What it reports is the loudest level of the last 1.5 seconds, so a person who speaks and then moves to the meter hears "Speaking", and its ARIA values change only when the word does, at most twice a second, so a screen reader has nothing new to repeat while the person speaks. It is no live region: screen readers read it when the person goes to it, and it never announces the level as it changes.
+
+A new `value` re-renders the meter once. Between values it re-renders only when a bar lights or goes out or the word changes, and the page changes only for those bars and, when the word changes, the reading. The bars that keep their state are memoised.
 
 Its agent side, `levelMeterAx` in `level-meter-styles.ts`, declares no agent reads and no actions: audio levels stay with the person.
 
@@ -40,11 +43,12 @@ Type: `LevelMeterProps`.
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still use it. |
 | `id` | `string` |  | The meter's id, for `aria-describedby` elsewhere on the page. |
 | `label` (required) | `string` |  | What the meter measures: "Microphone level". It names the meter for screen readers. |
+| `muted` | `boolean` |  | The microphone is muted: the lit bars dim to the muted foreground, whatever the tone, and still follow `value`, so the person can tell the microphone hears them while nobody else does. Screen readers hear "Muted" (`valueText.muted`) and a value of 0, whatever the level. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | The meter's size: bars 12px, 16px or 24px high. `sm` fits a menu row. |
-| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"success"` | Color role from the theme for the lit bars, named after its token. Unlit bars are always outlines in the muted foreground, so a silent meter is muted whatever its tone. `secondary` fills lit bars in the muted foreground. |
+| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"success"` | Color role from the theme for the lit bars, named after its token. Unlit bars are always a quiet track in the input colour, so a silent meter is quiet whatever its tone. `secondary` fills lit bars in the muted foreground, as `muted` does. |
 | `value` (required) | `number` |  | The microphone's linear amplitude now, from 0 (silence) to 1 (full scale): the RMS of the samples an `AnalyserNode` gives, fed up to about 15 times a second. The meter maps it to its bars on a decibel scale from -60 dBFS (no bar) to 0 dBFS (every bar), so ordinary speech, around -40 to -20 dBFS, lights 3 to 5 of 8 bars. An amplitude below 0 or not a number shows as silence, and one above 1 as full scale. To get it: `analyser.getFloatTimeDomainData(samples)`, then `Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length)`. |
-| `valueText` | `LevelMeterValueText` | { quiet: "Quiet", speaking: "Speaking", loud: "Loud" } | The words screen readers hear for the loudest level of the last 1.5 seconds: below -48 dBFS, up to -12 dBFS, and from there. Translate them with the rest of your interface. |
+| `valueText` | `LevelMeterValueText` | { quiet: "Quiet", speaking: "Speaking", loud: "Loud", muted: "Muted" } | The words screen readers hear for the loudest level of the last 1.5 seconds: below -48 dBFS, up to -12 dBFS, and from there, and the word while `muted`. Translate them with the rest of your interface. |
 
 ## Don't use
 

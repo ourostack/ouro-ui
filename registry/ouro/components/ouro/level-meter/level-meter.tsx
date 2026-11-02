@@ -2,6 +2,8 @@
 
 import { memo, useEffect, useId, useRef, useState, type JSX, type Ref } from "react";
 import {
+  bandFor,
+  bandValues,
   barClass,
   BARS_DEFAULT,
   BARS_MAX,
@@ -10,10 +12,11 @@ import {
   HOLD_MS,
   levelFromAmplitude,
   litTones,
+  mutedLit,
   READ_EVERY_MS,
   rowSizes,
   stepToward,
-  wordFor,
+  type LevelMeterBand,
   type LevelMeterValueText,
 } from "@/registry/ouro/components/ouro/level-meter/level-meter-styles";
 import { toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
@@ -34,7 +37,6 @@ export interface LevelMeterProps {
    * silence, and one above 1 as full scale. To get it: `analyser.getFloatTimeDomainData(samples)`,
    * then `Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length)`.
    * @claim "The microphone's linear amplitude now, from" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > maps a linear amplitude to the bars on a decibel scale from -60 dBFS to 0, so speech lights 3 to 5 of 8 bars)
-   * @claim "The microphone's linear amplitude now, from" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > re-renders and changes the page only when a bar lights or goes out)
    * @claim "The meter maps it to its" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > maps a linear amplitude to the bars on a decibel scale from -60 dBFS to 0, so speech lights 3 to 5 of 8 bars)
    * @claim "An amplitude below 0 or not a" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > shows an amplitude outside 0 to 1, or not a number, as silence or full scale, and says so in development)
    */
@@ -61,11 +63,11 @@ export interface LevelMeterProps {
    */
   size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
   /**
-   * Color role from the theme for the lit bars, named after its token. Unlit bars are always
-   * outlines in the muted foreground, so a silent meter is muted whatever its tone. `secondary`
-   * fills lit bars in the muted foreground.
+   * Color role from the theme for the lit bars, named after its token. Unlit bars are always a
+   * quiet track in the input colour, so a silent meter is quiet whatever its tone. `secondary`
+   * fills lit bars in the muted foreground, as `muted` does.
    * @default "success"
-   * @claim "Unlit bars are always outlines in the" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as outlines in the muted foreground)
+   * @claim "Unlit bars are always a quiet track" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as a quiet filled track)
    */
   tone?:
     | "primary"
@@ -76,9 +78,18 @@ export interface LevelMeterProps {
     | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
     | undefined;
   /**
+   * The microphone is muted: the lit bars dim to the muted foreground, whatever the tone, and still
+   * follow `value`, so the person can tell the microphone hears them while nobody else does.
+   * Screen readers hear "Muted" (`valueText.muted`) and a value of 0, whatever the level.
+   * @claim "The microphone is muted: the lit bars" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
+   * @claim "and a value of 0, whatever the level." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
+   */
+  muted?: boolean | undefined;
+  /**
    * The words screen readers hear for the loudest level of the last 1.5 seconds: below -48
-   * dBFS, up to -12 dBFS, and from there. Translate them with the rest of your interface.
-   * @default { quiet: "Quiet", speaking: "Speaking", loud: "Loud" }
+   * dBFS, up to -12 dBFS, and from there, and the word while `muted`. Translate them with the
+   * rest of your interface.
+   * @default { quiet: "Quiet", speaking: "Speaking", loud: "Loud", muted: "Muted" }
    * @claim "The words screen readers hear for" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates)
    * @claim "The words screen readers hear for" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > holds its reading at the loudest level of the last 1.5 seconds, so a pause after speech still reads Speaking)
    */
@@ -102,7 +113,7 @@ export interface LevelMeterProps {
   color?: { 'Use <LevelMeter tone="success">': never };
 }
 
-const defaultValueText: LevelMeterValueText = { quiet: "Quiet", speaking: "Speaking", loud: "Loud" };
+const defaultValueText: LevelMeterValueText = { quiet: "Quiet", speaking: "Speaking", loud: "Loud", muted: "Muted" };
 
 /**
  * The level the bars show: `level` followed with an audio meter's ballistics, fast up and slow
@@ -133,14 +144,14 @@ function useShownLevel(level: number, bars: number): number {
 }
 
 /**
- * What screen readers hear, as a whole percentage: the loudest level of the last `HOLD_MS`,
- * checked every `READ_EVERY_MS`, so a pause after speech still reads as speech and the ARIA
- * values change at most twice a second.
- * @claim "What screen readers hear, as a whole" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > holds its reading at the loudest level of the last 1.5 seconds, so a pause after speech still reads Speaking)
- * @claim "What screen readers hear, as a whole" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > updates its ARIA values at most twice a second, however often the level changes)
+ * The band screen readers hear: that of the loudest level of the last `HOLD_MS`, checked every
+ * `READ_EVERY_MS`, so a pause after speech still reads as speech, and the ARIA values change only
+ * when the band does, at most twice a second.
+ * @claim "The band screen readers hear: that of" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > holds its reading at the loudest level of the last 1.5 seconds, so a pause after speech still reads Speaking)
+ * @claim "The band screen readers hear: that of" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > changes its ARIA values only when its word changes, and at most twice a second)
  */
-function useReading(level: number): number {
-  const [reading, setReading] = useState(() => Math.round(level * 100));
+function useReading(level: number): LevelMeterBand {
+  const [band, setBand] = useState(() => bandFor(level));
   const latest = useRef(level);
   const heard = useRef<Array<readonly [time: number, level: number]>>([]);
   useEffect(() => {
@@ -152,11 +163,12 @@ function useReading(level: number): number {
       const now = performance.now();
       heard.current = heard.current.filter(([time]) => now - time <= HOLD_MS);
       const loudest = heard.current.reduce((most, [, past]) => Math.max(most, past), latest.current);
-      setReading(Math.round(loudest * 100));
+      // The same band bails out of the render, so nothing changes until the word does.
+      setBand(bandFor(loudest));
     }, READ_EVERY_MS);
     return () => clearInterval(timer);
   }, []);
-  return reading;
+  return band;
 }
 
 interface BarProps {
@@ -180,18 +192,24 @@ const Bar = memo(function Bar({ lit, className }: BarProps): JSX.Element {
  *
  * The bars move as an audio meter's do: they rise within about 50 ms and fall over about 350 ms,
  * so they hold between syllables. Every bar is the row's full height: lit bars are filled in the
- * tone and unlit ones are outlines. Nothing moves or scales; a bar's colours cross-fade as it lights
- * and goes out, the same with reduced motion. Under forced colours each bar keeps an edge and a lit
- * one is Highlight.
+ * tone and unlit ones are a quiet track with no outline. Nothing moves or scales; a bar's colours
+ * cross-fade as it lights and goes out, the same with reduced motion. With more contrast unlit bars
+ * are outlined, and under forced colours each bar keeps an edge and a lit one is Highlight.
  *
- * It is a `meter` named by its label, from 0 to 100, with its level rounded and in words ("Quiet",
- * "Speaking", "Loud"). What it reports is the loudest level of the last 1.5 seconds, so a person
- * who speaks and then moves to the meter hears "Speaking", and its ARIA values change at most twice
- * a second. It is no live region: screen readers read it when the person goes to it, and it never
+ * With `muted` the lit bars dim to the muted foreground and still follow the level, so a person
+ * who speaks while muted sees that the microphone hears them and that nobody else does.
+ *
+ * It is a `meter` named by its label, from 0 to 100, with its level in words ("Quiet",
+ * "Speaking", "Loud", or "Muted") and a value at the middle of the word's band (10, 50 or 90; 0
+ * while muted). What it reports is the loudest level of the last 1.5 seconds, so a person who
+ * speaks and then moves to the meter hears "Speaking", and its ARIA values change only when the
+ * word does, at most twice a second, so a screen reader has nothing new to repeat while the person
+ * speaks. It is no live region: screen readers read it when the person goes to it, and it never
  * announces the level as it changes.
  *
- * Every update is cheap: the meter re-renders, and changes the page, only when a bar lights or
- * goes out, and the bars that keep their state are memoised.
+ * A new `value` re-renders the meter once. Between values it re-renders only when a bar lights
+ * or goes out or the word changes, and the page changes only for those bars and, when the word
+ * changes, the reading. The bars that keep their state are memoised.
  *
  * Its agent side, `levelMeterAx` in `level-meter-styles.ts`, declares no agent reads and no
  * actions: audio levels stay with the person.
@@ -202,14 +220,17 @@ const Bar = memo(function Bar({ lit, className }: BarProps): JSX.Element {
  * @claim "The app feeds `value`, the microphone's linear" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > maps a linear amplitude to the bars on a decibel scale from -60 dBFS to 0, so speech lights 3 to 5 of 8 bars)
  * @claim "The bars move as an audio meter's" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > rises within about 50 ms and falls over about 350 ms, the same with reduced motion)
  * @claim "Every bar is the row's full height:" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights whole bars from the start edge in either direction, every bar the full height of the row)
- * @claim "Every bar is the row's full height:" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as outlines in the muted foreground)
+ * @claim "Every bar is the row's full height:" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > lights its bars in the tone's colour, success by default, and draws unlit bars as a quiet filled track)
+ * @claim "With more contrast unlit bars are outlined," registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > outlines unlit bars in the muted foreground with more contrast)
  * @claim "Nothing moves or scales; a bar's colours" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter motion > cross-fades a bar as it lights in a third of --ouro-duration-fast, the same with reduced motion, and nothing moves or scales)
- * @claim "Under forced colours each bar keeps an" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > keeps an edge on every bar under forced colours, and fills a lit bar with Highlight)
- * @claim "It is a `meter` named by its" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > is a meter named by its label, from 0 to 100, with the level rounded and in words)
+ * @claim "With `muted` the lit bars dim to" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > dims its lit bars while muted, still showing the level, and reads Muted with a value of 0)
+ * @claim "and under forced colours each bar keeps" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > keeps an edge on every bar under forced colours, and fills a lit bar with Highlight)
+ * @claim "It is a `meter` named by its" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > is a meter named by its label, from 0 to 100, its value the middle of its word's band)
  * @claim "What it reports is the loudest level" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > holds its reading at the loudest level of the last 1.5 seconds, so a pause after speech still reads Speaking)
- * @claim "What it reports is the loudest level" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > updates its ARIA values at most twice a second, however often the level changes)
+ * @claim "What it reports is the loudest level" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > changes its ARIA values only when its word changes, and at most twice a second)
  * @claim "It is no live region: screen readers" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > is no live region, so nothing is announced as the level changes)
- * @claim "Every update is cheap: the meter re-renders," registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > re-renders and changes the page only when a bar lights or goes out)
+ * @claim "A new `value` re-renders the meter once." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > re-renders between values only when a bar lights or goes out or the word changes, and changes the page only there)
+ * @claim "Between values it re-renders only when a" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > re-renders between values only when a bar lights or goes out or the word changes, and changes the page only there)
  * @claim "Its agent side, `levelMeterAx` in `level-meter-styles.ts`," registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > declares no agent reads and no actions)
  * @group Feedback
  * @see https://ui.ouro.bot/docs/level-meter
@@ -217,6 +238,7 @@ const Bar = memo(function Bar({ lit, className }: BarProps): JSX.Element {
  * @example
  * <LevelMeter label="Microphone level" value={rms} />
  * <LevelMeter label="Microphone level" hideLabel value={rms} size="sm" bars={5} />
+ * <LevelMeter label="Microphone level" value={rms} muted={micMuted} />
  */
 export function LevelMeter(props: LevelMeterProps): JSX.Element {
   const {
@@ -226,6 +248,7 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
     bars: barsProp = BARS_DEFAULT,
     size: sizeProp = "md",
     tone: toneProp = "success",
+    muted = false,
     valueText = defaultValueText,
     className,
     id,
@@ -241,7 +264,7 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
   const tone = Object.hasOwn(litTones, toneProp) ? (toneProp as keyof typeof litTones) : "success";
   const level = levelFromAmplitude(value);
   const lit = Math.round(useShownLevel(level, count) * count);
-  const reading = useReading(level);
+  const band = useReading(level);
   // An id of our own puts aria-labelledby in the server HTML too.
   const labelId = `${useId()}-label`;
   useAppearanceClassNameCheck(
@@ -267,7 +290,7 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const barClassName = cn(barClass, barSizes[size], litTones[tone]);
+  const barClassName = cn(barClass, barSizes[size], muted ? mutedLit : litTones[tone]);
   return (
     <div
       ref={ref}
@@ -276,9 +299,10 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
       aria-labelledby={labelId}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={reading}
-      aria-valuetext={wordFor(reading / 100, valueText)}
+      aria-valuenow={bandValues[muted ? "muted" : band]}
+      aria-valuetext={valueText[muted ? "muted" : band]}
       data-ouro="level-meter"
+      data-muted={muted ? "" : undefined}
       className={cn("grid w-fit gap-1.5", className)}
     >
       <span id={labelId} data-ouro-level-meter-label="" className={hideLabel ? "sr-only" : "text-sm font-medium text-foreground"}>

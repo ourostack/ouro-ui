@@ -43,8 +43,8 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {};
 
 /**
- * Silence, ordinary speech (about -30 dBFS) and a loud voice (about -6 dBFS), the three sizes, a
- * tone, and one with a hidden label.
+ * Silence, ordinary speech (about -30 dBFS), a loud voice (about -6 dBFS) and a muted microphone
+ * hearing ordinary speech, the three sizes, a tone, and one with a hidden label.
  */
 export const States: Story = {
   parameters: { screenshot: { name: "level-meter-states" } },
@@ -53,6 +53,7 @@ export const States: Story = {
       <LevelMeter label="Silent microphone" value={0} />
       <LevelMeter label="Microphone level" value={0.0316} />
       <LevelMeter label="Loud microphone" value={0.5} />
+      <LevelMeter label="Muted microphone" muted value={0.0316} />
       <LevelMeter label="Small meter" size="sm" bars={5} value={0.06} />
       <LevelMeter label="Large meter" size="lg" bars={12} value={0.01} />
       <LevelMeter label="Primary tone" tone="primary" value={0.06} />
