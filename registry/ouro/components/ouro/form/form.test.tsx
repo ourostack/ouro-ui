@@ -12,7 +12,7 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
-import { FormErrorsContext, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
+import { FormErrorsContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -683,6 +683,47 @@ describe("Form", () => {
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "new@example.com");
     expect(document.activeElement).toBe(input("email"));
     expect(input("bio").getAttribute("aria-invalid")).toBe("true");
+  });
+});
+
+/** A radio group built on Field, as RadioGroup is: each radio takes the field's validity. */
+function Sizes({ picked, pickedDisabled = false }: { picked?: string | undefined; pickedDisabled?: boolean }) {
+  const field = useField()!;
+  return (
+    <div role="radiogroup" aria-labelledby={field.labelId}>
+      {["Small", "Medium", "Large"].map((size) => (
+        <span
+          key={size}
+          role="radio"
+          tabIndex={-1}
+          aria-label={size}
+          aria-checked={size === picked}
+          aria-invalid={field.invalid || undefined}
+          aria-disabled={(pickedDisabled && size === picked) || undefined}
+        />
+      ))}
+    </div>
+  );
+}
+
+describe("Form focus in a radio group", () => {
+  it.each([
+    ["the first radio when none is picked", undefined, false, "Small"],
+    ["the picked radio", "Large", false, "Large"],
+    ["the first radio when the picked one is disabled", "Large", true, "Small"],
+  ])("moves focus to %s when the group's error arrives", async (_name, picked, pickedDisabled, focused) => {
+    const node = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <Field label="Size" name="size">
+          <Sizes picked={picked} pickedDisabled={pickedDisabled} />
+        </Field>
+      </Form>
+    );
+    const { rerender } = await render(node(undefined));
+    await rerender(node({ size: "That size is sold out." }));
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(focused);
+    expect(document.activeElement!.getAttribute("aria-invalid")).toBe("true");
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

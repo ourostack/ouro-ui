@@ -82,9 +82,11 @@ const listClass =
  * `sm` with a fine pointer. The selected tab takes the foreground color, the others are
  * muted. The focus outline is inset, so the scrolling row never clips it. Under forced colours,
  * where the fill and the underline drop away, each tab draws a border, and the selected tab is
- * filled with Highlight and lettered in HighlightText.
+ * filled with Highlight and lettered in HighlightText. Hover lifts only the other tabs' text, so
+ * the pointer resting on the selected tab never turns its letters back to the page's text colour.
  *
  * @internal
+ * @claim "Hover lifts only the other tabs'" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > keeps HighlightText on the selected tab under forced colours while the pointer rests on it)
  * @claim "Under forced colours, where the fill" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > draws each tab's edge under forced colours, where its fill and the underline drop away)
  * @claim "Under forced colours, where the fill" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > shows which tab is selected under forced colours: Highlight behind it and HighlightText on it)
  * @claim "A tab: 44px tall with 16px" registry/ouro/components/ouro/tabs/tabs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.touch.test.tsx::keeps 44px tabs with 16px text on a phone, also in landscape)
@@ -97,7 +99,7 @@ const tabClass =
   "rounded-md border-0 bg-transparent text-base font-medium text-muted-foreground sm:pointer-fine:text-sm " +
   "forced-colors:border forced-colors:border-solid " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "not-data-disabled:pointer-fine:hover:text-foreground data-active:text-foreground " +
+  "not-data-disabled:not-data-active:pointer-fine:hover:text-foreground data-active:text-foreground " +
   "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";

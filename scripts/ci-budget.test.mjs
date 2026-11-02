@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deflateRawSync } from "node:zlib";
-import { baseline, budget, criticalPath, freshAttempt, jobGraph, judge, percentile, previousFull, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
+import { baseline, budget, criticalPath, earlierWork, freshAttempt, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const workflow = `name: CI
 jobs:
@@ -210,11 +210,62 @@ test("main's baseline carries the median work time of the same runs, once all of
   assert.equal(partial.workSeconds, null);
   const main = baseline([run(10, 6), run(11, 7), run(9, 5), run(12, 8), run(13, 9)]);
   assert.equal(main.workSeconds, 7 * 60);
-  const record = (full, fallback, work) => ({ full, fallback, workPathSeconds: work * 60 });
+  const record = (full, fallback, work, conclusion = "success") => ({ full, fallback, workPathSeconds: work * 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "browser (1/2)", conclusion }, { job: "ci-budget", conclusion: "failure" }] });
   assert.equal(previousFull([null, record(false, false, 3), record(true, true, 20), record(true, false, 9), record(true, false, 5)]), 9 * 60);
   assert.equal(previousFull([record(false, false, 3)]), null);
   // A record from before work times were kept does not count.
   assert.equal(previousFull([{ full: true, fallback: false, criticalPathSeconds: 600 }]), null);
+  // Nor does a run that did not pass: a flaky push fail-fast did not cancel (a fork's pull request, a
+  // rate-limit stop, its deadline) ended its chain early. ci-budget's own verdict and fail-fast do not count.
+  assert.equal(previousFull([record(true, false, 4, "failure"), record(true, false, 9)]), 9 * 60);
+  assert.equal(previousFull([record(true, false, 4, "cancelled")]), null);
+  assert.equal(previousFull([{ ...record(true, false, 9), jobs: [...record(true, false, 9).jobs, { job: "fail-fast", conclusion: "failure" }] }]), 9 * 60);
+  assert.equal(previousFull([{ full: true, fallback: false, workPathSeconds: 600 }]), null, "a record without its jobs shows no pass");
+});
+
+/**
+ * The previous full run's work time from a pull request's earlier runs (newest first, as `[id, record]`
+ * with a null record for a run that kept none), and the pages and records it read.
+ */
+async function previousWork(runs, runId = "this") {
+  const pages = [];
+  const read = [];
+  const seconds = await previousRunWorkFrom({
+    runId,
+    runsPage: async (page) => {
+      pages.push(page);
+      return runs.slice((page - 1) * previousRuns.perPage, page * previousRuns.perPage).map(([id]) => ({ id }));
+    },
+    recordOf: async (id) => {
+      read.push(id);
+      return runs.find(([candidate]) => candidate === id)[1];
+    },
+  });
+  return { minutes: seconds === null ? null : seconds / 60, pages, read };
+}
+
+test("the previous full run is read past the runs that kept no timings, as fail-fast's cancelled ones, up to five that did, within three pages", async () => {
+  assert.deepEqual(previousRuns, { records: 5, pages: 3, perPage: 20 });
+  const record = (full, fallback, work, conclusion = "success") => ({ full, fallback, workPathSeconds: work * 60, jobs: [{ job: "plan", conclusion: "success" }, { job: "browser (1/2)", conclusion }, { job: "ci-budget", conclusion: "failure" }] });
+  // As before when every run kept its timings: this run left out, newest first, the first full one, read no further.
+  const kept = [["this", null], ["a", record(false, false, 3)], ["b", record(true, true, 20)], ["c", record(true, false, 9)], ["d", record(true, false, 5)]];
+  assert.deepEqual(await previousWork(kept), { minutes: 9, pages: [1], read: ["a", "b", "c"] });
+  // Nor further than five that kept timings, none of them full.
+  const reduced = Array.from({ length: 7 }, (_, index) => [`r${index}`, record(false, false, 3)]);
+  assert.deepEqual(await previousWork([...reduced, ["full", record(true, false, 9)]]), { minutes: null, pages: [1], read: ["r0", "r1", "r2", "r3", "r4"] });
+  // A flaky push that fail-fast did not cancel kept timings but did not pass: it counts toward the five, and is passed over.
+  assert.deepEqual(await previousWork([["flaky", record(true, false, 4, "failure")], ["full", record(true, false, 9)]]), { minutes: 9, pages: [1], read: ["flaky", "full"] });
+  // Six cancelled pushes no longer hide the full run before them, so its verdict stays a warning.
+  const cancelled = Array.from({ length: 6 }, (_, index) => [`x${index}`, null]);
+  const found = await previousWork([...cancelled, ["full", record(true, false, 9)]]);
+  assert.deepEqual(found, { minutes: 9, pages: [1], read: [...cancelled.map(([id]) => id), "full"] });
+  assert.deepEqual(verdict({ work: 12, earlier: null }), { fail: true, reason: "confirm", warning: null });
+  assert.deepEqual(verdict({ work: 12, earlier: found.minutes }), { fail: false, warning: "unconfirmed" });
+  // On the second page, and never past the third.
+  const many = Array.from({ length: 25 }, (_, index) => [`y${index}`, null]);
+  assert.deepEqual((await previousWork([...many, ["full", record(true, false, 9)]])).minutes, 9);
+  const none = await previousWork(Array.from({ length: 100 }, (_, index) => [`z${index}`, null]));
+  assert.deepEqual({ minutes: none.minutes, pages: none.pages, read: none.read.length }, { minutes: null, pages: [1, 2, 3], read: 60 });
 });
 
 const min = 60;
@@ -253,6 +304,56 @@ test("the ceiling is on work time too, 15 minutes or half again main's work, whi
   // Main at 12 minutes of work: the ceiling is 18, past main's and 3 minutes it is a regression first.
   assert.deepEqual(verdict({ critical: 25, work: 18.5, main: 12, earlier: 19 }), { fail: true, reason: "ceiling", warning: null });
   assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: 16 }), { fail: true, reason: "regression", warning: null });
+});
+
+test("an earlier attempt confirms only when every job of it passed: after a cancel, a failure or a skip a failure caused, the previous full run decides", async () => {
+  const graph = jobGraph(workflow);
+  const at = (attempt, list) => list.map((entry) => ({ ...entry, run_attempt: attempt }));
+  const fresh = at(2, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 13), job("ci", 13, 13, 14), job("ci-budget", 14, 14, 15)]);
+  // As probe run 41331160904 left its first attempt: checks failed, fail-fast cancelled the rest,
+  // and ci-budget ended cancelled with its end before its start.
+  const cancelled = at(1, [job("plan", 0, 0, 1), job("checks", 1, 1, 2, "failure"), job("browser (1/2)", 1, 1, 3, "cancelled"), job("ci", 3, 3, 3, "cancelled"), job("ci-budget", 4, 4, 3.99, "cancelled")]);
+  const whole = at(1, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 12), job("ci", 12, 12, 13), job("ci-budget", 13, 13, 14)]);
+  assert.equal(passedAttempt(cancelled), false);
+  assert.equal(passedAttempt(whole), true);
+  // ci-budget's own verdict and the watcher do not count, and a skip a green run makes too (install-github on a pull request) is a pass.
+  assert.equal(passedAttempt([...whole.slice(0, -1), { ...whole.at(-1), conclusion: "failure" }, { ...job("fail-fast", 0, 0, 14, "cancelled"), run_attempt: 1 }, { ...job("install-github", 0, null, null, "skipped"), run_attempt: 1 }]), true);
+  // A flake that failed fast, with nothing cancelled (fail-fast had stopped watching), and ci-budget still ran.
+  const flaky = at(1, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 2, "failure"), job("ci", 2, 2, 3, "failure"), job("ci-budget", 3, 3, 4)]);
+  assert.equal(passedAttempt(flaky), false);
+  // A dependent skipped because of a failure: motion-coverage after ci failed on coverage.
+  const skippedAfter = at(1, [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 12), job("ci", 12, 12, 13, "failure"), job("motion-coverage", 13, null, null, "skipped"), job("ci-budget", 13, 13, 14)]);
+  assert.equal(passedAttempt(skippedAfter), false);
+  assert.equal(passedAttempt(skippedAfter.filter((entry) => entry.name !== "ci")), true, "the skip alone, as a green run's, would pass");
+  assert.equal(passedAttempt(at(1, [job("ci-budget", 0, 0, 1)])), false, "no job but ci-budget is no evidence");
+  const evidence = (before, previousMinutes) => {
+    const calls = [];
+    const result = earlierWork({
+      attempt: "2",
+      jobs: fresh,
+      graph,
+      attemptJobs: async (number) => (calls.push(`attempt ${number}`), before),
+      previous: async () => (calls.push("previous"), previousMinutes === null ? null : previousMinutes * 60),
+    });
+    return result.then((value) => ({ ...value, minutes: value.seconds === null ? null : value.seconds / 60, calls }));
+  };
+  // A whole attempt 1 still confirms, as before: its own work path, and nothing else read.
+  const confirmed = await evidence(whole, 9);
+  assert.deepEqual({ from: confirmed.from, calls: confirmed.calls }, { from: "attempt 1 of this run", calls: ["attempt 1"] });
+  assert.equal(confirmed.seconds, criticalPath(whole, graph, { work: true }).seconds);
+  // A cancelled one falls back to the previous full run, or to none, so a regression still needs two runs past it.
+  const fallback = await evidence(cancelled, 16);
+  assert.deepEqual({ from: fallback.from, minutes: fallback.minutes, calls: fallback.calls }, { from: "the pull request's previous full run", minutes: 16, calls: ["attempt 1", "previous"] });
+  const none = await evidence(cancelled, null);
+  assert.deepEqual({ seconds: none.seconds, from: none.from }, { seconds: null, from: null });
+  assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: none.minutes }), { fail: true, reason: "confirm", warning: null });
+  assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: fallback.minutes }), { fail: true, reason: "regression", warning: null });
+  for (const before of [flaky, skippedAfter]) assert.deepEqual((await evidence(before, 16)).from, "the pull request's previous full run");
+  // Without it, the cut-short attempt's work time would have excused the regression.
+  assert.deepEqual(verdict({ critical: 25, work: 16, main: 12, earlier: criticalPath(cancelled, graph, { work: true }).seconds / 60 }), { fail: false, warning: "unconfirmed" });
+  // Re-run failed jobs (not afresh) never reads the earlier attempt.
+  const kept = await earlierWork({ attempt: "2", jobs: [...fresh, { ...job("plan", 0, 0, 1), run_attempt: 1 }], graph, attemptJobs: async () => assert.fail("read"), previous: async () => null });
+  assert.deepEqual(kept, { seconds: null, from: null });
 });
 
 test("an earlier attempt confirms only when this attempt ran its jobs afresh, as after Re-run all jobs", () => {
