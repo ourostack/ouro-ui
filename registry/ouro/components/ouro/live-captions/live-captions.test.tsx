@@ -734,6 +734,20 @@ describe("LiveCaptions motion", () => {
     expect(lift(track)).toBeGreaterThan(0);
   });
 
+  it("slides the kept lines up when an interim fragment is merged into the line before it, which wraps", async () => {
+    const a = mara("1", "Shall we start?");
+    const b = jonas("2", "Yes.");
+    const c = mara("3", "First", false);
+    const d = mara("4", "the plan", false);
+    const { track, rerender } = await render(<LiveCaptions label="Captions" lines={[a, b, c, d]} />);
+    await expect.poll(() => track.getAnimations().length).toBe(0);
+    // The service folds the fragment into the line before it, which now wraps over three lines: the
+    // first line comes back over the top edge, and the lines kept from before slide up.
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, mara("3", `First the plan, then the budget, the hiring, the launch and ${long}`)]} />);
+    expect(track.getAnimations().length).toBe(1);
+    expect(lift(track)).toBeGreaterThan(0);
+  });
+
   it("shown again after a hidden Activity, takes its places without a slide", async () => {
     const lines = [mara("1", "Shall we start?"), jonas("2", "Yes."), mara("3", "First, the plan."), jonas("4", "Go on.")];
     const band = (mode: "visible" | "hidden", count: number) => (
