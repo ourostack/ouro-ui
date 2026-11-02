@@ -167,11 +167,8 @@
   }
   .ax-screen > .ax-card-head:first-child,
   .ax-screen > .ax-chat:first-child > .ax-card-head:first-child {
-    display: flex;
-    align-items: center;
-    min-height: 2.5rem;
     margin-inline: -1rem;
-    padding-inline: 1rem;
+    padding: 0.6875rem 1rem;
     border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   }
   /* A part of the screen after the first: set off by a hairline rule, not a box. */
