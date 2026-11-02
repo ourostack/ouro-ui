@@ -2,10 +2,11 @@ import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
 // Runs in Chromium and WebKit.
 
@@ -341,6 +342,255 @@ describe("Emoji", () => {
     expect(emoji(host).hasAttribute("src")).toBe(false);
     expect(emoji(host).hasAttribute("emoji")).toBe(false);
     expect(emoji(host).hasAttribute("animate")).toBe(false);
+  });
+});
+
+describe("Emoji placeholder", () => {
+  const waitingSrc = image("waiting");
+  /** The emoji's picture: the root's own `<img>`, named by the emoji. */
+  const picture = (host: Element) => host.querySelector<HTMLImageElement>('[data-ouro="emoji"] > img')!;
+  /** What stands in for the picture until it shows, hidden from screen readers. */
+  const waiting = (host: Element) => host.querySelector<HTMLElement>('[data-ouro="emoji"] > [aria-hidden="true"]')!;
+  const loaded = (host: Element) => emoji(host).hasAttribute("data-loaded");
+  const opacity = (element: Element) => getComputedStyle(element).opacity;
+  const visibility = (element: Element) => getComputedStyle(element).visibility;
+  /** The element's box from the top left of the line it sits in. */
+  const box = (element: Element, line: Element) => {
+    const rect = element.getBoundingClientRect();
+    const origin = line.getBoundingClientRect();
+    return { x: rect.x - origin.x, y: rect.y - origin.y, width: rect.width, height: rect.height };
+  };
+
+  /** Holds every image's decode until the test settles it, listing each with the address the image had when it was asked. */
+  function holdDecodes() {
+    const held: { src: string; resolve: () => void; reject: (error: unknown) => void }[] = [];
+    vi.spyOn(HTMLImageElement.prototype, "decode").mockImplementation(function (this: HTMLImageElement) {
+      return new Promise<void>((resolve, reject) => held.push({ src: this.getAttribute("src")!, resolve, reject }));
+    });
+    return {
+      held,
+      /** Settles the decodes asked for `src`: decoded, or failed as a broken image fails. */
+      settle: (src: string, ok = true) =>
+        act(async () => {
+          for (const call of held.filter((entry) => entry.src === src)) {
+            if (ok) call.resolve();
+            else call.reject(new DOMException("The source image cannot be decoded.", "EncodingError"));
+          }
+        }),
+    };
+  }
+
+  it("shows a placeholder image in the emoji's own box until the picture has decoded, then the picture, named as before, with no shift", async () => {
+    const { held, settle } = holdDecodes();
+    const { host } = await render(
+      <>
+        <p style={{ fontSize: 20 }}>
+          Hi <Emoji item={party} /> there
+        </p>
+        <p style={{ fontSize: 20 }}>
+          Hi <Emoji item={party} placeholder={waitingSrc} /> there
+        </p>
+      </>,
+    );
+    const [bare, line] = [...host.querySelectorAll("p")] as [HTMLElement, HTMLElement];
+    const expected = box(emoji(bare), bare);
+    expect(expected.width).toBe(25);
+    const root = emoji(line);
+    expect(root.tagName).toBe("SPAN");
+    expect(line.getBoundingClientRect().height).toBe(bare.getBoundingClientRect().height);
+    expect(box(root, line)).toEqual(expected);
+    expect(box(picture(line), line)).toEqual(expected);
+    expect(box(waiting(line), line)).toEqual(expected);
+    const stand = waiting(line).querySelector("img")!;
+    expect(stand.getAttribute("src")).toBe(waitingSrc);
+    expect(stand.alt).toBe("");
+    expect(box(stand, line)).toEqual(expected);
+    expect(loaded(line)).toBe(false);
+    expect(opacity(picture(line))).toBe("0");
+    expect(visibility(waiting(line))).toBe("visible");
+    expect(opacity(waiting(line))).toBe("1");
+    // The picture keeps the emoji's name; the placeholder adds none.
+    expect(page.elementLocator(line).getByRole("img").elements()).toEqual([picture(line)]);
+    expect(picture(line).alt).toBe("Party popper");
+    expect(picture(line).getAttribute("src")).toBe(party.src);
+    expect(picture(line).getAttribute("srcset")).toBe(party.srcSet);
+    // Only the emoji with a placeholder waits for its picture.
+    expect(held.map((call) => call.src)).toEqual([party.src]);
+    await settle(party.src);
+    expect(loaded(line)).toBe(true);
+    expect(opacity(picture(line))).toBe("1");
+    expect(visibility(waiting(line))).toBe("hidden");
+    expect(box(root, line)).toEqual(expected);
+    expect(box(picture(line), line)).toEqual(expected);
+    expect(page.elementLocator(line).getByRole("img").elements()).toEqual([picture(line)]);
+    expect(messages()).toEqual([]);
+  });
+
+  it("shows the picture once it has really loaded and decoded, and keeps the placeholder while a loaded picture is still decoding", async () => {
+    const { host } = await render(<Emoji item={heart} placeholder={waitingSrc} />);
+    await expect.poll(() => loaded(host)).toBe(true);
+    expect(opacity(picture(host))).toBe("1");
+    expect(visibility(waiting(host))).toBe("hidden");
+    vi.spyOn(HTMLImageElement.prototype, "decode").mockReturnValue(new Promise(() => {}));
+    const late = await render(<Emoji item={fern} placeholder={waitingSrc} />);
+    await expect.poll(() => picture(late.host).complete).toBe(true);
+    await act(async () => {});
+    expect(loaded(late.host)).toBe(false);
+    expect(opacity(picture(late.host))).toBe("0");
+    expect(visibility(waiting(late.host))).toBe("visible");
+  });
+
+  it("keeps the placeholder for a picture that fails to load or to decode, and brings it back for a new picture that fails", async () => {
+    const broken: EmojiItem = { ...heart, id: "broken", src: "data:image/png;base64,AAAA" };
+    const { host, rerender } = await render(<Emoji item={broken} placeholder={waitingSrc} />);
+    await picture(host)
+      .decode()
+      .catch(() => {});
+    await act(async () => {});
+    expect(loaded(host)).toBe(false);
+    expect(opacity(picture(host))).toBe("0");
+    expect(visibility(waiting(host))).toBe("visible");
+    expect(picture(host).alt).toBe("Red heart");
+    await rerender(<Emoji item={heart} placeholder={waitingSrc} />);
+    await expect.poll(() => loaded(host)).toBe(true);
+    await rerender(<Emoji item={broken} placeholder={waitingSrc} />);
+    expect(loaded(host)).toBe(false);
+    expect(opacity(picture(host))).toBe("0");
+    expect(visibility(waiting(host))).toBe("visible");
+    // A picture that loads but fails to decode keeps the placeholder too.
+    const { settle } = holdDecodes();
+    await rerender(<Emoji item={party} placeholder={waitingSrc} />);
+    await settle(party.src, false);
+    expect(loaded(host)).toBe(false);
+    expect(opacity(picture(host))).toBe("0");
+  });
+
+  it("fades the picture in and the placeholder out over the short duration, and swaps them at once with reduced motion", async () => {
+    await motion();
+    const { settle } = holdDecodes();
+    const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
+    const running = (element: Element) =>
+      element
+        .getAnimations()
+        .map((animation) => `${(animation as CSSTransition).transitionProperty} ${animation.effect!.getTiming().duration}`)
+        .sort();
+    const { host, rerender } = await render(<Emoji item={party} placeholder={waitingSrc} />);
+    expect(running(picture(host))).toEqual([]);
+    expect(running(waiting(host))).toEqual([]);
+    await settle(party.src);
+    expect(running(picture(host))).toEqual([`opacity ${fast}`]);
+    expect(running(waiting(host))).toEqual([`opacity ${fast}`, `visibility ${fast}`]);
+    await expect.poll(() => picture(host).getAnimations().length + waiting(host).getAnimations().length).toBe(0);
+    expect(opacity(picture(host))).toBe("1");
+    expect(visibility(waiting(host))).toBe("hidden");
+    // A new picture hides at once behind the placeholder, which shows at once.
+    await rerender(<Emoji item={heart} placeholder={waitingSrc} />);
+    expect(running(picture(host))).toEqual([]);
+    expect(running(waiting(host))).toEqual([]);
+    expect(opacity(picture(host))).toBe("0");
+    expect(opacity(waiting(host))).toBe("1");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await settle(heart.src);
+    expect(running(picture(host))).toEqual([]);
+    expect(running(waiting(host))).toEqual([]);
+    expect(opacity(picture(host))).toBe("1");
+    expect(visibility(waiting(host))).toBe("hidden");
+  });
+
+  it("shows the placeholder again for a new picture or tone, and never for a stale picture's decode", async () => {
+    const { settle } = holdDecodes();
+    const { host, rerender } = await render(<Emoji item={party} placeholder={waitingSrc} />);
+    await rerender(<Emoji item={heart} placeholder={waitingSrc} />);
+    expect(picture(host).getAttribute("src")).toBe(heart.src);
+    await settle(heart.src);
+    expect(loaded(host)).toBe(true);
+    // The first picture's decode, ending late either way, changes nothing.
+    await settle(party.src);
+    expect(loaded(host)).toBe(true);
+    await settle(party.src, false);
+    expect(loaded(host)).toBe(true);
+    await rerender(<Emoji item={wave} skinTone="medium" placeholder={waitingSrc} />);
+    expect(picture(host).getAttribute("src")).toBe(tones[2]!.src);
+    expect(loaded(host)).toBe(false);
+    await settle(tones[2]!.src);
+    expect(loaded(host)).toBe(true);
+    await rerender(<Emoji item={{ ...wave, src: image("wave redrawn") }} placeholder={waitingSrc} />);
+    expect(loaded(host)).toBe(false);
+    await settle(image("wave redrawn"));
+    expect(loaded(host)).toBe(true);
+  });
+
+  it("keeps the picture while the emoji plays and stops, and shows a picture only its animation could draw", async () => {
+    await motion();
+    const { settle } = holdDecodes();
+    const { host, rerender } = await render(<Emoji item={party} play={false} placeholder={waitingSrc} />);
+    await settle(party.src);
+    await rerender(<Emoji item={party} play placeholder={waitingSrc} />);
+    expect(picture(host).getAttribute("src")).toBe(party.animatedSrc);
+    expect(loaded(host)).toBe(true);
+    await rerender(<Emoji item={party} play={false} placeholder={waitingSrc} />);
+    expect(picture(host).getAttribute("src")).toBe(party.src);
+    // The animation's decode, cut short as the emoji stopped, changes nothing.
+    await settle(party.animatedSrc!, false);
+    expect(loaded(host)).toBe(true);
+    // A still image that fails, with an animation that draws: the picture shows while it plays.
+    const stuck: EmojiItem = { ...party, id: "stuck", src: image("stuck") };
+    await rerender(<Emoji item={stuck} play={false} placeholder={waitingSrc} />);
+    await settle(stuck.src, false);
+    expect(loaded(host)).toBe(false);
+    await rerender(<Emoji item={stuck} play placeholder={waitingSrc} />);
+    await settle(stuck.animatedSrc!);
+    expect(loaded(host)).toBe(true);
+    await rerender(<Emoji item={stuck} play={false} placeholder={waitingSrc} />);
+    await settle(stuck.src, false);
+    expect(loaded(host)).toBe(false);
+    // With reduced motion it never plays, so the still image decides.
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    await rerender(<Emoji item={stuck} play placeholder={waitingSrc} />);
+    expect(picture(host).getAttribute("src")).toBe(stuck.src);
+    expect(loaded(host)).toBe(false);
+  });
+
+  it("renders the placeholder on the server and hydrates to it without a mismatch, then shows the picture", async () => {
+    const node = <Emoji item={party} placeholder={waitingSrc} />;
+    const html = renderToString(node);
+    expect(html).toContain(`src="${waitingSrc.replaceAll("&", "&amp;")}"`);
+    expect(html).not.toContain("data-loaded");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const recoverable = vi.fn();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await act(async () => {
+      roots.push(hydrateRoot(host, node, { onRecoverableError: recoverable }));
+    });
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    await expect.poll(() => loaded(host)).toBe(true);
+  });
+
+  it("draws an element placeholder hidden from screen readers, and passes the img attributes, ref and layout classes through", async () => {
+    holdDecodes();
+    const ref = { current: null as HTMLImageElement | null };
+    const { host, rerender } = await render(
+      <Emoji item={fern} ref={ref} title="Fernwood fern" className="size-8 ms-1" data-testid="fern" placeholder={<svg data-testid="dot" viewBox="0 0 1 1" />} />,
+    );
+    expect(ref.current).toBe(picture(host));
+    expect(picture(host).title).toBe("Fernwood fern");
+    expect(picture(host).dataset.testid).toBe("fern");
+    expect(emoji(host).getBoundingClientRect().width).toBe(32);
+    expect(getComputedStyle(emoji(host)).marginInlineStart).toBe("4px");
+    expect(picture(host).getBoundingClientRect().width).toBe(32);
+    expect(waiting(host).getBoundingClientRect().width).toBe(32);
+    expect(waiting(host).querySelector('[data-testid="dot"]')).not.toBeNull();
+    expect(page.elementLocator(host).getByRole("img").elements()).toEqual([picture(host)]);
+    expect(page.elementLocator(host).getByRole("img", { name: "Fernwood fern" }).elements()).toEqual([picture(host)]);
+    // Without a placeholder it is the bare image again.
+    await rerender(<Emoji item={fern} ref={ref} />);
+    expect(emoji(host).tagName).toBe("IMG");
+    expect(ref.current).toBe(emoji(host));
+    expect(messages()).toEqual([]);
   });
 });
 
