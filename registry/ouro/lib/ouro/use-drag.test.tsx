@@ -126,6 +126,38 @@ describe("useDrag", () => {
     await fire(pad, "pointerup", 170, 61);
   });
 
+  it("follows both axes when asked, from its threshold in any direction, with the other axis's movement and velocity", async () => {
+    const { calls, pad } = await mount({ axis: "x", crossAxis: "follow", threshold: 5 });
+    await fire(pad, "pointerdown", 100, 50);
+    // 3 and 3 is less than 5 away, even though neither axis alone reaches it.
+    await fire(pad, "pointermove", 103, 53);
+    expect(calls.start).toEqual([]);
+    // Straight down: a drag that follows both axes starts, where the other axis would have won.
+    await fire(pad, "pointermove", 100, 56, 10);
+    expect(calls.start.length).toBe(1);
+    expect(calls.move.map(({ delta, crossDelta }) => [delta, crossDelta])).toEqual([[0, 6]]);
+    await fire(pad, "pointermove", 140, 106, 20);
+    const last = calls.move.at(-1)!;
+    expect([last.delta, last.crossDelta]).toEqual([40, 56]);
+    // From the press 46ms before: 40px and 56px.
+    expect(last.velocity).toBeCloseTo(40 / 46);
+    expect(last.crossVelocity).toBeCloseTo(56 / 46);
+    await fire(pad, "pointerup", 140, 106, 0);
+    expect(calls.end[0]).toMatchObject({ delta: 40, crossDelta: 56, cancelled: false });
+    expect(calls.end[0]!.crossVelocity).toBeCloseTo(56 / 46);
+  });
+
+  it("reports the other axis on a one-axis drag too, and nothing for a release with no time to measure", async () => {
+    const { calls, pad } = await mount({ axis: "y" });
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointermove", 104, 70, 20, {}, null);
+    expect(calls.move.map(({ delta, crossDelta }) => [delta, crossDelta])).toEqual([[20, 4]]);
+    expect(calls.move[0]!.crossVelocity).toBeCloseTo(4 / 20);
+    // A release 100ms or more after the last move has no moves to measure.
+    await fire(pad, "pointerup", 104, 70, 150);
+    expect(calls.end[0]).toMatchObject({ velocity: 0, crossVelocity: 0 });
+  });
+
   it("takes its own threshold", async () => {
     const { calls, pad } = await mount({ threshold: 3 });
     await fire(pad, "pointerdown", 100, 50);

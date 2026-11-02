@@ -511,6 +511,7 @@
     "registry/ouro/e2e/ouro/skeleton.spec.ts": 3003,
     "registry/ouro/e2e/ouro/skip-link.spec.ts": 1697,
     "registry/ouro/e2e/ouro/slider.spec.ts": 6885,
+    "registry/ouro/e2e/ouro/snap-pip.spec.ts": 12000,
     "registry/ouro/e2e/ouro/spinner.spec.ts": 1637,
     "registry/ouro/e2e/ouro/stack.spec.ts": 1944,
     "registry/ouro/e2e/ouro/stacked-layout.spec.ts": 4440,
