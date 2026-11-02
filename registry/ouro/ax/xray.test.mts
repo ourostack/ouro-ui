@@ -512,7 +512,9 @@ test("a call tool that breaks the component claims fails each, with what it saw"
     ...callUi,
     { component: "MediaTile", kind: "action", id: "kick", effect: "others", twin: "call kick <participant>" },
     { component: "CallControls", kind: "action" },
-    { component: "CallControls", kind: "action", id: "hover", effect: "private", personOnly: "only the person points", refuseAs: "call hover" },
+    { component: "CallControls", kind: "action", id: "hover", effect: "private", personOnly: "You can't point for the person; only they can.", refuseAs: "call hover" },
+    { component: "RingCard", kind: "action", id: "answer", effect: "others", twin: "call leave <meeting>" },
+    { component: "Lobby", kind: "action", id: "admit", effect: "others", personOnly: "You can't admit anyone from the lobby for the person; only they can." },
     { component: "MediaTile", kind: "read", id: "elsewhere", twin: "participants m9", consent: "none", fields: ["name"] },
     { component: "MediaTile", kind: "read", id: "bare", twin: "participants m1", consent: "none" },
     { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
@@ -526,6 +528,9 @@ test("a call tool that breaks the component claims fails each, with what it saw"
   assert.match(failingNotes(report, "ui.listening-needs-yes")[0]!, /not an outcome, so it may be what people say$/);
   assert.match(failingNotes(report, "cli.listening-push-filtered")[0]!, /; it delivered text, at; no refused outcome or error; it names no --on$/);
   assert.equal(failingNotes(report, "ui.person-only-refuses")[1], 'CallControls action hover: help --json lists no personOnly "hover"');
+  assert.equal(failingNotes(report, "ui.person-only-refuses")[2], "Lobby action admit: it has no refuseAs words, so nothing shows that the words an agent might try refuse");
+  assert.deepEqual(failingNotes(report, "ui.reserved-person-only"), ['RingCard action answer: "answer" is the person\'s own, and this entry is not person-only']);
+  assert.deepEqual(verdicts(report, "ui.reserved-person-only"), ["pass", "pass", "pass", "fail", "pass"]);
   assert.deepEqual(failingNotes(report, "ui.read-fields").map((n) => n.replace(/;.*/, "")), ["MediaTile read participant: `call participants m1 --json` has no connection", "MediaTile read elsewhere: `call participants m9 --json` → exit 1", "MediaTile read pinned: `call pin p1 --json` has no name"]);
   assert.equal(verdictOf(report, "ui.read-fields", "MediaTile read bare"), "pass");
   assert.deepEqual(verdicts(report, "cli.listening-cursor"), ["skip"]);
@@ -557,7 +562,7 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
     "the outcome also carries next[].at, next[].speaker, next[].text, next[]",
   ]);
   assert.match(failingNotes(strange, "cli.listening-push-filtered")[0]!, /: the refusal also carries target, next$/);
-  assert.ok(failingNotes(strange, "ui.person-only-refuses").every((n) => n.endsWith(`the refusal does not name the reason help gives ("agents never turn on a person's microphone, camera or screen")`)));
+  assert.ok(failingNotes(strange, "ui.person-only-refuses").every((n) => n.endsWith(`the refusal does not name the reason help gives ("You can't turn on the person's microphone, camera or screen; only they can")`)));
   const resume = await call("call-resume-room", "resume");
   assert.equal(resume.results.find((r) => r.claim === "cli.listening-cursor")!.note, "no sample for <room> in the follow command");
   const risky = [

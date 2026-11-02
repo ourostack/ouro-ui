@@ -265,7 +265,7 @@ interface Parsed {
 
 ### `PersonOnly`
 
-Words only the person acts on, such as `unmute`: the reason, and how the person does it (`with the microphone button in the call's toolbar`). The words refuse, `refused`, with both in one line, and `help --json` lists them under `personOnly`, so an agent learns them before it tries.
+Words only the person acts on, such as `unmute`: the reason, one sentence to you, the agent ("You can't turn on the person's microphone; only they can."), and how the person does it (`with the microphone button in the call's controls`). The words refuse, `refused`, with both in one line, and `help --json` lists them under `personOnly`, so an agent learns them before it tries.
 
 ```ts
 interface PersonOnly {

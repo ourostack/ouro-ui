@@ -79,8 +79,9 @@ interface Meaning {
 }
 
 /**
- * Words only the person acts on, such as `unmute`: the reason, and how the person does it (`with the microphone button
- * in the call's toolbar`). The words refuse, `refused`, with both in one line, and `help --json` lists them under
+ * Words only the person acts on, such as `unmute`: the reason, one sentence to you, the agent ("You can't turn on the
+ * person's microphone; only they can."), and how the person does it (`with the microphone button in the call's
+ * controls`). The words refuse, `refused`, with both in one line, and `help --json` lists them under
  * `personOnly`, so an agent learns them before it tries.
  *
  * @claim "The words refuse" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a person-only word refuses with its reason and how the person does it, as a refused outcome under --json)
@@ -237,7 +238,7 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
   for (const word of Object.keys(cli.ambiguous)) if (seen.has(word)) throw new Error(`${def.name}: "${word}" is both a command and an ambiguous word. Fix: remove one.`);
   for (const [word, p] of Object.entries(cli.personOnly)) {
     if (seen.has(word) || Object.hasOwn(cli.ambiguous, word)) throw new Error(`${def.name}: "${word}" is person-only and also a command or an ambiguous word. Fix: remove one.`);
-    for (const key of ["reason", "how"] as const) if (typeof p[key] !== "string" || !p[key].trim() || /[\r\n]/.test(p[key])) throw new Error(`${def.name}: person-only "${word}" needs ${key}, one line. Fix: personOnly: { "${word}": { reason: "<why only the person does it>", how: "<where the person does it>" } }.`);
+    for (const key of ["reason", "how"] as const) if (typeof p[key] !== "string" || !p[key].trim() || /[\r\n]/.test(p[key])) throw new Error(`${def.name}: person-only "${word}" needs ${key}, one line. Fix: personOnly: { "${word}": { reason: "You can't <do it> for the person; only they can.", how: "<where the person does it>" } }.`);
   }
   for (const cmd of cli.commands) {
     for (const example of cmd.examples ?? []) {
@@ -525,7 +526,7 @@ const ambiguousWord = (cli: Cli, leading: readonly string[]) => longestKey(cli.a
 /** A person-only word's refusal: why only the person does it, and where they do it; nothing for an agent to run. */
 function personOnlyError(cli: Cli, word: string): AxError {
   const p = cli.personOnly[word]!;
-  return new AxError({ code: "person-only", exit: usage(cli), thing: word, problem: `only the person does this, because ${p.reason.trim().replace(/[.\s]+$/, "")}; ask the person, who does it ${p.how.trim().replace(/[.\s]+$/, "")}`, fix: null });
+  return new AxError({ code: "person-only", exit: usage(cli), thing: word, problem: `${p.reason.trim().replace(/[.\s]+$/, "")}. Ask the person, who does it ${p.how.trim().replace(/[.\s]+$/, "")}`, fix: null });
 }
 
 /** The flags given after an ambiguous word, by name, with their values; and the words that are not flags or values. */

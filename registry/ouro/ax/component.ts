@@ -1,5 +1,5 @@
-export { bindAx, defineComponentAx, READ_CONSENTS };
-export type { AxAction, AxAgentAction, AxBindings, AxPersonOnlyAction, AxRead, ComponentAx, ReadConsent, ReadTwin, UiEntry };
+export { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, READ_CONSENTS, RESERVED_PERSON_ONLY };
+export type { AxAction, AxAgentAction, AxBindings, AxPersonOnlyAction, AxRead, ComponentAx, ReadConsent, ReadTwin, Rendered, UiEntry };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
@@ -26,9 +26,31 @@ const READ_CONSENTS = Object.freeze(["none", "listening"] as const);
  */
 type ReadConsent = (typeof READ_CONSENTS)[number];
 
+const MEDIA = "You can't turn on the person's microphone, camera or screen; only they can.";
+
+/**
+ * Action ids that are the person's own, whatever the component: their microphone (`unmute`), camera (`camera`,
+ * `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in from the lobby
+ * (`admit`), and what is recorded (`record`). Each maps to the reason to declare it with; declaring one `agent: true`
+ * throws, and the X-ray fails a `ui` entry with one of these ids that is not person-only.
+ *
+ * @claim "declaring one `agent: true` throws" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::a reserved action is always the person's: declaring it agent: true throws with its reason)
+ * @claim "the X-ray fails a `ui` entry with one of these ids" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a call tool that breaks the component claims fails each, with what it saw)
+ */
+const RESERVED_PERSON_ONLY: Readonly<Record<string, string>> = Object.freeze({
+  unmute: MEDIA,
+  camera: MEDIA,
+  "camera-on": MEDIA,
+  share: MEDIA,
+  answer: "You can't answer or decline a call for the person; only they can.",
+  decline: "You can't answer or decline a call for the person; only they can.",
+  admit: "You can't admit anyone from the lobby for the person; only they can.",
+  record: "You can't start recording or transcription for the person; only they can.",
+});
+
 /** Something an agent may read from the component, with the fields its twin's `--json` carries. */
 interface AxRead {
-  name: string;
+  id: string;
   summary?: string;
   fields: readonly string[];
   consent: ReadConsent;
@@ -53,7 +75,10 @@ interface AxAgentAction extends AxActionBase {
   personOnly?: never;
 }
 
-/** An action only the person takes, with the one-line reason: `bindAx` refuses a twin for it, and its CLI words refuse. */
+/**
+ * An action only the person takes, with the reason in one line, said to you, the agent ("You can't turn on the
+ * person's camera; only they can."): `bindAx` refuses a twin for it and asks for the CLI words that refuse.
+ */
 interface AxPersonOnlyAction extends AxActionBase {
   personOnly: string;
   agent?: never;
@@ -75,9 +100,11 @@ interface ComponentAx {
 type ReadTwin = string | { read: string; push: string; trigger: string };
 
 /**
- * The app's commands for a component's twins, by read name and action id, written as an agent types them, with a
- * reference as a placeholder (`"call mute <meeting>"`). `refuseAs` names the words a person-only action's refusal
- * answers to (`"call unmute"`).
+ * The app's commands for a component's twins, by read and action id, written as an agent types them, with a
+ * reference as a placeholder (`"call mute <meeting>"`). `refuseAs` names, for every person-only action, the CLI words an
+ * agent might try, which refuse (`"call unmute"`).
+ *
+ * @claim "for every person-only action" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries)
  */
 interface AxBindings {
   reads?: Readonly<Record<string, ReadTwin>>;
@@ -103,17 +130,17 @@ interface UiEntry {
 const oneLine = (v: unknown): v is string => typeof v === "string" && v.trim() !== "" && !/[\r\n]/.test(v);
 
 /**
- * Declares a component's agent side and checks it: unique read names and action ids, a field list on each read, a known
- * consent and effect, and each action either `agent: true` or `personOnly` with a one-line reason, never both or
- * neither. A problem throws one line with its fix.
+ * Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known
+ * consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither,
+ * and a reserved id (`RESERVED_PERSON_ONLY`) never `agent: true`. A problem throws one line with its fix.
  *
  * @example
  * const mediaTileAx = defineComponentAx({
  *   component: "MediaTile",
- *   reads: [{ name: "participant", summary: "Who is in the tile, and their state.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
+ *   reads: [{ id: "participant", summary: "Who is in the tile, and their state.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
  *   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
  * });
- * const theirs = "agents never turn on a person's microphone, camera or screen";
+ * const theirs = "You can't turn on the person's microphone, camera or screen; only they can.";
  * const callControlsAx = defineComponentAx({
  *   component: "CallControls",
  *   reads: [],
@@ -125,7 +152,7 @@ const oneLine = (v: unknown): v is string => typeof v === "string" && v.trim() !
  *     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
  *     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
  *     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
- *     { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "may show others that captions are on" },
+ *     { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "You can't turn on captions for the person, since others may see they are on; only they can." },
  *   ],
  * });
  *
@@ -137,12 +164,13 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
   if (!oneLine(name)) throw fail("", "the component has no name", 'component: "<the component\'s export name>"');
   const reads = new Set<string>();
   for (const r of def.reads) {
-    if (!oneLine(r.name)) throw fail("read", "a read has no name", 'name: "<what the agent reads>"');
-    if (reads.has(r.name)) throw fail(`read "${r.name}"`, "the name is used twice", "give each read its own name");
-    reads.add(r.name);
-    if (!Array.isArray(r.fields) || r.fields.length === 0 || !r.fields.every(oneLine)) throw fail(`read "${r.name}"`, "it lists no fields", 'fields: ["<a field its twin\'s --json carries>"]');
-    if (!(READ_CONSENTS as readonly unknown[]).includes(r.consent)) throw fail(`read "${r.name}"`, `consent is ${JSON.stringify(r.consent)}`, 'consent: "none", or "listening" for what people say');
-    if (r.push !== undefined && r.push !== "filtered") throw fail(`read "${r.name}"`, `push is ${JSON.stringify(r.push)}`, 'push: "filtered", or leave it out');
+    if (!oneLine(r.id)) throw fail("read", "a read has no id", 'id: "<what the agent reads, in a word>"');
+    const thing = `read "${r.id}"`;
+    if (reads.has(r.id)) throw fail(thing, "the id is used twice", "give each read its own id");
+    reads.add(r.id);
+    if (!Array.isArray(r.fields) || r.fields.length === 0 || !r.fields.every(oneLine)) throw fail(thing, "it lists no fields", 'fields: ["<a field its twin\'s --json carries>"]');
+    if (!(READ_CONSENTS as readonly unknown[]).includes(r.consent)) throw fail(thing, `consent is ${JSON.stringify(r.consent)}`, 'consent: "none", or "listening" for what people say');
+    if (r.push !== undefined && r.push !== "filtered") throw fail(thing, `push is ${JSON.stringify(r.push)}`, 'push: "filtered", or leave it out');
   }
   const ids = new Set<string>();
   for (const a of def.actions) {
@@ -153,8 +181,9 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
     if (a.effect !== "private" && a.effect !== "others") throw fail(thing, `effect is ${JSON.stringify(a.effect)}`, 'effect: "private" or "others"');
     const raw = a as { agent?: unknown; personOnly?: unknown };
     if (raw.agent !== undefined && raw.personOnly !== undefined) throw fail(thing, "it says both agent and personOnly", "keep one: agent: true, or personOnly with its reason");
-    if (raw.personOnly !== undefined && !oneLine(raw.personOnly)) throw fail(thing, "personOnly needs a one-line reason", 'personOnly: "<why only the person does it>"');
-    if (raw.personOnly === undefined && raw.agent !== true) throw fail(thing, "it says neither agent: true nor personOnly", 'add agent: true, or personOnly: "<why only the person does it>"');
+    if (raw.personOnly !== undefined && !oneLine(raw.personOnly)) throw fail(thing, "personOnly needs a one-line reason", 'personOnly: "You can\'t <do it> for the person; only they can."');
+    if (raw.personOnly === undefined && raw.agent !== true) throw fail(thing, "it says neither agent: true nor personOnly", 'add agent: true, or personOnly: "You can\'t <do it> for the person; only they can."');
+    if (raw.agent === true && Object.hasOwn(RESERVED_PERSON_ONLY, a.id)) throw fail(thing, "it is the person's own, so it is never an agent action", `personOnly: ${JSON.stringify(RESERVED_PERSON_ONLY[a.id])}`);
   }
   return Object.freeze({ component: name, reads: Object.freeze([...def.reads]), actions: Object.freeze([...def.actions]) });
 }
@@ -162,7 +191,8 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
 /**
  * Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when
  * a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a
- * twin, `refuseAs` names an action that is not person-only, or a binding names nothing the component declares.
+ * twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, or a binding names nothing the
+ * component declares.
  *
  * @example
  * const ui = [
@@ -181,19 +211,19 @@ function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[] {
   const reads = bindings.reads ?? {};
   const actions = bindings.actions ?? {};
   const refuseAs = bindings.refuseAs ?? {};
-  for (const key of Object.keys(reads)) if (!ax.reads.some((r) => r.name === key)) throw fail(`read "${key}"`, "the component declares no such read", `bind one of ${ax.reads.map((r) => `"${r.name}"`).join(", ") || "none"}`);
+  for (const key of Object.keys(reads)) if (!ax.reads.some((r) => r.id === key)) throw fail(`read "${key}"`, "the component declares no such read", `bind one of ${ax.reads.map((r) => `"${r.id}"`).join(", ") || "none"}`);
   for (const key of [...Object.keys(actions), ...Object.keys(refuseAs)]) if (!ax.actions.some((a) => a.id === key)) throw fail(`action "${key}"`, "the component declares no such action", `bind one of ${ax.actions.map((a) => `"${a.id}"`).join(", ") || "none"}`);
   const entries: UiEntry[] = [];
   for (const r of ax.reads) {
-    const thing = `read "${r.name}"`;
-    const twin = reads[r.name];
+    const thing = `read "${r.id}"`;
+    const twin = reads[r.id];
     const read = typeof twin === "string" ? twin : twin?.read;
-    if (!oneLine(read)) throw fail(thing, "it has no twin", `reads: { "${r.name}": "<the CLI read that gives ${r.fields.join(", ")}>" }`);
+    if (!oneLine(read)) throw fail(thing, "it has no twin", `reads: { "${r.id}": "<the CLI read that gives ${r.fields.join(", ")}>" }`);
     const push = typeof twin === "object" ? twin.push : undefined;
     const trigger = typeof twin === "object" ? twin.trigger : undefined;
-    if (r.push === "filtered" && (!oneLine(push) || !oneLine(trigger))) throw fail(thing, "it streams, but its stream or trigger is not bound", `reads: { "${r.name}": { read: "${read}", push: "<the stream asked for every line>", trigger: "<the words trigger, such as --on mention>" } }`);
+    if (r.push === "filtered" && (!oneLine(push) || !oneLine(trigger))) throw fail(thing, "it streams, but its stream or trigger is not bound", `reads: { "${r.id}": { read: "${read}", push: "<the stream asked for every line>", trigger: "<the words trigger, such as --on mention>" } }`);
     if (r.push === undefined && push !== undefined) throw fail(thing, "a stream is bound, but the read does not declare push", 'add push: "filtered" to the read');
-    entries.push({ component: ax.component, kind: "read", id: r.name, twin: read, consent: r.consent, fields: [...r.fields], ...(push === undefined ? {} : { push, trigger: trigger! }) });
+    entries.push({ component: ax.component, kind: "read", id: r.id, twin: read, consent: r.consent, fields: [...r.fields], ...(push === undefined ? {} : { push, trigger: trigger! }) });
   }
   for (const a of ax.actions) {
     const thing = `action "${a.id}"`;
@@ -204,10 +234,39 @@ function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[] {
       if (words !== undefined) throw fail(thing, "refuseAs is for a person-only action, and this one is the agent's", `bind it under actions, or make it personOnly`);
       entries.push({ component: ax.component, kind: "action", id: a.id, effect: a.effect, twin });
     } else {
-      if (twin !== undefined) throw fail(thing, `only the person does it (${a.personOnly}), so it has no twin`, `move "${twin}" to refuseAs, where its words refuse`);
-      if (words !== undefined && !oneLine(words)) throw fail(thing, "refuseAs is empty", `refuseAs: { "${a.id}": "<the CLI words an agent might try>" }`);
-      entries.push({ component: ax.component, kind: "action", id: a.id, effect: a.effect, personOnly: a.personOnly, ...(words === undefined ? {} : { refuseAs: words }) });
+      if (twin !== undefined) throw fail(thing, "it is the person's, so it has no twin", `move "${twin}" to refuseAs, where its words refuse`);
+      if (!oneLine(words)) throw fail(thing, "a person-only action needs the CLI words an agent might try, which refuse", `refuseAs: { "${a.id}": "<the CLI words an agent might try>" }`);
+      entries.push({ component: ax.component, kind: "action", id: a.id, effect: a.effect, personOnly: a.personOnly, refuseAs: words });
     }
   }
   return entries;
+}
+
+/** The attribute a component renders on the control for an action it declares, holding the action's id. */
+const AX_ACTION_ATTRIBUTE = "data-ax-action";
+
+/** What `expectAxRendered` looks in: a rendered element or document. */
+interface Rendered {
+  querySelector(selectors: string): unknown;
+}
+
+/**
+ * Asserts that a rendered component links its declaration to its controls: each declared action (or each of `ids`, for
+ * a state that shows only some) is a control in `container` carrying `data-ax-action="<id>"`. It throws one line
+ * naming the actions with no such control.
+ *
+ * @claim "each declared action (or each of `ids`" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::expectAxRendered finds each declared action's control by data-ax-action, and names the ones it misses)
+ *
+ * @example
+ * render(<CallControls />);
+ * expectAxRendered(callControlsAx, document.body);
+ *
+ * @claim "It throws one line naming the actions with no such control" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::expectAxRendered finds each declared action's control by data-ax-action, and names the ones it misses)
+ */
+function expectAxRendered(ax: ComponentAx, container: Rendered, options: { ids?: readonly string[] } = {}): void {
+  const ids = options.ids ?? ax.actions.map((a) => a.id);
+  const unknown = ids.filter((id) => !ax.actions.some((a) => a.id === id));
+  if (unknown.length) throw new Error(`${ax.component}: it declares no action ${unknown.map((id) => `"${id}"`).join(", ")}. Fix: check one of ${ax.actions.map((a) => `"${a.id}"`).join(", ") || "none"}.`);
+  const missing = ids.filter((id) => container.querySelector(`[${AX_ACTION_ATTRIBUTE}=${JSON.stringify(id)}]`) === null);
+  if (missing.length) throw new Error(`${ax.component}: no rendered control carries ${missing.map((id) => `${AX_ACTION_ATTRIBUTE}="${id}"`).join(", ")}. Fix: render each action's control with ${AX_ACTION_ATTRIBUTE}="<its id>".`);
 }

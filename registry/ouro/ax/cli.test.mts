@@ -306,13 +306,13 @@ test("a person-only word refuses with its reason and how the person does it, as 
     name: "call",
     about: ["call: the person's call."],
     commands: [defineCommand({ name: "mute", summary: "Mute.", effect: "private", run: () => "Muted." })],
-    personOnly: { unmute: { reason: "agents never turn on a person's microphone.", how: "with the microphone button in the call's toolbar" } },
+    personOnly: { unmute: { reason: "You can't turn on the person's microphone; only they can.", how: "with the microphone button in the call's toolbar" } },
   });
   const io = () => {
     const o = { out: "", err: "" };
     return { o, io: { stdout: { write: (s: string) => (o.out += s) }, stderr: { write: (s: string) => (o.err += s) } } };
   };
-  const line = "call: unmute: only the person does this, because agents never turn on a person's microphone; ask the person, who does it with the microphone button in the call's toolbar.\n";
+  const line = "call: unmute: You can't turn on the person's microphone; only they can. Ask the person, who does it with the microphone button in the call's toolbar.\n";
   const text = io();
   assert.equal(await runCli(call, ["unmute", "now"], text.io), 2);
   assert.deepEqual(text.o, { out: "", err: line });
@@ -326,8 +326,8 @@ test("a person-only word refuses with its reason and how the person does it, as 
   assert.equal(json.o.err, line);
   const topic = io();
   assert.equal(await runCli(call, ["help", "unmute"], topic.io), 0);
-  assert.equal(topic.o.out, "call unmute: only the person does this, never you.\n  Why: agents never turn on a person's microphone.\n  How the person does it: with the microphone button in the call's toolbar\n");
+  assert.equal(topic.o.out, "call unmute: only the person does this, never you.\n  Why: You can't turn on the person's microphone; only they can.\n  How the person does it: with the microphone button in the call's toolbar\n");
   const topicJson = io();
   assert.equal(await runCli(call, ["help", "unmute", "--json"], topicJson.io), 0);
-  assert.deepEqual(JSON.parse(topicJson.o.out), { name: "unmute", reason: "agents never turn on a person's microphone.", how: "with the microphone button in the call's toolbar" });
+  assert.deepEqual(JSON.parse(topicJson.o.out), { name: "unmute", reason: "You can't turn on the person's microphone; only they can.", how: "with the microphone button in the call's toolbar" });
 });

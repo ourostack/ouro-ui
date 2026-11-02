@@ -12,6 +12,14 @@ It installs `lib/ouro/ax/component.ts`, with `ax-effects`. Its tests are `ax-com
 
 ## Exports
 
+### `AX_ACTION_ATTRIBUTE`
+
+The attribute a component renders on the control for an action it declares, holding the action's id.
+
+```ts
+const AX_ACTION_ATTRIBUTE: "data-ax-action"
+```
+
 ### `AxAction`
 
 An action: either `agent: true` or `personOnly: "<why>"`, exactly one; a missing or doubled choice is a type error.
@@ -33,7 +41,7 @@ interface AxAgentAction extends AxActionBase {
 
 ### `AxBindings`
 
-The app's commands for a component's twins, by read name and action id, written as an agent types them, with a reference as a placeholder (`"call mute <meeting>"`). `refuseAs` names the words a person-only action's refusal answers to (`"call unmute"`).
+The app's commands for a component's twins, by read and action id, written as an agent types them, with a reference as a placeholder (`"call mute <meeting>"`). `refuseAs` names, for every person-only action, the CLI words an agent might try, which refuse (`"call unmute"`).
 
 ```ts
 interface AxBindings {
@@ -45,7 +53,7 @@ interface AxBindings {
 
 ### `AxPersonOnlyAction`
 
-An action only the person takes, with the one-line reason: `bindAx` refuses a twin for it, and its CLI words refuse.
+An action only the person takes, with the reason in one line, said to you, the agent ("You can't turn on the person's camera; only they can."): `bindAx` refuses a twin for it and asks for the CLI words that refuse.
 
 ```ts
 interface AxPersonOnlyAction extends AxActionBase {
@@ -60,7 +68,7 @@ Something an agent may read from the component, with the fields its twin's `--js
 
 ```ts
 interface AxRead {
-  name: string;
+  id: string;
   summary?: string;
   fields: readonly string[];
   consent: ReadConsent;
@@ -70,7 +78,7 @@ interface AxRead {
 
 ### `bindAx`
 
-Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a twin, `refuseAs` names an action that is not person-only, or a binding names nothing the component declares.
+Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, or a binding names nothing the component declares.
 
 ```ts
 function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[]
@@ -101,7 +109,7 @@ interface ComponentAx {
 
 ### `defineComponentAx`
 
-Declares a component's agent side and checks it: unique read names and action ids, a field list on each read, a known consent and effect, and each action either `agent: true` or `personOnly` with a one-line reason, never both or neither. A problem throws one line with its fix.
+Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, and a reserved id (`RESERVED_PERSON_ONLY`) never `agent: true`. A problem throws one line with its fix.
 
 ```ts
 function defineComponentAx(def: { component: string; reads: readonly AxRead[]; actions: readonly AxAction[]; }): ComponentAx
@@ -112,10 +120,10 @@ Example:
 ```ts
 const mediaTileAx = defineComponentAx({
   component: "MediaTile",
-  reads: [{ name: "participant", summary: "Who is in the tile, and their state.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
+  reads: [{ id: "participant", summary: "Who is in the tile, and their state.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
 });
-const theirs = "agents never turn on a person's microphone, camera or screen";
+const theirs = "You can't turn on the person's microphone, camera or screen; only they can.";
 const callControlsAx = defineComponentAx({
   component: "CallControls",
   reads: [],
@@ -127,9 +135,24 @@ const callControlsAx = defineComponentAx({
     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
-    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "may show others that captions are on" },
+    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "You can't turn on captions for the person, since others may see they are on; only they can." },
   ],
 });
+```
+
+### `expectAxRendered`
+
+Asserts that a rendered component links its declaration to its controls: each declared action (or each of `ids`, for a state that shows only some) is a control in `container` carrying `data-ax-action="<id>"`. It throws one line naming the actions with no such control.
+
+```ts
+function expectAxRendered(ax: ComponentAx, container: Rendered, options?: { ids?: readonly string[] | undefined; }): void
+```
+
+Example:
+
+```ts
+render(<CallControls />);
+expectAxRendered(callControlsAx, document.body);
 ```
 
 ### `READ_CONSENTS`
@@ -154,6 +177,24 @@ A read's twin: the read command, or, for a read with `push: "filtered"`, the rea
 
 ```ts
 type ReadTwin = string | { read: string; push: string; trigger: string };
+```
+
+### `Rendered`
+
+What `expectAxRendered` looks in: a rendered element or document.
+
+```ts
+interface Rendered {
+  querySelector(selectors: string): unknown;
+}
+```
+
+### `RESERVED_PERSON_ONLY`
+
+Action ids that are the person's own, whatever the component: their microphone (`unmute`), camera (`camera`, `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in from the lobby (`admit`), and what is recorded (`record`). Each maps to the reason to declare it with; declaring one `agent: true` throws, and the X-ray fails a `ui` entry with one of these ids that is not person-only.
+
+```ts
+const RESERVED_PERSON_ONLY: Readonly<Record<string, string>>
 ```
 
 ### `UiEntry`
