@@ -16,10 +16,10 @@ The files land in `lib/ouro/ax/`, as TypeScript that Node runs as it is.[^node] 
 ## 2. Run the X-ray on your CLI as it is
 
 ```sh
-node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --guard "node scripts/assert-mock.mjs" --md xray-before.md
+node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --env "TOOL_URL=$MOCK_URL" --guard "node scripts/assert-mock.mjs" --md xray-before.md
 ```
 
-Start before you change anything. The report lists each claim, the surfaces it holds on, and for each failure the call it made, what came back and the fix.[^effects] Keep this first report: it is your "before". Point the CLI at a mock with made-up data, and give the X-ray a guard that proves it is a mock; without that proof it skips every call other people would see.[^safety]
+Start before you change anything. The report lists each claim, the surfaces it holds on, and for each failure the call it made, what came back and the fix.[^effects] Keep this first report: it is your "before". Point the CLI at a mock with made-up data on a loopback address, pass that address with `--env` so the X-ray can check it, and give the X-ray a guard that proves it is a mock; without that proof it skips every call other people would see.[^safety]
 
 ## 3. Declare one command at a time
 
@@ -38,7 +38,7 @@ Would give "Book the room" to Ana; the team will see it.
 
 ```sh
 node scripts/inventory.mjs > inventory.json   # from your command table, never by hand
-node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --inventory inventory.json --conformance --home .xray-home --guard "node scripts/assert-mock.mjs" --json --md xray.md > xray.json
+node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --inventory inventory.json --conformance --home .xray-home --env "TOOL_URL=$MOCK_URL" --guard "node scripts/assert-mock.mjs" --json --md xray.md > xray.json
 ```
 
 A report proves only the surfaces it covered, so build the inventory from your CLI's own registration.[^inventory] With `--conformance`, the X-ray exits 0 only when your CLI conforms.[^conformance] Read `xray.md` for what still fails, fix the first `must`, and run it again.
@@ -47,14 +47,14 @@ A report proves only the surfaces it covered, so build the inventory from your C
 
 Add the X-ray to CI against your mock, with `--commit` so the report names what it checked, and upload `xray.json`, `xray.md` and `inventory.json` as an artifact ([the X-ray in CI](ax-conformance.md#in-ci)). The report pins the claim set's version and hash, the X-ray's version and your commit.[^pin] When you review a change, compare the failing checks of the base and the change, not their totals: a new command adds checks, so the totals move anyway.
 
-For a CLI with no HTTP API, the step is the command from step 4 plus `--commit`:
+For a CLI without an HTTP API, run step 4's command in CI with `--commit` and a home under `$RUNNER_TEMP`:
 
 ```yaml
 - name: Ouro AX X-ray
   run: |
     node scripts/inventory.mjs > inventory.json
     node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --inventory inventory.json --conformance \
-      --home "$RUNNER_TEMP/xray-home" --guard "node scripts/assert-mock.mjs" --commit "$GITHUB_SHA" --json --md xray.md > xray.json
+      --home "$RUNNER_TEMP/xray-home" --env "TOOL_URL=$MOCK_URL" --guard "node scripts/assert-mock.mjs" --commit "$GITHUB_SHA" --json --md xray.md > xray.json
 ```
 
 ## 6. Give it a voice, if you want one
