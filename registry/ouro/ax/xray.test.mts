@@ -476,7 +476,7 @@ test("a voice in a pipe or --json, text without its refs, an unlisted command, l
   assert.match(traced!.note, /EPIPE|Unhandled 'error' event/);
 });
 
-const callCommands = ["meetings", "participants", "captions", "events", "follow", "pin", "mute", "leave", "raise-hand"];
+const callCommands = ["meetings", "participants", "captions", "events", "follow", "pin", "mute", "leave", "raise-hand", "lower-hand"];
 const callInventory = (name: string, ui: unknown[] = callUi, cli: string[] = callCommands) => {
   const path = join(scratch, `${name}.json`);
   writeFileSync(path, JSON.stringify({ cli, ui }));
@@ -511,21 +511,22 @@ test("a call tool that breaks the component claims fails each, with what it saw"
   const ui = [
     ...callUi,
     { component: "MediaTile", kind: "action", id: "kick", effect: "others", twin: "call kick <participant>" },
-    { component: "Toolbar", kind: "action" },
-    { component: "Toolbar", kind: "action", id: "hover", effect: "private", personOnly: "only the person points", refuseAs: "call hover" },
+    { component: "CallControls", kind: "action" },
+    { component: "CallControls", kind: "action", id: "hover", effect: "private", personOnly: "only the person points", refuseAs: "call hover" },
     { component: "MediaTile", kind: "read", id: "elsewhere", twin: "participants m9", consent: "none", fields: ["name"] },
     { component: "MediaTile", kind: "read", id: "bare", twin: "participants m1", consent: "none" },
+    { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
   ];
   const report = await call("call-bad", "effect,unmute,listen,push,fields", { inventory: callInventory("call-bad", ui, [...callCommands, "unmute"]) });
   assert.deepEqual(failingNotes(report, "ui.twin-exists"), ["MediaTile action kick: `call kick <participant>` names no command in help --json"]);
-  assert.deepEqual(verdicts(report, "ui.twin-effect-matches").filter((v) => v !== "pass"), ["fail", "skip"]);
-  assert.deepEqual(failingNotes(report, "ui.twin-effect-matches"), ["Toolbar action mute: the action is others; `call mute` is private"]);
-  assert.equal(failingNotes(report, "ui.person-only-refuses")[0], 'Toolbar action unmute: `call unmute` → exit 0; stdout: "Unmuted.": it did not refuse; `call unmute --json` → exit 0; stdout: "Unmuted.": no refused outcome or error; help --json lists no personOnly "unmute"; the state changed: 2 added, 0 removed; first: {"verb":"unmute"}');
+  assert.deepEqual(verdicts(report, "ui.twin-effect-matches").filter((v) => v !== "pass"), ["fail", "skip", "fail"]);
+  assert.deepEqual(failingNotes(report, "ui.twin-effect-matches"), ["CallControls action mute: the action is others; `call mute` is private", "MediaTile read pinned: the read wants a private read; `call pin` is private, not a read"]);
+  assert.equal(failingNotes(report, "ui.person-only-refuses")[0], 'CallControls action unmute: `call unmute` → exit 0; stdout: "Unmuted.": it did not refuse; `call unmute --json` → exit 0; stdout: "Unmuted.": no refused outcome or error; help --json lists no personOnly "unmute"; the state changed: 2 added, 0 removed; first: {"verb":"unmute"}');
   assert.equal(failingNotes(report, "ui.listening-needs-yes").length, 2);
   assert.match(failingNotes(report, "ui.listening-needs-yes")[0]!, /not an outcome, so it may be what people say$/);
   assert.match(failingNotes(report, "cli.listening-push-filtered")[0]!, /; it delivered text, at; no refused outcome or error; it names no --on$/);
-  assert.equal(failingNotes(report, "ui.person-only-refuses")[1], 'Toolbar action hover: help --json lists no personOnly "hover"');
-  assert.deepEqual(failingNotes(report, "ui.read-fields").map((n) => n.replace(/;.*/, "")), ["MediaTile read participant: `call participants m1 --json` has no connection", "MediaTile read elsewhere: `call participants m9 --json` → exit 1"]);
+  assert.equal(failingNotes(report, "ui.person-only-refuses")[1], 'CallControls action hover: help --json lists no personOnly "hover"');
+  assert.deepEqual(failingNotes(report, "ui.read-fields").map((n) => n.replace(/;.*/, "")), ["MediaTile read participant: `call participants m1 --json` has no connection", "MediaTile read elsewhere: `call participants m9 --json` → exit 1", "MediaTile read pinned: `call pin p1 --json` has no name"]);
   assert.equal(verdictOf(report, "ui.read-fields", "MediaTile read bare"), "pass");
   assert.deepEqual(verdicts(report, "cli.listening-cursor"), ["skip"]);
   assert.equal(report.conformant, false);
@@ -551,7 +552,20 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   assert.ok(failingNotes(strange, "ui.person-only-refuses").every((n) => n.endsWith(`the refusal does not name the reason help gives ("agents never turn on a person's microphone, camera or screen")`)));
   const resume = await call("call-resume-room", "resume");
   assert.equal(resume.results.find((r) => r.claim === "cli.listening-cursor")!.note, "no sample for <room> in the follow command");
-  const unsafe = await call("call-unsafe", "", { mock: undefined });
+  const risky = [
+    ...callUi,
+    { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
+    { component: "Captions", kind: "read", id: "pinning", twin: "call pin p1", consent: "listening", fields: ["text"] },
+    { component: "Captions", kind: "read", id: "muting", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call mute <meeting>", trigger: "--on mention" },
+  ];
+  const unsafe = await call("call-unsafe", "", { mock: undefined, inventory: callInventory("call-unsafe", risky) });
+  assert.deepEqual(unsafe.results.filter((r) => r.note.includes("is no private read")).map((r) => `${r.claim} ${r.surface}: ${r.note}`), [
+    "ui.read-fields MediaTile read pinned: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
+    "ui.listening-needs-yes Captions read pinning: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
+    "cli.listening-push-filtered Captions read pinning: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
+    "cli.listening-push-filtered Captions read muting: not run: `call mute <meeting>` is no private read in help --json, and the target is not proven a mock",
+  ]);
+  assert.equal(JSON.parse(readFileSync(join(scratch, "call-unsafe-state.json"), "utf8")).pinned.length, 0);
   for (const id of ["ui.person-only-refuses", "ui.read-fields", "cli.listening-cursor"]) assert.ok(unsafe.results.filter((r) => r.claim === id).some((r) => r.verdict === "skip" && r.note.startsWith("not run: the target is not proven a mock")), id);
   const sampleless = [
     ...callUi,

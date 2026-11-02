@@ -118,7 +118,7 @@ The kit prints a voice line only when stdout is a terminal, and never under `--j
 
 ## Components
 
-An Ouro HX component an agent can act through declares its agent side next to it: what an agent may read from it, with the fields, and its actions' effects, with `agent: true` for an action an agent may take or `personOnly` with the reason for one only the person takes. Leaving out that choice, or making both, is a type error and a one-line error at load.[^component] The app binds each read and agent action to its CLI twin, because a component does not know the app's command names; `bindAx` throws when one has no twin, or when a person-only action is given one, and returns the entries for the X-ray's inventory.[^bind] These are the calling components, bound to a `call` tool:
+An Ouro HX component an agent can act through declares its agent side next to it: what an agent may read from it, with the fields, and its actions' effects, with `agent: true` for an action an agent may take or `personOnly` with the reason for one only the person takes. Leaving out that choice, or making both, is a type error and a one-line error at load.[^component] The app binds each read and agent action to its CLI twin, because a component does not know the app's command names; `bindAx` throws when one has no twin, or when a person-only action is given one, and returns the entries for the X-ray's inventory.[^bind] Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. These are the calling components, bound to a `call` tool:
 
 ```ts
 import { bindAx, defineComponentAx } from "./lib/ouro/ax/component.ts";
@@ -131,16 +131,18 @@ export const mediaTileAx = defineComponentAx({
   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
 });
 
-export const toolbarAx = defineComponentAx({
-  component: "Toolbar",
+export const callControlsAx = defineComponentAx({
+  component: "CallControls",
   reads: [],
   actions: [
     { id: "mute", summary: "Mute the person's microphone.", effect: "others", agent: true },
     { id: "leave", summary: "Leave the call.", effect: "others", agent: true },
     { id: "raise-hand", summary: "Raise the person's hand.", effect: "others", agent: true },
+    { id: "lower-hand", summary: "Lower the person's hand.", effect: "others", agent: true },
     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
+    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "may show others that captions are on" },
   ],
 });
 
@@ -152,9 +154,9 @@ export const liveCaptionsAx = defineComponentAx({
 
 export const ui = [
   ...bindAx(mediaTileAx, { reads: { participant: "call participants <meeting>" }, actions: { pin: "call pin <participant>" } }),
-  ...bindAx(toolbarAx, {
-    actions: { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>" },
-    refuseAs: { unmute: "call unmute", camera: "call camera", share: "call share" },
+  ...bindAx(callControlsAx, {
+    actions: { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>", "lower-hand": "call lower-hand <meeting>" },
+    refuseAs: { unmute: "call unmute", camera: "call camera", share: "call share", captions: "call captions on" },
   }),
   ...bindAx(liveCaptionsAx, {
     reads: { captions: { read: "call captions <meeting>", push: "call events <meeting> --stream live-transcript", trigger: "--on mention" } },
