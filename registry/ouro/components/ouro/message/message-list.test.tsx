@@ -628,6 +628,57 @@ describe("MessageList", () => {
     expect(Math.abs(document.getElementById("found-15")!.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
 
+  it("puts pages of older messages in a few at a time, holding the reader's message in place in every frame", async () => {
+    let items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    // How many messages went into the list in each frame, how far the reader's message moved by any frame, and how much the
+    // layout shifted (where the browser measures it).
+    const added = [0];
+    let moved = 0;
+    const shifts: number[] = [];
+    const counting = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element && node.matches('[data-ouro="message"]')) added.push(added.pop()! + 1);
+    });
+    counting.observe(scroller, { childList: true, subtree: true });
+    const layout = new PerformanceObserver((list) => list.getEntries().forEach((entry) => shifts.push((entry as PerformanceEntry & { value: number }).value)));
+    if (PerformanceObserver.supportedEntryTypes.includes("layout-shift")) layout.observe({ type: "layout-shift" });
+    let watching = true;
+    const frame = () => {
+      moved = Math.max(moved, Math.abs(reading.message.getBoundingClientRect().top - reading.top));
+      added.push(0);
+      if (watching) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    for (let page = 1; page <= 3; page++) {
+      items = [...history(200, -200 * page), ...items];
+      await rerender(<Found items={items} />);
+      // The app drawing the list again for something else, in the same frame, puts no more in.
+      await act(async () => {
+        flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+        flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+      });
+      await expect.poll(() => scroller.querySelectorAll('[data-ouro="message"]').length).toBe(200 * (page + 1));
+    }
+    await settle(scroller);
+    watching = false;
+    counting.disconnect();
+    layout.disconnect();
+    expect(moved).toBeLessThanOrEqual(1);
+    expect(Math.max(...added)).toBeLessThanOrEqual(20);
+    expect(shifts.reduce((sum, shift) => sum + shift, 0)).toBeLessThan(0.01);
+  });
+
+  it("puts a few older messages in at once", async () => {
+    const items = history(30, 20);
+    const { scroller, rerender } = await render(<Found items={items} />);
+    await rerender(<Found items={[...history(20), ...items]} />);
+    expect(scroller.querySelectorAll('[data-ouro="message"]')).toHaveLength(50);
+  });
+
   it("keeps following the end, with no Jump to latest, when the newest message goes and the browser reports the scroll first", async () => {
     const items = history(20, 10);
     const { scroller } = await render(<Chat items={items} />);
