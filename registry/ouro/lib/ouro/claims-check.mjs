@@ -1000,14 +1000,17 @@ export async function verify(checks, context, sources = []) {
 // ---------------------------------------------------------------------------------------
 // Surfaces
 
-function listFiles(root) {
+function listFiles(root, generated = []) {
   const git = (args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   try {
     if (realpathSync(git(["rev-parse", "--show-toplevel"])) !== realpathSync(root)) throw new Error("not the repository's root");
-    return execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
-      .split("\n")
-      .filter(Boolean)
-      .filter((file) => existsSync(join(root, file)));
+    const lines = (args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 64 * 1024 * 1024 }).split("\n").filter(Boolean);
+    // A generated file that git ignores (one the generators write on every checkout and only a
+    // release commits) is still a surface: what it says is what an app or a reader gets.
+    const ignored = lines(["ls-files", "--others", "--ignored", "--exclude-standard", "--directory"]).filter((file) => generated.some((pattern) => pattern.test(file)));
+    return [...new Set([...lines(["ls-files", "--cached", "--others", "--exclude-standard"]), ...ignored])]
+      .sort()
+      .filter((file) => existsSync(join(root, file)) && statSync(join(root, file)).isFile());
   } catch {
     const out = [];
     const walk = (dir) => {
@@ -1030,7 +1033,7 @@ function listFiles(root) {
  */
 export function surfaces(root, config = loadConfig(root)) {
   const out = [];
-  for (const file of listFiles(root)) {
+  for (const file of listFiles(root, (config.generated ?? []).map((pattern) => new RegExp(pattern)))) {
     const entry = classify(file, config);
     if (entry) out.push({ file, ...entry });
   }

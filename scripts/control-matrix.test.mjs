@@ -41,7 +41,10 @@ function editManifest(dir, folder, edit) {
 test("the matrices are written where they are read, never committed", () => {
   const files = ["test/generated/control-matrix.json", "test/generated/motion-matrix.json"];
   const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
-  assert.equal(git("ls-files", "--", ...files).stdout, "", "a matrix is committed: git rm --cached it");
+  // Main never commits them; a release commit adds both, with registry.json and the other
+  // generated files (scripts/release-commit.sh, scripts/generated-files.mjs).
+  const release = git("ls-files", "--", "registry.json").stdout !== "" && Boolean(JSON.parse(readFileSync(join(root, "registry.json"), "utf8")).version);
+  assert.equal(git("ls-files", "--", ...files).stdout, release ? files.map((file) => `${file}\n`).join("") : "", release ? "a release commit lacks a matrix" : "a matrix is committed: git rm --cached it");
   for (const file of files) assert.equal(git("check-ignore", "-q", "--no-index", file).status, 0, `${file} is not in .gitignore`);
   // Every Vitest run writes them before a test file imports them, and so does the type check.
   assert.match(readFileSync(join(root, "vitest.config.ts"), "utf8"), /^writeMatrices\(\);$/m);
