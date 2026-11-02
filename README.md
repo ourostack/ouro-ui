@@ -353,6 +353,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-claims`,
 `ax-cli`,
 `ax-command`,
+`ax-component`,
 `ax-effects`,
 `ax-exit-codes`,
 `ax-flows`,

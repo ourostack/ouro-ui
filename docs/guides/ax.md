@@ -88,6 +88,7 @@ Receipt: a-t1
 | [`ax-wait`](../ax/ax-wait.md) | A typed wait on a reference the agent holds, with a cursor to resume from and a time limit. |
 | [`ax-work-event`](../ax/ax-work-event.md) | An attributed event per action, handoff, wait and return, and a fold that counts them. |
 | [`ax-mcp`](../ax/ax-mcp.md) | The same commands as MCP tools over stdio. A preview in this release. |
+| [`ax-component`](../ax/ax-component.md) | A component's agent side: what an agent reads from it and the actions it may take, bound to their CLI twins, for the X-ray to check. |
 | [`ax-lint`](../ax/ax-lint.md) | Checks the declarations, and against your command inventory that the commands you register run through them. |
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
@@ -114,6 +115,56 @@ voice: {
 ```
 
 The kit prints a voice line only when stdout is a terminal, and never under `--json`, `--quiet` (a tool with a voice takes it) or when `CI` is set; never on stderr and never in an error.[^voice] Every line is one line of plain ASCII, at most 72 characters, checked when the tool is built.[^voice-line] The fact comes first, a process celebrates once, and variants rotate; pass `voiceMemory` to `runCli` to keep the last one between runs.[^voice-order] `help --json` lists the fixed lines, which the X-ray looks for in its piped and `--json` calls.
+
+## Components
+
+An Ouro HX component an agent can act through declares its agent side next to it: what an agent may read from it, with the fields, and its actions' effects, with `agent: true` for an action an agent may take or `personOnly` with the reason for one only the person takes. Leaving out that choice, or making both, is a type error and a one-line error at load.[^component] The app binds each read and agent action to its CLI twin, because a component does not know the app's command names; `bindAx` throws when one has no twin, or when a person-only action is given one, and returns the entries for the X-ray's inventory.[^bind] These are the calling components, bound to a `call` tool:
+
+```ts
+import { bindAx, defineComponentAx } from "./lib/ouro/ax/component.ts";
+
+const theirs = "agents never turn on a person's microphone, camera or screen";
+
+export const mediaTileAx = defineComponentAx({
+  component: "MediaTile",
+  reads: [{ name: "participant", summary: "Who is in the tile, and what they are doing.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
+  actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
+});
+
+export const toolbarAx = defineComponentAx({
+  component: "Toolbar",
+  reads: [],
+  actions: [
+    { id: "mute", summary: "Mute the person's microphone.", effect: "others", agent: true },
+    { id: "leave", summary: "Leave the call.", effect: "others", agent: true },
+    { id: "raise-hand", summary: "Raise the person's hand.", effect: "others", agent: true },
+    { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
+    { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
+    { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
+  ],
+});
+
+export const liveCaptionsAx = defineComponentAx({
+  component: "LiveCaptions",
+  reads: [{ name: "captions", summary: "What people say, once the person asks you to follow the meeting.", fields: ["speaker", "text", "at"], consent: "listening", push: "filtered" }],
+  actions: [],
+});
+
+export const ui = [
+  ...bindAx(mediaTileAx, { reads: { participant: "call participants <meeting>" }, actions: { pin: "call pin <participant>" } }),
+  ...bindAx(toolbarAx, {
+    actions: { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>" },
+    refuseAs: { unmute: "call unmute", camera: "call camera", share: "call share" },
+  }),
+  ...bindAx(liveCaptionsAx, {
+    reads: { captions: { read: "call captions <meeting>", push: "call events <meeting> --stream live-transcript", trigger: "--on mention" } },
+  }),
+];
+```
+
+A read of what people say (`consent: "listening"`) gives nothing until the person asks the agent to follow that meeting: the inbox-agent runs `call follow m1 --why "<who asked>"` only at the person's direction, and before that the read answers `needs-human`, with the follow as the step that resumes. Its stream (`push: "filtered"`) delivers lines only on a words trigger, such as a mention, a question or a topic, so no agent gets every line of a meeting, and a read takes `--cursor` to pull only what is new.[^listening]
+
+The CLI declares the words a person-only action answers to with `defineCli({ personOnly: { unmute: { reason, how } } })`. They refuse with one line that says why and where the person does it, a refused outcome under `--json`, and `help --json` lists them under `personOnly`, so the prep-agent learns them before it tries.[^person-only] In the `call` tool, `join` is person-only too: the person joins, and agents read from the app's one capture.[^join]
 
 ## Agent flows in CI
 
@@ -155,4 +206,9 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^flows-checks]: test:registry/ouro/ax/flows.test.mts::a call's checks: exit, shape, fields, error text, time, size, text and voice, each its own finding verify:testExists(registry/ouro/ax/flows.test.mts::a call's checks: exit, shape, fields, error text, time, size, text and voice, each its own finding)
 [^flows-guard]: test:registry/ouro/ax/flows.test.mts::nothing runs until the suite's guard passes verify:testExists(registry/ouro/ax/flows.test.mts::nothing runs until the suite's guard passes)
 [^flows-known]: test:registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage verify:testExists(registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage)
+[^component]: test:registry/ouro/ax/component.test.mts::an action is agent or person-only, exactly one, and every problem throws one line with its fix verify:testExists(registry/ouro/ax/component.test.mts::an action is agent or person-only, exactly one, and every problem throws one line with its fix)
+[^bind]: test:registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries; test:scripts/ax.test.mjs::the guide shows the calling components' declarations as they are verify:testExists(registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries) verify:testExists(scripts/ax.test.mjs::the guide shows the calling components' declarations as they are)
+[^listening]: test:registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow verify:testExists(registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow)
+[^person-only]: test:registry/ouro/ax/cli.test.mts::a person-only word refuses with its reason and how the person does it, as a refused outcome under --json; test:registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it verify:testExists(registry/ouro/ax/cli.test.mts::a person-only word refuses with its reason and how the person does it, as a refused outcome under --json) verify:testExists(registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it)
+[^join]: registry/ouro/ax/fixtures/call.mts verify:fileLine(registry/ouro/ax/fixtures/call.mts, /join: \{ reason: "the person joins a call, and you read from the app's one capture"/)
 [^lint]: test:registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command verify:testExists(registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command)
