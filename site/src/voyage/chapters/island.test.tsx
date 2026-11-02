@@ -1,4 +1,4 @@
-import { Suspense, useState, type ComponentType, type JSX } from "react";
+import { Suspense, useEffect, useState, type ComponentType, type JSX } from "react";
 import { hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,6 +78,7 @@ afterEach(async () => {
   await act(() => root?.unmount());
   root = undefined;
   host.remove();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -95,6 +96,41 @@ describe("an island", () => {
       .not.toBe("island 0");
     expect(load).toHaveBeenCalledTimes(1);
     expect(host.querySelector("[data-island-failed]")).toBeNull();
+  });
+
+  /** Presses the island before its chunk has loaded, then loads it, with the press's replay held on the faked clock. */
+  async function pressThenLoad(chapter: ComponentType): Promise<void> {
+    let loaded: ((module: { default: ComponentType }) => void) | undefined;
+    await hydrate(() => new Promise((resolve) => (loaded = resolve)));
+    await expect.poll(() => loaded).toBeDefined();
+    await act(() => button("island")!.click());
+    expect(button("island")!.textContent).toBe("island 0");
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    await act(() => loaded!({ default: chapter }));
+  }
+
+  it("makes a press held before it hydrated again once it has", async () => {
+    await pressThenLoad(Chapter);
+    await act(() => vi.runOnlyPendingTimers());
+    expect(button("island")!.textContent).toBe("island 1");
+  });
+
+  it("drops a held press when a press elsewhere comes after it hydrates, before the press is made again", async () => {
+    let pressedElsewhere = false;
+    // A press on the page in the moment between hydrating and making the held press again.
+    function ChapterPressedElsewhere(): JSX.Element {
+      useEffect(() => {
+        queueMicrotask(() => {
+          button("page")!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+          pressedElsewhere = true;
+        });
+      }, []);
+      return <Chapter />;
+    }
+    await pressThenLoad(ChapterPressedElsewhere);
+    expect(pressedElsewhere).toBe(true);
+    await act(() => vi.runOnlyPendingTimers());
+    expect(button("island")!.textContent).toBe("island 0");
   });
 
   it("shows its fallback when its chunk fails to load, while the rest of the page answers and the page marks itself ready", async () => {
