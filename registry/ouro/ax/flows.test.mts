@@ -70,8 +70,8 @@ test("a call's checks: exit, shape, fields, error text, time, size, text and voi
 
 test("the voice rules: plain stderr, JSON alone under --json, and no brand names", () => {
   const verdict = (r: Partial<Ran>, argv: string[], brandNames?: string[]) => Object.fromEntries(checkCall(FLOW, { id: "v", expect: { exit: 0 } }, ran(r), { tool: "t", argv, ...(brandNames ? { brandNames } : {}) }).filter((f) => f.check.startsWith("voice.")).map((f) => [f.check, f.pass]));
-  assert.deepEqual(verdict({ out: "Sent.\n", err: 't: send: needs --why. Fix: t send x --why "I asked".\n' }, ["send"], ["Captain", "Sto.ker"]), { "voice.plain-stderr": true, "voice.no-brand-names": true });
-  assert.deepEqual(verdict({ out: "Captain, it is sent.\n", err: "I sent it\n" }, ["send"], ["Captain"]), { "voice.plain-stderr": false, "voice.no-brand-names": false });
+  assert.deepEqual(verdict({ out: "Sent.\n", err: 't: send: needs --why. Fix: t send x --why "I asked".\n' }, ["send"], ["Acme", "Wid.get"]), { "voice.plain-stderr": true, "voice.no-brand-names": true });
+  assert.deepEqual(verdict({ out: "Acme, it is sent.\n", err: "I sent it\n" }, ["send"], ["Acme"]), { "voice.plain-stderr": false, "voice.no-brand-names": false });
   assert.deepEqual(verdict({ err: "Done \u{1F6B2}\n" }, ["send"]), { "voice.plain-stderr": false });
   assert.deepEqual(verdict({ out: "All done, nice pedalling.\n{}" }, ["log", "--json"]), { "voice.plain-stderr": true, "voice.json-only": false });
   assert.deepEqual(verdict({ out: "[]" }, ["log", "--json"]), { "voice.plain-stderr": true, "voice.json-only": true });

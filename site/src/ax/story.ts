@@ -43,15 +43,14 @@ export interface Beat {
 export const ROOM = "Design sync";
 
 /** The duo drawing (art/morning-with-an-agent.svg), in plain words. */
-export const MORNING_ART_ALT = cast(
-  "{Person} and {agent} share a desk on a sunny morning. {Person}, in a knitted bobble hat and scarf, holds a coffee and talks; {agent}, a small robot with a visor and an antenna, sends {person}'s note from its terminal to a room of three people.",
-);
+export const MORNING_ART_ALT =
+  "A person and their agent at a desk on a sunny morning. The person, in an amber cap with a satchel, holds a coffee; the agent, a small robot with a visor and an antenna, sends the person's note from its terminal to a room of three people.";
 
 /** 9:03 on the person's screen: the ask, the room as it now reads, and the agent's reply. The hero and the home page show it too. */
 export const LATE_SEEN: Seen[] = [
   { kind: "person", text: "Tell Design sync I'm running late." },
   { kind: "agent", text: cast("Posted in Design sync on your word. {replier} and {other} can see it.") },
-  { kind: "room", by: cast("{Person}"), text: "Running late, start without me", aside: cast("Sent by {agent}, on {person}'s word") },
+  { kind: "room", by: "You", text: "Running late, start without me", aside: "Sent by your agent, on your word" },
 ];
 
 /** Each command and what the kit printed, with the cast's names filled in. */

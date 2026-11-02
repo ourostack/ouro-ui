@@ -6,7 +6,6 @@ import { CodeBlock, Command, InlineCode } from "../components/code";
 import generated from "../generated/agent-messages.json";
 import { AX_SECTION } from "../copy";
 import { FigureValue, Screen, Transcript } from "../ax/parts";
-import { cast } from "../ax/cast";
 import { LATE_SEEN, TRANSCRIPTS } from "../ax/story";
 import { latestRelease } from "../latest-release";
 import { href } from "../paths";
@@ -187,10 +186,10 @@ export function OuroAx(): JSX.Element {
           {AX_SECTION.title}
         </h2>
         <p className="site-lede mt-5">{AX_SECTION.intro}</p>
-        <p className="mt-5 mb-0 text-muted-foreground">{cast("{Person} is a person, and {agent} is {person.their} agent, acting on {person.their} word. Here is one moment, seen from both sides.")}</p>
+        <p className="mt-5 mb-0 text-muted-foreground">Here is one moment, seen from both sides: what you see, and what your agent sees.</p>
         <div className="ax-pair mt-8 grid items-start gap-4">
-          <Screen label={cast("What {person} sees")} seen={LATE_SEEN} />
-          <Transcript label={cast("What {agent} sees")} steps={TRANSCRIPTS.late} />
+          <Screen label={"What you see"} seen={LATE_SEEN} />
+          <Transcript label={"What your agent sees"} steps={TRANSCRIPTS.late} />
         </div>
         <p className="mt-4 mb-0 text-sm text-muted-foreground">
           {claim("The agent's first try is refused in one line that names the fix, and nothing reaches the room until it says who asked.", {
@@ -223,7 +222,7 @@ export function OuroAx(): JSX.Element {
           </Figure>
         </ul>
         <div className="mt-12 flex flex-wrap gap-3">
-          <Button href={href("/ax/#be-the-agent")}>{cast("Be {agent}")}</Button>
+          <Button href={href("/ax/#be-the-agent")}>{"Be the agent"}</Button>
           <Button href={href("/ax/")} variant="outline" tone="secondary">
             {AX_SECTION.morning}
           </Button>

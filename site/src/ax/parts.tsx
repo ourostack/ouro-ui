@@ -1,9 +1,8 @@
 import { Fragment, type JSX, type ReactNode } from "react";
 import { InlineCode } from "../components/code";
-import { cast } from "./cast";
 import type { Seen, Step } from "./story";
-import captainSource from "./art/captain-head.svg?raw";
-import stokerSource from "./art/stoker-avatar.svg?raw";
+import personSource from "./art/person-head.svg?raw";
+import agentSource from "./art/agent-avatar.svg?raw";
 import "./ax.css";
 
 /** A drawing's markup without its title and notes, hidden from screen readers: the words beside it say who it is. */
@@ -14,16 +13,18 @@ export function artMarkup(source: string, attributes = ""): string {
     .replace("<svg ", `<svg aria-hidden="true" focusable="false" ${attributes}`);
 }
 
-const MARKS = { person: artMarkup(captainSource), agent: artMarkup(stokerSource) } as const;
-const SPEAKERS = { person: cast("{Person}: "), agent: cast("{Agent}: ") } as const;
+const MARKS = { person: artMarkup(personSource), agent: artMarkup(agentSource) } as const;
+
+/** Who says each line, for screen readers: on the story's pages the reader is the person; in the playground, the agent. */
+export const SPEAKERS = { person: { person: "You: ", agent: "Your agent: " }, agent: { person: "The person: ", agent: "You: " } } as const;
 
 /** One line of the person's chat with their agent: the speaker's mark beside the bubble, and their name for screen readers. */
-export function ChatLine({ by, text, fresh }: { by: "person" | "agent"; text: string; fresh?: boolean | undefined }): JSX.Element {
+export function ChatLine({ by, text, fresh, reader = "person" }: { by: "person" | "agent"; text: string; fresh?: boolean | undefined; reader?: "person" | "agent" }): JSX.Element {
   return (
     <div className={`ax-line ax-line-${by}${fresh ? " ax-new" : ""}`}>
       <span className={`ax-avatar ax-avatar-${by}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: MARKS[by] }} />
       <p className={`ax-bubble ax-bubble-${by}`}>
-        <span className="sr-only">{SPEAKERS[by]}</span>
+        <span className="sr-only">{SPEAKERS[reader][by]}</span>
         {text}
       </p>
     </div>
@@ -43,7 +44,7 @@ export function Chat({ title, children, ...rest }: { title: ReactNode; children:
 }
 
 /** The header of the person's chat with their agent. */
-export const CHAT_TITLE = cast("{Person}'s chat with {agent}");
+export const CHAT_TITLE = "Your chat with your agent";
 
 /**
  * A terminal's text wraps even before ax.css has loaded: the home page's section is server-rendered far below the

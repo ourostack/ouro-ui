@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-  <title>The Stoker</title>
-  <!-- Spot drawing of the Stoker for the agent's side of a chat, 64 to 96 px; from "A morning with an agent",
+  <title>Your agent</title>
+  <!-- Spot drawing of the agent for the agent's side of a chat, 64 to 96 px; from "A morning with an agent",
        released under ourostack/ouro-ui's MIT licence. Lines take currentColor; eyes, antenna and glow read the custom property duo-eye
        (else #2ec4b6), the visor the custom property duo-visor (else a fixed navy). -->
   <path d="M48 28 V16" stroke-width="2.6" />

@@ -85,7 +85,7 @@ export const EGGS: Record<Egg, string> = {
     source: { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" },
     verify: { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "In 30 agent runs no agent passed a misspelt flag or used `--dry-run`" },
   }),
-  words: cast("That's how {person} talks. The tool takes only commands: turning one into the other is {agent}'s job, and today that's you."),
+  words: "That's how people talk. The tool takes only commands: turning one into the other is the agent's job, and today that's you.",
 };
 
 /** Which note, if any, a command earns: a misspelt flag the tool refused, a preview that ran, or plain words. */

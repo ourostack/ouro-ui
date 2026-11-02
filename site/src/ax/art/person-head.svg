@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>You</title>
+  <!-- Spot drawing of the person's head for the person's side of a chat, 32 to 48 px; from "A morning with an agent",
+       released under ourostack/ouro-ui's MIT licence. Faceless, in an amber cycling cap; the cap reads the custom property duo-heart (else #f2a33a),
+       lines take currentColor. -->
+  <circle cx="24" cy="27" r="14" stroke-width="2" />
+  <path d="M10.5 25 C10 14 16 9 24 9 C32 9 38 14 37.5 25 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="1.8" />
+  <path d="M36.5 22 C41 22 45 23.5 45.5 26 L37 26" fill="var(--duo-heart, #f2a33a)" stroke-width="1.6" />
+  <circle cx="24" cy="8.5" r="2" fill="var(--duo-heart, #f2a33a)" stroke-width="1.2" />
+  <path d="M16 41 C19 44 29 44 32 41" stroke-width="1.6" opacity="0.6" />
+</svg>

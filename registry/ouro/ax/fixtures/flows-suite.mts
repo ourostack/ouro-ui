@@ -98,7 +98,7 @@ export default defineSuite({
   // The tool in this process; `state` is the toy's whole state, for reads-stay-reads.
   cli: inProcess((argv, io) => (argv[0] === "state" ? (io.stdout.write(`${JSON.stringify(rooms)}\n`), 0) : runCli(exampleCli, argv, io, { env: io.env }))),
   state: ["state"],
-  brandNames: ["Captain", "Stoker"],
+  brandNames: ["Acme", "Widget"],
   async start(): Promise<Mock> {
     resetRooms();
     const server = createServer((req, res) => {
