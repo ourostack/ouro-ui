@@ -61,3 +61,12 @@ test("a flag read from stdin says so, and a command without examples has none in
   assert.match(renderCommand(c, c.commands[0]!), /The text\. "-" reads it from stdin\./);
   assert.deepEqual(helpJson(c).commands[0]!.examples, []);
 });
+
+test("person-only words are listed in the overview and in help --json, with the reason and how the person does it", () => {
+  const theirs = { reason: "agents never turn on a person's camera", how: "with the camera button" };
+  const c = defineCli({ name: "call", about: ["call"], commands: [defineCommand({ name: "mute", summary: "Mute.", effect: "others" })], personOnly: { camera: theirs, "share screen": theirs } });
+  assert.match(renderOverview(c), /\n {2}mute {3}Mute\.\n\nOnly the person does these, never you: camera, share screen\. Why and where: call help --json\.\n\nOutput:/);
+  assert.deepEqual(helpJson(c).personOnly, [{ name: "camera", ...theirs }, { name: "share screen", ...theirs }]);
+  assert.deepEqual(helpJson(cli).personOnly, []);
+  assert.doesNotMatch(renderOverview(cli), /Only the person/);
+});

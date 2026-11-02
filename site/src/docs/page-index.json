@@ -144,6 +144,12 @@
     "summary": "One definition of a command: its words, effect, arguments and flags, examples and output."
   },
   {
+    "name": "ax-component",
+    "title": "ax-component",
+    "kind": "guide",
+    "summary": "A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin)."
+  },
+  {
     "name": "ax-effects",
     "title": "ax-effects",
     "kind": "guide",

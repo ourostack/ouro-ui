@@ -271,6 +271,7 @@ The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit
 - `ax-claims`: Ouro AX: the Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. Docs: https://ui.ouro.bot/docs/ax-claims.md
 - `ax-cli`: Ouro AX: the whole front door for a tool built on the kit: parse, help, run (or, on `--dry-run`, plan), print the result as text or `--json`, and turn every failure into the one error line and its exit code. Docs: https://ui.ouro.bot/docs/ax-cli.md
 - `ax-command`: Ouro AX: one definition of a command: its words, effect, arguments and flags, examples and output. Docs: https://ui.ouro.bot/docs/ax-command.md
+- `ax-component`: Ouro AX: A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). Docs: https://ui.ouro.bot/docs/ax-component.md
 - `ax-effects`: Ouro AX: effect classes: a command either touches only the person's own space ("private") or reaches other people ("others"). Docs: https://ui.ouro.bot/docs/ax-effects.md
 - `ax-example`: Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it. Docs: https://ui.ouro.bot/docs/ax-example.md
 - `ax-exit-codes`: Ouro AX: A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift. Docs: https://ui.ouro.bot/docs/ax-exit-codes.md
@@ -287,6 +288,7 @@ The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit
 - `ax-claims-tests`: Optional: the node:test tests for ax-claims; run them with node --test.
 - `ax-cli-tests`: Optional: the node:test tests for ax-cli; run them with node --test.
 - `ax-command-tests`: Optional: the node:test tests for ax-command; run them with node --test.
+- `ax-component-tests`: Optional: the node:test tests for ax-component; run them with node --test.
 - `ax-effects-tests`: Optional: the node:test tests for ax-effects; run them with node --test.
 - `ax-exit-codes-tests`: Optional: the node:test tests for ax-exit-codes; run them with node --test.
 - `ax-flows-tests`: Optional: the node:test tests for ax-flows; run them with node --test.

@@ -12,7 +12,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.1
 ```
 
-It installs `lib/ouro/ax/xray.ts`, with `ax-claims`, `ax-outcome`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/xray.ts`, with `ax-claims`, `ax-component`, `ax-outcome`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -69,13 +69,14 @@ function harvest(value: unknown, samples: Record<string, string>, key?: string |
 
 ### `Inventory`
 
-The surfaces an adopter generates from its own registration: CLI command names, HTTP `METHOD /path` routes, MCP tool names.
+The surfaces an adopter generates from its own registration: CLI command names, HTTP `METHOD /path` routes, MCP tool names, and its components' bound reads and actions (`ui`, the entries `bindAx` returns), whose twins it checks.
 
 ```ts
 interface Inventory {
   cli?: string[];
   http?: string[];
   mcp?: string[];
+  ui?: UiEntry[];
 }
 ```
 
@@ -238,7 +239,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```ts
-const XRAY_VERSION: "1.1.0"
+const XRAY_VERSION: "1.2.0"
 ```
 
 ### `XrayOptions`

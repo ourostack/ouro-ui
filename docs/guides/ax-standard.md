@@ -12,7 +12,7 @@ node lib/ouro/ax/xray.ts claims --json   # the claim set as data, with its hash
 | Field | What it holds |
 | --- | --- |
 | `id` | A stable name, such as `cli.unknown-flag`. |
-| `surface` | `cli`, `http` or `mcp`. |
+| `surface` | `cli`, `http`, `mcp` or `ui` (a component's twins). |
 | `tier` | `must` or `should`. |
 | `applies` | Which surfaces it applies to, decided from what the interface says about itself: a command, a read, an action other people see, a route, a tool. |
 | `rule` | The rule, in one sentence. |

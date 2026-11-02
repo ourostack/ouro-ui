@@ -130,10 +130,10 @@ function flagLines(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, w
 
 ### `helpJson`
 
-The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (for a checker that looks for them in an agent's output) and the one error shape.
+The help as data: the tool, its headings, the commands, the words only the person acts on (`personOnly`: name, reason and how), the exit codes, the tool's fixed voice lines (for a checker that looks for them in an agent's output) and the one error shape.
 
 ```ts
-function helpJson(cli: Cli<RunContext>): { tool: string; about: readonly string[]; effects: { private: string; others: string; }; commands: CommandManifest[]; exitCodes: readonly ExitCode[]; voice: string[]; errorShape: { error: { code: string; exit: string; thing: string; problem: string; fix: string; message: string; }; }; }
+function helpJson(cli: Cli<RunContext>): { tool: string; about: readonly string[]; effects: { private: string; others: string; }; commands: CommandManifest[]; personOnly: { name: string; reason: string; how: string; }[]; exitCodes: readonly ExitCode[]; voice: string[]; errorShape: { error: { code: string; exit: string; thing: string; problem: string; fix: string; message: string; }; }; }
 ```
 
 ### `OverviewOptions`
@@ -156,7 +156,7 @@ function renderCommand(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext
 
 ### `renderOverview`
 
-The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the footer.
+The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer.
 
 ```ts
 function renderOverview(cli: Cli<RunContext>, options?: OverviewOptions): string

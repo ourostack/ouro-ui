@@ -375,3 +375,16 @@ function run2(tool: ReturnType<typeof defineCli>, argv: string[]): Parsed {
   assert.equal(p.kind, "run");
   return p as Parsed;
 }
+
+test("a person-only word refuses before anything runs, a longer command wins, and its declaration is checked", () => {
+  const theirs = { reason: "agents never share a person's screen", how: "with the share button" };
+  const call = defineCli({ name: "call", about: [], commands: [defineCommand({ name: "share link", summary: "Share the link.", effect: "others" })], personOnly: { share: theirs, "camera on": theirs } });
+  assert.throws(() => parse(call, ["share", "--json"]), (e: AxError) => e.shape.code === "person-only" && e.shape.thing === "share" && e.shape.exit === 2 && e.shape.fix === null);
+  assert.throws(() => parse(call, ["camera", "on"]), (e: AxError) => e.shape.code === "person-only" && e.shape.thing === "camera on");
+  assert.throws(() => parse(call, ["share", "link"]), (e: AxError) => e.shape.code === "needs-why");
+  assert.throws(() => defineCli({ name: "t", about: [], commands: [defineCommand({ name: "share", summary: "S.", effect: "private" })], personOnly: { share: theirs } }), /"share" is person-only and also a command or an ambiguous word/);
+  assert.throws(() => defineCli({ name: "t", about: [], commands: [], ambiguous: { share: [] }, personOnly: { share: theirs } }), /"share" is person-only and also a command or an ambiguous word/);
+  assert.throws(() => defineCli({ name: "t", about: [], commands: [], personOnly: { share: { reason: " ", how: "x" } } }), /^Error: t: person-only "share" needs reason, one line\. Fix: personOnly: \{ "share": \{ reason: "<why only the person does it>", how: "<where the person does it>" \} \}\.$/);
+  assert.throws(() => defineCli({ name: "t", about: [], commands: [], personOnly: { share: { reason: "x", how: "a\nb" } } }), /needs how, one line/);
+  assert.throws(() => defineCli({ name: "t", about: [], commands: [], personOnly: { share: { reason: "x" } as never } }), /needs how, one line/);
+});

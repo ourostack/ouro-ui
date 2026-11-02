@@ -12284,6 +12284,23 @@
       ]
     },
     {
+      "name": "ax-component",
+      "type": "registry:lib",
+      "title": "ax-component",
+      "description": "Ouro AX: A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin).",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-component.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-effects"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/component.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/component.ts"
+        }
+      ]
+    },
+    {
       "name": "ax-effects",
       "type": "registry:lib",
       "title": "ax-effects",
@@ -12497,6 +12514,7 @@
       "docs": "Docs: https://ui.ouro.bot/docs/ax-xray.md",
       "registryDependencies": [
         "ourostack/ouro-ui/ax-claims",
+        "ourostack/ouro-ui/ax-component",
         "ourostack/ouro-ui/ax-outcome",
         "ourostack/ouro-ui/ax-wait",
         "ourostack/ouro-ui/ax-work-event"
@@ -12586,6 +12604,36 @@
           "path": "registry/ouro/ax/command.test.mts",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/command.test.mts"
+        }
+      ]
+    },
+    {
+      "name": "ax-component-tests",
+      "type": "registry:item",
+      "title": "ax-component tests",
+      "description": "Optional: the node:test tests for ax-component; run them with node --test.",
+      "docs": "Docs: https://ui.ouro.bot/docs/ax-component.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/ax-claims-tests",
+        "ourostack/ouro-ui/ax-cli-tests",
+        "ourostack/ouro-ui/ax-command-tests",
+        "ourostack/ouro-ui/ax-component",
+        "ourostack/ouro-ui/ax-effects-tests",
+        "ourostack/ouro-ui/ax-exit-codes-tests",
+        "ourostack/ouro-ui/ax-mcp-tests",
+        "ourostack/ouro-ui/ax-outcome-tests",
+        "ourostack/ouro-ui/ax-output-tests",
+        "ourostack/ouro-ui/ax-problem-tests",
+        "ourostack/ouro-ui/ax-voice-tests",
+        "ourostack/ouro-ui/ax-wait-tests",
+        "ourostack/ouro-ui/ax-work-event-tests",
+        "ourostack/ouro-ui/ax-xray-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/ax/component.test.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/component.test.mts"
         }
       ]
     },
@@ -12850,6 +12898,8 @@
         "ourostack/ouro-ui/ax-cli-tests",
         "ourostack/ouro-ui/ax-command",
         "ourostack/ouro-ui/ax-command-tests",
+        "ourostack/ouro-ui/ax-component",
+        "ourostack/ouro-ui/ax-component-tests",
         "ourostack/ouro-ui/ax-effects-tests",
         "ourostack/ouro-ui/ax-example",
         "ourostack/ouro-ui/ax-exit-codes-tests",
@@ -12870,6 +12920,16 @@
           "path": "registry/ouro/ax/fixtures/bad-cli.mjs",
           "type": "registry:lib",
           "target": "@lib/ouro/ax/fixtures/bad-cli.mjs"
+        },
+        {
+          "path": "registry/ouro/ax/fixtures/call-components.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/call-components.mts"
+        },
+        {
+          "path": "registry/ouro/ax/fixtures/call.mts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/ax/fixtures/call.mts"
         },
         {
           "path": "registry/ouro/ax/fixtures/legacy-cli.mjs",
@@ -12923,6 +12983,7 @@
         "ourostack/ouro-ui/ax-claims",
         "ourostack/ouro-ui/ax-cli",
         "ourostack/ouro-ui/ax-command",
+        "ourostack/ouro-ui/ax-component",
         "ourostack/ouro-ui/ax-effects",
         "ourostack/ouro-ui/ax-exit-codes",
         "ourostack/ouro-ui/ax-flows",
@@ -12947,6 +13008,7 @@
         "ourostack/ouro-ui/ax-claims-tests",
         "ourostack/ouro-ui/ax-cli-tests",
         "ourostack/ouro-ui/ax-command-tests",
+        "ourostack/ouro-ui/ax-component-tests",
         "ourostack/ouro-ui/ax-effects-tests",
         "ourostack/ouro-ui/ax-exit-codes-tests",
         "ourostack/ouro-ui/ax-flows-tests",
