@@ -22,6 +22,11 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+# A push to a pull request cancels that pull request's run in progress: only its newest commit can
+# merge. Every other run (hourly, on main, by hand) is in a group of its own and runs to the end.
+concurrency:
+  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   compare:
     name: required checks
