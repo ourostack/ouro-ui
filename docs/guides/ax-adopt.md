@@ -47,6 +47,16 @@ A report proves only the surfaces it covered, so build the inventory from your C
 
 Add the X-ray to CI against your mock, with `--commit` so the report names what it checked, and upload `xray.json`, `xray.md` and `inventory.json` as an artifact ([the X-ray in CI](ax-conformance.md#in-ci)). The report pins the claim set's version and hash, the X-ray's version and your commit.[^pin] When you review a change, compare the failing checks of the base and the change, not their totals: a new command adds checks, so the totals move anyway.
 
+For a CLI with no HTTP API, the step is the command from step 4 plus `--commit`:
+
+```yaml
+- name: Ouro AX X-ray
+  run: |
+    node scripts/inventory.mjs > inventory.json
+    node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --inventory inventory.json --conformance \
+      --home "$RUNNER_TEMP/xray-home" --guard "node scripts/assert-mock.mjs" --commit "$GITHUB_SHA" --json --md xray.md > xray.json
+```
+
 ## 6. Give it a voice, if you want one
 
 ```ts
