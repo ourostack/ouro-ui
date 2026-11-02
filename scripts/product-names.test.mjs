@@ -99,6 +99,32 @@ test("no example agent or person borrows a real product's name", () => {
   assert.deepEqual(hits, [], `\n${hits.join("\n")}`);
 });
 
+/** Internal names that stay out of the public tree: a team's short name, and its organization on GitHub. */
+export const INTERNAL = /\bCIT\b|gim-home/g;
+
+/** "file:line: ..." for each internal name. */
+export function internal(rels, read) {
+  const hits = [];
+  for (const rel of rels) {
+    read(rel)
+      .split("\n")
+      .forEach((line, i) => {
+        for (const m of line.matchAll(INTERNAL)) hits.push(`${rel}:${i + 1}: "${m[0]}" is an internal name; say what it is in public words, or leave it out`);
+      });
+  }
+  return hits;
+}
+
+test("no internal name reaches the public tree", () => {
+  const rels = ROOTS.flatMap((r) => files(r));
+  const hits = internal(rels, (rel) => readFileSync(join(root, rel), "utf8"));
+  assert.deepEqual(hits, [], `\n${hits.join("\n")}`);
+  assert.deepEqual(
+    internal(["a.md"], () => "Drawn in CIT (gim-home/CIT). Explicit, citation, CITY.").map((h) => h.split(" is ")[0]),
+    ['a.md:1: "CIT"', 'a.md:1: "gim-home"', 'a.md:1: "CIT"'],
+  );
+});
+
 test("the scan catches each position and spares the product as itself", () => {
   const sample = {
     "a.ts": [

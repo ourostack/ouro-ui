@@ -32,7 +32,7 @@ The props the modes share. Type: `AvatarProps`.
 | `color` | `"colorful" \| "brand" \| "neutral"` | `"colorful"` | How the initials are colored. `"colorful"` picks one of eight hues from `idForColor` (else `name`), so the same person always gets the same one, and the initials keep at least 4.5:1 against it in light and dark. `"brand"` tints with the theme's primary; `"neutral"` is the plain secondary surface. The hues are the theme tokens `--avatar-1` to `--avatar-8` (`ouro-base`). |
 | `icon` | `ReactNode` |  | An icon to show in place of the initials, such as a calendar for a meeting or a note for notes to self. It is decorative: the avatar's label stays `name`. |
 | `idForColor` | `string` |  | What `color="colorful"` picks the hue from, when it should not be `name`: a stable id, so people who share a name can differ and a rename keeps the color. |
-| `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AdL". |
+| `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AnL". |
 | `name` (required) | `string` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
 | `shape` | `"circle" \| "square"` | `"circle"` | `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a channel, an app or a bot. |
