@@ -482,6 +482,22 @@ describe("Moment ask", () => {
     }
   });
 
+  it("moves its actions under its words in a slot too narrow for both, so the words keep their room", async () => {
+    const node = (
+      <Moment kind="ask" size="inline" art={<Art />} title="Planner wants to show you the launch plan" action={<Button size="sm">Show me</Button>} onDismiss={() => {}} />
+    );
+    const wide = await render(node, 640);
+    const narrow = await render(node, 300);
+    const row = (host: Element) => {
+      const title = host.querySelector("[data-ouro-moment-actions]")!.previousElementSibling!.getBoundingClientRect();
+      const actions = host.querySelector("[data-ouro-moment-actions]")!.getBoundingClientRect();
+      return { title, actions };
+    };
+    expect(row(wide.host).actions.top).toBeLessThan(row(wide.host).title.bottom);
+    expect(row(narrow.host).actions.top).toBeGreaterThanOrEqual(row(narrow.host).title.bottom);
+    expect(row(narrow.host).title.width).toBeGreaterThan(200);
+  });
+
   it("keeps a dismissal for good without dismissFor, and one made for good stays so with it", async () => {
     let now = Date.UTC(2026, 10, 1, 12);
     vi.spyOn(Date, "now").mockImplementation(() => now);

@@ -81,8 +81,10 @@ export interface MomentOwnProps {
   headingLevel?: 2 | 3 | 4 | 5 | 6 | (number & { "Use 2 to 6, one below the section's heading": never }) | undefined;
   /**
    * `default` stacks the art, title, line and actions in the space it is given. `inline` is a
-   * single row with 24px art, for a "working" row in a list or toolbar.
+   * single row with 24px art, for a "working" row in a list or toolbar; in a slot too narrow for
+   * its words and its actions, the actions move under the words.
    * @default "default"
+   * @claim "in a slot too narrow for its" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment ask > moves its actions under its words in a slot too narrow for both, so the words keep their room)
    * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
    * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > is one row inline, with a plain-text title unless given a heading level)
    */
@@ -436,7 +438,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
           </div>
         </div>
       )}
-      <div className={layout === "default" ? "flex min-w-0 flex-col items-center gap-1.5" : layout === "quiet" ? "flex min-w-0 flex-1 flex-col" : "flex min-w-0 flex-1 items-baseline gap-2"}>
+      <div className={layout === "default" ? "flex min-w-0 flex-col items-center gap-1.5" : layout === "quiet" ? "flex min-w-0 flex-1 flex-col" : "flex min-w-0 flex-[1_1_12rem] items-baseline gap-2"}>
         {titleNode}
         {descriptionNode}
       </div>

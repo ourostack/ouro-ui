@@ -51,7 +51,7 @@ Type: `MomentProps`.
 | `quiet` | `boolean` | the nearest `MomentProvider`'s `quiet`, or `false` | A compact row: 40px art, the title and one line, no celebration. For dense panes, and for people who want less: set it for the whole app with `MomentProvider`. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `secondaryAction` | `ReactNode` |  | A second, quieter way, beside `action`: `secondaryAction={<Button variant="plain">Learn more</Button>}`. Two at most. |
-| `size` | `"inline" \| "default"` | `"default"` | `default` stacks the art, title, line and actions in the space it is given. `inline` is a single row with 24px art, for a "working" row in a list or toolbar. |
+| `size` | `"inline" \| "default"` | `"default"` | `default` stacks the art, title, line and actions in the space it is given. `inline` is a single row with 24px art, for a "working" row in a list or toolbar; in a slot too narrow for its words and its actions, the actions move under the words. |
 | `title` (required) | `string` |  | What happened or what is here, in a few words: "Inbox cleared". Required, because it is what a screen reader finds. |
 
 ## Native attributes

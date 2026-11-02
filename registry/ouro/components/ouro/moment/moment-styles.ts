@@ -163,7 +163,7 @@ const kindToneClass: Record<MomentKind, string> = {
 const rootClass = {
   default: "@container/moment relative box-border flex w-full min-w-0 flex-col items-center gap-4 px-6 py-8 text-center text-balance",
   quiet: "relative box-border flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-start",
-  inline: "relative box-border flex min-w-0 items-center gap-2 text-start",
+  inline: "relative box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-start",
 } as const;
 
 /**
