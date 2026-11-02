@@ -1,35 +1,46 @@
 // Renders site/public/og.png, the 1200×630 image link previews show (the og:image and
 // twitter:image tags, site/src/head.ts), from the landing page itself: the hero, in the light
-// theme with motion reduced so the frame is settled. Rerun after the landing page changes,
-// review the image, and commit it:
+// theme with motion reduced so the frame is settled. Rerun after the landing page or the release
+// changes, review the image, and commit it:
 //
-//   node site/scripts/og-image.mts
+//   pnpm site:build && node site/scripts/og-image.mts
 //
-// It serves the site with Vite's dev server, so it needs no build, and uses the Chromium
-// that Playwright installs for the tests.
+// It photographs the built site (site/dist), served as GitHub Pages serves it, because the hero's
+// stage is hydrated in turn from the prerendered HTML: under Vite's dev server there is no
+// prerendered HTML and the porthole never appears. It uses the Chromium Playwright installs for
+// the tests.
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { createServer } from "vite";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const out = join(repo, "site/public/og.png");
+const port = 4181;
 
-const server = await createServer({ configFile: join(repo, "site/vite.config.ts"), server: { port: 4180, strictPort: true }, logLevel: "error" });
-await server.listen();
+if (!existsSync(join(repo, "site/dist/index.html"))) throw new Error("No built site in site/dist: run pnpm site:build first.");
+
+const server = spawn(process.execPath, [join(repo, "site/scripts/serve-pages.mjs"), String(port)], { stdio: ["ignore", "pipe", "inherit"] });
+await new Promise<void>((resolve, reject) => {
+  server.once("exit", (code) => reject(new Error(`serve-pages.mjs exited with ${code}`)));
+  server.stdout.on("data", () => resolve());
+});
 const browser = await chromium.launch();
 try {
   // Laid out at 1600×840, a desktop width, and captured at 0.75 scale: 1200×630.
-  const context = await browser.newContext({ viewport: { width: 1600, height: 840 }, deviceScaleFactor: 0.75, colorScheme: "light", reducedMotion: "reduce" });
+  const context = await browser.newContext({ viewport: { width: 1600, height: 840 }, deviceScaleFactor: 0.75, colorScheme: "light", reducedMotion: "reduce", ignoreHTTPSErrors: true });
   const page = await context.newPage();
-  await page.goto("http://localhost:4180/", { waitUntil: "networkidle" });
+  await page.goto(`https://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { level: 1 }).waitFor();
-  // Wait until every transition has finished, so the frame is the same on each run.
-  await page.waitForFunction(() => document.getAnimations().length === 0);
+  await page.locator(".site-hero-stage svg").first().waitFor();
+  // Wait until every transition that ends has ended, so the frame is the same on each run. The sea's
+  // own loops run on even with motion reduced, so they are not waited for.
+  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.effect?.getTiming().iterations === Infinity));
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: out });
   console.log(`wrote ${out}`);
 } finally {
   await browser.close();
-  await server.close();
+  server.kill();
 }
