@@ -6,13 +6,13 @@
 //   - "Typed, …": every one of their files is .ts or .tsx;
 //   - "Tested in Chrome and Safari engines, by mouse and by touch": the browsers ouroTestProjects runs
 //     (vitest.ts) and its touch project, a Chromium phone profile;
-//   - "Passes accessibility checks in all six looks, …": the presets site/e2e/voyage.spec.ts scans in
+//   - "Passes accessibility checks in all six looks, …": the presets site/e2e/voyage-presets.spec.ts scans in
 //     light and dark, each expected to pass the audit kit's strict audit (site/e2e/audit.ts);
 //   - "Every line of code runs in a test": the coverage thresholds vitest.config.ts holds over
 //     registry/, all 100;
 //   - "The porthole's controls are Ouro HX too": the stage's source imports its controls from registry/.
 // Each links to its evidence (EVIDENCE): the component inventory, CI's runs on main (the browser
-// matrix), the line of voyage.spec.ts that runs axe over every preset, the line of vitest.config.ts
+// matrix), the line of voyage-presets.spec.ts that runs axe over every preset, the line of vitest.config.ts
 // that holds the thresholds, and the stage's own source. A line link is computed from the source it
 // points into, so it lands on the line that makes the claim. The module also says which component the install command
 // adds: the first of PREFERRED_INSTALL in the latest release's registry.json (`install`).
@@ -52,7 +52,7 @@ export const EVIDENCE = {
   components: "/docs/",
   typescript: `${REPO}/tree/main/registry/ouro/components/ouro`,
   engines: `${REPO}/actions/workflows/ci.yml?query=branch%3Amain`,
-  themes: `${REPO}/blob/main/site/e2e/voyage.spec.ts`,
+  themes: `${REPO}/blob/main/site/e2e/voyage-presets.spec.ts`,
   coverage: `${REPO}/blob/main/vitest.config.ts`,
   stage: `${REPO}/tree/main/site/src/voyage/stage`,
 };
@@ -116,7 +116,7 @@ export function currentProof(root = repo): Proof {
     testProjects: read("registry/ouro/lib/ouro/testing/vitest.ts"),
     vitestConfig: read("vitest.config.ts"),
     themes: read("site/src/themes/themes.json"),
-    voyageSpec: read("site/e2e/voyage.spec.ts"),
+    voyageSpec: read("site/e2e/voyage-presets.spec.ts"),
     stage: read("site/src/voyage/stage/stage.tsx"),
   });
 }

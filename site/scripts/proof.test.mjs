@@ -14,7 +14,7 @@ const sources = () => ({
   testProjects: read("registry/ouro/lib/ouro/testing/vitest.ts"),
   vitestConfig: read("vitest.config.ts"),
   themes: read("site/src/themes/themes.json"),
-  voyageSpec: read("site/e2e/voyage.spec.ts"),
+  voyageSpec: read("site/e2e/voyage-presets.spec.ts"),
   stage: read("site/src/voyage/stage/stage.tsx"),
 });
 
@@ -107,7 +107,7 @@ function releaseCheckout(version) {
   const dir = scratchDir("ouro-proof-release-");
   const git = (cwd, ...args) => execFileSync("git", args, { cwd, stdio: "ignore" });
   git(origin, "init", "--quiet", "--bare");
-  for (const path of ["registry/ouro/lib/ouro/testing/vitest.ts", "vitest.config.ts", "site/src/themes/themes.json", "site/e2e/voyage.spec.ts", "site/src/voyage/stage/stage.tsx"]) {
+  for (const path of ["registry/ouro/lib/ouro/testing/vitest.ts", "vitest.config.ts", "site/src/themes/themes.json", "site/e2e/voyage-presets.spec.ts", "site/src/voyage/stage/stage.tsx"]) {
     mkdirSync(join(dir, dirname(path)), { recursive: true });
     writeFileSync(join(dir, path), read(path));
   }
