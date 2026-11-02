@@ -118,7 +118,7 @@ describe("useScrollFade", () => {
     box.focus();
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(() => box.scrollLeft).toBeGreaterThan(0);
-    await act(frames);
-    expect(Number.parseFloat(fade(box)[0]!)).toBe(box.scrollLeft);
+    // The arrow key may scroll smoothly, so the fade catches up with each frame of it.
+    await expect.poll(() => fade(box)[0] === `${box.scrollLeft}px`).toBe(true);
   });
 });

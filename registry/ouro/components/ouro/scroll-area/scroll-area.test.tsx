@@ -125,7 +125,8 @@ describe("ScrollArea", () => {
     if (server.browser === "chromium") await userEvent.keyboard("{ArrowRight}");
     else viewport.scrollLeft = 40;
     await expect.poll(() => viewport.scrollLeft).toBeGreaterThan(0);
-    await expect.poll(() => viewport.style.getPropertyValue("--ouro-scroll-fade-left")).toBe(`${viewport.scrollLeft}px`);
+    // The arrow key may scroll smoothly, so the fade catches up with each frame of it.
+    await expect.poll(() => viewport.style.getPropertyValue("--ouro-scroll-fade-left") === `${viewport.scrollLeft}px`).toBe(true);
     // Content that fits adds no fade.
     const { viewport: fits } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
     await act(async () => new Promise(requestAnimationFrame));

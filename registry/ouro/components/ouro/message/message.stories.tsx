@@ -96,7 +96,7 @@ const launchTasks = [
 export const WideContent: Story = {
   render: () => (
     <Surface>
-      <div style={{ maxWidth: 360 }}>
+      <div style={{ maxWidth: 360, minWidth: 0 }}>
         <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
           <Table
             caption="Launch tasks"
