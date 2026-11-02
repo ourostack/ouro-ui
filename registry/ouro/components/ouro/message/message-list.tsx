@@ -1,7 +1,7 @@
 "use client";
 
 import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { HTMLAttributes, JSX, KeyboardEvent, ReactNode, Ref } from "react";
+import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
@@ -119,6 +119,8 @@ const LINE = 40;
 
 /** How close to the bottom, in pixels, counts as "at the bottom", where the list follows new messages (zoom leaves fractions). */
 const AT_BOTTOM = 2;
+/** How many older messages go into the list in a frame when a page of them comes at once, to keep the frame short. */
+const CHUNK = 20;
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
 
@@ -164,6 +166,11 @@ let shifted = 0;
 const shifts = new WeakMap<Element, number>();
 
 /** Where an element is laid out: its box, less the spring of the message it is in. */
+/** A child's key, from `Children.toArray`, or null for one that is not an element. */
+function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {
+  return isValidElement(child) ? child.key : null;
+}
+
 function boxOf(element: Element): { top: number; bottom: number; height: number } {
   const box = element.getBoundingClientRect();
   if (shifted === 0) return box;
@@ -412,11 +419,13 @@ interface Spoken {
  * when it finishes, and a first reply in a list that mounted empty. History is never
  * announced: the messages it mounts with, several messages filling an empty list at once
  * (history fetched after mount), older messages loaded above, and a message whose `key` changes in place (a temporary id
- * swapped for the server's). Older messages loaded above a scrolled-up reader leave the
- * message they are reading where it was, and so does a message above them that moves, such as
- * a post a reply moves to the end. When the message they are on is the one that moves, the
- * messages around it keep their place. A scroll up from the end stops the list following new
- * messages at once, before the browser reports it. The list follows by how far it is from the
+ * swapped for the server's). Older messages loaded above a scrolled-up reader leave the message
+ * they are reading where it was, in every frame, and so does a message above them that moves, such
+ * as a post a reply moves to the end. When the message they are on is the one that moves, the
+ * messages around it keep their place. A page of many older messages goes in 20 a frame, those
+ * nearest the reader first, so loading it never holds the page up for long (when the messages are
+ * the list's own children, each with a `key`). A scroll up from the end stops the list following
+ * new messages at once, before the browser reports it. The list follows by how far it is from the
  * bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
  * it too, even as the first messages arrive. Scrolling is never announced.
  *
@@ -499,6 +508,8 @@ interface Spoken {
  * @claim "When the message they are on is the one that moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place by the messages around the one they are on when it moves to the end)
  * @claim "When the message they are on is the one that moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place by the other message in view when the one they are on moves to the end)
  * @claim "The list follows by how far" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stays at a message an app scrolls to as the first messages arrive, instead of following to the newest)
+ * @claim "A page of many older messages goes in 20" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > puts pages of older messages in a few at a time, holding the reader's message in place in every frame)
+ * @claim "A page of many older messages goes in 20" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > puts a few older messages in at once)
  * @claim "A scroll up from the end" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stops following the newest message once the list is scrolled up, even before the scroll event comes)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
@@ -568,6 +579,32 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // With messages, a message is the Tab stop and the region is not; without, the region is while it scrolls.
   // Stryker disable next-line ArrowFunction,ConditionalExpression,EqualityOperator: a first guess only; the keyboard effect counts the messages before the first paint.
   const [hasItems, setHasItems] = useState(() => Children.count(children) > 0);
+
+  // A page of older messages that comes at once goes in a chunk a frame, those nearest the reader first: each frame's
+  // work stays short, and the reader's place is kept as each chunk goes in. A few go in at once.
+  const all = Children.toArray(children);
+  const top = keyOf(all[0]);
+  // The key of the first child, and of the first one drawn: a page of older ones above it waits.
+  const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
+  if (top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
+  const shown = all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
+  const latest = useRef(all);
+  useLayoutEffect(() => {
+    latest.current = all;
+  });
+  useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: with nothing waiting, a step draws from the first child, as now; this only spares a render.
+    if (edge.drawn === edge.first) return;
+    // A frame apart, the next chunk: the one above those drawn.
+    const frame = requestAnimationFrame(() =>
+      setEdge((now) => {
+        const list = latest.current;
+        return { ...now, drawn: keyOf(list[Math.max(0, list.findIndex((child) => keyOf(child) === now.drawn) - CHUNK)]) };
+      }),
+    );
+    // Stryker disable next-line all: a step left from before goes in the same render as the next one; cancelling it only spares the call.
+    return () => cancelAnimationFrame(frame);
+  }, [edge]);
 
   const keyboardRef = useKeyboardScrollable<HTMLDivElement>(!hasItems);
   const setScroller = useMergedRef<HTMLDivElement | null>(keyboardRef, scrollerRef);
@@ -1057,7 +1094,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       >
         <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
         <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">
-          {children}
+          {shown}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
       </div>
