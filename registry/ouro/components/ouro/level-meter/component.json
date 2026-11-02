@@ -1,0 +1,17 @@
+{
+  "order": 2650,
+  "components": ["level-meter"],
+  "motion": {
+    "level-meter": {
+      "states": {
+        "data-highlighted": {
+          "kind": "motion",
+          "parts": {
+            "fill": {"properties": ["scale"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter motion > grows lit bars from their foot with a short scale transition, and with reduced motion shows them whole and only fades them"]
+        }
+      }
+    }
+  }
+}

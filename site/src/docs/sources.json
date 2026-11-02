@@ -106,5 +106,6 @@
   "toolbar": "registry/ouro/components/ouro/toolbar/toolbar.tsx",
   "autocomplete": "registry/ouro/components/ouro/autocomplete/autocomplete.tsx",
   "emoji": "registry/ouro/components/ouro/emoji/emoji.tsx",
+  "level-meter": "registry/ouro/components/ouro/level-meter/level-meter.tsx",
   "moment": "registry/ouro/components/ouro/moment/moment.tsx"
 }
