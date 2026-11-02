@@ -270,7 +270,7 @@ for (const [event, ref, expected] of [
 
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
-  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
+  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n(?:\s+if: [^\n]+\n)?\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
   const node = proof.match(/run: (pnpm exec vitest run --config test\/form-answer\.config\.ts[^\n]*)/)?.[1];
   assert.ok(browser && node, "The proof must execute both regression commands.");
   // GitHub's implicit shell is bash -e; explicit shell: bash additionally sets pipefail.
@@ -283,6 +283,21 @@ test("Form answer proof propagates a failing test command through both logged pi
     const actual = spawnSync("bash", [...args, "-c", controlled], { encoding: "utf8" });
     assert.equal(actual.status, 17, "A failed regression/coverage command must fail the proof job, not only tee.");
   }
+});
+
+test("Form answer proof skips its fixture, browsers and tests only on a pull request whose change cannot reach it", () => {
+  const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
+  // HEAD^1 is the pull request's base in its merge commit.
+  assert.match(proof, /^ {6}- uses: actions\/checkout@\S+ # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n {10}fetch-depth: 2$/m);
+  const steps = proof.slice(proof.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const at = steps.findIndex((step) => /^id: impact$/m.test(step));
+  assert.ok(at > 0, "the impact step");
+  const impact = steps[at];
+  assert.match(impact, /if \[ "\$EVENT" = pull_request \]; then\n\s+node scripts\/form-answer-impact\.mjs HEAD\^1 HEAD \|\| echo "run=true" >> "\$GITHUB_OUTPUT"\n\s+else\n\s+echo "The proof runs: \$EVENT\."\n\s+echo "run=true" >> "\$GITHUB_OUTPUT"\n\s+fi/);
+  for (const step of steps.slice(0, at)) assert.doesNotMatch(step, /vitest|npm ci|playwright/, step);
+  const after = steps.slice(at + 1);
+  assert.ok(after.length >= 5);
+  for (const step of after) assert.match(step, /^(?:- )?(?:if: |\s+if: )(?:always\(\) && )?steps\.impact\.outputs\.run == 'true'$/m, step);
 });
 
 test("Form answer fixture uses the public npm registry, not a machine-specific mirror", () => {
@@ -1324,11 +1339,11 @@ test("the mutation plan keys the kept results by pull request and dependency has
   // A stand-in for scripts/mutation.mjs --count: prints the larger of its minimum and $PLANNED.
   const planned = (shards) => `node() { printf 'CALL node %s\\n' "$*" >&2; min=\${4%%/*}; echo $(( ${shards} > min ? ${shards} : min )); }\n${count}`;
   const cold = runStep(planned(5), { KEY: "stryker-139-abc-", MATCHED: "" });
-  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/16$/m);
+  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/24$/m);
   assert.deepEqual(cold.output, { count: "5", shards: "[1,2,3,4,5]" });
   assert.deepEqual(runStep(planned(13), { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "13", shards: "[1,2,3,4,5,6,7,8,9,10,11,12,13]" });
   const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
-  assert.match(warm.calls, /--count 3\/16$/m);
+  assert.match(warm.calls, /--count 3\/24$/m);
   assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
   // Not a pull request: nothing to mutate, three shards, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
@@ -2227,6 +2242,9 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   const summary = join(bin, "summary.md");
   const attempts = join(bin, "attempts");
   writeFileSync(join(bin, "calendar.log"), calendarLog);
+  // The Calendar test, quarantined as it was before its fix.
+  const list = join(bin, "quarantine.json");
+  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
@@ -2241,7 +2259,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
     return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse },
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse, OURO_QUARANTINE_FILE: list },
     });
   };
   const open = retry("OPEN");
