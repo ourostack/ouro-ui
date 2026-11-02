@@ -125,7 +125,7 @@ interface AvatarOwnProps {
    * name is already written next to the avatar, so it isn't read twice.
    */
   alt?: string | undefined;
-  /** The letters to show instead of the ones taken from `name`, such as "AdL". */
+  /** The letters to show instead of the ones taken from `name`, such as "AnL". */
   initials?: string | undefined;
   /**
    * An icon to show in place of the initials, such as a calendar for a meeting or a note for
@@ -162,10 +162,10 @@ interface AvatarOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
 
-  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ada Lovelace" initials="AL" />`. */
-  children?: { 'Use <Avatar name="Ada Lovelace" initials="AL" />': never };
-  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ada Lovelace" initials="AL" />`. */
-  fallback?: { 'Use <Avatar name="Ada Lovelace" initials="AL" />': never };
+  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`. */
+  children?: { 'Use <Avatar name="Ana Lind" initials="AL" />': never };
+  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`. */
+  fallback?: { 'Use <Avatar name="Ana Lind" initials="AL" />': never };
 }
 ```
 
@@ -195,7 +195,7 @@ interface AvatarPresenceProps {
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
   /**
    * What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the
-   * name ("Ada Lovelace, Busy"). Required with `presence`, so no dot is silent.
+   * name ("Ana Lind, Busy"). Required with `presence`, so no dot is silent.
    */
   presenceLabel: string;
 }
