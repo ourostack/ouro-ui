@@ -2,7 +2,7 @@
 
 # ax-component
 
-A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own.
+A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. A component imports the kit as `import { defineComponentAx } from "@/registry/ouro/ax/component";`, which the shadcn CLI rewrites to the app's lib alias (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-component#v1.3.1
@@ -109,7 +109,7 @@ interface ComponentAx {
 
 ### `defineComponentAx`
 
-Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, and a reserved id (`RESERVED_PERSON_ONLY`) never `agent: true`. A problem throws one line with its fix.
+Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, and a reserved id (`isReservedPersonOnly`) never `agent: true`. A problem throws one line with its fix.
 
 ```ts
 function defineComponentAx(def: { component: string; reads: readonly AxRead[]; actions: readonly AxAction[]; }): ComponentAx
@@ -155,9 +155,17 @@ render(<CallControls />);
 expectAxRendered(callControlsAx, document.body);
 ```
 
+### `isReservedPersonOnly`
+
+Whether an action id is reserved for the person, by meaning rather than spelling: `Unmute`, `mic-on`, `share-screen`, `startRecording` and `pick_up` are, and so is a camera or video turned on; an id that only reduces what the person exposes (with off, stop, end, disable or mute in it, such as `mute`, `camera-off` or `stop-share`) is not. The declaration and the X-ray both ask it.
+
+```ts
+function isReservedPersonOnly(id: string): boolean
+```
+
 ### `READ_CONSENTS`
 
-A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own.
+A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. A component imports the kit as `import { defineComponentAx } from "@/registry/ouro/ax/component";`, which the shadcn CLI rewrites to the app's lib alias (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it.
 
 ```ts
 const READ_CONSENTS: readonly ["none", "listening"]
@@ -191,7 +199,7 @@ interface Rendered {
 
 ### `RESERVED_PERSON_ONLY`
 
-Action ids that are the person's own, whatever the component: their microphone (`unmute`), camera (`camera`, `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in from the lobby (`admit`), and what is recorded (`record`). Each maps to the reason to declare it with; declaring one `agent: true` throws, and the X-ray fails a `ui` entry with one of these ids that is not person-only.
+The canonical ids of the actions that are the person's own, whatever the component: their microphone (`unmute`), camera (`camera`, `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in from the lobby (`admit`), and what is recorded (`record`), each with the reason to declare it with. Aliases count too (`isReservedPersonOnly`): declaring one `agent: true` throws, and the X-ray fails a `ui` entry with one that is not person-only. The reverse stays an agent's, since an agent may always reduce what the person exposes: `mute`, `camera-off`, `stop-share`.
 
 ```ts
 const RESERVED_PERSON_ONLY: Readonly<Record<string, string>>
