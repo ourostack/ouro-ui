@@ -1,7 +1,9 @@
 /*
  * Ouro AX on the site: the home page's section and the morning at /ax/. Two surfaces side by side: the person's
- * screen (a card, in the theme's own colours) and the agent's terminal, which is always night-dark, lit by the
+ * screen (one frame, in the theme's own colours) and the agent's terminal, which is always night-dark, lit by the
  * theme's primary colour, because that is where the agent works. Every colour is a theme variable or mixed from one.
+ * Each is the only box in its moment: what sits inside the person's screen is laid out on it with space and
+ * hairline rules, never in a box of its own (the brand's "never a box in a box").
  *
  * It loads with the islands that render it (parts.tsx), not with the voyage's first paint, so the home page's CSS
  * stays within its ceiling (site/e2e/catalog.spec.ts): the home page's section is far below the first screen and
@@ -147,18 +149,39 @@
     }
   }
 
-  /* The person's screen: a quiet app window in the theme's colours. */
+  /*
+   * The person's screen: a quiet app window in the theme's colours, the moment's one frame. Its label is its title
+   * bar, ruled off like the terminal's; its parts (the chat, the room, the notes) follow on it, each after a rule.
+   */
   .ax-screen {
     display: grid;
     align-content: start;
-    gap: 0.75rem;
+    gap: 1rem;
     min-width: 0;
-    padding: 1rem;
+    padding: 0 1rem 1rem;
     border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     color: var(--card-foreground);
     font-size: 0.9375rem;
+  }
+  .ax-screen > .ax-card-head:first-child,
+  .ax-screen > .ax-chat:first-child > .ax-card-head:first-child {
+    display: flex;
+    align-items: center;
+    min-height: 2.5rem;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  }
+  /* A part of the screen after the first: set off by a hairline rule, not a box. */
+  .ax-part {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    min-width: 0;
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   }
   /*
    * The person's chat with their own agent: the person's head beside their lines and the agent beside its replies,
@@ -170,12 +193,6 @@
     gap: 0.75rem;
     min-width: 0;
     container-type: inline-size;
-  }
-  .ax-screen > .ax-chat {
-    padding: 0.75rem;
-    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-    border-radius: var(--radius);
-    background: var(--background);
   }
   .ax-chat-mark {
     display: inline-block;
@@ -243,13 +260,12 @@
     background: var(--primary);
     color: var(--primary-foreground);
   }
+  /* A message in the room or a note: a rule above it, on the screen itself. */
   .ax-card {
     display: grid;
     gap: 0.25rem;
-    padding: 0.75rem;
-    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-    border-radius: var(--radius);
-    background: var(--background);
+    padding-top: 0.75rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   }
   .ax-card-head {
     color: var(--muted-foreground);
@@ -415,6 +431,9 @@
   @media (forced-colors: active) {
     .ax-term,
     .ax-screen,
+    .ax-screen > .ax-card-head:first-child,
+    .ax-screen > .ax-chat:first-child > .ax-card-head:first-child,
+    .ax-part,
     .ax-card {
       border-color: CanvasText;
     }
