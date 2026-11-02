@@ -175,6 +175,9 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
     watch();
   });
   await page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Coral", exact: true }).click();
+  // The themes section is an island that hydrates as it nears the screen, so a press there before it
+  // has is made again once it has: the repaint is waited for, so the picker's press comes after it.
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
   await page.locator("[data-site-theme-trigger]").click();
   await page.getByRole("radio", { name: "Submerged" }).click();
   await page.keyboard.press("Escape");
