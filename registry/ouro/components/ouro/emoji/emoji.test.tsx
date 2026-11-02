@@ -521,8 +521,11 @@ describe("Emoji placeholder", () => {
     expect(running(waiting(host))).toEqual([]);
     expect(opacity(picture(host))).toBe("0");
     expect(opacity(waiting(host))).toBe("1");
+    // Reduced motion reaches the emoji with its next render.
     await commands.emulateMedia({ reducedMotion: "reduce" });
+    await rerender(<Emoji item={heart} placeholder={waitingSrc} />);
     await settle(heart.src);
+    expect(loaded(host)).toBe(true);
     expect(running(picture(host))).toEqual([]);
     expect(running(waiting(host))).toEqual([]);
     expect(opacity(picture(host))).toBe("1");
