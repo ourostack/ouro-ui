@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { MediaTile, type MediaTileProps } from "@/registry/ouro/components/ouro/media-tile/media-tile";
 import { mediaTileAx } from "@/registry/ouro/components/ouro/media-tile/media-tile-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -575,13 +575,20 @@ describe("MediaTile controls", () => {
   });
 
   it("shows its controls while focus is inside the tile or it is pinned, and hides them otherwise", async () => {
-    const { controls, rerender } = await render(
+    const { host, controls, rerender } = await render(
       <MediaTile name="Mara Lind" onPinnedChange={() => {}} actions={<button type="button">More</button>}>
         <Camera />
       </MediaTile>,
     );
+    // A pointer an earlier test file left over the tile's corner of the page would hover it and
+    // show the controls, so park it on a spot of this test's own, just below the tile.
+    const spot = document.createElement("div");
+    spot.style.height = "40px";
+    host.after(spot);
+    mounted.push(spot);
+    await userEvent.hover(spot, { position: { x: 2, y: 2 } });
     expect(matchMedia("(pointer: fine)").matches).toBe(true);
-    expect(getComputedStyle(controls!).opacity).toBe("0");
+    await expect.poll(() => getComputedStyle(controls!).opacity).toBe("0");
     const more = page.getByRole("button", { name: "More" }).element() as HTMLElement;
     expect(controls!.lastElementChild).toBe(more);
     await act(() => more.focus());
