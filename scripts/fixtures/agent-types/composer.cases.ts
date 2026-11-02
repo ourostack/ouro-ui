@@ -37,14 +37,7 @@ export const agentCases: AgentCase[] = [
     dev: '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>',
     names: ["tsc", "dev"],
   },
-  {
-    id: "composer06",
-    habit: "an expandable flag for the expand button",
-    tsc: [hint("boolean", "Use <Composer defaultExpanded={false}> or expanded with onExpandedChange")],
-    dev: "<Composer defaultExpanded={false}>",
-    names: ["tsc", "dev"],
-  },
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02"];

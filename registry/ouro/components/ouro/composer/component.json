@@ -5,7 +5,6 @@
     "composer": [
       {"part": "quote", "role": "button", "portal": false},
       {"part": "remove", "role": "button", "portal": false},
-      {"part": "expand", "role": "button", "portal": false},
       {"part": "send", "role": "button", "portal": false}
     ]
   }

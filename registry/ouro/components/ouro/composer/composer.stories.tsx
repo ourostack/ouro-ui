@@ -9,7 +9,6 @@ import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
-import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -442,42 +441,4 @@ export const Disabled: Story = {
 export const EmojiTokens: Story = {
   parameters: { plainOpeners: ["Insert emoji"] },
   render: () => <EmojiTokensStory />,
-};
-
-function LongMessage() {
-  const [messages, setMessages] = useState<string[]>([]);
-  return (
-    <Surface>
-      <Sent messages={messages} />
-      <Composer
-        label="New post in Bakers"
-        placeholder="Start a post"
-        defaultExpanded
-        defaultValue={"Proofing times for Saturday's class:\nRye, three hours at room temperature.\nWhite, overnight in the fridge."}
-        description="Ctrl+Enter to send"
-        toolbar={
-          <Toolbar
-            label="Formatting"
-            size="sm"
-            items={[
-              { type: "toggle", label: "Bold", icon: BoldIcon, hideLabel: true },
-              { type: "toggle", label: "Italic", icon: ItalicIcon, hideLabel: true },
-              { type: "toggle", label: "Bulleted list", icon: ListIcon, hideLabel: true },
-            ]}
-          />
-        }
-        onSend={(text) => setMessages([...messages, text])}
-      />
-    </Surface>
-  );
-}
-
-/**
- * A long message (`defaultExpanded`): the expand button, first among the actions, opens a taller
- * box with the formatting bar, where Enter starts a new line and Ctrl+Enter (Command+Enter on a
- * Mac) sends. Escape, or the button again, brings back the one-line box with the same text.
- */
-export const Expanded: Story = {
-  parameters: { screenshot: { name: "composer-expanded" } },
-  render: () => <LongMessage />,
 };
