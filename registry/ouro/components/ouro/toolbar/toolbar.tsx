@@ -445,6 +445,7 @@ function useAutoHide(
   onHiddenChange: ((hidden: boolean) => void) | undefined,
 ): { hidden: boolean; faded: boolean } {
   const [hidden, setHidden] = useState(false);
+  // Stryker disable next-line BooleanLiteral: every fade resets it before it is read, so where it starts changes nothing.
   const [faded, setFaded] = useState(false);
 
   useEffect(() => {
@@ -455,7 +456,7 @@ function useAutoHide(
     // Capture, so a player or a menu that stops an event inside the area still shows the bar.
     const listen = { capture: true, signal: stop.signal };
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let at = "";
+    let at: string | undefined;
     const held = () => root.matches(":hover") || root.contains(doc.activeElement) || root.querySelector("[data-popup-open], [aria-expanded='true']") !== null;
     let area = areaOf(root);
     const rest = () => {
@@ -465,6 +466,8 @@ function useAutoHide(
         // Measured again as the bar goes, so a layout that changed since is the one that counts.
         area = areaOf(root);
         setHidden(true);
+        // Each fade keeps the blur until it has finished, whatever an earlier one left.
+        setFaded(false);
       }, delay);
     };
     const inArea = (target: EventTarget | null) => area === null || area.contains(target as Node);
@@ -493,17 +496,12 @@ function useAutoHide(
     };
   }, [delay, rootRef]);
 
-  // The blur goes once the fade has finished (at once with no transition), and comes back as soon as the bar shows.
+  // The blur goes once the fade has finished (at once with no transition); it is read only while
+  // the bar is hidden, so it comes back as soon as the bar shows.
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: waiting while shown only sets faded, which is read only while hidden and reset by every fade.
     if (!hidden) return;
-    let live = true;
-    void Promise.allSettled(rootRef.current!.getAnimations().map((animation) => animation.finished)).then(() => {
-      if (live) setFaded(true);
-    });
-    return () => {
-      live = false;
-      setFaded(false);
-    };
+    void Promise.allSettled(rootRef.current!.getAnimations().map((animation) => animation.finished)).then(() => setFaded(true));
   }, [hidden, rootRef]);
 
   const told = useRef(false);

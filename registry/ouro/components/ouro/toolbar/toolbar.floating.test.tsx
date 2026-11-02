@@ -286,6 +286,12 @@ describe("Toolbar autoHide", () => {
     await point(picture, "pointermove", 60, 60);
     await wait(1000);
     expect(isHidden(toolbar)).toBe(true);
+    // A key in the middle of a rest ends it too.
+    await point(picture, "pointermove", 61, 60);
+    await wait(600);
+    await userEvent.keyboard("{Shift}");
+    await wait(5000);
+    expect(isHidden(toolbar)).toBe(false);
   });
 
   it("is hidden from screen readers and unfocusable while faded, and Tab brings it back first", async () => {
