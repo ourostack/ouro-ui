@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, server, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -131,6 +131,22 @@ describe("ScrollArea", () => {
     await act(async () => new Promise(requestAnimationFrame));
     expect(fits.hasAttribute("data-ouro-scroll-fade")).toBe(false);
     expect(getComputedStyle(fits).maskImage).toBe("none");
+  });
+
+  it("draws its scrollbar thumb in CanvasText under forced colors", async () => {
+    try {
+      const { area } = await render(<ScrollArea orientation="horizontal">{wide}</ScrollArea>);
+      await expect.poll(() => area.querySelector('[data-orientation="horizontal"] > *')).not.toBeNull();
+      const thumb = area.querySelector<HTMLElement>('[data-orientation="horizontal"] > *')!;
+      await commands.emulateMedia({ forcedColors: "active" });
+      const probe = document.body.appendChild(document.createElement("span"));
+      probe.style.backgroundColor = "CanvasText";
+      const canvasText = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      expect(getComputedStyle(thumb).backgroundColor).toBe(canvasText);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("is a keyboard-scrollable region named by label", async () => {

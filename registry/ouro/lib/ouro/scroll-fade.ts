@@ -12,6 +12,7 @@ import { useEffect, type RefObject } from "react";
  * Internal: Ouro UI components use it; apps don't need to.
  * @claim "its content fades out at each side that hides more" registry/ouro/lib/ouro/scroll-fade.test.tsx verify:testExists(registry/ouro/lib/ouro/scroll-fade.test.tsx::useScrollFade > fades the side that hides more, as far as it hides, and follows the scroll)
  * @claim "With nothing to the side, the box has no mask at all" registry/ouro/lib/ouro/scroll-fade.test.tsx verify:testExists(registry/ouro/lib/ouro/scroll-fade.test.tsx::useScrollFade > adds nothing while the content fits, or when the box clips instead of scrolling)
+ * @claim "no color of it reaches the page, in light, dark or forced colors" registry/ouro/lib/ouro/scroll-fade.test.tsx verify:testExists(registry/ouro/lib/ouro/scroll-fade.test.tsx::useScrollFade > keeps the same mask in dark and forced colors, since the mask carries no color)
  * @claim "A gradient mask is read for its alpha" https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode)
  */
 export const scrollFadeClass =

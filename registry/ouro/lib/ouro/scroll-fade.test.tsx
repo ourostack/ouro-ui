@@ -1,7 +1,7 @@
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { server, userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -80,6 +80,21 @@ describe("useScrollFade", () => {
     }
     const { box } = await render(<Box content={202} style={{ overflowX: "scroll" }} />);
     expect(fade(box)).toEqual(["0px", "2px"]);
+  });
+
+  it("keeps the same mask in dark and forced colors, since the mask carries no color", async () => {
+    const { box } = await render(<Box />);
+    const light = getComputedStyle(box).maskImage;
+    try {
+      document.documentElement.classList.add("dark");
+      expect(getComputedStyle(box).maskImage).toBe(light);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      expect(getComputedStyle(box).maskImage).toBe(light);
+    } finally {
+      document.documentElement.classList.remove("dark");
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("follows the box's size and its content's, and stops when it unmounts", async () => {
