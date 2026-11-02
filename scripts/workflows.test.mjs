@@ -270,7 +270,7 @@ for (const [event, ref, expected] of [
 
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
-  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
+  const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n(?:\s+if: [^\n]+\n)?\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
   const node = proof.match(/run: (pnpm exec vitest run --config test\/form-answer\.config\.ts[^\n]*)/)?.[1];
   assert.ok(browser && node, "The proof must execute both regression commands.");
   // GitHub's implicit shell is bash -e; explicit shell: bash additionally sets pipefail.
@@ -283,6 +283,21 @@ test("Form answer proof propagates a failing test command through both logged pi
     const actual = spawnSync("bash", [...args, "-c", controlled], { encoding: "utf8" });
     assert.equal(actual.status, 17, "A failed regression/coverage command must fail the proof job, not only tee.");
   }
+});
+
+test("Form answer proof skips its fixture, browsers and tests only on a pull request whose change cannot reach it", () => {
+  const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
+  // HEAD^1 is the pull request's base in its merge commit.
+  assert.match(proof, /^ {6}- uses: actions\/checkout@\S+ # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n {10}fetch-depth: 2$/m);
+  const steps = proof.slice(proof.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  const at = steps.findIndex((step) => /^id: impact$/m.test(step));
+  assert.ok(at > 0, "the impact step");
+  const impact = steps[at];
+  assert.match(impact, /if \[ "\$EVENT" = pull_request \]; then\n\s+node scripts\/form-answer-impact\.mjs HEAD\^1 HEAD \|\| echo "run=true" >> "\$GITHUB_OUTPUT"\n\s+else\n\s+echo "The proof runs: \$EVENT\."\n\s+echo "run=true" >> "\$GITHUB_OUTPUT"\n\s+fi/);
+  for (const step of steps.slice(0, at)) assert.doesNotMatch(step, /vitest|npm ci|playwright/, step);
+  const after = steps.slice(at + 1);
+  assert.ok(after.length >= 5);
+  for (const step of after) assert.match(step, /^(?:- )?(?:if: |\s+if: )(?:always\(\) && )?steps\.impact\.outputs\.run == 'true'$/m, step);
 });
 
 test("Form answer fixture uses the public npm registry, not a machine-specific mirror", () => {
@@ -337,7 +352,7 @@ test("Required checks compares the file with main's live rules hourly, on a chan
     const block = text.split(new RegExp(`^ {2}${event}:\n`, "m"))[1].split(/\n {2}\S/)[0];
     for (const path of [".github/required-checks.json", "scripts/required-checks.mjs", ".github/workflows/required-checks.yml"]) assert.ok(block.includes(`- ${path}`), `${event} ${path}`);
   }
-  assert.match(text, /^permissions:\n {2}contents: read\njobs:/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n(#.*\n)*concurrency:\n/m);
   assert.match(text, /^ {8}id: compare\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/required-checks\.mjs$/m);
   assert.match(text, /^ {4}outputs:\n {6}drift: \$\{\{ steps\.compare\.outputs\.drift \}\}$/m);
   const report = text.slice(text.indexOf("\n  report:\n"));
@@ -1112,11 +1127,11 @@ test("a push to main whose commit the merge queue already tested runs only insta
   assert.equal(check([]), "");
   // When the API cannot answer, everything runs.
   assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")], 1), "");
-  // Every job but the plan, the GitHub install and the release-only install skips on it, gates
-  // included; motion-coverage waits on ci. Nothing else reads it.
+  // Every job but the plan, the GitHub install, the release-only install and fail-fast (pull
+  // requests only) skips on it, gates included; motion-coverage waits on ci. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "fail-fast"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
   for (const id of skipping) assert.match(jobs[id], /^ {4}needs: \[plan[\],]/m, `${id} needs the plan`);
@@ -1178,7 +1193,7 @@ test("every required check is still a job that reports, under the name the rules
     // A job a required check names never skips itself on a pull request or in the merge queue: at
     // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
-    if (!["install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
+    if (!["fail-fast", "install-github", "install-latest", "plan"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
@@ -1343,11 +1358,11 @@ test("the mutation plan keys the kept results by pull request and dependency has
   // A stand-in for scripts/mutation.mjs --count: prints the larger of its minimum and $PLANNED.
   const planned = (shards) => `node() { printf 'CALL node %s\\n' "$*" >&2; min=\${4%%/*}; echo $(( ${shards} > min ? ${shards} : min )); }\n${count}`;
   const cold = runStep(planned(5), { KEY: "stryker-139-abc-", MATCHED: "" });
-  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/16$/m);
+  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/24$/m);
   assert.deepEqual(cold.output, { count: "5", shards: "[1,2,3,4,5]" });
   assert.deepEqual(runStep(planned(13), { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "13", shards: "[1,2,3,4,5,6,7,8,9,10,11,12,13]" });
   const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
-  assert.match(warm.calls, /--count 3\/16$/m);
+  assert.match(warm.calls, /--count 3\/24$/m);
   assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
   // Not a pull request: nothing to mutate, three shards, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
@@ -1613,9 +1628,10 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   assert.match(block, /^ {10}HEAD_REF: \$\{\{ github\.head_ref \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
-  // Every job no other job needs: the ends of the run's chains.
+  // Every job no other job needs: the ends of the run's chains, but fail-fast, which watches this
+  // job too and stops once it has finished (scripts/ci-fail-fast.mjs).
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
-  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && !needed.has(id));
+  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && !needed.has(id));
   assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
@@ -2012,11 +2028,14 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
-    if (file === "ci.yml" || !/^concurrency:$/m.test(text)) continue;
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
     const events = [...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]);
+    // A push to a pull request cancels the run it replaces, in every workflow a pull request starts.
+    if (events.includes("pull_request")) assert.match(text, /^concurrency:$/m, `${file} runs on pull requests but cancels no superseded run`);
+    if (file === "ci.yml" || !/^concurrency:$/m.test(text)) continue;
     const block = text.split(/^concurrency:\n/m)[1].split(/\n(?=\S)/)[0];
     assert.doesNotMatch(text.split(/^jobs:\n/m)[1], /^\s+concurrency:/m, `${file}: no job has a group of its own`);
     if (!events.includes("pull_request")) {
@@ -2243,6 +2262,9 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   const summary = join(bin, "summary.md");
   const attempts = join(bin, "attempts");
   writeFileSync(join(bin, "calendar.log"), calendarLog);
+  // The Calendar test, quarantined as it was before its fix.
+  const list = join(bin, "quarantine.json");
+  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
@@ -2257,7 +2279,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
     return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse },
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse, OURO_QUARANTINE_FILE: list },
     });
   };
   const open = retry("OPEN");

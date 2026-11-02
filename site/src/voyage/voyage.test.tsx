@@ -143,13 +143,18 @@ describe("the header and the theme section", () => {
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
     expect(background()).not.toBe(pearl);
     await expect.element(page.getByRole("button", { name: /Theme: Abyss/ })).toBeInTheDocument();
-    // Abyss's reveal holds the page's pointer events while it runs, and a loaded runner can still be
-    // running it here, so the next press would wait it out past the test's time. A press mid-reveal
-    // is the swatches test's to check; this one checks the repaint and what is remembered.
-    await finishReveal();
+  });
+
+  // Its own test, so a loaded runner's slow page render and preset reveal don't use up its time.
+  it("switch light and dark from the header's picker, and remember it", async () => {
+    root.setAttribute("data-theme", "pearl");
+    await renderPage("/");
+    await userEvent.click(page.getByRole("button", { name: /Theme: Pearl/ }));
     await userEvent.click(page.getByRole("radio", { name: "Submerged" }));
     expect(root.classList.contains("dark")).toBe(true);
-    expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss", mode: "dark" });
+    expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ mode: "dark" });
+    // The mode's reveal holds the page's pointer events while it runs; a press mid-reveal is the
+    // swatches test's to check.
     await finishReveal();
     await userEvent.click(page.getByRole("radio", { name: "Surfaced" }));
     expect(root.classList.contains("dark")).toBe(false);

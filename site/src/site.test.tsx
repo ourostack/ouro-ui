@@ -118,7 +118,8 @@ describe("home page", () => {
     }
     expect(document.body.innerText).toContain("Ouro HX is part of Ouro UI");
     expect(routes[0]!.title).toBe("Ouro HX");
-    expect(readme.startsWith("# Ouro HX\n")).toBe(true);
+    // The README opens with the ourostack brand mark every repository shares, then its title.
+    expect(readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "").startsWith("# Ouro HX\n")).toBe(true);
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
     for (const text of [readme, llms]) {
       expect(text).not.toMatch(/under construction/i);
