@@ -958,6 +958,8 @@ describe("Composer expanded", () => {
     const small = body.getBoundingClientRect().height;
     body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
+    // The second press comes once the first's change has started, as no hand presses twice within a frame.
+    await expect.poll(() => heights(body)).toEqual(["height"]);
     await userEvent.click(expandButton()!);
     expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
     expect(heights(body)).toEqual(["height"]);

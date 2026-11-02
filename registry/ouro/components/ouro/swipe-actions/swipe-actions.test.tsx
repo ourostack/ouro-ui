@@ -539,6 +539,19 @@ describe("SwipeActions", () => {
     expect(asked).not.toHaveBeenCalled();
   });
 
+  it("follows OuroProvider's motion when it changes after the row mounts", async () => {
+    const spies = calls();
+    await render(<OuroProvider motion="full">{row(spies)}</OuroProvider>);
+    const element = await render(<OuroProvider motion="reduced">{row(spies)}</OuroProvider>);
+    await swipe(element, -100, { hold: true });
+    wait(300);
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    await pointer(window, "pointerup", 100, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    expect(asked).not.toHaveBeenCalled();
+  });
+
   it("springs to rest on release under OuroProvider's motion=\"full\", even when the device asks for reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const element = await render(<OuroProvider motion="full">{row()}</OuroProvider>);
