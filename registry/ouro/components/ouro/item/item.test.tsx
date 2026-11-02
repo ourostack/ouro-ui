@@ -305,14 +305,14 @@ describe("Item with href", () => {
         title="Braised short ribs"
         description={
           <>
-            <span>By Ada · 4 hours</span> <span>Short ribs braised in stock until they fall apart.</span>
+            <span>By Ana · 4 hours</span> <span>Short ribs braised in stock until they fall apart.</span>
           </>
         }
       />,
     );
     const link = page.getByRole("link", { name: "Braised short ribs" });
     await expect.element(link).toHaveAccessibleName("Braised short ribs");
-    await expect.element(link).toHaveAccessibleDescription("By Ada · 4 hours Short ribs braised in stock until they fall apart.");
+    await expect.element(link).toHaveAccessibleDescription("By Ana · 4 hours Short ribs braised in stock until they fall apart.");
     const description = item.querySelector<HTMLElement>("[data-ouro-text]")!;
     expect(link.element().getAttribute("aria-describedby")).toBe(description.id);
     // The visible layout is unchanged: the description sits under the title, outside the link.

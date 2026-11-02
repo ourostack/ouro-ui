@@ -4,34 +4,34 @@
     {
       "file": "morning-with-an-agent.svg",
       "title": "A morning with an agent",
-      "creator": "Duo canon session",
+      "creator": "Ouro UI",
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
       "sha256": "5387fd864a48c06d066687a7f5a1caf8ec02f2acf8d5a615f0bfbb3743a8336a",
-      "modifications": "None: Hand-drawn by the Duo canon session (CIT commit 2b15757b, _meta/art/duo/line/morning-with-an-agent.svg) and released by its author under this repository's MIT licence. A person and their agent at one desk. Lines take currentColor; the person's cap and heart read --duo-heart (else a fixed amber), the agent's eyes, antenna and glow --duo-eye (else a fixed teal), and its visor --duo-visor (else a fixed navy).",
+      "modifications": "None: Hand-drawn for Ouro UI; MIT. A person and their agent at one desk. Lines take currentColor; the person's cap and heart read --duo-heart (else a fixed amber), the agent's eyes, antenna and glow --duo-eye (else a fixed teal), and its visor --duo-visor (else a fixed navy).",
       "subject": "people"
     },
     {
       "file": "agent-avatar.svg",
       "title": "Your agent",
-      "creator": "Duo canon session",
+      "creator": "Ouro UI",
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
       "sha256": "0f58b0b99a8164280d80a8bbe764cf08f1c6ad889085411cc0bf144ed977d33b",
-      "modifications": "None: Hand-drawn by the Duo canon session (CIT commit 2b15757b, _meta/art/duo/line/, its spot drawing of the agent) and released by its author under this repository's MIT licence. The agent's mark beside its replies in the chat. Lines take currentColor; eyes, antenna and glow read --duo-eye (else a fixed teal), the visor --duo-visor (else a fixed navy).",
+      "modifications": "None: Hand-drawn for Ouro UI; MIT. The agent's mark beside its replies in the chat. Lines take currentColor; eyes, antenna and glow read --duo-eye (else a fixed teal), the visor --duo-visor (else a fixed navy).",
       "subject": "people"
     },
     {
       "file": "person-head.svg",
       "title": "You",
-      "creator": "Duo canon session",
+      "creator": "Ouro UI",
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
       "sha256": "0c607872acf53996568842ca38df77eabafa26a87f162078f59ff36afa256d53",
-      "modifications": "None: Hand-drawn by the Duo canon session (CIT commit 2b15757b, _meta/art/duo/line/, its spot drawing of the person's head) and released by its author under this repository's MIT licence. The person's mark beside their asks in the chat. Faceless; lines take currentColor; the cap reads --duo-heart (else a fixed amber).",
+      "modifications": "None: Hand-drawn for Ouro UI; MIT. The person's mark beside their asks in the chat. Faceless; lines take currentColor; the cap reads --duo-heart (else a fixed amber).",
       "subject": "people"
     }
   ]

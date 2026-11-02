@@ -39,7 +39,7 @@ export interface AvatarOwnProps {
    * The person's or thing's name. Screen readers hear it, and the initials come from it
    * (the first letters of the first and last words) until the image loads, or when it
    * fails. Required, so no avatar is silent.
-   * @claim "Required, so no avatar is silent" registry/ouro/components/ouro/avatar/avatar.test-d.ts verify:fileLine(registry/ouro/components/ouro/avatar/avatar.test-d.ts, /expectTypeOf<\{\ssrc:\s"\/ada\.jpg"\s\}>\(\)\.not\.toExtend<AvatarProps>/)
+   * @claim "Required, so no avatar is silent" registry/ouro/components/ouro/avatar/avatar.test-d.ts verify:fileLine(registry/ouro/components/ouro/avatar/avatar.test-d.ts, /expectTypeOf<\{\ssrc:\s"\/ana\.jpg"\s\}>\(\)\.not\.toExtend<AvatarProps>/)
    */
   name: string;
   /** The image URL. Until it loads, and if it fails, the initials show. */
@@ -49,7 +49,7 @@ export interface AvatarOwnProps {
    * name is already written next to the avatar, so it isn't read twice.
    */
   alt?: string | undefined;
-  /** The letters to show instead of the ones taken from `name`, such as "AdL". */
+  /** The letters to show instead of the ones taken from `name`, such as "AnL". */
   initials?: string | undefined;
   /**
    * An icon to show in place of the initials, such as a calendar for a meeting or a note for
@@ -95,10 +95,10 @@ export interface AvatarOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
 
-  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ada Lovelace" initials="AL" />`. */
-  children?: { 'Use <Avatar name="Ada Lovelace" initials="AL" />': never };
-  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ada Lovelace" initials="AL" />`. */
-  fallback?: { 'Use <Avatar name="Ada Lovelace" initials="AL" />': never };
+  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`. */
+  children?: { 'Use <Avatar name="Ana Lind" initials="AL" />': never };
+  /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`. */
+  fallback?: { 'Use <Avatar name="Ana Lind" initials="AL" />': never };
 }
 
 /** An Avatar with a presence dot and the words it says. */
@@ -118,7 +118,7 @@ export interface AvatarPresenceProps {
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
   /**
    * What the dot says, such as "Busy" or "In a meeting": screen readers hear it after the
-   * name ("Ada Lovelace, Busy"). Required with `presence`, so no dot is silent.
+   * name ("Ana Lind, Busy"). Required with `presence`, so no dot is silent.
    * @claim "Required with `presence`, so no dot" registry/ouro/components/ouro/avatar/avatar.test-d.ts verify:fileLine(registry/ouro/components/ouro/avatar/avatar.test-d.ts, /presence:\s"busy"\s\}>\(\)\.not\.toExtend<AvatarProps>/)
    */
   presenceLabel: string;
@@ -337,7 +337,7 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * @see https://ui.ouro.bot/docs/avatar
  *
  * @example
- * <Avatar name="Ada Lovelace" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
+ * <Avatar name="Ana Lind" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
  * <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
  * <Avatar name="Design reviews" shape="square" />
  * <Avatar name="Halden" shape="hexagon" src={agent.photoUrl} />
@@ -381,7 +381,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
     "Avatar",
     process.env.NODE_ENV !== "production"
       ? () => [
-          nameProp === undefined && ["name is missing, so screen readers hear nothing", '<Avatar name="Ada Lovelace" src={url} />'],
+          nameProp === undefined && ["name is missing, so screen readers hear nothing", '<Avatar name="Ana Lind" src={url} />'],
           !groupSize && sizeProp !== undefined && !checkSize(sizeProp) && sizeWarning("Avatar", sizeProp),
           shapeProp !== undefined &&
             !oneOf(shapes, shapeProp) && [
@@ -403,12 +403,12 @@ export function Avatar(props: AvatarProps): JSX.Element {
               "presenceLabel is missing, so screen readers hear no presence",
               `<Avatar presence="${presence}" presenceLabel="${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}">`,
             ],
-          children !== undefined && ["Avatar takes name and initials, not children", '<Avatar name="Ada Lovelace" initials="AL" />'],
-          fallback !== undefined && ["fallback is not a prop", '<Avatar name="Ada Lovelace" initials="AL" />'],
+          children !== undefined && ["Avatar takes name and initials, not children", '<Avatar name="Ana Lind" initials="AL" />'],
+          fallback !== undefined && ["fallback is not a prop", '<Avatar name="Ana Lind" initials="AL" />'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  // A presence's words follow the name, so a screen reader hears "Ada Lovelace, Busy"; with
+  // A presence's words follow the name, so a screen reader hears "Ana Lind, Busy"; with
   // alt="" (the name written beside it) only the presence is read.
   const spoken = presence ? presenceLabel || presence.replaceAll("-", " ") : "";
   const label = [alt ?? name, spoken].filter(Boolean).join(", ");
@@ -504,7 +504,7 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
           sizeProp !== undefined && !checkSize(sizeProp) && sizeWarning("AvatarGroup", sizeProp),
           avatars.some((child) => !isValidElement(child)) && [
             "AvatarGroup holds Avatars",
-            '<AvatarGroup label="Cooks"><Avatar name="Ada Lovelace" /></AvatarGroup>',
+            '<AvatarGroup label="Cooks"><Avatar name="Ana Lind" /></AvatarGroup>',
           ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,

@@ -12,7 +12,7 @@ import { ConversationList } from "@/registry/ouro/components/ouro/conversation-l
 
 ```tsx
 <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />
-<ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ada", title: "Ada Lovelace", section: "pinned" }]} onSelect={open} />
+<ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ana", title: "Ana Lind", section: "pinned" }]} onSelect={open} />
 ```
 
 ## Use instead when

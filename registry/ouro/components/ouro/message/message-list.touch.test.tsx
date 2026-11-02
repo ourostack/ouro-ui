@@ -35,7 +35,7 @@ function Chat({ items }: { items: string[] }) {
   return (
     <MessageList label="Conversation" style={{ height: Math.min(innerHeight - 40, 600) }}>
       {items.map((text, index) => (
-        <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Ouro" : "Ada"}>
+        <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Ouro" : "Ana"}>
           {text}
         </Message>
       ))}
@@ -146,7 +146,7 @@ function PhoneChat({ items, height }: { items: Item[]; height: number }) {
     <div style={{ height, display: "flex", flexDirection: "column" }}>
       <MessageList label="Conversation" className="flex-1">
         {items.map((item) => (
-          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
             {item.text}
           </Message>
         ))}
