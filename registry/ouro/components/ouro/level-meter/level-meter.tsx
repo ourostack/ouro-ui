@@ -185,7 +185,10 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
   useAppearanceClassNameCheck(
     "LevelMeter",
     className,
-    process.env.NODE_ENV !== "production" ? (token: string) => `tone="${toneFor(token)}"` : /* istanbul ignore next @preserve -- production only */ "",
+    process.env.NODE_ENV !== "production"
+      ? (token: string) => `tone="${toneFor(token)}"`
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "LevelMeter",
