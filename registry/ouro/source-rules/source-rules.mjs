@@ -33,6 +33,13 @@ import ts from "typescript";
 //   selector puts that state on a class or a data-* hook (only the app's own hooks, `.<prefix>-`
 //   and `[data-<prefix>-`, when `hookPrefix` is set). Hover-only decoration and page motion are
 //   not control state.
+// - content-spinner: a spinner standing in for content that is loading: Ouro UI's `<Spinner>` (imported
+//   from a spinner/spinner module) or any element with an `animate-spin` class. Show a Skeleton shaped
+//   like the content instead, so the content takes its place and nothing moves when it arrives. The
+//   one exception is an inline busy indicator inside a button (a raw `<button>` or a `Button`, in its
+//   children or any of its props), which marks an action in progress, not missing content; Button's
+//   `loading` draws that one itself. It counts where the spinner is written and never makes the
+//   component around it a hand-rolled control.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -86,6 +93,7 @@ export const CATEGORIES = [
   "data-ouro-attr",
   "control-state-style",
   "third-party-control",
+  "content-spinner",
   "uses-hand-rolled-control",
 ];
 
@@ -106,6 +114,12 @@ export const THIRD_PARTY_CONTROL_PACKAGES = [
   "cmdk",
   "sonner",
 ];
+
+/** What the content-spinner rule tells an app to do, and the one exception it allows. */
+export const CONTENT_SPINNER_FIX =
+  'Show a Skeleton shaped like the content instead (<Skeleton shape="row" count={6}>, <Skeleton shape="text" lines={3}>, <Skeleton shape="card">), ' +
+  "so the content takes its place and nothing moves when it arrives. " +
+  "Exception, an inline busy indicator inside a button: <Button loading>, or a spinner inside a button, marks an action in progress, not missing content, and is allowed.";
 
 export const BASELINE_PATH = "ouro-source-rules.baseline.json";
 export const CONFIG_PATH = "ouro-source-rules.json";
@@ -646,6 +660,12 @@ function ownersOf(node) {
   return owners;
 }
 
+// Ouro UI's Spinner, by its install path (`components/ouro/spinner/spinner`), and the utility class
+// a hand-made spinner turns with.
+const SPINNER_MODULE = /(?:^|\/)spinner\/spinner(?:\.[cm]?[jt]sx?)?$/;
+const SPIN_CLASS = /^!?animate-(?:spin|\[ouro-spin(?:_|\]))/;
+const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
+
 function scanScript(module, resolver) {
   const { file, sourceFile, imports, declarations, bindingDefaults } = module;
   const offenders = [];
@@ -656,6 +676,28 @@ function scanScript(module, resolver) {
   const add = (category, node, tag, props = "") => {
     offenders.push({ category, fingerprint: [file, componentName(node), category, tag, props].join("::"), file, line: lineOf(node) });
     for (const owner of ownersOf(node)) ownerHits.add(owner);
+  };
+  // Counted where it is written; a spinner is not a control, so the component around it stays clean.
+  const addSpinner = (node, tag, props) => {
+    offenders.push({ category: "content-spinner", fingerprint: [file, componentName(node), "content-spinner", tag, props].join("::"), file, line: lineOf(node) });
+  };
+  const ouroExport = (control, name, pattern) => {
+    if (!control.ref) return false;
+    const binding = imports.get(control.ref.head);
+    if (!binding || !pattern.test(binding.specifier)) return false;
+    const [exported, ...rest] = binding.namespace ? control.ref.members : [binding.imported, ...control.ref.members];
+    return rest.length === 0 && exported === name;
+  };
+  // The exception: anywhere inside a raw <button> or an Ouro Button, its children or its props.
+  const insideButton = (node) => {
+    for (let parent = node.parent; parent; parent = parent.parent) {
+      const opening = ts.isJsxElement(parent) ? parent.openingElement : ts.isJsxSelfClosingElement(parent) ? parent : undefined;
+      if (!opening || opening === node) continue;
+      const as = opening.attributes.properties.find((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText() === "as");
+      const control = describe(opening.tagName.getText(), as?.initializer, true);
+      if ([...control.tags, ...control.asTags].includes("button") || ouroExport(control, "Button", BUTTON_MODULE)) return true;
+    }
+    return false;
   };
   const stableProps = (attributes) =>
     STABLE_PROPS.filter((name) => attributes.has(name))
@@ -764,6 +806,8 @@ function scanScript(module, resolver) {
       .filter(([name, initializer]) => CLASS_ATTRIBUTE.test(name) && initializer)
       .flatMap(([, initializer]) => collectStrings(initializer, declarations));
     if (hasControlStateClass(classStrings)) add("control-state-style", node, control.display, props);
+    const spins = classStrings.some((text) => text.split(/\s+/).some((token) => SPIN_CLASS.test(splitVariants(token).at(-1))));
+    if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !insideButton(node)) addSpinner(node, control.display, props);
   };
 
   const visit = (node) => {
@@ -1027,9 +1071,10 @@ export function findRegressions(offenders, baseline) {
 
 export function formatComparison({ added, removed }) {
   return [
-    ...added.map(
-      ({ fingerprint, count, at }) =>
-        `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`,
+    ...added.map(({ fingerprint, count, at }) =>
+      fingerprint.split("::")[2] === "content-spinner"
+        ? `New spinner standing in for content: ${fingerprint} (+${count}) at ${at.join(", ")}. ${CONTENT_SPINNER_FIX}`
+        : `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`,
     ),
     ...removed.map(
       ({ fingerprint, count }) => `Fixed: ${fingerprint} (-${count}); remove it from the baseline: ${UPDATE_COMMAND}`,

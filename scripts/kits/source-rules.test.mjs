@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, listSourceFiles, loadPaths, main, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, listSourceFiles, loadPaths, main, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -25,6 +25,7 @@ describe("findOffendersInSource: each category", () => {
             "data-ouro-attr",
             "control-state-style",
             "third-party-control",
+            "content-spinner",
             "uses-hand-rolled-control",
         ]);
     });
@@ -226,6 +227,53 @@ describe("findOffendersInSource: each category", () => {
         }`;
             expect(scan(source)).toEqual([]);
         });
+    });
+});
+describe("content-spinner", () => {
+    const SPINNER = `import { Spinner } from "~/components/ouro/spinner/spinner";`;
+    const BUTTON = `import { Button } from "~/components/ouro/button/button";`;
+    it("finds Ouro UI's Spinner standing in for content, counted where it is written", () => {
+        expect(scan(`${SPINNER} export function Messages({ loading }) { return loading ? <div className="grid h-full place-items-center"><Spinner label="Loading messages" /></div> : null; }`)).toEqual([
+            { category: "content-spinner", fingerprint: "app/routes/fixture.tsx::Messages::content-spinner::~/components/ouro/spinner/spinner.Spinner::", file: "app/routes/fixture.tsx", line: 1 },
+        ]);
+    });
+    it("finds it by a relative path, a namespace import, an alias and createElement", () => {
+        expect(categories(`import { Spinner as Busy } from "../components/ouro/spinner/spinner.tsx"; export function A() { return <Busy label="Loading" />; }`)).toEqual(["content-spinner"]);
+        expect(categories(`import * as S from "@/components/ouro/spinner/spinner"; export function A() { return <S.Spinner label="Loading" />; }`)).toEqual(["content-spinner"]);
+        expect(categories(`import { createElement } from "react"; ${SPINNER} export function A() { return createElement(Spinner, { label: "Loading" }); }`)).toEqual(["content-spinner"]);
+    });
+    it("finds a hand-made spinner by its animate-spin class, under any variant", () => {
+        expect(fingerprints(`export function Busy() { return <span className="size-6 rounded-full motion-safe:animate-spin" />; }`)).toEqual(["app/routes/fixture.tsx::Busy::content-spinner::span::"]);
+        expect(categories(`export function Busy() { return <span className="animate-spin-slow" />; }`)).toEqual(["content-spinner"]);
+        expect(categories(`const spin = "!animate-[ouro-spin_1s_linear_infinite]"; export function Busy() { return <svg className={spin}><circle /></svg>; }`)).toEqual(["content-spinner"]);
+    });
+    it("allows the named exception, an inline busy indicator inside a button, in its children or its props", () => {
+        expect(scan(`${SPINNER} ${BUTTON} export function Save() { return <Button disabled><Spinner size="sm" label="Saving" /> Save</Button>; }`)).toEqual([]);
+        expect(scan(`${SPINNER} ${BUTTON} export function Save() { return <Button startIcon={<Spinner size="sm" label="Saving" />}>Save</Button>; }`)).toEqual([]);
+        expect(categories(`export function Save() { return <button type="button"><span className="animate-spin" /> Save</button>; }`)).toEqual(["raw-button"]);
+        expect(categories(`function Box(props) { return null; } export function Save() { return <Box as="button"><span className="animate-spin" /></Box>; }`)).toEqual(["raw-button"]);
+    });
+    it("does not take another Spinner, a spinner that is not in a button, or a component that is not Ouro's Button for the exception", () => {
+        expect(scan(`import { Spinner } from "~/components/loading"; export function A() { return <Spinner />; }`)).toEqual([]);
+        expect(scan(`${SPINNER} export function A() { return <Spinner.Dots />; }`)).toEqual([]);
+        expect(categories(`${SPINNER} import { Button } from "~/components/fancy-button"; export function A() { return <Button><Spinner label="Loading" /></Button>; }`)).toEqual(["content-spinner"]);
+        expect(categories(`${SPINNER} ${BUTTON} export function A() { return <div><Spinner label="Loading" /><Button>Retry</Button></div>; }`)).toEqual(["content-spinner"]);
+        expect(categories(`${SPINNER} import { TextField } from "~/components/ouro/text-field/text-field"; export function A() { return <TextField label="Find" endAdornment={<Spinner size="sm" label="Searching" />} />; }`)).toEqual(["content-spinner"]);
+        expect(categories(`${SPINNER} function Panel(props) { return null; } export function A() { return <Panel><Spinner label="Loading" /></Panel>; }`)).toEqual(["content-spinner"]);
+        expect(categories(`export function A() { return <span className="animate-ping animate-[ouro-pulse_1s_infinite] spin" />; }`)).toEqual([]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/loading.tsx": `${SPINNER} export function Loading() { return <Spinner label="Loading" />; }`,
+            "app/routes/home.tsx": `import { Loading } from "~/components/loading"; export function Home() { return <Loading />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["content-spinner"]);
+    });
+    it("names the Skeleton fix and the button exception in its message", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::A::content-spinner::span::", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New spinner standing in for content: app/x.tsx::A::content-spinner::span:: (+1) at app/x.tsx:4. ${CONTENT_SPINNER_FIX}`]);
+        expect(CONTENT_SPINNER_FIX).toContain('<Skeleton shape="row" count={6}>');
+        expect(CONTENT_SPINNER_FIX).toContain("Exception, an inline busy indicator inside a button: <Button loading>");
     });
 });
 describe("third-party-control", () => {
