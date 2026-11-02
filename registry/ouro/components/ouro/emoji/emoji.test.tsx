@@ -601,6 +601,7 @@ describe("Emoji placeholder", () => {
     await settle(stuck.src, false);
     expect(loaded(host)).toBe(false);
     await rerender(<Emoji item={stuck} play placeholder={waitingSrc} />);
+    expect(loaded(host)).toBe(false);
     await settle(stuck.animatedSrc!);
     expect(loaded(host)).toBe(true);
     await rerender(<Emoji item={stuck} play={false} placeholder={waitingSrc} />);
@@ -611,6 +612,23 @@ describe("Emoji placeholder", () => {
     await rerender(<Emoji item={stuck} play placeholder={waitingSrc} />);
     expect(picture(host).getAttribute("src")).toBe(stuck.src);
     expect(loaded(host)).toBe(false);
+  });
+
+  it("shows the picture without a React update, so a decode that ends outside act stays quiet where tests want act", async () => {
+    const { held } = holdDecodes();
+    const { host } = await render(<Emoji item={party} placeholder={waitingSrc} />);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    // As in an app whose test setup turns React's act environment on for every test.
+    const environment = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    environment.IS_REACT_ACT_ENVIRONMENT = true;
+    onTestFinished(() => {
+      environment.IS_REACT_ACT_ENVIRONMENT = false;
+    });
+    for (const call of held) call.resolve();
+    await expect.poll(() => loaded(host)).toBe(true);
+    await new Promise(requestAnimationFrame);
+    expect(opacity(picture(host))).toBe("1");
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("renders the placeholder on the server and hydrates to it without a mismatch, then shows the picture", async () => {

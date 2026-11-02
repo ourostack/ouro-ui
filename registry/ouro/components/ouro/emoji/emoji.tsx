@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type HTMLAttributes, type ImgHTMLAttributes, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ImgHTMLAttributes, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
@@ -10,10 +10,8 @@ import {
   emojiClass,
   emojiPictureClass,
   emojiPictureFadeClass,
-  emojiPictureReadyClass,
   emojiPlaceholderClass,
   emojiPlaceholderFadeClass,
-  emojiPlaceholderGoneClass,
   emojiSkinTones,
   splitEmojiText,
   toneOf,
@@ -271,18 +269,25 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
 }
 
 /**
- * The still image whose emoji has shown its picture, while `watch` is on: set once the image the
- * `<img>` shows (`shown`) has loaded and decoded, and cleared when it fails, so a new still image
- * waits for its own picture while the still and animated forms of one emoji share it.
+ * Marks the emoji's root `data-loaded` while `watch` is on, once the image the `<img>` shows
+ * (`shown`) has loaded and decoded, and unmarks it when that fails. A new still image waits for
+ * its own picture, while the still and animated forms of one emoji share it. The mark lives on
+ * the element rather than in React state, so a decode that ends late, outside a test's `act`,
+ * changes the page without a React update.
  */
-function usePictureReady(image: { current: HTMLImageElement | null }, shown: string | undefined, still: string, watch: boolean): string | undefined {
-  const [ready, setReady] = useState<string>();
-  useEffect(() => {
+function usePictureReady(root: { current: HTMLElement | null }, image: { current: HTMLImageElement | null }, shown: string | undefined, still: string, watch: boolean): void {
+  // The still image whose picture has shown.
+  const ready = useRef<string>(undefined);
+  useLayoutEffect(() => {
     if (!watch) return;
+    const own = root.current!;
+    own.toggleAttribute("data-loaded", ready.current === still);
     // A decode that ends after the image has moved on is stale; a browser fails it, or lets it finish.
     let stale = false;
     const decoded = (ok: boolean) => {
-      if (!stale) setReady(ok ? still : undefined);
+      if (stale) return;
+      ready.current = ok ? still : undefined;
+      own.toggleAttribute("data-loaded", ok);
     };
     image.current!.decode().then(
       () => decoded(true),
@@ -291,8 +296,7 @@ function usePictureReady(image: { current: HTMLImageElement | null }, shown: str
     return () => {
       stale = true;
     };
-  }, [image, shown, still, watch]);
-  return ready;
+  }, [root, image, shown, still, watch]);
 }
 
 /**
@@ -366,7 +370,8 @@ export function Emoji(props: EmojiProps): JSX.Element {
   useFilmstrip(own, strip);
   const shown = strip ? strip.src : playing ? form.animatedSrc : form.src;
   const waits = placeholder !== undefined;
-  const ready = usePictureReady(own, shown, form.src, waits) === form.src;
+  const box = useRef<HTMLSpanElement>(null);
+  usePictureReady(box, own, shown, form.src, waits);
   const picture = (
     <img
       loading="lazy"
@@ -380,14 +385,14 @@ export function Emoji(props: EmojiProps): JSX.Element {
       alt={alt ?? item.name}
       draggable={false}
       decoding="async"
-      className={cn(waits ? [emojiPictureClass, ready ? [emojiPictureReadyClass, !reduced && emojiPictureFadeClass] : "opacity-0"] : emojiClass, strip && "object-cover object-top", !waits && className)}
+      className={cn(waits ? [emojiPictureClass, !reduced && emojiPictureFadeClass] : emojiClass, strip && "object-cover object-top", !waits && className)}
     />
   );
   if (!waits) return picture;
   // The placeholder and the picture fill the root's box, the picture on top, so neither moves the text.
   return (
-    <span data-ouro="emoji" data-loaded={ready ? "" : undefined} className={cn(emojiClass, "relative", className)}>
-      <span aria-hidden="true" className={cn(emojiPlaceholderClass, ready && [emojiPlaceholderGoneClass, !reduced && emojiPlaceholderFadeClass])}>
+    <span ref={box} data-ouro="emoji" className={cn(emojiClass, "group/emoji relative", className)}>
+      <span aria-hidden="true" className={cn(emojiPlaceholderClass, !reduced && emojiPlaceholderFadeClass)}>
         {typeof placeholder === "string" ? <img src={placeholder} alt="" draggable={false} decoding="async" className="size-full object-contain" /> : placeholder}
       </span>
       {picture}

@@ -5,10 +5,8 @@ export {
   emojiClass,
   emojiPictureClass,
   emojiPictureFadeClass,
-  emojiPictureReadyClass,
   emojiPlaceholderClass,
   emojiPlaceholderFadeClass,
-  emojiPlaceholderGoneClass,
   emojiSkinTones,
   emojiToken,
   emojiTextToTokens,
@@ -43,23 +41,23 @@ const emojiSkinTones: readonly EmojiSkinTone[] = ["default", "light", "medium-li
  */
 const emojiClass = "inline-block size-[1.25em] shrink-0 align-[-0.3em] object-contain select-none";
 
-/** An emoji's picture over its placeholder: the box of the emoji around it, hidden until it is ready. @internal */
-const emojiPictureClass = "absolute inset-0 size-full object-contain";
+/**
+ * An emoji's picture over its placeholder: the box of the emoji around it, hidden until the
+ * root is marked `data-loaded`. @internal
+ */
+const emojiPictureClass = "absolute inset-0 size-full object-contain opacity-0 group-data-loaded/emoji:opacity-100";
 
-/** The picture once it is ready: shown. @internal */
-const emojiPictureReadyClass = "opacity-100";
+/** The picture's fade in over the short duration, once loaded only, left off when motion is reduced (`useReducedMotion`). @internal */
+const emojiPictureFadeClass =
+  "group-data-loaded/emoji:transition-opacity group-data-loaded/emoji:duration-(--ouro-duration-fast) group-data-loaded/emoji:ease-(--ouro-ease-out)";
 
-/** The picture's fade in over the short duration, left off when motion is reduced (`useReducedMotion`). @internal */
-const emojiPictureFadeClass = "transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)";
-
-/** What stands in for the picture: the emoji's box, with an element centred and clipped to it. @internal */
-const emojiPlaceholderClass = "pointer-events-none absolute inset-0 grid size-full place-items-center overflow-hidden";
-
-/** The placeholder once the picture is ready: hidden. @internal */
-const emojiPlaceholderGoneClass = "invisible opacity-0";
+/** What stands in for the picture: the emoji's box, with an element centred and clipped to it, hidden once the picture is loaded. @internal */
+const emojiPlaceholderClass =
+  "pointer-events-none absolute inset-0 grid size-full place-items-center overflow-hidden group-data-loaded/emoji:invisible group-data-loaded/emoji:opacity-0";
 
 /** The placeholder's fade out with the picture's fade in, left off when motion is reduced. @internal */
-const emojiPlaceholderFadeClass = "transition-[opacity,visibility] duration-(--ouro-duration-fast) ease-(--ouro-ease-out)";
+const emojiPlaceholderFadeClass =
+  "group-data-loaded/emoji:transition-[opacity,visibility] group-data-loaded/emoji:duration-(--ouro-duration-fast) group-data-loaded/emoji:ease-(--ouro-ease-out)";
 
 /** The emoji's form in a skin tone: its toned image, or the emoji itself in the default tone or without tones. @internal */
 function toneOf(item: EmojiItem, tone: EmojiSkinTone | undefined): EmojiItem | EmojiItemTone {
