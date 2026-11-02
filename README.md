@@ -648,7 +648,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.2         # the kit and the
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.2   # with their node:test tests
 ```
 
-Guides: [Ouro AX](docs/guides/ax.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
+Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
 
 ## License
 
