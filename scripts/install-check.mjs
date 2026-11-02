@@ -193,7 +193,7 @@ function installedPath(path) {
  */
 export function checkComments(app, root) {
   const problems = [];
-  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  const sources = registryFiles(root);
   for (const path of sources) {
     const target = installedPath(path);
     if (!target || !existsSync(join(app, target))) continue;
@@ -206,12 +206,24 @@ export function checkComments(app, root) {
 }
 
 /**
+ * The files and folders under registry/ouro, as repository paths. Hidden folders are left out: other tests make and
+ * remove scratch folders there (`registry/ouro/ax/.tmp`) while this reads, and a folder gone mid-read fails it.
+ */
+function registryFiles(root) {
+  const read = (dir) =>
+    readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) =>
+      entry.name.startsWith(".") ? [] : [`${dir}/${entry.name}`, ...(entry.isDirectory() ? read(`${dir}/${entry.name}`) : [])],
+    );
+  return read("registry/ouro");
+}
+
+/**
  * Installed files whose source starts with "use client" but which lost it, as readable lines.
  * Files the app does not have are skipped.
  */
 export function checkDirectives(app, root) {
   const problems = [];
-  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  const sources = registryFiles(root);
   for (const path of sources) {
     const target = installedPath(path);
     if (!target || !existsSync(join(app, target))) continue;
@@ -237,7 +249,7 @@ export function checkSources(app, root, aliases) {
     text
       .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')
       .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/');
-  const sources = readdirSync(join(root, "registry/ouro"), { recursive: true }).map((file) => `registry/ouro/${String(file)}`);
+  const sources = registryFiles(root);
   for (const path of sources) {
     const target = installedPath(path);
     if (!target || !existsSync(join(app, target))) continue;
