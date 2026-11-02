@@ -11,7 +11,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.1
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.1
 ```
 
-The files land in `lib/ouro/ax/`, as TypeScript that Node runs as it is.[^node] Keep them as they are: when you need a change, make it here and copy the next tag, so your copy and the X-ray never drift apart.
+The files land in `lib/ouro/ax/`, as TypeScript that Node runs as it is.[^node] Keep them as they are: when you need a change, make it in Ouro UI and copy the next tag, so your copy and the X-ray never drift apart.
 
 ## 2. Run the X-ray on your CLI as it is
 
