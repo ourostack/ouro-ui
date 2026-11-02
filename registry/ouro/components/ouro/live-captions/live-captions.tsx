@@ -238,17 +238,19 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
 
   const trackRef = useRef<HTMLDivElement>(null);
   const tops = useRef(new Map<string, number>());
+  // Stryker disable next-line ArrayDeclaration: the first layout effect has no line from before, so nothing slides whatever shape it starts from.
   const shape = useRef([size, maxLines]);
   useLayoutEffect(() => {
     const track = trackRef.current!;
     const now = place(track);
     const kept = [...now.keys()].find((line) => tops.current.has(line));
-    const rise = kept === undefined ? 0 : tops.current.get(kept)! - now.get(kept)!;
+    // With no line kept from before, rise is NaN, and nothing slides.
+    const rise = tops.current.get(kept!)! - now.get(kept!)!;
     tops.current = now;
     // A new size or height moves the lines by a fraction of a line: they take their places at once.
     const reshaped = shape.current[0] !== size || shape.current[1] !== maxLines;
     shape.current = [size, maxLines];
-    if (reduced || reshaped || rise <= 0) return;
+    if (reduced || reshaped || !(rise > 0)) return;
     // Start the lines where they were drawn (with any slide still under way) and let them slide up.
     const [, under = "0"] = getComputedStyle(track).translate.split(" ");
     track.style.transition = "none";
