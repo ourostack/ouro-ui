@@ -14,10 +14,12 @@ _site/
 test-results/
 playwright-report/
 .lighthouseci/
-# Generated lists of every component, written by `pnpm i` and the generators and never committed on
-# main, so pull requests that add components do not edit the same file (scripts/generated-files.mjs).
-# A release commit adds them (scripts/release-commit.sh).
+# Written on every Vitest run and by `pnpm typecheck` (scripts/control-matrix.mts), never committed,
+# so pull requests that add components do not edit the same file.
 test/generated/
+# Generated lists of every component, written by `pnpm i` and the generators and never committed on
+# main, for the same reason (scripts/generated-files.mjs). A release commit adds them
+# (scripts/release-commit.sh).
 /registry.json
 /site/public/llms.txt
 /site/src/docs/catalog.json
