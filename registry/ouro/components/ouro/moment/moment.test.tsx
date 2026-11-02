@@ -276,6 +276,9 @@ describe("Moment sizes", () => {
       expect(art!.querySelector("svg")!.getBoundingClientRect().height).toBe(px);
       expect(getComputedStyle(moment!).flexDirection).toBe("column");
     }
+    // Quiet wins over hero: a quiet hero moment keeps the quiet row's art.
+    const { frame } = await render(<Moment size="hero" quiet art={<Art />} title="Pick a conversation" />, 640);
+    expect(frame!.getBoundingClientRect().height).toBe(40);
     expect(warn).not.toHaveBeenCalled();
   });
 
