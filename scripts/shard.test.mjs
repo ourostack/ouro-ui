@@ -154,7 +154,11 @@ test("a sliced check runs each item exactly once across the shards, in each proj
   const { offsetOf, sliceOf } = await import("../test/slice-core.ts");
   const list = Array.from({ length: 101 }, (_, item) => item);
   // Every check named in the sliced suites, in each project that runs it (test/slice.ts's project names).
-  const sources = ["test", "site/src"].flatMap((dir) => readdirSync(join(root, dir), { recursive: true }).map(String).filter((file) => /\.tsx?$/.test(file) && statSync(join(root, dir, file)).isFile()).map((file) => readFileSync(join(root, dir, file), "utf8")));
+  const sources = ["test", "site/src"].flatMap((dir) =>
+    treeFiles(join(root, dir))
+      .filter((file) => /\.tsx?$/.test(file))
+      .map((file) => readFileSync(join(root, dir, file), "utf8")),
+  );
   const checks = [...new Set(sources.flatMap((source) => [...source.matchAll(/\bsliced\([^;]*?, "([^"]+)"\)/gs)].map((match) => match[1])))];
   assert.ok(checks.length >= 9, `the checks named in sliced(): ${checks.join(", ")}`);
   const keys = ["chromium", "webkit", "chromium touch"].flatMap((project) => checks.map((check) => `${project} ${check}`));
