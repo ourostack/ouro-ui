@@ -1,5 +1,5 @@
 export { argUsage, BUILTIN_FLAGS, checkInput, defineCli, defineCommand, exampleArgv, findCommand, flagsOf, flagUsage, inputSchema, parse, toArgv, usageOf };
-export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, Input, InputValue, JsonSchema, Meaning, Parsed, RunContext };
+export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, Input, InputValue, JsonSchema, Meaning, Parsed, PersonOnly, RunContext };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
@@ -78,6 +78,18 @@ interface Meaning {
   use: string;
 }
 
+/**
+ * Words only the person acts on, such as `unmute`: the reason, and how the person does it (`with the microphone button
+ * in the call's toolbar`). The words refuse, `refused`, with both in one line, and `help --json` lists them under
+ * `personOnly`, so an agent learns them before it tries.
+ *
+ * @claim "The words refuse" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a person-only word refuses with its reason and how the person does it, as a refused outcome under --json)
+ */
+interface PersonOnly {
+  reason: string;
+  how: string;
+}
+
 type InputValue = string | number | boolean | readonly string[];
 type Input = Readonly<Record<string, InputValue>>;
 
@@ -135,6 +147,8 @@ interface CliDef<C extends RunContext = RunContext> {
    * @claim "could mean two effects" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead)
    */
   ambiguous?: Readonly<Record<string, readonly Meaning[]>>;
+  /** Words only the person acts on, by the words an agent might try (`unmute`). */
+  personOnly?: Readonly<Record<string, PersonOnly>>;
   /** The overview's one line for a multi-word group ("draft"), when its first command's summary is not it. */
   groups?: Readonly<Record<string, string>>;
   /** Exit code names by outcome state; defaults to DEFAULT_OUTCOME_EXITS. */
@@ -158,6 +172,7 @@ interface Cli<C extends RunContext = RunContext> {
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
   readonly ambiguous: Readonly<Record<string, readonly Meaning[]>>;
+  readonly personOnly: Readonly<Record<string, PersonOnly>>;
   readonly groups: Readonly<Record<string, string>>;
   readonly outcomeExits: OutcomeExits;
   readonly waitExits: WaitExits;
@@ -198,6 +213,7 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
     headings: def.headings ?? DEFAULT_HEADINGS,
     globalFlags: def.voice && !def.globalFlags?.["quiet"] ? { ...def.globalFlags, quiet: QUIET_FLAG } : (def.globalFlags ?? {}),
     ambiguous: def.ambiguous ?? {},
+    personOnly: def.personOnly ?? {},
     groups: def.groups ?? {},
     outcomeExits: def.outcomeExits ?? DEFAULT_OUTCOME_EXITS,
     waitExits: def.waitExits ?? DEFAULT_WAIT_EXITS,
@@ -219,6 +235,10 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
     });
   }
   for (const word of Object.keys(cli.ambiguous)) if (seen.has(word)) throw new Error(`${def.name}: "${word}" is both a command and an ambiguous word. Fix: remove one.`);
+  for (const [word, p] of Object.entries(cli.personOnly)) {
+    if (seen.has(word) || Object.hasOwn(cli.ambiguous, word)) throw new Error(`${def.name}: "${word}" is person-only and also a command or an ambiguous word. Fix: remove one.`);
+    for (const key of ["reason", "how"] as const) if (typeof p[key] !== "string" || !p[key].trim() || /[\r\n]/.test(p[key])) throw new Error(`${def.name}: person-only "${word}" needs ${key}, one line. Fix: personOnly: { "${word}": { reason: "<why only the person does it>", how: "<where the person does it>" } }.`);
+  }
   for (const cmd of cli.commands) {
     for (const example of cmd.examples ?? []) {
       const argv = exampleArgv(cli.name, example);
@@ -340,6 +360,8 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
   const found = findCommand(cli, leading);
   const refused = ambiguousWord(cli, leading);
   if (refused && (!found || wordsOf(refused).length > found.used)) throw ambiguousError(cli, refused, tokens.slice(wordsOf(refused).length));
+  const theirs = longestKey(cli.personOnly, leading);
+  if (theirs && (!found || wordsOf(theirs).length > found.used)) throw personOnlyError(cli, theirs);
   if (!found) throw unknownCommand(cli, leading);
   const { command, used } = found;
   if (helpIn(flagsOf(cli, command))) return { kind: "help", topic: command.name, json };
@@ -491,10 +513,19 @@ function valueOf(cli: Cli, thing: string, name: string, spec: FlagSpec, raw: str
   return raw;
 }
 
-/** The longest ambiguous word or phrase (`edit`, `draft send`) the leading words start with, or null. */
-function ambiguousWord(cli: Cli, leading: readonly string[]): string | null {
-  const matches = Object.keys(cli.ambiguous).filter((key) => wordsOf(key).every((w, i) => leading[i] === w));
+/** The longest key (`edit`, `draft send`) the leading words start with, or null. */
+function longestKey(table: Readonly<Record<string, unknown>>, leading: readonly string[]): string | null {
+  const matches = Object.keys(table).filter((key) => wordsOf(key).every((w, i) => leading[i] === w));
   return matches.sort((a, b) => wordsOf(b).length - wordsOf(a).length)[0] ?? null;
+}
+
+/** The longest ambiguous word or phrase the leading words start with, or null. */
+const ambiguousWord = (cli: Cli, leading: readonly string[]) => longestKey(cli.ambiguous, leading);
+
+/** A person-only word's refusal: why only the person does it, and where they do it; nothing for an agent to run. */
+function personOnlyError(cli: Cli, word: string): AxError {
+  const p = cli.personOnly[word]!;
+  return new AxError({ code: "person-only", exit: usage(cli), thing: word, problem: `only the person does this, because ${p.reason.trim().replace(/[.\s]+$/, "")}; ask the person, who does it ${p.how.trim().replace(/[.\s]+$/, "")}`, fix: null });
 }
 
 /** The flags given after an ambiguous word, by name, with their values; and the words that are not flags or values. */
