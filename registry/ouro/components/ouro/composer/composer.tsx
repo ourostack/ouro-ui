@@ -293,9 +293,9 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (!catalogue) return;
     const control = textareaRef.current!;
     const typed = (event: InputEvent) => {
-      // A word an input method is composing is the input method's until it ends.
-      if (event.isComposing || (event.inputType !== "insertText" && event.inputType !== "insertReplacementText")) return;
-      insertTokens(control, event, event.data ?? "", catalogue);
+      // A word an input method is composing is the input method's until it ends; a replacement without text inserts none.
+      if (event.isComposing || event.data === null || (event.inputType !== "insertText" && event.inputType !== "insertReplacementText")) return;
+      insertTokens(control, event, event.data, catalogue);
     };
     control.addEventListener("beforeinput", typed);
     return () => control.removeEventListener("beforeinput", typed);
