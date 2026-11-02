@@ -147,7 +147,7 @@ function floatingHint(open: string, close: string) {
 
 /**
  * Internal: whether a container hides the controls inside it, as an auto-hiding `Toolbar` does
- * once it fades. A `Tooltip` inside closes as it turns true, so it never stays beside a control
- * no one can see; it opens again as usual after.
+ * once it fades. A `Tooltip` inside closes as it turns true, so it goes with the controls it
+ * names, and opens again as usual after.
  */
 const TooltipsHidden = createContext(false);

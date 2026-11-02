@@ -253,9 +253,9 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  * bottom-4 flex justify-center` inside the `relative` stage, so the wrapper does not take presses
  * meant for the pictures beside the bar; a floating bar takes its own). `autoHideArea` names the
  * stage when the layout cannot, and `onHiddenChange` tells your layout when the bar fades and
- * comes back. Keys pressed outside the bar leave it faded, so typing in a chat never shows it; to
- * show it when the person uses your app's own call shortcuts, control it with `hidden`, as the
- * second example does.
+ * comes back. Keys pressed outside the bar leave it faded, so typing in a chat leaves it faded
+ * too; to show it when the person uses your app's own call shortcuts, control it with `hidden`, as
+ * the second example does.
  *
  * Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent
  * to read or do, so it declares no agent side; the controls inside declare their own, and a
@@ -300,6 +300,8 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  *   onHiddenChange={setHidden}
  *   items={[{ type: "toggle", label: "Mute", icon: MicOffIcon, hideLabel: true, shortcut: ["shift", "mod", "m"], pressed: muted, onPressedChange: toggleMute }]}
  * />
+ * @claim "Keys pressed outside the bar leave it faded" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays faded while someone types in a field elsewhere or presses keys on the page)
+ * @claim "control it with `hidden`, as" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar hidden > shows when the app sets hidden to false for its own shortcut, and fades after a new rest)
  * @claim "Toolbar is a container with nothing of its own" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar > exports no agent side of its own)
  */
 export function Toolbar(props: ToolbarProps): JSX.Element {
