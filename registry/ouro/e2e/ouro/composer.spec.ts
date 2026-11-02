@@ -46,7 +46,10 @@ test("an image catalogue's emoji go in as tokens, from suggestions or the picker
   await page.getByRole("button", { name: "Insert emoji" }).click();
   await page.getByRole("dialog", { name: "Insert emoji" }).getByRole("button", { name: "Party popper" }).click();
   await expect(box).toHaveValue("Coffee break :coffee_time: :party:");
+  // The picker hands focus back as it closes; Enter goes to the box only once it has it.
+  await expect(page.getByRole("dialog", { name: "Insert emoji" })).toBeHidden();
   await box.focus();
+  await expect(box).toBeFocused();
   await page.keyboard.press("Enter");
   const sent = page.getByRole("list", { name: "Sent" }).getByRole("listitem").last();
   await expect(sent.getByRole("img", { name: "Team coffee" })).toBeVisible();
