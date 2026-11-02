@@ -2,7 +2,7 @@
 
 # Autocomplete
 
-Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character. The arrow keys move through it, Enter or Tab inserts the suggestion in place of the trigger and its query, and Escape closes it. Focus stays in the text throughout: the text control points at the active suggestion with `aria-activedescendant`, and screen readers hear how many suggestions there are. The typed part of a suggestion's label shows in bold where it starts the label or one of its words. One control can have several triggers.
+Suggestions at the text caret: typing a trigger character, such as `@` for people or `:` for emoji, in a `TextArea` or `TextField` opens a list beside the caret, filtered by what follows the character. The arrow keys move through it, Enter or Tab inserts the suggestion in place of the trigger and its query, and Escape closes it. Focus stays in the text throughout: the text control points at the active suggestion with `aria-activedescendant`, and screen readers hear how many suggestions there are. Only the list scrolls to show the active suggestion, never a box around it or the page. The typed part of a suggestion's label shows in bold where it starts the label or one of its words. One control can have several triggers.
 
 ```tsx
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
@@ -23,7 +23,7 @@ import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autoc
 
 ## Usage
 
-Insertion goes through the browser's own text editing, so Undo takes it back and the control's `onChange` and `onValueChange` run, controlled or not. `TextArea`'s `autoGrow` grows with it. In a `Composer`, the Enter that picks a suggestion does not send. A trigger with an image emoji `catalogue` suggests its emoji as images and inserts their `:shortcode:` tokens, which `EmojiText` draws as images in the sent message.
+Insertion goes through the browser's own text editing, so Undo takes it back and the control's `onChange` and `onValueChange` run, controlled or not. `TextArea`'s `autoGrow` grows with it. In a `Composer`, the Enter that picks a suggestion does not send. The text a pick inserted keeps the list closed, even after the caret leaves it and comes back, until the person edits it, so the next Enter sends. A trigger with an image emoji `catalogue` suggests its emoji as images and inserts their `:shortcode:` tokens, which `EmojiText` draws as images in the sent message.
 
 ## Use instead when
 

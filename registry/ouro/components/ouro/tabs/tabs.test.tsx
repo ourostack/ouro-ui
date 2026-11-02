@@ -96,6 +96,28 @@ describe("Tabs", () => {
     }
   });
 
+  it("keeps HighlightText on the selected tab under forced colours while the pointer rests on it", async () => {
+    try {
+      const { tabs } = await render(<Tabs label="Recipe" items={items} />);
+      const [selected] = tabs;
+      const look = (tab: HTMLElement) => `${getComputedStyle(tab).backgroundColor} ${getComputedStyle(tab).color}`;
+      // The pointer rests on the selected tab, as one a test or a person leaves there does.
+      await userEvent.hover(selected!);
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      const probe = document.body.appendChild(document.createElement("span"));
+      probe.style.cssText = "background-color: Highlight; color: HighlightText";
+      const highlight = look(probe);
+      probe.remove();
+      expect(selected!.matches(":hover")).toBe(true);
+      await settled(selected!);
+      expect(look(selected!)).toBe(highlight);
+    } finally {
+      await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders a labelled tab list with the first tab selected and its panel shown", async () => {
     const { root, tabs } = await render(<Tabs label="Recipe" items={items} />);
     expect(root.getAttribute("data-ouro")).toBe("tabs");
