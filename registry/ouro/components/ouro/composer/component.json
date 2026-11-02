@@ -3,6 +3,7 @@
   "components": ["composer"],
   "controls": {
     "composer": [
+      {"part": "expand", "role": "button", "portal": false},
       {"part": "send", "role": "button", "portal": false}
     ]
   }

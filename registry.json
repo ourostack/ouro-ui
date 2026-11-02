@@ -11147,6 +11147,7 @@
         "ourostack/ouro-ui/emoji-picker-tests",
         "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
@@ -11154,6 +11155,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
@@ -11163,6 +11165,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover-tests",
         "ourostack/ouro-ui/sheet-tests",
@@ -11171,6 +11174,8 @@
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/toggle",
         "ourostack/ouro-ui/toggle-tests",
+        "ourostack/ouro-ui/toolbar",
+        "ourostack/ouro-ui/toolbar-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
