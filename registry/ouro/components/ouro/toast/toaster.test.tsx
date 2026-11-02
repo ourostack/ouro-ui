@@ -1622,6 +1622,18 @@ describe("Toaster avoid", () => {
     await until(() => above(item, join), 8);
   });
 
+  it("keeps clear of what a new selector matches when avoid changes", async () => {
+    await page.viewport(1280, 800);
+    const join = corner("right");
+    join.removeAttribute("data-keep-clear");
+    join.setAttribute("data-call", "");
+    const { root } = await render(<Toaster avoid="[data-keep-clear]" />);
+    const item = await show("Recording saved", { duration: Infinity });
+    expect(overlaps(item.getBoundingClientRect(), join.getBoundingClientRect())).toBe(true);
+    await act(async () => root.render(<Toaster avoid="[data-call]" />));
+    await until(() => above(item, join), 8);
+  });
+
   it("lets go of the page and the window when avoid goes", async () => {
     await page.viewport(1280, 800);
     const { root } = await render(<Toaster />);
