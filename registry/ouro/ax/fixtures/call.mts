@@ -67,7 +67,7 @@ function others(name: string, summary: string, doing: string, done: string, chan
   });
 }
 
-const theirs = { reason: "agents never turn on a person's microphone, camera or screen", how: "with the buttons in the call's toolbar" };
+const theirs = { reason: "agents never turn on a person's microphone, camera or screen", how: "with the buttons in the call's controls" };
 const cli = defineCli({
   name: "call",
   about: ["call: the person's call, for agents. You never join one; you read from the app's capture."],
@@ -112,12 +112,14 @@ const cli = defineCli({
     others("mute", "Mute the person's microphone; everyone sees it.", "Would mute the person", "Muted the person", () => (state.muted = true)),
     others("leave", "Leave the call; everyone sees it.", "Would leave the call", "Left the call", () => (state.left = true)),
     others("raise-hand", "Raise the person's hand; everyone sees it.", "Would raise the person's hand", "Raised the person's hand", () => (state.hand = true)),
+    others("lower-hand", "Lower the person's hand; everyone sees it.", "Would lower the person's hand", "Lowered the person's hand", () => (state.hand = false)),
     ...(faults.has("unmute") ? [defineCommand({ name: "unmute", summary: "Turn the person's microphone on.", effect: "private", run: () => (state.log.push({ verb: "unmute" }), "Unmuted.") })] : []),
   ],
   personOnly: {
     ...(faults.has("unmute") ? {} : { unmute: theirs }),
     camera: theirs,
     share: theirs,
+    "captions on": { reason: "turning captions on may show others that captions are on", how: "with the captions button in the call's controls" },
     join: { reason: "the person joins a call, and you read from the app's one capture", how: "from the meeting's join button" },
   },
 });
