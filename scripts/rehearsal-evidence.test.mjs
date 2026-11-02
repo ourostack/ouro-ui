@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { describe, findEvidence, main, MAX_COMMITS, NOTES_FILES, reusable, runGit } from "./rehearsal-evidence.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { copyTree } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
@@ -325,7 +326,7 @@ esac
     // The checkout's scripts and workflows are this repository's, outside its history.
     mkdirSync(join(checkout, "scripts"));
     for (const file of ["rehearsal-evidence.mjs", "latest-release.mjs", "required-producers.mjs", "required-ci.sh", "quarantine.mjs", "ci-budget.mjs"]) cpSync(join(root, "scripts", file), join(checkout, "scripts", file));
-    cpSync(join(root, ".github"), join(checkout, ".github"), { recursive: true });
+    copyTree(join(root, ".github"), join(checkout, ".github"));
     const temp = scratchDir("ouro-release-reuse-temp-");
     for (const file of ["runs.json", "summary.md", "output.txt", "env.txt"]) writeFileSync(join(temp, file), file === "runs.json" ? JSON.stringify(runs(t)) : "");
     const stubs = `git() { case "$1" in ls-remote) return 1 ;; *) command git "$@" ;; esac; }\n`;
