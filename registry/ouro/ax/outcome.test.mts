@@ -4,7 +4,7 @@ import { BASE_EXIT_CODES, defineExitCodes } from "./exit-codes.ts";
 import { DEFAULT_OUTCOME_EXITS, isGenericAudience, isOutcome, nextStep, OUTCOME_STATES, outcome, outcomeExit, outcomeText, validateOutcome, type Outcome } from "./outcome.ts";
 
 const AT = "2026-10-30T20:00:00.000Z";
-const receipt = { id: "a1b2c3d4e5f6", at: AT, by: "agent:planner", why: "Sam asked me to tell Design sync" };
+const receipt = { id: "a1b2c3d4e5f6", at: AT, by: "agent:planner", why: "Jo asked: tell Design sync I'm running late" };
 const look = nextStep("tool look abc123 --json", "see whether the message is there");
 const err = { code: "why", exit: 2, thing: "send", problem: "say why", fix: null };
 const sent = (over: Partial<Outcome> = {}): Outcome => ({
@@ -106,9 +106,9 @@ test("outcomeText says when the effect is not checked yet, and why", () => {
 
 test("an action for other people that names no one is warned about", () => {
   for (const who of ["other people", "Others.", " someone ", "Everyone", "users"]) assert.equal(isGenericAudience(who), true, who);
-  for (const who of ['everyone in "Design sync"', "Sam Lee", "the organizer, Alex Example", "the team"]) assert.equal(isGenericAudience(who), false, who);
+  for (const who of ['everyone in "Design sync"', "Jo Park", "the organizer, Alex Example", "the team"]) assert.equal(isGenericAudience(who), false, who);
   const generic = validateOutcome(sent({ audience: { only: false, who: "other people" } }));
   assert.equal(generic.ok, true);
-  assert.deepEqual(generic.warnings, ['audience.who is "other people", which names no one: say who will see it, as the text does (everyone in "Design sync", Sam Lee)']);
+  assert.deepEqual(generic.warnings, ['audience.who is "other people", which names no one: say who will see it, as the text does (everyone in "Design sync", Jo Park)']);
   assert.deepEqual(validateOutcome(outcome({ action: "note", state: "done", summary: "Noted.", audience: { only: false, who: "someone" }, postcondition: { checked: true, holds: true, how: "read back" } })).warnings, []);
 });

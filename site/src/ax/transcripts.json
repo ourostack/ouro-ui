@@ -16,7 +16,7 @@
       "refused": true
     },
     {
-      "command": "notes post abc123 \"Running late, start without me\" --why \"{person} asked me to tell the room\"",
+      "command": "notes post abc123 \"Running late, start without me\" --why \"{Person} asked: tell Design sync I'm running late\"",
       "output": "Posted to \"Design sync\". Everyone in it can see it.\nChecked: read the room's last message back.\nReceipt: m1\nNext: notes watch abc123  (wait for a reply)"
     }
   ],

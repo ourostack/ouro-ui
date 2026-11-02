@@ -28,6 +28,9 @@ const tabStop = 'a[href], button, input:not([type="hidden"]), select, textarea, 
 /** An item of a list or menu, whose highlight stands for focus (`data-highlighted`, set by the keyboard and the pointer alike). */
 const virtualItem = ':is([role="option"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="treeitem"], [role="gridcell"]):not(button)';
 
+/** An item that opens a submenu. */
+const subTrigger = '[aria-haspopup]:not([aria-haspopup="false"])';
+
 /** A state between on and off (an indeterminate checkbox), compared with neither. */
 const mixedState = '[aria-checked="mixed"], [aria-pressed="mixed"], [data-indeterminate]';
 
@@ -318,12 +321,21 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
     }
     if (!control.hasAttribute("data-highlighted")) {
       found.push(`${state}: highlight never compared, the item does not highlight: ${describeElement(control)}`);
-      continue;
+    } else {
+      // The only item of its list, highlighted from the start, has nothing to move from: it must look
+      // different with its highlight than with the highlight taken off.
+      const alone = !virtual.some((other) => other !== control && around.contains(other));
+      if (alone ? highlightedLook(control) === unhighlightedLook(control) : look(around) === before) found.push(`${state}: highlight shows nothing: ${describeElement(control)}`);
     }
-    // The only item of its list, highlighted from the start, has nothing to move from: it must look
-    // different with its highlight than with the highlight taken off.
-    const alone = !virtual.some((other) => other !== control && around.contains(other));
-    if (alone ? highlightedLook(control) === unhighlightedLook(control) : look(around) === before) found.push(`${state}: highlight shows nothing: ${describeElement(control)}`);
+    // A submenu's trigger opens its submenu once the pointer rests on it, and while it is open
+    // pointer events are off over the rest of the parent menu until the pointer moves away, which
+    // a hover never does for a target it cannot land on. Move the pointer away, as a person does,
+    // and go on once the submenu has closed.
+    if (control.matches(subTrigger)) {
+      await commands.parkPointer();
+      await expect.poll(() => control.getAttribute("aria-expanded")).not.toBe("true");
+      await settle();
+    }
   }
   return found;
 }

@@ -6,7 +6,7 @@ import { actorOf, checkWorkEvent, foldWork, WORK_EVENT_VERSION, WORK_KINDS, work
 const at = (min: number) => new Date(Date.UTC(2026, 9, 30, 9, min)).toISOString();
 let n = 0;
 const ev = (kind: WorkEvent["kind"], min: number, o: Partial<WorkEvent> = {}): WorkEvent => ({
-  ax: WORK_EVENT_VERSION, id: String(++n), at: at(min), kind, actor: "agent:planner", onBehalfOf: "Ari", target: { kind: "conversation", id: "c1" }, why: null, effect: "private", receipt: null, correlation: null, ...o,
+  ax: WORK_EVENT_VERSION, id: String(++n), at: at(min), kind, actor: "agent:planner", onBehalfOf: "Dana", target: { kind: "conversation", id: "c1" }, why: null, effect: "private", receipt: null, correlation: null, ...o,
 });
 
 test("actorOf reads a named agent, an unnamed agent and the person, and nothing else", () => {
@@ -55,17 +55,17 @@ test("checkWorkEvent accepts every kind, and names the first problem with its fi
 
 test("workEventOf: an action or handoff from an outcome, attributed; nothing for a plan or a refusal", () => {
   const done = outcome({ action: "message.send", effect: "others", audience: { only: false, who: "everyone" }, target: { kind: "conversation", id: "c1" }, state: "done", summary: "Sent.", receipt: { id: "r1", at: at(3), by: "agent:planner", why: "Riley asked" } });
-  assert.deepEqual(workEventOf(done, { id: "e1", actor: "agent:planner", onBehalfOf: "Ari", correlation: "plan#7" }), {
-    ax: WORK_EVENT_VERSION, id: "e1", at: at(3), kind: "action", actor: "agent:planner", onBehalfOf: "Ari", target: { kind: "conversation", id: "c1" }, why: "Riley asked", effect: "others", receipt: "r1", correlation: "plan#7", verb: "message.send", detail: { state: "done" },
+  assert.deepEqual(workEventOf(done, { id: "e1", actor: "agent:planner", onBehalfOf: "Dana", correlation: "plan#7" }), {
+    ax: WORK_EVENT_VERSION, id: "e1", at: at(3), kind: "action", actor: "agent:planner", onBehalfOf: "Dana", target: { kind: "conversation", id: "c1" }, why: "Riley asked", effect: "others", receipt: "r1", correlation: "plan#7", verb: "message.send", detail: { state: "done" },
   });
-  const handed = workEventOf(outcome({ action: "draft", state: "needs-human", summary: "Left for you.", human: { reason: "you send it", resume: { command: "x", why: "y" } } }), { id: "e2", actor: "agent", onBehalfOf: "Ari", at: at(4) });
+  const handed = workEventOf(outcome({ action: "draft", state: "needs-human", summary: "Left for you.", human: { reason: "you send it", resume: { command: "x", why: "y" } } }), { id: "e2", actor: "agent", onBehalfOf: "Dana", at: at(4) });
   assert.equal(handed?.kind, "handoff");
   assert.equal(handed?.why, null);
   assert.equal(handed?.correlation, null);
   assert.ok(checkWorkEvent(handed).ok);
-  assert.match(workEventOf(outcome({ action: "x", state: "done", summary: "s" }), { id: "e3", actor: "agent", onBehalfOf: "Ari" })!.at, /^\d{4}-/);
-  assert.equal(workEventOf(outcome({ action: "x", state: "planned", summary: "s" }), { id: "e4", actor: "agent", onBehalfOf: "Ari" }), null);
-  assert.equal(workEventOf(outcome({ action: "x", state: "refused", summary: "s" }), { id: "e5", actor: "agent", onBehalfOf: "Ari" }), null);
+  assert.match(workEventOf(outcome({ action: "x", state: "done", summary: "s" }), { id: "e3", actor: "agent", onBehalfOf: "Dana" })!.at, /^\d{4}-/);
+  assert.equal(workEventOf(outcome({ action: "x", state: "planned", summary: "s" }), { id: "e4", actor: "agent", onBehalfOf: "Dana" }), null);
+  assert.equal(workEventOf(outcome({ action: "x", state: "refused", summary: "s" }), { id: "e5", actor: "agent", onBehalfOf: "Dana" }), null);
 });
 
 test("foldWork counts a handoff, the person's return, a wait and an action into one target's figures", () => {

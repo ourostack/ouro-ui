@@ -50,7 +50,7 @@ if (argv[0] === "state") {
   process.exit(0);
 }
 if (argv[0] === "events") {
-  const event = { ax: "work-event/1", id: "e1", at: "2026-10-30T09:00:00.000Z", kind: "action", actor: "agent:a", onBehalfOf: "Ari", target: null, why: "Riley asked", effect: "others", receipt: "r1", correlation: null };
+  const event = { ax: "work-event/1", id: "e1", at: "2026-10-30T09:00:00.000Z", kind: "action", actor: "agent:a", onBehalfOf: "Dana", target: null, why: "Riley asked", effect: "others", receipt: "r1", correlation: null };
   const shapes = { array: JSON.stringify([event]), object: JSON.stringify({ events: [event] }), lines: `${JSON.stringify(event)}\n${JSON.stringify({ ...event, kind: "poke" })}`, bad: "nope", number: "3" };
   out(shapes[argv[1]]);
   process.exit(0);

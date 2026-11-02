@@ -4,9 +4,9 @@ The X-ray says exactly whether a claim holds; only an agent evaluation says whet
 
 ## The method
 
-1. **A mock with made-up data.** Each run gets a fresh copy of the interface's mock, with made-up fixtures, and a guard that refuses anything else.[^mock] Tandem's runner refuses a daemon that does not answer as its mock.[^mock]
-2. **Real agents, fresh sessions.** Each run starts a new agent session with no plugins or skills of the host, the interface's own short agent guide, and permission to run only the interface (for a CLI, a shell rule such as `shell(m365tandem)`), never approve-all.[^agent]
-3. **Tasks with an end state.** A task is a request a person would make, with a success rule over the mock's end state and the agent's answer. Tandem's five core tasks are a read, a draft handed back to the person, a send other people see, an edit whose obvious first try fails, and waiting for a reply.[^tasks]
+1. **A mock with made-up data.** Each run gets a fresh copy of the interface's mock, with made-up fixtures, and a guard that refuses anything else.[^mock] The runner for the first adopter, the app Ouro AX was first measured on ([decision record](../decisions/2026-10-30-ouro-ax.md)), refuses a server that does not answer as its mock.[^mock]
+2. **Real agents, fresh sessions.** Each run starts a new agent session with no plugins or skills of the host, the interface's own short agent guide, and permission to run only the interface (for a CLI, a shell rule such as `shell(app)`), never approve-all.[^agent]
+3. **Tasks with an end state.** A task is a request a person would make, with a success rule over the mock's end state and the agent's answer. The first adopter's five core tasks are a read, a draft handed back to the person, a send other people see, an edit whose obvious first try fails, and waiting for a reply.[^tasks]
 4. **A scorer without a model.** The scorer reads the mock's log, drafts and messages after the run, and matches the answer with patterns. It counts success, calls, wrong turns (errors, repeats, undone calls and calls the allow-list denied), recoveries, help calls, tokens and wall time.[^metrics]
 5. **Enough runs to see the difference.** Runs of the same task vary, so compare success first, then wrong turns, and treat a difference of a call or two as noise unless it holds over more runs.[^variance] For evidence that admits a claim, run each task at least three times per variant.
 
@@ -26,15 +26,15 @@ Commit a run's `results.json` (every run's calls, answer and score) and `results
 
 ## Where the runner is
 
-The reference runner is Tandem's `probe/ax-eval` (`run.ts`, `tasks.ts`, `serve.ts`), on its `ax-probe/eval` branch: it starts the mock, runs `agency copilot` per run under the locks one host shares, logs every interface call, and scores the end state.[^runner] Its method is the one above; another adopter writes its own tasks and mock, and keeps the rules: fresh sessions, only the interface allowed, a scorer that reads the end state rather than asking a model, and the results committed.
+The reference runner is the first adopter's (`run.ts`, `tasks.ts`, `serve.ts`): it starts the mock, runs `copilot` per run under the locks one host shares, logs every interface call, and scores the end state.[^runner] Its method is the one above; another adopter writes its own tasks and mock, and keeps the rules: fresh sessions, only the interface allowed, a scorer that reads the end state rather than asking a model, and the results committed.
 
-[^method]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /a fresh mock tandem per run, and scoring from the end state/)
+[^method]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /a fresh mock app per run, and scoring from the end state/)
 [^hx]: scripts/agent-usability/README.md verify:fileLine(scripts/agent-usability/README.md, /a scorer that makes no model calls judges every result the same way/)
 [^mock]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /re-checks the mock \(guard\.ts\)/)
-[^agent]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /agency copilot --no-config-plugins --session-id <new> -s --output-format json --allow-tool 'shell\(m365tandem\)'/)
+[^agent]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /copilot --no-config-plugins --session-id <new> -s --output-format json --allow-tool 'shell\(app\)'/)
 [^tasks]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /^\| T5 Wait \| "Tell me when someone replies/)
 [^metrics]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /^- \*\*Wrong turns\*\*: denied commands, plus calls that are any of/)
 [^variance]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /Treat a difference of one or two calls, or under about 30% in tokens, as noise/)
 [^text]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md; evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-after-440.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md, /\| T4 Recovery \(ambiguous verb: edit\) \| 0\/2 \|/) verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-after-440.md, /\| T4 Recovery \(ambiguous verb: edit\) \| 2\/2 \|/)
 [^rescore]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /--rescore <out>/)
-[^runner]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /Code: branch `ax-probe\/eval` of teams-microsoft\/tandem, folder `probe\/ax-eval\/`/)
+[^runner]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /Code: branch `probe\/eval` of the first adopter's repository, folder `probe\/ax-eval\/`/)

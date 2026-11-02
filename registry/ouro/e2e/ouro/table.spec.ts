@@ -8,7 +8,7 @@ test("on a phone, a row opens from a tap on any cell, and its Save button does n
   await page.getByRole("button", { name: "Save Herb salad" }).click();
   expect(page.url()).toBe(url);
   // A real tap on the cook's name: the row link's hit area covers the cell.
-  const cook = page.getByRole("row", { name: /Herb salad/ }).getByText("Sam");
+  const cook = page.getByRole("row", { name: /Herb salad/ }).getByText("Tess");
   await cook.scrollIntoViewIfNeeded();
   const box = (await cook.boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);

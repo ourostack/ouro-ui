@@ -368,6 +368,11 @@
           "target": "@lib/ouro/testing/rotate.ts"
         },
         {
+          "path": "registry/ouro/lib/ouro/testing/setup.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/testing/setup.test.ts"
+        },
+        {
           "path": "registry/ouro/lib/ouro/testing/setup.ts",
           "type": "registry:lib",
           "target": "@lib/ouro/testing/setup.ts"

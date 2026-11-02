@@ -80,7 +80,7 @@ Example:
 ```ts
 outcome({ action: "message.send", effect: "others", audience: { only: false, who: 'everyone in "Design sync"' },
   state: "queued", summary: 'Queued for "Design sync".',
-  receipt: { id: "a1b2c3", at: new Date().toISOString(), by: "agent:planner", why: "Sam asked" },
+  receipt: { id: "a1b2c3", at: new Date().toISOString(), by: "agent:planner", why: "Jo asked" },
   next: [nextStep("tool outcome a1b2c3 --timeout 60s", "wait until it is sent")] });
 ```
 

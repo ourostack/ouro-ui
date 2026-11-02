@@ -604,11 +604,11 @@ describe("Table sorting", () => {
 
   it("keeps rows with equal values in their order, both ways", async () => {
     const rows = [
-      { id: "a", cook: "Sam" },
+      { id: "a", cook: "Tess" },
       { id: "b", cook: "Ari" },
-      { id: "c", cook: "Sam" },
+      { id: "c", cook: "Tess" },
       { id: "d", cook: "Ari" },
-      { id: "e", cook: "Sam" },
+      { id: "e", cook: "Tess" },
     ];
     const { table } = await render(<Table caption="Cooks" columns={[{ key: "id", header: "Id" }, { key: "cook", header: "Cook", sortable: true }]} rows={rows} />);
     await userEvent.click(page.getByRole("button", { name: "Cook" }));

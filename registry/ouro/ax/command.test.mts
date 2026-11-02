@@ -22,9 +22,9 @@ const refusal = (argv: string[]) => {
 };
 
 test("argv parses to the command and typed input: rest text, numbers, enums, --json", () => {
-  const p = run(["post", "abc123", "Running", "late", "--why=Sam asked", "--tone", "markdown", "--json"]);
+  const p = run(["post", "abc123", "Running", "late", "--why=Jo asked", "--tone", "markdown", "--json"]);
   assert.equal(p.command.name, "post");
-  assert.deepEqual(p.input, { room: "abc123", text: "Running late", why: "Sam asked", tone: "markdown", json: true });
+  assert.deepEqual(p.input, { room: "abc123", text: "Running late", why: "Jo asked", tone: "markdown", json: true });
   assert.equal(p.json, true);
   assert.deepEqual(run(["rooms", "--limit", "5"]).input, { limit: 5 });
   assert.deepEqual(run(["note", "abc123", "--", "--not-a-flag"]).input, { room: "abc123", text: "--not-a-flag" });
@@ -136,7 +136,7 @@ test("usage, the input schema and toArgv come from the same definition", () => {
     required: ["room", "text", "why"],
     additionalProperties: false,
   });
-  assert.deepEqual(toArgv(cli, post, { room: "abc123", text: "-starts with a dash\nand two lines", why: "Sam asked", tone: "plain" }), { argv: ["post", "abc123", "-", "--why", "Sam asked", "--tone", "plain"], stdin: "-starts with a dash\nand two lines" });
+  assert.deepEqual(toArgv(cli, post, { room: "abc123", text: "-starts with a dash\nand two lines", why: "Jo asked", tone: "plain" }), { argv: ["post", "abc123", "-", "--why", "Jo asked", "--tone", "plain"], stdin: "-starts with a dash\nand two lines" });
 });
 
 test("checkInput refuses a bad MCP call with the arguments to send instead", () => {
@@ -289,8 +289,8 @@ test("-h as a flag's value is the value, a rest list keeps its words apart, and 
 
 test("an ambiguous word's fix carries the words and flags the agent gave, in each meaning's command", () => {
   assert.equal(refusal(["edit"]).fix, "notes note <room> <text> or notes post <room> <text> --why <why>");
-  assert.equal(refusal(["edit", "abc123", "Thursday?", "--tone", "plain", "--why", "Sam asked"]).fix, 'notes note abc123 "Thursday?" or notes post abc123 "Thursday?" --tone plain --why "Sam asked"');
-  assert.equal(refusal(["edit", "abc123", "x", "--why=Sam", "--dry-run", "--json"]).fix, "notes note abc123 x or notes post abc123 x --why Sam --dry-run");
+  assert.equal(refusal(["edit", "abc123", "Thursday?", "--tone", "plain", "--why", "Jo asked"]).fix, 'notes note abc123 "Thursday?" or notes post abc123 "Thursday?" --tone plain --why "Jo asked"');
+  assert.equal(refusal(["edit", "abc123", "x", "--why=Jo", "--dry-run", "--json"]).fix, "notes note abc123 x or notes post abc123 x --why Jo --dry-run");
   const tool = defineCli({
     name: "t",
     about: [],
@@ -316,7 +316,7 @@ test("an ambiguous word's fix carries the words and flags the agent gave, in eac
     return null;
   };
   assert.equal(fix(["edit", "c#1", "--text", "Thursday?", "--token", "s3cret", "--wide", "--zz"]), 't draft set c#1 --text "Thursday?" --token <token> --wide or t edit-sent c#1 --text "Thursday?" --why "..." or t help edit or t gone c#1');
-  assert.equal(fix(["edit", "c#1", "--why", "Sam asked", "--text"]), 't draft set c#1 --text or t edit-sent c#1 --why "Sam asked" --text or t help edit or t gone c#1');
+  assert.equal(fix(["edit", "c#1", "--why", "Jo asked", "--text"]), 't draft set c#1 --text or t edit-sent c#1 --why "Jo asked" --text or t help edit or t gone c#1');
   assert.equal(fix(["edit"]), 't draft set <conversation> or t edit-sent <message> --why "..." or t help edit or t gone');
   assert.equal(fix(["edit", "a", "b", "c", "d"]), 't draft set a b c d or t edit-sent a b c d --why "..." or t help edit or t gone a b c d');
 });

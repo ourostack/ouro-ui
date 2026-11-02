@@ -25,7 +25,7 @@ const week: TimeGridEvent[] = [
   { id: "interview", title: "Interview: front-end engineer", start: at(10, "14:00"), end: at(10, "15:00"), tone: "warning", description: "Video call" },
   { id: "standup-11", title: "Standup", start: at(11, "09:30"), end: at(11, "09:45") },
   { id: "design", title: "Design review: onboarding flow", start: at(11, "11:00"), end: at(11, "12:00"), description: "Room 2" },
-  { id: "pairing", title: "Pairing with Sam", start: at(11, "11:30"), end: at(11, "13:00"), status: "tentative" },
+  { id: "pairing", title: "Pairing with Jo", start: at(11, "11:30"), end: at(11, "13:00"), status: "tentative" },
   { id: "budget", title: "Budget check-in", start: at(11, "12:00"), end: at(11, "12:30"), tone: "destructive" },
   { id: "standup-12", title: "Standup", start: at(12, "09:30"), end: at(12, "09:45") },
   { id: "forum", title: "Architecture forum", start: at(12, "10:00"), end: at(12, "11:00"), status: "unanswered", description: "Main auditorium" },

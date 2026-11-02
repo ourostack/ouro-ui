@@ -56,7 +56,7 @@
       "why": "A silently ignored flag gives an agent a wrong answer that looks right: `--limt 2` returns everything.",
       "before": "fails",
       "after": "holds",
-      "found": "`m365tandem today --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
+      "found": "`app today --ax-xray-no-such-flag --json` → exit 0; stdout: {: the flag was ignored"
     },
     {
       "id": "cli.ambiguous-verbs",
@@ -85,7 +85,7 @@
       "why": "An agent, or a checker, can confirm the audience without acting; a wall it is not, because nothing waits on it.",
       "before": "fails",
       "after": "holds",
-      "found": "`m365tandem send --help` offers no --dry-run, so who will see it can only be learnt by doing it"
+      "found": "`app send --help` offers no --dry-run, so who will see it can only be learnt by doing it"
     },
     {
       "id": "cli.text-as-argument",
@@ -100,7 +100,7 @@
       "why": "Waiting through the interface beats polling; when the wait refuses the ref the agent holds, agents fall back to blind streams and pollers.",
       "before": "fails",
       "after": "holds",
-      "found": "`m365tandem watch 19:00000000bbbb0000bbbb000000000002@thread.tacv2 --timeout 1s` → exit 2; stderr: m365tandem: watch takes an object ref such as meeting:<ref>; bare \"watch\" streams every event"
+      "found": "`app watch c:00000000bbbb0000bbbb000000000002 --timeout 1s` → exit 2; stderr: app: watch takes an object ref such as meeting:<ref>; bare \"watch\" streams every event"
     },
     {
       "id": "cli.reads-stay-reads",

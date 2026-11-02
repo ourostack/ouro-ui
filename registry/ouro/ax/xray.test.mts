@@ -185,8 +185,8 @@ test("without proof of a mock, nothing other people see is called, and it does n
 test("checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock", async () => {
   const names = async (over: Partial<XrayOptions>, guard = false) => (await checkSafety(base(over), guard)).checks.filter((c) => !c.ok).map((c) => `${c.name}: ${c.note}`);
   assert.deepEqual(await names({}), []);
-  assert.deepEqual(await names({ mock: undefined, env: { TANDEM_URL: "http://localhost:5999" } }, true), []);
-  assert.match((await names({ env: { TANDEM_URL: "https://teams.example.com" } }))[0]!, /^loopback: not loopback: https:\/\/teams\.example\.com/);
+  assert.deepEqual(await names({ mock: undefined, env: { APP_URL: "http://localhost:5999" } }, true), []);
+  assert.match((await names({ env: { APP_URL: "https://chat.example.com" } }))[0]!, /^loopback: not loopback: https:\/\/chat\.example\.com/);
   assert.match((await names({ home: homedir() }))[0]!, /^isolated home: .* is or holds the real home/);
   assert.match((await names({ home: dirname(homedir()) }))[0]!, /is or holds the real home/);
   assert.match((await names({ env: { GH_TOKEN: "x" } }))[0]!, /^no credentials: --env passes GH_TOKEN/);
@@ -444,7 +444,7 @@ test("a mock check that answers text, a key path through a value that is not an 
 test("refsOf collects each list item's ref once; audienceWho reads an outcome's audience", () => {
   assert.deepEqual(refsOf({ rooms: [{ ref: "r1", messages: [{ ref: "r1#1" }, { ref: "" }, "x"] }, { ref: "r1" }], meta: { ref: "not-a-list" } }), ["r1", "r1#1"]);
   assert.deepEqual(refsOf("text"), []);
-  assert.equal(audienceWho({ audience: { who: "Sam Lee" } }), "Sam Lee");
+  assert.equal(audienceWho({ audience: { who: "Jo Park" } }), "Jo Park");
   assert.equal(audienceWho({ audience: { only: false } }), "");
   assert.equal(audienceWho({}), "");
   assert.equal(audienceWho(null), "");
