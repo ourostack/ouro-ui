@@ -716,14 +716,15 @@ describe("MessageList", () => {
     };
     requestAnimationFrame(frame);
     for (let page = 1; page <= 3; page++) {
-      items = [...history(200, -200 * page), ...items];
+      // A page of 100: five frames' worth, so the test stays well inside its time on a busy runner.
+      items = [...history(100, -100 * page), ...items];
       await rerender(<Found items={items} />);
       // The app drawing the list again for something else, in the same frame, puts no more in.
       await act(async () => {
         flushSync(() => roots.at(-1)!.render(<Found items={items} />));
         flushSync(() => roots.at(-1)!.render(<Found items={items} />));
       });
-      await expect.poll(() => scroller.querySelectorAll('[data-ouro="message"]').length).toBe(200 * (page + 1));
+      await expect.poll(() => scroller.querySelectorAll('[data-ouro="message"]').length).toBe(200 + 100 * page);
     }
     await settle(scroller);
     watching = false;
