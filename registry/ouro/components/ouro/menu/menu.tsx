@@ -521,7 +521,7 @@ export function Menu(props: MenuProps): JSX.Element {
   const [shown, setShown] = useState(false);
   const isShown = open ?? shown;
   const actions = useRef<BaseMenu.Root.Actions | null>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     const doc = triggerRef.current?.ownerDocument;
     // Stryker disable next-line ConditionalExpression,LogicalOperator: a closed menu's close() does nothing; this only spares a listener.
