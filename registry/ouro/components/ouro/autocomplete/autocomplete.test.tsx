@@ -8,6 +8,7 @@ import { caretRect, filterItems, findMatch, insertText, matchAt } from "@/regist
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -414,6 +415,61 @@ describe("Autocomplete", () => {
     expect(activeLabel(control)).toBe("Jordan Lee");
   });
 
+  it("keeps a picked name closed when a selection change leaves it and comes back, as an app's update of the text can make, so the next Enter sends", async () => {
+    const onSend = vi.fn();
+    // A filter that trims the query, as a people search does, matches the picked name and its space again.
+    const trimmed: AutocompleteTrigger = { char: "@", label: "People", allowSpaces: true, items: (query) => filter(people)(query.trim()) };
+    const { control } = await render(
+      <Autocomplete triggers={[trimmed]}>
+        <Composer label="Message" onSend={onSend} />
+      </Autocomplete>,
+    );
+    await type(control, "Hi @jo");
+    await expect.poll(labels).toEqual(["Jordan Lee"]);
+    await userEvent.keyboard("{Enter}");
+    expect(control.value).toBe("Hi @Jordan Lee ");
+    await moveCaret(control, 0);
+    await moveCaret(control, control.value.length);
+    expect(control.hasAttribute("aria-controls")).toBe(false);
+    await expect.poll(listbox).toBeNull();
+    await userEvent.keyboard("{Enter}");
+    expect(onSend).toHaveBeenCalledWith("Hi @Jordan Lee ", expect.anything());
+  });
+
+  it("opens again once the person edits a picked name", async () => {
+    const trimmed: AutocompleteTrigger = { char: "@", label: "People", allowSpaces: true, items: (query) => filter(people)(query.trim()) };
+    const { control } = await render(
+      <Autocomplete triggers={[trimmed]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    await type(control, "@jo");
+    await expect.poll(labels).toEqual(["Jordan Lee"]);
+    await userEvent.keyboard("{Enter}");
+    expect(control.value).toBe("@Jordan Lee ");
+    await expect.poll(listbox).toBeNull();
+    await userEvent.keyboard("{Backspace}{Backspace}");
+    expect(control.hasAttribute("aria-controls")).toBe(true);
+    await expect.poll(labels).toEqual(["Jordan Lee"]);
+  });
+
+  it("opens for the same name typed out at another trigger", async () => {
+    const trimmed: AutocompleteTrigger = { char: "@", label: "People", allowSpaces: true, items: (query) => filter(people)(query.trim()) };
+    const { control } = await render(
+      <Autocomplete triggers={[trimmed]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    await type(control, "@jo");
+    await expect.poll(labels).toEqual(["Jordan Lee"]);
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(listbox).toBeNull();
+    await userEvent.keyboard("and @Jordan Lee ");
+    expect(control.value).toBe("@Jordan Lee and @Jordan Lee ");
+    expect(control.hasAttribute("aria-controls")).toBe(true);
+    await expect.poll(labels).toEqual(["Jordan Lee"]);
+  });
+
   it("stays closed after a pick whose text the trigger would match again", async () => {
     const { control } = await render(
       <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "avery", label: "Avery Kim", insert: "@Avery" }] }]}>
@@ -533,8 +589,44 @@ describe("Autocomplete", () => {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(listbox()!.scrollTop).toBe(0);
     await userEvent.keyboard("{ArrowUp}{ArrowUp}");
-    const list = listbox()!.getBoundingClientRect();
-    await expect.poll(() => options().at(-1)!.getBoundingClientRect().bottom <= list.bottom + 1).toBe(true);
+    // The last suggestion shows whole, with the list's padding under it: the list is at its end.
+    const fromEnd = () => Math.abs(listbox()!.scrollHeight - listbox()!.clientHeight - listbox()!.scrollTop);
+    await expect.poll(fromEnd).toBeLessThan(1);
+    // Round to the first: back to the top, with the padding above it.
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => listbox()!.scrollTop).toBeLessThan(1);
+    // One up from the first is the last again, and a step up from there scrolls nothing.
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(fromEnd).toBeLessThan(1);
+    await userEvent.keyboard("{ArrowUp}");
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(fromEnd()).toBeLessThan(1);
+  });
+
+  it("scrolls only its own list to the active suggestion, never a box around it", async () => {
+    const many = Array.from({ length: 30 }, (_, index) => ({ value: `p${index}`, label: `Person ${index + 1}` }));
+    const popups = createRef<HTMLDivElement>();
+    const { host } = await render(
+      <div data-frame="" style={{ height: 160, overflow: "hidden" }}>
+        <OuroProvider portalContainer={popups}>
+          <Autocomplete triggers={[{ char: "@", label: "People", items: () => many }]}>
+            <TextArea label="Message" />
+          </Autocomplete>
+        </OuroProvider>
+        <div ref={popups} style={{ height: 800 }} />
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    const control = host.querySelector("textarea")!;
+    control.focus({ preventScroll: true });
+    await userEvent.keyboard("@");
+    await expect.poll(() => options().length).toBe(30);
+    expect(frame.contains(listbox())).toBe(true);
+    const pageTop = document.scrollingElement!.scrollTop;
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    await expect.poll(() => listbox()!.scrollTop).toBeGreaterThan(0);
+    expect(frame.scrollTop).toBe(0);
+    expect(document.scrollingElement!.scrollTop).toBe(pageTop);
   });
 
   it("warns when its open list renders outside every landmark of a page that has a main", async () => {
