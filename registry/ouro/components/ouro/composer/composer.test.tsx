@@ -960,8 +960,12 @@ describe("Composer expanded", () => {
     await userEvent.click(expandButton()!);
     // The second press comes once the first's change has started, as no hand presses twice within a frame.
     await expect.poll(() => heights(body)).toEqual(["height"]);
+    const shown = body.getBoundingClientRect().height;
     await userEvent.click(expandButton()!);
-    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
+    // It turns back from the height it showed, never from the full height.
+    expect(body.getBoundingClientRect().height).toBeLessThanOrEqual(shown + 2);
+    expect(body.getBoundingClientRect().height).toBeLessThan(expandedHeight - 2);
+    expect(body.getBoundingClientRect().height).toBeGreaterThanOrEqual(small - 1);
     expect(heights(body)).toEqual(["height"]);
     await act(async () => body.getAnimations().forEach((animation) => animation.finish()));
     await expect.poll(settled).toBe(true);
