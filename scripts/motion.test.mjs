@@ -195,7 +195,7 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "navigation-rail data-selected link",
       "navigation-rail data-selected button",
       "navigation-rail data-selected indicator",
-      "level-meter data-highlighted fill",
+      "level-meter data-highlighted segment",
       "moment data-open halo",
       "moment data-open sparkle",
     ],

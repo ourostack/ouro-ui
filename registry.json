@@ -3991,8 +3991,8 @@
       "name": "level-meter",
       "type": "registry:ui",
       "title": "LevelMeter",
-      "description": "A small live input level: a row of bars that light and grow with a microphone's level, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a \"test your microphone\" row).",
-      "docs": "A small live input level: a row of bars that light and grow with a microphone's level, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a \"test your microphone\" row). Import: import { LevelMeter } from \"@/components/ouro/level-meter/level-meter\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/level-meter.md",
+      "description": "A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a \"test your microphone\" row).",
+      "docs": "A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a \"test your microphone\" row). Import: import { LevelMeter } from \"@/components/ouro/level-meter/level-meter\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/level-meter.md",
       "registryDependencies": [
         "ourostack/ouro-ui/lib-appearance-hints",
         "ourostack/ouro-ui/lib-class-name-check",

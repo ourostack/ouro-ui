@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import { Profiler, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { LevelMeter, type LevelMeterProps } from "@/registry/ouro/components/ouro/level-meter/level-meter";
-import { levelMeterAx } from "@/registry/ouro/components/ouro/level-meter/level-meter-styles";
+import { levelFromAmplitude, levelMeterAx, wordFor } from "@/registry/ouro/components/ouro/level-meter/level-meter-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -26,11 +26,8 @@ async function render(node: ReactNode) {
     get meter() {
       return host.querySelector<HTMLElement>('[data-ouro="level-meter"]')!;
     },
-    get bars() {
-      return [...host.querySelectorAll<HTMLElement>("[data-ouro-level-meter-bar]")];
-    },
-    get fills() {
-      return [...host.querySelectorAll<HTMLElement>('[data-ouro-part="fill"]')];
+    get segments() {
+      return [...host.querySelectorAll<HTMLElement>('[data-ouro-part="segment"]')];
     },
   };
 }
@@ -47,22 +44,37 @@ function themeColor(colour: string): string {
 
 const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
 
-/** How much of the inside of its bar (within any edge) a fill covers, from 0 to 1, as drawn. */
-const share = (fill: HTMLElement) => fill.getBoundingClientRect().height / fill.parentElement!.clientHeight;
+/** The linear amplitude of a level in dBFS: -20 dBFS is 0.1. */
+const dB = (decibels: number) => 10 ** (decibels / 20);
 
 /** Which bars are lit, as 1 and 0 in order. */
-const litPattern = (bars: HTMLElement[]) => bars.map((bar) => (bar.querySelector('[data-ouro-part="fill"]')!.hasAttribute("data-highlighted") ? 1 : 0)).join("");
+const litPattern = (segments: HTMLElement[]) => segments.map((segment) => (segment.hasAttribute("data-highlighted") ? 1 : 0)).join("");
+const litCount = (segments: HTMLElement[]) => segments.filter((segment) => segment.hasAttribute("data-highlighted")).length;
 
-/** Waits until no transition runs on the fills. */
-const settled = (fills: HTMLElement[]) => expect.poll(() => fills.every((fill) => fill.getAnimations().length === 0)).toBe(true);
+/** Holds the page's timers, frames and clock, so the meter's ballistics and its reading run on the test's time. */
+const holdClock = () => vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "performance"] });
+const pass = (ms: number) => act(async () => void vi.advanceTimersByTime(ms));
+
+/** Resolves once `element` carries `attribute`, in the microtask after the change, so a motion check can start right away. */
+function attributeAdded(element: HTMLElement, attribute: string): Promise<void> {
+  return new Promise((resolve) => {
+    const observer = new MutationObserver(() => {
+      if (!element.hasAttribute(attribute)) return;
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(element, { attributes: true, attributeFilter: [attribute] });
+  });
+}
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
-  vi.restoreAllMocks();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   for (const node of mounted) node.remove();
   mounted = [];
   await commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" });
@@ -72,48 +84,105 @@ const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]))
 
 describe("LevelMeter", () => {
   it("is a meter named by its label, from 0 to 100, with the level rounded and in words", async () => {
-    const { meter } = await render(<LevelMeter label="Microphone level" value={0.456} />);
+    const { meter, segments } = await render(<LevelMeter label="Microphone level" value={dB(-30)} />);
     await expect.element(page.getByRole("meter", { name: "Microphone level" })).toBeVisible();
     expect(meter.getAttribute("role")).toBe("meter");
     expect(meter.getAttribute("aria-valuemin")).toBe("0");
     expect(meter.getAttribute("aria-valuemax")).toBe("100");
-    expect(meter.getAttribute("aria-valuenow")).toBe("46");
+    expect(meter.getAttribute("aria-valuenow")).toBe("50");
     expect(meter.getAttribute("aria-valuetext")).toBe("Speaking");
     const name = meter.querySelector("[data-ouro-level-meter-label]")!;
     expect(name.getAttribute("data-ouro-level-meter-label")).toBe("");
     expect(name.getBoundingClientRect().width).toBeGreaterThan(1);
-    expect(meter.querySelectorAll('[data-ouro-level-meter-bar=""]').length).toBe(8);
+    expect(segments.length).toBe(8);
+    expect(litPattern(segments)).toBe("11110000");
+    expect(segments.map((segment) => segment.getAttribute("data-highlighted"))).toEqual(["", "", "", "", null, null, null, null]);
     expect(warnings()).toEqual([]);
   });
 
-  it("reads Quiet below a tenth, Speaking up to three quarters and Loud from there, in words valueText translates", async () => {
-    const { meter, rerender } = await render(<LevelMeter label="Microphone level" value={0} />);
-    const text = () => meter.getAttribute("aria-valuetext");
-    expect(text()).toBe("Quiet");
-    await rerender(<LevelMeter label="Microphone level" value={0.099} />);
-    expect(text()).toBe("Quiet");
-    await rerender(<LevelMeter label="Microphone level" value={0.1} />);
-    expect(text()).toBe("Speaking");
-    await rerender(<LevelMeter label="Microphone level" value={0.749} />);
-    expect(text()).toBe("Speaking");
-    await rerender(<LevelMeter label="Microphone level" value={0.75} />);
-    expect(text()).toBe("Loud");
-    await rerender(<LevelMeter label="Microphone level" value={1} />);
-    expect(text()).toBe("Loud");
-    const words = { quiet: "Leise", speaking: "Spricht", loud: "Laut" };
-    await rerender(<LevelMeter label="Mikrofonpegel" value={0} valueText={words} />);
-    expect(text()).toBe("Leise");
-    await rerender(<LevelMeter label="Mikrofonpegel" value={0.5} valueText={words} />);
-    expect(text()).toBe("Spricht");
-    await rerender(<LevelMeter label="Mikrofonpegel" value={0.9} valueText={words} />);
-    expect(text()).toBe("Laut");
+  it("maps a linear amplitude to the bars on a decibel scale from -60 dBFS to 0, so speech lights 3 to 5 of 8 bars", async () => {
+    expect(levelFromAmplitude(1)).toBe(1);
+    expect(levelFromAmplitude(dB(-6))).toBeCloseTo(0.9, 6);
+    expect(levelFromAmplitude(0.1)).toBeCloseTo(2 / 3, 6);
+    expect(levelFromAmplitude(dB(-30))).toBeCloseTo(0.5, 6);
+    expect(levelFromAmplitude(0.01)).toBeCloseTo(1 / 3, 6);
+    expect(levelFromAmplitude(0.001)).toBeCloseTo(0, 6);
+    expect(levelFromAmplitude(0.0001)).toBe(0);
+    expect(levelFromAmplitude(0)).toBe(0);
+    expect(levelFromAmplitude(2)).toBe(1);
+    expect(levelFromAmplitude(-0.5)).toBe(0);
+    expect(levelFromAmplitude(Number.NaN)).toBe(0);
+    const lit = async (value: number) => {
+      const { segments, meter } = await render(<LevelMeter label="Level" value={value} />);
+      return [litCount(segments), meter.getAttribute("aria-valuenow")];
+    };
+    // Quiet speech to a raised voice: -40, -30 and -20 dBFS.
+    expect(await lit(0.01)).toEqual([3, "33"]);
+    expect(await lit(dB(-30))).toEqual([4, "50"]);
+    expect(await lit(0.1)).toEqual([5, "67"]);
+    expect(await lit(0)).toEqual([0, "0"]);
+    expect(await lit(1)).toEqual([8, "100"]);
     expect(warnings()).toEqual([]);
+  });
+
+  it("reads Quiet below -48 dBFS, Speaking up to -12 dBFS and Loud from there, in words valueText translates", async () => {
+    const words = { quiet: "Quiet", speaking: "Speaking", loud: "Loud" };
+    expect(wordFor(0, words)).toBe("Quiet");
+    expect(wordFor(0.199, words)).toBe("Quiet");
+    expect(wordFor(0.2, words)).toBe("Speaking");
+    expect(wordFor(0.799, words)).toBe("Speaking");
+    expect(wordFor(0.8, words)).toBe("Loud");
+    expect(wordFor(1, words)).toBe("Loud");
+    const text = async (value: number, valueText?: LevelMeterProps["valueText"]) =>
+      (await render(<LevelMeter label="Mikrofonpegel" value={value} valueText={valueText} />)).meter.getAttribute("aria-valuetext");
+    expect(await text(dB(-55))).toBe("Quiet");
+    expect(await text(dB(-30))).toBe("Speaking");
+    expect(await text(dB(-5))).toBe("Loud");
+    const german = { quiet: "Leise", speaking: "Spricht", loud: "Laut" };
+    expect(await text(dB(-55), german)).toBe("Leise");
+    expect(await text(dB(-30), german)).toBe("Spricht");
+    expect(await text(dB(-5), german)).toBe("Laut");
+  });
+
+  it("holds its reading at the loudest level of the last 1.5 seconds, so a pause after speech still reads Speaking", async () => {
+    holdClock();
+    const { meter, rerender } = await render(<LevelMeter label="Microphone level" value={dB(-30)} />);
+    await rerender(<LevelMeter label="Microphone level" value={0} />);
+    const reading = () => [meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuetext")];
+    await pass(500);
+    expect(reading()).toEqual(["50", "Speaking"]);
+    await pass(1000);
+    expect(reading()).toEqual(["50", "Speaking"]);
+    await pass(500);
+    expect(reading()).toEqual(["0", "Quiet"]);
+    // The loudest of what it heard, not the latest.
+    await rerender(<LevelMeter label="Microphone level" value={dB(-5)} />);
+    await rerender(<LevelMeter label="Microphone level" value={dB(-30)} />);
+    await pass(500);
+    expect(reading()).toEqual(["92", "Loud"]);
+  });
+
+  it("updates its ARIA values at most twice a second, however often the level changes", async () => {
+    holdClock();
+    const { meter, rerender } = await render(<LevelMeter label="Microphone level" value={0} />);
+    const changes: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => changes.push(...records));
+    observer.observe(meter, { attributes: true, attributeFilter: ["aria-valuenow", "aria-valuetext"] });
+    // Two seconds of a level that swings every 66 ms, 15 times a second.
+    for (let step = 0; step < 30; step++) {
+      await rerender(<LevelMeter label="Microphone level" value={step % 2 ? dB(-50) : dB(-5 - step)} />);
+      await pass(66);
+    }
+    observer.disconnect();
+    const updates = changes.filter((record) => record.attributeName === "aria-valuenow").length;
+    expect(updates).toBeGreaterThan(0);
+    expect(updates).toBeLessThanOrEqual(4);
   });
 
   it("is no live region, so nothing is announced as the level changes", async () => {
     const announced = watchAnnouncements();
     const { host, meter, rerender } = await render(<LevelMeter label="Microphone level" value={0} />);
-    for (const value of [0.2, 0.5, 0.9, 0.3, 0]) await rerender(<LevelMeter label="Microphone level" value={value} />);
+    for (const value of [0.02, 0.1, 0.5, 0.03, 0]) await rerender(<LevelMeter label="Microphone level" value={value} />);
     announced.stop();
     expect(announced.changes).toEqual([]);
     expect(host.querySelector('[aria-live], [role="status"], [role="alert"], [role="log"]')).toBeNull();
@@ -121,13 +190,13 @@ describe("LevelMeter", () => {
   });
 
   it("hides the label visually with hideLabel, and keeps the name", async () => {
-    const { meter } = await render(<LevelMeter label="Microphone level" hideLabel value={0.4} />);
+    const { meter } = await render(<LevelMeter label="Microphone level" hideLabel value={0.05} />);
     await expect.element(page.getByRole("meter", { name: "Microphone level" })).toBeInTheDocument();
     expect(meter.querySelector("[data-ouro-level-meter-label]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
   });
 
   it("draws 8 bars by default, or the nearest whole number from 3 to 24", async () => {
-    const count = async (bars?: number) => (await render(<LevelMeter label="Level" value={0} bars={bars} />)).bars.length;
+    const count = async (bars?: number) => (await render(<LevelMeter label="Level" value={0} bars={bars} />)).segments.length;
     expect(await count()).toBe(8);
     expect(await count(3)).toBe(3);
     expect(await count(24)).toBe(24);
@@ -145,80 +214,98 @@ describe("LevelMeter", () => {
     ]);
   });
 
-  it("lights the bars the level reaches, to the nearest bar, each grown to its share", async () => {
-    const { bars, fills, rerender } = await render(<LevelMeter label="Level" value={0} bars={5} />);
-    expect(litPattern(bars)).toBe("00000");
-    await settled(fills);
-    expect(fills.map(share)).toEqual([0, 0, 0, 0, 0]);
-    // 0.48 of five bars reaches 2.4: two lit, the third grown by 0.4.
-    await rerender(<LevelMeter label="Level" value={0.48} bars={5} />);
-    expect(litPattern(bars)).toBe("11000");
-    expect(fills.map((fill) => fill.getAttribute("data-highlighted"))).toEqual(["", "", null, null, null]);
-    await settled(fills);
-    const drawn = fills.map(share);
-    expect(drawn[0]).toBeCloseTo(1, 2);
-    expect(drawn[1]).toBeCloseTo(1, 2);
-    expect(drawn[2]).toBeCloseTo(0.4, 2);
-    expect(drawn.slice(3)).toEqual([0, 0]);
-    // 0.5 of five bars reaches 2.5, which rounds to three lit.
-    await rerender(<LevelMeter label="Level" value={0.5} bars={5} />);
-    expect(litPattern(bars)).toBe("11100");
-    await rerender(<LevelMeter label="Level" value={1} bars={5} />);
-    expect(litPattern(bars)).toBe("11111");
-    await settled(fills);
-    for (const fill of fills) expect(share(fill)).toBeCloseTo(1, 2);
-  });
-
-  it("grows each bar from its foot, and lights the bars from the start edge in either direction", async () => {
-    const { host, bars, fills } = await render(<LevelMeter label="Level" value={0.3} bars={5} />);
-    await settled(fills);
-    // 1.5 bars: the first lit whole, the second grown by half from its foot.
-    const second = fills[1]!.getBoundingClientRect();
-    const slot = bars[1]!.getBoundingClientRect();
-    expect(second.bottom).toBeCloseTo(slot.bottom, 0);
-    expect(second.height).toBeCloseTo(slot.height / 2, 0);
-    expect(bars[0]!.getBoundingClientRect().left).toBeLessThan(bars[4]!.getBoundingClientRect().left);
+  it("lights whole bars from the start edge in either direction, every bar the full height of the row", async () => {
+    const { host, segments } = await render(<LevelMeter label="Level" value={dB(-30)} />);
+    const row = segments[0]!.parentElement!.getBoundingClientRect();
+    for (const segment of segments) {
+      const box = segment.getBoundingClientRect();
+      expect([box.top, box.height, box.width]).toEqual([row.top, row.height, segments[0]!.getBoundingClientRect().width]);
+      expect(getComputedStyle(segment).scale).toBe("none");
+      expect(getComputedStyle(segment).transform).toBe("none");
+    }
+    expect(segments[0]!.getBoundingClientRect().left).toBeLessThan(segments[7]!.getBoundingClientRect().left);
     host.dir = "rtl";
-    await expect.poll(() => bars[0]!.getBoundingClientRect().left > bars[4]!.getBoundingClientRect().left).toBe(true);
+    await expect.poll(() => segments[0]!.getBoundingClientRect().left > segments[7]!.getBoundingClientRect().left).toBe(true);
   });
 
-  it("clamps a level outside 0 to 1, and shows a level that is not a number as 0", async () => {
-    const { meter, bars, rerender } = await render(<LevelMeter label="Level" value={1.5} bars={4} />);
-    expect(meter.getAttribute("aria-valuenow")).toBe("100");
-    expect(litPattern(bars)).toBe("1111");
-    await rerender(<LevelMeter label="Level" value={-0.5} bars={4} />);
-    expect(meter.getAttribute("aria-valuenow")).toBe("0");
-    expect(litPattern(bars)).toBe("0000");
-    await rerender(<LevelMeter label="Level" value={Number.NaN} bars={4} />);
-    expect(meter.getAttribute("aria-valuenow")).toBe("0");
-    expect(meter.getAttribute("aria-valuetext")).toBe("Quiet");
-    expect(meter.style.getPropertyValue("--ouro-level")).toBe("0");
-    expect(warnings()).toEqual(["[ouro-ui] LevelMeter: value is outside 0 to 1; pass a fraction of full scale. Fix: <LevelMeter value={percent / 100}>."]);
+  it("rises within about 50 ms and falls over about 350 ms, the same with reduced motion", async () => {
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      holdClock();
+      const { segments, rerender } = await render(<LevelMeter label="Level" value={0} />);
+      await rerender(<LevelMeter label="Level" value={1} />);
+      expect(litCount(segments)).toBe(0);
+      await pass(50);
+      expect(litCount(segments)).toBeGreaterThanOrEqual(4);
+      expect(litCount(segments)).toBeLessThan(8);
+      await pass(150);
+      expect(litCount(segments)).toBe(8);
+      await rerender(<LevelMeter label="Level" value={0} />);
+      await pass(100);
+      expect(litCount(segments)).toBeGreaterThanOrEqual(5);
+      expect(litCount(segments)).toBeLessThan(8);
+      await pass(250);
+      expect(litCount(segments)).toBeGreaterThanOrEqual(2);
+      expect(litCount(segments)).toBeLessThanOrEqual(4);
+      await pass(1150);
+      expect(litCount(segments)).toBe(0);
+      expect(litPattern(segments)).toBe("00000000");
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      vi.useRealTimers();
+    }
   });
 
-  it("changes only the root's level and the bars that light or go out when the level changes", async () => {
-    const { meter, bars, rerender } = await render(<LevelMeter label="Level" value={0.3} bars={5} />);
-    const partOf = (target: Node) => (target === meter ? "root" : (target as Element).hasAttribute("data-ouro-level-meter-bar") ? "bar" : (target as Element).getAttribute("data-ouro-part"));
+  it("shows an amplitude outside 0 to 1, or not a number, as silence or full scale, and says so in development", async () => {
+    const shown = async (value: number) => {
+      const { meter, segments } = await render(<LevelMeter label="Level" value={value} bars={4} />);
+      return [meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuetext"), litPattern(segments)];
+    };
+    expect(await shown(1.5)).toEqual(["100", "Loud", "1111"]);
+    expect(await shown(-0.5)).toEqual(["0", "Quiet", "0000"]);
+    expect(await shown(Number.NaN)).toEqual(["0", "Quiet", "0000"]);
+    expect(warnings()).toEqual(Array(3).fill("[ouro-ui] LevelMeter: value is a linear amplitude from 0 to 1, such as an analyser's RMS. Fix: <LevelMeter value={rms}>."));
+  });
+
+  it("re-renders and changes the page only when a bar lights or goes out", async () => {
+    holdClock();
+    let commits = 0;
+    const counted = (value: number) => (
+      <Profiler id="meter" onRender={() => void commits++}>
+        <LevelMeter label="Level" value={value} />
+      </Profiler>
+    );
+    const { meter, segments, rerender } = await render(counted(1));
     const changes: MutationRecord[] = [];
     const observer = new MutationObserver((records) => changes.push(...records));
     observer.observe(meter, { subtree: true, attributes: true, childList: true, characterData: true });
-    // 1.5 to 1.9 bars: both round to two lit, so no bar changes.
-    await rerender(<LevelMeter label="Level" value={0.38} bars={5} />);
-    let seen = changes.splice(0).map((record) => [partOf(record.target), record.attributeName]);
-    expect(new Set(seen.map(([target]) => target))).toEqual(new Set(["root"]));
-    expect(new Set(seen.map(([, name]) => name))).toEqual(new Set(["style", "aria-valuenow"]));
-    // 1.9 to 3 bars: the third lights, and nothing else in the row changes.
-    await rerender(<LevelMeter label="Level" value={0.6} bars={5} />);
-    seen = changes.splice(0).map((record) => [partOf(record.target), record.attributeName]);
+    // Two seconds of release from full scale to silence: eight bars go out, and the reading falls once.
+    commits = 0;
+    await rerender(counted(0));
+    // A frame at a time, so each frame's render commits on its own.
+    for (let frame = 0; frame < 125; frame++) await pass(16);
+    expect(litCount(segments)).toBe(0);
+    expect(commits).toBeGreaterThanOrEqual(9);
+    expect(commits).toBeLessThanOrEqual(12);
+    changes.splice(0);
+    // A level within the same lit bar changes nothing; one that crosses changes only those bars.
+    // Between two of the reading's checks (every 500 ms, at 2500 and 3000 here).
+    await rerender(counted(dB(-30)));
+    await pass(600);
+    changes.splice(0);
+    await rerender(counted(dB(-29)));
+    await pass(300);
+    expect(changes).toEqual([]);
+    await rerender(counted(dB(-12)));
+    await pass(90);
     observer.disconnect();
-    expect(seen.filter(([target]) => target !== "root")).toEqual([["fill", "data-highlighted"]]);
-    expect(litPattern(bars)).toBe("11100");
+    expect(changes.every((record) => record.attributeName === "data-highlighted" && (record.target as Element).getAttribute("data-ouro-part") === "segment")).toBe(true);
+    expect(changes.map((record) => segments.indexOf(record.target as HTMLElement))).toEqual([4, 5]);
   });
 
   it("draws bars 12, 16 and 24px high, md by default", async () => {
     const measure = async (size?: LevelMeterProps["size"]) => {
-      const { bars } = await render(<LevelMeter label="Level" value={0} size={size} bars={3} />);
-      const [first, second] = bars.map((bar) => bar.getBoundingClientRect());
+      const { segments } = await render(<LevelMeter label="Level" value={0} size={size} bars={3} />);
+      const [first, second] = segments.map((segment) => segment.getBoundingClientRect());
       return [first!.height, first!.width, second!.left - first!.right];
     };
     expect(await measure()).toEqual([16, 6, 4]);
@@ -227,47 +314,39 @@ describe("LevelMeter", () => {
     expect(await measure("lg")).toEqual([24, 8, 4]);
   });
 
-  it("lights its bars in the tone's colour, success by default, and leaves the rest muted", async () => {
+  it("lights its bars in the tone's colour, success by default, and draws unlit bars as outlines in the muted foreground", async () => {
     const colours = async (tone?: LevelMeterProps["tone"]) => {
-      const { fills, bars } = await render(<LevelMeter label="Level" value={0.5} bars={4} tone={tone} />);
-      return { lit: getComputedStyle(fills[0]!).backgroundColor, unlit: getComputedStyle(bars[3]!).backgroundColor };
+      const { segments } = await render(<LevelMeter label="Level" value={dB(-30)} bars={4} tone={tone} />);
+      const lit = getComputedStyle(segments[0]!);
+      const unlit = getComputedStyle(segments[3]!);
+      return { fill: lit.backgroundColor, edge: lit.borderTopColor, unlitFill: unlit.backgroundColor, unlitEdge: unlit.borderTopColor, unlitWidth: unlit.borderTopWidth, unlitStyle: unlit.borderTopStyle };
     };
     const muted = themeColor("--muted-foreground");
     const defaults = await colours();
-    expect(defaults.lit).toBe(themeColor("--success"));
-    expect(defaults.unlit).not.toBe(themeColor("--background"));
-    expect(defaults.unlit).not.toBe(muted);
-    expect((await colours("primary")).lit).toBe(themeColor("--primary"));
-    expect((await colours("secondary")).lit).toBe(muted);
-    expect((await colours("destructive")).lit).toBe(themeColor("--destructive"));
-    expect((await colours("success")).lit).toBe(themeColor("--success"));
-    const warning = await colours("warning");
-    expect(warning.lit).toBe(themeColor("--warning"));
-    expect(warning.unlit).toBe(defaults.unlit);
+    expect(defaults).toEqual({ fill: themeColor("--success"), edge: themeColor("--success"), unlitFill: "rgba(0, 0, 0, 0)", unlitEdge: muted, unlitWidth: "1px", unlitStyle: "solid" });
+    for (const [tone, variable] of [["primary", "--primary"], ["secondary", "--muted-foreground"], ["destructive", "--destructive"], ["success", "--success"], ["warning", "--warning"]] as const) {
+      const shown = await colours(tone);
+      expect([shown.fill, shown.edge, shown.unlitEdge], tone).toEqual([themeColor(variable), themeColor(variable), muted]);
+    }
   });
 
   it("keeps an edge on every bar under forced colours, and fills a lit bar with Highlight", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
-    const { bars, fills } = await render(<LevelMeter label="Level" value={0.5} bars={4} />);
-    await settled(fills);
-    for (const bar of bars) {
-      const style = getComputedStyle(bar);
+    const { segments } = await render(<LevelMeter label="Level" value={dB(-30)} bars={4} />);
+    for (const segment of segments) {
+      const style = getComputedStyle(segment);
       expect(parseFloat(style.borderTopWidth)).toBeGreaterThan(0);
       expect(style.borderTopStyle).toBe("solid");
     }
-    const highlight = themeColor("Highlight");
-    expect(getComputedStyle(fills[0]!).backgroundColor).toBe(highlight);
-    expect(share(fills[0]!)).toBeCloseTo(1, 1);
-    expect(share(fills[3]!)).toBe(0);
-    await commands.emulateMedia({ reducedMotion: "reduce" });
-    await settled(fills);
-    expect(getComputedStyle(fills[0]!).opacity).toBe("1");
-    expect(getComputedStyle(fills[3]!).opacity).toBe("0");
+    expect(getComputedStyle(segments[0]!).backgroundColor).toBe(themeColor("Highlight"));
+    expect(getComputedStyle(segments[0]!).borderTopColor).toBe(themeColor("Highlight"));
+    expect(getComputedStyle(segments[3]!).backgroundColor).toMatch(/,\s*0\)$/);
+    expect(getComputedStyle(segments[3]!).borderTopColor).toBe(themeColor("CanvasText"));
   });
 
   it("keeps layout classes and passes ids and refs through", async () => {
     let element: HTMLDivElement | null = null;
-    const { meter } = await render(<LevelMeter label="Level" value={0.2} className="mt-4" id="mic-level" ref={(node) => void (element = node)} />);
+    const { meter } = await render(<LevelMeter label="Level" value={0.02} className="mt-4" id="mic-level" ref={(node) => void (element = node)} />);
     expect(meter.classList.contains("mt-4")).toBe(true);
     expect(meter.id).toBe("mic-level");
     expect(element).toBe(meter);
@@ -275,12 +354,12 @@ describe("LevelMeter", () => {
   });
 
   it("renders the same on the server and hydrates without a mismatch", async () => {
-    const node = <LevelMeter label="Microphone level" value={0.42} bars={6} />;
+    const node = <LevelMeter label="Microphone level" value={dB(-30)} bars={6} />;
     const html = renderToString(node);
     const doc = new DOMParser().parseFromString(html, "text/html");
     const served = doc.querySelector('[role="meter"]')!;
     expect(doc.getElementById(served.getAttribute("aria-labelledby")!)!.textContent).toBe("Microphone level");
-    expect(served.getAttribute("aria-valuenow")).toBe("42");
+    expect(served.getAttribute("aria-valuenow")).toBe("50");
     expect(served.querySelectorAll("[data-highlighted]").length).toBe(3);
     const host = document.createElement("div");
     host.innerHTML = html;
@@ -300,17 +379,17 @@ describe("LevelMeter", () => {
 
   it("warns, once each, for guessed props and appearance classes, and renders the defaults", async () => {
     const props = { level: 0.4, max: 100, segments: 10, color: "green", tone: "danger", size: "xl" } as unknown as LevelMeterProps;
-    const { bars, fills, rerender } = await render(<LevelMeter {...props} label="Level" value={0.5} className="bg-red-500" />);
-    expect(bars.length).toBe(8);
-    expect(getComputedStyle(fills[0]!).backgroundColor).toBe(themeColor("--success"));
-    expect(bars[0]!.getBoundingClientRect().height).toBe(16);
+    const { segments, rerender } = await render(<LevelMeter {...props} label="Level" value={1} className="bg-red-500" />);
+    expect(segments.length).toBe(8);
+    expect(getComputedStyle(segments[0]!).backgroundColor).toBe(themeColor("--success"));
+    expect(segments[0]!.getBoundingClientRect().height).toBe(16);
     await rerender(<LevelMeter {...props} label="Level" value={0.6} className="bg-red-500" />);
     expect(warnings()).toEqual([
       '[ouro-ui] LevelMeter: "bg-red-500" sets appearance, and className is for layout only. Fix: tone="destructive".',
       '[ouro-ui] LevelMeter: size="xl" is not a size; use "sm", "md", "lg". Fix: <LevelMeter size="md">.',
       '[ouro-ui] LevelMeter: tone="danger" is not a tone. Fix: <LevelMeter tone="destructive">.',
-      "[ouro-ui] LevelMeter: level is not a prop. Fix: <LevelMeter value={level}>.",
-      "[ouro-ui] LevelMeter: max is not a prop; value runs from 0 to 1. Fix: <LevelMeter value={level / max}>.",
+      "[ouro-ui] LevelMeter: level is not a prop. Fix: <LevelMeter value={rms}>.",
+      "[ouro-ui] LevelMeter: max is not a prop; value is an amplitude from 0 to 1. Fix: <LevelMeter value={rms}>.",
       "[ouro-ui] LevelMeter: segments is not a prop. Fix: <LevelMeter bars={10}>.",
       '[ouro-ui] LevelMeter: color is not a prop. Fix: <LevelMeter tone="success">.',
     ]);
@@ -322,30 +401,21 @@ describe("LevelMeter", () => {
 });
 
 describe("LevelMeter motion", () => {
-  it("grows lit bars from their foot with a short scale transition, and with reduced motion shows them whole and only fades them", async () => {
-    const fast = token("--ouro-duration-fast");
+  it("cross-fades a bar as it lights in a third of --ouro-duration-fast, the same with reduced motion, and nothing moves or scales", async () => {
+    const lighting = token("--ouro-duration-fast") / 3;
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
-      const { bars, fills, rerender } = await render(<LevelMeter label="Level" value={0} bars={4} />);
-      await settled(fills);
-      expect(fills[0]!.hasAttribute("data-highlighted")).toBe(false);
+      const { segments, rerender } = await render(<LevelMeter label="Level" value={0} bars={4} />);
+      const first = segments[0]!;
+      const box = first.getBoundingClientRect();
+      expect(first.hasAttribute("data-highlighted")).toBe(false);
+      const lit = attributeAdded(first, "data-highlighted");
       await rerender(<LevelMeter label="Level" value={1} bars={4} />);
-      await expectMotion(fills[0]!, { stem: "level-meter", state: "data-highlighted", properties: reduced ? { opacity: fast } : { scale: fast }, reduced });
-      await settled(fills);
-      expect(share(fills[0]!)).toBeCloseTo(1, 2);
-      expect(getComputedStyle(fills[0]!).opacity).toBe("1");
-      if (reduced) {
-        // Nothing scales: a bar the level does not reach is whole but hidden, not shrunk.
-        await rerender(<LevelMeter label="Level" value={0.3} bars={4} />);
-        await settled(fills);
-        expect(litPattern(bars)).toBe("1000");
-        expect(share(fills[1]!)).toBeCloseTo(1, 2);
-        expect(getComputedStyle(fills[1]!).opacity).toBe("0");
-        expect(getComputedStyle(fills[0]!).transitionProperty).toBe("opacity");
-      } else {
-        expect(getComputedStyle(fills[0]!).transitionProperty).toBe("scale");
-        expect(getComputedStyle(fills[0]!).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
-      }
+      await lit;
+      await expectMotion(first, { stem: "level-meter", state: "data-highlighted", properties: { "background-color": lighting, "border-color": lighting }, reduced });
+      expect(getComputedStyle(first).backgroundColor).toBe(themeColor("--success"));
+      expect(first.getBoundingClientRect()).toEqual(box);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     }
   });
 });

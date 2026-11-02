@@ -360,7 +360,7 @@
     "name": "level-meter",
     "title": "LevelMeter",
     "group": "Feedback",
-    "summary": "A small live input level: a row of bars that light and grow with a microphone's level, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a \"test your microphone\" row)."
+    "summary": "A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a \"test your microphone\" row)."
   },
   {
     "name": "moment",

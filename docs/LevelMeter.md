@@ -2,7 +2,7 @@
 
 # LevelMeter
 
-A small live input level: a row of bars that light and grow with a microphone's level, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a "test your microphone" row). The app feeds `value`, from 0 to 1, as often as about 15 times a second.
+A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a "test your microphone" row). The app feeds `value`, the microphone's linear amplitude from 0 to 1, as often as about 15 times a second, and the meter maps it to its bars on a decibel scale, so ordinary speech lights about half of them.
 
 ```tsx
 import { LevelMeter } from "@/registry/ouro/components/ouro/level-meter/level-meter";
@@ -11,15 +11,17 @@ import { LevelMeter } from "@/registry/ouro/components/ouro/level-meter/level-me
 ## Example
 
 ```tsx
-<LevelMeter label="Microphone level" value={level} />
-<LevelMeter label="Microphone level" hideLabel value={level} size="sm" bars={5} />
+<LevelMeter label="Microphone level" value={rms} />
+<LevelMeter label="Microphone level" hideLabel value={rms} size="sm" bars={5} />
 ```
 
 ## Usage
 
-It is a `meter` named by its label, from 0 to 100, with the level rounded and in words ("Quiet", "Speaking", "Loud"). It is no live region: screen readers read it when the person goes to it, and it never announces the level as it changes.
+The bars move as an audio meter's do: they rise within about 50 ms and fall over about 350 ms, so they hold between syllables. Every bar is the row's full height: lit bars are filled in the tone and unlit ones are outlines. Nothing moves or scales; a bar's colours cross-fade as it lights and goes out, the same with reduced motion. Under forced colours each bar keeps an edge and a lit one is Highlight.
 
-Every update is cheap. The level sets one CSS variable on the root, each lit bar grows from it with `scale` over `--ouro-duration-fast`, and React re-renders only the bars that light or go out, so a level 15 times a second changes no layout. With reduced motion nothing scales: the bars lit up to the level show whole, and only their opacity fades. Under forced colours each bar keeps an edge and a lit one is Highlight.
+It is a `meter` named by its label, from 0 to 100, with its level rounded and in words ("Quiet", "Speaking", "Loud"). What it reports is the loudest level of the last 1.5 seconds, so a person who speaks and then moves to the meter hears "Speaking", and its ARIA values change at most twice a second. It is no live region: screen readers read it when the person goes to it, and it never announces the level as it changes.
+
+Every update is cheap: the meter re-renders, and changes the page, only when a bar lights or goes out, and the bars that keep their state are memoised.
 
 Its agent side, `levelMeterAx` in `level-meter-styles.ts`, declares no agent reads and no actions: audio levels stay with the person.
 
@@ -40,17 +42,17 @@ Type: `LevelMeterProps`.
 | `label` (required) | `string` |  | What the meter measures: "Microphone level". It names the meter for screen readers. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | The meter's size: bars 12px, 16px or 24px high. `sm` fits a menu row. |
-| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"success"` | Color role from the theme for the lit bars, named after its token. Unlit bars are always the muted foreground, so a silent meter is muted whatever its tone. `secondary` is the muted foreground. |
-| `value` (required) | `number` |  | The level now, from 0 (silence) to 1 (full scale): feed it from your audio, for example an `AnalyserNode`'s loudness, up to about 15 times a second. A level outside 0 to 1 shows clamped, and one that is not a number shows as 0. |
-| `valueText` | `LevelMeterValueText` | { quiet: "Quiet", speaking: "Speaking", loud: "Loud" } | The words screen readers hear for the level: below a tenth, up to three quarters, and from there. Translate them with the rest of your interface. |
+| `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"success"` | Color role from the theme for the lit bars, named after its token. Unlit bars are always outlines in the muted foreground, so a silent meter is muted whatever its tone. `secondary` fills lit bars in the muted foreground. |
+| `value` (required) | `number` |  | The microphone's linear amplitude now, from 0 (silence) to 1 (full scale): the RMS of the samples an `AnalyserNode` gives, fed up to about 15 times a second. The meter maps it to its bars on a decibel scale from -60 dBFS (no bar) to 0 dBFS (every bar), so ordinary speech, around -40 to -20 dBFS, lights 3 to 5 of 8 bars. An amplitude below 0 or not a number shows as silence, and one above 1 as full scale. ```ts analyser.getFloatTimeDomainData(samples); const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length); ``` |
+| `valueText` | `LevelMeterValueText` | { quiet: "Quiet", speaking: "Speaking", loud: "Loud" } | The words screen readers hear for the loudest level of the last 1.5 seconds: below -48 dBFS, up to -12 dBFS, and from there. Translate them with the rest of your interface. |
 
 ## Don't use
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `color`: Not a prop. Ouro UI uses `tone`: `<LevelMeter tone="success">`.
-- `level`: Not a prop. The level is `value`, from 0 to 1: `<LevelMeter value={0.4}>`.
-- `max`: Not a prop. `value` runs from 0 to 1: `<LevelMeter value={level / max}>`.
+- `level`: Not a prop. The amplitude is `value`: `<LevelMeter value={rms}>`.
+- `max`: Not a prop. `value` is an amplitude from 0 to 1: `<LevelMeter value={rms}>`.
 - `segments`: Not a prop. Ouro UI uses `bars`: `<LevelMeter bars={8}>`.
 
 ## `className` is for layout only

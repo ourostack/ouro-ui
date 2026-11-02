@@ -7,9 +7,9 @@
         "data-highlighted": {
           "kind": "motion",
           "parts": {
-            "fill": {"properties": ["scale"], "reduced": ["opacity"]}
+            "segment": {"properties": ["background-color", "border-color"], "reduced": ["background-color", "border-color"]}
           },
-          "tests": ["registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter motion > grows lit bars from their foot with a short scale transition, and with reduced motion shows them whole and only fades them"]
+          "tests": ["registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter motion > cross-fades a bar as it lights in a third of --ouro-duration-fast, the same with reduced motion, and nothing moves or scales"]
         }
       }
     }
