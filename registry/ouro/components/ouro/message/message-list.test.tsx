@@ -215,6 +215,36 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("follows its end at the bottom when something in a message reaches past it, though no message changes size", async () => {
+    const items = history(20);
+    // Placed from the newest message's text, and reaching far below it, as a reply's action bar does beside a short last line.
+    const Overhang = ({ late }: { late: boolean }) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        {items.map((item, index) => (
+          <Message key={item.id} role={item.role} name="Ada">
+            <span style={{ position: "relative", display: "block" }}>
+              {item.text}
+              {late && index === items.length - 1 && <span data-overhang="" style={{ position: "absolute", insetInlineStart: 0, top: 0, width: 8, height: 400 }} />}
+            </span>
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(<Overhang late={false} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const height = content.getBoundingClientRect().height;
+    const top = scroller.scrollTop;
+    await rerender(<Overhang late />);
+    // Nothing changed size: only the end moved.
+    expect(content.getBoundingClientRect().height).toBe(height);
+    expect(scroller.scrollHeight - scroller.clientHeight).toBeGreaterThan(top + 100);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await settle(scroller);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
   it("stays at the end while the reader edits the newest message in place and it grows", async () => {
     const items = history(20);
     const { scroller } = await render(
@@ -1884,7 +1914,11 @@ describe("MessageList keyboard", () => {
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     // The menu's guards stand around its button while it is open, as a screen reader's cursor or a click lands on the message.
     expect(message.querySelector("[data-base-ui-focus-guard]")).not.toBeNull();
+    // The menu takes focus on the frame after it opens. In WebKit, where the click left focus on the page, that frame can
+    // come after the menu shows, and would take focus from the message back into the menu: let it pass first.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     await act(async () => message.focus());
+    expect(document.activeElement).toBe(message);
     // Before the fix, the guard ahead of the menu's button took this Tab, closed the menu and dropped focus to the page.
     const reached: string[] = [];
     for (let press = 0; press < 3; press++) {

@@ -455,7 +455,9 @@ interface Spoken {
  * A short conversation sits at the region's bottom, by the composer under it, as in a chat
  * app; put what starts it (who it is with, a way to older history) first among the children,
  * and it sits right above the first message. While the reader is at the bottom it follows new messages and streaming text; once they
- * scroll up, nothing moves their view, and a "Jump to latest" button appears. Each new
+ * scroll up, nothing moves their view, and a "Jump to latest" button appears. At the bottom it also
+ * follows what reaches past its end without changing any message's size, such as the action bar
+ * beside a reply's last line. Each new
  * message from someone else is read to screen readers once, politely: a streamed reply
  * when it finishes, and a first reply in a list that mounted empty. History is never
  * announced: the messages it mounts with, several messages filling an empty list at once
@@ -561,6 +563,7 @@ interface Spoken {
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
  * @claim "Nothing in it overflows the boxes around it" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
+ * @claim "At the bottom it also follows" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > follows its end at the bottom when something in a message reaches past it, though no message changes size)
  * @claim "A short conversation sits at" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits a short conversation at its bottom, by the composer under it, with the room above it empty)
  * @claim "put what starts it (who" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits what starts a short conversation, its first child, right above the first message)
  */
@@ -787,12 +790,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     follow.observe(scroller);
     // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
     // the reader is scrolled up, the anchor is held as they move, before the browser draws. A move that also resizes
-    // the list is held here first, and the resize observer then finds it held. At the end, the resize observer follows.
+    // the list is held here first, and the resize observer then finds it held. At the end, the list follows wherever its end
+    // went: something put in a message that reaches past the end (a reply's action bar, which loads after the message,
+    // beside its last line) moves the end without resizing anything, so the resize observer would not see it.
     const moves = new MutationObserver((records) => {
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: at the end the resize observer follows in the same frame, and holding when no message came, went or moved finds nothing moved; both only spare the work.
-      if (!pinned.current && records.some(touchesItems)) hold();
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
+      if (pinned.current ? farthest() !== end : records.some(touchesItems)) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
