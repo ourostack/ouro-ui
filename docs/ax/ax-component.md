@@ -2,7 +2,7 @@
 
 # ax-component
 
-A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside.
+A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-component#v1.3.1
@@ -81,9 +81,9 @@ Example:
 ```ts
 const ui = [
   ...bindAx(mediaTileAx, { reads: { participant: "call participants <meeting>" }, actions: { pin: "call pin <participant>" } }),
-  ...bindAx(toolbarAx, {
-    actions: { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>" },
-    refuseAs: { unmute: "call unmute", camera: "call camera", share: "call share" },
+  ...bindAx(callControlsAx, {
+    actions: { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>", "lower-hand": "call lower-hand <meeting>" },
+    refuseAs: { unmute: "call unmute", camera: "call camera", share: "call share", captions: "call captions on" },
   }),
 ];
 writeFileSync("inventory.json", JSON.stringify({ cli: commandNames, ui }));
@@ -116,23 +116,25 @@ const mediaTileAx = defineComponentAx({
   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
 });
 const theirs = "agents never turn on a person's microphone, camera or screen";
-const toolbarAx = defineComponentAx({
-  component: "Toolbar",
+const callControlsAx = defineComponentAx({
+  component: "CallControls",
   reads: [],
   actions: [
     { id: "mute", summary: "Mute the person's microphone.", effect: "others", agent: true },
     { id: "leave", summary: "Leave the call.", effect: "others", agent: true },
     { id: "raise-hand", summary: "Raise the person's hand.", effect: "others", agent: true },
+    { id: "lower-hand", summary: "Lower the person's hand.", effect: "others", agent: true },
     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
+    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "may show others that captions are on" },
   ],
 });
 ```
 
 ### `READ_CONSENTS`
 
-A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside.
+A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own.
 
 ```ts
 const READ_CONSENTS: readonly ["none", "listening"]

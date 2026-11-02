@@ -842,6 +842,12 @@ async function checkCli(ctx: Context) {
   const label = (e: UiEntry) => `${e.component} ${e.kind} ${e.id}`;
   const noSample = (key: string) => `no sample for <${key}>; pass --sample ${key}=<value>`;
   const refuses = (c: RunResult) => !c.timedOut && c.code !== 0;
+  const privateRead = (c: CliCommand) => c.effect === "private" && c.readOnly !== false;
+  // Why a read's twin may not run (it is no private read, and the target is not proven a mock), or null when it may.
+  const blocked = (line: string) => {
+    const cmd = commandOf(wordsOf(line));
+    return (cmd !== null && privateRead(cmd)) || ctx.safety.ok ? null : `not run: \`${line}\` is no private read in help --json, and the target is not proven a mock`;
+  };
   const isRefusal = (v: unknown) => (isOutcome(v) ? v.state === "refused" : isRecord(v) && isRecord(v["error"]));
   const personOnlyList = [at(help, "personOnly")].flat().filter(isRecord);
   const recordFields = (e: UiEntry, fields: readonly string[], c: RunResult & { shown: string }) => {
@@ -857,7 +863,9 @@ async function checkCli(ctx: Context) {
       const cmd = commandOf(wordsOf(twin));
       const surface = `${label(e)}${twin === e.push ? " stream" : ""}`;
       rec.add("ui.twin-exists", surface, cmd ? "pass" : "fail", cmd ? `\`${twin}\` is \`${name} ${cmd.name}\`` : help ? `\`${twin}\` names no command in help --json` : "no help JSON to find the twin in");
-      if (e.kind === "action") rec.add("ui.twin-effect-matches", surface, cmd ? (cmd.effect === e.effect ? "pass" : "fail") : "skip", cmd ? `the action is ${String(e.effect)}; \`${name} ${cmd.name}\` is ${String(cmd.effect)}` : "the twin is no command (ui.twin-exists)");
+      const matches = cmd !== null && (e.kind === "action" ? cmd.effect === e.effect : privateRead(cmd));
+      const wanted = e.kind === "action" ? `the action is ${String(e.effect)}` : "the read wants a private read";
+      rec.add("ui.twin-effect-matches", surface, cmd ? (matches ? "pass" : "fail") : "skip", cmd ? `${wanted}; \`${name} ${cmd.name}\` is ${String(cmd.effect)}${e.kind === "read" && cmd.readOnly === false ? ", not a read" : ""}` : "the twin is no command (ui.twin-exists)");
     }
     if (typeof e.refuseAs === "string") {
       if (!ctx.safety.ok) rec.add("ui.person-only-refuses", label(e), "skip", refusedNote(ctx.safety));
@@ -885,6 +893,11 @@ async function checkCli(ctx: Context) {
     }
     if (e.kind !== "read" || typeof e.twin !== "string") continue;
     const fields = e.fields ?? [];
+    const stopped = blocked(e.twin);
+    if (stopped) {
+      for (const id of e.consent === "listening" ? ["ui.listening-needs-yes", "cli.listening-push-filtered"] : ["ui.read-fields"]) rec.add(id, label(e), "skip", stopped);
+      continue;
+    }
     const twin = filled(wordsOf(e.twin));
     if ("missing" in twin) {
       rec.add(e.consent === "listening" ? "ui.listening-needs-yes" : "ui.read-fields", label(e), "skip", noSample(twin.missing));
@@ -895,7 +908,8 @@ async function checkCli(ctx: Context) {
       continue;
     }
     // What people say: before a follow the read and its triggered stream answer needs-human; every line refuses.
-    const stream = typeof e.push === "string" && typeof e.trigger === "string" ? { push: e.push, trigger: e.trigger } : null;
+    const stream = typeof e.push === "string" && typeof e.trigger === "string" && blocked(e.push) === null ? { push: e.push, trigger: e.trigger } : null;
+    if (typeof e.push === "string" && stream === null) rec.add("cli.listening-push-filtered", label(e), "skip", blocked(e.push) ?? "no trigger is bound for the stream");
     const probes = [twin.args, ...(stream ? [[...wordsOf(stream.push), ...splitCommand(stream.trigger)]] : [])];
     for (const probe of probes) {
       const words = filled(probe);
