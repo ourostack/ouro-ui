@@ -55,7 +55,7 @@ const scrollTo = async (box: HTMLElement, left: number) => {
 describe("useScrollFade", () => {
   it("fades the side that hides more, as far as it hides, and follows the scroll", async () => {
     const { box } = await render(<Box />);
-    expect(box.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+    expect(box.getAttribute("data-ouro-scroll-fade")).toBe("");
     expect(fade(box)).toEqual(["0px", "400px"]);
     expect(getComputedStyle(box).maskImage).toContain("linear-gradient");
     await scrollTo(box, 150);

@@ -61,7 +61,7 @@ export function useScrollFade(ref: RefObject<HTMLElement | null>): void {
     const observer = new ResizeObserver(update);
     observer.observe(element);
     observer.observe(element.firstElementChild!);
-    element.addEventListener("scroll", update, { passive: true });
+    element.addEventListener("scroll", update);
     return () => {
       observer.disconnect();
       element.removeEventListener("scroll", update);
