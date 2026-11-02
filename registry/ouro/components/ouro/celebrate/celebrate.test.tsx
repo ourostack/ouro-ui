@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -109,9 +109,9 @@ describe("Celebrate", () => {
       expect(rect.top).toBeGreaterThanOrEqual(box.top - 0.5);
       expect(rect.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
     }
-    // Every other piece lands nearer the middle, along the width.
-    const reach = dots.map((rect) => Math.abs(rect.left + rect.width / 2 - cx));
-    expect(Math.max(...reach.filter((_, index) => index % 2 === 1))).toBeLessThan(Math.max(...reach.filter((_, index) => index % 2 === 0)));
+    // Every other piece lands nearer the middle, measured as a share of the box's width and height.
+    const reach = dots.map((rect) => Math.hypot((rect.left + rect.width / 2 - cx) / box.width, (rect.top + rect.height / 2 - cy) / box.height));
+    expect(Math.max(...reach.filter((_, index) => index % 2 === 1))).toBeLessThan(Math.min(...reach.filter((_, index) => index % 2 === 0)));
     const colours = new Set(pieces.map((piece) => getComputedStyle(piece.firstElementChild!).backgroundColor));
     expect(colours.size).toBe(4);
   });
@@ -213,6 +213,24 @@ describe("Celebrate cap", () => {
     } finally {
       announced.stop();
     }
+  });
+
+  it("decides once as a showing starts, even when the page opens with it shown, and never bursts for a frame it may not", async () => {
+    const twice = { cap: { times: 2, per: "day" }, capKey: "opened" } as const;
+    const { host } = await render(
+      <StrictMode>
+        <Celebrate show message="Inbox cleared" {...twice} />
+      </StrictMode>,
+    );
+    await frames();
+    expect(host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(12);
+    expect(JSON.parse(localStorage.getItem("ouro-moment:shown:opened")!)).toHaveLength(1);
+    localStorage.setItem("ouro-moment:shown:spent", JSON.stringify([Date.now()]));
+    const later = await render(null);
+    flushSync(() => later.root.render(<Celebrate show message="Inbox cleared" cap={{ times: 1, per: "day" }} capKey="spent" />));
+    expect(later.host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(0);
+    await frames();
+    expect(later.host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(0);
   });
 
   it("holds to every cap it is given, and counts a burst against each", async () => {
