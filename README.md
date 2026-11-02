@@ -289,6 +289,7 @@ Components:
 `kbd`,
 `lightbox`,
 `link`,
+`live-captions`,
 `local-date`,
 `menu`,
 `message`,
@@ -546,6 +547,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
+- **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape of content that is still loading. [Docs](docs/Skeleton.md)
 
