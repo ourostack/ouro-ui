@@ -298,8 +298,9 @@ function audienceWho(value: unknown): string {
 const problemsOf = (pairs: readonly (readonly [boolean, string])[]) => pairs.filter(([bad]) => bad).map(([, text]) => text);
 // The first problem whose condition holds, or the note when none does.
 const firstOf = (pairs: readonly (readonly [boolean, string])[], note: string) => (pairs.find(([bad]) => bad) ?? [false, note])[1];
-// The keys of an outcome envelope and of its parts, by path; a listening read's needs-human answer, or a refused
-// stream, carries no others, so what people say cannot hide in it.
+// The keys of an outcome envelope and of its objects, by path (`next[]` for each next step); every other key holds a
+// scalar. A listening read's needs-human answer, or a refused stream, carries nothing else, so what people say cannot
+// hide in it.
 const OUTCOME_SHAPE: Readonly<Record<string, readonly string[]>> = {
   "": ["ax", "action", "effect", "audience", "target", "state", "summary", "postcondition", "receipt", "next", "error", "human"],
   audience: ["only", "who"],
@@ -312,13 +313,28 @@ const OUTCOME_SHAPE: Readonly<Record<string, readonly string[]>> = {
   "next[]": ["command", "why"],
 };
 
-// The keys an outcome carries beyond its envelope, as paths (`lines`, `human.lines`).
+// What an outcome carries beyond its envelope, as paths (`lines`, `human.lines`, `target`): a key it does not have,
+// an object or list where it has a scalar, or anything but an object (or null) where it has one.
 function outcomeExtras(v: object): string[] {
   const out: string[] = [];
-  for (const [path, keys] of Object.entries(OUTCOME_SHAPE)) {
-    const parts = path.endsWith("[]") ? [at(v, path.slice(0, -2))].flat() : [path ? at(v, path) : v];
-    for (const part of parts.filter(isRecord)) for (const k of Object.keys(part)) if (!keys.includes(k)) out.push(path ? `${path.replace("[]", "")}.${k}` : k);
-  }
+  const walk = (value: Record<string, unknown>, path: string) => {
+    for (const [k, x] of Object.entries(value)) {
+      const sub = path ? `${path}.${k}` : k;
+      if (!OUTCOME_SHAPE[path]!.includes(k)) out.push(sub);
+      else if (Object.hasOwn(OUTCOME_SHAPE, sub)) {
+        if (isRecord(x)) walk(x, sub);
+        else if (x !== null) out.push(sub);
+      } else if (Object.hasOwn(OUTCOME_SHAPE, `${sub}[]`)) {
+        if (!Array.isArray(x)) out.push(sub);
+        else
+          for (const item of x) {
+            if (isRecord(item)) walk(item, `${sub}[]`);
+            else out.push(`${sub}[]`);
+          }
+      } else if (typeof x === "object" && x !== null) out.push(sub);
+    }
+  };
+  walk(v as Record<string, unknown>, "");
   return out;
 }
 
