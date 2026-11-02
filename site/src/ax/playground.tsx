@@ -126,9 +126,8 @@ export default function Playground(): JSX.Element {
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <div className="grid min-w-0 content-start gap-4">
+      <div className="ax-screen">
       <Chat
-        className="ax-screen"
         role="group"
         aria-label="Chat with the person you work for"
         data-testid="ax-asks"
@@ -150,7 +149,7 @@ export default function Playground(): JSX.Element {
         </div>
         {done === ASKS.length && <div className="ax-reward ax-new" aria-hidden="true" dangerouslySetInnerHTML={{ __html: DESK_ART }} />}
       </Chat>
-      <div className="ax-screen" role="group" aria-label={"Design sync, the room you post in for them"}>
+      <div className="ax-part" role="group" aria-label={"Design sync, the room you post in for them"}>
         <span className="ax-card-head" aria-hidden="true">
           {"Design sync, the room you post in for them"}
         </span>

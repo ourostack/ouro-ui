@@ -104,7 +104,7 @@ jobs:
           done
           # shellcheck disable=SC2086 # one argument per run
           scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require"; exit 1; }
-          # install-github, the install a user runs today (`shadcn add` from main), runs only in main's
+          # install-github, the install a user runs today (`shadcn add` at the newest release tag), runs only in main's
           # own CI run (a push, or a dispatch on main), and the rules cannot require it: the queue's
           # run skips it. So when main has its own run on this commit, the newest must have passed it.
           own=$(gh run list --workflow ci.yml --commit "$sha" --json databaseId,event,headBranch --jq '[.[] | select(.headBranch == "main" and (.event == "push" or .event == "workflow_dispatch"))][0].databaseId // empty')
@@ -235,7 +235,7 @@ jobs:
           # The notes are assembled and measured before the tag exists: GitHub refuses a release
           # body over 125,000 characters, and a tag pushed without its release blocks a rerun.
           {
-            echo "Install an item at this release; its Ouro dependencies install from the same tag. In an app with Tailwind CSS v4 and an \"@/*\" path alias, run shadcn's init once first, with the Base UI base:"
+            echo "Install an item at this release, \`npx shadcn@latest add ourostack/ouro-ui/<item>#$TAG\`; its Ouro dependencies install from the same tag. Every install from GitHub needs a release tag: main has no registry.json, so an address without one fails. In an app with Tailwind CSS v4 and an \"@/*\" path alias, run shadcn's init once first, with the Base UI base:"
             echo
             echo '```sh'
             echo "npx shadcn@latest init --base base --preset nova --yes --no-monorepo"
