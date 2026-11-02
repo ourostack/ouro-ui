@@ -247,6 +247,7 @@ function ChannelPosts() {
   return (
     <>
       <Channel label="Design reviews">
+        {/* The first post has no action bar, so a screenshot never catches one shown by a pointer left at the top. */}
         <Message
           variant="post"
           role="assistant"
@@ -256,8 +257,6 @@ function ChannelPosts() {
           time="7:30 AM"
           dateTime="2026-05-04T07:30"
           subject="Agenda for Friday's design review"
-          actions={actions}
-          menu={menu}
           footer={<ReactionBar reactions={reactions} onReact={react} />}
           thread={
             <ThreadSummary
@@ -358,7 +357,7 @@ export const Thread: Story = {
   parameters: { screenshot: { name: "message-thread" } },
   render: () => (
     <Channel label="Thread: Agenda for Friday's design review">
-      <Message variant="post" role="assistant" name="Jonah Vale" presence="busy" presenceLabel="In a meeting" time="7:30 AM" subject="Agenda for Friday's design review" actions={threadActions} menu={menu}>
+      <Message variant="post" role="assistant" name="Jonah Vale" presence="busy" presenceLabel="In a meeting" time="7:30 AM" subject="Agenda for Friday's design review">
         We will look at the new onboarding flow first, then the settings page. Add your questions to this thread before Thursday so we can group them.
       </Message>
       <div style={{ display: "flex", alignItems: "center", gap: 12, paddingInlineStart: 44, fontSize: 12, color: "var(--muted-foreground)" }}>
