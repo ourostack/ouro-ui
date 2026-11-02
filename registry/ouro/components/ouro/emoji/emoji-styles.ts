@@ -1,6 +1,20 @@
 import type { EmojiCatalogue, EmojiItem, EmojiItemTone } from "@/registry/ouro/components/ouro/emoji/emoji";
 
-export { catalogueIndex, emojiClass, emojiSkinTones, emojiToken, fold, matchWords, searchCatalogue, splitEmojiText, toneOf };
+export {
+  catalogueIndex,
+  emojiClass,
+  emojiPictureClass,
+  emojiPictureReadyClass,
+  emojiPlaceholderClass,
+  emojiPlaceholderGoneClass,
+  emojiSkinTones,
+  emojiToken,
+  fold,
+  matchWords,
+  searchCatalogue,
+  splitEmojiText,
+  toneOf,
+};
 export type { CatalogueIndex, EmojiSkinTone, EmojiTextPart, FoundEmoji };
 
 // Value lists and helpers for Emoji and the components that draw a catalogue's emoji, apart from
@@ -25,6 +39,19 @@ const emojiSkinTones: readonly EmojiSkinTone[] = ["default", "light", "medium-li
  * @claim "image: 1.25em square, so" registry/ouro/components/ouro/emoji/emoji-styles.ts verify:fileLine(registry/ouro/components/ouro/emoji/emoji-styles.ts, /"inline-block size-\[1\.25em\]/)
  */
 const emojiClass = "inline-block size-[1.25em] shrink-0 align-[-0.3em] object-contain select-none";
+
+/** An emoji's picture over its placeholder: the box of the emoji around it, hidden until it is ready. @internal */
+const emojiPictureClass = "absolute inset-0 size-full object-contain";
+
+/** The picture once it is ready: shown, fading in over the short duration, at once with reduced motion. @internal */
+const emojiPictureReadyClass = "opacity-100 transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out) motion-reduce:transition-none";
+
+/** What stands in for the picture: the emoji's box, with an element centred and clipped to it. @internal */
+const emojiPlaceholderClass = "pointer-events-none absolute inset-0 grid size-full place-items-center overflow-hidden";
+
+/** The placeholder once the picture is ready: fading out with it, then hidden. @internal */
+const emojiPlaceholderGoneClass =
+  "invisible opacity-0 transition-[opacity,visibility] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) motion-reduce:transition-none";
 
 /** The emoji's form in a skin tone: its toned image, or the emoji itself in the default tone or without tones. @internal */
 function toneOf(item: EmojiItem, tone: EmojiSkinTone | undefined): EmojiItem | EmojiItemTone {

@@ -2,7 +2,7 @@
 
 # Emoji
 
-One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named by its `alt` (the emoji's name). An animated emoji shows its still image until it plays: while the mouse is on it or on the button around it, or that button has focus, or while `play` says so. With reduced motion it always shows the still image. `skinTone` draws an emoji with tones in one of them.
+One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named by its `alt` (the emoji's name). An animated emoji shows its still image until it plays: while the mouse is on it or on the button around it, or that button has focus, or while `play` says so. With reduced motion it always shows the still image. `skinTone` draws an emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
 
 ```tsx
 import { Emoji } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -12,6 +12,7 @@ import { Emoji } from "@/registry/ouro/components/ouro/emoji/emoji";
 
 ```tsx
 <Emoji item={party} />
+<Emoji item={party} placeholder="/emoji/waiting.svg" />
 <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
 ```
 
@@ -28,6 +29,7 @@ Type: `EmojiProps`.
 | `alt` | `string` | the emoji's `name` | The image's text alternative. |
 | `className` | `string` |  | Layout only: margins, and a size other than the text's (`size-8`). Appearance classes warn in development. |
 | `item` (required) | `EmojiItem` |  | The emoji to draw, from the app's catalogue. |
+| `placeholder` | `string \| ReactElement` |  | Shows in the emoji's place until its picture has loaded and decoded: an image's address, or an element (centred in the emoji's box, which it does not change). The picture then fades in over it, at once with reduced motion. The placeholder is hidden from screen readers, so the emoji keeps its name, and a picture that fails to load or decode leaves it showing. It shows again for a new picture (another emoji, tone or `src`), not while an animated emoji plays. With it, the `<img>` sits in a `<span>` that takes `className`. |
 | `play` | `boolean` |  | Plays an animated emoji now (`true`) or keeps it still (`false`). Without it, the emoji plays while the mouse is on it or on the button, link or option around it, or that has focus. Reduced motion keeps it still whatever this says. |
 | `ref` | `Ref<HTMLImageElement>` |  | The `<img>`. |
 | `skinTone` | `"default" \| "light" \| "medium-light" \| "medium" \| "medium-dark" \| "dark"` | `"default"` | The skin tone to draw it in, for an emoji with `skinTones`. |

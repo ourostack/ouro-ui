@@ -27,6 +27,7 @@ import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-
   catalogue={catalogue}
   frequent={recentIds}
   quick={["like", "heart", "laugh"]}
+  placeholder="/emoji/waiting.svg"
   onSelect={(selection) => react(message.id, selection.id)}
 />
 ```
@@ -79,6 +80,7 @@ A controlled EmojiPicker of an image catalogue's emoji: you own `open`, update i
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the person dismisses the picker (Escape, an outside press, the close button) or chooses an emoji. |
 | `onSelect` (required) | `(selection: EmojiPickerCatalogueSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
 | `open` (required) | `boolean` | Whether the picker is open. |
+| `placeholder` | `string \| ReactElement` | Shows in each emoji's place until its picture has loaded and decoded, as `Emoji`'s `placeholder`: an image's address, or an element. The picker passes it to every emoji it draws: the grid, the quick row, the preview, the category buttons and the skin tones. Pass a value that stays the same between renders (an address, or an element made once), so the grid is not redrawn while the app renders. |
 | `quick` | `readonly string[]` | The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. |
 
 Not in this mode (typed `never`):
@@ -96,6 +98,7 @@ An uncontrolled EmojiPicker of an image catalogue's emoji: `trigger` opens and c
 | `catalogue` (required) | `EmojiCatalogue` | The emoji the picker offers, as images, by category, in order: a standard set, and an organization's custom emoji in a category of their own. The search matches their names, shortcodes and keywords. |
 | `frequent` | `readonly string[]` | The ids of the person's frequently used or recent emoji, which the app keeps (a tone's id shows its emoji). Shown first, under `frequentLabel`. An id the catalogue no longer has is left out. |
 | `onSelect` (required) | `(selection: EmojiPickerCatalogueSelection, event: MouseEvent<HTMLElement> \| KeyboardEvent<HTMLElement>) => void` | Called with the chosen emoji when the person presses one, or presses Enter in the search for its first result; the picker then closes. The event comes second, so the app can check `event.isTrusted` before it acts. |
+| `placeholder` | `string \| ReactElement` | Shows in each emoji's place until its picture has loaded and decoded, as `Emoji`'s `placeholder`: an image's address, or an element. The picker passes it to every emoji it draws: the grid, the quick row, the preview, the category buttons and the skin tones. Pass a value that stays the same between renders (an address, or an element made once), so the grid is not redrawn while the app renders. |
 | `quick` | `readonly string[]` | The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. |
 | `trigger` (required) | `ReactElement` | The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. |
 
@@ -125,6 +128,7 @@ A controlled EmojiPicker of the platform's emoji: you own `open`, update it in `
 Not in this mode (typed `never`):
 
 - `catalogue`: Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead.
+- `placeholder`: Not with `categories`. A placeholder stands in for a catalogue's pictures; `renderEmoji` draws your own art.
 - `trigger`: Not with `open`. Remove `open`, `onOpenChange` and `anchor` to let a trigger open the picker.
 
 ### With trigger: `EmojiPickerWithTriggerProps`
@@ -146,6 +150,7 @@ Not in this mode (typed `never`):
 - `catalogue`: Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead.
 - `onOpenChange`: Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`.
 - `open`: Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`.
+- `placeholder`: Not with `categories`. A placeholder stands in for a catalogue's pictures; `renderEmoji` draws your own art.
 
 ## Don't use
 

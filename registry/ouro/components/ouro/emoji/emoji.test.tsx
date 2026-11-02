@@ -392,7 +392,7 @@ describe("Emoji placeholder", () => {
         </p>
       </>,
     );
-    const [bare, line] = [...host.querySelectorAll("p")] as [HTMLElement, HTMLElement];
+    const [bare, line] = [...host.querySelectorAll("p")].map((paragraph) => paragraph as HTMLElement) as [HTMLElement, HTMLElement];
     const expected = box(emoji(bare), bare);
     expect(expected.width).toBe(25);
     const root = emoji(line);
@@ -404,6 +404,9 @@ describe("Emoji placeholder", () => {
     const stand = waiting(line).querySelector("img")!;
     expect(stand.getAttribute("src")).toBe(waitingSrc);
     expect(stand.alt).toBe("");
+    expect(stand.draggable).toBe(false);
+    expect(stand.getAttribute("decoding")).toBe("async");
+    expect(picture(line).hasAttribute("data-ouro")).toBe(false);
     expect(box(stand, line)).toEqual(expected);
     expect(loaded(line)).toBe(false);
     expect(opacity(picture(line))).toBe("0");
@@ -417,6 +420,7 @@ describe("Emoji placeholder", () => {
     // Only the emoji with a placeholder waits for its picture.
     expect(held.map((call) => call.src)).toEqual([party.src]);
     await settle(party.src);
+    expect(root.getAttribute("data-loaded")).toBe("");
     expect(loaded(line)).toBe(true);
     expect(opacity(picture(line))).toBe("1");
     expect(visibility(waiting(line))).toBe("hidden");
@@ -582,6 +586,7 @@ describe("Emoji placeholder", () => {
     expect(emoji(host).getBoundingClientRect().width).toBe(32);
     expect(getComputedStyle(emoji(host)).marginInlineStart).toBe("4px");
     expect(picture(host).getBoundingClientRect().width).toBe(32);
+    expect(picture(host).getBoundingClientRect().x).toBe(emoji(host).getBoundingClientRect().x);
     expect(waiting(host).getBoundingClientRect().width).toBe(32);
     expect(waiting(host).querySelector('[data-testid="dot"]')).not.toBeNull();
     expect(page.elementLocator(host).getByRole("img").elements()).toEqual([picture(host)]);

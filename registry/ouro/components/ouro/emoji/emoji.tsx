@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState, type HTMLAttributes, type ImgHTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, useState, type HTMLAttributes, type ImgHTMLAttributes, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
-import { emojiClass, emojiSkinTones, splitEmojiText, toneOf, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import {
+  emojiClass,
+  emojiPictureClass,
+  emojiPictureReadyClass,
+  emojiPlaceholderClass,
+  emojiPlaceholderGoneClass,
+  emojiSkinTones,
+  splitEmojiText,
+  toneOf,
+  type EmojiSkinTone,
+} from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 
 export type { EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 
@@ -146,6 +156,23 @@ export interface EmojiOwnProps {
   play?: boolean | undefined;
   /** The image's text alternative. @default the emoji's `name` */
   alt?: string | undefined;
+  /**
+   * Shows in the emoji's place until its picture has loaded and decoded: an image's address,
+   * or an element (centred in the emoji's box, which it does not change). The picture then
+   * fades in over it, at once with reduced motion. The placeholder is hidden from screen
+   * readers, so the emoji keeps its name, and a picture that fails to load or decode leaves it
+   * showing. It shows again for a new picture (another emoji, tone or `src`), not while an
+   * animated emoji plays. With it, the `<img>` sits in a `<span>` that takes `className`.
+   *
+   * @claim "Shows in the emoji's place until" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > shows a placeholder image in the emoji's own box until the picture has decoded, then the picture, named as before, with no shift)
+   * @claim "Shows in the emoji's place until" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > shows the picture once it has really loaded and decoded, and keeps the placeholder while a loaded picture is still decoding)
+   * @claim "The picture then fades in over" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > fades the picture in and the placeholder out over the short duration, and swaps them at once with reduced motion)
+   * @claim "The placeholder is hidden from screen" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > draws an element placeholder hidden from screen readers, and passes the img attributes, ref and layout classes through)
+   * @claim "a picture that fails to load or" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > keeps the placeholder for a picture that fails to load or to decode, and brings it back for a new picture that fails)
+   * @claim "It shows again for a new" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > shows the placeholder again for a new picture or tone, and never for a stale picture's decode)
+   * @claim "not while an animated emoji plays" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > keeps the picture while the emoji plays and stops, and shows a picture only its animation could draw)
+   */
+  placeholder?: string | ReactElement | undefined;
   /** Layout only: margins, and a size other than the text's (`size-8`). Appearance classes warn in development. */
   className?: string | undefined;
   /** The `<img>`. */
@@ -240,11 +267,36 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
 }
 
 /**
+ * The still image whose emoji has shown its picture, while `watch` is on: set once the image the
+ * `<img>` shows (`shown`) has loaded and decoded, and cleared when it fails, so a new still image
+ * waits for its own picture while the still and animated forms of one emoji share it.
+ */
+function usePictureReady(image: { current: HTMLImageElement | null }, shown: string | undefined, still: string, watch: boolean): string | undefined {
+  const [ready, setReady] = useState<string>();
+  useEffect(() => {
+    if (!watch) return;
+    // A decode that ends after the image has moved on is stale; a browser fails it, or lets it finish.
+    let stale = false;
+    const decoded = (ok: boolean) => {
+      if (!stale) setReady(ok ? still : undefined);
+    };
+    image.current!.decode().then(
+      () => decoded(true),
+      () => decoded(false),
+    );
+    return () => {
+      stale = true;
+    };
+  }, [image, shown, still, watch]);
+  return ready;
+}
+
+/**
  * One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named
  * by its `alt` (the emoji's name). An animated emoji shows its still image until it plays:
  * while the mouse is on it or on the button around it, or that button has focus, or while
  * `play` says so. With reduced motion it always shows the still image. `skinTone` draws an
- * emoji with tones in one of them.
+ * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
  * app that uses the platform's emoji font.
@@ -254,6 +306,7 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
  *
  * @example
  * <Emoji item={party} />
+ * <Emoji item={party} placeholder="/emoji/waiting.svg" />
  * <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
  * @claim "named by its `alt` (the emoji's name)" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > draws the still image named by the emoji's name, the size of the text, in the tone asked for)
  * @claim "With reduced motion it always shows the" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
@@ -265,6 +318,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
     skinTone = "default",
     play,
     alt,
+    placeholder,
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -306,21 +360,34 @@ export function Emoji(props: EmojiProps): JSX.Element {
   // An animated image wins over a filmstrip.
   const strip = playing && !form.animatedSrc ? form.filmstrip : undefined;
   useFilmstrip(own, strip);
-  return (
+  const shown = strip ? strip.src : playing ? form.animatedSrc : form.src;
+  const waits = placeholder !== undefined;
+  const ready = usePictureReady(own, shown, form.src, waits) === form.src;
+  const picture = (
     <img
       loading="lazy"
       {...rest}
       ref={mergedRef}
-      data-ouro="emoji"
-      src={strip ? strip.src : playing ? form.animatedSrc : form.src}
+      data-ouro={waits ? undefined : "emoji"}
+      src={shown}
       srcSet={playing ? undefined : form.srcSet}
       width={item.width}
       height={item.height}
       alt={alt ?? item.name}
       draggable={false}
       decoding="async"
-      className={cn(emojiClass, strip && "object-cover object-top", className)}
+      className={cn(waits ? [emojiPictureClass, ready ? emojiPictureReadyClass : "opacity-0"] : emojiClass, strip && "object-cover object-top", !waits && className)}
     />
+  );
+  if (!waits) return picture;
+  // The placeholder and the picture fill the root's box, the picture on top, so neither moves the text.
+  return (
+    <span data-ouro="emoji" data-loaded={ready ? "" : undefined} className={cn(emojiClass, "relative", className)}>
+      <span aria-hidden="true" className={cn(emojiPlaceholderClass, ready && emojiPlaceholderGoneClass)}>
+        {typeof placeholder === "string" ? <img src={placeholder} alt="" draggable={false} decoding="async" className="size-full object-contain" /> : placeholder}
+      </span>
+      {picture}
+    </span>
   );
 }
 

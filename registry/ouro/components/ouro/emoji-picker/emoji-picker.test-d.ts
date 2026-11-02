@@ -50,9 +50,9 @@ expectTypeOf<{
 expectTypeOf<ComponentProps<typeof EmojiPicker>>().toEqualTypeOf<EmojiPickerProps>();
 
 // A catalogue's picker passes a placeholder to every emoji it draws; the platform's emoji have none.
-const pickCatalogue = (selection: EmojiPickerCatalogueSelection) => void selection;
-expectTypeOf<{ label: "Add a reaction"; catalogue: EmojiCatalogue; trigger: typeof trigger; onSelect: typeof pickCatalogue; placeholder: "/emoji/waiting.png" }>().toExtend<EmojiPickerProps>();
-expectTypeOf<{ label: "Add a reaction"; catalogue: EmojiCatalogue; trigger: typeof trigger; onSelect: typeof pickCatalogue; placeholder: ReturnType<typeof createElement> }>().toExtend<EmojiPickerProps>();
+type PickCatalogue = (selection: EmojiPickerCatalogueSelection) => void;
+expectTypeOf<{ label: "Add a reaction"; catalogue: EmojiCatalogue; trigger: typeof trigger; onSelect: PickCatalogue; placeholder: "/emoji/waiting.png" }>().toExtend<EmojiPickerProps>();
+expectTypeOf<{ label: "Add a reaction"; catalogue: EmojiCatalogue; trigger: typeof trigger; onSelect: PickCatalogue; placeholder: ReturnType<typeof createElement> }>().toExtend<EmojiPickerProps>();
 expectTypeOf<{ label: "Add a reaction"; categories: typeof categories; trigger: typeof trigger; onSelect: typeof onSelect; placeholder: "/emoji/waiting.png" }>().not.toExtend<EmojiPickerProps>();
 
 // An emoji's tones: Unicode's modifier, or its five toned forms.
