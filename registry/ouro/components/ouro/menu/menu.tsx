@@ -518,6 +518,7 @@ export function Menu(props: MenuProps): JSX.Element {
   // Focus that moves anywhere else closes a dropdown (a menubar's menus are the bar's). Left open, Base UI keeps its
   // focus guards beside the trigger, and the one before it, met by a forward Tab, sends focus back to what Tab was
   // leaving.
+  // Stryker disable next-line BooleanLiteral: a menu's close() before it first opens does nothing, so the listener that starts with it changes nothing.
   const [shown, setShown] = useState(false);
   const isShown = open ?? shown;
   const actions = useRef<BaseMenu.Root.Actions | null>(null);
@@ -539,6 +540,7 @@ export function Menu(props: MenuProps): JSX.Element {
     setShown(next);
     onOpenChange?.(next);
   };
+  // Stryker disable next-line ConditionalExpression: Base UI reads an `open` of undefined as uncontrolled, as it reads none.
   const control = open !== undefined ? { open, onOpenChange: changed } : { onOpenChange: changed };
 
   if (context) {
