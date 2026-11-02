@@ -45,36 +45,42 @@ test("keeps the caret in the message when a control is clicked", async ({ page }
   await expect(page.getByText("Bold on, italic off")).toBeVisible();
 });
 
-test("floats as glass over the call, and turns solid with a defined border for more contrast", async ({ page }) => {
+test("floats as glass over the call, and turns solid with a defined edge for more contrast", async ({ page }) => {
   await openStory(page, "actions-toolbar--floating");
   const toolbar = page.getByRole("toolbar", { name: "Call controls" });
   await expect(toolbar).toHaveCSS("backdrop-filter", /^blur\(/);
-  await expect(toolbar).toHaveCSS("border-top-width", "0px");
+  const before = (await toolbar.boundingBox())!;
   await page.emulateMedia({ contrast: "more" });
   await expect(toolbar).toHaveCSS("backdrop-filter", "none");
-  await expect(toolbar).toHaveCSS("border-top-width", "2px");
+  await expect(toolbar).toHaveCSS("box-shadow", / 0px 0px 0px 2px/);
+  expect((await toolbar.boundingBox())!.height).toBe(before.height);
 });
 
-test("fades after the pointer rests, comes back on a move over the stage, and Tab brings it back first", async ({ page }) => {
+test("fades after the pointer rests, stays reachable, and comes back on a move over the stage or when Tab reaches it", async ({ page }) => {
   await page.clock.install();
   await openStory(page, "actions-toolbar--auto-hide");
   await holdClock(page);
-  const toolbar = page.locator('[data-ouro="toolbar"]');
+  const toolbar = page.getByRole("toolbar", { name: "Call controls" });
   const stage = page.getByRole("group", { name: "Design review" });
   const box = (await stage.boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + 40);
   await page.clock.runFor(3000);
   await expect(toolbar).toHaveAttribute("data-hidden", "");
-  await expect(page.getByRole("toolbar")).toHaveCount(0);
   await expect(page.getByText("Controls faded")).toBeVisible();
+  // Faded, it is still there for assistive technology, and keys elsewhere leave it be.
+  await expect(toolbar.getByRole("button", { name: "Mute" })).toHaveCount(1);
+  await page.keyboard.press("Shift");
+  await page.keyboard.press("Space");
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
   await page.mouse.move(box.x + 60, box.y + 40);
   await expect(toolbar).not.toHaveAttribute("data-hidden");
   await expect(page.getByText("Controls showing")).toBeVisible();
   await page.clock.runFor(3000);
   await expect(toolbar).toHaveAttribute("data-hidden", "");
   await pressTab(page);
-  await expect(page.getByRole("toolbar", { name: "Call controls" }).getByRole("button", { name: "Mute" })).toBeFocused();
-  // Keyboard use, and focus inside, hold it however long the pointer rests.
+  await expect(toolbar.getByRole("button", { name: "Mute" })).toBeFocused();
+  await expect(toolbar).not.toHaveAttribute("data-hidden");
+  // Keyboard focus holds it however long the pointer rests.
   await page.clock.runFor(10_000);
   await expect(toolbar).not.toHaveAttribute("data-hidden");
 });

@@ -43,7 +43,14 @@ export const agentCases: AgentCase[] = [
     dev: "<Toolbar autoHide={3000}>",
     names: ["tsc", "dev"],
   },
+  {
+    id: "toolbar07",
+    habit: "area for the element whose pointer moves bring the bar back",
+    tsc: ["error TS2741: Property ''Use <Toolbar autoHideArea={stageRef}>'' is missing in type 'HTMLElement' but required in type '{ 'Use <Toolbar autoHideArea={stageRef}>': never; }'."],
+    dev: "<Toolbar autoHide={3000} autoHideArea={stageRef}>",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid toolbar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["toolbarOk", "toolbarOk02"];
+export const validSnippets: string[] = ["toolbarOk", "toolbarOk02", "toolbarOk03"];

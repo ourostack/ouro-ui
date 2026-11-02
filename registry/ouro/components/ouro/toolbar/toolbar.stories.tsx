@@ -218,7 +218,8 @@ function Stage({ children }: { children: ReactNode }) {
       <Person name="Jonas Ek" hue="var(--chart-2, var(--secondary))" />
       <Person name="Priya Raman" hue="var(--chart-3, var(--accent))" />
       <Person name="Theo Okafor" hue="var(--chart-4, var(--muted-foreground))" />
-      <div style={{ position: "absolute", insetInline: 0, bottom: 16, display: "flex", justifyContent: "center", paddingInline: 16 }}>{children}</div>
+      {/* The wrapper passes presses through to the pictures beside the bar; a floating bar takes its own. */}
+      <div style={{ position: "absolute", insetInline: 0, bottom: 16, display: "flex", justifyContent: "center", paddingInline: 16, pointerEvents: "none" }}>{children}</div>
     </div>
   );
 }
@@ -233,7 +234,7 @@ export const Floating: Story = {
   ),
 };
 
-/** `autoHide={3000}`: the bar fades 3 seconds after the pointer rests, and comes back on a pointer move over the stage or any key. It stays while the pointer is over it, focus is inside it or its tooltip is open. */
+/** `autoHide={3000}`: the bar fades 3 seconds after the pointer rests, and comes back on a pointer move over the stage or when focus enters it (Tab). It stays while the pointer is over it, a control's tooltip is open, or keyboard focus is in it until the pointer moves. Faded, it is still in the accessibility tree. */
 export const AutoHide: Story = {
   render: function Render() {
     const [hidden, setHidden] = useState(false);

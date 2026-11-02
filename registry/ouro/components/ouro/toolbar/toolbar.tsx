@@ -2,7 +2,6 @@
 
 import { Toolbar as BaseToolbar } from "@base-ui/react/toolbar";
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type JSX, type KeyboardEvent, type MouseEvent, type Ref, type RefObject, type SVGProps } from "react";
-import { flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Menu, type MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
@@ -96,44 +95,67 @@ export interface ToolbarProps {
    * Draws the bar as glass that floats over content, as a calling app's controls float over
    * video: a translucent surface that blurs what is behind it, with a hairline edge, a soft
    * shadow and rounded corners, all from the theme. It turns solid, with no blur, when the
-   * system asks for reduced transparency, and solid with a defined border when it asks for more
+   * system asks for reduced transparency, and solid with a defined edge when it asks for more
    * contrast. It is the look only: where the bar floats stays your layout, such as an
    * absolutely placed wrapper over the stage.
    * @claim "a translucent surface that blurs what is behind it" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > is translucent glass from the theme, with a blur, a hairline, a shadow and rounded corners, and stays in the flow)
    * @claim "It turns solid, with no blur" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > turns solid with no blur when the system asks for reduced transparency)
-   * @claim "solid with a defined border when it asks for more" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > turns solid with a defined border with prefers-contrast: more)
+   * @claim "solid with a defined edge when it asks for more" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > turns solid with a defined edge with prefers-contrast: more, at the same size)
    */
   floating?: boolean | undefined;
   /**
    * Fades the bar out after this many milliseconds of pointer rest, as a calling app's controls
-   * fade over video (`3000` is usual). It fades with opacity only, also with reduced motion. Any
-   * pointer move over the element the bar is placed in, or any key, brings it back. It never
-   * fades while the pointer is over it, focus is inside it, or a menu, popover or tooltip from
-   * one of its controls is open, nor after a key until the pointer moves again. While faded it
-   * is `aria-hidden`, cannot be focused and drops its blur, and the root has `data-hidden`; a
-   * key brings it back before Tab moves focus, so keyboard users never lose it.
+   * fade over video (`3000` is usual). It fades with opacity alone, over the theme's base
+   * duration with its ease-out, the same with reduced motion. A pointer move over its area
+   * (`autoHideArea`) brings it back, and so does focus entering it, from Tab, a screen reader or
+   * Voice Control. Keys pressed elsewhere, such as typing in a chat or holding Space to talk,
+   * leave it as it is.
    *
-   * The area is the element the bar floats over, found from the layout rather than from a ref
-   * you pass, so the stage you place the bar on needs nothing wired up: the bar's offset parent
-   * (its nearest positioned ancestor), or, when that is an absolutely placed or fixed wrapper
-   * around the bar, the wrapper's own. A bar with no positioned ancestor, or in a fixed wrapper,
-   * listens to the whole page.
+   * It never fades while the pointer is over it, while a menu, popover or tooltip from one of
+   * its controls is open, while focus is in a dialog or popover that one of its controls opened,
+   * such as a share picker, or while keyboard focus is inside it, until the pointer moves on its
+   * area. A control pressed with the mouse keeps no hold, so the bar still fades after a click
+   * on Mute.
+   *
+   * While faded it stays in the accessibility tree and focusable, so assistive technology still
+   * reaches every control; it only takes no pointer presses, drops its blur, and has
+   * `data-hidden` on the root.
    * @claim "Fades the bar out after this many milliseconds" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > fades out with opacity after the pointer rests, and a pointer move over its area brings it back)
-   * @claim "It fades with opacity only" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > fades with opacity alone, also with reduced motion)
+   * @claim "It fades with opacity alone" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > fades with opacity alone, also with reduced motion)
+   * @claim "and so does focus entering it" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > comes back when focus enters it, from Tab or a screen reader)
+   * @claim "Keys pressed elsewhere" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays faded while someone types in a field elsewhere or presses keys on the page)
    * @claim "It never fades while the pointer is over it" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while the pointer rests on it, and fades once the pointer leaves)
-   * @claim "It never fades while the pointer is over it" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while focus is inside it)
-   * @claim "It never fades while the pointer is over it" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while its More menu is open)
-   * @claim "nor after a key until the pointer moves again" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays after a key until the pointer moves again)
-   * @claim "While faded it is" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > is hidden from screen readers and unfocusable while faded, and Tab brings it back first)
+   * @claim "while keyboard focus is inside it" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while keyboard focus is inside it, until the pointer moves on its area)
+   * @claim "while a menu, popover or tooltip" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while its More menu is open)
+   * @claim "while a menu, popover or tooltip" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while a popover anchored to one of its controls is open)
+   * @claim "while a menu, popover or tooltip" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays while a control's tooltip is open)
+   * @claim "while focus is in a dialog or popover that one of its" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays behind a modal dialog one of its controls opened, and takes focus back when it closes)
+   * @claim "while focus is in a dialog or popover that one of its" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > holds for a dialog that focus reached from the bar or right after a press on it, and for no other)
+   * @claim "A control pressed with the mouse keeps no hold" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > fades after a click on a control once the pointer rests on the stage)
+   * @claim "While faded it stays in the accessibility tree and focusable" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays in the accessibility tree and focusable while faded, and takes no pointer presses)
    * @claim "drops its blur" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > drops the glass's blur once it has faded, and has it back as soon as it shows)
-   * @claim "The area is the element the bar floats over" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > comes back for a pointer move over its offset parent only, or anywhere when it has none)
-   * @claim "A bar with no positioned ancestor, or in a fixed wrapper" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > comes back for a pointer move over its offset parent only, or anywhere when it has none)
    */
   autoHide?: number | (boolean & { 'Pass the milliseconds of rest: autoHide={3000}': never }) | undefined;
   /**
-   * With `autoHide`: called with `true` when the bar fades out and `false` when it comes back,
-   * so your layout can move into its space and back.
-   * @claim "called with `true` when the bar fades out" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > reports each fade and return to onHiddenChange, once each)
+   * With `autoHide`: the element whose pointer moves bring the bar back, such as the call's
+   * stage, as an element or a ref. Without it, the bar finds the element it floats over from the
+   * layout: its offset parent (its nearest positioned ancestor), or, when that is an absolutely
+   * placed or fixed wrapper around the bar, the wrapper's own, and so on up. That default needs
+   * nothing wired up for a bar in a wrapper on a `relative` stage, but a stage that is itself
+   * absolutely placed (`absolute inset-0`) widens it past the stage, and a bar in a `relative`
+   * wrapper narrows it to the wrapper: pass the stage then. A bar with no positioned ancestor,
+   * or in a fixed wrapper, listens to the whole page.
+   * @claim "the element whose pointer moves bring the bar back" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > takes its area from autoHideArea, an element or a ref, in either layout)
+   * @claim "its offset parent (its nearest positioned ancestor)" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > comes back for a pointer move over its offset parent only, or anywhere when it has none)
+   * @claim "its offset parent (its nearest positioned ancestor)" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > looks past an absolutely placed or fixed wrapper to the stage it floats over)
+   * @claim "a stage that is itself absolutely placed" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > takes its area from autoHideArea, an element or a ref, in either layout)
+   * @claim "A bar with no positioned ancestor, or in a fixed wrapper" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > comes back for a pointer move over its offset parent only, or anywhere when it has none)
+   */
+  autoHideArea?: Element | RefObject<Element | null> | null | undefined;
+  /**
+   * With `autoHide`: called with `true` as the bar starts to fade out and `false` as it starts to
+   * come back, so your layout can move into its space and back.
+   * @claim "called with `true` as the bar starts to fade out" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > reports each fade and return to onHiddenChange, once each)
    */
   onHiddenChange?: ((hidden: boolean) => void) | undefined;
   /** Layout only: margins, width, flex and grid placement (`flex-1`, `mt-2`). Appearance classes warn in development. */
@@ -151,6 +173,8 @@ export interface ToolbarProps {
   glass?: { 'Use <Toolbar floating>': never };
   /** Not a prop. `autoHide` takes the milliseconds: `<Toolbar autoHide={3000}>`. */
   autoHideDuration?: { 'Use <Toolbar autoHide={3000}>': never };
+  /** Not a prop. The element whose pointer moves bring the bar back is `autoHideArea`: `<Toolbar autoHide={3000} autoHideArea={stageRef}>`. */
+  area?: { 'Use <Toolbar autoHideArea={stageRef}>': never };
 }
 
 /** With `keepFocus`: a press leaves focus on whatever has it. With nothing focused, the control takes focus as usual. */
@@ -202,8 +226,10 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  * `floating` draws the bar as glass over content, such as a calling app's controls over video,
  * and `autoHide` fades it out while the pointer rests, until the pointer moves or a key is
  * pressed: `<Toolbar label="Call controls" floating autoHide={3000} items={controls} />`, in a
- * wrapper your layout places over the video (`absolute inset-x-0 bottom-4 flex justify-center`
- * inside the `relative` stage). `onHiddenChange` tells your layout when it fades and comes back.
+ * wrapper your layout places over the video (`pointer-events-none absolute inset-x-0 bottom-4
+ * flex justify-center` inside the `relative` stage, so the wrapper does not take presses meant
+ * for the pictures beside the bar; a floating bar takes its own). `autoHideArea` names the stage
+ * when the layout cannot, and `onHiddenChange` tells your layout when the bar fades and comes back.
  *
  * Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent
  * to read or do, so it declares no agent side; the controls inside declare their own, and a
@@ -230,13 +256,13 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  * @claim "Toolbar is a container with nothing of its own" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar > exports no agent side of its own)
  */
 export function Toolbar(props: ToolbarProps): JSX.Element {
-  const { label, items, size: sizeProp = "md", keepFocus, moreLabel = "More", disabled, floating, autoHide, onHiddenChange, className, ref } = props;
+  const { label, items, size: sizeProp = "md", keepFocus, moreLabel = "More", disabled, floating, autoHide, autoHideArea, onHiddenChange, className, ref } = props;
   const size = Object.hasOwn(toolbarSizes, sizeProp) ? (sizeProp as ToolbarSize) : "md";
   const delay = Number.isFinite(autoHide) && (autoHide as number) > 0 ? (autoHide as number) : undefined;
   useToolbarChecks(props, sizeProp, size, delay);
   const toggles = useToggles();
   const { rootRef, setRef, measuring, shown } = useOverflow(ref, items, size);
-  const { hidden, faded } = useAutoHide(rootRef, delay, onHiddenChange);
+  const { hidden, faded } = useAutoHide(rootRef, delay, autoHideArea, onHiddenChange);
   const { visible, overflow } = splitEntries(items, shown);
   const context: ControlContext = { size, keepFocus, disabled, toggles };
   const more = moreButton(moreLabel, size, disabled);
@@ -249,8 +275,6 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       data-ouro="toolbar"
       data-size={size}
       data-hidden={hidden ? "" : undefined}
-      aria-hidden={hidden || undefined}
-      inert={hidden}
       onKeyDown={onHomeEnd}
       className={cn(
         "box-border flex min-w-0 flex-nowrap items-center gap-0.5",
@@ -319,10 +343,12 @@ function propWarnings(props: ToolbarProps, sizeProp: string, size: ToolbarSize):
 
 /** The development warnings for `floating` and `autoHide`, and the names agents guess for them, with their fixes. */
 function floatWarnings(props: ToolbarProps, delay: number | undefined): DevWarning[] {
-  const { autoHide, onHiddenChange, glass, autoHideDuration } = props;
+  const { autoHide, autoHideArea, onHiddenChange, glass, autoHideDuration, area } = props;
   return [
     autoHide !== undefined && delay === undefined && [`autoHide={${String(autoHide)}} is not a time in milliseconds`, "<Toolbar autoHide={3000}>"],
     onHiddenChange !== undefined && delay === undefined && ["onHiddenChange is never called without autoHide", "<Toolbar autoHide={3000} onHiddenChange={…}>"],
+    autoHideArea !== undefined && delay === undefined && ["autoHideArea does nothing without autoHide", "<Toolbar autoHide={3000} autoHideArea={stageRef}>"],
+    area !== undefined && ["area is not a prop", "<Toolbar autoHide={3000} autoHideArea={stageRef}>"],
     glass !== undefined && ["glass is not a prop", "<Toolbar floating>"],
     autoHideDuration !== undefined && ["autoHideDuration is not a prop; autoHide takes the milliseconds", "<Toolbar autoHide={3000}>"],
   ];
@@ -422,11 +448,14 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
 }
 
 /**
- * The element whose pointer moves bring an auto-hiding bar back: the bar's offset parent, or,
- * when that is an absolutely placed or fixed wrapper around the bar, the wrapper's own, and so
- * on up. Null, for the whole page, when that runs out or reaches the body.
+ * The element whose pointer moves bring an auto-hiding bar back: `autoHideArea` when it names
+ * one, or else the bar's offset parent, or, when that is an absolutely placed or fixed wrapper
+ * around the bar, the wrapper's own, and so on up. Null, for the whole page, when that runs out
+ * or reaches the body.
  */
-function areaOf(root: HTMLElement): Element | null {
+function areaOf(root: HTMLElement, given: Element | RefObject<Element | null> | null | undefined): Element | null {
+  const named = given && "current" in given ? given.current : given;
+  if (named) return named;
   let area = root.offsetParent as HTMLElement | null;
   while (area !== null && ["absolute", "fixed"].includes(getComputedStyle(area).position)) area = area.offsetParent as HTMLElement | null;
   return area === root.ownerDocument.body ? null : area;
@@ -434,14 +463,15 @@ function areaOf(root: HTMLElement): Element | null {
 
 /**
  * With `autoHide`: whether the bar has faded out, and whether that fade has finished, so the
- * glass drops its blur only once nothing shows. Any pointer move or press over its area
- * (`areaOf`) shows it and starts the rest again; a key shows it at once, before Tab moves, and
- * stops the rest until the pointer moves. When the rest ends while the pointer is over the bar,
- * focus is inside it or a popup from it is open, it waits another rest.
+ * glass drops its blur only once nothing shows. A pointer move or press over its area
+ * (`areaOf`), focus entering it, or a key in it shows it and starts the rest again. When the
+ * rest ends while the pointer is over the bar, a popup from it is open, or keyboard focus has
+ * been in it since the pointer last moved, it waits another rest.
  */
 function useAutoHide(
   rootRef: RefObject<HTMLDivElement | null>,
   delay: number | undefined,
+  given: Element | RefObject<Element | null> | null | undefined,
   onHiddenChange: ((hidden: boolean) => void) | undefined,
 ): { hidden: boolean; faded: boolean } {
   const [hidden, setHidden] = useState(false);
@@ -453,40 +483,77 @@ function useAutoHide(
     const root = rootRef.current!;
     const doc = root.ownerDocument;
     const stop = new AbortController();
-    // Capture, so a player or a menu that stops an event inside the area still shows the bar.
+    // Capture, so a player or a menu that stops an event inside the area still counts.
     const listen = { capture: true, signal: stop.signal };
     let timer: ReturnType<typeof setTimeout> | undefined;
     let at: string | undefined;
-    const held = () => root.matches(":hover") || root.contains(doc.activeElement) || root.querySelector("[data-popup-open], [aria-expanded='true']") !== null;
-    let area = areaOf(root);
+    // A touch leaves :hover on what it tapped, so only a mouse or pen over the bar holds it.
+    let touch: boolean | undefined;
+    // Keys or focus in the bar since the pointer last moved on the area: focus already in it counts.
+    let keyed = root.contains(doc.activeElement);
+    // Whether the last press, by pointer or key, was on the bar, and the dialog or popover that
+    // focus then moved into: the one a control opened.
+    let pressed = false;
+    let lent: Element | null = null;
+    const held = () =>
+      (!touch && root.matches(":hover")) ||
+      root.querySelector("[data-popup-open], [aria-expanded='true']") !== null ||
+      lent?.contains(doc.activeElement) === true ||
+      // Keyboard focus only: Chromium focuses a button a mouse clicks, and that holds nothing.
+      (keyed && root.querySelector(":focus-visible") !== null);
+    let area = areaOf(root, given);
     const rest = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (held()) return rest();
         // Measured again as the bar goes, so a layout that changed since is the one that counts.
-        area = areaOf(root);
+        area = areaOf(root, given);
         setHidden(true);
         // Each fade keeps the blur until it has finished, whatever an earlier one left.
         setFaded(false);
       }, delay);
     };
+    const show = () => {
+      setHidden(false);
+      rest();
+    };
     const inArea = (target: EventTarget | null) => area === null || area.contains(target as Node);
     const onPointer = (event: PointerEvent) => {
+      if (event.type === "pointerdown") pressed = root.contains(event.target as Node);
       const where = `${event.clientX} ${event.clientY}`;
       // A move event that did not move (a browser's own, after layout) is no movement.
       if ((event.type === "pointermove" && where === at) || !inArea(event.target)) return;
       at = where;
-      setHidden(false);
-      rest();
+      touch = event.pointerType === "touch";
+      keyed = false;
+      show();
     };
-    const onKey = () => {
-      clearTimeout(timer);
-      // At once, so the bar is focusable again before the key's own action, such as Tab, runs.
-      flushSync(() => setHidden(false));
+    // Only keys in the bar count; a bare modifier or a held key's repeats are no use of it.
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      pressed = root.contains(event.target as Node);
+      if (!pressed || event.repeat || ["Alt", "Control", "Meta", "Shift"].includes(event.key)) return;
+      keyed = true;
+      show();
+    };
+    const onFocus = (event: FocusEvent) => {
+      const target = event.target as Element;
+      if (root.contains(target)) {
+        keyed = true;
+        show();
+        return;
+      }
+      // Focus that moves into a dialog or popover from the bar, or right after a press on it,
+      // lends the bar a hold while it stays there, so the bar is in place to take focus back.
+      if (pressed || root.contains(event.relatedTarget as Node | null)) lent = target.closest('[role="dialog"], [role="alertdialog"], dialog');
     };
     doc.addEventListener("pointermove", onPointer, listen);
     doc.addEventListener("pointerdown", onPointer, listen);
     doc.addEventListener("keydown", onKey, listen);
+    doc.addEventListener("focusin", onFocus, listen);
+    // Focus that leaves that dialog ends the loan; coming back to it later is no press on the bar.
+    doc.addEventListener("focusout", (event) => {
+      if (lent?.contains(event.target as Node) && !lent.contains(event.relatedTarget as Node | null)) lent = null;
+    }, listen);
     rest();
     return () => {
       stop.abort();
@@ -494,7 +561,7 @@ function useAutoHide(
       // So the bar shows when autoHide is turned off or changed.
       setHidden(false);
     };
-  }, [delay, rootRef]);
+  }, [delay, given, rootRef]);
 
   // The blur goes once the fade has finished (at once with no transition); it is read only while
   // the bar is hidden, so it comes back as soon as the bar shows.
@@ -616,16 +683,18 @@ function moreButton(moreLabel: string, size: ToolbarSize, disabled: boolean | un
 }
 
 // Glass over content: translucent card with a blur, a hairline, a soft shadow and the theme's
-// corners; solid where the system asks for less transparency, and with a defined border for
-// more contrast. Forced colours drop the ring, so the bar keeps an edge as a border there.
+// corners; solid where the system asks for less transparency, and with a defined edge for more
+// contrast, a ring so the box keeps its size. It takes presses inside a wrapper that passes them
+// through. Forced colours drop rings, so the bar keeps an edge as a border there.
 const floatingClass =
   "rounded-xl bg-card/75 p-1 text-card-foreground shadow-(--shadow-lg) ring-1 ring-border/60 backdrop-blur-xl " +
   "[@media(prefers-reduced-transparency:reduce)]:bg-card [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
-  "contrast-more:border-2 contrast-more:border-solid contrast-more:border-current contrast-more:bg-card contrast-more:ring-0 contrast-more:backdrop-blur-none " +
+  "pointer-events-auto contrast-more:bg-card contrast-more:ring-2 contrast-more:ring-current contrast-more:backdrop-blur-none " +
   "forced-colors:border forced-colors:border-solid";
 
-// The auto-hide fade: opacity only, so it fades with reduced motion too, over the short duration.
-const fadeClass = "transition-opacity duration-(--ouro-duration-slow) ease-(--ouro-ease-in-out) motion-reduce:duration-(--ouro-duration-fast) data-hidden:opacity-0";
+// The auto-hide fade: opacity alone, so it is the same with reduced motion. Faded, it takes no
+// presses, so an invisible control is never pressed by mistake; focus still reaches it.
+const fadeClass = "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-hidden:pointer-events-none data-hidden:opacity-0";
 
 /** A vertical rule between controls, in the border color. */
 const separatorClass = "mx-1 h-5 w-px shrink-0 self-center bg-border forced-colors:bg-[CanvasText]";

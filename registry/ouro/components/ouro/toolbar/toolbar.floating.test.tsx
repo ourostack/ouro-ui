@@ -1,8 +1,10 @@
-import { type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -11,6 +13,10 @@ import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
+
+function Icon() {
+  return <svg viewBox="0 0 16 16" />;
+}
 
 const controls: ToolbarEntry[] = [{ type: "toggle", label: "Mute" }, { label: "Share" }, { type: "separator" }, { label: "Leave" }];
 
@@ -124,17 +130,19 @@ describe("Toolbar floating", () => {
     expect(style.backdropFilter).toBe("none");
   });
 
-  it("turns solid with a defined border with prefers-contrast: more", async () => {
+  it("turns solid with a defined edge with prefers-contrast: more, at the same size", async () => {
     const { toolbar } = await render(<Toolbar label="Call controls" floating items={controls} />);
-    expect(getComputedStyle(toolbar).borderTopWidth).toBe("0px");
+    const size = toolbar.getBoundingClientRect();
     await commands.emulateMedia({ contrast: "more" });
     try {
       const style = getComputedStyle(toolbar);
       expect(style.backgroundColor).toBe(computedBackground("var(--card)"));
       expect(style.backdropFilter).toBe("none");
-      expect(style.borderTopWidth).toBe("2px");
-      expect(style.borderTopStyle).toBe("solid");
-      expect(style.borderTopColor).toBe(style.color);
+      // A 2px ring in the text colour, drawn outside the box, so nothing inside moves.
+      expect(style.boxShadow).toContain(`${style.color} 0px 0px 0px 2px`);
+      expect(style.borderTopWidth).toBe("0px");
+      const now = toolbar.getBoundingClientRect();
+      expect([now.width, now.height]).toEqual([size.width, size.height]);
     } finally {
       await commands.emulateMedia({ contrast: "no-preference" });
     }
@@ -199,14 +207,17 @@ describe("Toolbar autoHide", () => {
 
   it("fades with opacity alone, also with reduced motion", async () => {
     const { toolbar, picture } = await render(<Toolbar label="Call controls" floating autoHide={1000} items={controls} />);
+    const easeOut = getComputedStyle(document.documentElement).getPropertyValue("--ouro-ease-out").replace(/\s/g, "");
     expect(getComputedStyle(toolbar).transitionProperty).toBe("opacity");
-    expect(parseDuration(getComputedStyle(toolbar).transitionDuration)).toBe(token("--ouro-duration-slow"));
+    expect(parseDuration(getComputedStyle(toolbar).transitionDuration)).toBe(token("--ouro-duration-base"));
+    expect(getComputedStyle(toolbar).transitionTimingFunction.replace(/\s/g, "")).toBe(easeOut);
     await wait(1000);
     expect(toolbar.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty)).toEqual(["opacity"]);
     await fadeDone(toolbar);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     try {
-      expect(parseDuration(getComputedStyle(toolbar).transitionDuration)).toBe(token("--ouro-duration-fast"));
+      expect(parseDuration(getComputedStyle(toolbar).transitionDuration)).toBe(token("--ouro-duration-base"));
+      expect(getComputedStyle(toolbar).transitionTimingFunction.replace(/\s/g, "")).toBe(easeOut);
       await point(picture, "pointermove", 40, 40);
       expect(toolbar.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty)).toEqual(["opacity"]);
     } finally {
@@ -232,19 +243,66 @@ describe("Toolbar autoHide", () => {
     expect(isHidden(toolbar)).toBe(true);
   });
 
-  it("stays while focus is inside it", async () => {
-    const { toolbar, host } = await render(
-      <>
-        <Toolbar label="Call controls" autoHide={1000} items={controls} />
-        <button type="button" data-test-harness="">
-          Notes
-        </button>
-      </>,
+  it("takes no hold from the hover a touch leaves behind", async () => {
+    const { toolbar, picture } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
+    await userEvent.hover(page.getByRole("button", { name: "Share" }));
+    expect(toolbar.matches(":hover")).toBe(true);
+    // A tap on the stage: the last pointer is a finger, so the :hover left on the bar holds nothing.
+    await act(async () => void picture.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 5, clientY: 5, pointerType: "touch" })));
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+  });
+
+  it("stays while keyboard focus is inside it, until the pointer moves on its area", async () => {
+    const { toolbar, picture } = await render(
+      <Toolbar label="Call controls" autoHide={1000} items={controls} />,
+      "positioned",
+      <button type="button" data-test-harness="">
+        Before
+      </button>,
     );
-    await act(async () => page.getByRole("button", { name: "Share" }).element().focus());
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Mute" }).element());
     await wait(4000);
     expect(isHidden(toolbar)).toBe(false);
-    await act(async () => host.querySelector<HTMLElement>("[data-test-harness]")!.focus());
+    // Back to the mouse: the hold ends, though focus stays in the bar.
+    await point(picture, "pointermove", 20, 30);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Mute" }).element());
+    // A key in the bar brings it back, and holds it again, though focus stays where it was.
+    await userEvent.keyboard("{Enter}");
+    expect(isHidden(toolbar)).toBe(false);
+    await wait(4000);
+    expect(isHidden(toolbar)).toBe(false);
+  });
+
+  it("holds for keyboard focus already in it when autoHide turns on", async () => {
+    const bar = (autoHide?: number) => <Toolbar label="Call controls" autoHide={autoHide} items={controls} />;
+    const { toolbar, rerender } = await render(bar(), "positioned", <button type="button" data-test-harness="">Before</button>);
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    await rerender(bar(1000));
+    await wait(3000);
+    expect(isHidden(toolbar)).toBe(false);
+  });
+
+  it("fades after a click on a control once the pointer rests on the stage", async () => {
+    const { toolbar, picture, away } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
+    await userEvent.click(page.getByRole("button", { name: "Mute" }));
+    // Chromium focuses the clicked button and Safari does not; neither holds the bar.
+    const focused = document.activeElement;
+    await userEvent.hover(picture);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+    expect(document.activeElement).toBe(focused);
+    // Shown, clicked again, then left for somewhere outside the area: still no hold.
+    await point(picture, "pointermove", 27, 27);
+    await fadeDone(toolbar);
+    await act(async () => (document.activeElement as HTMLElement).blur());
+    await userEvent.click(page.getByRole("button", { name: "Mute" }));
+    await userEvent.hover(away);
     await wait(1000);
     expect(isHidden(toolbar)).toBe(true);
   });
@@ -273,62 +331,292 @@ describe("Toolbar autoHide", () => {
     expect(isHidden(toolbar)).toBe(true);
   });
 
-  it("stays after a key until the pointer moves again", async () => {
-    const { toolbar, picture } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
+  it("stays faded while someone types in a field elsewhere or presses keys on the page", async () => {
+    const { toolbar } = await render(
+      <Toolbar label="Call controls" autoHide={1000} items={controls} />,
+      "positioned",
+      <input aria-label="Chat" data-test-harness="" />,
+    );
     await wait(1000);
     expect(isHidden(toolbar)).toBe(true);
-    await userEvent.keyboard("{Shift}");
-    expect(isHidden(toolbar)).toBe(false);
-    await wait(600);
-    await userEvent.keyboard("{Shift}");
-    await wait(5000);
-    expect(isHidden(toolbar)).toBe(false);
-    await point(picture, "pointermove", 60, 60);
+    await userEvent.click(page.getByRole("textbox", { name: "Chat" }));
     await wait(1000);
     expect(isHidden(toolbar)).toBe(true);
-    // A key in the middle of a rest ends it too.
-    await point(picture, "pointermove", 61, 60);
-    await wait(600);
-    await userEvent.keyboard("{Shift}");
-    await wait(5000);
-    expect(isHidden(toolbar)).toBe(false);
+    await userEvent.keyboard("See you at noon{Enter}");
+    expect(isHidden(toolbar)).toBe(true);
+    await act(async () => (document.activeElement as HTMLElement).blur());
+    // Space to talk, a modifier for a shortcut or a screenshot.
+    await userEvent.keyboard("{ }{Shift}{Meta}{Control}");
+    expect(isHidden(toolbar)).toBe(true);
   });
 
-  it("is hidden from screen readers and unfocusable while faded, and Tab brings it back first", async () => {
-    const { toolbar } = await render(
+  it("comes back for a key in it, but not for a bare modifier or a held key's repeats", async () => {
+    const { toolbar, picture } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
+    const share = page.getByRole("button", { name: "Share" }).element();
+    await act(async () => share.focus());
+    await point(picture, "pointermove", 25, 25);
+    await wait(1000);
+    // Faded with focus still on Share.
+    expect(isHidden(toolbar)).toBe(true);
+    expect(document.activeElement).toBe(share);
+    for (const key of ["Shift", "Control", "Alt", "Meta"]) {
+      await userEvent.keyboard(`{${key}}`);
+      expect(isHidden(toolbar)).toBe(true);
+    }
+    await act(async () => void share.dispatchEvent(new KeyboardEvent("keydown", { key: "a", repeat: true, bubbles: true })));
+    expect(isHidden(toolbar)).toBe(true);
+    await userEvent.keyboard("{Enter}");
+    expect(isHidden(toolbar)).toBe(false);
+    expect(document.activeElement).toBe(share);
+  });
+
+  it("comes back when focus enters it, from Tab or a screen reader", async () => {
+    const { toolbar, picture } = await render(
       <Toolbar label="Call controls" autoHide={1000} items={controls} />,
       "positioned",
       <button type="button" data-test-harness="">
         Before
       </button>,
     );
-    expect(toolbar.hasAttribute("aria-hidden")).toBe(false);
-    expect(toolbar.hasAttribute("inert")).toBe(false);
-    await wait(1000);
-    expect(toolbar.getAttribute("aria-hidden")).toBe("true");
-    expect(toolbar.hasAttribute("inert")).toBe(true);
-    expect(page.getByRole("toolbar").query()).toBeNull();
     page.getByRole("button", { name: "Before" }).element().focus();
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
     await pressTab();
     expect(isHidden(toolbar)).toBe(false);
-    expect(toolbar.hasAttribute("aria-hidden")).toBe(false);
     expect(document.activeElement).toBe(page.getByRole("button", { name: "Mute" }).element());
+    await point(picture, "pointermove", 26, 26);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+    // A screen reader or Voice Control moves focus straight to a control, with no key in the page.
+    await act(async () => page.getByRole("button", { name: "Leave" }).element().focus());
+    expect(isHidden(toolbar)).toBe(false);
+  });
+
+  it("stays in the accessibility tree and focusable while faded, and takes no pointer presses", async () => {
+    const { toolbar } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+    expect(["aria-hidden", "inert"].filter((name) => toolbar.hasAttribute(name))).toEqual([]);
+    await expect.element(page.getByRole("toolbar", { name: "Call controls" }).getByRole("button", { name: "Mute" })).toBeInTheDocument();
+    expect(page.getByRole("button", { name: "Mute" }).element().tabIndex).toBe(0);
+    expect(getComputedStyle(toolbar).pointerEvents).toBe("none");
+    const mute = page.getByRole("button", { name: "Mute" }).element().getBoundingClientRect();
+    expect(toolbar.contains(document.elementFromPoint(mute.x + mute.width / 2, mute.y + mute.height / 2))).toBe(false);
   });
 
   it("comes back for an event that something inside its area stops", async () => {
     const { toolbar, picture } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
-    for (const type of ["pointermove", "pointerdown", "keydown"]) picture.addEventListener(type, (event) => event.stopPropagation());
+    for (const type of ["pointermove", "pointerdown"]) picture.addEventListener(type, (event) => event.stopPropagation());
     for (const [index, type] of (["pointermove", "pointerdown"] as const).entries()) {
       await wait(1000);
       expect(isHidden(toolbar)).toBe(true);
       await point(picture, type, 70 + index, 70);
       expect(isHidden(toolbar)).toBe(false);
     }
-    await wait(1000);
-    picture.tabIndex = -1;
-    picture.focus();
-    await userEvent.keyboard("{Shift}");
+  });
+
+  it("stays while a popover anchored to one of its controls is open", async () => {
+    function WithReactions() {
+      const [open, setOpen] = useState(false);
+      const anchor = useRef<HTMLElement | null>(null);
+      const items: ToolbarEntry[] = [
+        {
+          label: "Reactions",
+          onClick: () => {
+            anchor.current = document.querySelector<HTMLElement>('[data-ouro-part="button"]');
+            setOpen(true);
+          },
+        },
+        { label: "Leave" },
+      ];
+      return (
+        <>
+          <Toolbar label="Call controls" autoHide={1000} items={items} />
+          <Popover title="Reactions" open={open} onOpenChange={setOpen} anchor={anchor}>
+            <button type="button" data-test-harness="">
+              Wave
+            </button>
+          </Popover>
+        </>
+      );
+    }
+    const { toolbar, picture } = await render(<WithReactions />);
+    await userEvent.click(page.getByRole("button", { name: "Reactions" }));
+    await expect.element(page.getByRole("dialog", { name: "Reactions" })).toBeVisible();
+    await expect.poll(() => page.getByRole("dialog", { name: "Reactions" }).element().contains(document.activeElement)).toBe(true);
+    // Off the bar, onto the pictures.
+    await userEvent.hover(picture);
+    await wait(3000);
     expect(isHidden(toolbar)).toBe(false);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("dialog").query()).toBeNull();
+    // Focus goes back to Reactions, or to the page where a click focused nothing; then back to the mouse.
+    await expect.poll(() => toolbar.contains(document.activeElement) || document.activeElement === document.body).toBe(true);
+    await point(picture, "pointermove", 32, 31);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+  });
+
+  it("stays while a control's tooltip is open", async () => {
+    const { toolbar, picture } = await render(
+      <Toolbar label="Call controls" autoHide={1000} items={[{ label: "Mute", icon: Icon, hideLabel: true }, { label: "Leave" }]} />,
+      "positioned",
+      <button type="button" data-test-harness="">
+        Before
+      </button>,
+    );
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    const mute = page.getByRole("button", { name: "Mute" }).element();
+    await expect.poll(() => mute.hasAttribute("data-popup-open")).toBe(true);
+    // Back to the mouse, so only the open tooltip holds the bar.
+    await point(picture, "pointermove", 33, 33);
+    await wait(3000);
+    expect(isHidden(toolbar)).toBe(false);
+    await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
+    await expect.poll(() => mute.hasAttribute("data-popup-open")).toBe(false);
+    await point(picture, "pointermove", 34, 33);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+  });
+
+  it("stays behind a modal dialog one of its controls opened, and takes focus back when it closes", async () => {
+    let before: Element | null = null;
+    function WithShare() {
+      const [open, setOpen] = useState(false);
+      const items: ToolbarEntry[] = [
+        {
+          label: "Share",
+          onClick: () => {
+            before = document.activeElement;
+            setOpen(true);
+          },
+        },
+        { label: "Leave" },
+      ];
+      return (
+        <>
+          <Toolbar label="Call controls" autoHide={1000} items={items} />
+          <Dialog title="Share your screen" open={open} onOpenChange={setOpen}>
+            <button type="button" data-test-harness="" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </Dialog>
+        </>
+      );
+    }
+    const { toolbar, picture } = await render(<WithShare />);
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    await expect.element(page.getByRole("dialog", { name: "Share your screen" })).toBeVisible();
+    await wait(3000);
+    expect(isHidden(toolbar)).toBe(false);
+    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    await expect.poll(() => page.getByRole("dialog").query()).toBeNull();
+    // Focus goes back where it was when Share was clicked: Share itself in Chromium, never lost to a hidden bar.
+    await expect.poll(() => document.activeElement).toBe(before);
+    await point(picture, "pointermove", 35, 35);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+  });
+
+  it("holds for a dialog that focus reached from the bar or right after a press on it, and for no other", async () => {
+    const { toolbar, picture } = await render(<Toolbar label="Call controls" autoHide={1000} items={controls} />);
+    const picker = document.createElement("div");
+    picker.setAttribute("role", "dialog");
+    picker.setAttribute("aria-label", "Picker");
+    picker.tabIndex = -1;
+    const plain = document.createElement("div");
+    plain.tabIndex = -1;
+    document.body.append(picker, plain);
+    mounted.push(picker, plain);
+    const share = page.getByRole("button", { name: "Share" }).element();
+    const holds = async (open: () => void) => {
+      await act(async () => (document.activeElement as HTMLElement | null)?.blur());
+      await point(picture, "pointermove", 40 + Math.random(), 40);
+      open();
+      await point(picture, "pointermove", 41 + Math.random(), 40);
+      await wait(3000);
+      const kept = !isHidden(toolbar);
+      await act(async () => (document.activeElement as HTMLElement | null)?.blur());
+      await point(picture, "pointermove", 42 + Math.random(), 40);
+      return kept;
+    };
+    // Before any press, focus into a dialog is not the bar's.
+    expect(await holds(() => picker.focus())).toBe(false);
+    // Focus moved from a control into the dialog.
+    expect(await holds(() => (share.focus(), picker.focus()))).toBe(true);
+    // A press on a control, a move on the stage, then the dialog: a move is no press.
+    expect(
+      await holds(() => (share.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), picture.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 7 })), picker.focus())),
+    ).toBe(true);
+    // A press on a control, with focus nowhere, then the dialog.
+    expect(await holds(() => (share.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), picker.focus()))).toBe(true);
+    // A key on a control, then the dialog.
+    expect(await holds(() => (share.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })), picker.focus()))).toBe(true);
+    // A press on the stage, then the dialog: not the bar's.
+    expect(await holds(() => (picture.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), picker.focus()))).toBe(false);
+    // A press on the bar, then somewhere that is no dialog.
+    expect(await holds(() => (share.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), plain.focus()))).toBe(false);
+    // Focus moving inside the dialog, after a press in it, keeps the hold.
+    const inner = document.createElement("button");
+    inner.textContent = "Window";
+    picker.append(inner);
+    expect(
+      await holds(() => (share.focus(), picker.focus(), picker.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), inner.focus())),
+    ).toBe(true);
+    // Once focus has left the dialog, it holds no more.
+    await act(async () => (share.focus(), picker.focus()));
+    await act(async () => plain.focus());
+    await point(picture, "pointermove", 43, 40);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+  });
+
+  it("takes its area from autoHideArea, an element or a ref, in either layout", async () => {
+    // A stage that is itself absolutely placed beside a side panel: the default widens to the whole app.
+    function App({ named }: { named: boolean }) {
+      const stage = useRef<HTMLDivElement>(null);
+      return (
+        <div style={{ position: "relative", height: 200 }}>
+          <div data-side="" style={{ width: 100, height: 200 }} />
+          <div ref={stage} data-call="" style={{ position: "absolute", insetBlock: 0, insetInlineStart: 100, insetInlineEnd: 0 }}>
+            <div data-tile="" style={{ height: 120 }} />
+            <div style={{ position: "absolute", insetInline: 0, bottom: 0, display: "flex", justifyContent: "center" }}>
+              <Toolbar label={`Call controls ${named}`} autoHide={1000} autoHideArea={named ? stage : undefined} items={controls} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    for (const named of [false, true]) {
+      const { toolbar, host } = await render(<App named={named} />);
+      await wait(1000);
+      await point(host.querySelector("[data-side]")!, "pointermove", 50 + Number(named), 50);
+      expect(isHidden(toolbar)).toBe(named);
+      await point(host.querySelector("[data-tile]")!, "pointermove", 52 + Number(named), 50);
+      expect(isHidden(toolbar)).toBe(false);
+    }
+
+    // A positioned box between the bar and the stage: the default narrows to that box.
+    function Anchored({ named }: { named: boolean | "empty" }) {
+      const [stage, setStage] = useState<HTMLDivElement | null>(null);
+      return (
+        <div ref={setStage} style={{ position: "relative", height: 200 }}>
+          <div data-tile="" style={{ height: 120 }} />
+          <div style={{ position: "absolute", insetInline: 0, bottom: 0, display: "flex", justifyContent: "center" }}>
+            <span style={{ position: "relative" }}>
+              <Toolbar label={`Call controls ${named}`} autoHide={1000} autoHideArea={named === "empty" ? { current: null } : named ? stage : undefined} items={controls} />
+            </span>
+          </div>
+        </div>
+      );
+    }
+    for (const named of [false, "empty", true] as const) {
+      const { toolbar, host } = await render(<Anchored named={named} />);
+      await wait(1000);
+      await point(host.querySelector("[data-tile]")!, "pointermove", 60 + String(named).length, 50);
+      expect(isHidden(toolbar)).toBe(named !== true);
+    }
   });
 
   it("comes back for a pointer move over its offset parent only, or anywhere when it has none", async () => {
@@ -488,6 +776,12 @@ describe("Toolbar floating and autoHide development messages", () => {
       "[ouro-ui] Toolbar: onHiddenChange is never called without autoHide. Fix: <Toolbar autoHide={3000} onHiddenChange={…}>.",
     ],
     ["glass", { glass: true }, "[ouro-ui] Toolbar: glass is not a prop. Fix: <Toolbar floating>."],
+    [
+      "autoHideArea without autoHide",
+      { autoHideArea: document.body },
+      "[ouro-ui] Toolbar: autoHideArea does nothing without autoHide. Fix: <Toolbar autoHide={3000} autoHideArea={stageRef}>.",
+    ],
+    ["area", { area: document.body }, "[ouro-ui] Toolbar: area is not a prop. Fix: <Toolbar autoHide={3000} autoHideArea={stageRef}>."],
     ["autoHideDuration", { autoHideDuration: 3000 }, "[ouro-ui] Toolbar: autoHideDuration is not a prop; autoHide takes the milliseconds. Fix: <Toolbar autoHide={3000}>."],
   ])("names the fix for %s", async (_case, extra, message) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -511,7 +805,7 @@ describe("Toolbar floating server rendering", () => {
     host.innerHTML = html;
     const bar = host.firstElementChild!;
     expect(bar.getAttribute("data-ouro")).toBe("toolbar");
-    expect(["data-hidden", "aria-hidden", "inert"].filter((name) => bar.hasAttribute(name))).toEqual([]);
+    expect(bar.hasAttribute("data-hidden")).toBe(false);
     expect(bar.classList.contains("backdrop-blur-xl")).toBe(true);
     document.body.append(host);
     mounted.push(host);

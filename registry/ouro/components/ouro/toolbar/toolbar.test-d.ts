@@ -1,4 +1,4 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type RefObject } from "react";
 import { expectTypeOf } from "vitest";
 import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
@@ -52,6 +52,12 @@ expectTypeOf<{ label: "Call controls"; items: typeof items; onHiddenChange: (hid
 // The guessed names are type errors whose hint names the fix.
 expectTypeOf<{ label: "Call controls"; items: typeof items; glass: true }>().not.toExtend<ToolbarProps>();
 expectTypeOf<{ label: "Call controls"; items: typeof items; autoHideDuration: 3000 }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; area: HTMLElement }>().not.toExtend<ToolbarProps>();
+// autoHideArea takes an element, a ref or null; a selector is a type error.
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: HTMLDivElement }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: RefObject<HTMLDivElement | null> }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: null }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: "#stage" }>().not.toExtend<ToolbarProps>();
 
 // The same checks through JSX.
 // @ts-expect-error a Toolbar is a row.
