@@ -118,16 +118,16 @@ The kit prints a voice line only when stdout is a terminal, and never under `--j
 
 ## Components
 
-An Ouro HX component an agent can act through declares its agent side next to it: what an agent may read from it, with the fields, and its actions' effects, with `agent: true` for an action an agent may take or `personOnly` with the reason for one only the person takes. Leaving out that choice, or making both, is a type error and a one-line error at load.[^component] The app binds each read and agent action to its CLI twin, because a component does not know the app's command names; `bindAx` throws when one has no twin, or when a person-only action is given one, and returns the entries for the X-ray's inventory.[^bind] Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. These are the calling components, bound to a `call` tool:
+An Ouro HX component an agent can act through declares its agent side next to it: what an agent may read from it, with the fields, and its actions' effects, with `agent: true` for an action an agent may take or `personOnly` with the reason for one only the person takes, said to the agent ("You can't turn on the person's camera; only they can."). Leaving out that choice, or making both, is a type error and a one-line error at load.[^component] Some ids are the person's in every component (`RESERVED_PERSON_ONLY`: `unmute`, `camera`, `camera-on`, `share`, `answer`, `decline`, `admit` and `record`), and declaring one `agent: true` throws.[^reserved] The app binds each read and agent action to its CLI twin, because a component does not know the app's command names, and gives each person-only action the CLI words an agent might try (`refuseAs`); `bindAx` throws when one has no twin or no words, or when a person-only action is given a twin, and returns the entries for the X-ray's inventory.[^bind] Each component renders `data-ax-action="<id>"` on the control for each action it declares, and its tests check that with `expectAxRendered(ax, container)`.[^rendered] Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. These are the calling components, bound to a `call` tool:
 
 ```ts
 import { bindAx, defineComponentAx } from "./lib/ouro/ax/component.ts";
 
-const theirs = "agents never turn on a person's microphone, camera or screen";
+const theirs = "You can't turn on the person's microphone, camera or screen; only they can.";
 
 export const mediaTileAx = defineComponentAx({
   component: "MediaTile",
-  reads: [{ name: "participant", summary: "Who is in the tile, and what they are doing.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
+  reads: [{ id: "participant", summary: "Who is in the tile, and what they are doing.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
 });
 
@@ -142,13 +142,13 @@ export const callControlsAx = defineComponentAx({
     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
-    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "may show others that captions are on" },
+    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "You can't turn on captions for the person, since others may see they are on; only they can." },
   ],
 });
 
 export const liveCaptionsAx = defineComponentAx({
   component: "LiveCaptions",
-  reads: [{ name: "captions", summary: "What people say, once the person asks you to follow the meeting.", fields: ["speaker", "text", "at"], consent: "listening", push: "filtered" }],
+  reads: [{ id: "captions", summary: "What people say, once the person asks you to follow the meeting.", fields: ["speaker", "text", "at"], consent: "listening", push: "filtered" }],
   actions: [],
 });
 
@@ -212,5 +212,7 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^bind]: test:registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries; test:scripts/ax.test.mjs::the guide shows the calling components' declarations as they are verify:testExists(registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries) verify:testExists(scripts/ax.test.mjs::the guide shows the calling components' declarations as they are)
 [^listening]: test:registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow verify:testExists(registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow)
 [^person-only]: test:registry/ouro/ax/cli.test.mts::a person-only word refuses with its reason and how the person does it, as a refused outcome under --json; test:registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it verify:testExists(registry/ouro/ax/cli.test.mts::a person-only word refuses with its reason and how the person does it, as a refused outcome under --json) verify:testExists(registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it)
-[^join]: registry/ouro/ax/fixtures/call.mts verify:fileLine(registry/ouro/ax/fixtures/call.mts, /join: \{ reason: "the person joins a call, and you read from the app's one capture"/)
+[^join]: registry/ouro/ax/fixtures/call.mts verify:fileLine(registry/ouro/ax/fixtures/call.mts, /join: \{ reason: "You can't join a call for the person, and you read from the app's one capture; only they join\."/)
+[^reserved]: test:registry/ouro/ax/component.test.mts::a reserved action is always the person's: declaring it agent: true throws with its reason verify:testExists(registry/ouro/ax/component.test.mts::a reserved action is always the person's: declaring it agent: true throws with its reason)
+[^rendered]: test:registry/ouro/ax/component.test.mts::expectAxRendered finds each declared action's control by data-ax-action, and names the ones it misses verify:testExists(registry/ouro/ax/component.test.mts::expectAxRendered finds each declared action's control by data-ax-action, and names the ones it misses)
 [^lint]: test:registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command verify:testExists(registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command)

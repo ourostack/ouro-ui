@@ -1,10 +1,10 @@
 import { bindAx, defineComponentAx } from "../component.ts";
 
-const theirs = "agents never turn on a person's microphone, camera or screen";
+const theirs = "You can't turn on the person's microphone, camera or screen; only they can.";
 
 export const mediaTileAx = defineComponentAx({
   component: "MediaTile",
-  reads: [{ name: "participant", summary: "Who is in the tile, and what they are doing.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
+  reads: [{ id: "participant", summary: "Who is in the tile, and what they are doing.", fields: ["name", "muted", "camera", "speaking", "handRaised", "connection"], consent: "none" }],
   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
 });
 
@@ -19,13 +19,13 @@ export const callControlsAx = defineComponentAx({
     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
-    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "may show others that captions are on" },
+    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "You can't turn on captions for the person, since others may see they are on; only they can." },
   ],
 });
 
 export const liveCaptionsAx = defineComponentAx({
   component: "LiveCaptions",
-  reads: [{ name: "captions", summary: "What people say, once the person asks you to follow the meeting.", fields: ["speaker", "text", "at"], consent: "listening", push: "filtered" }],
+  reads: [{ id: "captions", summary: "What people say, once the person asks you to follow the meeting.", fields: ["speaker", "text", "at"], consent: "listening", push: "filtered" }],
   actions: [],
 });
 

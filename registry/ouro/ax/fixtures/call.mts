@@ -71,7 +71,7 @@ function others(name: string, summary: string, doing: string, done: string, chan
   });
 }
 
-const theirs = { reason: "agents never turn on a person's microphone, camera or screen", how: "with the buttons in the call's controls" };
+const theirs = { reason: "You can't turn on the person's microphone, camera or screen; only they can.", how: "with the buttons in the call's controls" };
 const cli = defineCli({
   name: "call",
   about: ["call: the person's call, for agents. You never join one; you read from the app's capture."],
@@ -125,8 +125,8 @@ const cli = defineCli({
     ...(faults.has("unmute") ? {} : { unmute: theirs }),
     camera: theirs,
     share: theirs,
-    "captions on": { reason: "turning captions on may show others that captions are on", how: "with the captions button in the call's controls" },
-    join: { reason: "the person joins a call, and you read from the app's one capture", how: "from the meeting's join button" },
+    "captions on": { reason: "You can't turn on captions for the person, since others may see they are on; only they can.", how: "with the captions button in the call's controls" },
+    join: { reason: "You can't join a call for the person, and you read from the app's one capture; only they join.", how: "from the meeting's join button" },
   },
 });
 
