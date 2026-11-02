@@ -3,8 +3,10 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { ThreadSummary, type ThreadSummaryProps } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -47,9 +49,8 @@ describe("ThreadSummary", () => {
     const { summary } = await render(<ThreadSummary count={4} repliers={repliers} lastReply="7:44 AM" lastReplyDateTime="2026-05-04T07:44" onOpen={onOpen} />);
     const group = page.getByRole("group", { name: "Replied" });
     await expect.element(group).toBeVisible();
-    // The first three faces, then a count for the rest.
+    // The first three faces; the button's count says the rest.
     expect(summary.querySelectorAll('[data-ouro="avatar"]')).toHaveLength(3);
-    expect(group.element().textContent).toContain("+1");
     const button = page.getByRole("button", { name: "4 replies" });
     await userEvent.click(button);
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -61,6 +62,16 @@ describe("ThreadSummary", () => {
     // In reading order: faces, then the button, then the time.
     expect(group.element().compareDocumentPosition(button.element()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(button.element().compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows three faces at most, each a picture or one initial, and no further count", async () => {
+    const names = [{ name: "Mara Quill" }, { name: "Theo Brandt" }, { name: "Priya Okafor" }, { name: "Jonah Vale" }];
+    const { summary } = await render(<ThreadSummary count={9} repliers={names} onOpen={() => {}} />);
+    const faces = [...summary.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(faces.map((face) => face.textContent)).toEqual(["M", "T", "P"]);
+    expect(summary.querySelector('[role="group"]')!.textContent).not.toMatch(/\+/);
+    await render(<ThreadSummary count={1} repliers={[{ name: "  ébène Rowe" }]} onOpen={() => {}} />);
+    expect(mounted.at(-1)!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("é");
   });
 
   it("says one reply in the singular, and leaves out what it was not given", async () => {
@@ -94,6 +105,43 @@ describe("ThreadSummary", () => {
     expect(button.element().querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
     await userEvent.click(button);
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Reply in a message only while the pointer is over it or focus is in it, keeping its place", async () => {
+    const { host } = await render(
+      <>
+        <button type="button" data-test-harness="">
+          Before
+        </button>
+        <Message variant="post" role="assistant" name="Jonah Vale" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+          Agenda for Friday
+        </Message>
+        <Message variant="post" role="assistant" name="Mara Quill" thread={<ThreadSummary count={2} onOpen={() => {}} />}>
+          Mockups
+        </Message>
+        <ThreadSummary count={0} onOpen={() => {}} />
+      </>,
+    );
+    const [quiet, replied, alone] = [...host.querySelectorAll<HTMLElement>('[data-ouro="thread-summary"]')];
+    const opacity = (element: HTMLElement) => getComputedStyle(element).opacity;
+    // At rest Reply is hidden under its message, but holds its row; the count under a post with replies shows, and so
+    // does a ThreadSummary outside a message.
+    expect(opacity(quiet!)).toBe("0");
+    const rest = quiet!.getBoundingClientRect();
+    expect(rest.height).toBeGreaterThan(0);
+    expect(opacity(replied!)).toBe("1");
+    expect(opacity(alone!)).toBe("1");
+    await userEvent.hover(quiet!.closest("article")!);
+    await expect.poll(() => opacity(quiet!)).toBe("1");
+    expect(quiet!.getBoundingClientRect()).toEqual(rest);
+    await userEvent.unhover(quiet!.closest("article")!);
+    await expect.poll(() => opacity(quiet!)).toBe("0");
+    // Keyboard focus shows it at once, with no fade to wait for.
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    expect(document.activeElement).toBe(quiet!.querySelector("button"));
+    expect(opacity(quiet!)).toBe("1");
+    expect(quiet!.getBoundingClientRect()).toEqual(rest);
   });
 
   it("takes other words for every label", async () => {

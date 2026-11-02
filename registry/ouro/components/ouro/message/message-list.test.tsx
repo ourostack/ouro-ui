@@ -114,6 +114,35 @@ afterEach(async () => {
 });
 
 describe("MessageList", () => {
+  it("sits a short conversation at its bottom, by the composer under it, with the room above it empty", async () => {
+    const { scroller } = await render(<Chat items={history(2)} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const messages = scroller.querySelectorAll('[data-ouro="message"]');
+    const last = messages[messages.length - 1]!.getBoundingClientRect();
+    const padding = parseFloat(getComputedStyle(content).paddingBottom);
+    expect(scroller.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(padding, 0);
+    expect(messages[0]!.getBoundingClientRect().top - scroller.getBoundingClientRect().top).toBeGreaterThan(padding);
+    expect(scroller.scrollHeight).toBe(scroller.clientHeight);
+  });
+
+  it("sits what starts a short conversation, its first child, right above the first message", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <p data-start="" style={{ margin: 0 }}>
+          The start of your conversation with Ada
+        </p>
+        <Message role="user" name="Ada">
+          Hello
+        </Message>
+      </MessageList>,
+    );
+    const start = scroller.querySelector("[data-start]")!.getBoundingClientRect();
+    const first = scroller.querySelector('[data-ouro="message"]')!.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(scroller.querySelector("[data-ouro-message-list-content]")!).rowGap);
+    expect(first.top - start.bottom).toBeCloseTo(gap, 0);
+    expect(start.top - scroller.getBoundingClientRect().top).toBeGreaterThan(gap);
+  });
+
   it("outlines the scrollable region under forced colours, so a contrast theme shows where it ends", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     try {
@@ -759,6 +788,33 @@ describe("MessageList", () => {
     expect(error).not.toHaveBeenCalled();
   });
 
+  it("centres the conversation at maxWidth in a wider list, the user's own messages with it, and fills a narrower one", async () => {
+    const list = (width: number, maxWidth?: number) => (
+      <MessageList label="Conversation" style={{ width, height: 300 }} maxWidth={maxWidth}>
+        <Message role="assistant" name="Ouro" id="theirs">
+          Rest the dough for an hour.
+        </Message>
+        <Message role="user" name="Ada" id="mine">
+          Covered?
+        </Message>
+      </MessageList>
+    );
+    const { host, rerender } = await render(list(1200, 600));
+    const content = () => host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const scroller = () => host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    const rect = (element: Element) => element.getBoundingClientRect();
+    expect(rect(content()).width).toBeCloseTo(600, 0);
+    const room = scroller().clientWidth - 600;
+    expect(rect(content()).left - rect(scroller()).left).toBeCloseTo(room / 2, 0);
+    // The user's own message ends at the column's edge, inside its 16px padding, not at the list's.
+    expect(rect(document.getElementById("mine")!).right).toBeCloseTo(rect(content()).right - 16, 0);
+    await rerender(list(400, 600));
+    expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
+    await rerender(list(1200));
+    expect(rect(content()).width).toBeCloseTo(scroller().clientWidth, 0);
+    expect(content().style.cssText).toBe("");
+  });
+
   it("forwards a ref to the root and lets app layout classes win", async () => {
     let element: HTMLElement | null = null;
     const { list } = await render(
@@ -825,6 +881,27 @@ describe("MessageList keyboard", () => {
     expect(focusedId()).toBe("post-5");
     await pressTab({ shift: true });
     expect(document.activeElement).toBe(button("Before"));
+  });
+
+  it("reads ⌘↑ and ⌘↓ as Home and End, and ⌥↑ and ⌥↓ as Page Up and Page Down, on a Mac", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const { scroller } = await render(<Channel>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("post-13");
+    await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+    expect(focusedId()).toBe("post-0");
+    await userEvent.keyboard("{Meta>}{ArrowDown}{/Meta}");
+    expect(focusedId()).toBe("post-13");
+    const messages = [...scroller.querySelectorAll<HTMLElement>("article")];
+    const start = messages[13]!.getBoundingClientRect().top;
+    const up = messages.findIndex((message, index) => index < 13 && start - message.getBoundingClientRect().top <= scroller.clientHeight);
+    expect(up).toBeLessThan(12);
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(focusedId()).toBe(`post-${up}`);
+    await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+    expect(Number(focusedId().slice(5))).toBeGreaterThan(up + 1);
   });
 
   it("moves between messages with the arrow keys, Home, End, Page Up and Page Down, with a focus ring", async () => {
@@ -1066,6 +1143,9 @@ describe("MessageList keyboard", () => {
   });
 
   it.each(["Alt", "Control", "Meta", "Shift"])("leaves the down arrow with %s to the browser and the app", async (modifier) => {
+    // Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys.
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "Windows" } as never);
     const { scroller } = await render(<Channel>{posts(3)}</Channel>);
     const first = scroller.querySelector<HTMLElement>("article")!;
     await act(async () => first.setAttribute("tabindex", "0"));

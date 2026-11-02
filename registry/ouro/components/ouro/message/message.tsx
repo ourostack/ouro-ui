@@ -3,6 +3,9 @@
 import {
   isValidElement,
   useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
   useState,
   type HTMLAttributes,
   type JSX,
@@ -11,8 +14,10 @@ import {
   type ReactElement,
   type ReactNode,
   type Ref,
+  type SVGProps,
 } from "react";
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -28,6 +33,12 @@ export type MessageRole = "user" | "assistant" | "system";
  */
 export type MessageVariant = "default" | "chat" | "post" | "reply";
 
+/**
+ * Where a `chat` or `reply` message's action bar sits: `corner` over the bubble's top corner, raised
+ * over the line above it, or `beside` the bubble, past its end and level with its top.
+ */
+export type MessageActionsPlacement = "corner" | "beside";
+
 /** One action in a message's action bar: an icon button with a tooltip. */
 export interface MessageAction {
   /** Identifies the action among the message's actions ("reply"). */
@@ -42,6 +53,23 @@ export interface MessageAction {
   disabled?: boolean | undefined;
 }
 
+/** The message a message replies to, for Message's `quote`: who wrote it and a line of what they wrote. */
+export interface MessageQuote {
+  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  author: string;
+  /**
+   * What they wrote, or its start. One line shows, cut with an ellipsis.
+   * @claim "One line shows, cut with" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
+   */
+  excerpt: string;
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  avatar?: ReactElement | undefined;
+  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  onActivate?: (() => void) | undefined;
+  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  label?: string | undefined;
+}
+
 /** The props Message adds to the `<article>` attributes it passes through. */
 export interface MessageOwnProps {
   /**
@@ -54,15 +82,20 @@ export interface MessageOwnProps {
    * How the message is laid out. `default` suits a conversation with an assistant. `chat`
    * suits people writing to each other: others' messages at the start on a raised bubble
    * under their name and time, the user's own at the end in a tint of the primary color,
-   * with only the time. `post` is a post in a channel: a card as wide as the list, under the
-   * author's name and time, with an optional `subject` and the `footer` inside it. `reply` is
-   * a reply in a thread: the same line of name and time, with the text unboxed under it. In
-   * `post` and `reply` the user's own messages sit at the start too.
+   * with only the time. `chat` also suits a channel without threads, which reads as a chat.
+   * `post` is a post in a threaded channel, unboxed: the author's name and time, an optional
+   * `subject`, the text, then the `footer` and the `thread` under it, with room around it and
+   * a hairline from the text's start to the end between it and a post just before it. `reply`
+   * is a reply in a thread: the same line of name and time, with the text unboxed under it,
+   * starting where a post's text starts. In `post` and `reply` the user's own messages sit at
+   * the start too.
    * @default "default"
    *
    * @claim "`chat` suits people writing to each" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint)
-   * @claim "`post` is a post in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > is a card as wide as the list under the name and time, with the subject and footer inside it)
+   * @claim "`post` is a post in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > is unboxed, with the name and time over the subject and text, and the footer and thread under them)
+   * @claim "a hairline from the text's start" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > draws a hairline from the text's start to the end between two posts, and none above the first)
    * @claim "`reply` is a reply in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > lays a reply out unboxed under its name and time, at the start for everyone)
+   * @claim "starting where a post's text starts" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > starts a reply's text where a post's text starts)
    */
   variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
   /**
@@ -73,6 +106,23 @@ export interface MessageOwnProps {
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /expectTypeOf<\{\srole:\s"user"\s\}>\(\)\.not\.toExtend<MessageProps>/)
    */
   name: string;
+  /**
+   * What shows as the author's name in place of `name`, when plain text cannot draw it: their
+   * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).
+   * `name` stays what screen readers hear and the avatar's initials come from.
+   *
+   * @claim "`name` stays what screen readers hear" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > shows nameContent as the author's name, while screen readers hear name and the initials come from it)
+   */
+  nameContent?: ReactNode;
+  /**
+   * A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and
+   * muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name
+   * is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both
+   * are still read.
+   * @claim "A quiet tag after the author's" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message name tag > shows a quiet tag after the name in every layout, read after the name)
+   * @claim "Where the name is hidden" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message name tag > hides the tag with the name, and still reads it)
+   */
+  nameTag?: string | undefined;
   /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
@@ -102,29 +152,55 @@ export interface MessageOwnProps {
    * @claim "The message follows one from the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > groups a continued message under the one before, without avatar or name, its time on hover)
    */
   continued?: boolean | undefined;
-  /** A post's subject, in bold above its text. `post` only. */
+  /** A post's subject, in semibold above its text. `post` only. */
   subject?: ReactNode;
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
-  /** Files sent with the message, shown under it: `<Attachment>` elements. */
-  attachments?: ReactNode;
   /**
-   * Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited",
-   * whether it was delivered or seen.
+   * The message this one replies to, at the top of the bubble or post, above the text: a bar,
+   * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
+   * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
+   * button, to show the quoted message.
+   *
+   * @claim "as Composer's `quote` shows it" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > looks as Message's quote does once the reply is sent)
+   * @claim "Screen readers hear it first, as" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is read before the text, as the label and the excerpt)
+   * @claim "With `onActivate` it is a button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is a button with onActivate, named by the quote, which keyboard and pointer press)
    */
+  quote?: MessageQuote | undefined;
+  /**
+   * Files and pictures sent with the message, shown under it: `<Attachment>` elements, and
+   * pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them
+   * full size.
+   */
+  attachments?: ReactNode;
+  /** Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. */
   footer?: ReactNode;
-  /** Under a post: its thread, as a `<ThreadSummary>`. */
+  /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**
-   * The message's actions, as icon buttons with tooltips in a small bar at the top corner of
-   * the bubble or card. The bar shows while the pointer is over the message, while focus is
-   * in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
+   * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
+   * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
+   * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
    * keys moving between its buttons.
    *
    * @claim "It is a toolbar: one Tab" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > is one Tab stop, and the arrow keys, Home and End move between its buttons)
    * @claim "The bar shows while the pointer" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > shows the bar on hover and while focus is in the message, and hides it otherwise)
    */
   actions?: readonly MessageAction[] | undefined;
+  /**
+   * Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the
+   * bubble's end, level with its top, so it covers neither the name nor the message and stays
+   * with the bubble however wide the row; where the row has no room left, it ends at the row's
+   * edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble.
+   * `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is
+   * over its top end, and the default layout's over its bubble's corner.
+   *
+   * @default "beside" on a `reply`, "corner" on a `chat`
+   * @claim "`beside` puts it just past the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > puts a reply's bar beside its text, level with its top, clear of the name)
+   * @claim "where the row has no room left" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > ends a bar beside a bubble at the row's edge when the bubble fills the row, with an avatar or without, right to left too)
+   * @claim "On the user's own `chat` message" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > puts a chat bar beside the bubble when asked: past others' bubbles, before the user's own)
+   */
+  actionsPlacement?: MessageActionsPlacement | (string & { 'Use "corner" or "beside"': never }) | undefined;
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
    * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
@@ -145,6 +221,24 @@ export interface MessageOwnProps {
   streaming?: boolean | undefined;
   /** What screen readers hear for the typing indicator, for other languages. @default "Writing" */
   streamingLabel?: string | undefined;
+  /**
+   * The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A
+   * calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app
+   * clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the
+   * message's description. It appears at once, with no motion. To put the text back in a
+   * `Composer` instead, set the Composer's `value` to it and delete the message.
+   * @claim "A calm marker under it says" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > marks the message not sent under its bubble, with Retry and Delete, and describes the message with it)
+   * @claim "and stays until the app clears" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > offers Retry alone without onDelete, and goes once the app clears failed)
+   * @claim "Screen readers hear the marker as" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > keeps the app's own description beside the marker's)
+   * @claim "It appears at once, with no" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > shows the marker at once, with nothing animating, under reduced motion too)
+   */
+  failed?: MessageFailed | false | undefined;
+  /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
+  failedLabel?: string | undefined;
+  /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
+  retryLabel?: string | undefined;
+  /** The name of a `failed` message's delete button, for other languages. @default "Delete" */
+  deleteLabel?: string | undefined;
   /** Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -161,6 +255,25 @@ export interface MessageOwnProps {
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
+  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`. */
+  replyTo?: { 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>': never };
+  /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
+  error?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
+  /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
+  status?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
+  /** Not a prop. Retry is part of `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
+  onRetry?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
+}
+
+/** What the person can do about a message of their own that did not send: `Message`'s `failed`. */
+export interface MessageFailed {
+  /**
+   * Sends the message again. Required, so a message that did not send always offers another try.
+   * @claim "Required, so a message that" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /failed:\s\{\sonDelete:\s\(\)\s=>\svoid\s\}\s\}>\(\)\.not\.toExtend<MessageProps>/)
+   */
+  onRetry: () => void;
+  /** Deletes the message that did not send. Leave it out to offer Retry alone. */
+  onDelete?: (() => void) | undefined;
 }
 
 /** A Message whose avatar shows the author's presence, and the words it says. */
@@ -204,13 +317,15 @@ const roles = ["user", "assistant", "system"] as const;
 
 const variants = ["default", "chat", "post", "reply"] as const;
 
+const placements = ["corner", "beside"] as const;
+
 const bubbles = {
   user: "rounded-2xl rounded-ee-md bg-primary px-3.5 py-2 text-primary-foreground",
   assistant: "rounded-2xl rounded-es-md bg-muted px-3.5 py-2 text-foreground",
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
-// A raised surface: the theme's card with its hairline and small shadow.
+// A raised surface: the theme's card with its hairline and small shadow, for a chat's bubbles.
 const raised = "bg-card text-card-foreground ring-1 ring-border/60 shadow-(--shadow-sm)";
 
 const layouts = {
@@ -218,9 +333,21 @@ const layouts = {
     user: "rounded-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
     assistant: `rounded-lg px-3 py-2 ${raised}`,
   },
-  post: `w-full rounded-lg px-4 py-3 ${raised}`,
-  reply: "px-0.5",
 } as const;
+
+// A post's line after its name line: one each, in order after the name line (and an unanswered post's Reply beside it).
+const postRow = "order-3 basis-full";
+
+// A post or a reply: the avatar's column (w-8) and the gap after it (gap-3), where the text starts.
+const peopleGutter = "2.75rem";
+
+// Between two posts, a hairline from the text's start to the end, midway between them as MessageList spaces them (16px,
+// and each post's 4px): a border, which forced colours keep.
+const postHairline =
+  "[[data-variant=post]+[data-variant=post]_&]:before:absolute [[data-variant=post]+[data-variant=post]_&]:before:inset-x-0 " +
+  "[[data-variant=post]+[data-variant=post]_&]:before:-top-3 [[data-variant=post]+[data-variant=post]_&]:before:border-0 " +
+  "[[data-variant=post]+[data-variant=post]_&]:before:border-t [[data-variant=post]+[data-variant=post]_&]:before:border-solid " +
+  "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-['']";
 
 // The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
 // page whose messages have no bar never loads it, nor the Tooltip and Menu it uses.
@@ -230,6 +357,17 @@ const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/mes
 // The ring a message shows when it has keyboard focus, as one in a MessageList takes: the focus
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
 const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/** The author's name as text, or the app's content for it shown while screen readers hear the text. */
+function AuthorName({ name, content }: { name: string; content: ReactNode }): ReactNode {
+  if (content === undefined) return name;
+  return (
+    <>
+      <span aria-hidden="true">{content}</span>
+      <span className="sr-only">{name}</span>
+    </>
+  );
+}
 
 /**
  * One message in a chat: who wrote it, their avatar and what they wrote, with any
@@ -256,6 +394,8 @@ export function Message(props: MessageProps): JSX.Element {
   const {
     role: roleProp,
     name: nameProp,
+    nameContent,
+    nameTag,
     variant: variantProp = "default",
     avatar,
     presence,
@@ -265,15 +405,21 @@ export function Message(props: MessageProps): JSX.Element {
     continued: continuedProp = false,
     subject,
     children,
+    quote,
     attachments,
     footer,
     thread,
     actions,
+    actionsPlacement,
     menu,
     actionsLabel = "Message actions",
     menuLabel = "More actions",
     streaming = false,
     streamingLabel = "Writing",
+    failed = false,
+    failedLabel = "Not sent",
+    retryLabel = "Retry",
+    deleteLabel = "Delete",
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     from,
@@ -282,12 +428,18 @@ export function Message(props: MessageProps): JSX.Element {
     content,
     own,
     timestamp,
+    replyTo,
+    error,
+    status,
+    onRetry,
     ...rest
   } = props;
   const name = nameProp ?? "";
   // A role that is not one of Ouro UI's (a type error) warns and renders as the assistant's.
   const role = (roles as readonly string[]).includes(roleProp) ? (roleProp as MessageRole) : "assistant";
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as MessageVariant) : "default";
+  // Stryker disable next-line StringLiteral: only "beside" is read; any other placement is the corner.
+  const placement = (placements as readonly unknown[]).includes(actionsPlacement) ? (actionsPlacement as MessageActionsPlacement) : variant === "reply" ? "beside" : "corner";
   useAppearanceClassNameCheck(
     "Message",
     className,
@@ -302,11 +454,18 @@ export function Message(props: MessageProps): JSX.Element {
           nameProp === undefined && ["name is missing, so screen readers cannot say who wrote it", `<Message role="${role}" name="Ouro">`],
           role !== roleProp && [`role="${String(roleProp)}" is not a role; use "user", "assistant" or "system"`, '<Message role="assistant" name="Ouro">'],
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "default", "chat", "post" or "reply"`, '<Message variant="chat" role="assistant" name="Grace">'],
+          actionsPlacement !== undefined &&
+            placement !== actionsPlacement && [`actionsPlacement="${String(actionsPlacement)}" is not a placement; use "corner" or "beside"`, '<Message variant="chat" actionsPlacement="beside">'],
           from !== undefined && ["from is not a prop", '<Message role="user" name="Ada">'],
           (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ada">'],
           content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
           own !== undefined && ["own is not a prop; the user's own messages are role=\"user\"", '<Message role="user" variant="chat">'],
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
+          replyTo !== undefined && ["replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
+          (error !== undefined || status !== undefined || onRetry !== undefined) && [
+            `${error !== undefined ? "error" : status !== undefined ? "status" : "onRetry"} is not a prop; a message that did not send is failed`,
+            '<Message role="user" failed={{ onRetry: retry }}>',
+          ],
           variant === "post" && continuedProp && ["a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
           variant !== "post" && subject !== undefined && ["subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
           presence !== undefined &&
@@ -348,22 +507,70 @@ export function Message(props: MessageProps): JSX.Element {
     else if (forwarded) forwarded.current = node;
   };
 
+  // Not sent: a line under the bubble that says so, with Retry and Delete, and the message's description.
+  const failedId = useId();
+  const isFailed = failed !== false;
+  const describedBy = isFailed ? [rest["aria-describedby"], failedId].filter(Boolean).join(" ") : rest["aria-describedby"];
+  // Retry pressed: when the app clears failed, the marker goes with the focused button, so focus
+  // goes to the message rather than the page.
+  // Stryker disable next-line BooleanLiteral: the first run of the effect below, at mount, finds no element yet and clears it either way.
+  const retried = useRef(false);
+  useLayoutEffect(() => {
+    if (isFailed || !retried.current) return;
+    retried.current = false;
+    // Stryker disable next-line ConditionalExpression: Retry was pressed in this message, so it has its element by now.
+    if (element === null || document.activeElement !== document.body) return;
+    if (!element.hasAttribute("tabindex")) element.setAttribute("tabindex", "-1");
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: it keeps the page where the reader pressed Retry; whether a browser scrolls a partly shown message into view on focus differs by engine, so no test can tell.
+    element.focus({ preventScroll: true });
+  }, [isFailed, element]);
+  const notSent = failed !== false && (
+    <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
+      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
+        <NotSentIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        {failedLabel}
+      </span>
+      <Button data-ouro-control="message" data-ouro-part="retry" tone="primary" variant="plain" size="sm" onClick={() => ((retried.current = true), failed.onRetry())}>
+        {retryLabel}
+      </Button>
+      {failed.onDelete && (
+        <Button data-ouro-control="message" data-ouro-part="delete" tone="secondary" variant="plain" size="sm" onClick={failed.onDelete}>
+          {deleteLabel}
+        </Button>
+      )}
+    </div>
+  );
+
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? <Typing label={streamingLabel} /> : children;
+  const quoted = quote && <Quote quote={quote} />;
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression: the bar's code for a message without one renders nothing; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
     if (hasBar) void loadBar().then((Loaded) => setBar(() => Loaded));
   }, [hasBar]);
+  // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
+  // avatar's column takes when it is at the start (w-8, and the row's gap-2 in a chat or gap-3 in a reply).
+  const beside =
+    placement === "beside" && (variant === "chat" || variant === "reply") && role !== "system"
+      ? avatar === false || (variant === "chat" && role === "user")
+        ? "0px"
+        : variant === "reply"
+          ? peopleGutter
+          : "2.5rem"
+      : undefined;
   const bar =
-    hasBar && Bar ? <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} card={variant === "post"} /> : null;
+    hasBar && Bar ? (
+      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} post={variant === "post"} beside={beside} />
+    ) : null;
 
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";
     const bubble = (
       // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: on a fine pointer the article is text-sm already; the touch tests hold the system note's smaller text.
       <div data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
+        {quoted}
         {body}
       </div>
     );
@@ -377,6 +584,7 @@ export function Message(props: MessageProps): JSX.Element {
         data-continued={continued ? "" : undefined}
         data-ouro-message-active={active ? "" : undefined}
         aria-busy={streaming || rest["aria-busy"]}
+        aria-describedby={describedBy}
         onPointerUp={tap}
         className={cn(
           "group/message box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
@@ -394,7 +602,15 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
-            {name}
+            <AuthorName name={name} content={nameContent} />
+            {nameTag && (
+              <>
+                <span className="sr-only">, </span>
+                <span data-ouro-message-name-tag="" className="ms-1.5 font-normal">
+                  {nameTag}
+                </span>
+              </>
+            )}
             {time !== undefined && (
               <>
                 <span className="sr-only">, </span>
@@ -417,6 +633,7 @@ export function Message(props: MessageProps): JSX.Element {
               {attachments}
             </div>
           )}
+          {notSent}
           <Extra slot="footer" end={role === "user"}>
             {footer}
           </Extra>
@@ -432,25 +649,37 @@ export function Message(props: MessageProps): JSX.Element {
   const mine = role === "user";
   const end = variant === "chat" && mine;
   const continued = continuedProp && variant !== "post";
+  const post = variant === "post";
+  // A post or a reply names its author in the text's size; a chat's bubbles carry a smaller line above them.
+  const people = variant !== "chat";
   // In chat the user's own name is not shown (the side says whose it is), only the time.
   const nameShown = !continued && !end;
   const header = (
-    <span data-ouro-message-header="" className={continued ? "sr-only" : "flex min-w-0 items-baseline gap-2 px-0.5 text-xs"}>
+    <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
-        {name}
+        <AuthorName name={name} content={nameContent} />
       </span>
+      {nameTag && (
+        <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
+          <span className="sr-only">, </span>
+          {nameTag}
+        </span>
+      )}
       {time !== undefined && (
         <>
           <span className="sr-only">, </span>
-          <time dateTime={dateTime} className="shrink-0 text-muted-foreground tabular-nums">
+          <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
             {time}
           </time>
         </>
       )}
     </span>
   );
-  const card = variant === "post";
-  const surface = variant === "chat" ? layouts.chat[mine ? "user" : "assistant"] : layouts.reply;
+  // A chat's bubble; a post's and a reply's text sits on the page, unboxed.
+  const surface = variant === "chat" ? layouts.chat[mine ? "user" : "assistant"] : undefined;
+  const titled = post && subject !== undefined && subject !== null;
+  // A message of pictures or files alone draws no empty bubble above them.
+  const worded = !empty || streaming || quote !== undefined || titled;
   return (
     <article
       {...rest}
@@ -461,8 +690,19 @@ export function Message(props: MessageProps): JSX.Element {
       data-continued={continued ? "" : undefined}
       data-ouro-message-active={active ? "" : undefined}
       aria-busy={streaming || rest["aria-busy"]}
+      aria-describedby={describedBy}
       onPointerUp={tap}
-      className={cn("group/message box-border flex w-full min-w-0 items-start gap-2 text-base pointer-fine:text-sm", focusRing, end && "flex-row-reverse", className)}
+      // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
+      style={hasBar && beside !== undefined ? { ...rest.style, containerType: "inline-size" } : rest.style}
+      className={cn(
+        "group/message box-border flex w-full min-w-0 items-start text-base pointer-fine:text-sm",
+        people ? "gap-3" : "gap-2",
+        // With MessageList's 16px between messages, 24px between one post's last line and the next one's name.
+        post && "py-1",
+        focusRing,
+        end && "flex-row-reverse",
+        className,
+      )}
     >
       {!end && avatar !== false && (
         <span data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">
@@ -481,40 +721,44 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         </span>
       )}
-      <div className={cn("flex min-w-0 flex-col gap-1", variant === "chat" ? "max-w-[min(85%,42rem)]" : "flex-1", end ? "items-end" : "items-start")}>
+      <div
+        data-ouro-message-body=""
+        className={cn(
+          "relative flex min-w-0 gap-1",
+          // A post's rows wrap in a row, so an unanswered post's Reply ends its name line and the rest take a line each.
+          post ? "flex-row flex-wrap items-center gap-x-2" : "flex-col",
+          variant === "chat" ? "max-w-[min(85%,42rem)]" : "flex-1",
+          !post && (end ? "items-end" : "items-start"),
+          post && postHairline,
+        )}
+      >
         {header}
-        <div
-          data-ouro-message-card={card ? "" : undefined}
-          className={cn("relative box-border flex max-w-full min-w-0 flex-col", card ? layouts.post : end ? "items-end" : "items-start")}
-        >
-          <div data-ouro-message-content="" className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", !card && surface)}>
-            {card && subject !== undefined && subject !== null && (
-              <p data-ouro-message-subject="" className="m-0 mb-1 font-[family-name:var(--font-heading,inherit)] text-lg leading-snug font-semibold">
+        <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          {/* Hidden rather than left out when empty: MessageList reads every message's text from it. */}
+          <div data-ouro-message-content="" hidden={!worded} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+            {titled && (
+              <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
                 {subject}
               </p>
             )}
+            {quoted}
             {body}
           </div>
-          {card && (
-            <Extra slot="footer" end={false} inset>
-              {footer}
-            </Extra>
-          )}
-          {bar}
+          {!post && bar}
         </div>
         {attachments !== undefined && attachments !== null && (
-          <div data-ouro-message-attachments="" className={cn("flex max-w-full flex-wrap gap-2", end && "justify-end")}>
+          <div data-ouro-message-attachments="" className={cn("flex w-full max-w-full min-w-0 flex-wrap gap-2", end && "justify-end", post && ["mt-1", postRow])}>
             {attachments}
           </div>
         )}
-        {!card && (
-          <Extra slot="footer" end={end}>
-            {footer}
-          </Extra>
-        )}
-        <Extra slot="thread" end={end}>
+        {notSent}
+        <Extra slot="footer" end={end} post={post}>
+          {footer}
+        </Extra>
+        <Extra slot="thread" end={end} post={post}>
           {thread}
         </Extra>
+        {post && bar}
       </div>
     </article>
   );
@@ -544,21 +788,79 @@ function AvatarSlot({
   return <Avatar name={name} src={avatar} alt="" size={size} className={className} {...dot} />;
 }
 
+// The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
+const quoteClass =
+  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-md bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
+// The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
+// with two lines of text it is taller than a touch target already.
+const quoteButtonClass =
+  "box-border w-full cursor-pointer border-0 text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent " +
+  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/**
+ * The message a message replies to: the bar, the avatar, the author and the excerpt. Screen
+ * readers hear the label ("Quoting Ada") in place of the author's name, then the excerpt.
+ */
+function Quote({ quote }: { quote: MessageQuote }): JSX.Element {
+  const body = (
+    <>
+      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      {quote.avatar}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="sr-only">{quote.label ?? `Quoting ${quote.author}`}: </span>
+        <span aria-hidden="true" data-ouro-message-quote-author="" className="truncate text-xs font-semibold text-foreground">
+          {quote.author}
+        </span>
+        <span data-ouro-message-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+          {quote.excerpt}
+        </span>
+      </span>
+    </>
+  );
+  return quote.onActivate ? (
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
+      {body}
+    </button>
+  ) : (
+    <blockquote data-ouro-message-quote="" className={quoteClass}>
+      {body}
+    </blockquote>
+  );
+}
+
 /** The words a presence's fix suggests: the app's own label, else the presence's name ("Do not disturb"). */
 function wordsFor(presence: string, label: string | undefined): string {
   return label || `${presence[0]!.toUpperCase()}${presence.slice(1).replaceAll("-", " ")}`;
 }
 
-/** A row under the message (its footer or thread), or nothing when the app passed nothing. */
-function Extra({ slot, end, inset = false, children }: { slot: "footer" | "thread"; end: boolean; inset?: boolean; children: ReactNode }): JSX.Element | null {
+/**
+ * A row under the message (its footer or thread), or nothing when the app passed nothing. A post's rows keep a little
+ * more room, and a post's thread that is only Reply (nobody has replied) ends the name line instead.
+ */
+function Extra({ slot, end, post = false, children }: { slot: "footer" | "thread"; end: boolean; post?: boolean; children: ReactNode }): JSX.Element | null {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
       {...{ [`data-ouro-message-${slot}`]: "" }}
-      className={cn("flex max-w-full min-w-0 flex-wrap items-center gap-2", end && "justify-end", inset && "mt-2")}
+      className={cn(
+        "flex max-w-full min-w-0 flex-wrap items-center gap-2",
+        end && "justify-end",
+        post && ["mt-1", postRow],
+        post && slot === "thread" && "has-data-ouro-thread-summary-unanswered:order-2 has-data-ouro-thread-summary-unanswered:mt-0 has-data-ouro-thread-summary-unanswered:basis-auto",
+      )}
     >
       {children}
     </div>
+  );
+}
+
+/** A circle with an exclamation mark: the message did not send. */
+function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...props}>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 6.5v4.5M10 13.75v.01" />
+    </svg>
   );
 }
 

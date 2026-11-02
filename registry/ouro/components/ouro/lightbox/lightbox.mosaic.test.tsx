@@ -47,7 +47,12 @@ const ratio = (element: Element) => {
   return rect.width / rect.height;
 };
 const popup = () => document.querySelector<HTMLElement>('[data-ouro="dialog"]');
-const position = () => popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent;
+// The position once the image has arrived: while the scroll is on its way the position already
+// names the image chosen, marked as pending.
+const position = () => {
+  const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+  return counter.hasAttribute("data-pending") ? `${counter.textContent} (on its way)` : counter.textContent;
+};
 
 async function settled() {
   await expect
@@ -76,6 +81,23 @@ afterEach(async () => {
 });
 
 describe("Lightbox mosaic", () => {
+  it("is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width", async () => {
+    const size = (host: Element) => {
+      const rect = list(host).getBoundingClientRect();
+      return [Math.round(rect.width), Math.round(rect.height)];
+    };
+    const shot = (width: number, height: number) => ({ src: picture(width, height, "#68a"), alt: "A screenshot", width, height });
+    // A wide screenshot is 400px wide; a square and a tall picture are 280px tall; two side by side, 400 by 200.
+    expect(size((await render(mosaic([shot(1600, 1000)]), 800)).host)).toEqual([400, 250]);
+    expect(size((await render(mosaic([shot(900, 900)]), 800)).host)).toEqual([280, 280]);
+    expect(size((await render(mosaic([shot(600, 800)]), 800)).host)).toEqual([210, 280]);
+    expect(size((await render(mosaic(offsite.slice(0, 2)), 800)).host)).toEqual([400, 200]);
+    // A narrow column holds it to its width, at its shape.
+    expect(size((await render(mosaic([shot(1600, 1000)]), 300)).host)).toEqual([300, 188]);
+    // The app's own width wins.
+    expect(size((await render(mosaic([shot(1600, 1000)], { className: "max-w-none" }), 800)).host)).toEqual([800, 500]);
+  });
+
   it("draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown", async () => {
     const own = await render(mosaic([offsite[0]!]));
     expect(ratio(list(own.host))).toBeCloseTo(3 / 2, 1);
@@ -232,12 +254,12 @@ describe("Lightbox full screen", () => {
     expect(popup()!.getBoundingClientRect().width).toBe(1280);
   });
 
-  it("dims behind the image in the light theme too, with readable controls", async () => {
+  it("hides the page behind one solid field in the light theme too, with readable controls", async () => {
     const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
     await userEvent.click(thumbnails(host)[0]!);
     await settled();
     expect(document.documentElement.classList.contains("dark")).toBe(false);
-    // A near-black scrim: the page's light theme stays outside the viewer.
+    // A near-black field, fully opaque: nothing of the page shows through.
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
     const paint = canvas.getContext("2d")!;
@@ -245,7 +267,7 @@ describe("Lightbox full screen", () => {
     paint.fillRect(0, 0, 1, 1);
     const [r, g, b, a] = paint.getImageData(0, 0, 1, 1).data;
     expect(Math.max(r!, g!, b!)).toBeLessThan(40);
-    expect(a!).toBeGreaterThan(230);
+    expect(a!).toBe(255);
     // The title, the position and Close read on it.
     for (const text of [popup()!.querySelector("[data-ouro-dialog-title]")!, popup()!.querySelector("[data-ouro-lightbox-position]")!]) {
       expect(await measureTextContrast(text, 4.5), text.textContent!).toEqual({ pass: true });
@@ -253,6 +275,24 @@ describe("Lightbox full screen", () => {
     const close = popup()!.querySelector<HTMLElement>('[data-ouro-part="close"]')!;
     expect(getComputedStyle(close).color).not.toBe(getComputedStyle(popup()!).backgroundColor);
     expect(popup()!.classList.contains("dark")).toBe(true);
+  });
+
+  it("rings the image shown, not the stage, when the images have keyboard focus", async () => {
+    const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
+    thumbnails(host)[0]!.focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    const scroller = popup()!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
+    expect(document.activeElement).toBe(scroller);
+    expect(scroller.matches(":focus-visible")).toBe(true);
+    expect(getComputedStyle(scroller).outlineStyle).toBe("none");
+    const [first, second] = [...popup()!.querySelectorAll<HTMLElement>("[data-ouro-lightbox-image]")];
+    expect(getComputedStyle(first!).outlineStyle).toBe("solid");
+    expect(getComputedStyle(first!).outlineWidth).toBe("2px");
+    // Without keyboard focus on the images, no ring.
+    popup()!.querySelector<HTMLElement>('[data-ouro-part="close"]')!.focus();
+    expect(getComputedStyle(first!).outlineStyle).toBe("none");
+    expect(getComputedStyle(second!).outlineStyle).toBe("none");
   });
 
   chromiumOnly("leaves forced colours to the system", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SVGProps } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SVGProps } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
@@ -28,6 +28,7 @@ import {
   fullScreenClass,
   mosaicCellClass,
   mosaicClass,
+  mosaicFrameClass,
   mosaicLayout,
   mosaicMoreClass,
   mosaicThumbnailClass,
@@ -138,8 +139,12 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
    * How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame,
    * as a chat shows the pictures in a message: one picture at its own shape (`width` and
    * `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid
-   * with "+N" on the last; the viewer still steps through them all. @default "grid"
+   * with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat
+   * shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a
+   * picture never crowds the words around it; `className` gives it another width
+   * (`max-w-none`). @default "grid"
    *
+   * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
    * @claim "as many 4:3 thumbnails in a row" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > lays the thumbnails out in as many columns of at least 8rem as fit)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
@@ -239,14 +244,17 @@ interface ViewerProps {
   zoomLabel: string;
   /** Where the viewer writes the index of the image it shows, for focus to go to as it closes. */
   shownRef: { current: number };
+  /** Where the viewer puts the function that shows a position the keys chose (Home, End) before the scroll settles. */
+  chooseRef: { current: ((index: number) => void) | null };
 }
 
 /**
  * Steps the viewer with the arrow keys, in reading order, from anywhere in it, by pressing the
- * carousel's own Previous or Next, and goes to the first or the last image with Home or End. A
- * key with a modifier, or one typed into a field in a caption, is left alone.
+ * carousel's own Previous or Next, and goes to the first or the last image with Home or End,
+ * showing that position at once (`choose`). A key with a modifier, or one typed into a field in a
+ * caption, is left alone.
  */
-function stepWithKeys(event: KeyboardEvent<HTMLElement>): void {
+function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number) => void): void {
   const { key } = event;
   if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -259,6 +267,8 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>): void {
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
     const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
     const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    // Stryker disable next-line ArithmeticOperator: the position stops at the last image, so one past it shows the same.
+    choose(key === "Home" ? 0 : viewport.children.length - 1);
     viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
     return;
   }
@@ -474,7 +484,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
       className={figureClass}
       {...taps}
     >
-      <img ref={picture} src={image.src} alt={image.alt} decoding="async" className={cn(imageClass, zoomed && "invisible")} />
+      <img ref={picture} src={image.src} alt={image.alt} decoding="async" data-ouro-lightbox-image="" className={cn(imageClass, zoomed && "invisible")} />
       {/* Zoomed, the image covers the caption, so the caption steps aside until it is fitted again. */}
       {(image.title !== undefined || image.caption !== undefined) && (
         <figcaption className={cn(captionClass, zoomed && "invisible")}>
@@ -523,9 +533,12 @@ function LightboxViewer({
   originalLabel,
   zoomLabel,
   shownRef,
+  chooseRef,
 }: ViewerProps): JSX.Element {
   const [start, setStart] = useState(index);
   const [current, setCurrent] = useState(index);
+  // The image a key or button chose, shown in the position at once while the scroll gets there.
+  const [target, setTarget] = useState<number | null>(null);
   const [requested, setRequested] = useState(index);
   const [run, setRun] = useState(0);
   // Only a change to `index` moves the viewer, so an app that does not follow onIndexChange
@@ -535,6 +548,7 @@ function LightboxViewer({
     if (index !== current) {
       setStart(index);
       setCurrent(index);
+      setTarget(null);
       setRun(run + 1);
     }
   }
@@ -550,6 +564,15 @@ function LightboxViewer({
   useLayoutEffect(() => {
     shownRef.current = shown;
   });
+  useLayoutEffect(
+    () => {
+      chooseRef.current = setTarget;
+    },
+    // Stryker disable next-line ArrayDeclaration: chooseRef is the same object for the viewer's life, so it runs once either way.
+    [chooseRef],
+  );
+  // The position names the image chosen; the carousel announces it once the image has arrived.
+  const chosen = target === null ? shown : Math.min(target, total - 1);
   const href = images[shown]?.href;
   // Only the image in view is zoomed, and moving to another image draws it fitted again.
   const [zoom, setZoom] = useState<{ index: number; scale: number } | null>(null);
@@ -565,12 +588,12 @@ function LightboxViewer({
           {/* The viewer's name: the label and the position, which the header shows apart. One image
               has no position worth naming. */}
           <span id={nameId} hidden>
-            {total > 1 ? `${label}, ${fillTemplate(positionLabel, shown + 1, total)}` : label}
+            {total > 1 ? `${label}, ${fillTemplate(positionLabel, chosen + 1, total)}` : label}
           </span>
         </div>
         {total > 1 && (
-          <span data-ouro-lightbox-position="" className={counterClass}>
-            {fillTemplate(positionLabel, shown + 1, total)}
+          <span data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={counterClass}>
+            {fillTemplate(positionLabel, chosen + 1, total)}
           </span>
         )}
         {href !== undefined && (
@@ -628,6 +651,7 @@ function LightboxViewer({
           setZoom(null);
           onIndexChange?.(next);
         }}
+        onTargetChange={setTarget}
         previousLabel={previousLabel}
         nextLabel={nextLabel}
         slideLabel={positionLabel}
@@ -654,7 +678,8 @@ function LightboxViewer({
  * the image as large as the screen allows, uncropped, with its title and caption under it and
  * Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys,
  * the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home
- * or End; the new position is announced politely, once. With one image the viewer shows neither
+ * or End. The position changes as soon as a key or button chooses an image, and is announced
+ * politely, once, when the image arrives. With one image the viewer shows neither
  * the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes
  * to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and
  * slides between images; with reduced motion it fades and jumps instead.
@@ -664,8 +689,8 @@ function LightboxViewer({
  *
  * For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its
  * own shape, two side by side, three as one large and two small, and four or more as a 2 by 2
- * grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no
- * frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced
+ * grid with "+N" on the last, at most 25rem wide and 17.5rem tall. Pass `fullScreen` for a viewer
+ * that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced
  * motion.
  *
  * To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a
@@ -697,7 +722,8 @@ function LightboxViewer({
  * />
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > steps with the arrow keys from anywhere in the viewer, in reading order)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox on a touch screen > moves to the next image with a swipe)
- * @claim "the new position is announced politely" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position and announces it once when it changes)
+ * @claim "politely, once, when the image arrives" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position and announces it once when it changes)
+ * @claim "The position changes as soon as" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position a key or button chose before the scroll gets there, and announces it once it does)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > goes to the first and the last image with Home and End)
  * @claim "focus goes to the thumbnail of" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox opening and closing > closes with Escape and gives focus to the thumbnail of the image last shown)
  * @claim "it then draws no thumbnails, and" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > gives focus to what returnFocus gives for the image last shown, or else back to what had it)
@@ -710,6 +736,7 @@ function LightboxViewer({
  * @claim "one frame that shows one picture" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
  * @claim "two side by side, three as" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
  * @claim "four or more as a 2 by" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > shows four of more pictures, the last saying how many more follow, to sight and to screen readers)
+ * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
  * @claim "Pass `fullScreen` for a viewer" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
  * @claim "An animated image's `still` frame shows" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox still frames > shows an animated image's still frame in its thumbnail when the user asks for reduced motion)
  * @claim "The viewer grows from the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
@@ -817,6 +844,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   const thumbnails = useRef<(HTMLButtonElement | null)[]>([]);
   const popup = useRef<HTMLDivElement | null>(null);
   const shown = useRef(0);
+  // The open viewer's way to show a position the keys chose (LightboxViewer sets it).
+  const choose = useRef<((index: number) => void) | null>(null);
 
   const viewer = (
     <DialogRoot open={open} onOpenChange={(next) => setOpen(next)}>
@@ -842,7 +871,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             // viewer opened. A pressed thumbnail need not have had focus (Safari does not focus a
             // pressed button). A mosaic shows four: an image past them returns to the last, "+N".
             finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[mosaic ? Math.min(shown.current, 3) : shown.current]}
-            onKeyDown={stepWithKeys}
+            onKeyDown={(event) => stepWithKeys(event, choose.current!)}
           >
             <LightboxViewer
               label={label}
@@ -858,6 +887,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               originalLabel={originalLabel}
               zoomLabel={zoomLabel}
               shownRef={shown}
+              chooseRef={choose}
             />
           </DialogPopupUnchecked>
         </DialogViewport>
@@ -902,7 +932,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     const more = images.length - tiles.length;
     const shape = mosaicLayout(tiles.length, images[0]?.width, images[0]?.height);
     return (
-      <div data-ouro="lightbox" data-layout="mosaic" className={cn("min-w-0", className)}>
+      <div data-ouro="lightbox" data-layout="mosaic" className={cn(mosaicFrameClass, className)} style={{ "--ouro-lightbox-ratio": shape.ratio } as CSSProperties}>
         <ul role="list" aria-label={label} className={cn(mosaicClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
           {tiles.map((image, position) => (
             <li key={position} className={mosaicCellClass}>

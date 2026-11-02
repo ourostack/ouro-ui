@@ -2,7 +2,7 @@ import { type AgentCase, notAssignable, hint } from "./shared.ts";
 
 const sizes = `AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never; }) | undefined`;
 const presences = `AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never; }) | undefined`;
-const shapes = `AvatarShape | (string & { 'Use "circle" or "square"; rounded is "square"': never; }) | undefined`;
+const shapes = `AvatarShape | (string & { 'Use "circle", "square" or "hexagon"; rounded is "square", an agent "hexagon"': never; }) | undefined`;
 const initials = '<Avatar name="Ada Lovelace" initials="AL" />';
 
 /** The avatar snippets in avatar.snippets.tsx that make mistakes, in file order. */
@@ -44,7 +44,8 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "avatar07", habit: "a rounded shape", tsc: [notAssignable('"rounded"', shapes)], dev: '<Avatar shape="square">', names: ["tsc", "dev"] },
+  { id: "avatar08", habit: "an agent shape", tsc: [notAssignable('"agent"', shapes)], dev: '<Avatar shape="hexagon">', names: ["tsc", "dev"] },
 ];
 
 /** Valid avatar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["avatarOk01", "avatarOk02", "avatarOk03"];
+export const validSnippets: string[] = ["avatarOk01", "avatarOk02", "avatarOk03", "avatarOk04"];

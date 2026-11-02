@@ -2,7 +2,7 @@
 
 # Composer
 
-A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never sends mid-word in an input method. `actions` holds the buttons before Send (emoji, attach, formatting), `toolbar` a formatting bar above the text while it is on, and `attachments` the files waiting to go. `sendDisabledReason` turns sending off and says why, while the person can still write, and `highlights` marks words in the text, as TextArea's do.
+A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never sends mid-word in an input method. A press anywhere around the text, out to the frame's edge, puts the caret where it lands, as in a text field. `actions` holds the buttons before Send (emoji, attach, formatting), `toolbar` a formatting bar above the text while it is on, `attachments` the files waiting to go, and `quote` the message a reply quotes, which Escape in the empty box removes. `sendDisabledReason` turns sending off and says why, while the person can still write, and `highlights` marks words in the text, as TextArea's do.
 
 ```tsx
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
@@ -22,6 +22,11 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
   actions={<Button variant="plain" aria-label="Attach a file" onClick={attach}><PaperclipIcon /></Button>}
   attachments={files.length > 0 && files.map((file) => <Attachment key={file.name} name={file.name} onRemove={() => remove(file)} />)}
   sendDisabledReason={offline ? "You're offline. Sending resumes when you reconnect." : undefined}
+/>
+<Composer
+  label="Reply to Ada"
+  quote={quoted && { author: quoted.author, excerpt: quoted.text, onRemove: () => setQuoted(undefined), onActivate: () => scrollTo(quoted.id) }}
+  onSend={(text) => { send(text, quoted?.id); setQuoted(undefined); }}
 />
 ```
 
@@ -54,6 +59,7 @@ Type: `ComposerProps`.
 | `onSend` (required) | `(text: string, event: ComposerSendEvent) => void` |  | Called with the text when the person sends: Enter in the box (see `sendOn`) or the send button. The event says which, and `event.isTrusted` that a person did it. It is not called while the text is blank (unless there are `attachments`), while `sending`, or with `sendDisabledReason` set. Without `value`, the box clears after it. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new text when it changes. |
 | `placeholder` | `string` |  | An example of what to write, shown on the first line while the box is empty. |
+| `quote` | `ComposerQuote` |  | The message this one replies to, shown inside the box above the text until it is sent or removed: a bar, the author, a line of what they wrote and a remove button. Screen readers hear it as part of the text's description. Escape in the empty box removes it, as the remove button does, and that Escape goes no further, so a dialog around the composer stays open. The quote fades in (opacity only, and not at all with reduced motion) and takes no focus: focus stays in the box. It stays after a send, so clear it in `onSend`. |
 | `ref` | `Ref<HTMLTextAreaElement>` |  | The `<textarea>`. |
 | `rows` | `number` | `1` | Lines the box starts with; it grows as the person writes. |
 | `sendDisabledReason` | `string` |  | Sending is off, and why: "Sending is off while you review the draft". The person can still write; the send button is disabled, the reason shows under the box and is read with it, and pressing Enter says it again. |
@@ -75,6 +81,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `enterToSend`: Not a prop. Ouro UI uses `sendOn`: `<Composer sendOn="mod-enter">`.
 - `loading`: Not a prop. Ouro UI uses `sending`: `<Composer sending>`.
 - `onSubmit`: Not a prop. Sending calls `onSend`: `<Composer onSend={(text) => send(text)}>`.
+- `replyTo`: Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>`.
 - `sendDisabled`: Not a prop. Ouro UI uses `sendDisabledReason`: `<Composer sendDisabledReason="Sending is off">`.
 - `submitOnEnter`: Not a prop. Ouro UI uses `sendOn`: `<Composer sendOn="mod-enter">`.
 
@@ -87,6 +94,31 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `ComposerQuote`
+
+The message a reply quotes, for Composer's `quote`: who wrote it and a line of what they wrote.
+
+```ts
+interface ComposerQuote {
+  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  author: string;
+  /**
+   * What they wrote, or its start. One line shows, cut with an ellipsis.
+   */
+  excerpt: string;
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  avatar?: ReactElement | undefined;
+  /** Removes the quote: called by the remove button, and by Escape while the box is empty. Set `quote` to `undefined` in it. */
+  onRemove: () => void;
+  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  onActivate?: (() => void) | undefined;
+  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  label?: string | undefined;
+  /** The remove button's name, which its tooltip shows too. @default `Remove quote from ${author}` */
+  removeLabel?: string | undefined;
+}
+```
 
 ### `ComposerSendEvent`
 

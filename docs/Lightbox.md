@@ -2,7 +2,7 @@
 
 # Lightbox
 
-Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home or End; the new position is announced politely, once. With one image the viewer shows neither the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and slides between images; with reduced motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
+Thumbnails that open a full-screen image viewer. Use it for proof screenshots, a listing's photos or before-and-after pairs: pressing a thumbnail opens the viewer on that image. It shows the image as large as the screen allows, uncropped, with its title and caption under it and Close beside the position ("2 of 4") at its top. Step through the images with the arrow keys, the Previous and Next buttons, a trackpad or a swipe, and go to the first or the last with Home or End. The position changes as soon as a key or button chooses an image, and is announced politely, once, when the image arrives. With one image the viewer shows neither the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and slides between images; with reduced motion it fades and jumps instead. On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe moves around the image rather than to the next one.
 
 ```tsx
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
@@ -30,7 +30,7 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 ## Usage
 
-For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its own shape, two side by side, three as one large and two small, and four or more as a 2 by 2 grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced motion.
+For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its own shape, two side by side, three as one large and two small, and four or more as a 2 by 2 grid with "+N" on the last, at most 25rem wide and 17.5rem tall. Pass `fullScreen` for a viewer that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced motion.
 
 To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to the element `returnFocus` gives for the image last shown, such as its thumbnail.
 
@@ -83,7 +83,7 @@ A Lightbox that draws its own thumbnails, which open the viewer.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
-| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. |
+| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a picture never crowds the words around it; `className` gives it another width (`max-w-none`). |
 
 Not in this mode (typed `never`):
 

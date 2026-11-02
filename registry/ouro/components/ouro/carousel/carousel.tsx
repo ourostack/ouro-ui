@@ -42,6 +42,15 @@ export interface CarouselProps {
   defaultIndex?: number | undefined;
   /** Called with the index of the first visible slide when the user moves to another slide, once per change. */
   onIndexChange?: ((index: number) => void) | undefined;
+  /**
+   * Called at once with the slide a Previous or Next press is moving to, before the scroll gets
+   * there, and with null when the scroll settles: show that position straight away, so a counter
+   * never names the slide being left. `onIndexChange` still reports, and the carousel announces,
+   * only where the scroll settles.
+   *
+   * @claim "Called at once with the slide" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel navigation > reports the slide a press is moving to at once, and null when the scroll settles)
+   */
+  onTargetChange?: ((index: number | null) => void) | undefined;
   /** The Previous button's accessible name. @default "Previous slide" */
   previousLabel?: string | undefined;
   /** The Next button's accessible name. @default "Next slide" */
@@ -133,6 +142,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     slidesPerView: perViewProp = 1,
     defaultIndex = 0,
     onIndexChange,
+    onTargetChange,
     previousLabel = "Previous slide",
     nextLabel = "Next slide",
     slideLabel = "Slide {n} of {total}",
@@ -193,9 +203,10 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // What had focus when the position settled: a re-render may disable it or make it inert.
   const focused = useRef<Element | null>(null);
   // The latest props for the scroll listener, which is attached once.
-  const latest = useRef({ onIndexChange, slideLabel, total, lastIndex, loop });
+  // Stryker disable next-line ObjectLiteral: the layout effect below sets it before anything reads it.
+  const latest = useRef({ onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop });
   useLayoutEffect(() => {
-    latest.current = { onIndexChange, slideLabel, total, lastIndex, loop };
+    latest.current = { onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop };
   });
 
   const scrollToSlide = (target: number, behavior: ScrollBehavior) => {
@@ -235,7 +246,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
     const settle = () => {
       stopWaiting();
       heading.current = undefined;
-      const { onIndexChange, slideLabel, total, lastIndex } = latest.current;
+      const { onIndexChange, onTargetChange, slideLabel, total, lastIndex } = latest.current;
+      onTargetChange?.(null);
       const next = Math.min(nearestSlide(viewport), lastIndex);
       if (next === settled.current) return;
       focused.current = document.activeElement;
@@ -312,6 +324,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     if (!loop && (requested < 0 || requested > lastIndex)) return;
     const target = requested > lastIndex ? 0 : requested < 0 ? lastIndex : requested;
     heading.current = target;
+    latest.current.onTargetChange?.(target);
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     scrollToSlide(target, reduce ? "instant" : "smooth");
   };

@@ -816,6 +816,52 @@ describe("ShowMore with maxHeight", () => {
   });
 });
 
+describe("ShowMore toggle semantics", () => {
+  it("names the list, the text or the fold it opens and says whether it is open, in every mode that folds", async () => {
+    const cases: [ReactElement, string][] = [
+      [<ShowMore items={recipes} />, "ul"],
+      [<ShowMore lines={2}>{longText}</ShowMore>, "[data-ouro-show-more-text]"],
+      [
+        <ShowMore maxHeight={120}>
+          <div style={{ height: 400 }} />
+        </ShowMore>,
+        "[data-ouro-show-more-fold]",
+      ],
+    ];
+    for (const [node, region] of cases) {
+      const { host, root } = await render(node);
+      await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+      const button = root.querySelector<HTMLElement>("[data-ouro-show-more-toggle]")!;
+      const folded = root.querySelector<HTMLElement>(region)!;
+      expect(folded.id).not.toBe("");
+      expect(button.getAttribute("aria-controls")).toBe(folded.id);
+      expect(host.querySelectorAll(`[id="${folded.id}"]`)).toHaveLength(1);
+      expect(button.getAttribute("aria-expanded")).toBe("false");
+      await userEvent.click(button);
+      expect(button.getAttribute("aria-expanded")).toBe("true");
+      await userEvent.click(button);
+      expect(button.getAttribute("aria-expanded")).toBe("false");
+    }
+  });
+
+  it("gives each ShowMore on a page a region of its own", async () => {
+    const { host } = await render(
+      <>
+        <ShowMore items={recipes} />
+        <ShowMore items={recipes} />
+      </>,
+    );
+    const [first, second] = [...host.querySelectorAll<HTMLElement>("[data-ouro-show-more-toggle]")].map((button) => button.getAttribute("aria-controls"));
+    expect(first).not.toBe(second);
+  });
+
+  it("names the list a load adds to, and claims no open state, since loading more never folds", async () => {
+    const { root, button } = await render(<ShowMore items={recipes.slice(0, 3)} hasMore onShowMore={() => {}} href="?after=3" />);
+    expect(button!.getAttribute("aria-controls")).toBe(root.querySelector("ul")!.id);
+    expect(button!.hasAttribute("aria-expanded")).toBe(false);
+  });
+});
+
 describe("ShowMore development messages", () => {
   it.each([
     ["maxLines", { lines: 2, children: longText, maxLines: 2 }, "maxLines is not a prop", "<ShowMore lines={2}>"],

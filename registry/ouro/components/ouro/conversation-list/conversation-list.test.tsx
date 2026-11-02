@@ -162,6 +162,96 @@ describe("ConversationList", () => {
     expect(rows[0]!.querySelector("[data-ouro-conversation-unread]")!.textContent).toBe("Non lu");
   });
 
+  it("shows a title and where given as content, with the name screen readers hear and the avatar's initials come from", async () => {
+    const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    const { rows } = await render(
+      <ConversationList
+        label="Conversations"
+        items={[
+          { id: "launch", title: <>Launch team <img alt="" src={picture} width={16} height={16} data-testid="rocket" /></>, name: "Launch team", where: <>Fernwood <b>HQ</b></>, time: "9:41" },
+          { id: "ada", title: "Ada Lovelace", name: "Ada L.", time: "Tue" },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const [launch, ada] = rows;
+    const title = launch!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
+    expect(title.querySelector('[aria-hidden="true"] [data-testid="rocket"]')).not.toBeNull();
+    expect(title.querySelector(".sr-only")!.textContent).toBe("Launch team");
+    expect(launch!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("LT");
+    expect(launch!.querySelector("[data-ouro-conversation-where] b")!.textContent).toBe("HQ");
+    await expect.element(page.getByRole("button", { name: /^\W*(LT )?Launch team\W+Fernwood HQ 9:41$/ })).toBeVisible();
+    // A text title with a name: the name is what screen readers hear and what the initials come from.
+    expect(ada!.querySelector("[data-ouro-conversation-title] .sr-only")!.textContent).toBe("Ada L.");
+    expect(ada!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AL");
+  });
+
+  it("shows a context line between the title and the preview, which the mark ends when there is no preview", async () => {
+    const { rows, rerender, host } = await render(
+      <ConversationList
+        label="Activity"
+        items={[
+          { id: "mention", title: "Noor Example", context: <>mentioned you in <b>Design reviews</b></>, preview: "Can you sign off on the mockups?", time: "1:02 PM", unread: true },
+          { id: "react", title: "Alex Example", context: "reacted in Launch planning", time: "12:43 PM", mark: <Badge>2</Badge> },
+          { id: "reply", title: "Riley Example", subtitle: "Launch team", context: "replied in Design reviews", time: "12:27 PM", unread: true },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const [mention, react, reply] = rows;
+    const top = (element: Element) => element.getBoundingClientRect().top;
+    const title = mention!.querySelector("[data-ouro-conversation-title]")!;
+    const context = mention!.querySelector<HTMLElement>("[data-ouro-conversation-context]")!;
+    const preview = mention!.querySelector("[data-ouro-conversation-preview]")!;
+    expect(context.textContent).toBe("mentioned you in Design reviews");
+    expect(top(title)).toBeLessThan(top(context));
+    expect(top(context)).toBeLessThan(top(preview));
+    expect(getComputedStyle(context).fontSize).toBe(getComputedStyle(preview).fontSize);
+    // The unread dot ends the preview's line; with no preview, the mark ends the context's.
+    expect(preview.parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
+    expect(mention!.querySelectorAll("[data-ouro-conversation-unread]")).toHaveLength(1);
+    expect(react!.querySelector("[data-ouro-conversation-context]")!.parentElement!.querySelector("[data-ouro-conversation-mark]")!.textContent).toBe("2");
+    expect(react!.querySelectorAll("[data-ouro-conversation-mark]")).toHaveLength(1);
+    // Under a subtitle, the context line is still the one the dot ends.
+    expect(reply!.querySelectorAll("[data-ouro-conversation-unread]")).toHaveLength(1);
+    expect(reply!.querySelector("[data-ouro-conversation-context]")!.parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
+    await rerender(
+      <ConversationList label="Activity" density="compact" items={[{ id: "mention", title: "Noor Example", context: "mentioned you in Design reviews", preview: "Can you sign off?", time: "1:02 PM" }]} onSelect={() => {}} />,
+    );
+    expect(host.querySelector("[data-ouro-conversation-context]")!.textContent).toBe("mentioned you in Design reviews");
+    expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();
+  });
+
+  it("shows a draft in place of the preview, after its label in the destructive tone, and hides it when compact", async () => {
+    const drafts: ConversationListItem[] = [
+      { id: "launch", title: "Launch planning", preview: "Ship it Friday.", draft: "Can we move the review to", time: "9:41" },
+      { id: "ada", title: "Ada Lovelace", draft: <i>Notes on the engine</i>, time: "Tue", unread: true },
+      { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Mon" },
+    ];
+    const { rows, rerender, host } = await render(<ConversationList label="Conversations" items={drafts} onSelect={() => {}} />);
+    const preview = (row: Element) => row.querySelector<HTMLElement>("[data-ouro-conversation-preview]")!;
+    expect(preview(rows[0]!).textContent).toBe("Draft: Can we move the review to");
+    expect(preview(rows[1]!).querySelector("i")!.textContent).toBe("Notes on the engine");
+    expect(preview(rows[2]!).textContent).toBe("Seed swap moved to Sunday.");
+    expect(preview(rows[2]!).querySelector("[data-ouro-conversation-draft]")).toBeNull();
+    const label = preview(rows[0]!).querySelector<HTMLElement>("[data-ouro-conversation-draft]")!;
+    expect(getComputedStyle(label).color).not.toBe(getComputedStyle(preview(rows[0]!)).color);
+    // The unread dot still ends a drafted row's line.
+    expect(preview(rows[1]!).parentElement!.querySelector("[data-ouro-conversation-unread]")).not.toBeNull();
+    await expect.element(page.getByRole("button", { name: /Launch planning.*Draft: Can we move the review to/ })).toBeVisible();
+    await rerender(<ConversationList label="Gespräche" items={drafts} draftLabel="Entwurf:" onSelect={() => {}} />);
+    expect(preview(host.querySelectorAll('[data-ouro-part="row"]')[0]!).textContent).toBe("Entwurf: Can we move the review to");
+    await rerender(<ConversationList label="Conversations" items={drafts} density="compact" onSelect={() => {}} />);
+    expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();
+  });
+
+  it("shows a text title without a name as plain text", async () => {
+    const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
+    const title = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
+    expect(title.textContent).toBe("Trail crew");
+    expect(title.querySelector('[aria-hidden="true"], .sr-only')).toBeNull();
+  });
+
   it("shows the avatar from the title or a picture, or none", async () => {
     const { rows } = await render(
       <ConversationList
@@ -372,6 +462,36 @@ describe("ConversationList", () => {
     expect(where.getBoundingClientRect().left).toBeGreaterThanOrEqual(title.getBoundingClientRect().right);
     expect(getComputedStyle(where).color).not.toBe(getComputedStyle(title).color);
     await expect.element(page.getByRole("button", { name: /^Design reviews Launch team 9:12/ })).toBeVisible();
+  });
+
+  it("shows a quiet name tag after the title, read after it, and shortens the title first", async () => {
+    const { rows } = await render(
+      <div style={{ width: 260 }}>
+        <ConversationList
+          label="Chats"
+          items={[
+            { id: "halden", title: "Halden", nameTag: "AI agent", preview: "I'll post the summary by 4:00.", time: "3:31" },
+            { id: "long", title: "Halden, the launch planning agent for the spring release", nameTag: "AI agent", time: "3:31" },
+          ]}
+          onSelect={() => {}}
+        />
+      </div>,
+    );
+    const parts = (row: HTMLElement) => [row.querySelector<HTMLElement>("[data-ouro-conversation-title]")!, row.querySelector<HTMLElement>("[data-ouro-conversation-name-tag]")!] as const;
+    const [title, tag] = parts(rows[0]!);
+    expect(tag.textContent).toBe(", AI agent");
+    expect(tag.querySelector(".sr-only")!.textContent).toBe(", ");
+    expect(Math.round(tag.getBoundingClientRect().top)).toBeLessThan(Math.round(title.getBoundingClientRect().bottom));
+    expect(tag.getBoundingClientRect().left).toBeGreaterThanOrEqual(title.getBoundingClientRect().right);
+    expect(getComputedStyle(tag).color).not.toBe(getComputedStyle(title).color);
+    expect(parseFloat(getComputedStyle(tag).fontSize)).toBeLessThan(parseFloat(getComputedStyle(title).fontSize));
+    expect(getComputedStyle(tag).fontWeight).toBe("400");
+    await expect.element(page.getByRole("button", { name: /^Halden ?, AI agent/ })).toBeVisible();
+    const [longTitle, longTag] = parts(rows[1]!);
+    expect(longTitle.scrollWidth).toBeGreaterThan(longTitle.clientWidth);
+    expect(longTag.scrollWidth).toBe(longTag.clientWidth);
+    expect(rows[1]!.querySelector("[data-ouro-conversation-name-tag]")).not.toBeNull();
+    expect(rows[0]!.parentElement!.parentElement!.querySelectorAll("[data-ouro-conversation-name-tag]")).toHaveLength(2);
   });
 
   it("gives up the where before the title when the row is narrow", async () => {

@@ -5,6 +5,7 @@ import type { HTMLAttributes, JSX, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -51,6 +52,14 @@ export interface MessageListOwnProps {
    * @claim "and never with `prefers-reduced-motion: reduce`" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
    */
   springy?: boolean | undefined;
+  /**
+   * The widest the conversation gets, in CSS pixels, centred in a wider list (`960` is 60rem at
+   * the default font size), so in a wide window the user's own messages stay near the others'
+   * and the eye never crosses an empty field between them. The list itself still fills its
+   * place, so it scrolls from anywhere across it. Leave it out for messages as wide as the list.
+   * @claim "centred in a wider list" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > centres the conversation at maxWidth in a wider list, the user's own messages with it, and fills a narrower one)
+   */
+  maxWidth?: number | undefined;
   /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
@@ -395,7 +404,9 @@ interface Spoken {
 
 /**
  * A conversation: `Message`s in a scrolling, labeled region that opens at the newest one.
- * While the reader is at the bottom it follows new messages and streaming text; once they
+ * A short conversation sits at the region's bottom, by the composer under it, as in a chat
+ * app; put what starts it (who it is with, a way to older history) first among the children,
+ * and it sits right above the first message. While the reader is at the bottom it follows new messages and streaming text; once they
  * scroll up, nothing moves their view, and a "Jump to latest" button appears. Each new
  * message from someone else is read to screen readers once, politely: a streamed reply
  * when it finishes, and a first reply in a list that mounted empty. History is never
@@ -482,6 +493,8 @@ interface Spoken {
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
+ * @claim "A short conversation sits at" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits a short conversation at its bottom, by the composer under it, with the room above it empty)
+ * @claim "put what starts it (who" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits what starts a short conversation, its first child, right above the first message)
  */
 export function MessageList(props: MessageListProps): JSX.Element {
   const {
@@ -491,6 +504,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
     springy = true,
+    maxWidth,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -886,13 +900,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // A key in a control inside a message is the control's.
       if (itemOf(item) !== item) return;
       keyFor.current?.(item, reactEvent);
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      // ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a Mac are its Home, End, Page Up and Page Down.
+      const key = navigationKey(event);
+      if (event.defaultPrevented) return;
       const list = topItems(content);
       const at = list.indexOf(item);
       const box = boxOf(item);
       const view = scroller.getBoundingClientRect();
       let goal: HTMLElement | undefined;
-      switch (event.key) {
+      switch (key) {
         case getComputedStyle(item).direction === "rtl" ? "ArrowLeft" : "ArrowRight": {
           const inside = tabbables(item);
           goal = inside.find((element) => element.closest('[role="toolbar"]') !== null) ?? inside[0];
@@ -912,8 +928,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         case "PageDown":
         case "ArrowUp":
         case "PageUp": {
-          const forward = event.key.endsWith("Down");
-          const paging = event.key.startsWith("Page");
+          const forward = key.endsWith("Down");
+          const paging = key.startsWith("Page");
           // A message taller than the list scrolls through first, a line or a page at a time.
           const beyond = forward ? box.bottom - view.bottom + EDGE : view.top + EDGE - box.top;
           // Stryker disable next-line EqualityOperator: a pixel past the edge is a rounding, not more message.
@@ -992,7 +1008,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
         <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
-        <div ref={contentRef} data-ouro-message-list-content="" className="flex flex-col gap-4 p-4 [&>[data-continued]]:-mt-3">
+        <div
+          ref={contentRef}
+          data-ouro-message-list-content=""
+          className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3"
+          style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
+        >
           {children}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />

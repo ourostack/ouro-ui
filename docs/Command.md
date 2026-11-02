@@ -2,7 +2,7 @@
 
 # Command
 
-A command palette: a searchable list of every action in the app, in a dialog. Typing filters the commands by label and keywords (ignoring case and accents), the arrow keys move the highlight, and Enter runs the highlighted command. Commands come in labelled groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px it is a full-height bottom sheet, whose search input stays put while the results filter. A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`, so a palette that jumps to any chat shows who each one is with and what is new.
+A command palette: a searchable list of every action in the app, in a dialog. Typing filters the commands by label and keywords (ignoring case and accents), the arrow keys move the highlight, and Enter runs the highlighted command. Commands come in labelled groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px it is a full-height bottom sheet, whose search input stays put while the results filter. Above it, the dialog fits its commands, from 32rem up to 40rem, and keeps that width while they filter. A command can lead with an `avatar` or an `icon` and end with an `unread` dot or a `mark`, so a palette that jumps to any chat shows who each one is with and what is new.
 
 ```tsx
 import { Command } from "@/registry/ouro/components/ouro/command/command";
@@ -55,9 +55,10 @@ The props the modes share. Type: `CommandProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, applied to the dialog panel: margins (`mt-8`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the close button, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the palette. |
+| `empty` | `ReactNode` |  | Content for the empty state in place of `emptyLabel`, such as a picture with words: `empty={<Empty icon={<SearchIcon />} title="Nothing matches" />}`. While `loading`, the loading line still shows under it. |
 | `emptyLabel` | `string` | `"No results"` | What shows when nothing matches the search. |
 | `items` (required) | `readonly CommandEntry[]` |  | The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. |
-| `loading` | `boolean` |  | Whether results are on their way: shows `loadingLabel` beside the input, announces it politely for the first load of each opening (not again while typing goes on), and holds back the empty state. Set it back to false when the request fails or aborts. |
+| `loading` | `boolean` |  | Whether results are on their way: shows `loadingLabel` beside the input, or under the empty state while nothing matches yet ("No chats by that name." over "Searching the directory…"), and announces it politely for the first load of each opening (not again while typing goes on). Set it back to false when the request fails or aborts. |
 | `loadingLabel` | `string` | `"Searching…"` | What shows, and is announced, while `loading`. |
 | `onQueryChange` | `((query: string, context: { signal: AbortSignal }) => void)` |  | For results from a server: called with the search text on every change, and with the current text (`""` at each opening) whenever the palette opens or swaps between dialog and sheet. The palette then stops filtering `items` itself and shows them as they are, so keep the last results in `items` until new ones arrive. `signal` aborts when a newer query replaces this one or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app owns the request, and must set `loading` back to false when the request fails or its signal aborts, or "Searching…" stays up. |
 | `placeholder` | `string` | `"Type a command or search…"` | The search input's placeholder. |
@@ -141,8 +142,14 @@ One command in a Command palette's `items`.
 
 ```ts
 interface CommandItem {
-  /** The command's text, which the search matches. */
+  /** The command's text, which the search matches and screen readers hear. */
   label: string;
+  /**
+   * What the row shows in place of `label`, when plain text cannot draw it: a chat's name with
+   * its emoji as pictures (`<EmojiText text={chat.name} catalogue={catalogue} />`). `label`
+   * stays the text the search matches and the row's name for screen readers.
+   */
+  labelContent?: ReactNode;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
   /**
