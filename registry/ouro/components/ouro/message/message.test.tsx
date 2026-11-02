@@ -822,6 +822,21 @@ describe("Message post", () => {
     expect(bubbleOf(message).compareDocumentPosition(reply) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("gives a post's name line order 1 in its row, and a chat message's name line none", async () => {
+    const post = await render(
+      <Message variant="post" role="assistant" name="Build bot" time="7:52 AM" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+        Build 1432 passed.
+      </Message>,
+    );
+    expect(getComputedStyle(headerOf(post.message)).order).toBe("1");
+    const chat = await render(
+      <Message variant="chat" role="assistant" name="Build bot" time="7:52 AM">
+        Build 1432 passed.
+      </Message>,
+    );
+    expect(getComputedStyle(headerOf(chat.message)).order).toBe("0");
+  });
+
   it("draws a hairline from the text's start to the end between two posts, and none above the first", async () => {
     const { host } = await render(
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
