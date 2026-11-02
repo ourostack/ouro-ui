@@ -1716,6 +1716,19 @@ describe("Message actions", () => {
 });
 
 describe("Message not sent", () => {
+  it("marks a post that did not send on its own line under the text, at the text's start", async () => {
+    const { message } = await render(
+      <Message variant="post" role="user" name="Priya Okafor" time="8:21 AM" failed={{ onRetry: () => {} }}>
+        The mockups are in the Files tab.
+      </Message>,
+    );
+    const marker = message.querySelector<HTMLElement>("[data-ouro-message-failed]")!;
+    expect(box(marker).left).toBeCloseTo(box(bubbleOf(message)).left, 0);
+    expect(box(marker).top).toBeGreaterThanOrEqual(box(bubbleOf(message)).bottom);
+    // A line of its own, as wide as the post's text column.
+    expect(box(marker).width).toBeCloseTo(box(message.querySelector("[data-ouro-message-body]")!).width, 0);
+  });
+
   const rect = (element: Element) => element.getBoundingClientRect();
   const markerOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-failed]");
   const buttonsOf = (message: HTMLElement) => [...markerOf(message)!.querySelectorAll("button")].map((button) => button.textContent);
