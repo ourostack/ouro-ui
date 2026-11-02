@@ -210,6 +210,10 @@ test("loads Geist and Geist Mono, and a preset's display face only once it is ch
 });
 
 test("the header works from the keyboard: picker, mode, X-ray and the command palette, with focus returned", async ({ page }) => {
+  // A preset's reveal is a view transition, and a loaded WebKit took up to 5 s to capture the page
+  // before it made the change. Without motion the change applies at once, so the test times only the
+  // keys it checks; the reveal is the swatches test's to check (src/voyage/voyage.test.tsx).
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await store(page, { preset: "pearl", mode: "light" });
   await open(page);
