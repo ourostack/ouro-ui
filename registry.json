@@ -3988,6 +3988,34 @@
       ]
     },
     {
+      "name": "media-tile",
+      "type": "registry:ui",
+      "title": "MediaTile",
+      "description": "A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen.",
+      "docs": "A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. Import: import { MediaTile } from \"@/components/ouro/media-tile/media-tile\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: avatar, toggle, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/media-tile.md",
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar",
+        "ourostack/ouro-ui/lib-class-name-check",
+        "ourostack/ouro-ui/lib-cn",
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/toggle"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/media-tile/media-tile-styles.ts",
+          "type": "registry:ui",
+          "target": "@components/ouro/media-tile/media-tile-styles.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/media-tile/media-tile.tsx",
+          "type": "registry:ui",
+          "target": "@components/ouro/media-tile/media-tile.tsx"
+        }
+      ]
+    },
+    {
       "name": "moment",
       "type": "registry:ui",
       "title": "Moment",
@@ -11869,6 +11897,69 @@
       }
     },
     {
+      "name": "media-tile-tests",
+      "type": "registry:item",
+      "title": "MediaTile tests",
+      "description": "Optional: the Vitest browser tests, type tests, stories and Playwright spec for media-tile, and the tests of everything it installs. Add it beside media-tile: add media-tile media-tile-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "docs": "media-tile's tests, stories and specs are installed beside it, with the tests of everything it installs. The ouro-testing message says how to run them. Docs: https://ui.ouro.bot/docs/testing.md",
+      "devDependencies": [
+        "@storybook/react-vite",
+        "storybook",
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/field-tests",
+        "ourostack/ouro-ui/lib-appearance-hints-tests",
+        "ourostack/ouro-ui/lib-class-name-check-tests",
+        "ourostack/ouro-ui/lib-cn-tests",
+        "ourostack/ouro-ui/lib-control-ref-tests",
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/media-tile",
+        "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/switch",
+        "ourostack/ouro-ui/switch-tests",
+        "ourostack/ouro-ui/toggle-tests"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/components/ouro/media-tile/media-tile.stories.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/media-tile/media-tile.stories.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/media-tile/media-tile.test-d.ts",
+          "type": "registry:component",
+          "target": "@components/ouro/media-tile/media-tile.test-d.ts"
+        },
+        {
+          "path": "registry/ouro/components/ouro/media-tile/media-tile.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/media-tile/media-tile.test.tsx"
+        },
+        {
+          "path": "registry/ouro/components/ouro/media-tile/media-tile.touch.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/media-tile/media-tile.touch.test.tsx"
+        },
+        {
+          "path": "registry/ouro/e2e/ouro/media-tile.spec.ts",
+          "type": "registry:file",
+          "target": "~/e2e/ouro/media-tile.spec.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "@storybook/react-vite": ">=10.2.10",
+          "storybook": ">=10.2.10",
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "moment-tests",
       "type": "registry:item",
       "title": "Moment tests",
@@ -12075,6 +12166,7 @@
         "ourostack/ouro-ui/lightbox-tests",
         "ourostack/ouro-ui/link-tests",
         "ourostack/ouro-ui/local-date-tests",
+        "ourostack/ouro-ui/media-tile-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message-list-tests",
         "ourostack/ouro-ui/message-tests",

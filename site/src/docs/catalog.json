@@ -429,6 +429,12 @@
     "summary": "Thumbnails that open a full-screen image viewer."
   },
   {
+    "name": "media-tile",
+    "title": "MediaTile",
+    "group": "Display",
+    "summary": "A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen."
+  },
+  {
     "name": "accordion",
     "title": "Accordion",
     "group": "Lists",
