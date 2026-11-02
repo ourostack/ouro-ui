@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, drivesBrowser, e2eFiles, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { treeFiles } from "./tree.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
@@ -171,6 +171,25 @@ test("the e2e spec files are the shipped and the site's specs, without the scree
   assert.equal(files.filter((file) => /\.(sr|latency)\.spec\.ts$/.test(file)).length, 0);
   // A spec with no time weighs the median, which can unbalance the shards: refresh the times.
   assert.deepEqual(files.filter((file) => !(file in readTimings("e2e"))), [], "node scripts/shard.mjs refresh <the timings-* artifacts of a CI run>");
+});
+
+test("given paths, the e2e shards split by measured time only the spec files that are one of them or under one, each file in exactly one shard", () => {
+  const files = ["registry/ouro/e2e/ouro/a.spec.ts", "registry/ouro/e2e/ouro/b.spec.ts", "site/e2e/c.spec.ts", "site/e2e/deep/d.spec.ts", "site/e2e2/e.spec.ts"];
+  // A directory path, with or without its slash, selects every file under it, and only under it.
+  assert.deepEqual(filesWithin(files, ["registry/ouro/e2e/ouro/b.spec.ts", "site/e2e/"]), ["registry/ouro/e2e/ouro/b.spec.ts", "site/e2e/c.spec.ts", "site/e2e/deep/d.spec.ts"]);
+  assert.deepEqual(filesWithin(files, ["site/e2e"]), ["site/e2e/c.spec.ts", "site/e2e/deep/d.spec.ts"]);
+  assert.deepEqual(filesWithin(files, ["registry/ouro/e2e/ouro/a.spec"]), []);
+  // In this repository, as CI's reduced run calls it: a few components' specs and the site's.
+  const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), "e2e", ...args], { cwd: root, encoding: "utf8" }).stdout.split("\n").filter(Boolean);
+  const paths = ["registry/ouro/e2e/ouro/checkbox.spec.ts", "registry/ouro/e2e/ouro/dialog.spec.ts", "site/e2e/"];
+  const selected = e2eFiles().filter((file) => file === paths[0] || file === paths[1] || file.startsWith("site/e2e/"));
+  assert.ok(selected.length > paths.length);
+  const shares = [1, 2, 3, 4].map((index) => cli(`${index}/4`, ...paths));
+  assert.deepEqual(shares.flat().sort(), selected);
+  assert.equal(new Set(shares.flat()).size, selected.length);
+  assert.deepEqual(shares, [1, 2, 3, 4].map((index) => shardKeys(selected, { index, count: 4 }, readTimings("e2e"))));
+  // Without paths, a shard takes its share of every spec file, as before.
+  assert.deepEqual(cli("2/4"), shardKeys(e2eFiles(), { index: 2, count: 4 }, readTimings("e2e")));
 });
 
 test("the Playwright timings reporter adds up each spec file's tests, in every project and attempt", async () => {

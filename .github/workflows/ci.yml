@@ -846,8 +846,9 @@ jobs:
     # shards that run side by side: each takes the spec files whose measured times add up to its
     # share (`node scripts/shard.mjs e2e`, times in scripts/shard-timings.json), and its two
     # workers split their tests (fullyParallel). Each uploads how long each file took. On a reduced
-    # pull request, the selected components' specs and the site's, by Playwright's --shard. Part
-    # of the e2e check.
+    # pull request, the same split of the selected components' specs and the site's: Playwright's
+    # --shard split them by test count, and one shard took 15 minutes to the others' 4 to 6 (run
+    # 41433695050). A shard the split leaves no spec passes. Part of the e2e check.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
@@ -883,14 +884,17 @@ jobs:
           if [ "$FULL" = true ]; then
             specs=$(node scripts/shard.mjs e2e "$SHARD")
             [ -n "$specs" ] || { echo "::error::Shard $SHARD has no spec file to run."; exit 1; }
+          else
+            selected=$(node scripts/test-impact.mjs e2e "$COMPONENTS")
             # Word splitting is wanted: the paths have no spaces.
             # shellcheck disable=SC2086
-            pnpm test:e2e $specs
-          else
-            # Word splitting is wanted: the paths have no spaces. A shard may get none of a few specs.
-            # shellcheck disable=SC2046
-            pnpm test:e2e --pass-with-no-tests --shard="$SHARD" $(node scripts/test-impact.mjs e2e "$COMPONENTS")
+            specs=$(node scripts/shard.mjs e2e "$SHARD" $selected)
+            # A shard may get none of a few specs; pnpm test:e2e with no path would run them all.
+            [ -n "$specs" ] || { echo "Shard $SHARD has none of the selected spec files."; exit 0; }
           fi
+          # Word splitting is wanted: the paths have no spaces.
+          # shellcheck disable=SC2086
+          pnpm test:e2e $specs
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
