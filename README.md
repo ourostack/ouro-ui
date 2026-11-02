@@ -237,6 +237,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 
 Components:
 `accordion`,
+`agent-presence`,
 `alert`,
 `aspect-ratio`,
 `attachment`,
@@ -513,6 +514,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Feedback
 
+- **AgentPresence** — The person's always-visible sign of which of their agents are listening to something on their behalf, such as a meeting, with Stop one click away. [Docs](docs/AgentPresence.md)
 - **buzz** — Vibrates the device in a short alert pattern, where it can (most Android phones; not iOS or desktops). [Docs](docs/buzz.md)
 - **Celebrate** — A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. [Docs](docs/Celebrate.md)
 - **chime** — Plays a short alert, three soft tones, for something that just finished: a timer at zero. [Docs](docs/chime.md)
