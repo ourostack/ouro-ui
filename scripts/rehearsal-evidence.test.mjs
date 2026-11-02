@@ -56,7 +56,14 @@ test("nothing that ships, feeds what ships or runs the release is reused across,
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
     "tsconfig.json",
+    "tsconfig.registry.json",
     "vitest.config.ts",
+    "site/vite.config.ts",
+    "site/index.html",
+    "site/src/app.tsx",
+    "site/scripts/prerender.mts",
+    "scripts/namespace.sh",
+    "scripts/registry.mts",
     "playwright.config.ts",
     ".storybook/main.ts",
     "app.css",
@@ -171,6 +178,12 @@ test("findEvidence reuses a rehearsal on an earlier commit of main only across t
   assert.match(refused({ "changes/fix.md": "- A fix.\n" }).reason, /changes\/fix\.md \(change fragments are the release notes/);
   assert.match(refused({ "package.json": "{}\n", "test/y.test.ts": "y\n" }).reason, /in 1 file\(s\) that may ship: package\.json/);
   assert.match(refused({ ".github/workflows/release.yml": "x\n" }).reason, /\.github\/workflows\/release\.yml/);
+  // Scripts, dependencies, TypeScript and build configuration, and the site: each alone, beside a test, refuses it.
+  for (const path of ["scripts/release-commit.sh", "package.json", "pnpm-lock.yaml", "tsconfig.json", "tsconfig.registry.json", "vitest.config.ts", "site/vite.config.ts", "site/src/app.tsx", "site/public/llms.txt"]) {
+    const result = refused({ [path]: "x\n", "test/z.test.ts": "z\n" });
+    assert.equal(result.ok, false, path);
+    assert.ok(result.reason.includes(`in 1 file(s) that may ship: ${path} (`), result.reason);
+  }
   assert.match(refused({ "README.md": "x\n" }).reason, /README\.md \(the release commit writes/);
   // A deletion, and each side of a rename, count as changes.
   assert.match(refused({ "registry/a.tsx": null }).reason, /registry\/a\.tsx/);
