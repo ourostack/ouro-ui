@@ -48,13 +48,13 @@ see, those that take free text, and the wait command.
 - `route`, `read-route`, `ref-route`, `others-route`: HTTP routes that answer an error, GET routes, routes with an id
 in the path, and the probes of writes other people see.
 - `tool`, `tool-required`: MCP tools, and those with required arguments.
-- `twin`, `action-twin`, `person-only`, `ui-read`, `listening`, `listening-push`: from the `ui` inventory, the twins,
-the twins of agent actions, the words of person-only actions, the reads, the reads of what people say, and their
-streams.
+- `twin`, `action-twin`, `person-only`, `reserved`, `ui-read`, `listening`, `listening-push`: from the `ui` inventory,
+the twins, the twins of agent actions, the person-only actions, the actions with a reserved id, the reads, the
+reads of what people say, and their streams.
 ```
 
 ```ts
-const CLAIM_SCOPES: readonly ["interface", "command", "read", "others", "text", "wait", "events", "route", "read-route", "ref-route", "others-route", "tool", "tool-required", "twin", "action-twin", "person-only", "ui-read", "listening", "listening-push"]
+const CLAIM_SCOPES: readonly ["interface", "command", "read", "others", "text", "wait", "events", "route", "read-route", "ref-route", "others-route", "tool", "tool-required", "twin", "action-twin", "person-only", "reserved", "ui-read", "listening", "listening-push"]
 ```
 
 ### `CLAIM_SET`
@@ -157,6 +157,7 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `ui.twin-exists` | must | hazard |
 | `ui.twin-effect-matches` | must | hazard |
 | `ui.person-only-refuses` | must | hazard |
+| `ui.reserved-person-only` | must | hazard |
 | `ui.listening-needs-yes` | must | hazard |
 | `cli.listening-push-filtered` | must | hazard |
 | `cli.command-help` | should | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |

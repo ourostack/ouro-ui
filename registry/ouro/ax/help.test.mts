@@ -63,7 +63,7 @@ test("a flag read from stdin says so, and a command without examples has none in
 });
 
 test("person-only words are listed in the overview and in help --json, with the reason and how the person does it", () => {
-  const theirs = { reason: "agents never turn on a person's camera", how: "with the camera button" };
+  const theirs = { reason: "You can't turn on the person's camera; only they can.", how: "with the camera button" };
   const c = defineCli({ name: "call", about: ["call"], commands: [defineCommand({ name: "mute", summary: "Mute.", effect: "others" })], personOnly: { camera: theirs, "share screen": theirs } });
   assert.match(renderOverview(c), /\n {2}mute {3}Mute\.\n\nOnly the person does these, never you: camera, share screen\. Why and where: call help --json\.\n\nOutput:/);
   assert.deepEqual(helpJson(c).personOnly, [{ name: "camera", ...theirs }, { name: "share screen", ...theirs }]);
