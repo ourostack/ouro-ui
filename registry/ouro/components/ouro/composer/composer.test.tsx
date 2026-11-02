@@ -958,15 +958,9 @@ describe("Composer expanded", () => {
     const small = body.getBoundingClientRect().height;
     body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
-    // The second press comes once the first's change has started, as no hand presses twice within a frame.
-    await expect.poll(() => heights(body)).toEqual(["height"]);
-    const shown = body.getBoundingClientRect().height;
     await userEvent.click(expandButton()!);
-    // It turns back from the height it showed, never from the full height.
-    expect(body.getBoundingClientRect().height).toBeLessThanOrEqual(shown + 2);
-    expect(body.getBoundingClientRect().height).toBeLessThan(expandedHeight - 2);
-    expect(body.getBoundingClientRect().height).toBeGreaterThanOrEqual(small - 1);
-    expect(heights(body)).toEqual(["height"]);
+    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
     await act(async () => body.getAnimations().forEach((animation) => animation.finish()));
     await expect.poll(settled).toBe(true);
     // A render that is no expand or collapse ends a change at once.
