@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
-import { SnapPiP, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
+import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 import { anchorFor, cornerToward, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -35,6 +35,8 @@ afterEach(async () => {
   await act(async () => root?.unmount());
   root = undefined;
   for (const node of nodes.splice(0)) node.remove();
+  // An announcement still on its way writes to the region it was given, gone from the page with it.
+  document.querySelector("[data-ouro-announcer]")?.remove();
   expect(error).not.toHaveBeenCalled();
   vi.restoreAllMocks();
   await commands.emulateMedia({ reducedMotion: "no-preference" });
@@ -202,6 +204,9 @@ describe("SnapPiP", () => {
     await fire("pointerdown", x, y);
     expect(element.hasAttribute("data-dragging")).toBe(true);
     await expect.poll(() => getComputedStyle(element).scale).toBe("1.04");
+    // Half a pixel is not yet a drag; a whole one is.
+    await fire("pointermove", x - 0.5, y);
+    expect(at()).toEqual([RIGHT, BOTTOM]);
     await fire("pointermove", x - 1, y);
     expect(at()).toEqual([RIGHT - 1, BOTTOM]);
     await fire("pointermove", x - 31, y - 52);
@@ -216,6 +221,7 @@ describe("SnapPiP", () => {
   it("goes to the corner a flick points at, across the stage, with a little overshoot", async () => {
     const onCornerChange = vi.fn();
     const element = await render(self({ onCornerChange }));
+    const announced = watchAnnouncements();
     freeze();
     // Up and to the left at 1.5 and 1 px/ms: it lands nowhere near the top-left corner, but coasts there.
     await throwBy(-60, -40);
@@ -223,10 +229,33 @@ describe("SnapPiP", () => {
     expect(onCornerChange.mock.calls).toEqual([["top-left"]]);
     expect(element.getAttribute("data-corner")).toBe("top-left");
     expect(settling()).toBe(true);
+    // It carries on at the speed it was thrown: about 24px and 16px in the first frame.
+    frames!.step(16);
+    const [firstX, firstY] = at();
+    expect(firstX).toBeLessThan(RIGHT - 60 - 15);
+    expect(firstY).toBeLessThan(BOTTOM - 40 - 10);
     const seen = path();
     expect(Math.min(...seen.map(([left]) => left))).toBeLessThan(LEFT - 1);
     expect(at()).toEqual([LEFT, TOP]);
     expect(settling()).toBe(false);
+    frames!.release();
+    frames = undefined;
+    await expect.poll(() => announced.count("Top left")).toBe(1);
+    announced.stop();
+  });
+
+  it("calls a release at exactly the flick speed a flick, and overshoots", async () => {
+    const onCornerChange = vi.fn();
+    await render(self({ onCornerChange }));
+    freeze();
+    const [x, y] = middle(pip());
+    await fire("pointerdown", x, y);
+    await fire("pointermove", x - 73, y, 300);
+    // The last 100ms: 11px, 0.11 px/ms.
+    await fire("pointermove", x - 84, y, 100);
+    await fire("pointerup", x - 84, y, 0);
+    expect(onCornerChange.mock.calls).toEqual([["bottom-left"]]);
+    expect(Math.min(...path().map(([left]) => left))).toBeLessThan(LEFT - 1);
   });
 
   it("goes to the nearest corner after a slow drop, with no overshoot", async () => {
@@ -256,8 +285,33 @@ describe("SnapPiP", () => {
     expect(onCornerChange).not.toHaveBeenCalled();
     expect(watch.count()).toBe(0);
     watch.stop();
-    expect(announced.changes).toEqual([]);
+    // The next move is the first thing announced.
+    pip().focus();
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    await rest();
+    await expect.poll(() => announced.count("Top right")).toBe(1);
+    expect(announced.changes.map((change) => change.text)).toEqual(["Top right"]);
     announced.stop();
+  });
+
+  it("springs on from its corner when it reaches it still moving", async () => {
+    await render(self());
+    freeze();
+    for (const [dx, dy] of [
+      [-30, 0],
+      [0, -30],
+    ] as const) {
+      const [x, y] = middle(pip());
+      await fire("pointerdown", x, y);
+      await fire("pointermove", x + dx, y + dy, 100);
+      // Back on its corner, at 0.6 px/ms: it overshoots and comes back.
+      await fire("pointermove", x, y, 50);
+      await fire("pointerup", x, y, 0);
+      expect(at()).toEqual([RIGHT, BOTTOM]);
+      expect(settling()).toBe(true);
+      rest();
+      expect(at()).toEqual([RIGHT, BOTTOM]);
+    }
   });
 
   chromiumOnly("throws to a corner with a real mouse flick, and drops into the nearest with a slow real drag", async () => {
@@ -292,6 +346,7 @@ describe("SnapPiP", () => {
     expect(at()).toEqual(caught);
     // Only pressed: it goes on to the corner it was thrown to.
     await fire("pointerup", x, y);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
     expect(settling()).toBe(true);
     rest();
     expect(at()).toEqual([LEFT, TOP]);
@@ -405,6 +460,30 @@ describe("SnapPiP", () => {
     watch.stop();
   });
 
+  it("measures keep-out elements inside the container's border, rendered by the app or not", async () => {
+    stage = document.createElement("div");
+    // 380 by 480 inside a 4px border.
+    Object.assign(stage.style, { position: "relative", boxSizing: "content-box", width: "380px", height: "480px", border: "4px solid" });
+    document.body.append(stage);
+    nodes.push(stage);
+    root = createRoot(stage);
+    const band = { current: null as HTMLDivElement | null };
+    const panel = { current: null as HTMLDivElement | null };
+    const layout = (keepOut: SnapPiPProps["keepOut"]) => (
+      <>
+        <div ref={band} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 80 }} />
+        <div ref={panel} style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: 120 }} />
+        {self({ keepOut })}
+      </>
+    );
+    await act(async () => root!.render(layout([band])));
+    await rest();
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    // Another element in its place: watched from then on, and measured at once.
+    await act(async () => root!.render(layout([panel])));
+    await expect.poll(() => at()).toEqual([260 - 16 - 160, BOTTOM]);
+  });
+
   it("follows a keep-out that changes in flight from where it is, and one that changes mid-drag on release", async () => {
     const band = { x: 0, y: 400, width: 380, height: 80 };
     await render(self({ keepOut: [band] }));
@@ -448,6 +527,27 @@ describe("SnapPiP", () => {
     // A box in the corner: the nearer way out, up or sideways.
     expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 40, height: 200 }])).toEqual({ x: 56, y: 16 });
     expect(anchorFor("top-right", stageBox, small, 16, [{ x: 200, y: 0, width: 180, height: 30 }])).toEqual({ x: 204, y: 46 });
+    // A band along the bottom: the right corner moves up, keeping its own side.
+    expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 0, y: 400, width: 380, height: 80 }])).toEqual({ x: 204, y: 284 });
+    // A box in the corner as far across as down: the first way out, sideways.
+    expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 40, height: 40 }])).toEqual({ x: 56, y: 16 });
+    // Places at the stage's very edges count.
+    expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 204, height: 480 }])).toEqual({ x: 220, y: 16 });
+    expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 176, y: 0, width: 204, height: 480 }])).toEqual({ x: 0, y: 364 });
+    expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 380, height: 364 }])).toEqual({ x: 16, y: 380 });
+    expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 0, y: 116, width: 380, height: 364 }])).toEqual({ x: 204, y: 0 });
+    // With no inset, a place that only touches a keep-out clears it, on every side.
+    expect([
+      anchorFor("top-left", stageBox, small, 0, [{ x: 0, y: 0, width: 40, height: 480 }]),
+      anchorFor("top-right", stageBox, small, 0, [{ x: 300, y: 0, width: 80, height: 480 }]),
+      anchorFor("top-left", stageBox, small, 0, [{ x: 0, y: 0, width: 380, height: 40 }]),
+      anchorFor("bottom-right", stageBox, small, 0, [{ x: 0, y: 400, width: 380, height: 80 }]),
+    ]).toEqual([
+      { x: 40, y: 0 },
+      { x: 140, y: 0 },
+      { x: 0, y: 40 },
+      { x: 220, y: 300 },
+    ]);
     // Nothing inside the stage clears it: the corner itself.
     expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 0, y: 0, width: 380, height: 480 }])).toEqual({ x: 204, y: 364 });
     expect(anchorFor("top-left", stageBox, small, 16, [])).toEqual({ x: 16, y: 16 });
@@ -509,12 +609,15 @@ describe("SnapPiP", () => {
     }
     expect(settling()).toBe(false);
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+    expect(settling()).toBe(true);
     await rest();
     expect(at()).toEqual([LEFT, TOP]);
     await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+    expect(settling()).toBe(true);
     await rest();
     expect(at()).toEqual([LEFT, BOTTOM]);
     await userEvent.keyboard("{Alt>}{ArrowRight}{/Alt}");
+    expect(settling()).toBe(true);
     await rest();
     expect(at()).toEqual([RIGHT, BOTTOM]);
     expect(onCornerChange.mock.calls.flat()).toEqual(["top-right", "top-left", "bottom-left", "bottom-right"]);
@@ -568,8 +671,10 @@ describe("SnapPiP", () => {
 
   it("follows a controlled corner with the spring, and goes back to it when the app keeps it", async () => {
     const onCornerChange = vi.fn();
+    const announced = watchAnnouncements();
     const element = await render(self({ corner: "top-left", onCornerChange }));
     expect(at()).toEqual([LEFT, TOP]);
+    expect(warn).not.toHaveBeenCalled();
     element.focus();
     await userEvent.keyboard("{Alt>}{ArrowRight}{/Alt}");
     expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
@@ -580,12 +685,48 @@ describe("SnapPiP", () => {
     expect(settling()).toBe(true);
     await rest();
     expect(at()).toEqual([LEFT, BOTTOM]);
+    announced.stop();
+    // A corner the app sets mid-drag waits for the release.
+    await render(self({ corner: "bottom-left", onCornerChange }));
+    await rest();
+    const [px, py] = middle(element);
+    await fire("pointerdown", px, py);
+    await fire("pointermove", px + 20, py - 20);
+    await render(self({ corner: "top-right", onCornerChange }));
+    expect(at()).toEqual([LEFT + 20, BOTTOM - 20]);
+    expect(settling()).toBe(false);
+    await fire("pointerup", px + 20, py - 20, 150);
+    await rest();
+    expect(at()).toEqual([RIGHT, TOP]);
     // A thrown picture the app keeps where it was goes back too.
     freeze();
-    await throwBy(200, -60);
-    expect(onCornerChange).toHaveBeenLastCalledWith("top-right");
+    await throwBy(-200, 300);
+    expect(onCornerChange).toHaveBeenLastCalledWith("bottom-left");
     rest();
+    expect(at()).toEqual([RIGHT, TOP]);
+  });
+
+  it("announces a move the person makes and the app keeps, and not one the app makes", async () => {
+    let setCorner: (corner: SnapPiPCorner) => void = () => {};
+    function Remembering() {
+      const [corner, set] = useState<SnapPiPCorner>("bottom-right");
+      setCorner = set;
+      return self({ corner, onCornerChange: set });
+    }
+    const element = await render(<Remembering />);
+    const announced = watchAnnouncements();
+    await act(async () => setCorner("bottom-left"));
+    expect(settling()).toBe(true);
+    await rest();
     expect(at()).toEqual([LEFT, BOTTOM]);
+    element.focus();
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(element.getAttribute("data-corner")).toBe("top-left");
+    await rest();
+    expect(at()).toEqual([LEFT, TOP]);
+    await expect.poll(() => announced.count("Top left")).toBe(1);
+    expect(announced.changes.map((change) => change.text)).toEqual(["Top left"]);
+    announced.stop();
   });
 
   it("jumps to its corner with reduced motion, with no lift and no rubberband", async () => {

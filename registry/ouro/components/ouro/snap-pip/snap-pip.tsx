@@ -215,8 +215,8 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const size = sizeProp === undefined ? ownSize : isSize(sizeProp) ? sizeProp : "small";
   // The container's size once measured; until then CSS places it, as on the server.
   const [stage, setStage] = useState<{ width: number; height: number } | undefined>(undefined);
-  // A count of releases, so a controlled corner the app kept is gone back to.
-  const [releases, setReleases] = useState(0);
+  // A new object on each release, so a controlled corner the app kept is gone back to.
+  const [release, setRelease] = useState({});
   const descriptionId = `${useId()}-description`;
 
   useAppearanceClassNameCheck(
@@ -247,7 +247,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const element = useRef<HTMLDivElement | null>(null);
   // Where it is, in px from the container's top-left corner, and the springs carrying it.
   const at = useRef(zero);
-  const springs = useRef<{ x: SpringHandle; y: SpringHandle } | undefined>(undefined);
+  const springs = useRef<{ x: SpringHandle; y: SpringHandle; to: { x: number; y: number } } | undefined>(undefined);
   // The corner it rests in or is on its way to, and the last one it settled in.
   const target = useRef<SnapPiPCorner>(corner);
   const settled = useRef<SnapPiPCorner>(corner);
@@ -255,8 +255,6 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const moved = useRef(false);
   // A drag under way: where it was when the pointer took it.
   const drag = useRef<{ x: number; y: number } | undefined>(undefined);
-  // A press that stopped it in flight: it goes on if the press is only a press.
-  const caught = useRef(false);
   const stageRef = useRef(stage);
   // The latest props and measurements, for the callbacks that outlive a render.
   const latest = useRef({ inset, keepOut, reduced, cornerLabels });
@@ -326,13 +324,14 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       const done = () => {
         if (--moving > 0) return;
         springs.current = undefined;
-        element.current?.removeAttribute("data-ouro-settling");
+        element.current!.removeAttribute("data-ouro-settling");
         rested();
       };
       const options = { response: RESPONSE, damping: flick ? FLICK_DAMPING : 1, reduced: false, onRest: done };
       springs.current = {
         x: spring({ ...options, from: from.x, to: x, velocity: vx, onUpdate: (value) => place(value, at.current.y) }),
         y: spring({ ...options, from: from.y, to: y, velocity: vy, onUpdate: (value) => place(at.current.x, value) }),
+        to: { x, y },
       };
       element.current!.setAttribute("data-ouro-settling", "");
     },
@@ -344,7 +343,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     (jump: boolean) => {
       if (!stageRef.current || drag.current) return;
       const { x, y } = anchor(target.current);
-      if (!springs.current && x === at.current.x && y === at.current.y) return;
+      // Already there, or on its way there.
+      const goal = springs.current ? springs.current.to : at.current;
+      if (x === goal.x && y === goal.y) return;
       go(target.current, { jump });
     },
     [anchor, go],
@@ -374,10 +375,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   }, [reflow]);
   // The keep-out elements it watches, kept in step with each render's list.
   useLayoutEffect(() => {
-    const now = (keepOut ?? []).flatMap((item) => ("current" in item && item.current ? [item.current] : []));
-    for (const gone of watched.current) if (!now.includes(gone)) observer.current!.unobserve(gone);
-    for (const added of now) if (!watched.current.includes(added)) observer.current!.observe(added);
-    watched.current = now;
+    for (const gone of watched.current) observer.current!.unobserve(gone);
+    watched.current = (keepOut ?? []).flatMap((item) => ("current" in item && item.current ? [item.current] : []));
+    for (const added of watched.current) observer.current!.observe(added);
   });
 
   // A new size, shape or container size: it stays in its corner, at once.
@@ -387,8 +387,8 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   useLayoutEffect(() => reflow(false), [keepKey, inset, reflow]);
   // A corner the app sets, or keeps after a throw: it goes there with the spring.
   useLayoutEffect(() => {
-    if (stageRef.current && !drag.current && corner !== target.current) go(corner);
-  }, [corner, releases, go]);
+    if (!drag.current && corner !== target.current) go(corner);
+  }, [corner, release, go]);
   // Unmounted while it springs, it stops.
   useEffect(() => () => void halt(), [halt]);
 
@@ -397,7 +397,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       setOwnCorner(next);
       onCornerChange?.(next);
     }
-    setReleases((count) => count + 1);
+    setRelease({});
   };
 
   const dragProps = useDrag({
@@ -406,27 +406,24 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     threshold: 1,
     onPress: () => {
       // Caught in flight, it holds still under the pointer.
-      caught.current = springs.current !== undefined;
       halt();
       if (!latest.current.reduced) element.current!.setAttribute("data-dragging", "");
     },
     onPressEnd: () => {
       element.current!.removeAttribute("data-dragging");
-      // Only pressed: it goes on to its corner.
-      if (caught.current) go(target.current);
-      caught.current = false;
+      // Only pressed: it goes on to its corner, if a press caught it on its way.
+      go(target.current);
     },
     onStart: () => {
-      caught.current = false;
       drag.current = at.current;
     },
     onMove: ({ delta, crossDelta }) => {
       const pip = element.current!;
       const { width, height } = stageRef.current!;
+      // Inside the container 1:1; past an edge, held there with reduced motion, or resisting.
       const follow = (value: number, max: number, dimension: number) => {
-        if (value < 0) return latest.current.reduced ? 0 : rubberband(value, dimension);
-        if (value > max) return max + (latest.current.reduced ? 0 : rubberband(value - max, dimension));
-        return value;
+        const inside = Math.min(Math.max(value, 0), max);
+        return inside + (latest.current.reduced ? 0 : rubberband(value - inside, dimension));
       };
       place(follow(drag.current!.x + delta, width - pip.offsetWidth, pip.offsetWidth), follow(drag.current!.y + crossDelta, height - pip.offsetHeight, pip.offsetHeight));
     },
@@ -467,7 +464,6 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     // Option-arrow is the browser's back and forward in some places: here it moves the picture.
     event.preventDefault();
     const next = cornerToward(target.current, event.key as ArrowKey);
-    if (next === target.current) return;
     moved.current = true;
     go(next);
     choose(next);
@@ -481,7 +477,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       const undoApp = attachRef(ref, node);
       // The element stays known after it goes, so an effect cleaning up after it can still reach it.
       return () => {
-        undoDrag?.();
+        undoDrag!();
         undoApp();
       };
     },

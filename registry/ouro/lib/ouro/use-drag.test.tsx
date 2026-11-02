@@ -132,10 +132,15 @@ describe("useDrag", () => {
     // 3 and 3 is less than 5 away, even though neither axis alone reaches it.
     await fire(pad, "pointermove", 103, 53);
     expect(calls.start).toEqual([]);
-    // Straight down: a drag that follows both axes starts, where the other axis would have won.
-    await fire(pad, "pointermove", 100, 56, 10);
+    // 3 and 4 is 5 away: it starts, mostly down, where the other axis would have won.
+    await fire(pad, "pointermove", 103, 54, 10);
     expect(calls.start.length).toBe(1);
-    expect(calls.move.map(({ delta, crossDelta }) => [delta, crossDelta])).toEqual([[0, 6]]);
+    // Straight down, it goes on.
+    await fire(pad, "pointermove", 100, 56, 0);
+    expect(calls.move.map(({ delta, crossDelta }) => [delta, crossDelta])).toEqual([
+      [3, 4],
+      [0, 6],
+    ]);
     await fire(pad, "pointermove", 140, 106, 20);
     const last = calls.move.at(-1)!;
     expect([last.delta, last.crossDelta]).toEqual([40, 56]);
