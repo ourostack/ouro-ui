@@ -31,10 +31,10 @@ The props the modes share. Type: `MessageProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post card's corner. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
+| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
-| `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its card's corner, and the default layout's over its bubble's. |
-| `attachments` | `ReactNode` |  | Files sent with the message, shown under it: `<Attachment>` elements. |
+| `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
+| `attachments` | `ReactNode` |  | Files and pictures sent with the message, shown under it: `<Attachment>` elements, and pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them full size. |
 | `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
@@ -43,22 +43,22 @@ The props the modes share. Type: `MessageProps`.
 | `deleteLabel` | `string` | `"Delete"` | The name of a `failed` message's delete button, for other languages. |
 | `failed` | `MessageFailed \| false` |  | The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
 | `failedLabel` | `string` | `"Not sent"` | What the marker under a `failed` message says, for other languages. |
-| `footer` | `ReactNode` |  | Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
+| `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
 | `nameTag` | `string` |  | A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both are still read. |
-| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or card, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a button, to show the quoted message. |
+| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ada joined"), centered and quiet. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
-| `subject` | `ReactNode` |  | A post's subject, in bold above its text. `post` only. |
-| `thread` | `ReactNode` |  | Under a post: its thread, as a `<ThreadSummary>`. |
+| `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
+| `thread` | `ReactNode` |  | Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. |
 | `time` | `string` |  | When it was written, already formatted for the reader ("9:41 AM"), shown after the name. Format it in the browser after hydration, so the server and the reader's clock agree. |
-| `variant` | `"default" \| "chat" \| "post" \| "reply"` | `"default"` | How the message is laid out. `default` suits a conversation with an assistant. `chat` suits people writing to each other: others' messages at the start on a raised bubble under their name and time, the user's own at the end in a tint of the primary color, with only the time. `post` is a post in a channel: a card as wide as the list, under the author's name and time, with an optional `subject` and the `footer` inside it. `reply` is a reply in a thread: the same line of name and time, with the text unboxed under it. In `post` and `reply` the user's own messages sit at the start too. |
+| `variant` | `"default" \| "chat" \| "post" \| "reply"` | `"default"` | How the message is laid out. `default` suits a conversation with an assistant. `chat` suits people writing to each other: others' messages at the start on a raised bubble under their name and time, the user's own at the end in a tint of the primary color, with only the time. `chat` also suits a channel without threads, which reads as a chat. `post` is a post in a threaded channel, unboxed: the author's name and time, an optional `subject`, the text, then the `footer` and the `thread` under it, with room around it and a hairline from the text's start to the end between it and a post just before it. `reply` is a reply in a thread: the same line of name and time, with the text unboxed under it, starting where a post's text starts. In `post` and `reply` the user's own messages sit at the start too. |
 
 ## Modes
 
@@ -297,10 +297,13 @@ interface MessageOwnProps {
    * How the message is laid out. `default` suits a conversation with an assistant. `chat`
    * suits people writing to each other: others' messages at the start on a raised bubble
    * under their name and time, the user's own at the end in a tint of the primary color,
-   * with only the time. `post` is a post in a channel: a card as wide as the list, under the
-   * author's name and time, with an optional `subject` and the `footer` inside it. `reply` is
-   * a reply in a thread: the same line of name and time, with the text unboxed under it. In
-   * `post` and `reply` the user's own messages sit at the start too.
+   * with only the time. `chat` also suits a channel without threads, which reads as a chat.
+   * `post` is a post in a threaded channel, unboxed: the author's name and time, an optional
+   * `subject`, the text, then the `footer` and the `thread` under it, with room around it and
+   * a hairline from the text's start to the end between it and a post just before it. `reply`
+   * is a reply in a thread: the same line of name and time, with the text unboxed under it,
+   * starting where a post's text starts. In `post` and `reply` the user's own messages sit at
+   * the start too.
    * @default "default"
    */
   variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
@@ -344,29 +347,30 @@ interface MessageOwnProps {
    * hear the name and time. Not for `post`: every post shows its author.
    */
   continued?: boolean | undefined;
-  /** A post's subject, in bold above its text. `post` only. */
+  /** A post's subject, in semibold above its text. `post` only. */
   subject?: ReactNode;
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
   /**
-   * The message this one replies to, at the top of the bubble or card, above the text: a bar,
+   * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
    * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
    * button, to show the quoted message.
    */
   quote?: MessageQuote | undefined;
-  /** Files sent with the message, shown under it: `<Attachment>` elements. */
-  attachments?: ReactNode;
   /**
-   * Under the message, or inside a post's card: its reactions (`<ReactionBar>`), "Edited",
-   * whether it was delivered or seen.
+   * Files and pictures sent with the message, shown under it: `<Attachment>` elements, and
+   * pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them
+   * full size.
    */
+  attachments?: ReactNode;
+  /** Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. */
   footer?: ReactNode;
-  /** Under a post: its thread, as a `<ThreadSummary>`. */
+  /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
-   * (`actionsPlacement`) or over a post card's corner. The bar shows while the pointer is over
+   * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
    * keys moving between its buttons.
    */
@@ -377,7 +381,7 @@ interface MessageOwnProps {
    * with the bubble however wide the row; where the row has no room left, it ends at the row's
    * edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble.
    * `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is
-   * over its card's corner, and the default layout's over its bubble's.
+   * over its top end, and the default layout's over its bubble's corner.
    *
    * @default "beside" on a `reply`, "corner" on a `chat`
    */

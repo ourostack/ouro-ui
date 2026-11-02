@@ -1,13 +1,16 @@
 "use client";
 
-import { Children, useId, useRef, useState } from "react";
-import type { JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
+import { Children, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { ClipboardEvent, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { TextArea, type TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { insertText } from "@/registry/ouro/lib/ouro/insert-text";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -60,9 +63,12 @@ export interface ComposerOwnProps {
   /**
    * Which key sends. `enter`: Enter sends and Shift+Enter starts a new line, as chat apps do.
    * `mod-enter`: Ctrl+Enter (Command+Enter on a Mac) sends and Enter starts a new line, for
-   * long messages. Enter never sends while an input method is composing a word.
+   * long messages. Enter never sends while an input method is composing a word or while a
+   * suggestion list (`Autocomplete`) is open, and an `expanded` composer sends on Ctrl+Enter.
    * @default "enter"
    * @claim "Enter never sends while an input" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > never sends on the Enter that ends a word an input method is composing)
+   * @claim "Enter never sends while an input" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > never sends while a suggestion list is open, Ctrl+Enter included)
+   * @claim "and an `expanded` composer sends on" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says)
    */
   sendOn?: "enter" | "mod-enter" | (string & { 'Use "enter" (Shift+Enter is a new line) or "mod-enter"': never }) | undefined;
   /** The send button's name, which its tooltip shows too. @default "Send" */
@@ -106,16 +112,56 @@ export interface ComposerOwnProps {
   /** Buttons before the send button: emoji, attach a file, show formatting. Ouro `Button`s with `variant="plain"` and an `aria-label`. */
   actions?: ReactNode;
   /**
-   * Tools shown above the text, inside the box: a formatting bar. Pass it only while it
-   * should show, as when the person turns formatting on.
+   * Tools shown above the text, inside the box: a formatting bar. In a composer that expands, it
+   * shows only while expanded; otherwise pass it only while it should show.
    */
   toolbar?: ReactNode;
   /** A quiet line under the box, read as the text's description: what the marks mean, a character count. */
   description?: ReactNode;
+  /**
+   * An image emoji catalogue. With it, an emoji typed into the box (from the system's emoji
+   * panel, say) or pasted goes in as its `:shortcode:` token, the token `Autocomplete` and
+   * `EmojiPicker` insert, so the text holds the catalogue's emoji only as tokens, which
+   * `EmojiText` draws as its images. That includes an emoji joined from others and one with a
+   * skin tone, which become the catalogue's emoji or tone for it; an emoji the catalogue does
+   * not list stays as it is. The caret lands after what went in, and one undo takes it out.
+   *
+   * @claim "goes in as its `:shortcode:` token" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts a typed emoji in as its token, with the caret after it, in one step undo takes out)
+   * @claim "or pasted goes in as its" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list)
+   */
+  catalogue?: EmojiCatalogue | undefined;
   /** Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. */
   highlights?: readonly TextAreaHighlight[] | undefined;
   /** Called with the highlights moved to fit the text after the person edits it, as TextArea's. */
   onHighlightsChange?: ((highlights: TextAreaHighlight[]) => void) | undefined;
+  /**
+   * The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`,
+   * growing to `expandedMaxRows`), with the `toolbar`, and Enter starts a new line while Ctrl+Enter
+   * (Command+Enter on a Mac) or the send button sends, whatever `sendOn` says. It is the same text
+   * either way, and the caret stays where it was. Escape collapses it, and that Escape goes no
+   * further. The box grows and shrinks in height over a moment, and at once with reduced motion.
+   * Controlled; pair it with `onExpandedChange`, or use `defaultExpanded`.
+   *
+   * @claim "Enter starts a new line while" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says)
+   * @claim "It is the same text either" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > keeps the text, focus and the caret when it expands and collapses)
+   * @claim "Escape collapses it, and that Escape" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > collapses on Escape, and that Escape goes no further)
+   * @claim "The box grows and shrinks in" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > grows and shrinks in height over a moment, and at once with reduced motion)
+   */
+  expanded?: boolean | undefined;
+  /** Whether it starts expanded, for an uncontrolled composer that the expand button opens; `false` to start small. */
+  defaultExpanded?: boolean | undefined;
+  /**
+   * Called when the person expands or collapses it: the expand button, or Escape. With it, or with
+   * `defaultExpanded`, the expand button shows first among the actions.
+   * @claim "With it, or with `defaultExpanded`, the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded)
+   */
+  onExpandedChange?: ((expanded: boolean) => void) | undefined;
+  /** The expand button's name, which its tooltip shows too. @default "Expand" */
+  expandLabel?: string | undefined;
+  /** Lines the expanded box starts with. @default 6 */
+  expandedRows?: number | undefined;
+  /** Lines the expanded box grows to before it scrolls. @default 20 */
+  expandedMaxRows?: number | undefined;
   /** Lines the box starts with; it grows as the person writes. @default 1 */
   rows?: number | undefined;
   /** Lines it grows to before it scrolls. @default 10 */
@@ -139,6 +185,8 @@ export interface ComposerOwnProps {
   sendDisabled?: { 'Use <Composer sendDisabledReason="Sending is off">': never };
   /** Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>`. */
   replyTo?: { 'Use <Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>': never };
+  /** Not a prop. A composer that expands takes `defaultExpanded` or `onExpandedChange`: `<Composer defaultExpanded={false}>`. */
+  expandable?: { 'Use <Composer defaultExpanded={false}> or expanded with onExpandedChange': never };
 }
 
 /** Props for {@link Composer}: its own props and the `<textarea>` attributes it passes through (`onKeyDown`, `onPaste`, `readOnly`). */
@@ -198,6 +246,19 @@ function RemoveIcon(): JSX.Element {
   );
 }
 
+// The row's height transition while the box expands or collapses, clipped: the classes are added
+// for that moment only.
+const growClasses = ["overflow-hidden", "transition-[height]", "duration-(--ouro-duration-base)", "ease-(--ouro-ease-out)"];
+
+/** Arrows: out to expand, in to collapse. */
+function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-5 shrink-0">
+      <path d={expanded ? "M4 11h5v5M11 4v5h5M9 11l-5 5M11 9l5-5" : "M11 4h5v5M9 16H4v-5M16 4l-5 5M4 16l5-5"} />
+    </svg>
+  );
+}
+
 /** A paper plane. */
 function SendIcon(): JSX.Element {
   return (
@@ -206,6 +267,18 @@ function SendIcon(): JSX.Element {
       <path d="M5.6 10h5.4" strokeLinecap="round" />
     </svg>
   );
+}
+
+/**
+ * Puts text in at the caret, in place of the browser's own insertion, with the catalogue's
+ * tokens for the emoji it lists, when it has any; otherwise the browser inserts it as usual.
+ * One edit, so one undo takes it out.
+ */
+function insertTokens(control: HTMLTextAreaElement, event: { preventDefault(): void }, text: string, catalogue: EmojiCatalogue): void {
+  const tokens = emojiTextToTokens(text, catalogue);
+  if (tokens === text) return;
+  event.preventDefault();
+  insertText(control, control.selectionStart, control.selectionEnd, tokens);
 }
 
 /**
@@ -223,7 +296,8 @@ function SendIcon(): JSX.Element {
  * `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few
  * letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to
  * put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message
- * is sent.
+ * is sent. Given the `catalogue` too, Composer puts an emoji typed from the system's emoji
+ * panel or pasted in as its token as well.
  *
  * Use `TextArea` instead for a long text that is saved rather than sent, and `Message` for
  * a message once it is sent.
@@ -253,6 +327,9 @@ function SendIcon(): JSX.Element {
  *   quote={quoted && { author: quoted.author, excerpt: quoted.text, onRemove: () => setQuoted(undefined), onActivate: () => scrollTo(quoted.id) }}
  *   onSend={(text) => { send(text, quoted?.id); setQuoted(undefined); }}
  * />
+ *
+ * @example
+ * <Composer label="Reply" defaultExpanded={false} toolbar={<Toolbar label="Formatting" items={formatting} />} onSend={(text) => send(text)} />
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > starts a new line on Shift+Enter, and sends on Ctrl+Enter or Command+Enter too)
  * @claim "Enter sends and Shift+Enter starts" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > never sends on the Enter that ends a word an input method is composing)
  * @claim "an `Autocomplete` trigger with `catalogue` inserts them" registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.catalogue.test.tsx::Autocomplete with a catalogue > inserts the picked emoji's token and a space in a Composer, which EmojiText draws as its image)
@@ -279,16 +356,24 @@ export function Composer(props: ComposerProps): JSX.Element {
     attachmentsLabel = "Attachments",
     quote,
     actions,
-    toolbar,
+    toolbar: toolbarProp,
     description,
     highlights,
     onHighlightsChange,
-    rows = 1,
-    maxRows = 10,
+    catalogue,
+    expanded: expandedProp,
+    defaultExpanded,
+    onExpandedChange,
+    expandLabel = "Expand",
+    expandedRows = 6,
+    expandedMaxRows = 20,
+    rows: rowsProp = 1,
+    maxRows: maxRowsProp = 10,
     name,
     className,
     ref,
     onKeyDown,
+    onPaste,
     "aria-describedby": describedByProp,
     // Guard props (hint types), dropped here so they never reach the DOM.
     onSubmit,
@@ -297,13 +382,25 @@ export function Composer(props: ComposerProps): JSX.Element {
     loading,
     sendDisabled,
     replyTo,
+    expandable: expandableHint,
     ...rest
   } = props;
-  // Any other value is enter, as the default.
-  const modEnter = sendOnProp === "mod-enter";
+  const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
+  const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
+  // The person can expand and collapse it: the composer holds the state, or the app listens.
+  const canExpand = expandedProp === undefined ? expandable : onExpandedChange !== undefined;
+  const expanded = expandedProp ?? ownExpanded;
+  const rows = expanded ? expandedRows : rowsProp;
+  const maxRows = expanded ? expandedMaxRows : maxRowsProp;
+  const toolbar = expandable && !expanded ? undefined : toolbarProp;
+  // Any other value is enter, as the default; expanded, Enter is a new line.
+  const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // The row around the text, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const height = useRef<{ expanded: boolean; px: number } | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const id = useId();
   const hasAttachments = Children.toArray(attachments).length > 0;
@@ -329,6 +426,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           loading !== undefined && ["loading is not a prop", "<Composer sending>"],
           sendDisabled !== undefined && ["sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
           replyTo !== undefined && ["replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>'],
+          expandableHint !== undefined && ["expandable is not a prop; defaultExpanded or onExpandedChange shows the expand button", "<Composer defaultExpanded={false}>"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
@@ -343,14 +441,50 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (!ready) return;
     onSend(text, event);
     setOwn("");
-    // After a press of Send, the person goes on writing; after Enter, focus is there already.
-    textareaRef.current!.focus();
+    // After a press of Send, the person goes on writing; after Enter, focus is there already. No
+    // box around the composer scrolls for it.
+    textareaRef.current!.focus({ preventScroll: true });
   };
   const removeQuote = () => {
     quote!.onRemove();
     // The remove button goes with the quote, so focus goes back to the text, scrolling no box around it.
     textareaRef.current!.focus({ preventScroll: true });
   };
+  const setExpanded = (next: boolean) => {
+    setOwnExpanded(next);
+    onExpandedChange?.(next);
+  };
+  const toggleExpanded = () => {
+    setExpanded(!expanded);
+    // The person goes on writing where they were: the textarea keeps its caret while it has no focus.
+    textareaRef.current!.focus({ preventScroll: true });
+  };
+  // After every render, once TextArea has fitted the box: a render that expands or collapses it
+  // grows or shrinks the row around the text from the height it had, clipped, while the text takes
+  // its new height at once (so autoGrow measures it as ever). Any other render ends that at once.
+  useLayoutEffect(() => {
+    const row = rowRef.current!;
+    const animating = row.style.height !== "";
+    // What shows now: a running change's height, or the row's own.
+    const shown = row.offsetHeight;
+    row.style.height = "";
+    const px = row.offsetHeight;
+    const before = height.current;
+    height.current = { expanded, px };
+    const from = animating ? shown : before?.px;
+    // A change still running stops at once here: its classes go once its transition is cancelled, below.
+    if (before === null || before.expanded === expanded || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    row.style.height = `${from}px`;
+    void row.offsetHeight;
+    row.classList.add(...growClasses);
+    row.style.height = `${px}px`;
+    // Once it ends, or is cancelled with nothing after it, the row takes its own height again.
+    void Promise.allSettled(row.getAnimations().map((animation) => animation.finished)).then(() => {
+      if (row.getAnimations().length > 0) return;
+      row.classList.remove(...growClasses);
+      row.style.height = "";
+    });
+  });
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     onKeyDown?.(event);
     // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
@@ -362,11 +496,36 @@ export function Composer(props: ComposerProps): JSX.Element {
       quote.onRemove();
       return;
     }
-    if (event.key !== "Enter") return;
+    if (event.key === "Escape" && expanded && canExpand) {
+      // This Escape is the expanded box's: a dialog around the composer stays open.
+      event.preventDefault();
+      event.stopPropagation();
+      setExpanded(false);
+      return;
+    }
+    // An open suggestion list (Autocomplete) owns Enter, Ctrl+Enter too.
+    if (event.key !== "Enter" || event.currentTarget.hasAttribute("aria-activedescendant")) return;
     const sends = modEnter ? event.metaKey || event.ctrlKey : !event.shiftKey;
     if (!sends) return;
     event.preventDefault();
     send(event);
+  };
+
+  // With a catalogue, an emoji typed (from the system's emoji panel, which inserts it whole) goes in as its token.
+  useEffect(() => {
+    if (!catalogue) return;
+    const control = textareaRef.current!;
+    const typed = (event: InputEvent) => {
+      // A word an input method is composing is the input method's until it ends; a replacement without text inserts none.
+      if (event.isComposing || event.data === null || (event.inputType !== "insertText" && event.inputType !== "insertReplacementText")) return;
+      insertTokens(control, event, event.data, catalogue);
+    };
+    control.addEventListener("beforeinput", typed);
+    return () => control.removeEventListener("beforeinput", typed);
+  }, [catalogue]);
+  const paste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    onPaste?.(event);
+    if (catalogue && !event.defaultPrevented) insertTokens(event.currentTarget, event, event.clipboardData.getData("text/plain"), catalogue);
   };
 
   const notes = [sendDisabledReason !== undefined && !disabled ? `${id}-reason` : undefined, description ? `${id}-description` : undefined];
@@ -375,7 +534,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const describedBy = [describedByProp, ...quoteIds, ...notes].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div data-ouro="composer" data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
+    <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
       <div data-ouro-composer-frame="" className={frameClass}>
         {toolbar && (
           <div data-ouro-composer-toolbar="" className="flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1">
@@ -404,7 +563,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
-        <div className="flex min-w-0 flex-wrap items-end">
+        <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
           <TextArea
             {...rest}
             ref={setRef}
@@ -422,10 +581,31 @@ export function Composer(props: ComposerProps): JSX.Element {
             highlights={highlights}
             onHighlightsChange={onHighlightsChange}
             onKeyDown={keyDown}
+            onPaste={paste}
             aria-describedby={describedBy}
-            className="min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:py-3 [&_textarea]:ps-3 [&_textarea]:pe-2"
+            // Expanded, the text takes the whole width, and the buttons go on a row under it.
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:py-3 [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
           />
           <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
+            {canExpand && (
+              <Tooltip content={expandLabel}>
+                <Button
+                  data-ouro-control="composer"
+                  data-ouro-part="expand"
+                  variant={expanded ? "outline" : "plain"}
+                  tone={expanded ? "primary" : "secondary"}
+                  aria-label={expandLabel}
+                  aria-pressed={expanded}
+                  disabled={disabled}
+                  // A press keeps focus, and the caret, in the text.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={toggleExpanded}
+                  className="px-2"
+                >
+                  <ExpandIcon expanded={expanded} />
+                </Button>
+              </Tooltip>
+            )}
             {actions}
             <Tooltip content={sendLabel}>
               <Button

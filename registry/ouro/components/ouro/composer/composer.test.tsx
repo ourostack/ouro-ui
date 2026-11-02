@@ -4,8 +4,10 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
+import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
@@ -200,6 +202,23 @@ describe("Composer", () => {
     expect(onSend).toHaveBeenCalledWith("Hello", expect.objectContaining({ type: "click" }));
     expect(textarea.value).toBe("");
     expect(document.activeElement).toBe(textarea);
+  });
+
+  it("puts focus back in the box without scrolling a box around it, after a press of Send or the expand button", async () => {
+    const { host, textarea } = await render(
+      <div data-frame="" style={{ height: 80, overflow: "hidden" }}>
+        <div style={{ height: 400 }} />
+        <Composer label="Reply" defaultExpanded={false} defaultValue="See you" onSend={() => {}} />
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="send"]')!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(frame.scrollTop).toBe(0);
+    textarea.blur();
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="expand"]')!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(frame.scrollTop).toBe(0);
   });
 
   it("names the send button with sendLabel, which its tooltip shows on keyboard focus", async () => {
@@ -712,6 +731,263 @@ describe("Composer quote", () => {
   });
 });
 
+const expandButton = () => document.querySelector<HTMLButtonElement>('[data-ouro-control="composer"][data-ouro-part="expand"]');
+const formatting = <Button variant="plain" aria-label="Bold">B</Button>;
+
+describe("Composer expanded", () => {
+  it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, textarea } = await render(
+      <Composer label="Reply" defaultExpanded={false} onExpandedChange={onExpandedChange} toolbar={formatting} actions={<Button variant="plain" aria-label="Emoji">:)</Button>} onSend={() => {}} />,
+    );
+    const button = expandButton()!;
+    expect(button.parentElement!.firstElementChild).toBe(button);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    await expect.element(page.getByRole("button", { name: "Expand", pressed: false })).toBeVisible();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    expect(textarea.rows).toBe(1);
+    const iconPath = () => button.querySelector("svg[aria-hidden='true'] path")!.getAttribute("d");
+    const collapsedIcon = iconPath();
+    await userEvent.click(button);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(root.getAttribute("data-expanded")).toBe("");
+    expect(iconPath()).toMatch(/^M\d/);
+    expect(collapsedIcon).toMatch(/^M\d/);
+    expect(iconPath()).not.toBe(collapsedIcon);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")!.textContent).toBe("B");
+    expect(textarea.rows).toBe(6);
+    await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThanOrEqual(6 * parseFloat(getComputedStyle(textarea).lineHeight));
+    await userEvent.click(button);
+    expect(onExpandedChange).toHaveBeenLastCalledWith(false);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    expect(iconPath()).toBe(collapsedIcon);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("draws the pressed expand button as an outlined primary Button, and the other as a plain one, and keeps focus in the text on a press", async () => {
+    const { host } = await render(
+      <>
+        <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
+        <Button variant="outline" tone="primary" aria-label="Outlined" data-test-harness="">o</Button>
+        <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="">p</Button>
+      </>,
+    );
+    const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
+    const [outlined, plain] = [...host.querySelectorAll("[data-test-harness]")];
+    expect(look(expandButton()!)).toEqual(look(plain!));
+    await userEvent.click(expandButton()!);
+    await expect.poll(() => look(expandButton()!)).toEqual(look(outlined!));
+    const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    expandButton()!.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("can expand with onExpandedChange alone, and hides the toolbar of a collapsed composer the app controls without listening", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, rerender } = await render(<Composer label="Reply" onExpandedChange={onExpandedChange} toolbar={formatting} onSend={() => {}} />);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await userEvent.click(expandButton()!);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    await rerender(<Composer label="Reply" expanded={false} toolbar={formatting} onSend={() => {}} />);
+    expect(expandButton()).toBeNull();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+  });
+
+  it("gives the expanded text the whole width, with the buttons on a row under it", async () => {
+    const { textarea, send, frame, rerender } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />, 600);
+    expect(textarea.getBoundingClientRect().right).toBeGreaterThan(send.getBoundingClientRect().left);
+    expect(textarea.getBoundingClientRect().width).toBeGreaterThan(frame.getBoundingClientRect().width * 0.9);
+    expect(send.getBoundingClientRect().top).toBeGreaterThanOrEqual(textarea.getBoundingClientRect().bottom);
+    await rerender(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(send.getBoundingClientRect().top).toBeLessThan(textarea.getBoundingClientRect().bottom);
+  });
+
+  it("shows no expand button, and the toolbar as passed, in a composer that does not expand", async () => {
+    const { root } = await render(<Composer label="Reply" toolbar={formatting} onSend={() => {}} />);
+    expect(expandButton()).toBeNull();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).not.toBeNull();
+  });
+
+  it("names the expand button with expandLabel, grows to expandedRows and expandedMaxRows, and turns the button off with the composer", async () => {
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultExpanded expandLabel="Long message" expandedRows={4} expandedMaxRows={5} onSend={() => {}} />);
+    await expect.element(page.getByRole("button", { name: "Long message", pressed: true })).toBeVisible();
+    expect(textarea.rows).toBe(4);
+    const line = parseFloat(getComputedStyle(textarea).lineHeight);
+    textarea.focus();
+    await userEvent.keyboard("1{Enter}2{Enter}3{Enter}4{Enter}5{Enter}6{Enter}7");
+    expect(textarea.getBoundingClientRect().height).toBeCloseTo(5 * line + parseFloat(getComputedStyle(textarea).paddingTop) * 2, 0);
+    await rerender(<Composer label="Reply" defaultExpanded disabled onSend={() => {}} />);
+    expect(expandButton()!.disabled).toBe(true);
+  });
+
+  it("starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says", async () => {
+    const onSend = vi.fn();
+    const { textarea } = await render(<Composer label="Reply" sendOn="enter" defaultExpanded onSend={onSend} />);
+    textarea.focus();
+    await userEvent.keyboard("one{Enter}two");
+    expect(onSend).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("one\ntwo");
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).toHaveBeenCalledWith("one\ntwo", expect.anything());
+    await userEvent.keyboard("three{Meta>}{Enter}{/Meta}");
+    expect(onSend).toHaveBeenLastCalledWith("three", expect.anything());
+  });
+
+  it("never sends while a suggestion list is open, Ctrl+Enter included", async () => {
+    const onSend = vi.fn();
+    const { textarea } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Reply" defaultExpanded onSend={onSend} />
+      </Autocomplete>,
+    );
+    textarea.focus();
+    await userEvent.keyboard("Hi @ma");
+    await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(true);
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(false);
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
+  });
+
+  it("keeps the text, focus and the caret when it expands and collapses", async () => {
+    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    textarea.focus();
+    await userEvent.keyboard("Hello world");
+    textarea.setSelectionRange(5, 5);
+    await userEvent.click(expandButton()!);
+    expect(document.activeElement).toBe(textarea);
+    expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+    await pressTab();
+    expect(document.activeElement).toBe(expandButton());
+    await userEvent.keyboard("{Enter}");
+    expect(expandButton()!.getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(textarea);
+    expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+  });
+
+  it("collapses on Escape, and that Escape goes no further", async () => {
+    const outer = vi.fn();
+    const onExpandedChange = vi.fn();
+    const { textarea, root } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" defaultExpanded onExpandedChange={onExpandedChange} defaultValue="Draft" onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void textarea.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    expect(outer).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("Draft");
+    // Collapsed, Escape is the app's again.
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Escape to an input method, to the app's onKeyDown, and to an app that controls it without listening", async () => {
+    const outer = vi.fn();
+    const { textarea, rerender } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" expanded onSend={() => {}} />
+      </div>,
+    );
+    expect(expandButton()).toBeNull();
+    textarea.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+    const onExpandedChange = vi.fn();
+    await rerender(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" expanded onExpandedChange={onExpandedChange} onKeyDown={(event) => event.key === "Escape" && event.preventDefault()} onSend={() => {}} />
+      </div>,
+    );
+    await userEvent.keyboard("{Escape}");
+    for (const init of [{ isComposing: true }, { keyCode: 229 }]) {
+      await act(async () => void textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, ...init })));
+    }
+    expect(onExpandedChange).not.toHaveBeenCalled();
+  });
+
+  it("is controlled with expanded and onExpandedChange", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, rerender } = await render(<Composer label="Reply" expanded={false} onExpandedChange={onExpandedChange} onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    await rerender(<Composer label="Reply" expanded onExpandedChange={onExpandedChange} onSend={() => {}} />);
+    expect(root.hasAttribute("data-expanded")).toBe(true);
+    expect(expandButton()!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("grows and shrinks in height over a moment, and at once with reduced motion", async () => {
+    const heights = (element: Element) => element.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
+    const { root, textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    const settled = () => heights(body).length === 0 && body.style.height === "" && !body.classList.contains("transition-[height]");
+    await userEvent.click(expandButton()!);
+    expect(heights(body)).toEqual(["height"]);
+    expect(getComputedStyle(body).overflow).toBe("hidden");
+    // The text has its new height at once; the row around it shows it as it grows.
+    expect(textarea.rows).toBe(6);
+    expect(heights(textarea)).toEqual([]);
+    await expect.poll(settled).toBe(true);
+    const expandedHeight = body.getBoundingClientRect().height;
+    // Typing grows the box at once, as before.
+    await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
+    const sixLines = body.getBoundingClientRect().height;
+    // The seventh line grows the box past its six rows, at once; a long duration would hold a change still running.
+    body.style.setProperty("--ouro-duration-base", "10s");
+    await userEvent.keyboard("{Enter}");
+    expect(heights(body)).toEqual([]);
+    expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
+    body.style.removeProperty("--ouro-duration-base");
+    await userEvent.clear(textarea);
+    await userEvent.click(expandButton()!);
+    expect(heights(body)).toEqual(["height"]);
+    await expect.poll(settled).toBe(true);
+    // Collapsed again mid-way: it turns back from the height it shows, not from the full height, and ends at its own.
+    const small = body.getBoundingClientRect().height;
+    body.style.setProperty("--ouro-duration-base", "10s");
+    await userEvent.click(expandButton()!);
+    await userEvent.click(expandButton()!);
+    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
+    expect(heights(body)).toEqual(["height"]);
+    await act(async () => body.getAnimations().forEach((animation) => animation.finish()));
+    await expect.poll(settled).toBe(true);
+    // A render that is no expand or collapse ends a change at once.
+    await userEvent.click(expandButton()!);
+    expect(heights(body)).toEqual(["height"]);
+    await userEvent.keyboard("b");
+    expect(settled()).toBe(true);
+    body.style.removeProperty("--ouro-duration-base");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await userEvent.click(expandButton()!);
+      expect(heights(body)).toEqual([]);
+      expect(settled()).toBe(true);
+      expect(textarea.rows).toBe(1);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+
+  it("does not animate when expanding leaves the box its height", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />, 200);
+    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    await userEvent.click(expandButton()!);
+    expect(body.getAnimations()).toEqual([]);
+    expect(body.style.height).toBe("");
+  });
+});
+
 describe("Composer development messages", () => {
   it.each([
     ["sendOn", { sendOn: "shift-enter" }, 'sendOn="shift-enter" is not a key; use "enter" or "mod-enter"', '<Composer sendOn="enter">'],
@@ -721,6 +997,7 @@ describe("Composer development messages", () => {
     ["loading", { loading: true }, "loading is not a prop", "<Composer sending>"],
     ["sendDisabled", { sendDisabled: true }, "sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
     ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>'],
+    ["expandable", { expandable: true }, "expandable is not a prop; defaultExpanded or onExpandedChange shows the expand button", "<Composer defaultExpanded={false}>"],
   ])("says what to use instead of %s", async (name, extra, problem, fix) => {
     const props = { label: "Message", onSend: () => {}, ...extra } as unknown as ComposerProps;
     const { host } = await render(<Composer {...props} />);
@@ -820,5 +1097,89 @@ describe("Composer server rendering", () => {
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Composer with a catalogue", () => {
+  const image = (name: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>${name}</title></svg>`)}`;
+  const party: EmojiItem = { id: "party", name: "Party popper", shortcodes: ["party", "tada"], text: "🎉", src: image("party") };
+  const wave: EmojiItem = {
+    id: "wave",
+    name: "Waving hand",
+    shortcodes: ["wave"],
+    text: "👋",
+    src: image("wave"),
+    skinTones: [1, 2, 3, 4, 5].map((tone) => ({ id: `wave-tone${tone}`, src: image(`wave tone${tone}`), text: `👋${String.fromCodePoint(0x1f3fa + tone)}` })),
+  };
+  const coder: EmojiItem = { id: "technologist", name: "Technologist", text: "👩‍💻", src: image("coder") };
+  const catalogue: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [wave, coder, party] }] };
+  const box = () => page.getByRole("textbox", { name: "Message" });
+
+  /** Pastes text as the browser would announce it; a script's paste inserts nothing itself. */
+  async function paste(textarea: HTMLTextAreaElement, text: string) {
+    const data = new DataTransfer();
+    data.setData("text/plain", text);
+    const event = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
+    await act(async () => void textarea.dispatchEvent(event));
+    return event;
+  }
+  /** An input event the browser announces before it inserts text; a script's inserts nothing itself. */
+  async function beforeInput(textarea: HTMLTextAreaElement, init: InputEventInit) {
+    const event = new InputEvent("beforeinput", { bubbles: true, cancelable: true, ...init });
+    await act(async () => void textarea.dispatchEvent(event));
+    return event;
+  }
+
+  it("puts a typed emoji in as its token, with the caret after it, in one step undo takes out", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<Composer label="Message" catalogue={catalogue} defaultValue="Hi there" onValueChange={onValueChange} onSend={() => {}} />);
+    // The system's emoji panel puts an emoji in whole, as one insertion, as fill does.
+    await userEvent.fill(box(), "Hi 🎉 there");
+    expect(textarea.value).toBe("Hi :party: there");
+    expect([textarea.selectionStart, textarea.selectionEnd]).toEqual([16, 16]);
+    // The emoji never went in as a character.
+    expect(onValueChange.mock.calls.map((call: unknown[]) => call[0]).filter((value) => /🎉/u.test(value as string))).toEqual([]);
+    expect(onValueChange).toHaveBeenLastCalledWith("Hi :party: there");
+    await act(async () => void document.execCommand("undo"));
+    expect(textarea.value).toBe("Hi there");
+    expect(onValueChange).toHaveBeenLastCalledWith("Hi there");
+    // A joined emoji and a toned one become theirs; one the catalogue does not list stays.
+    await userEvent.fill(box(), "Coding 👩‍💻 👋🏽 🦄");
+    expect(textarea.value).toBe("Coding :technologist: :wave-tone3: 🦄");
+  });
+
+  it("puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list", async () => {
+    const onPaste = vi.fn();
+    const { textarea } = await render(<Composer label="Message" catalogue={catalogue} defaultValue="Hi there" onPaste={onPaste} onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(3, 3);
+    const event = await paste(textarea, "👋🏽 coding 👩‍💻 🦄 🎉 ");
+    expect(event.defaultPrevented).toBe(true);
+    expect(onPaste).toHaveBeenCalledTimes(1);
+    expect(textarea.value).toBe("Hi :wave-tone3: coding :technologist: 🦄 :party: there");
+    // The caret lands after what went in, before the text that followed it.
+    expect([textarea.selectionStart, textarea.selectionEnd]).toEqual([49, 49]);
+    await act(async () => void document.execCommand("undo"));
+    expect(textarea.value).toBe("Hi there");
+    // Text with none of its emoji is the browser's to paste.
+    expect((await paste(textarea, "plain 🦄 text")).defaultPrevented).toBe(false);
+    expect(textarea.value).toBe("Hi there");
+  });
+
+  it("leaves a paste the app handled, a word an input method composes, and other edits to the browser", async () => {
+    const { textarea, rerender } = await render(<Composer label="Message" catalogue={catalogue} onPaste={(event) => event.preventDefault()} onSend={() => {}} />);
+    textarea.focus();
+    expect((await paste(textarea, "🎉")).defaultPrevented).toBe(true);
+    expect(textarea.value).toBe("");
+    expect((await beforeInput(textarea, { inputType: "insertText", data: "🎉", isComposing: true })).defaultPrevented).toBe(false);
+    expect((await beforeInput(textarea, { inputType: "insertFromDrop", data: "🎉" })).defaultPrevented).toBe(false);
+    expect((await beforeInput(textarea, { inputType: "insertReplacementText", data: null })).defaultPrevented).toBe(false);
+    expect((await beforeInput(textarea, { inputType: "insertReplacementText", data: "🎉" })).defaultPrevented).toBe(true);
+    expect(textarea.value).toBe(":party:");
+    // Without a catalogue, an emoji goes in as typed.
+    await rerender(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.fill(box(), "🎉");
+    expect(textarea.value).toBe("🎉");
+    expect((await paste(textarea, "🎉")).defaultPrevented).toBe(false);
   });
 });

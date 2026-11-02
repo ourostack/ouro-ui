@@ -378,6 +378,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-floating`,
 `lib-focus-handoff`,
 `lib-form-answer`,
+`lib-insert-text`,
 `lib-key-shortcuts`,
 `lib-last-input`,
 `lib-navigation-key`,
@@ -404,6 +405,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-media-query`,
 `lib-use-mounted-open`,
 `lib-use-ouro`,
+`lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`.
 No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.

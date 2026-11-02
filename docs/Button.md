@@ -38,7 +38,7 @@ The props the modes share. Type: `ButtonProps`.
 | `fullWidth` | `boolean` |  | Stretches the button to the width of its container. |
 | `loading` | `boolean` |  | Shows a centered spinner, keeps the width, sets `aria-busy` and disables the button. It stays focusable, so focus is not lost when a pressed button turns busy. |
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear, politely, when `loading` turns on. It is spoken through a shared live region, so the button's name stays its label. Use the action in progress: `loadingLabel="Saving recipe"`. |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Control size. Each size is taller on phones and steps down to desktop density from the `sm` breakpoint (640px). shadcn's `default` is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other string is a type error whose message names the fix. |
+| `size` | `"sm" \| "md" \| "lg" \| "inline"` | `"md"` | Control size. `sm`, `md` and `lg` are taller on phones and step down to desktop density from the `sm` breakpoint (640px). `inline` is an action inside a line of text, such as Undo in a note: it takes the text's size, leaves the line's height as it was and keeps a target at least 24px tall and wide (44px on a coarse pointer). shadcn's `default` is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other string is a type error whose message names the fix. |
 | `startIcon` | `ButtonIcon` |  | Icon before the label. Pass the component, not an element: `startIcon={PlusIcon}`. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Color role from the theme, named after its token: `primary` reads `--primary`. A solid primary button, the page's main action, reads `--ouro-action` and `--ouro-action-foreground` instead when the theme sets them, with `href` too, so a theme can give its actions their own colour. Only the solid look reads them: soft, outline and plain primary buttons keep `--primary`, as do `Link`, checkboxes, switches and the current tab. Optional `--ouro-action-hover` and `--ouro-action-active` set its state fills without changing the state layers. `--ouro-action-disabled`, `--ouro-action-disabled-foreground` and `--ouro-action-disabled-opacity` set its disabled look; opacity defaults to 0.5. shadcn's `variant="destructive"` is `tone="destructive"`, and its `variant="secondary"` is `tone="secondary"`. |
 | `variant` | `"solid" \| "soft" \| "outline" \| "plain"` | `"solid"` | Visual weight: `solid` for the primary action, `soft` for secondary actions, `outline` for a quiet bordered control, `plain` for a borderless one. shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and `destructive` and `secondary` are tones: `tone="destructive"`. Any other string is a type error whose message names the fix. Variant is visual only. For a toggle, pass `aria-pressed`; for the current nav item, `aria-current="page"`. |
@@ -53,6 +53,7 @@ A Button without `href`: renders a native `<button>`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `default` | `boolean` |  | The dialog's default action, as on a Mac: Return presses it from anywhere in the dialog around it, unless focus is in a multi-line field (where Command or Control Return presses it), on a control that takes Return itself (another button, a link, an option) or in a list that is open, or Shift or Option is held. Return calls `onClick` with the key's own `KeyboardEvent`, so an action that needs a person's gesture still gets one, and a submit button then sends its form once. It tells assistive technology so with `aria-keyshortcuts`. Give it to one button per dialog, the main action, and keep the solid look; outside a dialog it does nothing, since Return there belongs to the page. |
 | `ref` | `Ref<HTMLButtonElement>` |  | Reaches the rendered element. |
 | `type` | `"button" \| "submit" \| "reset"` | `"button"` (never submits a form by accident) | The button's role in a form: `submit` sends it, `reset` clears it. |
 
@@ -77,6 +78,7 @@ Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttribute
 
 Not in this mode (typed `never`):
 
+- `default`: A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`.
 - `disabled`: A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link.
 - `type`: Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`.
 

@@ -70,6 +70,8 @@ interface AutocompleteItem {
    * animated one plays while the suggestion is active. A trigger with `catalogue` sets it.
    */
   emoji?: EmojiItem | undefined;
+  /** The skin tone `emoji` is drawn in, for an emoji with `skinTones`. A trigger with `catalogue` and `skinTone` sets it. @default "default" */
+  skinTone?: EmojiSkinTone | (string & { 'Use "default", "light", "medium-light", "medium", "medium-dark" or "dark"': never }) | undefined;
   /**
    * The text that replaces the trigger and what follows it when the suggestion is picked.
    * @default the trigger character, the label and a space: "@Avery Kim "
@@ -95,6 +97,15 @@ interface AutocompleteTrigger {
    * space, which `EmojiText` draws as the image once the message is sent.
    */
   catalogue?: EmojiCatalogue | undefined;
+  /**
+   * The skin tone a `catalogue`'s emoji with tones are suggested and inserted in: the tone the
+   * person chose in EmojiPicker. Keep it in one place and give it to both, the picker's
+   * `skinTone` and `onSkinToneChange` and this, so a `:` suggestion inserts the same tone the
+   * picker does (`:thumbs-up-tone3:`). Emoji without tones are unchanged.
+   *
+   * @default "default"
+   */
+  skinTone?: EmojiSkinTone | (string & { 'Use "default", "light", "medium-light", "medium", "medium-dark" or "dark"': never }) | undefined;
   /**
    * The suggestions: a list, which shows the items whose label, a word of it, or whose value
    * starts with what follows the character, or a function of that text (`query`, "" just

@@ -30,7 +30,7 @@ import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 
 ## Usage
 
-For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its own shape, two side by side, three as one large and two small, and four or more as a 2 by 2 grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced motion.
+For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its own shape, two side by side, three as one large and two small, and four or more as a 2 by 2 grid with "+N" on the last, at most 25rem wide and 17.5rem tall. Pass `fullScreen` for a viewer that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced motion.
 
 To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a map), pass `open` with `onOpenChange`, the image as `index`, and follow the user with `onIndexChange`: it then draws no thumbnails, and focus goes back to whatever had it, or to the element `returnFocus` gives for the image last shown, such as its thumbnail.
 
@@ -83,7 +83,7 @@ A Lightbox that draws its own thumbnails, which open the viewer.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
-| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. |
+| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a picture never crowds the words around it; `className` gives it another width (`max-w-none`). |
 
 Not in this mode (typed `never`):
 

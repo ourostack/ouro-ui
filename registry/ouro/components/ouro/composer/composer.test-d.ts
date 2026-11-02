@@ -28,6 +28,11 @@ expectTypeOf<{
   highlights: [{ start: 0; end: 2; label: "Suggested" }];
   rows: 2;
   maxRows: 6;
+  expanded: true;
+  onExpandedChange: (expanded: boolean) => void;
+  expandLabel: "Long message";
+  expandedRows: 8;
+  expandedMaxRows: 24;
   name: "message";
   maxLength: 500;
   onPaste: () => void;
@@ -48,6 +53,10 @@ expectTypeOf<{ author: "Ada"; onRemove: () => void }>().not.toExtend<ComposerQuo
 for (const sendOn of ["enter", "mod-enter"] as const) createElement(Composer, { label: "Message", onSend: () => {}, sendOn });
 expectTypeOf<{ label: "Message"; onSend: () => void; sendOn: "shift-enter" }>().not.toExtend<ComposerProps>();
 
+// It takes an image emoji catalogue, and only a catalogue.
+expectTypeOf<{ label: "Message"; onSend: () => void; catalogue: { categories: [] } }>().toExtend<ComposerProps>();
+expectTypeOf<{ label: "Message"; onSend: () => void; catalogue: "emoji" }>().not.toExtend<ComposerProps>();
+
 // The guessed names are hint types that name the real prop.
 expectTypeOf<{ label: "Message"; onSend: () => void; onSubmit: () => void }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; submitOnEnter: true }>().not.toExtend<ComposerProps>();
@@ -55,6 +64,8 @@ expectTypeOf<{ label: "Message"; onSend: () => void; enterToSend: true }>().not.
 expectTypeOf<{ label: "Message"; onSend: () => void; loading: true }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; sendDisabled: true }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; replyTo: "message-1" }>().not.toExtend<ComposerProps>();
+expectTypeOf<{ label: "Message"; onSend: () => void; expandable: true }>().not.toExtend<ComposerProps>();
+expectTypeOf<{ label: "Message"; onSend: () => void; defaultExpanded: false }>().toExtend<ComposerProps>();
 
 // The same checks through JSX.
 // @ts-expect-error onSend is required.

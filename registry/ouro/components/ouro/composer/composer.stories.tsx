@@ -4,11 +4,12 @@ import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autoc
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
-import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
+import { EmojiPicker, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
+import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -170,6 +171,8 @@ function EmojiTokensStory() {
   const [text, setText] = useState("");
   const [sent, setSent] = useState(["Release notes are out :party: thanks all", ":heart: :fern:"]);
   const [open, setOpen] = useState(false);
+  // The person's skin tone, kept in one place: the picker sets it, and both insert in it.
+  const [tone, setTone] = useState<EmojiSkinTone>("default");
   const box = useRef<HTMLTextAreaElement>(null);
   const anchor = useRef<HTMLButtonElement>(null);
   return (
@@ -181,11 +184,12 @@ function EmojiTokensStory() {
           </li>
         ))}
       </ol>
-      <Autocomplete triggers={[{ char: ":", label: "Emoji", minQueryLength: 2, catalogue }]}>
+      <Autocomplete triggers={[{ char: ":", label: "Emoji", minQueryLength: 2, catalogue, skinTone: tone }]}>
         <Composer
           ref={box}
           label="Message the release team"
           placeholder="Type : and two letters for emoji"
+          catalogue={catalogue}
           value={text}
           onValueChange={setText}
           onSend={(message) => {
@@ -202,6 +206,8 @@ function EmojiTokensStory() {
       <EmojiPicker
         label="Insert emoji"
         catalogue={catalogue}
+        skinTone={tone}
+        onSkinToneChange={setTone}
         open={open}
         onOpenChange={setOpen}
         anchor={anchor}
@@ -429,9 +435,49 @@ export const Disabled: Story = {
 /**
  * Emoji from an image catalogue go into the text as `:shortcode:` tokens: type `:` and two
  * letters for suggestions, or pick one from the emoji button. The sent messages draw the
- * tokens as the catalogue's images with `EmojiText`.
+ * tokens as the catalogue's images with `EmojiText`. A skin tone chosen in the picker is the
+ * one the suggestions insert too, since both take the same `skinTone`. Given the `catalogue`, the
+ * box puts an emoji typed from the system's emoji panel, or pasted, in as its token too.
  */
 export const EmojiTokens: Story = {
   parameters: { plainOpeners: ["Insert emoji"] },
   render: () => <EmojiTokensStory />,
+};
+
+function LongMessage() {
+  const [messages, setMessages] = useState<string[]>([]);
+  return (
+    <Surface>
+      <Sent messages={messages} />
+      <Composer
+        label="New post in Bakers"
+        placeholder="Start a post"
+        defaultExpanded
+        defaultValue={"Proofing times for Saturday's class:\nRye, three hours at room temperature.\nWhite, overnight in the fridge."}
+        description="Ctrl+Enter to send"
+        toolbar={
+          <Toolbar
+            label="Formatting"
+            size="sm"
+            items={[
+              { type: "toggle", label: "Bold", icon: BoldIcon, hideLabel: true },
+              { type: "toggle", label: "Italic", icon: ItalicIcon, hideLabel: true },
+              { type: "toggle", label: "Bulleted list", icon: ListIcon, hideLabel: true },
+            ]}
+          />
+        }
+        onSend={(text) => setMessages([...messages, text])}
+      />
+    </Surface>
+  );
+}
+
+/**
+ * A long message (`defaultExpanded`): the expand button, first among the actions, opens a taller
+ * box with the formatting bar, where Enter starts a new line and Ctrl+Enter (Command+Enter on a
+ * Mac) sends. Escape, or the button again, brings back the one-line box with the same text.
+ */
+export const Expanded: Story = {
+  parameters: { screenshot: { name: "composer-expanded" } },
+  render: () => <LongMessage />,
 };

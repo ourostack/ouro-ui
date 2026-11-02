@@ -2,7 +2,7 @@
 
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import { createContext, useContext, type JSX, type Ref } from "react";
+import { createContext, useCallback, useContext, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
@@ -238,18 +238,65 @@ export function DialogPopup({ size: sizeProp = "auto", ...props }: DialogPopupPr
 export function DialogPopupUnchecked({
   className,
   size,
+  ref,
   ...props
 }: Omit<DialogPopupProps, "size"> & { size: DialogSize }): JSX.Element {
   useDialogPart("DialogPopup", "…");
+  const holdRef = useMergedRef(ref, useHeldTop());
   return (
     <BaseDialog.Popup
       {...props}
+      ref={holdRef}
       className={cn(popupClass, popupSizes[size], className)}
       data-ouro="dialog"
       data-ouro-presentation="dialog"
       data-size={size}
     />
   );
+}
+
+/**
+ * Keeps an open dialog's top edge where it opened while its content grows or shrinks, as a macOS sheet does, so a
+ * dialog whose steps tick by grows downward instead of moving as a whole. It opens centred, moves up only as far as
+ * it must to stay inside the screen's margin, and centres itself again for a window of a new size.
+ */
+function useHeldTop(): (popup: HTMLElement) => () => void {
+  return useCallback((popup: HTMLElement) => {
+    const viewport = popup.parentElement!;
+    // Where the popup's top is held, from the viewport's top: where the viewport centred it when it opened.
+    let held: number | undefined;
+    // A relative offset from where the viewport's centring puts it, so the popup's own margins (Lightbox's full
+    // screen) stay as they are.
+    const place = () => {
+      const height = popup.offsetHeight;
+      const natural = popup.offsetTop - (parseFloat(popup.style.top) || 0);
+      const lowest = viewport.clientHeight - parseFloat(getComputedStyle(viewport).paddingBottom) - height;
+      held ??= natural;
+      // Taller than the room, it stays where the viewport puts it; otherwise as near the held top as it fits.
+      // Stryker disable next-line EqualityOperator: at natural === lowest the popup fills the room, so held >= lowest and both give 0.
+      popup.style.top = `${natural > lowest ? 0 : Math.min(held, lowest) - natural}px`;
+    };
+    place();
+    const content = new ResizeObserver(place);
+    content.observe(popup);
+    // A window of a new height centres it again; a width change (a page's scroll bar coming or going) does not.
+    let screenHeight = viewport.clientHeight;
+    const screen = new ResizeObserver(() => {
+      if (viewport.clientHeight !== screenHeight) held = undefined;
+      screenHeight = viewport.clientHeight;
+      place();
+    });
+    screen.observe(viewport);
+    // Stryker disable next-line BlockStatement: the observers watch a popup and viewport that are leaving the page, so no test sees them stop.
+    return () => {
+      // Stryker disable next-line CallExpression: as above.
+      content.disconnect();
+      // Stryker disable next-line CallExpression: as above.
+      screen.disconnect();
+    };
+  },
+  // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
+  []);
 }
 
 /** Props for {@link DialogTitle}. */
