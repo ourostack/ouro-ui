@@ -11,7 +11,6 @@ import { headTags } from "./head";
 import { docsSections } from "./components/docs-sidebar";
 import { href, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
-import { cast } from "./ax/cast";
 import { TWO_SHIPS } from "./voyage/copy";
 import { agentExamples } from "./agents/examples";
 import shipComponents from "./docs/ship-components.json";
@@ -111,7 +110,7 @@ describe("home page", () => {
     await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { level: 2, name: AX_SECTION.title })).toBeVisible();
     await expect.element(page.getByText(AX_SECTION.intro, { exact: true })).toBeVisible();
-    expect(page.getByRole("link", { name: cast("Be {agent}") }).element().getAttribute("href")).toBe("/ax/#be-the-agent");
+    expect(page.getByRole("link", { name: "Be the agent" }).element().getAttribute("href")).toBe("/ax/#be-the-agent");
     expect(page.getByRole("link", { name: AX_SECTION.morning }).element().getAttribute("href")).toBe("/ax/");
     expect(page.getByRole("link", { name: AX_SECTION.guide }).element().getAttribute("href")).toBe("/docs/ax/");
     for (const text of [document.body.innerText, readme, llms]) {

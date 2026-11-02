@@ -4,7 +4,6 @@ import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import { artMarkup, FigureValue, Mark, OutputLine, RuleText, Screen, Terminal, Transcript, WRAP } from "./parts";
 import Playground from "./playground";
-import { cast } from "./cast";
 import { MORNING, MORNING_ART_ALT, TRANSCRIPTS, type Beat } from "./story";
 import xray from "./xray-adopter.json";
 import morningSource from "./art/morning-with-an-agent.svg?raw";
@@ -50,15 +49,15 @@ function BeatRow({ beat }: { beat: Beat }): JSX.Element {
           {beat.title}
         </h3>
         <div className="ax-pair grid items-start gap-4">
-          <Screen label={cast("What {person} sees")} seen={beat.seen} />
+          <Screen label={"What you see"} seen={beat.seen} />
           {beat.steps.length > 0 ? (
-            <Transcript label={cast("What {agent} sees")} steps={beat.steps} waiting={beat.waiting} />
+            <Transcript label={"What your agent sees"} steps={beat.steps} waiting={beat.waiting} />
           ) : (
-            <Terminal label={cast("What {agent} sees")} role="group" aria-label={cast("What {agent} sees")}>
+            <Terminal label={"What your agent sees"} role="group" aria-label={"What your agent sees"}>
               <pre className="ax-term-body" style={WRAP}>
                 <OutputLine text={CHECKED} />
                 <span className="ax-term-gap" aria-hidden="true" />
-                <span className="ax-term-line ax-term-aside">{cast("{Agent} moves on without reading the room back.")}</span>
+                <span className="ax-term-line ax-term-aside">{"Your agent moves on without reading the room back."}</span>
               </pre>
             </Terminal>
           )}
@@ -117,9 +116,9 @@ export default function AxPage(): JSX.Element {
       <section aria-labelledby="morning-title" className="ax-band">
         <Container>
           <h2 id="morning-title" className="site-h2">
-            {cast("{Person}'s morning")}
+            {"Your morning"}
           </h2>
-          <p className="site-lede mt-5">{cast("Before the first meeting, {person} asks {agent} for a few things. You see them twice: on {person}'s screen, then in {agent}'s terminal.")}</p>
+          <p className="site-lede mt-5">{"Before your first meeting, you ask your agent for a few things. You see them twice: on your screen, then in your agent's terminal."}</p>
           <ol className="m-0 mt-10 grid list-none gap-12 p-0">
             {MORNING.map((beat) => (
               <BeatRow key={beat.id} beat={beat} />
@@ -133,10 +132,10 @@ export default function AxPage(): JSX.Element {
           <div className="grid gap-4">
             <p className="site-eyebrow">Your turn</p>
             <h2 id="turn-title" className="site-h2">
-              {cast("Be {agent}")}
+              {"Be the agent"}
             </h2>
             <p className="site-lede">
-              {cast("This is the same tool, running in your browser, and you're {agent} now: {person} asks, and you run the commands. Type one or press one. Then start a wait, and answer it from the room as someone else.")}
+              {"This is the same tool, running in your browser, and now you're the agent: the person you work for asks, and you run the commands. Type one or press one. Then start a wait, and answer it from the room as someone else."}
             </p>
           </div>
           <Playground />

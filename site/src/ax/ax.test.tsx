@@ -10,6 +10,7 @@ import { runNotes, say, splitArgs } from "./run";
 import { ASKS, asksDone, EGGS, eggFor, heardFrom, progressOf, type Heard } from "./asks";
 import { cast, CAST } from "./cast";
 import { MORNING, MORNING_ART_ALT } from "./story";
+import { CHAT_TITLE, SPEAKERS } from "./parts";
 import transcripts from "./transcripts.json";
 
 // Every source of the site's AX copy but the cast itself and this test, to hold the names to one file.
@@ -95,16 +96,16 @@ describe("Ouro AX page", () => {
     await expect.element(page.getByRole("heading", { level: 1, name: "A morning with an agent" })).toBeVisible();
     for (const beat of MORNING) await expect.element(page.getByRole("heading", { level: 3, name: `${beat.time}: ${beat.title}` })).toBeInTheDocument();
     // Each beat's terminal, and the hero's.
-    expect(page.getByRole("group", { name: cast("What {agent} sees") }).elements().length).toBe(MORNING.length + 1);
+    expect(page.getByRole("group", { name: "What your agent sees" }).elements().length).toBe(MORNING.length + 1);
   });
 
-  it("shows the person's side as their chat with their own agent, the Captain's head on their lines and the Stoker on its replies", async () => {
+  it("shows your side as your chat with your agent, your mark on your lines and your agent's on its replies", async () => {
     await renderPage("/ax/");
-    const late = page.getByRole("group", { name: cast("What {person} sees") }).first();
-    const chat = late.getByRole("group", { name: cast("{Person}'s chat with {agent}") });
+    const late = page.getByRole("group", { name: "What you see" }).first();
+    const chat = late.getByRole("group", { name: "Your chat with your agent" });
     await expect.element(chat).toBeInTheDocument();
     const lines = [...chat.element().querySelectorAll(".ax-line")];
-    expect(lines.map((line) => line.querySelector(".ax-bubble")?.textContent)).toEqual([cast("{Person}: Tell Design sync I'm running late."), cast("{Agent}: Posted in Design sync on your word. {replier} and {other} can see it.")]);
+    expect(lines.map((line) => line.querySelector(".ax-bubble")?.textContent)).toEqual(["You: Tell Design sync I'm running late.", cast("Your agent: Posted in Design sync on your word. {replier} and {other} can see it.")]);
     expect(lines[0]!.querySelector(".ax-avatar-person svg")?.getAttribute("viewBox")).toBe("0 0 48 48");
     expect(lines[1]!.querySelector(".ax-avatar-agent svg")?.getAttribute("viewBox")).toBe("0 0 96 96");
     for (const line of lines) expect(line.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
@@ -112,7 +113,7 @@ describe("Ouro AX page", () => {
     for (const reply of replies) expect(reply, "the agent's replies never say I").not.toMatch(/\b(I|I'm|I'll|I've|me|my)\b/);
   });
 
-  it("draws the Captain and the Stoker between the hero and the morning, in the drawing's own amber and teal, with words for it", async () => {
+  it("draws a person and their agent between the hero and the morning, in the drawing's own amber and teal, with words for it", async () => {
     await renderPage("/ax/");
     const art = page.getByRole("img", { name: MORNING_ART_ALT });
     await expect.element(art).toBeInTheDocument();
@@ -121,7 +122,7 @@ describe("Ouro AX page", () => {
     expect(svg.getAttribute("aria-hidden")).toBe("true");
     expect(svg.getAttribute("stroke")).toBe("currentColor");
     expect(svg.querySelector("title")).toBeNull();
-    const morning = page.getByRole("heading", { level: 2, name: cast("{Person}'s morning") }).element();
+    const morning = page.getByRole("heading", { level: 2, name: "Your morning" }).element();
     const hero = page.getByRole("heading", { level: 1, name: "A morning with an agent" }).element();
     expect(hero.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(element.compareDocumentPosition(morning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -134,12 +135,12 @@ describe("Ouro AX page", () => {
 
   it("lets the visitor be the agent: a post without --why is refused, and a wait ends when someone in the room replies", async () => {
     await renderPage("/ax/");
-    const log = page.getByRole("log", { name: cast("What {agent} sees") });
+    const log = page.getByRole("log", { name: "What you, the agent, see" });
     await page.getByRole("button", { name: "Post without a reason" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/so it needs --why/);
     await page.getByRole("button", { name: "Post it" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/Checked: read the room's last message back\./);
-    await expect.poll(() => page.getByTestId("ax-room").element().textContent).toMatch(new RegExp(`${CAST.person.Name} Back soon`));
+    await expect.poll(() => page.getByTestId("ax-room").element().textContent).toMatch(new RegExp(`${CAST.person.full} Back soon`));
     await page.getByRole("button", { name: "Wait for a reply" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
     await page.getByRole("button", { name: "Reply as someone in the room" }).click();
@@ -149,10 +150,10 @@ describe("Ouro AX page", () => {
     expect(log.element().textContent).toContain(`${new Date().toISOString().slice(0, 10)}T`);
     expect(page.getByTestId("ax-notes").query()).toBeNull();
     await page.getByRole("button", { name: "Add a private note" }).click();
-    await expect.poll(() => page.getByTestId("ax-notes").query()?.textContent).toMatch(new RegExp(`only ${CAST.person.name} sees them.*ask ${CAST.replier.first} about the dates`));
+    await expect.poll(() => page.getByTestId("ax-notes").query()?.textContent).toMatch(new RegExp(`only the person you work for sees them.*ask ${CAST.replier.first} about the dates`));
     await page.getByRole("button", { name: "Preview it as JSON" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/"state": "planned"/);
-    const field = page.getByRole("textbox", { name: cast("Run a command as {agent}") });
+    const field = page.getByRole("textbox", { name: "Run a command as the agent" });
     await field.fill("notes edit abc123");
     await page.getByRole("button", { name: "Run", exact: true }).click();
     await expect.poll(() => log.element().textContent).toMatch(/"edit" could mean 2 things, so it does nothing/);
@@ -163,11 +164,11 @@ describe("Ouro AX page", () => {
     let heard: Heard | null = null;
     const done = () => asksDone(progressOf(rooms["abc123"], heard));
     expect(done()).toBe(0);
-    await runNotes(cast(`notes post abc123 "Back soon" --why "{Person} asked: tell Design sync I'll be back soon" --dry-run`));
+    await runNotes(cast(`notes post abc123 "Back soon" --why "{person.full} asked: tell Design sync I'll be back soon" --dry-run`));
     expect(done(), "a preview reaches no one").toBe(0);
     await runNotes(cast('notes note abc123 "ask {replier} about the dates"'));
     expect(done(), "the asks go in order").toBe(0);
-    await runNotes(cast(`notes post abc123 "Back soon" --why "{Person} asked: tell Design sync I'll be back soon"`));
+    await runNotes(cast(`notes post abc123 "Back soon" --why "{person.full} asked: tell Design sync I'll be back soon"`));
     expect(done()).toBe(1);
     const waiting = runNotes("notes watch abc123 --timeout 2m");
     // Someone answers once the wait has taken its place in the room, as a press of "Reply" would.
@@ -182,7 +183,7 @@ describe("Ouro AX page", () => {
   it("notes, once each, what no agent in our runs did: a misspelt flag, a preview, plain words", async () => {
     resetRooms();
     expect(eggFor(await runNotes("notes rooms --limt 3"))).toBe("flag");
-    expect(eggFor(await runNotes(cast(`notes post abc123 "Back soon" --why "{Person} asked: tell Design sync I'll be back soon" --dry-run`)))).toBe("preview");
+    expect(eggFor(await runNotes(cast(`notes post abc123 "Back soon" --why "{person.full} asked: tell Design sync I'll be back soon" --dry-run`)))).toBe("preview");
     expect(eggFor(await runNotes("what can you do?"))).toBe("words");
     expect(eggFor(await runNotes("please tell the room hello"))).toBe("words");
     for (const plain of ["notes rooms", "notes --help", "rooms", "notes post abc123 hi"]) expect(eggFor(await runNotes(plain)), plain).toBeNull();
@@ -194,7 +195,7 @@ describe("Ouro AX page", () => {
   it("walks the three asks in the page, keeps the keyboard on the reply during a wait, and lets start over end it", async () => {
     await renderPage("/ax/");
     const asks = page.getByTestId("ax-asks");
-    const log = page.getByRole("log", { name: cast("What {agent} sees") });
+    const log = page.getByRole("log", { name: "What you, the agent, see" });
     await expect.element(asks).toHaveAttribute("data-asks-done", "0");
     await page.getByRole("button", { name: "Wait for a reply" }).click();
     await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
@@ -210,15 +211,16 @@ describe("Ouro AX page", () => {
     await page.getByRole("button", { name: "Add a private note" }).click();
     await expect.element(asks).toHaveAttribute("data-asks-done", "3");
     await expect.poll(() => asks.element().textContent).toContain(ASKS[2]!.answer({ posted: true, heard: null, noted: true }));
-    expect(asks.element().querySelectorAll(".ax-avatar-agent svg").length, "each reply carries the Stoker's mark").toBe(ASKS.length);
+    expect(asks.element().querySelectorAll(".ax-avatar-agent svg").length, "each reply carries the agent's mark").toBe(ASKS.length);
     expect(asks.element().querySelector(".ax-reward svg")).not.toBeNull();
+    expect(document.body.textContent, "every name slot is filled").not.toMatch(/\{[a-z]+(\.[a-z]+)?\}/i);
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in %s once the morning, the playground and the X-ray have loaded, nor does the home page's Ouro AX section", async (scheme) => {
     setScheme(scheme);
     await renderPage("/ax/");
     await expect.element(page.getByRole("heading", { level: 2, name: "Then we X-rayed a real one" })).toBeInTheDocument();
-    await expect.element(page.getByRole("group", { name: cast("What {agent} sees") }).first()).toBeInTheDocument();
+    await expect.element(page.getByRole("group", { name: "What your agent sees" }).first()).toBeInTheDocument();
     await settle();
     const violations = await scan();
     expect(violations, describeViolations(violations)).toEqual([]);
@@ -232,20 +234,20 @@ describe("Ouro AX page", () => {
 
   it("links straight to the playground at /ax/#be-the-agent, from the hero too", async () => {
     await renderPage("/ax/");
-    const section = page.getByRole("region", { name: cast("Be {agent}") });
+    const section = page.getByRole("region", { name: "Be the agent" });
     await expect.element(section).toBeInTheDocument();
     expect(section.element().id).toBe("be-the-agent");
     expect(section.element().contains(page.getByRole("log").element())).toBe(true);
-    expect(page.getByRole("link", { name: cast("Be {agent}") }).element().getAttribute("href")).toBe("#be-the-agent");
+    expect(page.getByRole("link", { name: "Be the agent" }).element().getAttribute("href")).toBe("#be-the-agent");
   });
 
-  it("keeps every name in cast.ts, and calls the duo the Captain and the Stoker", () => {
+  it("keeps every name in cast.ts, and tells the story in the product's own voice", () => {
     expect(Object.keys(copySources).length).toBeGreaterThan(8);
-    // The voyage's Captain Nemo is another story's captain.
-    const names = ["Captain(?! Nemo)", "Stoker", CAST.replier.first, CAST.other.first, CAST.replier.full, CAST.other.full];
+    const names = [CAST.person.full, CAST.replier.first, CAST.other.first, CAST.replier.full, CAST.other.full];
     for (const [file, source] of Object.entries(copySources)) {
       for (const name of names) expect(new RegExp(`\\b${name}\\b`).test(source), `${file} names ${name}; put it in cast.ts`).toBe(false);
     }
-    expect([cast("{person}"), cast("{Person}"), cast("{agent}"), cast("{Agent}")]).toEqual(["the Captain", "The Captain", "the Stoker", "The Stoker"]);
+    expect(CHAT_TITLE).toBe("Your chat with your agent");
+    expect(Object.values(SPEAKERS.person)).toEqual(["You: ", "Your agent: "]);
   });
 });

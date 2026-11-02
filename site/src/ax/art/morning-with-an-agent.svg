@@ -1,13 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-  <title>Captain and Stoker share one desk on a sunny morning; the Stoker sends the Captain's note to a room of three people</title>
-  <!-- Original line drawing of Captain and Stoker, the duo, drawn by hand for Ouro AX's "A morning with an agent"
-       and released under ourostack/ouro-ui's MIT licence. The Captain, on the
-       left, faceless, in a knitted bobble hat, scarf and mittens with a satchel across the body, holds a coffee beside a
-       laptop and says something out loud; the Stoker, on the right, two-thirds the Captain's height, with a visor, two
-       round eyes and an antenna, sends the note to the Design sync room from its terminal.
-       Lines take currentColor. Amber is the Captain's (hat, scarf, mittens, heart: the custom property duo-heart, else #f2a33a) and teal
-       the Stoker's (eyes, antenna, glow: the custom property duo-eye, else #2ec4b6); the visor reads the custom property duo-visor, else a fixed navy. No
-       other colour, so the pair reads the same on every theme.
+  <title>A person and their agent share one desk on a sunny morning; the agent sends the person's note to a room of three people</title>
+  <!-- Original line drawing of a person and their agent, drawn by hand for Ouro HX's "A morning with an agent" and
+       released under ourostack/ouro-ui's MIT licence. The person, on the left, is a faceless chunky figurine in an amber
+       cycling cap with a satchel across the body and glass mitten hands, holding a coffee beside a laptop; the agent,
+       on the right, smaller, with a visor, two round eyes and an antenna, sends the note to a room from its terminal.
+       Lines take currentColor. Amber is the person's (cap and heart: the custom property duo-heart, else #f2a33a) and
+       teal the agent's (eyes, antenna, glow: the custom property duo-eye, else #2ec4b6); the visor reads the custom
+       property duo-visor, else a fixed navy. No other colour, so the pair reads the same on every theme.
        Everything that matters sits in the middle 60% of the width and 80% of the height, so a centred 4:3 crop
        keeps it; the drawing is scaled to 90% about the centre for that margin. -->
 
@@ -31,47 +30,36 @@
   <path d="M726 96 V82 M726 96 H714" stroke-width="1.8" />
   <path d="M726 79 V77 M743 96 H745 M726 113 V115 M709 96 H707" stroke-width="1.2" opacity="0.7" />
 
-  <!-- The Captain: a round head with no face, a knitted bobble hat and scarf, a clear body and a warm heart -->
-  <circle cx="356" cy="178" r="34" stroke-width="2.4" />
-  <path d="M323 174 C321 146 337 136 356 136 C375 136 391 146 389 174 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="2.2" />
-  <rect x="320" y="166" width="72" height="16" rx="8" fill="var(--duo-heart, #f2a33a)" stroke-width="2.2" />
-  <path d="M330 168 V180 M340 168 V180 M350 168 V180 M360 168 V180 M370 168 V180 M380 168 V180" stroke-width="1" opacity="0.45" />
-  <circle cx="356" cy="128" r="9" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
-  <path d="M326 300 V236 C326 222 336 214 350 214 H362 C376 214 386 222 386 236 V300" stroke-width="2.4" />
-  <circle cx="356" cy="254" r="10" fill="var(--duo-heart, #f2a33a)" stroke="none" opacity="0.25" />
-  <circle cx="356" cy="254" r="5" fill="var(--duo-heart, #f2a33a)" stroke="none" />
-  <!-- Scarf at the neck, its end hanging in front with a short squared fringe -->
-  <path d="M330 214 C342 223 370 223 382 214 L385 225 C371 234 341 234 327 225 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
-  <path d="M336 228 H350 V262 H336 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
-  <path d="M338 262 V267 M341 262 V267 M344 262 V267 M347 262 V267" stroke-width="1.2" />
+  <!-- The person: a chunky figurine, faceless, in an amber cycling cap, the satchel across the body, glass mitten hands; a warm heart -->
+  <circle cx="356" cy="196" r="27" stroke-width="2.4" />
+  <path d="M340 186 A18 18 0 0 1 350 178" stroke-width="1.4" opacity="0.6" />
+  <path d="M329 194 C328 176 339 168 356 168 C373 168 384 176 383 194 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="2.2" />
+  <path d="M381 189 C391 189 399 192 400 197 L382 197" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
+  <circle cx="356" cy="168" r="3.2" fill="var(--duo-heart, #f2a33a)" stroke-width="1.6" />
+  <path d="M322 300 V258 C322 236 337 223 356 223 C375 223 390 236 390 258 V300" stroke-width="2.4" />
+  <circle cx="356" cy="258" r="11" fill="var(--duo-heart, #f2a33a)" stroke="none" opacity="0.25" />
+  <circle cx="356" cy="258" r="5.5" fill="var(--duo-heart, #f2a33a)" stroke="none" />
   <!-- Satchel across the body -->
-  <path d="M378 226 L392 278" stroke-width="2" />
-  <rect x="380" y="270" width="26" height="22" rx="4" stroke-width="2" />
-  <path d="M380 278 H406 M393 278 V283" stroke-width="1.4" />
-  <!-- The Captain's arms, in mittens: one holding the mug up, one at the laptop -->
-  <path d="M330 232 C318 244 314 252 316 260" stroke-width="2.4" />
-  <path d="M310 262 C310 255 322 255 323 262 V270 C323 275 310 275 310 270 Z M310 264 C305 263 304 269 309 270" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
-  <path d="M383 232 C392 248 398 262 404 278" stroke-width="2.4" />
-  <path d="M404 280 C408 276 418 282 416 290 C414 297 404 297 402 291 C400 287 401 283 404 280 Z M414 282 C419 280 421 285 417 288" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
+  <path d="M334 230 L384 282" stroke-width="2" />
+  <rect x="374" y="276" width="26" height="22" rx="4" stroke-width="2" />
+  <path d="M374 284 H400 M387 284 V289" stroke-width="1.4" />
+  <!-- The person's short arms with glass mitten hands: one holding the mug up, one at the laptop -->
+  <path d="M327 242 C319 250 316 255 316 260" stroke-width="2.4" />
+  <path d="M309 262 C309 255 322 255 323 262 V269 C323 274 310 274 310 269 Z M310 264 C305 263 304 269 309 270" stroke-width="2" />
+  <path d="M386 242 C395 254 400 266 404 278" stroke-width="2.4" />
+  <path d="M404 280 C408 276 418 282 416 290 C414 297 404 297 402 291 C400 287 401 283 404 280 Z M414 282 C419 280 421 285 417 288" stroke-width="2" />
   <!-- Mug and steam -->
   <path d="M288 252 H310 V272 C310 275 308 276 305 276 H293 C290 276 288 275 288 272 Z" stroke-width="1.8" />
   <path d="M288 257 C281 257 279 268 288 268" stroke-width="1.6" />
   <path d="M294 244 C290 236 298 232 294 224 M304 244 C300 236 308 232 304 224" stroke-width="1.2" opacity="0.7" />
-  <!-- The Captain's laptop, its app showing a conversation -->
+  <!-- The person's laptop, its app showing a conversation -->
   <path d="M420 296 H520 L512 300 H428 Z" stroke-width="1.8" />
   <rect x="428" y="214" width="84" height="80" rx="5" stroke-width="2" />
   <rect x="436" y="224" width="40" height="12" rx="6" stroke-width="1.2" opacity="0.7" />
   <rect x="460" y="242" width="44" height="12" rx="6" stroke-width="1.2" opacity="0.7" />
   <rect x="436" y="260" width="52" height="12" rx="6" stroke-width="1.6" />
   <circle cx="496" cy="266" r="3" fill="var(--duo-eye, #2ec4b6)" stroke="none" />
-  <!-- What the Captain says out loud -->
-  <path d="M398 104 H478 C486 104 490 108 490 116 V128 C490 136 486 140 478 140 H414 L398 152 L402 140 C394 140 390 136 390 128 V116 C390 108 394 104 398 104 Z" stroke-width="1.8" />
-  <circle cx="420" cy="122" r="3" fill="currentColor" stroke="none" />
-  <circle cx="440" cy="122" r="3" fill="currentColor" stroke="none" />
-  <circle cx="460" cy="122" r="3" fill="currentColor" stroke="none" />
-
-  <!-- The Stoker: two-thirds the Captain's height, head level with the Captain's shoulder; a visor, two round eyes,
-       an antenna with a bulb, a glow in the chest and rounded mitten hands -->
+  <!-- The agent: smaller than the person; a visor, two round eyes, an antenna with a bulb, a glow in the chest and rounded mitten hands -->
   <path d="M846 222 V206" stroke-width="2.2" />
   <circle cx="846" cy="199" r="10" fill="var(--duo-eye, #2ec4b6)" stroke="none" opacity="0.22" />
   <circle cx="846" cy="199" r="6" fill="var(--duo-eye, #2ec4b6)" stroke="currentColor" stroke-width="1.4" />
@@ -87,7 +75,7 @@
   <path d="M798 280 C792 280 790 292 798 293 C803 294 806 290 805 286 C805 282 803 280 798 280 Z" stroke-width="2" />
   <path d="M866 282 C876 286 880 291 878 296" stroke-width="2.4" />
   <circle cx="877" cy="298" r="4.5" stroke-width="2" />
-  <!-- The Stoker's terminal: a slim panel of command lines -->
+  <!-- The agent's terminal: a slim panel of command lines -->
   <rect x="694" y="214" width="92" height="80" rx="5" stroke-width="2" />
   <path d="M694 228 H786" stroke-width="1" opacity="0.5" />
   <circle cx="702" cy="221" r="1.6" fill="currentColor" stroke="none" />
@@ -103,7 +91,6 @@
   <path d="M808 128 L842 140 L812 150 Z M812 150 L818 140 L842 140" stroke-width="1.8" />
   <path d="M846 132 C850 122 856 116 862 114" stroke-width="1.4" stroke-dasharray="2 6" opacity="0.8" />
   <rect x="866" y="78" width="76" height="52" rx="12" stroke-width="2" />
-  <path d="M882 130 L878 142 L894 130" stroke-width="2" />
   <circle cx="886" cy="100" r="7" stroke-width="1.6" />
   <circle cx="904" cy="96" r="7" stroke-width="1.6" />
   <circle cx="922" cy="100" r="7" stroke-width="1.6" />
