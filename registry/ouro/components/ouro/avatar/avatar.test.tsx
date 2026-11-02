@@ -66,8 +66,8 @@ describe("Avatar", () => {
   });
 
   it("takes initials and alt that override the name", async () => {
-    const { avatar } = await render(<Avatar name="Ana Lind" initials="AdL" alt="Ana, the author" />);
-    expect(avatar.textContent).toBe("AdL");
+    const { avatar } = await render(<Avatar name="Ana Lind" initials="AnL" alt="Ana, the author" />);
+    expect(avatar.textContent).toBe("AnL");
     expect(avatar.getAttribute("aria-label")).toBe("Ana, the author");
   });
 
