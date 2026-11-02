@@ -528,6 +528,51 @@ describe("appearance", () => {
   });
 });
 
+describe("inline size", () => {
+  const line = { fontSize: "13px", lineHeight: "18px", margin: 0 } as const;
+  const middle = (rect: DOMRect) => rect.top + rect.height / 2;
+  afterEach(async () => {
+    await page.viewport(414, 896);
+  });
+
+  it("sits in a line of text at the text's size without moving the line, and keeps a 24px target", async () => {
+    await page.viewport(1280, 800);
+    const { host } = await render(
+      <>
+        <p style={line}>
+          Built from your folders. <span>Why</span>
+        </p>
+        <p style={line}>
+          Built from your folders.{" "}
+          <Button size="inline" variant="plain">
+            Why
+          </Button>
+        </p>
+      </>,
+    );
+    const [text, withButton] = [...host.querySelectorAll("p")];
+    expect(withButton!.getBoundingClientRect().height).toBe(text!.getBoundingClientRect().height);
+    const button = host.querySelector("button")!;
+    expect(getComputedStyle(button).fontSize).toBe("13px");
+    expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(24);
+    const word = middle(text!.querySelector("span")!.getBoundingClientRect()) - text!.getBoundingClientRect().top;
+    const label = middle(button.querySelector("[data-ouro-label]")!.getBoundingClientRect()) - withButton!.getBoundingClientRect().top;
+    expect(Math.abs(label - word)).toBeLessThanOrEqual(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("is at least 24px wide around a one-letter label", async () => {
+    await page.viewport(1280, 800);
+    const { button } = await render(
+      <Button size="inline" variant="plain" aria-label="Help">
+        ?
+      </Button>,
+    );
+    expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(24);
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe("density", () => {
   afterEach(async () => {
     await page.viewport(414, 896);
