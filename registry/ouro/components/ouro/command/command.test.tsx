@@ -131,6 +131,18 @@ describe("Command", () => {
     await expect.poll(options).toEqual(["Switch theme"]);
   });
 
+  it("finds a command by words in its description, and only the commands whose description has them", async () => {
+    await openPalette({
+      items: [
+        { label: "Weekly sync", description: "Mondays, here in the studio", onSelect: actions.newRecipe },
+        { label: "Design reviews", onSelect: actions.import },
+        { label: "Launch planning", onSelect: actions.theme },
+      ],
+    });
+    await userEvent.type(input(), "here");
+    await expect.poll(options).toEqual(["Weekly sync"]);
+  });
+
   it("shows the empty state when nothing matches", async () => {
     await openPalette({ emptyLabel: "Nothing found" });
     await userEvent.type(input(), "zzz");
@@ -394,6 +406,16 @@ describe("Command results that stream in", () => {
     await expect.poll(highlighted).toBe("Weekly sync");
     await userEvent.type(input(), "w");
     await arrive(palette(["Weekly notes", "Weekly sync"]));
+    await expect.poll(highlighted).toBe("Weekly notes");
+  });
+
+  it("highlights the first result for a new search, though the command highlighted by default before is among them further down", async () => {
+    await render(palette(["Launch planning", "Weekly sync"]));
+    await settled();
+    await ready();
+    await expect.poll(highlighted).toBe("Launch planning");
+    await userEvent.type(input(), "w");
+    await arrive(palette(["Weekly notes", "Launch planning", "Weekly sync"]));
     await expect.poll(highlighted).toBe("Weekly notes");
   });
 
