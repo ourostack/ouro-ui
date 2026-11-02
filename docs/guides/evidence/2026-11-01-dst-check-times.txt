@@ -1,0 +1,26 @@
+# GitHub recorded job times an hour off when daylight saving ended (2026-11-01, 09:00 UTC)
+#
+# Source: the GitHub API, read 2026-11-02 (repos/ourostack/ouro-ui/actions/runs/41289570936 and
+# .../runs/41289570936/attempts/<n>/jobs), for pull request #327's CI run on 0f3acc07.
+# That night the merge queue refused to queue #327 with "2 of 21 expected", naming e2e and ci-budget,
+# though both had passed. Re-running those two jobs recorded them again, and the queue accepted it.
+#
+# The run: created 2026-11-01T09:36:24Z, but attempt 2 is recorded as started 09:18:39Z and updated
+# 09:19:15Z, before the run was created.
+#
+# Attempt 1 jobs (name, conclusion, started_at, completed_at):
+e2e (1/4)	success	2026-11-01T09:42:42Z	2026-11-01T09:46:48Z
+e2e (2/4)	success	2026-11-01T09:41:34Z	2026-11-01T09:47:04Z
+e2e (3/4)	success	2026-11-01T09:49:01Z	2026-11-01T09:03:21Z
+e2e (4/4)	success	2026-11-01T09:42:43Z	2026-11-01T09:48:19Z
+e2e	success	2026-11-01T09:03:50Z	2026-11-01T09:03:53Z
+ci-budget	success	2026-11-01T09:04:06Z	2026-11-01T09:04:26Z
+ci	success	2026-11-01T09:58:04Z	2026-11-01T09:58:51Z
+#
+# e2e (3/4) is recorded as finishing 45 minutes before it started. The aggregate e2e and ci-budget
+# jobs need the shards, yet are recorded as finishing at 09:03-09:04, before any shard finished:
+# their times are an hour early.
+#
+# Attempt 2 (e2e and ci-budget re-run):
+e2e	success	2026-11-01T09:18:43Z	2026-11-01T09:18:46Z
+ci-budget	success	2026-11-01T09:18:49Z	2026-11-01T09:19:15Z
