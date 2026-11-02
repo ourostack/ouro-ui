@@ -125,7 +125,7 @@ const cli = defineCli({
     ...(faults.has("unmute") ? {} : { unmute: theirs }),
     camera: theirs,
     share: theirs,
-    "captions on": { reason: "You can't turn on captions for the person, since others may see they are on; only they can.", how: "with the captions button in the call's controls" },
+    "captions on": { reason: "You can't turn the person's captions on or off; only they can.", how: "with the captions button in the call's controls" },
     join: { reason: "You can't join a call for the person, and you read from the app's one capture; only they join.", how: "from the meeting's join button" },
   },
 });

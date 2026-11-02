@@ -19,7 +19,7 @@ export const callControlsAx = defineComponentAx({
     { id: "unmute", summary: "Turn the person's microphone on.", effect: "others", personOnly: theirs },
     { id: "camera", summary: "Turn the person's camera on.", effect: "others", personOnly: theirs },
     { id: "share", summary: "Share the person's screen.", effect: "others", personOnly: theirs },
-    { id: "captions", summary: "Turn captions on.", effect: "others", personOnly: "You can't turn on captions for the person, since others may see they are on; only they can." },
+    { id: "captions", summary: "Turn captions on.", effect: "private", personOnly: "You can't turn the person's captions on or off; only they can." },
   ],
 });
 
