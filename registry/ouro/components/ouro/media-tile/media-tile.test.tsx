@@ -156,7 +156,7 @@ describe("MediaTile", () => {
     );
     const camera = media.querySelector("[data-test-camera]")!;
     expect(getComputedStyle(media).visibility).toBe("visible");
-    expect(tile.hasAttribute("data-picture")).toBe(true);
+    expect(tile.getAttribute("data-picture")).toBe("");
     expect(tile.querySelector("[data-ouro-media-tile-photo]")).toBeNull();
     await rerender(
       <MediaTile name="Mara Lind" avatar={{ initials: "ML" }} cameraOn={false}>
@@ -177,6 +177,7 @@ describe("MediaTile", () => {
     expect(getComputedStyle(media).visibility).toBe("hidden");
     expect(tile.getAttribute("aria-label")).toBe("Mara Lind, video paused");
     expect(tile.querySelector("[data-ouro-media-tile-paused]")!.getAttribute("title")).toBe("Video paused");
+    expect(tile.querySelector("[data-ouro-media-tile-paused] svg")).not.toBeNull();
     await rerender(
       <MediaTile name="Mara Lind" avatar={{ initials: "ML" }} paused="video paused to save power">
         <Camera />
@@ -450,7 +451,7 @@ describe("MediaTile speaking", () => {
     expect(tile.getAttribute("aria-label")).toBe("Mara Lind, camera on");
     await act(() => vi.advanceTimersByTime(1));
     expect(on()).toBe(true);
-    expect(tile.hasAttribute("data-speaking")).toBe(true);
+    expect(tile.getAttribute("data-speaking")).toBe("");
     expect(tile.getAttribute("aria-label")).toBe("Mara Lind, speaking, camera on");
     await rerender(tileFor(false));
     await act(() => vi.advanceTimersByTime(599));
@@ -561,6 +562,7 @@ describe("MediaTile controls", () => {
     expect(button.getAttribute("data-ouro-control")).toBe("media-tile");
     expect(button.getAttribute("data-ouro-part")).toBe("pin");
     expect(button.getAttribute("title")).toBe("Pin");
+    expect(button.querySelector("svg")).not.toBeNull();
     expect(controls!.contains(button)).toBe(true);
     await act(() => button.click());
     expect(onPinnedChange).toHaveBeenCalledWith(true);
@@ -571,6 +573,7 @@ describe("MediaTile controls", () => {
     expect(tile.getAttribute("aria-label")).toBe("Mara Lind, camera off, pinned");
     await rerender(<MediaTile name="Mara Lind" pinned />);
     expect(tile.querySelector("[data-ouro-media-tile-pinned]")!.getAttribute("title")).toBe("Pinned");
+    expect(tile.querySelector("[data-ouro-media-tile-pinned] svg")).not.toBeNull();
     expect(tile.querySelector("[data-ouro-media-tile-controls]")).toBeNull();
   });
 
