@@ -45,7 +45,7 @@ const ANNOUNCE_GAP_MS = 2000;
  * @claim "The first word of a speaker's" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows each line as the speaker's first name in a tint of the brand colour, then their words)
  */
 function firstName(speaker: string): string {
-  return speaker.trim().replace(/\s.*$/s, "");
+  return speaker.trim().split(/\s/)[0]!;
 }
 
 /** A finished line, as an announcement reads it. @internal */
@@ -63,7 +63,7 @@ function spokenText(lines: readonly SpokenLine[]): string {
   const parts: string[] = [];
   let previous: string | undefined;
   for (const { speaker, text } of lines) {
-    parts.push(speaker === previous ? text.trim() : `${speaker.trim()}: ${text.trim()}`);
+    parts.push(speaker === previous ? text : `${speaker}: ${text}`);
     previous = speaker;
   }
   return parts.join(" ");

@@ -134,6 +134,7 @@ describe("LiveCaptions", () => {
     expect(getComputedStyle(words).color).toBe("rgb(255, 255, 255)");
     expect(first.getAttribute("data-final")).toBe("");
     expect(getComputedStyle(first).marginTop).toBe("0px");
+    expect(warnings()).toEqual([]);
   });
 
   it("turns interim words white in place when they become final, moving nothing", async () => {
@@ -459,6 +460,36 @@ describe("LiveCaptions announcements", () => {
       await rerender(<LiveCaptions label="Captions" announce lines={[a, b, mara("3", "Good."), jonas("4", "Next.")]} />);
       await wait(100);
       expect(announced.changes.map((change) => change.text)).toEqual(["Jonas Ek: Yes.", "Jonas Ek: Next."]);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("keeps the 2-second gap after announce goes off and on again mid-gap", async () => {
+    const announced = watchAnnouncements();
+    const said = () => announced.changes.map((change) => change.text);
+    try {
+      const a = mara("1", "One.");
+      const b = jonas("2", "Two.");
+      const c = mara("3", "Three.");
+      const d = jonas("4", "Four.");
+      const { rerender } = await render(<LiveCaptions label="Captions" announce lines={[]} />);
+      await rerender(<LiveCaptions label="Captions" announce lines={[a]} />);
+      await wait(100);
+      await rerender(<LiveCaptions label="Captions" lines={[a, b]} />);
+      await wait(100);
+      await rerender(<LiveCaptions label="Captions" announce lines={[a, b]} />);
+      await rerender(<LiveCaptions label="Captions" announce lines={[a, b, c]} />);
+      await wait(100);
+      // 300ms in: the first gap ended with announce off, so Three is read at once, and a new gap starts.
+      expect(said()).toEqual(["Mara Lind: One.", "Mara Lind: Three."]);
+      await wait(1800);
+      // The first gap's timer would have ended at 2,000ms; Four, at 2,100ms, still waits for the new gap.
+      await rerender(<LiveCaptions label="Captions" announce lines={[a, b, c, d]} />);
+      await wait(100);
+      expect(said().length).toBe(2);
+      await wait(200);
+      expect(said()).toEqual(["Mara Lind: One.", "Mara Lind: Three.", "Jonas Ek: Four."]);
     } finally {
       announced.stop();
     }

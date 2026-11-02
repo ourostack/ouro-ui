@@ -232,6 +232,7 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
     };
     if (gap.current === undefined) flush();
   }, [announce, lines]);
+  // Stryker disable next-line ArrayDeclaration: any constant dependency list runs the cleanup once, on unmount.
   useEffect(() => () => clearTimeout(gap.current), []);
 
   return (
