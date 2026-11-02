@@ -27,7 +27,7 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 
 ## Usage
 
-The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message is sent.
+The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message is sent. Given the `catalogue` too, Composer puts an emoji typed from the system's emoji panel or pasted in as its token as well.
 
 ## Use instead when
 
@@ -42,6 +42,7 @@ Type: `ComposerProps`.
 | `actions` | `ReactNode` |  | Buttons before the send button: emoji, attach a file, show formatting. Ouro `Button`s with `variant="plain"` and an `aria-label`. |
 | `attachments` | `ReactNode` |  | Files waiting to go with the message, shown in a row inside the box under the text: `Attachment` items with `onRemove`. Pass it only when there are some; with it, the message can be sent without text. |
 | `attachmentsLabel` | `string` | `"Attachments"` | A name for the attachments row, for screen readers. |
+| `catalogue` | `EmojiCatalogue` |  | An image emoji catalogue. With it, an emoji typed into the box (from the system's emoji panel, say) or pasted goes in as its `:shortcode:` token, the token `Autocomplete` and `EmojiPicker` insert, so the text holds the catalogue's emoji only as tokens, which `EmojiText` draws as its images. That includes an emoji joined from others and one with a skin tone, which become the catalogue's emoji or tone for it; an emoji the catalogue does not list stays as it is. The caret lands after what went in, and one undo takes it out. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-2`). Appearance classes warn in development. |
 | `defaultValue` | `string` |  | The starting text, for an uncontrolled composer, which clears itself after a send. |
 | `description` | `ReactNode` |  | A quiet line under the box, read as the text's description: what the marks mean, a character count. |
@@ -94,6 +95,120 @@ What sent the message: the Enter key in the box, or a press of the send button.
 
 ```ts
 type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement> | MouseEvent<HTMLButtonElement>;
+```
+
+### `EmojiCatalogue`
+
+An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app. The image addresses are used as they are, so an app that loads images its own way (a content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can load in the catalogue when it builds it.
+
+```ts
+interface EmojiCatalogue {
+  /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
+  categories: readonly EmojiCatalogueCategory[];
+}
+```
+
+### `EmojiCatalogueCategory`
+
+A category of a catalogue: its name, the icon its button shows, and its emoji in order.
+
+```ts
+interface EmojiCatalogueCategory {
+  /** Identifies the category, unique in the catalogue: `"people"`, `"custom"`. */
+  id: string;
+  /** Its name, shown as its heading and read for its button: `"People"`, or the organization's name for its custom emoji. */
+  label: string;
+  /** What its button in a picker's category bar shows: an icon element. Defaults to its first emoji's image. */
+  icon?: ReactNode;
+  /** Its emoji, in the order they show. */
+  items: readonly EmojiItem[];
+}
+```
+
+### `EmojiFilmstrip`
+
+An animation drawn as a filmstrip: square frames stacked top to bottom in one image, so the frames are the image's height over its width.
+
+```ts
+interface EmojiFilmstrip {
+  /** The filmstrip image's address. */
+  src: string;
+  /** Frames a second. */
+  fps: number;
+}
+```
+
+### `EmojiItem`
+
+One emoji in an image catalogue: its id, its name and the image that draws it. An app maps its own emoji set to this, whether a standard set or an organization's custom emoji.
+
+```ts
+interface EmojiItem {
+  /** Identifies the emoji, unique in the catalogue: `"party"`. Reactions, recents and `:id:` tokens use it. */
+  id: string;
+  /** Its name, which is the image's `alt`, what screen readers hear and what the search matches first: `"Party popper"`. */
+  name: string;
+  /**
+   * The still image's address. It shows whenever the emoji is not playing, and always with reduced motion.
+   */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"party-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /**
+   * An animated image (GIF, animated WebP or PNG), which plays while the pointer is on the emoji
+   * or on the button around it, or that button has focus. With reduced motion it never plays.
+   */
+  animatedSrc?: string | undefined;
+  /**
+   * The animation as a filmstrip, square frames stacked top to bottom in one image, for an
+   * emoji without `animatedSrc`: while the emoji plays, it steps through the frames at `fps`;
+   * otherwise, and always with reduced motion, `src` shows.
+   */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /** The still image's width in pixels, given to the `<img>` so the page keeps its shape while it loads. It shows at the text's size. */
+  width?: number | undefined;
+  /** The still image's height in pixels, as `width`. */
+  height?: number | undefined;
+  /** Short names typed between colons, without them: `["party", "tada"]`. The first makes the emoji's token, `:party:`. */
+  shortcodes?: readonly string[] | undefined;
+  /** More words the search matches: `["celebrate", "hooray"]`. */
+  keywords?: readonly string[] | undefined;
+  /**
+   * The emoji as plain text, such as its Unicode character (`"🎉"`), for places an image cannot
+   * go (a copied message, a notification). `EmojiText` finds it in messages and draws the image;
+   * Ouro never draws it as text.
+   */
+  text?: string | undefined;
+  /** It is the organization's or app's own emoji rather than one of the standard set. Ouro draws it the same; apps can label or treat it apart. */
+  custom?: boolean | undefined;
+  /**
+   * The emoji in Unicode's five skin tones, light to dark; leave it out for an emoji without tones.
+   */
+  skinTones?: readonly EmojiItemTone[] | undefined;
+}
+```
+
+### `EmojiItemTone`
+
+An emoji's image in one skin tone: `skinTones` on an `EmojiItem`.
+
+```ts
+interface EmojiItemTone {
+  /** Identifies the emoji in this tone, unique in the catalogue: `"thumbs-up-tone3"`. Reactions and tokens use it. */
+  id: string;
+  /** The still image's address. */
+  src: string;
+  /** Sizes of the still image for sharper screens, as `<img srcset>`: `"wave-2x.png 2x"`. */
+  srcSet?: string | undefined;
+  /** An animated image (GIF, animated WebP or PNG), shown while the emoji plays; the still one shows otherwise. */
+  animatedSrc?: string | undefined;
+  /** The animation as a filmstrip of square frames, played while the emoji plays, for a tone without `animatedSrc`. */
+  filmstrip?: EmojiFilmstrip | undefined;
+  /**
+   * The emoji in this tone as text (`"👍🏽"`), which `EmojiText` finds in messages; Ouro never draws it as text.
+   */
+  text?: string | undefined;
+}
 ```
 
 ### `TextAreaHighlight`

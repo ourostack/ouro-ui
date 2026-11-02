@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Autocomplete, type AutocompleteItem, type AutocompleteProps, type AutocompleteTrigger } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
-import { caretRect, filterItems, findMatch, insertText, matchAt } from "@/registry/ouro/components/ouro/autocomplete/autocomplete-styles";
+import { caretRect, filterItems, findMatch, matchAt } from "@/registry/ouro/components/ouro/autocomplete/autocomplete-styles";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
@@ -723,20 +723,6 @@ describe("Autocomplete text helpers", () => {
     input.scrollLeft = 50;
     expect(input.scrollLeft).toBe(50);
     expect(caretRect(input, input.value.length).left).toBeCloseTo(end.left - 50, 0);
-  });
-
-  it("inserts with setRangeText and an input event where insertText is not available", async () => {
-    const onInput = vi.fn();
-    const { control } = await render(<input aria-label="Name" data-test-harness="" defaultValue="Hi @av" onInput={onInput} />);
-    vi.spyOn(document, "execCommand").mockReturnValue(false);
-    expect(document.activeElement).not.toBe(control);
-    insertText(control, 3, 6, "@Avery ");
-    expect(control.value).toBe("Hi @Avery ");
-    expect([control.selectionStart, control.selectionEnd]).toEqual([10, 10]);
-    expect(onInput).toHaveBeenCalledTimes(1);
-    expect(onInput.mock.calls[0]![0].nativeEvent.inputType).toBe("insertReplacementText");
-    // It edits as typing would, so the control has focus afterwards.
-    expect(document.activeElement).toBe(control);
   });
 });
 

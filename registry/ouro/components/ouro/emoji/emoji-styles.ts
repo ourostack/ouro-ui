@@ -1,6 +1,6 @@
 import type { EmojiCatalogue, EmojiItem, EmojiItemTone } from "@/registry/ouro/components/ouro/emoji/emoji";
 
-export { catalogueIndex, emojiClass, emojiSkinTones, emojiToken, fold, matchWords, searchCatalogue, splitEmojiText, toneOf };
+export { catalogueIndex, emojiClass, emojiSkinTones, emojiToken, emojiTextToTokens, fold, matchWords, searchCatalogue, splitEmojiText, toneOf };
 export type { CatalogueIndex, EmojiSkinTone, EmojiTextPart, FoundEmoji };
 
 // Value lists and helpers for Emoji and the components that draw a catalogue's emoji, apart from
@@ -161,4 +161,27 @@ function searchCatalogue(catalogue: EmojiCatalogue, query: string, limit: number
   const byShortcode = items.filter((item) => item.shortcodes?.some((shortcode) => fold(shortcode).startsWith(typed)));
   const rest = items.filter((item) => !byShortcode.includes(item) && matchWords([item.name, ...(item.shortcodes ?? []), ...(item.keywords ?? [])], query));
   return [...byShortcode, ...rest].slice(0, limit);
+}
+
+/** Splits text into the characters a person sees, an emoji with its tone modifier or its joined parts whole. */
+// Stryker disable next-line ObjectLiteral: grapheme is Intl.Segmenter's default granularity, named here for the reader.
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/**
+ * The text with the emoji the catalogue lists as text turned into their tokens: `:shortcode:`,
+ * or a tone's `:id:`. It reads the text a whole character at a time, so an emoji joined from
+ * others (a zero width joiner sequence) or one with a skin tone modifier changes only when the
+ * catalogue lists it whole. Any other character, and an emoji the catalogue does not list,
+ * stays as it is. @internal
+ *
+ * @claim "changes only when the catalogue lists it whole" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > turns each emoji the catalogue lists as text into its token, a whole character at a time)
+ */
+function emojiTextToTokens(text: string, catalogue: EmojiCatalogue): string {
+  const { byText } = catalogueIndex(catalogue);
+  let tokens = "";
+  for (const { segment } of graphemes.segment(text)) {
+    const found = byText.get(segment.replace(VARIATION, ""));
+    tokens += found ? emojiToken(found.item, found.tone) : segment;
+  }
+  return tokens;
 }
