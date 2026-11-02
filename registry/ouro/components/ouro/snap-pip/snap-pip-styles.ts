@@ -117,26 +117,62 @@ export function cornerToward(corner: SnapPiPCorner, key: ArrowKey): SnapPiPCorne
 }
 
 /**
- * The picture's classes: a raised surface that lifts while held, and has no motion of its own
- * under reduced motion. Its place is a `translate` it sets itself from what it measures.
- * @claim "The picture's classes: a raised surface" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > follows the pointer from the first pixel and lifts while held)
+ * The corner whose place is nearest `point`, a place the picture could be in: each corner's place
+ * as `anchorFor` finds it, clear of the keep-outs, so the line between two corners falls halfway
+ * between where the picture would rest in each.
+ * @claim "The corner whose place is nearest" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > picks the corner whose place, clear of the keep-outs, is nearest)
+ */
+export function nearestCorner(
+  point: { x: number; y: number },
+  stage: { width: number; height: number },
+  pip: { width: number; height: number },
+  inset: number,
+  keepOut: readonly SnapPiPRect[],
+): SnapPiPCorner {
+  const away = (corner: SnapPiPCorner) => {
+    const place = anchorFor(corner, stage, pip, inset, keepOut);
+    return Math.hypot(place.x - point.x, place.y - point.y);
+  };
+  return corners.reduce((best, corner) => (away(corner) < away(best) ? corner : best));
+}
+
+/**
+ * The picture's classes: a raised surface with a faint light hairline for a dark stage, which
+ * lifts while dragged and has no motion of its own under reduced motion. Its place is a
+ * `translate` it sets itself from what it measures.
+ * @claim "The picture's classes: a raised surface" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > follows the pointer from the first pixel and lifts while dragged)
  * @claim "The picture's classes: a raised surface" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > jumps to its corner with reduced motion, with no lift and no rubberband)
  */
 export const pipClass = [
-  "group absolute isolate box-border touch-none overflow-hidden rounded-xl bg-muted text-foreground select-none",
-  "cursor-grab active:cursor-grabbing",
-  "shadow-(--shadow-lg) ring-1 ring-border/60 data-dragging:shadow-(--shadow-2xl)",
+  "absolute isolate box-border touch-none rounded-xl bg-muted text-foreground select-none data-dragging:cursor-grabbing",
+  "shadow-(--shadow-lg) ring-1 ring-white/10 data-dragging:shadow-(--shadow-2xl)",
   "motion-safe:transition-[scale,box-shadow] motion-safe:duration-(--ouro-duration-fast) motion-safe:ease-(--ouro-ease-out) motion-safe:data-dragging:scale-[1.04]",
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
   "forced-colors:border forced-colors:border-solid",
   "[&_img]:pointer-events-none [&_video]:pointer-events-none",
 ].join(" ");
 
-/** The hint shown on the picture while keyboard focus is on it. */
+/** The frame that clips the app's content to the picture's rounded corners. */
+export const frameClass = "block size-full overflow-hidden rounded-[inherit]";
+
+/**
+ * The hint's place beside the picture: above it in a bottom corner and below it in a top one, so
+ * it never covers the picture. Its padding bridges the gap, so the pointer can move onto it
+ * without it closing. The component lines it up with the picture's outer edge.
+ */
 export const hintClass = [
-  "pointer-events-none absolute inset-x-2 bottom-2 z-10 m-0 rounded-md border border-border bg-popover px-2 py-1 text-center text-xs text-popover-foreground",
-  "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out) group-focus-visible:opacity-100",
+  "pointer-events-none absolute z-10 w-max max-w-80 opacity-0",
+  "motion-safe:transition-opacity motion-safe:duration-(--ouro-duration-fast) motion-safe:ease-(--ouro-ease-out)",
+  "data-[side=bottom]:top-full data-[side=bottom]:pt-2 data-[side=top]:bottom-full data-[side=top]:pb-2",
+  "data-open:pointer-events-auto data-open:opacity-100",
 ].join(" ");
+
+/** The hint itself: one quiet line, as a tooltip is. */
+export const hintTextClass =
+  "block rounded-md bg-foreground px-2 py-1 text-xs leading-4 text-balance text-background forced-colors:border forced-colors:border-solid";
+
+/** How long the pointer rests on the picture before the hint shows, in ms: a tooltip's delay. */
+export const HINT_DELAY = 600;
 
 /**
  * SnapPiP's agent side, for Ouro AX's kit. It declares no reads, and one action, `move`, which only

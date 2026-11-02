@@ -9,10 +9,13 @@ import {
   useState,
   type CSSProperties,
   type JSX,
+  type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type Ref,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   anchorFor,
   corners,
@@ -20,7 +23,11 @@ import {
   DECELERATION,
   defaultCornerLabels,
   FLICK_DAMPING,
+  frameClass,
+  HINT_DELAY,
   hintClass,
+  hintTextClass,
+  nearestCorner,
   pipClass,
   RESPONSE,
   sizes,
@@ -36,7 +43,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
-import { nearest, project, rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
+import { project, rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { FLICK_VELOCITY, useDrag } from "@/registry/ouro/lib/ouro/use-drag";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
@@ -89,10 +96,13 @@ export interface SnapPiPProps {
   /**
    * What the corners keep clear of: rectangles in the container (`{ x, y, width, height }`, px from
    * its top-left corner), or refs to elements, such as a toolbar's band, a captions band or another
-   * SnapPiP, measured whenever they or the container resize. A corner that would overlap one moves
-   * just clear of it, toward the middle. When they change, the picture follows its corner with
-   * the spring.
+   * SnapPiP, measured whenever they or the container resize. A ref is read again after each render
+   * and whenever the container's content changes, so an element the app shows or takes away
+   * behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner
+   * that would overlap one moves just clear of it, toward the middle. When they change, the
+   * picture follows its corner with the spring.
    * @claim "A corner that would overlap one" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > keeps its corners clear of keep-outs, rectangles or elements, and follows them with the spring when they change)
+   * @claim "A ref is read again after" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes back to its corner when a keep-out element behind the same ref goes away, and clears it when it comes back)
    */
   keepOut?: readonly SnapPiPKeepOut[] | undefined;
   /**
@@ -102,8 +112,8 @@ export interface SnapPiPProps {
    */
   aspectRatio?: number | undefined;
   /**
-   * How to move it from the keyboard, read after its name and corner and shown on it while it has
-   * keyboard focus. Translate it with the rest of your interface.
+   * How to move it from the keyboard, read after its name and corner, and shown beside it as a
+   * tooltip. Translate it with the rest of your interface.
    * @default "Option-arrow keys to move it"
    */
   hint?: string | undefined;
@@ -138,39 +148,48 @@ const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowD
  * and throw into a corner, where it comes to rest, as a phone's picture in picture does. Put it in a positioned container (`relative`); it moves within that
  * container's box.
  *
- * It follows the pointer from the first pixel and lifts while held. On release it works out where
+ * It follows the pointer from the first pixel and lifts while dragged. On release it works out where
  * the throw would coast to (`project`, at scrolling's deceleration of 0.998), picks the corner
- * nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after
+ * whose place, clear of the keep-outs, is nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after
  * a flick, so it overshoots a little, and 1 after a slow drop). Pressing it in flight catches it.
  * Dragged past the container's edge, it resists more and more (`rubberband`).
  *
  * The corners sit `inset` in from the edges and keep clear of `keepOut`. It keeps its corner, not
  * its position: when the keep-outs change it follows its corner with the spring, and while the
- * container resizes it stays in its corner without one. While it springs it carries
- * `data-ouro-settling`.
+ * container resizes it stays in its corner without one, placed in the same frame as the resize.
+ * While it springs it carries `data-ouro-settling`.
  *
  * It is focusable: Option and an arrow key move it to the next corner that way, with the same
- * spring, and the new corner is announced politely once it settles, never during the move. Its
- * name, corner and `hint` are what screen readers read, and the hint shows on it while it has
- * keyboard focus. Double-click it, or press Option-Return, to toggle small and large.
+ * spring, and the new corner is announced politely once it settles, never during the move; a key
+ * toward the side it is already on says the corner again. Its name, corner and `hint` are what
+ * screen readers read. The hint also shows beside it, toward the middle of the stage and never over
+ * it, when it gets keyboard focus or the pointer rests on it, and stays while the pointer is on
+ * either. Escape, a move or a press puts it away until focus and the pointer have both left.
+ * Double-click it, or press Option-Return, to toggle small and large.
  *
  * With reduced motion it jumps straight to its corner: no spring, no lift and no rubberband.
  *
  * Its agent side, `snapPipAx` in `snap-pip-styles.ts`, declares no reads and one action, `move`,
- * which only the person takes: where their own picture sits is theirs.
+ * which only the person takes: where their own picture sits is theirs. Hiding the picture is the
+ * app's, from its own menu, so the app declares that `hide` action, not SnapPiP.
  *
  * Use `Popover` or `HoverCard` instead for an overlay anchored to a control, `Resizable` for a
  * split layout the person sizes, and `Sheet` for a side panel.
  *
- * @claim "It follows the pointer from the" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > follows the pointer from the first pixel and lifts while held)
+ * @claim "It follows the pointer from the" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > follows the pointer from the first pixel and lifts while dragged)
+ * @claim "picks the corner whose place, clear" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > drops slowly into the corner whose place is nearest beside a side panel, and flicks across it)
  * @claim "On release it works out where" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes to the corner a flick points at, across the stage, with a little overshoot)
  * @claim "On release it works out where" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes to the nearest corner after a slow drop, with no overshoot)
  * @claim "Pressing it in flight catches it." registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > catches it in flight, holds it under the pointer, and lets it go on when only pressed)
  * @claim "Dragged past the container's edge, it" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > resists past the container's edges, more the further it goes)
  * @claim "The corners sit `inset` in from" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > keeps its corners clear of keep-outs, rectangles or elements, and follows them with the spring when they change)
- * @claim "while the container resizes it stays" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > stays in its corner without a spring while the container resizes)
+ * @claim "while the container resizes it stays" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > stays in its corner without a spring while the container resizes, in the same frame)
  * @claim "Option and an arrow key move" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > moves to the next corner that way with Option and an arrow, and announces it once it settles)
- * @claim "Its name, corner and `hint` are" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows on keyboard focus)
+ * @claim "a key toward the side it" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > moves to the next corner that way with Option and an arrow, and announces it once it settles)
+ * @claim "Its name, corner and `hint` are" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus)
+ * @claim "The hint also shows beside it," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus)
+ * @claim "The hint also shows beside it," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > shows the hint when the pointer rests on it, keeps it while the pointer moves onto it, and never on touch)
+ * @claim "Escape, a move or a press" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > puts the hint away on Escape, a move or a press, until focus and the pointer have left)
  * @claim "Double-click it, or press Option-Return," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > toggles small and large on a double-click or Option-Return, controlled or not)
  * @claim "With reduced motion it jumps straight" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > jumps to its corner with reduced motion, with no lift and no rubberband)
  * @claim "Its agent side, `snapPipAx` in `snap-pip-styles.ts`," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > declares no agent reads and one move only the person makes, on the picture)
@@ -218,6 +237,18 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   // A new object on each release, so a controlled corner the app kept is gone back to.
   const [release, setRelease] = useState({});
   const descriptionId = `${useId()}-description`;
+  // What shows the hint: keyboard focus, the pointer resting on it; and whether the person put it
+  // away, which lasts until both have left.
+  const [hintBy, setHintBy] = useState({ focus: false, pointer: false, dismissed: false });
+  const hintOpen = (hintBy.focus || hintBy.pointer) && !hintBy.dismissed;
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const showHint = (by: "focus" | "pointer") =>
+    setHintBy((now) => ({ ...now, [by]: true, dismissed: now.focus || now.pointer ? now.dismissed : false }));
+  const hideHint = (by: "focus" | "pointer") => setHintBy((now) => ({ ...now, [by]: false }));
+  const dismissHint = () => {
+    clearTimeout(hintTimer.current);
+    setHintBy((now) => (now.dismissed ? now : { ...now, dismissed: true }));
+  };
 
   useAppearanceClassNameCheck(
     "SnapPiP",
@@ -351,10 +382,37 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     [anchor, go],
   );
 
-  // Measures the container, then follows it and its keep-outs as they resize. A container that
-  // changed size is a window being resized: the picture keeps to its corner, with no spring.
   const observer = useRef<ResizeObserver | undefined>(undefined);
   const watched = useRef<Element[]>([]);
+  /**
+   * Watches the elements the keep-out refs hold now. When one came or went, even behind the same
+   * ref, its corner's place changed: it follows with the spring.
+   */
+  const rewatch = useCallback(() => {
+    const watching = observer.current!;
+    const before = watched.current;
+    const now = (latest.current.keepOut ?? []).flatMap((item) => ("current" in item && item.current ? [item.current] : []));
+    watched.current = now;
+    let changed = false;
+    for (const gone of before) {
+      if (!now.includes(gone)) {
+        watching.unobserve(gone);
+        changed = true;
+      }
+    }
+    for (const added of now) {
+      if (!before.includes(added)) {
+        watching.observe(added);
+        changed = true;
+      }
+    }
+    if (changed) reflow(false);
+  }, [reflow]);
+
+  // Measures the container, then follows it and its keep-outs as they resize, and its content as
+  // it changes, for a keep-out element another part of the app shows or takes away. A container
+  // that changed size is a window being resized: the picture keeps to its corner, with no spring,
+  // in the same frame.
   useLayoutEffect(() => {
     const container = element.current!.parentElement!;
     const measure = () => ({ width: container.clientWidth, height: container.clientHeight });
@@ -362,29 +420,27 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     const watching = new ResizeObserver(() => {
       const next = measure();
       const last = stageRef.current!;
-      if (next.width !== last.width || next.height !== last.height) setStage(next);
+      if (next.width !== last.width || next.height !== last.height) flushSync(() => setStage(next));
       else reflow(false);
     });
     watching.observe(container);
     observer.current = watching;
+    const changes = new MutationObserver(rewatch);
+    changes.observe(container, { childList: true, subtree: true });
     return () => {
+      changes.disconnect();
       watching.disconnect();
-      observer.current = undefined;
       watched.current = [];
     };
-  }, [reflow]);
-  // The keep-out elements it watches, kept in step with each render's list.
-  useLayoutEffect(() => {
-    for (const gone of watched.current) observer.current!.unobserve(gone);
-    watched.current = (keepOut ?? []).flatMap((item) => ("current" in item && item.current ? [item.current] : []));
-    for (const added of watched.current) observer.current!.observe(added);
-  });
+  }, [reflow, rewatch]);
 
   // A new size, shape or container size: it stays in its corner, at once.
   useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, reflow]);
-  // New keep-outs or a new inset: it follows its corner's new place with the spring.
+  // New keep-out rectangles or a new inset: it follows its corner's new place with the spring.
   const keepKey = JSON.stringify((keepOut ?? []).map((item) => ("current" in item ? null : item)));
   useLayoutEffect(() => reflow(false), [keepKey, inset, reflow]);
+  // The keep-out elements, after each render.
+  useLayoutEffect(rewatch);
   // A corner the app sets, or keeps after a throw: it goes there with the spring.
   useLayoutEffect(() => {
     if (!drag.current && corner !== target.current) go(corner);
@@ -407,15 +463,18 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     onPress: () => {
       // Caught in flight, it holds still under the pointer.
       halt();
-      if (!latest.current.reduced) element.current!.setAttribute("data-dragging", "");
+      dismissHint();
     },
     onPressEnd: () => {
-      element.current!.removeAttribute("data-dragging");
       // Only pressed: it goes on to its corner, if a press caught it on its way.
       go(target.current);
     },
     onStart: () => {
+      // A key pressed while the pointer held it set it moving: the pointer has it now.
+      halt();
       drag.current = at.current;
+      // It lifts once it moves, so a double-click doesn't pulse it.
+      if (!latest.current.reduced) element.current!.setAttribute("data-dragging", "");
     },
     onMove: ({ delta, crossDelta }) => {
       const pip = element.current!;
@@ -431,17 +490,10 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       drag.current = undefined;
       element.current!.removeAttribute("data-dragging");
       if (cancelled) return go(target.current);
-      // Where the throw would coast to, and the corner nearest that.
-      const { width, height } = stageRef.current!;
+      // Where the throw would coast to, and the corner whose place, clear of the keep-outs, is nearest that.
       const pip = element.current!;
-      const { inset: gap } = latest.current;
-      const left = gap;
-      const right = width - pip.offsetWidth - gap;
-      const top = gap;
-      const bottom = height - pip.offsetHeight - gap;
-      const horizontal = nearest([left, right], project(at.current.x, velocity, DECELERATION)) === left ? "left" : "right";
-      const vertical = nearest([top, bottom], project(at.current.y, crossVelocity, DECELERATION)) === top ? "top" : "bottom";
-      const next: SnapPiPCorner = `${vertical}-${horizontal}`;
+      const coast = { x: project(at.current.x, velocity, DECELERATION), y: project(at.current.y, crossVelocity, DECELERATION) };
+      const next = nearestCorner(coast, stageRef.current!, { width: pip.offsetWidth, height: pip.offsetHeight }, latest.current.inset, keepRects());
       moved.current = true;
       go(next, { velocity: { x: velocity, y: crossVelocity }, flick: Math.hypot(velocity, crossVelocity) >= FLICK_VELOCITY });
       choose(next);
@@ -455,18 +507,44 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   };
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    // Escape puts the hint away, and goes no further: it was for the hint.
+    if (event.key === "Escape" && hintOpen) {
+      event.stopPropagation();
+      return dismissHint();
+    }
     if (!event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === "Enter") {
       event.preventDefault();
+      dismissHint();
       return toggleSize();
     }
     if (!arrows.includes(event.key)) return;
     // Option-arrow is the browser's back and forward in some places: here it moves the picture.
     event.preventDefault();
+    // The pointer has it.
+    if (drag.current) return;
+    dismissHint();
     const next = cornerToward(target.current, event.key as ArrowKey);
+    // Already on that side: at rest, it says where it is, so the key isn't met with silence.
+    if (next === target.current) {
+      if (!springs.current) announce(cornerLabels[next]);
+      return;
+    }
     moved.current = true;
     go(next);
     choose(next);
+  };
+
+  const onFocus = (event: ReactFocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.matches(":focus-visible")) showHint("focus");
+  };
+  const onPointerEnter = (event: ReactPointerEvent<HTMLDivElement>) => {
+    // A finger can't hover it away again, so a touch never shows it.
+    if (event.pointerType !== "touch") hintTimer.current = setTimeout(() => showHint("pointer"), HINT_DELAY);
+  };
+  const onPointerLeave = () => {
+    clearTimeout(hintTimer.current);
+    hideHint("pointer");
   };
 
   const dragRef = dragProps.ref;
@@ -516,16 +594,32 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       onPointerMove={dragProps.onPointerMove}
       onPointerUp={dragProps.onPointerUp}
       onPointerCancel={dragProps.onPointerCancel}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       onDoubleClick={toggleSize}
       onDragStart={(event) => event.preventDefault()}
       onKeyDown={onKeyDown}
+      onFocus={onFocus}
+      onBlur={() => hideHint("focus")}
     >
-      {children}
+      <div data-ouro="snap-pip-frame" className={frameClass}>
+        {children}
+      </div>
       <span id={descriptionId} className="sr-only">
         {`${cornerLabels[corner]}. ${hint}`}
       </span>
-      <span aria-hidden="true" className={hintClass}>
-        {hint}
+      {/* The hint beside it, toward the middle of the stage. Pressing it leaves the picture be. */}
+      <span
+        aria-hidden="true"
+        data-ouro="snap-pip-hint"
+        data-side={bottom ? "top" : "bottom"}
+        data-open={hintOpen ? "" : undefined}
+        className={hintClass}
+        style={{ [right ? "right" : "left"]: 0 }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+      >
+        <span className={hintTextClass}>{hint}</span>
       </span>
     </div>
   );

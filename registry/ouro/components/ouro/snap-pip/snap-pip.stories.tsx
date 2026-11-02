@@ -79,12 +79,12 @@ type Story = StoryObj<typeof meta>;
 /** Try every prop. Drag it and throw it; focus it and press Option and an arrow key; double-click it. */
 export const Playground: Story = {};
 
-function InACall() {
+function InACall({ size }: { size?: "small" | "large" }) {
   const band = useRef<HTMLDivElement>(null);
   const name = useRef<HTMLParagraphElement>(null);
   return (
     <Stage band={band} name={name}>
-      <SnapPiP label="Your camera" keepOut={[band, name]}>
+      <SnapPiP label="Your camera" defaultSize={size} keepOut={[band, name]}>
         <SelfView />
       </SnapPiP>
     </Stage>
@@ -95,6 +95,11 @@ function InACall() {
 export const InCall: Story = {
   parameters: { screenshot: { name: "snap-pip-in-call" } },
   render: () => <InACall />,
+};
+
+/** The large size, after a double-click or Option-Return: it grows from its corner and still clears the band. */
+export const Large: Story = {
+  render: () => <InACall size="large" />,
 };
 
 function Remembered() {

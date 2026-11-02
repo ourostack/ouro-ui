@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
-import { anchorFor, cornerToward, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
+import { anchorFor, cornerToward, HINT_DELAY, nearestCorner, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
@@ -62,6 +62,29 @@ async function render(node: ReactNode) {
 }
 
 const pip = () => stage.querySelector<HTMLElement>('[data-ouro="snap-pip"]')!;
+const hint = () => pip().querySelector<HTMLElement>('[data-ouro="snap-pip-hint"]')!;
+const hintShown = () => hint().hasAttribute("data-open");
+/** The pointer comes onto the picture, or leaves it, as React hears it. */
+const enter = (pointerType: string) => act(async () => void pip().dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType })));
+const leave = (pointerType: string) => act(async () => void pip().dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType, relatedTarget: document.body })));
+const wait = (ms: number) => act(() => new Promise<void>((done) => setTimeout(done, ms)));
+/** Moves the real pointer off the stage, to the viewport's bottom-right corner. */
+async function park() {
+  const away = document.createElement("div");
+  Object.assign(away.style, { position: "fixed", right: "0", bottom: "0", width: "8px", height: "8px" });
+  document.body.append(away);
+  nodes.push(away);
+  await userEvent.hover(away);
+}
+/** Moves keyboard focus onto the picture with Tab, from a button before the stage. */
+async function tabTo() {
+  const before = document.createElement("button");
+  stage.before(before);
+  nodes.push(before);
+  before.focus();
+  await pressTab();
+  expect(document.activeElement).toBe(pip());
+}
 const self = (props: Partial<SnapPiPProps> = {}) => (
   <SnapPiP label="Your camera" {...props}>
     <div data-testid="video" style={{ width: "100%", height: "100%" }} />
@@ -126,7 +149,7 @@ function watchSettling(element = pip()) {
 }
 
 describe("SnapPiP", () => {
-  it("is a focusable group named by its label, described by its corner and hint, which shows on keyboard focus", async () => {
+  it("is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus", async () => {
     const element = await render(self({ id: "self-view" }));
     expect(element.getAttribute("role")).toBe("group");
     expect(element.id).toBe("self-view");
@@ -134,13 +157,125 @@ describe("SnapPiP", () => {
     expect(element.getAttribute("aria-label")).toBe("Your camera");
     const description = document.getElementById(element.getAttribute("aria-describedby")!)!;
     expect(description.textContent).toBe("Bottom right. Option-arrow keys to move it");
-    expect(element.querySelector('[data-testid="video"]')).not.toBeNull();
-    const shown = element.querySelector<HTMLElement>('[aria-hidden="true"]')!;
+    // The app's content sits in a frame that clips it to the picture's rounded corners.
+    const frame = element.querySelector<HTMLElement>('[data-ouro="snap-pip-frame"]')!;
+    expect(frame.querySelector('[data-testid="video"]')).not.toBeNull();
+    expect(getComputedStyle(frame).overflow).toBe("hidden");
+    expect(getComputedStyle(frame).borderRadius).toBe(getComputedStyle(element).borderRadius);
+    const shown = hint();
+    expect(shown.getAttribute("aria-hidden")).toBe("true");
     expect(shown.textContent).toBe("Option-arrow keys to move it");
     expect(getComputedStyle(shown).opacity).toBe("0");
+    expect(getComputedStyle(shown).pointerEvents).toBe("none");
+    // A click focuses it without showing the hint: that is for the keyboard, or a resting pointer.
+    await userEvent.click(element);
+    expect(document.activeElement).toBe(element);
+    expect(hintShown()).toBe(false);
+    await park();
+    element.blur();
     await pressTab();
     expect(document.activeElement).toBe(element);
+    expect(hintShown()).toBe(true);
     await expect.poll(() => getComputedStyle(shown).opacity).toBe("1");
+    expect(getComputedStyle(shown).pointerEvents).toBe("auto");
+    // Beside the picture, toward the middle: above it in a bottom corner, lined up with its right edge, on one line.
+    const picture = element.getBoundingClientRect();
+    const box = shown.getBoundingClientRect();
+    expect(box.bottom).toBe(picture.top);
+    expect(box.right).toBe(picture.right);
+    expect(shown.firstElementChild!.getBoundingClientRect().height).toBe(24);
+    expect(box.height).toBe(32);
+    // Below it in a top corner, lined up with its left edge.
+    await userEvent.keyboard("{Escape}");
+    await act(async () => root!.unmount());
+    root = undefined;
+    const top = await render(self({ defaultCorner: "top-left" }));
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    expect(hint().getBoundingClientRect().top).toBe(top.getBoundingClientRect().bottom);
+    expect(hint().getBoundingClientRect().left).toBe(top.getBoundingClientRect().left);
+    await act(async () => top.blur());
+    expect(hintShown()).toBe(false);
+  });
+
+  it("puts the hint away on Escape, a move or a press, until focus and the pointer have left", async () => {
+    const element = await render(self());
+    const outside = vi.fn();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && outside();
+    document.addEventListener("keydown", onKey);
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    // Escape is the hint's: it goes no further.
+    await userEvent.keyboard("{Escape}");
+    expect(hintShown()).toBe(false);
+    expect(outside).not.toHaveBeenCalled();
+    // With nothing showing, Escape is the page's.
+    await userEvent.keyboard("{Escape}");
+    expect(outside).toHaveBeenCalledTimes(1);
+    document.removeEventListener("keydown", onKey);
+    // Put away, it stays away while focus stays, even when the pointer comes to rest on it.
+    await enter("mouse");
+    await wait(HINT_DELAY + 50);
+    expect(hintShown()).toBe(false);
+    await leave("mouse");
+    // Focus that leaves and comes back shows it again; the first move puts it away.
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(hintShown()).toBe(false);
+    await rest();
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    // So does Option-Return.
+    await userEvent.keyboard("{Alt>}{Enter}{/Alt}");
+    expect(hintShown()).toBe(false);
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    // And a press.
+    const [x, y] = middle(element);
+    await fire("pointerdown", x, y);
+    expect(hintShown()).toBe(false);
+    await fire("pointerup", x, y);
+  });
+
+  it("shows the hint when the pointer rests on it, keeps it while the pointer moves onto it, and never on touch", async () => {
+    const element = await render(self());
+    await userEvent.hover(element);
+    expect(hintShown()).toBe(false);
+    await expect.poll(() => hintShown(), { timeout: HINT_DELAY + 1000 }).toBe(true);
+    // Onto the hint, across the gap: it stays.
+    await userEvent.hover(hint().firstElementChild!);
+    await wait(50);
+    expect(hintShown()).toBe(true);
+    // Pressing the hint leaves the picture be, and a double-click there doesn't resize it.
+    const press = new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1 });
+    await act(async () => void hint().dispatchEvent(press));
+    expect(hintShown()).toBe(true);
+    await act(async () => void hint().dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+    expect(element.getAttribute("data-size")).toBe("small");
+    // Away from both: it goes.
+    await park();
+    expect(hintShown()).toBe(false);
+    // A pointer that leaves before the delay never shows it, and nor does one that presses first.
+    await enter("mouse");
+    await leave("mouse");
+    await wait(HINT_DELAY + 50);
+    expect(hintShown()).toBe(false);
+    await enter("pen");
+    const [x, y] = middle(element);
+    await fire("pointerdown", x, y);
+    await fire("pointerup", x, y);
+    await wait(HINT_DELAY + 50);
+    expect(hintShown()).toBe(false);
+    await leave("pen");
+    // A finger never shows it.
+    await enter("touch");
+    await wait(HINT_DELAY + 50);
+    expect(hintShown()).toBe(false);
+    // A pen that rests on it does.
+    await enter("pen");
+    await wait(HINT_DELAY + 50);
+    expect(hintShown()).toBe(true);
   });
 
   it("reads translated corners and hint", async () => {
@@ -198,24 +333,74 @@ describe("SnapPiP", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("follows the pointer from the first pixel and lifts while held", async () => {
+  it("follows the pointer from the first pixel and lifts while dragged", async () => {
     const element = await render(self());
     const [x, y] = middle(element);
     await fire("pointerdown", x, y);
-    expect(element.hasAttribute("data-dragging")).toBe(true);
-    await expect.poll(() => getComputedStyle(element).scale).toBe("1.04");
+    // Only pressed, as a double-click is, it doesn't lift.
+    expect(element.hasAttribute("data-dragging")).toBe(false);
     // Half a pixel is not yet a drag; a whole one is.
     await fire("pointermove", x - 0.5, y);
     expect(at()).toEqual([RIGHT, BOTTOM]);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
     await fire("pointermove", x - 1, y);
     expect(at()).toEqual([RIGHT - 1, BOTTOM]);
+    expect(element.hasAttribute("data-dragging")).toBe(true);
+    await expect.poll(() => getComputedStyle(element).scale).toBe("1.04");
+    expect(getComputedStyle(element).cursor).toBe("grabbing");
     await fire("pointermove", x - 31, y - 52);
     expect(at()).toEqual([RIGHT - 31, BOTTOM - 52]);
     await fire("pointerup", x - 31, y - 52, 150);
     expect(element.hasAttribute("data-dragging")).toBe(false);
+    expect(getComputedStyle(element).cursor).toBe("auto");
     await rest();
     expect(at()).toEqual([RIGHT, BOTTOM]);
     await expect.poll(() => getComputedStyle(element).scale).toBe("none");
+  });
+
+  it("drops slowly into the corner whose place is nearest beside a side panel, and flicks across it", async () => {
+    // A side panel along the right: the right corners' places are at x 84, so the line between left and right is at 50, not 110.
+    const panel = { x: 260, y: 0, width: 120, height: 480 };
+    const onCornerChange = vi.fn();
+    await render(self({ keepOut: [panel], onCornerChange }));
+    expect(at()).toEqual([84, BOTTOM]);
+    freeze();
+    // Set down slowly at x 54: nearer the right-hand place than the left corner.
+    await throwBy(-30, 0, { steps: 3, ms: 40, release: 120 });
+    expect(onCornerChange).not.toHaveBeenCalled();
+    rest();
+    expect(at()).toEqual([84, BOTTOM]);
+    // At x 44, the left one.
+    await throwBy(-40, 0, { steps: 4, ms: 40, release: 120 });
+    expect(onCornerChange.mock.calls).toEqual([["bottom-left"]]);
+    rest();
+    expect(at()).toEqual([LEFT, BOTTOM]);
+    // A flick to the right lands beside the panel, with a little overshoot.
+    await throwBy(30, 0);
+    expect(onCornerChange).toHaveBeenLastCalledWith("bottom-right");
+    const seen = path();
+    expect(at()).toEqual([84, BOTTOM]);
+    expect(Math.max(...seen.map(([left]) => left))).toBeGreaterThan(84);
+  });
+
+  it("picks the corner whose place, clear of the keep-outs, is nearest", () => {
+    // A 1440 by 900 stage with a side panel 360 wide: the right-hand places are at x 840.
+    const wide = { width: 1440, height: 900 };
+    const pip = { width: 224, height: 140 };
+    const panel = { x: 1080, y: 0, width: 360, height: 900 };
+    expect(nearestCorner({ x: 550, y: 744 }, wide, pip, 16, [panel])).toBe("bottom-right");
+    expect(nearestCorner({ x: 420, y: 744 }, wide, pip, 16, [panel])).toBe("bottom-left");
+    expect(nearestCorner({ x: 550, y: 744 }, wide, pip, 16, [])).toBe("bottom-left");
+    // A band along the bottom of a 1280 by 420 stage: the bottom places are at y 199, so the line is at 107.5.
+    const call = { width: 1280, height: 420 };
+    const small = { width: 213, height: 133 };
+    const band = { x: 0, y: 348, width: 1280, height: 72 };
+    expect(nearestCorner({ x: 1051, y: 120 }, call, small, 16, [band])).toBe("bottom-right");
+    expect(nearestCorner({ x: 1051, y: 100 }, call, small, 16, [band])).toBe("top-right");
+    expect(nearestCorner({ x: 0, y: 0 }, call, small, 16, [band])).toBe("top-left");
+    // Far past a corner, still that corner; halfway between two, the first in reading order.
+    expect(nearestCorner({ x: 5000, y: 5000 }, call, small, 16, [band])).toBe("bottom-right");
+    expect(nearestCorner({ x: (16 + 1051) / 2, y: 16 }, call, small, 16, [])).toBe("top-left");
   });
 
   it("goes to the corner a flick points at, across the stage, with a little overshoot", async () => {
@@ -328,6 +513,8 @@ describe("SnapPiP", () => {
     expect(onCornerChange).toHaveBeenLastCalledWith("top-right");
     await rest();
     expect(at()).toEqual([RIGHT, TOP]);
+    // The real mouse leaves the stage, so it never comes to rest on a picture a later test moves under it.
+    await park();
   });
 
   it("catches it in flight, holds it under the pointer, and lets it go on when only pressed", async () => {
@@ -484,6 +671,79 @@ describe("SnapPiP", () => {
     await expect.poll(() => at()).toEqual([260 - 16 - 160, BOTTOM]);
   });
 
+  it("goes back to its corner when a keep-out element behind the same ref goes away, and clears it when it comes back", async () => {
+    // Captions the app turns on and off behind one ref, rendered with the picture.
+    const captions = { current: null as HTMLDivElement | null };
+    const band = { position: "absolute", left: 0, right: 0, bottom: 0, height: 80 } as const;
+    const call = (on: boolean) => (
+      <>
+        {on ? <div ref={captions} style={band} /> : null}
+        {self({ keepOut: [captions] })}
+      </>
+    );
+    await render(call(true));
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    await render(call(false));
+    expect(settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, BOTTOM]);
+    await render(call(true));
+    expect(settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    await act(async () => root!.unmount());
+    root = undefined;
+    // Captions another part of the app shows and hides, without rendering the picture again.
+    let show: (on: boolean) => void = () => {};
+    function Captions() {
+      const [on, set] = useState(false);
+      show = set;
+      return on ? <div ref={captions} style={band} /> : null;
+    }
+    const picture = self({ keepOut: [captions] });
+    await render(
+      <>
+        <Captions />
+        {picture}
+      </>,
+    );
+    expect(at()).toEqual([RIGHT, BOTTOM]);
+    await act(async () => show(true));
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    await act(async () => show(false));
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, BOTTOM]);
+  });
+
+  it("leaves it to the pointer once a drag begins, after an Option-arrow key mid-press", async () => {
+    const onCornerChange = vi.fn();
+    const element = await render(self({ onCornerChange }));
+    element.focus();
+    freeze();
+    const [x, y] = middle(element);
+    await fire("pointerdown", x, y);
+    // Pressed, not yet dragged: the key sets it off for the top.
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(settling()).toBe(true);
+    await fire("pointermove", x - 20, y);
+    // The pointer has it now: it stops, and holds still under it.
+    expect(settling()).toBe(false);
+    expect(at()).toEqual([RIGHT - 20, BOTTOM]);
+    frames!.step(16);
+    expect(at()).toEqual([RIGHT - 20, BOTTOM]);
+    // While dragged, a key does nothing.
+    await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+    expect(settling()).toBe(false);
+    frames!.step(16);
+    expect(at()).toEqual([RIGHT - 20, BOTTOM]);
+    expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
+    await fire("pointerup", x - 20, y, 150);
+    expect(onCornerChange).toHaveBeenLastCalledWith("bottom-right");
+  });
+
   it("follows a keep-out that changes in flight from where it is, and one that changes mid-drag on release", async () => {
     const band = { x: 0, y: 400, width: 380, height: 80 };
     await render(self({ keepOut: [band] }));
@@ -568,9 +828,18 @@ describe("SnapPiP", () => {
     ]);
   });
 
-  it("stays in its corner without a spring while the container resizes", async () => {
+  it("stays in its corner without a spring while the container resizes, in the same frame", async () => {
     const element = await render(self());
     const watch = watchSettling(element);
+    // An observer made after the picture's own runs after it, before the frame is painted: the picture is in its corner already.
+    const seen: [number, number][] = [];
+    const after = new ResizeObserver(() => seen.push(at()));
+    after.observe(stage);
+    await expect.poll(() => seen.length).toBe(1);
+    stage.style.width = "340px";
+    await expect.poll(() => seen.length).toBe(2);
+    expect(seen[1]).toEqual([340 - 160 - 16, BOTTOM]);
+    after.disconnect();
     stage.style.width = "300px";
     await expect.poll(() => at()).toEqual([300 - 160 - 16, BOTTOM]);
     stage.style.height = "300px";
@@ -596,11 +865,13 @@ describe("SnapPiP", () => {
     await rest();
     expect(at()).toEqual([RIGHT, TOP]);
     await expect.poll(() => announced.count("Top right")).toBe(1);
-    // Already at the top: nothing moves, and the key does nothing else.
+    // Already at the top: nothing moves, and it says where it is again.
     const up = new KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true, cancelable: true });
     await act(async () => void element.dispatchEvent(up));
     expect(up.defaultPrevented).toBe(true);
     expect(settling()).toBe(false);
+    expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
+    await expect.poll(() => announced.count("Top right")).toBe(2);
     // Without Option, or with another modifier too, an arrow is left to the page.
     for (const init of [{}, { altKey: true, ctrlKey: true }, { altKey: true, metaKey: true }, { altKey: true, key: "a" }]) {
       const key = new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true, ...init });
@@ -622,7 +893,7 @@ describe("SnapPiP", () => {
     expect(at()).toEqual([RIGHT, BOTTOM]);
     expect(onCornerChange.mock.calls.flat()).toEqual(["top-right", "top-left", "bottom-left", "bottom-right"]);
     await expect.poll(() => announced.count("Bottom right")).toBe(1);
-    expect(announced.changes.map((change) => change.text)).toEqual(["Top right", "Top left", "Bottom left", "Bottom right"]);
+    expect(announced.changes.map((change) => change.text)).toEqual(["Top right", "Top right", "Top left", "Bottom left", "Bottom right"]);
     announced.stop();
   });
 
@@ -633,6 +904,8 @@ describe("SnapPiP", () => {
     freeze();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
     frames!.step(16);
+    // Toward the side it is on its way to: it says nothing mid-move.
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
     frames!.step(16);
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     rest();
@@ -741,11 +1014,11 @@ describe("SnapPiP", () => {
     await expect.poll(() => announced.count("Bottom left")).toBe(1);
     const [x, y] = middle(element);
     await fire("pointerdown", x, y);
-    expect(element.hasAttribute("data-dragging")).toBe(false);
-    expect(getComputedStyle(element).scale).toBe("none");
-    // Held against the edges, not past them.
+    // Held against the edges, not past them, and never lifted.
     await fire("pointermove", x - 100, y + 100);
     expect(at()).toEqual([0, 380]);
+    expect(element.hasAttribute("data-dragging")).toBe(false);
+    expect(getComputedStyle(element).scale).toBe("none");
     await fire("pointermove", x + 400, y - 500);
     expect(at()).toEqual([220, 0]);
     await fire("pointerup", x + 400, y - 500, 0);
