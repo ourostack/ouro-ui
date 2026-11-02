@@ -15,6 +15,7 @@ import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-group";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
+import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { TabBar } from "@/registry/ouro/components/ouro/tab-bar/tab-bar";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
@@ -759,6 +760,25 @@ describe("Inspector", () => {
     expect(getComputedStyle(layer()!.querySelector('section')!).visibility).toBe("hidden");
     await userEvent.click(page.getByRole("button", { name: "Copy link" }));
     expect(onCopy).toHaveBeenCalledOnce();
+  }, 15_000);
+
+  it("outlines a non-modal sheet and the page beside it, whose components stay within reach", async () => {
+    await page.viewport(1280, 800);
+    await render(
+      <Page>
+        <Sheet title="Look" side="right" modal={false} open onOpenChange={() => {}}>
+          <Badge>Ocean</Badge>
+        </Sheet>
+      </Page>,
+    );
+    await expect.poll(() => document.getAnimations().filter((animation) => animation.playState === "running").length).toBe(0);
+    const sheet = document.querySelector<HTMLElement>('[data-ouro="sheet"]')!;
+    await expect.poll(() => outlines().some((outline) => onTarget(outline, sheet))).toBe(true);
+    expect(tags().map((tag) => tag.textContent)).toEqual(expect.arrayContaining(["button", "badge", "checkbox", "sheet"]));
+    expect(layer()!.hasAttribute("data-modal")).toBe(false);
+    const save = page.getByRole("button", { name: "Save recipe" }).element() as HTMLElement;
+    const box = save.getBoundingClientRect();
+    expect(save.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))).toBe(true);
   }, 15_000);
 
   it("hides the tag of a component an open menu covers, and leaves the menu's items within reach", async () => {

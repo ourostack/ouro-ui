@@ -45,6 +45,7 @@ The props the modes share. Type: `SheetProps`.
 | `description` | `ReactNode` |  | A short line under the title, read out when the sheet opens. |
 | `footer` | `ReactNode` |  | The actions row, stacked full width on phones; primary action last. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |
+| `modal` | `boolean` | `true` | Whether the sheet shuts off the rest of the page while it is open. `false` makes it a panel beside a page the person keeps using, such as a live preview of a look: no backdrop, no focus trap and no scroll lock, the page stays at full strength and in reach, and a press or focus on the page leaves the sheet open. Escape, with focus in the sheet, and its close button, shown at its top corner, close it. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The edge the sheet slides in from and is dragged back to. |
 | `snapPoints` | `SheetSnapPoint[]` |  | Heights a bottom or top sheet rests at, smallest first: fractions of the viewport (`0.5`), `px` or `rem`. `snapPoints={[0.5, 1]}` opens at half height and drags up to full. Without snap points the sheet fits its content. |
 | `title` (required) | `string` |  | Names the sheet for screen readers and shows at its top. Always required; hide it with `hideTitle`. |

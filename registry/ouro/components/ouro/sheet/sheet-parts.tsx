@@ -31,6 +31,8 @@ export type SheetSnapPoint = number | `${number}px` | `${number}rem`;
 interface SheetContextValue {
   side: SheetSide;
   snap: boolean;
+  /** Whether the sheet shuts off the page; a non-modal one lets presses through around it. */
+  modal: boolean;
 }
 
 const SheetContext = createContext<SheetContextValue | null>(null);
@@ -170,7 +172,13 @@ function useSheetPart(part: string, inner: string): SheetContextValue {
   return context;
 }
 
-/** Props for {@link SheetRoot}: Base UI `Drawer.Root` props with `side` in place of `swipeDirection`. */
+/**
+ * Props for {@link SheetRoot}: Base UI `Drawer.Root` props with `side` in place of `swipeDirection`.
+ * `modal={false}` leaves the page in use beside the sheet: no focus trap and no scroll lock, presses
+ * reach the page around the sheet, and a press or focus outside leaves it open (unless you pass
+ * `disablePointerDismissal={false}`). Leave out `SheetBackdrop` with it.
+ * @claim "leaves the page in use" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > built from parts, stays open on a press on the page, unless the app passes disablePointerDismissal={false})
+ */
 export type SheetRootProps = Omit<Drawer.Root.Props, "swipeDirection" | "snapPoints"> & {
   /** The edge the sheet slides in from. @default "bottom" */
   side?: SheetSide | (string & { 'Use "bottom", "top", "left" or "right"': never }) | undefined;
@@ -198,6 +206,7 @@ export type SheetRootProps = Omit<Drawer.Root.Props, "swipeDirection" | "snapPoi
  * </SheetRoot>
  */
 export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: SheetRootProps): JSX.Element {
+  const modal = props.modal !== false;
   // A side that is not one of Ouro UI's (a type error) warns and renders a bottom sheet.
   const side = sheetSides.includes(sideProp as SheetSide) ? (sideProp as SheetSide) : "bottom";
   useDevWarnings(
@@ -208,8 +217,13 @@ export function SheetRoot({ side: sideProp = "bottom", snapPoints, ...props }: S
   );
   const snap = Boolean(snapPoints && snapPoints.length > 0);
   return (
-    <SheetContext.Provider value={{ side, snap }}>
-      <Drawer.Root {...props} {...(snapPoints ? { snapPoints } : {})} swipeDirection={swipeDirections[side]} />
+    <SheetContext.Provider value={{ side, snap, modal }}>
+      <Drawer.Root
+        {...props}
+        disablePointerDismissal={props.disablePointerDismissal ?? !modal}
+        {...(snapPoints ? { snapPoints } : {})}
+        swipeDirection={swipeDirections[side]}
+      />
     </SheetContext.Provider>
   );
 }
@@ -325,7 +339,7 @@ export function SheetViewport({
   ref,
   ...props
 }: Omit<Drawer.Viewport.Props, "className"> & { ref?: Ref<HTMLDivElement> | undefined }): JSX.Element {
-  const { side } = useSheetPart("SheetViewport", "…");
+  const { side, modal } = useSheetPart("SheetViewport", "…");
   const viewportRef = useMergedRef(ref, useGrabOffset(side));
   return (
     <Drawer.Viewport
@@ -336,7 +350,8 @@ export function SheetViewport({
       // `overflow-clip`, not `overflow-hidden`: a hidden box is still a scroll container, so
       // scrolling a control into view while the sheet enters would scroll the viewport and
       // leave the sheet floating above its edge.
-      className={cn("fixed inset-0 z-1000 flex overflow-clip touch-none", viewportClasses[side])}
+      // A non-modal sheet's viewport lets presses through to the page around the sheet.
+      className={cn("fixed inset-0 z-1000 flex overflow-clip touch-none", !modal && "pointer-events-none", viewportClasses[side])}
     />
   );
 }
@@ -362,7 +377,7 @@ export function SheetPopup(props: SheetPopupProps): JSX.Element {
  * @internal
  */
 export function SheetPopupUnchecked({ className, ...props }: SheetPopupProps): JSX.Element {
-  const { side, snap } = useSheetPart("SheetPopup", "…");
+  const { side, snap, modal } = useSheetPart("SheetPopup", "…");
   return (
     <Drawer.Popup
       {...props}
@@ -371,11 +386,13 @@ export function SheetPopupUnchecked({ className, ...props }: SheetPopupProps): J
         popupSides[side],
         side === "bottom" && bottomPadding[snap ? "snap" : "fit"],
         side === "top" && snap && "h-[calc(100dvh-var(--ouro-sheet-gap))]",
+        !modal && "pointer-events-auto",
         className,
       )}
       data-ouro="sheet"
       data-side={side}
       data-snap-points={snap ? "" : undefined}
+      data-modal={modal ? undefined : "false"}
     />
   );
 }
