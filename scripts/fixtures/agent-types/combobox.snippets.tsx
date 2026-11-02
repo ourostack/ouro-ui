@@ -8,3 +8,4 @@ export const combobox04 = <Combobox label="Recipe" items={[]} onSearch={() => {}
 export const combobox05 = <Combobox label="Herb" items={["Basil"]} isLoading />;
 export const comboboxOk01 = <Combobox label="Herbs" name="herbs" multiple items={["Basil", "Dill"]} defaultValue={["Basil"]} required placeholder="Add a herb" />;
 export const comboboxOk02 = <Combobox label="Recipe" items={[]} loading onInputChange={() => {}} emptyLabel="No recipes" />;
+export const comboboxOk03 = <Combobox label="To" multiple autoHighlight readOnly={false} items={[{ value: "rowan", label: "Rowan Vale", description: "Designer", media: null, meta: null }]} inputValue="" onInputChange={() => {}} onInputKeyDown={() => {}} />;

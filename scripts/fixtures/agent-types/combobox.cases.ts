@@ -10,4 +10,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid combobox snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["comboboxOk01", "comboboxOk02"];
+export const validSnippets: string[] = ["comboboxOk01", "comboboxOk02", "comboboxOk03"];
