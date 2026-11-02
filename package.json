@@ -24,6 +24,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node scripts/generate.mjs",
     "docs": "node scripts/gen-docs.mts",
     "test": "vitest run --coverage",
     "test:visual": "CI_VISUAL=1 vitest run --project visual",
