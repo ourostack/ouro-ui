@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { cancelNote, DEADLINE_MS, decide, FAILED, LAST, POLL_MS, rateLimited, requestsLeft, RESERVE, SELF, TOLERATED, watch } from "./ci-fail-fast.mjs";
+import { cancelNote, DEADLINE_MS, decide, FAILED, LAST, POLL_MS, rateLimited, requestsLeft, RERUN_ALONE, RESERVE, SELF, TOLERATED, watch } from "./ci-fail-fast.mjs";
 
 // Fail fast for a pull request's CI (scripts/ci-fail-fast.mjs): when it cancels the run, that it
 // waits for the failed job to finish, that it never fails the run itself, and that ci.yml runs it
@@ -26,6 +26,15 @@ test("a job that failed and finished cancels the run; a job still running its fa
   for (const conclusion of ["timed_out", "cancelled"]) assert.equal(decide([job("visual", "completed", conclusion), job("e2e (1/4)")], 1).kind, "cancel", conclusion);
   for (const conclusion of ["success", "skipped", "neutral"]) assert.equal(decide([job("install-github", "completed", conclusion), job("e2e (1/4)")], 1).kind, "wait", conclusion);
   assert.deepEqual(FAILED, ["failure", "timed_out", "cancelled"]);
+});
+
+test("a failed latency job cancels nothing: a slow runner can fail it, and a re-run of it alone is cheaper", () => {
+  assert.deepEqual(RERUN_ALONE, ["latency"]);
+  assert.deepEqual(decide([job("latency", "completed", "failure"), job("e2e (1/4)"), job(SELF)], 1), { kind: "wait" });
+  // Any other failure still cancels the run, and names only what it counted.
+  assert.deepEqual(decide([job("latency", "completed", "failure"), job("browser (2/6)", "completed", "failure"), job(SELF)], 1), { kind: "cancel", failed: ["browser (2/6)"] });
+  // The job is still a real job of the workflow, so the name cannot drift away from it.
+  assert.ok(Object.keys(jobs).includes("latency"));
 });
 
 test("it never counts itself, a failed plan (everything then runs), or what an earlier attempt failed or had cancelled", () => {

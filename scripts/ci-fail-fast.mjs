@@ -11,7 +11,9 @@
 // request stays blocked until a push or a re-run passes.
 //
 // Only this attempt's jobs count, so a re-run is not cancelled by the jobs its earlier attempt
-// failed or had cancelled. Nor do the jobs whose failure the run tolerates (TOLERATED). It stops
+// failed or had cancelled. Nor do the jobs whose failure the run tolerates (TOLERATED), or latency's
+// (RERUN_ALONE): its gate reads runner speed, so a slow runner can fail it with the change sound, and a
+// re-run of it alone is cheaper than a run cancelled for it. It stops
 // once LAST, which waits on every other job, has finished: the API lists a job only once its needs
 // have finished, so "every listed job finished" alone could end the watch between two of them. It
 // never fails the run: a failed call is a warning and the next poll tries again, and it gives up at
@@ -35,6 +37,8 @@ export const SELF = "fail-fast";
 export const LAST = "ci-budget";
 /** Jobs whose failure the run tolerates: when the plan fails, every job that reads it runs everything. */
 export const TOLERATED = ["plan"];
+/** Jobs that a slow runner can fail with the change sound: their failure is left to a re-run of that job, not a cancelled run. */
+export const RERUN_ALONE = ["latency"];
 /** A finished job with one of these conclusions means the run cannot pass. */
 export const FAILED = ["failure", "timed_out", "cancelled"];
 /** How often it reads the jobs: once a minute, 60 requests an hour per pull request run. */
@@ -53,7 +57,7 @@ export const DEADLINE_MS = 55 * 60_000;
 export function decide(jobs, attempt) {
   const current = jobs.filter((job) => job.name !== SELF && (job.run_attempt === undefined || Number(job.run_attempt) === Number(attempt)));
   if (current.some((job) => job.name === LAST && job.status === "completed")) return { kind: "done" };
-  const failed = current.filter((job) => !TOLERATED.includes(job.name) && job.status === "completed" && FAILED.includes(job.conclusion ?? ""));
+  const failed = current.filter((job) => !TOLERATED.includes(job.name) && !RERUN_ALONE.includes(job.name) && job.status === "completed" && FAILED.includes(job.conclusion ?? ""));
   if (failed.length > 0) return { kind: "cancel", failed: failed.map((job) => job.name).sort() };
   return { kind: "wait" };
 }
