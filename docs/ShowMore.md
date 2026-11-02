@@ -15,6 +15,7 @@ import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more"
 <ShowMore lines={3}>{recipe.description}</ShowMore>
 <ShowMore maxHeight={180}><Post body={post.body} /></ShowMore>
 <ShowMore items={rows} hasMore={Boolean(nextCursor)} loading={loading} onShowMore={loadNext} href={nextHref} />
+<ShowMore lines={3} open={open} onOpenChange={setOpen}>{recipe.description}</ShowMore>
 ```
 
 ## Use instead when
@@ -44,6 +45,8 @@ Long content of any kind folded to `maxHeight` pixels under a fade, with "Show m
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The content: rich text, pictures, cards. Screen readers always read all of it, and moving keyboard focus into the folded part unfolds it, so nothing focusable is out of sight. |
 | `maxHeight` (required) | `number` |  | How tall the content shows while folded, in CSS pixels, with its last part fading out. Content at most a fifth taller shows whole, since a button that reveals a line or two helps nobody. The button appears only when the content is folded. |
+| `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
+| `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
 | `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
 
 Not in this mode (typed `never`):
@@ -68,6 +71,8 @@ A list cut to its first `initialCount` items, with "Show more" and "Show less".
 | --- | --- | --- | --- |
 | `initialCount` | `number` | `5` | How many items show while collapsed. |
 | `items` (required) | `readonly ReactNode[]` |  | Every item, in order. Each renders in its own list item; give elements a `key`. With `onShowMore`, append each new page here. |
+| `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
+| `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
 | `ordered` | `boolean` | `false` (`<ul>`) | Renders an `<ol>`, for a ranked or numbered list. |
 | `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
 
@@ -92,6 +97,8 @@ Long text clamped to `lines` lines, with "Show more" and "Show less".
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The text. Screen readers always read all of it. |
 | `lines` (required) | `number` |  | How many lines show while collapsed. The button appears only when the text is longer. |
+| `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
+| `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
 | `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
 
 Not in this mode (typed `never`):
@@ -130,6 +137,8 @@ Not in this mode (typed `never`):
 - `initialCount`: Only with `items` and no `onShowMore`.
 - `lines`: Text mode only: not with `items`.
 - `maxHeight`: Height mode only: not with `items`.
+- `onOpenChange`: Not for a list that loads more, which only grows.
+- `open`: Not for a list that loads more, which only grows.
 - `showLessLabel`: A list that loads more never shrinks, so it has no "Show less".
 
 ## Don't use

@@ -4,11 +4,14 @@ export {
   catalogueIndex,
   emojiClass,
   emojiPictureClass,
+  emojiPictureFadeClass,
   emojiPictureReadyClass,
   emojiPlaceholderClass,
+  emojiPlaceholderFadeClass,
   emojiPlaceholderGoneClass,
   emojiSkinTones,
   emojiToken,
+  emojiTextToTokens,
   fold,
   matchWords,
   searchCatalogue,
@@ -43,15 +46,20 @@ const emojiClass = "inline-block size-[1.25em] shrink-0 align-[-0.3em] object-co
 /** An emoji's picture over its placeholder: the box of the emoji around it, hidden until it is ready. @internal */
 const emojiPictureClass = "absolute inset-0 size-full object-contain";
 
-/** The picture once it is ready: shown, fading in over the short duration, at once with reduced motion. @internal */
-const emojiPictureReadyClass = "opacity-100 transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out) motion-reduce:transition-none";
+/** The picture once it is ready: shown. @internal */
+const emojiPictureReadyClass = "opacity-100";
+
+/** The picture's fade in over the short duration, left off when motion is reduced (`useReducedMotion`). @internal */
+const emojiPictureFadeClass = "transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)";
 
 /** What stands in for the picture: the emoji's box, with an element centred and clipped to it. @internal */
 const emojiPlaceholderClass = "pointer-events-none absolute inset-0 grid size-full place-items-center overflow-hidden";
 
-/** The placeholder once the picture is ready: fading out with it, then hidden. @internal */
-const emojiPlaceholderGoneClass =
-  "invisible opacity-0 transition-[opacity,visibility] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) motion-reduce:transition-none";
+/** The placeholder once the picture is ready: hidden. @internal */
+const emojiPlaceholderGoneClass = "invisible opacity-0";
+
+/** The placeholder's fade out with the picture's fade in, left off when motion is reduced. @internal */
+const emojiPlaceholderFadeClass = "transition-[opacity,visibility] duration-(--ouro-duration-fast) ease-(--ouro-ease-out)";
 
 /** The emoji's form in a skin tone: its toned image, or the emoji itself in the default tone or without tones. @internal */
 function toneOf(item: EmojiItem, tone: EmojiSkinTone | undefined): EmojiItem | EmojiItemTone {
@@ -199,4 +207,27 @@ function searchCatalogue(catalogue: EmojiCatalogue, query: string, limit: number
   const byShortcode = items.filter((item) => item.shortcodes?.some((shortcode) => fold(shortcode).startsWith(typed)));
   const rest = items.filter((item) => !byShortcode.includes(item) && matchWords([item.name, ...(item.shortcodes ?? []), ...(item.keywords ?? [])], query));
   return [...byShortcode, ...rest].slice(0, limit);
+}
+
+/** Splits text into the characters a person sees, an emoji with its tone modifier or its joined parts whole. */
+// Stryker disable next-line ObjectLiteral: grapheme is Intl.Segmenter's default granularity, named here for the reader.
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/**
+ * The text with the emoji the catalogue lists as text turned into their tokens: `:shortcode:`,
+ * or a tone's `:id:`. It reads the text a whole character at a time, so an emoji joined from
+ * others (a zero width joiner sequence) or one with a skin tone modifier changes only when the
+ * catalogue lists it whole. Any other character, and an emoji the catalogue does not list,
+ * stays as it is. @internal
+ *
+ * @claim "changes only when the catalogue lists it whole" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > turns each emoji the catalogue lists as text into its token, a whole character at a time)
+ */
+function emojiTextToTokens(text: string, catalogue: EmojiCatalogue): string {
+  const { byText } = catalogueIndex(catalogue);
+  let tokens = "";
+  for (const { segment } of graphemes.segment(text)) {
+    const found = byText.get(segment.replace(VARIATION, ""));
+    tokens += found ? emojiToken(found.item, found.tone) : segment;
+  }
+  return tokens;
 }

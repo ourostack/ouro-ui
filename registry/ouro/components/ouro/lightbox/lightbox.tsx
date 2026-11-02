@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SVGProps } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type JSX, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SVGProps } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { fillTemplate } from "@/registry/ouro/components/ouro/carousel/carousel-styles";
@@ -28,6 +30,7 @@ import {
   fullScreenClass,
   mosaicCellClass,
   mosaicClass,
+  mosaicFrameClass,
   mosaicLayout,
   mosaicMoreClass,
   mosaicThumbnailClass,
@@ -138,8 +141,12 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
    * How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame,
    * as a chat shows the pictures in a message: one picture at its own shape (`width` and
    * `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid
-   * with "+N" on the last; the viewer still steps through them all. @default "grid"
+   * with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat
+   * shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a
+   * picture never crowds the words around it; `className` gives it another width
+   * (`max-w-none`). @default "grid"
    *
+   * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
    * @claim "as many 4:3 thumbnails in a row" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > lays the thumbnails out in as many columns of at least 8rem as fit)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
@@ -249,7 +256,7 @@ interface ViewerProps {
  * showing that position at once (`choose`). A key with a modifier, or one typed into a field in a
  * caption, is left alone.
  */
-function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number) => void): void {
+function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number) => void, reduced: boolean): void {
   const { key } = event;
   if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -261,7 +268,7 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number)
     // announces where it settles. Right to left, the end is the most negative scrollLeft.
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
     const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
-    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    const behavior = reduced ? "instant" : "smooth";
     // Stryker disable next-line ArithmeticOperator: the position stops at the last image, so one past it shows the same.
     choose(key === "Home" ? 0 : viewport.children.length - 1);
     viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
@@ -684,8 +691,8 @@ function LightboxViewer({
  *
  * For a chat message's pictures, pass `layout="mosaic"`: one frame that shows one picture at its
  * own shape, two side by side, three as one large and two small, and four or more as a 2 by 2
- * grid with "+N" on the last. Pass `fullScreen` for a viewer that covers the whole screen with no
- * frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced
+ * grid with "+N" on the last, at most 25rem wide and 17.5rem tall. Pass `fullScreen` for a viewer
+ * that covers the whole screen with no frame. An animated image's `still` frame shows in its thumbnail when the user asks for reduced
  * motion.
  *
  * To open the viewer from thumbnails you lay out yourself (a before-and-after pair, a mark on a
@@ -731,11 +738,14 @@ function LightboxViewer({
  * @claim "one frame that shows one picture" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
  * @claim "two side by side, three as" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
  * @claim "four or more as a 2 by" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > shows four of more pictures, the last saying how many more follow, to sight and to screen readers)
+ * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
  * @claim "Pass `fullScreen` for a viewer" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
  * @claim "An animated image's `still` frame shows" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox still frames > shows an animated image's still frame in its thumbnail when the user asks for reduced motion)
  * @claim "The viewer grows from the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
  */
 export function Lightbox(props: LightboxProps): JSX.Element {
+  const { motion } = useOuro();
+  const reduced = useReducedMotion();
   const {
     label,
     images,
@@ -865,7 +875,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             // viewer opened. A pressed thumbnail need not have had focus (Safari does not focus a
             // pressed button). A mosaic shows four: an image past them returns to the last, "+N".
             finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[mosaic ? Math.min(shown.current, 3) : shown.current]}
-            onKeyDown={(event) => stepWithKeys(event, choose.current!)}
+            onKeyDown={(event) => stepWithKeys(event, choose.current!, reduced)}
           >
             <LightboxViewer
               label={label}
@@ -906,9 +916,9 @@ export function Lightbox(props: LightboxProps): JSX.Element {
         setOwnOpen(true);
       }}
     >
-      {/* With reduced motion an animated image's thumbnail shows its still frame, chosen by the browser. */}
+      {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
       <picture className="contents">
-        {image.still !== undefined && <source media="(prefers-reduced-motion: reduce)" srcSet={image.still} />}
+        {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
         <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
       </picture>
       {more > 0 && (
@@ -926,7 +936,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     const more = images.length - tiles.length;
     const shape = mosaicLayout(tiles.length, images[0]?.width, images[0]?.height);
     return (
-      <div data-ouro="lightbox" data-layout="mosaic" className={cn("min-w-0", className)}>
+      <div data-ouro="lightbox" data-layout="mosaic" className={cn(mosaicFrameClass, className)} style={{ "--ouro-lightbox-ratio": shape.ratio } as CSSProperties}>
         <ul role="list" aria-label={label} className={cn(mosaicClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
           {tiles.map((image, position) => (
             <li key={position} className={mosaicCellClass}>

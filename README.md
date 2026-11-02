@@ -384,6 +384,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-floating`,
 `lib-focus-handoff`,
 `lib-form-answer`,
+`lib-insert-text`,
 `lib-key-shortcuts`,
 `lib-last-input`,
 `lib-navigation-key`,
@@ -410,6 +411,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-media-query`,
 `lib-use-mounted-open`,
 `lib-use-ouro`,
+`lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`.
 No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
@@ -582,7 +584,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Sidebar** — The column of links down the side of an app, in sections, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. [Docs](docs/Sidebar.md)
 - **SidebarLayout** — The shell of an app with a `Sidebar`: the sidebar beside the page from 640px up, in view while the page scrolls, and a sticky top bar with the sidebar's menu button below 640px. [Docs](docs/SidebarLayout.md)
 - **SkipLink** — The "Skip to main content" link a keyboard or screen-reader user meets first on every page, so one Tab and Enter jump past the header and navigation. [Docs](docs/SkipLink.md)
-- **StackedLayout** — The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. [Docs](docs/StackedLayout.md)
+- **StackedLayout** — The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column. [Docs](docs/StackedLayout.md)
 - **TabBar** — The bar of tabs at the bottom of a phone screen: two to five of the app's top-level pages, each an icon over a short label, with the current page marked `aria-current="page"` and an accent wash. [Docs](docs/TabBar.md)
 - **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
 

@@ -21,6 +21,13 @@ expectTypeOf<{ items: Items; initialCount: 3; onShowMore: () => void; hasMore: t
 expectTypeOf<{ items: Items; onShowMore: () => void }>().not.toExtend<ShowMoreProps>();
 expectTypeOf<{ items: Items; hasMore: true; onShowMore: () => void; showLessLabel: "Less" }>().not.toExtend<ShowMoreProps>();
 
+// An app can set whether it shows everything, except in a list that loads more, which never folds again.
+expectTypeOf<{ lines: 3; children: "Long text"; open: true; onOpenChange: (open: boolean) => void }>().toExtend<ShowMoreProps>();
+expectTypeOf<{ maxHeight: 180; children: "Long post"; open: false; onOpenChange: (open: boolean) => void }>().toExtend<ShowMoreProps>();
+expectTypeOf<{ items: Items; open: boolean; onOpenChange: (open: boolean) => void }>().toExtend<ShowMoreProps>();
+expectTypeOf<{ items: Items; hasMore: true; onShowMore: () => void; open: true }>().not.toExtend<ShowMoreProps>();
+expectTypeOf<{ items: Items; hasMore: true; onShowMore: () => void; onOpenChange: (open: boolean) => void }>().not.toExtend<ShowMoreProps>();
+
 // The guessed props name the fix.
 expectTypeOf<{ lines: 3; children: "Long text"; maxLines: 3 }>().not.toExtend<ShowMoreProps>();
 expectTypeOf<{ items: Items; limit: 3 }>().not.toExtend<ShowMoreProps>();

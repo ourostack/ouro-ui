@@ -213,6 +213,7 @@
         "ourostack/ouro-ui/lib-floating",
         "ourostack/ouro-ui/lib-focus-handoff",
         "ourostack/ouro-ui/lib-form-answer",
+        "ourostack/ouro-ui/lib-insert-text",
         "ourostack/ouro-ui/lib-key-shortcuts",
         "ourostack/ouro-ui/lib-last-input",
         "ourostack/ouro-ui/lib-navigation-key",
@@ -239,6 +240,7 @@
         "ourostack/ouro-ui/lib-use-media-query",
         "ourostack/ouro-ui/lib-use-mounted-open",
         "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/lib-use-sheet-presentation",
         "ourostack/ouro-ui/lib-use-timer"
       ]
@@ -647,6 +649,19 @@
       ]
     },
     {
+      "name": "lib-insert-text",
+      "type": "registry:lib",
+      "title": "lib-insert-text",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/insert-text.ts.",
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/insert-text.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/insert-text.ts"
+        }
+      ]
+    },
+    {
       "name": "lib-key-shortcuts",
       "type": "registry:lib",
       "title": "lib-key-shortcuts",
@@ -711,6 +726,8 @@
         "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-ouro"
       ],
       "files": [
@@ -1020,6 +1037,23 @@
       ]
     },
     {
+      "name": "lib-use-reduced-motion",
+      "type": "registry:lib",
+      "title": "lib-use-reduced-motion",
+      "description": "Installed with the components that import it; you don't need to add it. The helper lib/ouro/use-reduced-motion.ts.",
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/lib-use-ouro"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-reduced-motion.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-reduced-motion.ts"
+        }
+      ]
+    },
+    {
       "name": "lib-use-sheet-presentation",
       "type": "registry:lib",
       "title": "lib-use-sheet-presentation",
@@ -1064,6 +1098,7 @@
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-page-scroll-hold",
+        "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-router-link",
         "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-touch-target",
@@ -1145,6 +1180,7 @@
         "ourostack/ouro-ui/lib-page-scroll-hold",
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-refs",
+        "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-backdrop-anchor",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable"
@@ -1724,7 +1760,8 @@
         "ourostack/ouro-ui/lib-toast",
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-drag"
+        "ourostack/ouro-ui/lib-use-drag",
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -2506,8 +2543,8 @@
       "name": "stacked-layout",
       "type": "registry:ui",
       "title": "StackedLayout",
-      "description": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column.",
-      "docs": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. Import: import { StackedLayout } from \"@/components/ouro/sidebar/stacked-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/stacked-layout.md",
+      "description": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column.",
+      "docs": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column. Import: import { StackedLayout } from \"@/components/ouro/sidebar/stacked-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/stacked-layout.md",
       "registryDependencies": [
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
@@ -2847,6 +2884,7 @@
         "ourostack/ouro-ui/lib-tones",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/menu"
       ],
       "files": [
@@ -2877,6 +2915,7 @@
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/lib-use-drag",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/menu"
       ],
       "files": [
@@ -2961,7 +3000,8 @@
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
-        "ourostack/ouro-ui/lib-use-dev-messages"
+        "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -3077,7 +3117,8 @@
         "ourostack/ouro-ui/lib-spring",
         "ourostack/ouro-ui/lib-touch-target",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-keyboard-scrollable"
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable",
+        "ourostack/ouro-ui/lib-use-ouro"
       ],
       "files": [
         {
@@ -3179,6 +3220,7 @@
         "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-use-dev-messages",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/sheet"
       ],
       "files": [
@@ -3696,7 +3738,9 @@
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-page-scroll-hold",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-mounted-open"
+        "ourostack/ouro-ui/lib-use-mounted-open",
+        "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -3716,13 +3760,15 @@
       "type": "registry:ui",
       "title": "Composer",
       "description": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline.",
-      "docs": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Import: import { Composer } from \"@/components/ouro/composer/composer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, field, text-area, text-field, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/composer.md",
+      "docs": "A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Import: import { Composer } from \"@/components/ouro/composer/composer\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, emoji, field, text-area, text-field, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/composer.md",
       "registryDependencies": [
         "ourostack/ouro-ui/button",
+        "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/lib-announce",
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
         "ourostack/ouro-ui/lib-env",
+        "ourostack/ouro-ui/lib-insert-text",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
         "ourostack/ouro-ui/text-area",
@@ -3895,6 +3941,7 @@
         "ourostack/ouro-ui/lib-dev",
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-floating",
+        "ourostack/ouro-ui/lib-insert-text",
         "ourostack/ouro-ui/lib-portal-container",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-server-element",
@@ -3925,7 +3972,7 @@
         "ourostack/ouro-ui/lib-env",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-media-query"
+        "ourostack/ouro-ui/lib-use-reduced-motion"
       ],
       "files": [
         {
@@ -3956,7 +4003,7 @@
         "ourostack/ouro-ui/lib-focus-handoff",
         "ourostack/ouro-ui/lib-refs",
         "ourostack/ouro-ui/lib-use-dev-messages",
-        "ourostack/ouro-ui/lib-use-media-query",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
         "ourostack/ouro-ui/spinner",
         "ourostack/ouro-ui/text"
       ],
@@ -4329,6 +4376,31 @@
       }
     },
     {
+      "name": "lib-insert-text-tests",
+      "type": "registry:item",
+      "title": "lib-insert-text tests",
+      "description": "Optional: the Vitest browser tests for lib-insert-text, and the tests of everything it installs. Add it beside lib-insert-text: add lib-insert-text lib-insert-text-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-insert-text",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/insert-text.test.ts",
+          "type": "registry:lib",
+          "target": "@lib/ouro/insert-text.test.ts"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-key-shortcuts-tests",
       "type": "registry:item",
       "title": "lib-key-shortcuts tests",
@@ -4412,8 +4484,13 @@
         "vitest"
       ],
       "registryDependencies": [
+        "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-ouro",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -4468,6 +4545,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -4736,6 +4814,36 @@
       }
     },
     {
+      "name": "lib-use-reduced-motion-tests",
+      "type": "registry:item",
+      "title": "lib-use-reduced-motion tests",
+      "description": "Optional: the Vitest browser tests for lib-use-reduced-motion, and the tests of everything it installs. Add it beside lib-use-reduced-motion: add lib-use-reduced-motion lib-use-reduced-motion-tests. It names Vitest, Playwright and Storybook without a version, so the CLI installs one only when your app lacks it and never changes a version you have.",
+      "devDependencies": [
+        "vitest"
+      ],
+      "registryDependencies": [
+        "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
+        "ourostack/ouro-ui/lib-ouro-provider-tests",
+        "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion",
+        "ourostack/ouro-ui/ouro-testing"
+      ],
+      "files": [
+        {
+          "path": "registry/ouro/lib/ouro/use-reduced-motion.test.tsx",
+          "type": "registry:lib",
+          "target": "@lib/ouro/use-reduced-motion.test.tsx"
+        }
+      ],
+      "meta": {
+        "requires": {
+          "vitest": ">=4.1.11"
+        }
+      }
+    },
+    {
       "name": "lib-use-sheet-presentation-tests",
       "type": "registry:item",
       "title": "lib-use-sheet-presentation tests",
@@ -4811,6 +4919,11 @@
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
+        {
+          "path": "registry/ouro/components/ouro/button/button.default.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/button/button.default.test.tsx"
+        },
         {
           "path": "registry/ouro/components/ouro/button/button.stories.tsx",
           "type": "registry:component",
@@ -6236,6 +6349,7 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -6244,6 +6358,8 @@
         "ourostack/ouro-ui/lib-toast",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/toaster"
       ],
@@ -7019,6 +7135,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/sheet-tests"
@@ -8066,6 +8183,7 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/heading",
         "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
@@ -8073,12 +8191,16 @@
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/navbar",
         "ourostack/ouro-ui/navbar-tests",
         "ourostack/ouro-ui/navigation-menu-tests",
@@ -8086,7 +8208,11 @@
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/stacked-layout",
         "ourostack/ouro-ui/text",
-        "ourostack/ouro-ui/text-tests"
+        "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/toggle-tests",
+        "ourostack/ouro-ui/toolbar",
+        "ourostack/ouro-ui/toolbar-tests",
+        "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
         {
@@ -8864,6 +8990,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -8873,6 +9000,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/ouro-testing",
@@ -8939,6 +9067,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -8947,6 +9076,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-drag-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu",
         "ourostack/ouro-ui/menu-tests",
@@ -9139,9 +9269,12 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -9301,6 +9434,8 @@
         "ourostack/ouro-ui/avatar-tests",
         "ourostack/ouro-ui/badge-tests",
         "ourostack/ouro-ui/button-tests",
+        "ourostack/ouro-ui/carousel-tests",
+        "ourostack/ouro-ui/dialog-tests",
         "ourostack/ouro-ui/emoji",
         "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/kbd-tests",
@@ -9317,11 +9452,16 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
+        "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-spring-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/lightbox",
+        "ourostack/ouro-ui/lightbox-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
         "ourostack/ouro-ui/message-list",
@@ -9329,6 +9469,7 @@
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/reaction-bar",
         "ourostack/ouro-ui/reaction-bar-tests",
+        "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/thread-summary",
         "ourostack/ouro-ui/thread-summary-tests",
         "ourostack/ouro-ui/tooltip-tests"
@@ -9394,6 +9535,7 @@
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-navigation-key-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -9695,6 +9837,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -9703,6 +9846,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/link",
         "ourostack/ouro-ui/link-tests",
@@ -9715,6 +9859,7 @@
         "ourostack/ouro-ui/radio-group-tests",
         "ourostack/ouro-ui/select",
         "ourostack/ouro-ui/select-tests",
+        "ourostack/ouro-ui/sheet",
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/switch",
         "ourostack/ouro-ui/switch-tests",
@@ -10166,6 +10311,7 @@
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/text",
         "ourostack/ouro-ui/text-tests"
@@ -10919,6 +11065,7 @@
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -11054,6 +11201,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
@@ -11127,6 +11275,7 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
@@ -11135,6 +11284,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lightbox",
         "ourostack/ouro-ui/ouro-testing",
@@ -11219,6 +11369,7 @@
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -11228,6 +11379,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/message",
@@ -11304,6 +11456,7 @@
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/popover-tests",
@@ -11586,10 +11739,13 @@
       "registryDependencies": [
         "ourostack/ouro-ui/autocomplete",
         "ourostack/ouro-ui/avatar-tests",
+        "ourostack/ouro-ui/button",
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/composer",
         "ourostack/ouro-ui/composer-tests",
         "ourostack/ouro-ui/emoji",
+        "ourostack/ouro-ui/emoji-picker",
+        "ourostack/ouro-ui/emoji-picker-tests",
         "ourostack/ouro-ui/emoji-tests",
         "ourostack/ouro-ui/field-tests",
         "ourostack/ouro-ui/lib-announce-tests",
@@ -11598,6 +11754,7 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
@@ -11605,8 +11762,13 @@
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-server-element-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
+        "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/ouro-testing",
+        "ourostack/ouro-ui/popover-tests",
+        "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/text-area",
         "ourostack/ouro-ui/text-area-tests",
         "ourostack/ouro-ui/text-field",
@@ -11668,10 +11830,12 @@
         "ourostack/ouro-ui/lib-class-name-check-tests",
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/ouro-testing"
       ],
       "files": [
@@ -11726,10 +11890,12 @@
         "ourostack/ouro-ui/lib-cn-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
+        "ourostack/ouro-ui/lib-ouro-provider",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/moment",
         "ourostack/ouro-ui/ouro-testing",
         "ourostack/ouro-ui/spinner-tests",
@@ -11791,6 +11957,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-navigation-key-tests",
@@ -11807,6 +11974,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/ouro-lib"
@@ -11884,6 +12052,7 @@
         "ourostack/ouro-ui/lib-floating-tests",
         "ourostack/ouro-ui/lib-focus-handoff-tests",
         "ourostack/ouro-ui/lib-form-answer-tests",
+        "ourostack/ouro-ui/lib-insert-text-tests",
         "ourostack/ouro-ui/lib-key-shortcuts-tests",
         "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-navigation-key-tests",
@@ -11900,6 +12069,7 @@
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
         "ourostack/ouro-ui/lib-use-mounted-open-tests",
+        "ourostack/ouro-ui/lib-use-reduced-motion-tests",
         "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
         "ourostack/ouro-ui/lib-use-timer-tests",
         "ourostack/ouro-ui/lightbox-tests",

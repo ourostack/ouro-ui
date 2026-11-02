@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Moment, MomentProvider } from "@/registry/ouro/components/ouro/moment/moment";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -428,6 +429,23 @@ describe("Moment motion", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     await expect.poll(() => svg.animationsPaused()).toBe(false);
     expect(getComputedStyle(circle).animationName).toBe("ouro-test-moment-bob");
+  });
+
+  it("follows OuroProvider's motion over the device: reduced holds the art still, full lets its SVG run", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const still = await render(
+      <OuroProvider motion="reduced">
+        <Moment kind="loading" title="Still art" art={<Art />} />
+      </OuroProvider>,
+    );
+    await expect.poll(() => still.host.querySelector<SVGSVGElement>("[data-ouro-moment-art] svg")!.animationsPaused()).toBe(true);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const moving = await render(
+      <OuroProvider motion="full">
+        <Moment kind="loading" title="Moving art" art={<Art />} />
+      </OuroProvider>,
+    );
+    expect(moving.host.querySelector<SVGSVGElement>("[data-ouro-moment-art] svg")!.animationsPaused()).toBe(false);
   });
 
   it("pauses SVG art that appears while reduced motion is already on", async () => {

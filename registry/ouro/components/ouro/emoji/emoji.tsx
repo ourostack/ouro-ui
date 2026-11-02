@@ -5,12 +5,14 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import {
   emojiClass,
   emojiPictureClass,
+  emojiPictureFadeClass,
   emojiPictureReadyClass,
   emojiPlaceholderClass,
+  emojiPlaceholderFadeClass,
   emojiPlaceholderGoneClass,
   emojiSkinTones,
   splitEmojiText,
@@ -159,14 +161,16 @@ export interface EmojiOwnProps {
   /**
    * Shows in the emoji's place until its picture has loaded and decoded: an image's address,
    * or an element (centred in the emoji's box, which it does not change). The picture then
-   * fades in over it, at once with reduced motion. The placeholder is hidden from screen
-   * readers, so the emoji keeps its name, and a picture that fails to load or decode leaves it
-   * showing. It shows again for a new picture (another emoji, tone or `src`), not while an
-   * animated emoji plays. With it, the `<img>` sits in a `<span>` that takes `className`.
+   * fades in over it, at once with reduced motion (the device's setting, or OuroProvider's
+   * `motion`). The placeholder is hidden from screen readers, so the emoji keeps its name, and
+   * a picture that fails to load or decode leaves it showing. It shows again for a new picture
+   * (another emoji, tone or `src`), not while an animated emoji plays. With it, the `<img>`
+   * sits in a `<span>` that takes `className`.
    *
    * @claim "Shows in the emoji's place until" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > shows a placeholder image in the emoji's own box until the picture has decoded, then the picture, named as before, with no shift)
    * @claim "Shows in the emoji's place until" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > shows the picture once it has really loaded and decoded, and keeps the placeholder while a loaded picture is still decoding)
    * @claim "The picture then fades in over" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > fades the picture in and the placeholder out over the short duration, and swaps them at once with reduced motion)
+   * @claim "the device's setting, or OuroProvider's" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > fades by OuroProvider's motion over the device's: over the short duration under full, and at once under reduced)
    * @claim "The placeholder is hidden from screen" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > draws an element placeholder hidden from screen readers, and passes the img attributes, ref and layout classes through)
    * @claim "a picture that fails to load or" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > keeps the placeholder for a picture that fails to load or to decode, and brings it back for a new picture that fails)
    * @claim "It shows again for a new" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji placeholder > shows the placeholder again for a new picture or tone, and never for a stale picture's decode)
@@ -352,7 +356,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
   const form = toneOf(item, skinTone as EmojiSkinTone);
   const own = useRef<HTMLImageElement>(null);
   const mergedRef = useMergedRef(ref, own);
-  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)", true);
+  const reduced = useReducedMotion(true);
   const animated = Boolean(form.animatedSrc ?? form.filmstrip) && !reduced;
   // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: listening saves work only; play decides first.
   const hostActive = useHostActive(own, animated && play === undefined);
@@ -376,14 +380,14 @@ export function Emoji(props: EmojiProps): JSX.Element {
       alt={alt ?? item.name}
       draggable={false}
       decoding="async"
-      className={cn(waits ? [emojiPictureClass, ready ? emojiPictureReadyClass : "opacity-0"] : emojiClass, strip && "object-cover object-top", !waits && className)}
+      className={cn(waits ? [emojiPictureClass, ready ? [emojiPictureReadyClass, !reduced && emojiPictureFadeClass] : "opacity-0"] : emojiClass, strip && "object-cover object-top", !waits && className)}
     />
   );
   if (!waits) return picture;
   // The placeholder and the picture fill the root's box, the picture on top, so neither moves the text.
   return (
     <span data-ouro="emoji" data-loaded={ready ? "" : undefined} className={cn(emojiClass, "relative", className)}>
-      <span aria-hidden="true" className={cn(emojiPlaceholderClass, ready && emojiPlaceholderGoneClass)}>
+      <span aria-hidden="true" className={cn(emojiPlaceholderClass, ready && [emojiPlaceholderGoneClass, !reduced && emojiPlaceholderFadeClass])}>
         {typeof placeholder === "string" ? <img src={placeholder} alt="" draggable={false} decoding="async" className="size-full object-contain" /> : placeholder}
       </span>
       {picture}

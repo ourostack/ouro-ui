@@ -39,11 +39,17 @@ test("a chat message's action bar shows on hover and from the keyboard, and its 
   await expect(bar.getByRole("button", { name: "More actions" })).toBeFocused();
 });
 
-test("posts are cards under their author, with reactions inside and the thread under them", async ({ page }) => {
+test("posts sit unboxed under their author, with reactions and the thread under them, and Reply on an unanswered post's name line", async ({ page }) => {
   await openStory(page, "chat-message--posts");
   const post = page.getByRole("article").filter({ hasText: "Agenda for Friday's design review" });
-  const card = post.locator("[data-ouro-message-card]");
-  await expect(card.getByRole("group", { name: "Reactions" })).toBeVisible();
-  await post.getByRole("button", { name: "3 replies" }).click();
+  await expect(post.locator("[data-ouro-message-footer]").getByRole("group", { name: "Reactions" })).toBeVisible();
+  await post.getByRole("button", { name: /^3 replies/ }).click();
   await expect(page.getByRole("status")).toHaveText("Opened the thread: Agenda for Friday's design review");
+  const unanswered = page.getByRole("article").filter({ hasText: "Build 1432" });
+  const summary = unanswered.locator('[data-ouro="thread-summary"]');
+  await expect(summary).toHaveCSS("opacity", "0");
+  await unanswered.getByText("Build 1432").hover();
+  await expect(summary).toHaveCSS("opacity", "1");
+  await unanswered.getByRole("button", { name: "Reply to Build bot's post" }).click();
+  await expect(page.getByRole("status")).toHaveText("Started a thread under Build bot's post");
 });

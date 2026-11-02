@@ -4,7 +4,9 @@
 // run's timing reports (`refresh`); a file it does not know yet weighs the median of every time it holds.
 //
 //   node scripts/shard.mjs scripts <index>/<count>   the test:scripts files of one shard, one per line
-//   node scripts/shard.mjs e2e <index>/<count>       the end-to-end spec files of one shard
+//   node scripts/shard.mjs e2e <index>/<count> [<path>...]
+//                                                    the end-to-end spec files of one shard, of those
+//                                                    that are a <path> or under one when any is given
 //   node scripts/shard.mjs install <index>/<count> <app>
 //                                                    the shipped Vitest test files of one install
 //                                                    shard, paths in the installed app <app>
@@ -146,6 +148,16 @@ export function e2eFiles(rootDir = root) {
 }
 
 /**
+ * The `files` that are one of `paths` or under one of them (a path ending in / or not), in their order:
+ * a reduced run's selected specs (scripts/test-impact.mjs e2e), split by measured time as a full
+ * run's are.
+ */
+export function filesWithin(files, paths) {
+  const wanted = paths.map((path) => path.replace(/\/+$/, ""));
+  return files.filter((file) => wanted.some((path) => file === path || file.startsWith(`${path}/`)));
+}
+
+/**
  * The Vitest test files an installed app runs from Ouro UI's shipped tests: under src/, in an ouro
  * folder, named *.test.ts or *.test.tsx (as ouroTestProjects includes them), visual tests left out.
  * Paths are relative to the app.
@@ -206,7 +218,8 @@ function main([command, ...args]) {
     return 0;
   }
   if (command === "e2e") {
-    console.log(shardKeys(e2eFiles(), parseShard(args[0]), readTimings("e2e")).join("\n"));
+    const files = args.length > 1 ? filesWithin(e2eFiles(), args.slice(1)) : e2eFiles();
+    console.log(shardKeys(files, parseShard(args[0]), readTimings("e2e")).join("\n"));
     return 0;
   }
   if (command === "install-e2e") {
@@ -239,7 +252,7 @@ function main([command, ...args]) {
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser | e2e <index>/<count> | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 

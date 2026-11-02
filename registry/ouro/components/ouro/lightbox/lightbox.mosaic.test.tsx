@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Lightbox, type LightboxImage, type LightboxProps, type LightboxWithThumbnailsProps } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { mosaicLayout } from "@/registry/ouro/components/ouro/lightbox/lightbox-styles";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 
@@ -81,6 +82,23 @@ afterEach(async () => {
 });
 
 describe("Lightbox mosaic", () => {
+  it("is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width", async () => {
+    const size = (host: Element) => {
+      const rect = list(host).getBoundingClientRect();
+      return [Math.round(rect.width), Math.round(rect.height)];
+    };
+    const shot = (width: number, height: number) => ({ src: picture(width, height, "#68a"), alt: "A screenshot", width, height });
+    // A wide screenshot is 400px wide; a square and a tall picture are 280px tall; two side by side, 400 by 200.
+    expect(size((await render(mosaic([shot(1600, 1000)]), 800)).host)).toEqual([400, 250]);
+    expect(size((await render(mosaic([shot(900, 900)]), 800)).host)).toEqual([280, 280]);
+    expect(size((await render(mosaic([shot(600, 800)]), 800)).host)).toEqual([210, 280]);
+    expect(size((await render(mosaic(offsite.slice(0, 2)), 800)).host)).toEqual([400, 200]);
+    // A narrow column holds it to its width, at its shape.
+    expect(size((await render(mosaic([shot(1600, 1000)]), 300)).host)).toEqual([300, 188]);
+    // The app's own width wins.
+    expect(size((await render(mosaic([shot(1600, 1000)], { className: "max-w-none" }), 800)).host)).toEqual([800, 500]);
+  });
+
   it("draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown", async () => {
     const own = await render(mosaic([offsite[0]!]));
     expect(ratio(list(own.host))).toBeCloseTo(3 / 2, 1);
@@ -201,6 +219,17 @@ describe("Lightbox still frames", () => {
     await expect.poll(() => image.currentSrc).toBe(gif.still);
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     await expect.poll(() => image.currentSrc).toBe(gif.src);
+  });
+
+  it("follows OuroProvider's motion over the device: the still frame always under reduced, never under full", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const still = await render(<OuroProvider motion="reduced">{mosaic([gif])}</OuroProvider>);
+    expect(still.host.querySelector("source")!.getAttribute("media")).toBe("all");
+    await expect.poll(() => thumbnails(still.host)[0]!.querySelector("img")!.currentSrc).toBe(gif.still);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const moving = await render(<OuroProvider motion="full">{mosaic([gif])}</OuroProvider>);
+    expect(moving.host.querySelector("source")).toBeNull();
+    await expect.poll(() => thumbnails(moving.host)[0]!.querySelector("img")!.currentSrc).toBe(gif.src);
   });
 
   it("plays the image itself in the viewer", async () => {

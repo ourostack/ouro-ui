@@ -2,7 +2,7 @@
 
 # ThreadSummary
 
-The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. Before anyone has replied it is a "Reply" button with a reply arrow, to start the thread.
+The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. Before anyone has replied it is a quiet "Reply" button with a reply arrow, to start the thread, which ends a post's name line and shows on hover and focus where a mouse points.
 
 ```tsx
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
@@ -16,7 +16,7 @@ import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-su
 
 ## Usage
 
-Pass it to `Message`'s `thread`, under a `variant="post"` message.
+Pass it to `Message`'s `thread`, under a `variant="post"` message, or a `chat` message in a channel without threads whose message has replies.
 
 ## Use instead when
 
@@ -29,14 +29,14 @@ Type: `ThreadSummaryProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins (`mt-1`). Appearance classes warn in development. |
-| `count` (required) | `number` |  | How many replies the thread has. With none, the summary is a single "Reply" button that opens the thread to write the first one. |
+| `count` (required) | `number` |  | How many replies the thread has. With none, the summary is a single small "Reply" button that opens the thread to write the first one. As a post's `thread`, that button sits at the end of the post's line of name and time, so it adds no row. Where a mouse or trackpad points, it shows only while the pointer is over the post or focus is in it; on a touch screen it always shows, in the same place. |
 | `label` | `string` |  | What screen readers hear for the button, when its words alone ("2 replies") would repeat from post to post: "2 replies to Riley's post Settings mockups". Start it with the words the button shows, so speech input that says them still finds it (WCAG's label in name). |
 | `lastReply` | `string` |  | When the last reply came, already formatted for the reader ("7:44 AM"). |
 | `lastReplyDateTime` | `string` |  | The same moment for machines, as an ISO date: the `<time>` element's `dateTime`. |
 | `lastReplyLabel` | `((time: string) => string)` | (time) => `Last reply ${time}` | The words around the last reply's time, for other languages. |
 | `onOpen` (required) | `(event: MouseEvent<HTMLElement>) => void` |  | Opens the thread, with the click event, so the app can check `event.isTrusted`. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `repliers` | `readonly ThreadReplier[]` |  | Who replied, in the order to show them. The first three show as overlapping avatars, then a "+N" count. |
+| `repliers` | `readonly ThreadReplier[]` |  | Who replied, in the order to show them. The first three show as small overlapping faces: the picture, or one initial on the person's colour; the count beside them says how many replied in all. |
 | `repliersLabel` | `string` | `"Replied"` | What screen readers hear for the repliers' avatars, for other languages. |
 | `repliesLabel` | `((count: number) => string)` | (count) => count === 1 ? "1 reply" : `${count} replies` | The button's words for a count, for other languages. |
 | `replyLabel` | `string` | `"Reply"` | The button's words before anyone has replied, for other languages. |
