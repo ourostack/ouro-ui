@@ -120,7 +120,8 @@ export interface ComboboxBaseProps {
   onInputKeyDown?: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined;
   /**
    * People can see the field and what is picked but not change it: the input takes no text,
-   * the list doesn't open, and the clear and remove buttons go.
+   * nothing in the list can be picked, and the clear and remove buttons go. The list still opens,
+   * to browse.
    * @claim "People can see the field and" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > keeps a read-only field as it is)
    */
   readOnly?: boolean | undefined;
@@ -833,9 +834,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       openOnInputClick
       open={open}
       onOpenChange={(next: boolean, details: { reason: string }) => {
-        // A read-only field keeps its list closed. An inline trigger closes Base UI's
-        // always-open list; its own click opens our sheet.
-        if (next && readOnly) return;
+        // An inline trigger closes Base UI's always-open list; its own click opens our sheet.
         if (!sheet || details.reason !== "trigger-press") setOpen(next);
       }}
       {...(value !== undefined ? { value: toBase(value) } : { defaultValue: toBase(defaultValue) })}
@@ -859,7 +858,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             data-ouro-part="trigger"
             className={triggerClass}
             // With an inline list there is no Base UI popup for the trigger to open: it opens the sheet.
-            onClick={() => setOpen(!readOnly)}
+            onClick={() => setOpen(true)}
           >
             <BaseCombobox.Value placeholder={placeholder}>
               {(picked: Option | Option[] | null) => {
@@ -974,8 +973,6 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
       filter={onInputChange ? null : undefined}
       autoHighlight={autoHighlight}
       readOnly={readOnly}
-      // A read-only field keeps its list closed, as the Combobox one does.
-      {...(readOnly ? { open: false } : {})}
       required={required}
       openOnInputClick
       value={value as string}

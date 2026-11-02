@@ -44,7 +44,7 @@ The props the modes share. Type: `ComboboxProps`.
 | `onInputChange` | `((text: string) => void)` |  | Called with the text as people type. Pass it to search on your server: Combobox then shows `items` as you give them, without filtering, and you set `loading` while a search runs. Keep the picked items in `items`, so their labels stay known. |
 | `onInputKeyDown` | `((event: KeyboardEvent<HTMLInputElement>) => void)` |  | Called on each key pressed in the input, before Combobox acts on it. Call `event.preventDefault()` to stop Combobox's own handling of that key (Enter picking, Tab, the arrows), such as to move on from an empty input on Enter. |
 | `placeholder` | `string` |  | An example shown while the input is empty: `"Search herbs"`. It is not a label; pass `label`. |
-| `readOnly` | `boolean` |  | People can see the field and what is picked but not change it: the input takes no text, the list doesn't open, and the clear and remove buttons go. |
+| `readOnly` | `boolean` |  | People can see the field and what is picked but not change it: the input takes no text, nothing in the list can be picked, and the clear and remove buttons go. The list still opens, to browse. |
 | `ref` | `Ref<HTMLInputElement>` |  | The input element. On a phone, it is the search input in the sheet, while the sheet is open. |
 | `required` | `boolean` |  | Something must be picked: the input gets `aria-required`, and the label a marker. |
 

@@ -1006,10 +1006,14 @@ describe("Combobox keys", () => {
     expect(inputs).toHaveLength(3);
     for (const input of inputs) {
       expect(input.readOnly).toBe(true);
+      // The list opens to browse, but a key or a press picks nothing.
       await userEvent.click(input);
+      await expect.poll(popup).not.toBeNull();
       await userEvent.keyboard("x{ArrowDown}{Enter}");
-      await act(async () => {});
-      expect(popup()).toBeNull();
+      const option = document.querySelector<HTMLElement>('[role="listbox"] [role="option"]');
+      if (option) await userEvent.click(option);
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(popup).toBeNull();
     }
     expect(inputs.map((input) => input.value)).toEqual(["", "Dill", "Thai"]);
     expect(changed).not.toHaveBeenCalled();
