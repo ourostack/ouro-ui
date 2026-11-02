@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { scratchDir } from "./scratch.mjs";
+import { copyTree } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/gen-docs.mts");
@@ -41,7 +42,7 @@ test("an export with no @group, or an unknown one, fails the generator with the 
   const copy = scratchDir("ouro-docs-root-");
   for (const path of ["registry", "scripts", "docs", "site/public", "README.md", "UPGRADING.md", "package.json", "tsconfig.json"]) {
     mkdirSync(dirname(join(copy, path)), { recursive: true });
-    cpSync(join(root, path), join(copy, path), { recursive: true });
+    copyTree(join(root, path), join(copy, path));
   }
   symlinkSync(join(root, "node_modules"), join(copy, "node_modules"));
   const link = join(copy, "registry/ouro/components/ouro/link/link.tsx");

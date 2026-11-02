@@ -143,9 +143,14 @@ describe("the header and the theme section", () => {
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
     expect(background()).not.toBe(pearl);
     await expect.element(page.getByRole("button", { name: /Theme: Abyss/ })).toBeInTheDocument();
+    // Abyss's reveal holds the page's pointer events while it runs, and a loaded runner can still be
+    // running it here, so the next press would wait it out past the test's time. A press mid-reveal
+    // is the swatches test's to check; this one checks the repaint and what is remembered.
+    await finishReveal();
     await userEvent.click(page.getByRole("radio", { name: "Submerged" }));
     expect(root.classList.contains("dark")).toBe(true);
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss", mode: "dark" });
+    await finishReveal();
     await userEvent.click(page.getByRole("radio", { name: "Surfaced" }));
     expect(root.classList.contains("dark")).toBe(false);
   });
