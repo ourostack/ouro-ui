@@ -9,6 +9,7 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { Select, type SelectProps } from "@/registry/ouro/components/ouro/select/select";
 import { SelectGroup, SelectItem } from "@/registry/ouro/components/ouro/select/select-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressAndLetGo, pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 
 /** The colour behind an element: the nearest background around it that is not transparent. */
 function behind(element: Element): string {
@@ -550,8 +551,8 @@ describe("Select and the page's scroll", () => {
         };
         requestAnimationFrame(read);
         const opener = document.querySelector<HTMLElement>('[data-ouro-control="select"][data-ouro-part="trigger"]')!;
-        // One click, so the release follows the press at once, over the option the list opens under it.
-        if (input === "pointer") await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "click" });
+        // The list opens over the trigger with an option under the pointer, and the release lands there.
+        if (input === "pointer") await pressAndLetGo('[data-ouro-control="select"][data-ouro-part="trigger"]');
         else {
           opener.focus({ preventScroll: true });
           await userEvent.keyboard("{ArrowDown}");
@@ -587,15 +588,11 @@ describe("Select and the page's scroll", () => {
         </header>
       </div>,
     );
-    window.scrollTo({ top: 2000, behavior: "instant" });
-    document.documentElement.style.scrollBehavior = "smooth";
-    document.addEventListener("pointerdown", () => window.scrollTo({ top: 4000 }), { capture: true, once: true });
-    let atPress = "";
-    window.addEventListener("pointerdown", () => (atPress = document.documentElement.style.scrollBehavior), { once: true });
-    // Released at once, in one click: the list opens over the trigger with an option under the
-    // pointer, and a release there 400ms or more after it opens chooses that option and closes the
-    // list. A press and a release sent as two commands can be that far apart on a loaded runner.
-    await commands.pointerPress({ selector: '[data-ouro-control="select"][data-ouro-part="trigger"]', action: "click" });
+    // The list opens over the trigger with an option under the pointer, and a release there 400ms
+    // or more after it opens chooses that option and closes the list. WebKit can take seconds to
+    // deliver the release, even in the press's own command, so the page's clock is held from the
+    // press until the release has landed.
+    const { behaviorAtPress } = await pressDuringScroll('[data-ouro-control="select"][data-ouro-part="trigger"]', { from: 2000, to: 4000, scroll: "begins" });
     await expect.poll(() => {
       const open = popup();
       return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
@@ -603,7 +600,7 @@ describe("Select and the page's scroll", () => {
     await frame();
     await frame();
     expect(popup()!.hasAttribute("data-open")).toBe(true);
-    expect(atPress).toBe("auto");
+    expect(behaviorAtPress).toBe("auto");
     expect(window.scrollY).toBe(2000);
   });
 });
