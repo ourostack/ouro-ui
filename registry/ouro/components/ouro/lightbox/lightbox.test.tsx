@@ -303,7 +303,15 @@ describe("Lightbox navigation", () => {
     const { host } = await render(lightbox());
     await openAt(host, 1);
     const announced = watchAnnouncements();
+    // Each press asks for an instant scroll, read from the request as the glide test reads its own.
+    const requested: (ScrollBehavior | undefined)[] = [];
+    const scrollTo = viewport().scrollTo.bind(viewport());
+    viewport().scrollTo = ((options: ScrollToOptions) => {
+      requested.push(options.behavior);
+      scrollTo(options);
+    }) as typeof Element.prototype.scrollTo;
     await userEvent.keyboard("{End}");
+    expect(requested).toEqual(["instant"]);
     // With reduced motion it jumps there at once, past the images between.
     expect(slideInView()).toBe(3);
     await expect.poll(position).toBe("4 of 4");
@@ -311,6 +319,7 @@ describe("Lightbox navigation", () => {
     // From the close button too, and focus stays where it was.
     button("Close").focus();
     await userEvent.keyboard("{Home}");
+    expect(requested).toEqual(["instant", "instant"]);
     expect(slideInView()).toBe(0);
     await expect.poll(position).toBe("1 of 4");
     expect(document.activeElement).toBe(button("Close"));
@@ -324,8 +333,16 @@ describe("Lightbox navigation", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     const { host } = await render(lightbox());
     await openAt(host, 0);
+    // The glide is the browser's smooth scroll, asked for by the press: a busy runner can draw its
+    // first frame after the glide's whole length, so the test reads the request, not the frames.
+    const requested: (ScrollBehavior | undefined)[] = [];
+    const scrollTo = viewport().scrollTo.bind(viewport());
+    viewport().scrollTo = ((options: ScrollToOptions) => {
+      requested.push(options.behavior);
+      scrollTo(options);
+    }) as typeof Element.prototype.scrollTo;
     await userEvent.keyboard("{End}");
-    expect(slideInView()).not.toBe(3);
+    expect(requested).toEqual(["smooth"]);
     await expect.poll(position).toBe("4 of 4");
     expect(slideInView()).toBe(3);
   });
