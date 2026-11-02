@@ -10,6 +10,7 @@ import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/c
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 /** The colour behind an element: the nearest background around it that is not transparent. */
 function behind(element: Element): string {
@@ -255,6 +256,81 @@ describe("Command", () => {
   });
 });
 
+describe("Command width", () => {
+  const long = "Export every recipe in the collection as a printable cookbook, with photos, notes, ratings and the shopping list";
+  const run = () => {};
+  const width = (element: HTMLElement) => element.getBoundingClientRect().width;
+
+  it("fits short commands at 32rem, the narrowest a dialog fits", async () => {
+    expect(width(await openPalette())).toBe(512);
+  });
+
+  it("widens to fit a longer command, up to 40rem", async () => {
+    // A label about 560px wide in this browser's font, so the test holds wherever the text measures differently.
+    const probe = (await openPalette({ items: [{ label: "probe", onSelect: run }] })).querySelector<HTMLElement>("[data-ouro-command-label]")!;
+    probe.textContent = "recipe ".repeat(20);
+    const medium = "recipe ".repeat(Math.round((560 / probe.scrollWidth) * 20)).trim();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    const fitting = await openPalette({ items: [{ label: medium, onSelect: run }] });
+    expect(width(fitting)).toBeGreaterThan(512);
+    expect(width(fitting)).toBeLessThan(640);
+    const label = fitting.querySelector<HTMLElement>("[data-ouro-command-label]")!;
+    expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(width(await openPalette({ items: [{ label: long, onSelect: run }] }))).toBe(640);
+  });
+
+  it("keeps the width it opened at while results filter", async () => {
+    const element = await openPalette({ items: [{ label: long, onSelect: run }, { label: "Switch theme", onSelect: run }] });
+    const opened = width(element);
+    await userEvent.type(input(), "theme");
+    await expect.poll(options).toEqual(["Switch theme"]);
+    expect(width(element)).toBe(opened);
+  });
+
+  it("keeps the widest it has been while a server search's results change", async () => {
+    function Server() {
+      const [items, setItems] = useState<CommandEntry[]>([{ label: "Switch theme", onSelect: run }]);
+      return (
+        <Command
+          title="Command palette"
+          trigger={<Button>Search</Button>}
+          items={items}
+          onQueryChange={(query) => setItems([{ label: query === "ex" ? long : "Switch theme", onSelect: run }])}
+        />
+      );
+    }
+    await render(<Server />);
+    await userEvent.click(trigger());
+    const element = await settled();
+    expect(width(element)).toBe(512);
+    await userEvent.type(input(), "ex");
+    await expect.poll(options).toEqual([long]);
+    expect(width(element)).toBe(640);
+    await userEvent.type(input(), "t");
+    await expect.poll(options).toEqual(["Switch theme"]);
+    expect(width(element)).toBe(640);
+  });
+});
+
+describe("Command search focus", () => {
+  it("draws the search row's line in the ring colour while the search input has keyboard focus", async () => {
+    const element = await openPalette();
+    const ring = document.createElement("i");
+    ring.className = "border-ring";
+    document.body.append(ring);
+    mounted.push(ring);
+    const line = () => getComputedStyle(element.querySelector("[data-ouro-command-search]")!).borderBottomColor;
+    await expect.poll(() => document.activeElement).toBe(input().element());
+    expect(line()).toBe(getComputedStyle(ring).borderTopColor);
+    await pressTab();
+    expect(document.activeElement).not.toBe(input().element());
+    expect(line()).not.toBe(getComputedStyle(ring).borderTopColor);
+    await act(async () => input().element().focus());
+    expect(line()).toBe(getComputedStyle(ring).borderTopColor);
+  });
+});
+
 describe("controlled Command", () => {
   function Controlled({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
     const [open, setOpen] = useState(false);
@@ -458,6 +534,50 @@ describe("Command server search", () => {
     expect(status().textContent).toBe("");
   });
 
+  it("shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends", async () => {
+    const jump = (loading: boolean, labels: string[] = []) => (
+      <Command
+        title="Jump to a chat"
+        open
+        onOpenChange={() => {}}
+        items={labels.map((label) => ({ label, onSelect() {} }))}
+        onQueryChange={() => {}}
+        loading={loading}
+        emptyLabel="No chats by that name."
+        loadingLabel="Searching the directory…"
+      />
+    );
+    await render(jump(true));
+    await settled();
+    const empty = () => document.querySelector<HTMLElement>("[data-ouro-command-empty]");
+    // The text without the word joiner Base UI adds so that its live region speaks the empty state.
+    const text = (element: Element | null | undefined) => element?.textContent?.replace(/\u2060/g, "");
+    expect(text(empty())).toBe("No chats by that name.Searching the directory…");
+    expect(document.querySelector("[data-ouro-command-loading]")).toBeNull();
+    await act(async () => roots[0]!.render(jump(false)));
+    expect(text(empty())).toBe("No chats by that name.");
+    await act(async () => roots[0]!.render(jump(true, ["Noor Haddad"])));
+    expect(empty()).toBeNull();
+    expect(document.querySelector("[data-ouro-command-loading]")?.textContent).toBe("Searching the directory…");
+  });
+
+  it("takes content for its empty state, such as a picture with words, with the loading line under it while loading", async () => {
+    const empty = (
+      <figure data-testid="nothing" style={{ margin: 0 }}>
+        <svg aria-hidden="true" width="48" height="48" />
+        <figcaption>Nothing matches that.</figcaption>
+      </figure>
+    );
+    const jump = (loading: boolean) => <Command title="Jump to a chat" open onOpenChange={() => {}} items={[]} onQueryChange={() => {}} loading={loading} empty={empty} emptyLabel="Unused" loadingLabel="Searching the directory…" />;
+    await render(jump(true));
+    await settled();
+    const region = document.querySelector<HTMLElement>("[data-ouro-command-empty]")!;
+    expect(region.querySelector('[data-testid="nothing"]')).not.toBeNull();
+    expect(region.textContent!.replace(/\u2060/g, "")).toBe("Nothing matches that.Searching the directory…");
+    await act(async () => roots[0]!.render(jump(false)));
+    expect(document.querySelector("[data-ouro-command-empty]")!.textContent!.replace(/\u2060/g, "")).toBe("Nothing matches that.");
+  });
+
   it("takes a translated loading label, and aborts the last search when the palette closes", async () => {
     const signals: AbortSignal[] = [];
     await render(
@@ -591,6 +711,29 @@ describe("Command server search", () => {
 
 describe("Command media", () => {
   const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+
+  it("shows labelContent in place of the label, while the search and the row's name still use the label", async () => {
+    const onSelect = vi.fn();
+    await openPalette({
+      items: [
+        { label: "Release crew 🎉", labelContent: <>Release crew <img alt="" data-testid="party" src={picture} width={16} height={16} /></>, onSelect },
+        { label: "Sign out", onSelect: () => {} },
+      ],
+    } as object);
+    const crew = page.getByRole("option", { name: "Release crew 🎉", exact: true }).element() as HTMLElement;
+    const shown = label(crew).querySelector<HTMLElement>('[aria-hidden="true"]')!;
+    expect(shown.textContent).toBe("Release crew ");
+    expect(shown.querySelector('[data-testid="party"]')).not.toBeNull();
+    expect(label(crew).querySelector(".sr-only")!.textContent).toBe("Release crew 🎉");
+    // A row without it shows its label as before.
+    const signOut = label(page.getByRole("option", { name: "Sign out", exact: true }).element() as HTMLElement);
+    expect(signOut.textContent).toBe("Sign out");
+    expect(signOut.querySelector('[aria-hidden="true"], .sr-only')).toBeNull();
+    await userEvent.type(input(), "crew");
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
   const gear = <svg data-testid="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="currentColor" /></svg>;
   const row = (name: string) => page.getByRole("option", { name: new RegExp(`^${name}`) }).element() as HTMLElement;
   const label = (option: HTMLElement) => option.querySelector<HTMLElement>("[data-ouro-command-label]")!;

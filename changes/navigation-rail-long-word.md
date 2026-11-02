@@ -1,0 +1,1 @@
+- Fixed: a NavigationRail label with a word too wide for the rail, such as "Customers", is set a size smaller and shows whole and centred, where it was cut off mid-letter. A word too wide even then breaks within itself and shows whole in its tooltip.

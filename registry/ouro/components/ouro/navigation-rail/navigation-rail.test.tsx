@@ -75,7 +75,7 @@ const items: NavigationRailEntry[] = [
   { label: "Notes", href: "/notes", icon: icon("notes") },
 ];
 
-const labelOf = (item: HTMLElement) => (item.dataset.ouroPart === "more" ? "More" : item.querySelector("[data-ouro-navigation-rail-label]")!.textContent);
+const labelOf = (item: HTMLElement) => (item.dataset.ouroPart === "more" ? "More" : item.querySelector("[data-ouro-navigation-rail-label]")!.firstChild!.textContent);
 const currentLabels = (list: HTMLElement[]) => list.filter((item) => item.getAttribute("aria-current") === "page").map(labelOf);
 const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
 
@@ -288,6 +288,18 @@ describe("NavigationRail counts", () => {
     expect(badge.getBoundingClientRect().top).toBeLessThan(glyph.top);
   });
 
+  it("names an item with a count by its words, the label first and the count after, so the name starts with what it shows", async () => {
+    for (const hideLabels of [false, true]) {
+      const { items: links, more } = await render(<NavigationRail label="Main" items={many} hideLabels={hideLabels} />, 16 + 4 * 56 + 3 * 4);
+      // No aria-label to differ from the words it shows: the label, then the spoken count, are its content.
+      expect([...links, more!].filter((item) => item.hasAttribute("aria-label"))).toEqual([]);
+      await expect.element(page.getByRole("link", { name: "Activity, 3 new", exact: true })).toBeInTheDocument();
+      await expect.element(page.getByRole("link", { name: "Chat", exact: true })).toBeInTheDocument();
+      await expect.element(page.getByRole("button", { name: "More, 5 new", exact: true })).toBeInTheDocument();
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("speaks the count with countLabel", async () => {
     await render(<NavigationRail label="Main" items={items} countLabel="{count} unread" />);
     await expect.element(page.getByRole("link", { name: "Activity, 5 unread" })).toBeVisible();
@@ -307,7 +319,7 @@ describe("NavigationRail keyboard", () => {
         </button>
       </>,
     );
-    const at = () => (document.activeElement as HTMLElement).querySelector("[data-ouro-navigation-rail-label]")?.textContent ?? document.activeElement!.textContent;
+    const at = () => (document.activeElement as HTMLElement).querySelector("[data-ouro-navigation-rail-label]")?.firstChild!.textContent ?? document.activeElement!.textContent;
     host.querySelector<HTMLButtonElement>("button")!.focus();
     await pressTab();
     expect(at()).toBe("Calendar");
@@ -350,12 +362,26 @@ describe("NavigationRail keyboard", () => {
   });
 
   it.each(["altKey", "ctrlKey", "metaKey", "shiftKey"] as const)("leaves the arrows to the page with %s held", async (modifier) => {
+    // Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys.
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "Windows" } as never);
     const { items: links } = await render(<NavigationRail label="Main" items={items} currentPath="/chat" />);
     links[1]!.focus();
     const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true, [modifier]: true });
     links[1]!.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
     expect(document.activeElement).toBe(links[1]);
+  });
+
+  it("reads ⌘↑ and ⌘↓ as Home and End on a Mac", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const { shown } = await render(<NavigationRail label="Main" items={items} />);
+    shown[1]!.focus();
+    await userEvent.keyboard("{Meta>}{ArrowDown}{/Meta}");
+    expect(document.activeElement).toBe(shown.at(-1));
+    await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+    expect(document.activeElement).toBe(shown[0]);
   });
 
   it("leaves other keys, and keys from outside its items, alone", async () => {
@@ -561,11 +587,60 @@ describe("NavigationRail labels", () => {
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Supercalifragilistic");
   });
 
+  it("sets a word too wide for the rail a size smaller, whole and centred when it fits there, and never clips it mid-letter", async () => {
+    // Words a little wider than the label at its own size; which ones depends on the font, so the test measures.
+    const words = ["Customers", "Workspaces", "Developers", "Approvals", "Assistants", "Downloads", "Favourites", "Documents"];
+    const { items: links } = await render(
+      <div lang="zxx" style={{ display: "flex" }}>
+        <NavigationRail label="Main" items={[...words, "Supercalifragilistic", "Supercalifragilistic and more"].map((word) => ({ label: word, href: `/${word}`, icon: icon(word) }))} />
+      </div>,
+      900,
+    );
+    const labels = links.map((link) => link.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!);
+    const room = labels[0]!.clientWidth;
+    const widthAt = (word: string, size: string, weight: string) => {
+      const context = document.createElement("canvas").getContext("2d")!;
+      context.font = `${weight} ${size} ${getComputedStyle(labels[0]!).fontFamily}`;
+      return context.measureText(word).width;
+    };
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    // The label's size, 11px, and the step below it, 10px.
+    const [natural, small] = [0.6875 * rem, 0.625 * rem];
+    const squeezed = words.filter((word) => widthAt(word, `${natural}px`, "500") > room && widthAt(word, `${small}px`, "500") < room - 1);
+    expect(squeezed.length).toBeGreaterThan(0);
+    for (const [index, label] of labels.entries()) {
+      const word = label.textContent;
+      // Nothing runs past the label's edge, where it would be cut off mid-letter.
+      expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+      const size = parseFloat(getComputedStyle(label).fontSize);
+      if (squeezed.includes(word)) {
+        expect(size).toBe(small);
+        expect(Math.round(label.getBoundingClientRect().height / 14)).toBe(1);
+        const box = label.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const text = range.getBoundingClientRect();
+        expect(Math.abs(text.left - box.left - (box.right - text.right))).toBeLessThanOrEqual(1);
+        await userEvent.hover(links[index]!);
+        await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).toBeNull();
+      } else if (word.startsWith("Supercalifragilistic")) {
+        // Too wide even then: it breaks within the word, ends in an ellipsis past two lines, and shows whole in a tooltip.
+        expect(size).toBe(small);
+        await userEvent.hover(links[index]!);
+        await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(word);
+      } else if (widthAt(word, `${natural}px`, "500") < room - 1) {
+        expect(size).toBe(natural);
+      }
+    }
+  });
+
   it("with hideLabels, keeps each label as the item's name and shows it in a tooltip toward the page", async () => {
     for (const dir of ["ltr", "rtl"] as const) {
       document.documentElement.dir = dir;
       const { items: links } = await render(<NavigationRail label="Main" items={many} hideLabels />, 16 + 3 * 44 + 2 * 4);
       expect(links[0]!.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+      // A hidden label is never measured as too wide, so none is set smaller.
+      expect(document.querySelector("[data-ouro-navigation-rail-squeezed]")).toBeNull();
       await userEvent.hover(page.getByRole("link", { name: "Chat" }));
       await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Chat");
       expect(document.querySelector('[data-ouro="tooltip"]')!.getAttribute("data-side")).toBe(dir === "ltr" ? "right" : "left");

@@ -1,0 +1,1 @@
+- Fixed: keyboard focus on a TimeGrid event is a ring outside it with a gap, as on Ouro's other controls, and the selected event has a line just inside its edge instead of an outline, so focus on the selected event shows. An app that restyles the selected event's outline should drop that, or focus on it looks like selection again.

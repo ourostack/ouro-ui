@@ -9,6 +9,7 @@ export {
   barStatusClass,
   dayLength,
   eventClass,
+  eventHitClass,
   isIsoDate,
   layoutDay,
   lineCount,
@@ -17,6 +18,10 @@ export {
   plainFillClass,
   slotSizes,
   statuses,
+  periodShift,
+  stackMinWidth,
+  todayOn,
+  stacksOf,
   statusClass,
   stepTo,
   timedClass,
@@ -74,6 +79,23 @@ interface ZonedClock {
   at(instant: number): { day: string; minutes: number };
   /** The instant a day's wall-clock minute falls on. */
   instant(day: string, minutes: number): Date;
+}
+
+/**
+ * Where a key press moves the shown days, in days, for {@link TimeGrid}'s `onDateChange`, or 0 for
+ * a key that does not: Page Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before.
+ * @claim "Page Down and ⌥↓ (Alt+↓) the next day or week" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
+ */
+function periodShift(event: { key: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }, view: TimeGridView): number {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) return 0;
+  const forward = event.key === "PageDown" || (event.altKey && event.key === "ArrowDown");
+  const back = event.key === "PageUp" || (event.altKey && event.key === "ArrowUp");
+  return (forward ? 1 : back ? -1 : 0) * (view === "day" ? 1 : 7);
+}
+
+/** Today's ISO date on a clock, read when it is called. */
+function todayOn(clock: ZonedClock): string {
+  return clock.at(Date.now()).day;
 }
 
 /** The wall clock of `timeZone` (an IANA name such as `"Europe/Berlin"`, or `undefined` for the reader's own). */
@@ -148,6 +170,29 @@ interface DayPlacement<Key> {
   column: number;
   span: number;
   columns: number;
+}
+
+/**
+ * The narrowest a day's labelled background event may be, in pixels, before its stack of
+ * overlapping events is drawn as one count instead: narrower, its label would be cut to a few letters.
+ * @claim "The narrowest a day's labelled background event may be" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws a day's background events too narrow to read as one count that opens their list)
+ */
+const stackMinWidth = 96;
+
+/**
+ * A day's placements in their stacks: the runs of events that overlap one another, directly or
+ * through others, in the order `layoutDay` placed them.
+ * @claim "A day's placements in their stacks" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws a day's background events too narrow to read as one count that opens their list)
+ */
+function stacksOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>): Array<Array<DayPlacement<Key>>> {
+  const stacks: Array<Array<DayPlacement<Key>>> = [];
+  let end = -Infinity;
+  for (const placed of placements) {
+    if (placed.top >= end) stacks.push([]);
+    stacks.at(-1)!.push(placed);
+    end = Math.max(end, placed.bottom);
+  }
+  return stacks;
 }
 
 /**
@@ -286,18 +331,20 @@ function stepTo(pieces: ReadonlyArray<{ key: string; day: number; start: number 
 
 /**
  * An event: its text from the top, and a bar in its tone on its start edge (each status sets the
- * border widths, `statusClass`). Keyboard focus and the
- * selected event get an outline; under forced colours every event keeps a border.
+ * border widths, `statusClass`). Keyboard focus is a ring outside the event, with a gap, as on
+ * Ouro's other controls; the selected event has a line just inside its edge instead, so focus on
+ * it still shows. Under forced colours every event keeps a border.
+ * @claim "Keyboard focus is a ring outside the event" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws keyboard focus apart from selection: a ring outside the event, where selection is a line just inside it)
  * @claim "each status sets the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /busy: "border-0 border-s-3"/)
- * @claim "under forced colours every event" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /forced-colors:border forced-colors:border-s-3/)
+ * @claim "Under forced colours every event" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /forced-colors:border forced-colors:border-s-3/)
  */
 const eventClass =
   "m-0 box-border flex min-w-0 flex-col rounded-md border-solid px-1.5 py-0.5 " +
   "font-[inherit] text-start text-xs leading-4 text-foreground no-underline [overflow-wrap:anywhere] " +
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-(--ouro-ease-out) " +
-  "outline-ring outline-offset-1 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
-  "aria-[current=true]:z-20 aria-[current=true]:outline-2 aria-[current=true]:outline-solid aria-[current=true]:outline-foreground " +
+  "outline-ring outline-offset-2 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
+  "aria-[current=true]:z-20 aria-[current=true]:shadow-[inset_0_0_0_2px_var(--foreground)] " +
   "aria-expanded:z-20 aria-expanded:outline-2 aria-expanded:outline-solid aria-expanded:outline-primary " +
   "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 
@@ -307,9 +354,9 @@ const timedClass = "absolute inset-0 z-10 scroll-mt-(--ouro-time-grid-head) @con
 /**
  * An all-day event: one line in the all-day row.
  *
- * @claim "one line in the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /allDayClass = "relative h-5\.5 w-full"/)
+ * @claim "one line in the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /allDayClass = "relative h-5\.5 w-full isolate"/)
  */
-const allDayClass = "relative h-5.5 w-full";
+const allDayClass = "relative h-5.5 w-full isolate";
 
 /**
  * Each tone's start bar, and the outline of a free or unanswered event.
@@ -363,6 +410,17 @@ const backgroundFillClass =
  * @claim "a press target as wide as" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
  */
 const backgroundBarClass = "group/bar border-0 bg-transparent p-0";
+
+/**
+ * An event's hit area: at least 24px square to a mouse too, invisible, from its top start corner
+ * toward the end and down, so a short event, an all-day one and a week's bar a few pixels wide are
+ * easy to point at without being drawn bigger. It grows away from the events placed before it,
+ * which therefore stay under the pointer where they show, and a background event's stays under
+ * the person's own events. It is the event's own `::before`, behind its text.
+ * @claim "An event's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > gives a week's thin bar a hit area at least 24px square to a mouse from its top corner, without growing the bar)
+ * @claim "An event's hit area" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller)
+ */
+const eventHitClass = "before:absolute before:top-0 before:start-0 before:-z-1 before:size-[max(100%,1.5rem)] before:content-['']";
 
 /**
  * The slim bar a week draws for a background event: 4px, and 6px under a mouse or while its popover is open, with no motion.

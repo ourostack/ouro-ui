@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent, type M
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
+import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -22,6 +23,7 @@ import {
   railClass,
   separatorClass,
   shownCount,
+  spokenCountClass,
 } from "@/registry/ouro/components/ouro/navigation-rail/navigation-rail-styles";
 
 /** What a NavigationRail item has: its label, its icon and a count. */
@@ -39,7 +41,9 @@ interface NavigationRailItemBase {
   currentIcon?: ReactNode;
   /**
    * New things on the item's page: a badge on the icon, capped at "99+", that screen readers hear
-   * after the label with `countLabel`. Nothing shows for 0.
+   * after the label with `countLabel`. The item's name is its label and then the count, "Activity, 5
+   * new", so it starts with the words the item shows. Nothing shows for 0.
+   * @claim "The item's name is its label and then the count" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail counts > names an item with a count by its words, the label first and the count after, so the name starts with what it shows)
    * @claim "Nothing shows for 0" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail counts > shows a count on the icon, capped at 99+, and speaks the whole number after the label)
    */
   count?: number | undefined;
@@ -188,13 +192,27 @@ function shownSeparators(entries: readonly NavigationRailEntry[], shown: (index:
   return separators;
 }
 
-/** What the client measured: the places of the items moved under More, and of the labels cut short. */
+/** What the client measured: the places of the items moved under More and of the labels cut short, and the labels set a size smaller. */
 interface Fit {
   hidden: readonly number[];
   truncated: readonly number[];
+  squeezed: readonly string[];
 }
 
-const same = (a: readonly number[], b: readonly number[]) => a.join() === b.join();
+const same = (a: readonly (number | string)[], b: readonly (number | string)[]) => a.join() === b.join();
+
+/** Whether a word of the label is wider than the label, so it runs past its edge or breaks within itself. */
+function wordTooWide(text: HTMLElement): boolean {
+  const words = text.firstChild!;
+  const range = document.createRange();
+  return [...words.textContent!.matchAll(/\S+/g)].some((word) => {
+    range.setStart(words, word.index);
+    range.setEnd(words, word.index + word[0].length);
+    const lines = range.getClientRects();
+    // Stryker disable next-line EqualityOperator,ArithmeticOperator: a word within half a pixel of the label's width fits either way.
+    return lines.length > 1 || lines[0]!.width > text.clientWidth + 0.5;
+  });
+}
 
 const rovingKeys = new Set(["ArrowDown", "ArrowUp", "Home", "End"]);
 
@@ -271,12 +289,18 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
       }
     }
   }
+  // Labels hidden under More, or by hideLabels, measure nothing and are never set smaller.
+  const labels = [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")].filter((text) => text.clientWidth > 1);
+  const isSqueezed = (text: HTMLElement) => text.hasAttribute("data-ouro-navigation-rail-squeezed");
   return {
     hidden: indexes.filter((index) => !kept.has(index)),
-    // A label cut short, by its two lines or by a word too wide. A hidden one measures nothing.
+    // A label cut short: by its two lines, or by a word too wide even a size smaller, which breaks within it. (A word too
+    // wide at the label's own size sets it smaller first.)
     truncated: [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")]
-      .filter((text) => text.scrollHeight > text.clientHeight || text.scrollWidth > text.clientWidth)
+      .filter((text) => text.scrollHeight > text.clientHeight || (isSqueezed(text) && wordTooWide(text)))
       .map((text) => Number(text.dataset.ouroNavigationRailLabel)),
+    // A label with a word too wide is set a size smaller, and stays so while its words stay the same: a size smaller, it would measure as fitting.
+    squeezed: labels.filter((text) => isSqueezed(text) || wordTooWide(text)).map((text) => text.firstChild!.textContent!),
   };
 }
 
@@ -284,7 +308,7 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
 // changes size. Server HTML shows every item; the client measures what fits before it paints.
 function useFit(list: { readonly current: HTMLUListElement | null }, items: readonly NavigationRailEntry[], current: number): Fit {
   // Stryker disable next-line ArrayDeclaration: a place that is no item's moves and cuts nothing, as an empty list does.
-  const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [] });
+  const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [], squeezed: [] });
   // One not yet measured counts nothing until it shows, and the measure that follows corrects the fit before paint.
   const heights = useRef(new Map<string, number>());
   const measure = useRef<() => void>(null);
@@ -298,7 +322,11 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
       // Not laid out (hidden by the app): nothing to measure.
       if (element.getClientRects().length === 0) return;
       const next = measureFit(element, items, current, heights.current);
-      setFit((last) => (same(last.hidden, next.hidden) && same(last.truncated, next.truncated) ? last : next));
+      setFit((last) => {
+        const moved = !same(last.hidden, next.hidden) || !same(last.truncated, next.truncated);
+        // Stryker disable next-line LogicalOperator,ConditionalExpression,BooleanLiteral: a name left in `squeezed` sets no label smaller until a label of that name, as wide, comes back.
+        return moved || !same(last.squeezed, next.squeezed) ? next : last;
+      });
     };
     observer.current ??= new ResizeObserver(() => measure.current!());
     // Each element once: observing one again makes the observer report it again (WebKit does) and measure for nothing.
@@ -324,19 +352,18 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
 
 /** The rail's keys: Up and Down move along its shown stops, wrapping, and Home and End go to the ends. */
 function moveAlongRail(event: KeyboardEvent<HTMLUListElement>) {
-  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !rovingKeys.has(event.key)) return;
+  // ⌘↑ and ⌘↓ on a Mac are its Home and End.
+  const key = navigationKey(event);
+  // A modified key the rail leaves alone is null, which no roving key is.
+  if (!rovingKeys.has(key as string)) return;
   const stops = [...event.currentTarget.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-stop]")].filter((element) => element.getClientRects().length > 0);
   const at = stops.indexOf(event.target as HTMLElement);
   if (at === -1) return;
   event.preventDefault();
-  const to = event.key === "ArrowDown" ? at + 1 : event.key === "ArrowUp" ? at - 1 : event.key === "Home" ? 0 : stops.length - 1;
+  const to = key === "ArrowDown" ? at + 1 : key === "ArrowUp" ? at - 1 : key === "Home" ? 0 : stops.length - 1;
   stops[(to + stops.length) % stops.length]!.focus();
 }
 
-/** With a count, the item's name is its label and the count, "Activity, 5 new"; the badge itself is hidden. */
-function namedWithCount(text: string, count: number, countLabel: string): string | undefined {
-  return count > 0 ? `${text}, ${countLabel.replace("{count}", String(count))}` : undefined;
-}
 
 /** `element` in a Tooltip of `text` toward the page when `show`. */
 function withTip(show: boolean, text: string, element: ReactElement): ReactElement {
@@ -349,8 +376,12 @@ function withTip(show: boolean, text: string, element: ReactElement): ReactEleme
   );
 }
 
-/** An item's inside: the bar, the icon with its count, and the label. */
-function itemInside(text: string, icon: ReactNode, count: number, index: number | undefined, hideLabels: boolean) {
+/**
+ * An item's inside: the bar, the icon with its count, and the label. The item is named by its
+ * words: the label, then the count as `countLabel` speaks it, "Activity, 5 new", so its name starts
+ * with the words it shows. The badge itself is hidden.
+ */
+function itemInside(text: string, icon: ReactNode, count: number, countLabel: string, index: number | undefined, hideLabels: boolean, squeezed: boolean) {
   return (
     <>
       <span aria-hidden="true" data-ouro-part="indicator" className={indicatorClass} />
@@ -362,8 +393,13 @@ function itemInside(text: string, icon: ReactNode, count: number, index: number 
           </span>
         )}
       </span>
-      <span data-ouro-navigation-rail-label={index} className={hideLabels ? "sr-only" : labelClass}>
+      <span
+        data-ouro-navigation-rail-label={index}
+        data-ouro-navigation-rail-squeezed={squeezed || undefined}
+        className={hideLabels ? "sr-only" : labelClass[squeezed ? "squeezed" : "fits"]}
+      >
         {text}
+        {count > 0 && <span className={spokenCountClass}>, {countLabel.replace("{count}", String(count))}</span>}
       </span>
     </>
   );
@@ -380,6 +416,7 @@ function RailEntry({
   countLabel,
   hidden,
   truncated,
+  squeezed,
   separatorShown,
   onFocus,
 }: {
@@ -392,6 +429,7 @@ function RailEntry({
   countLabel: string;
   hidden: boolean;
   truncated: boolean;
+  squeezed: ReadonlySet<string>;
   separatorShown: boolean;
   onFocus: (key: string) => void;
 }) {
@@ -407,7 +445,6 @@ function RailEntry({
   const key = String(index);
   const shared = {
     "aria-current": isCurrent ? ("page" as const) : undefined,
-    "aria-label": namedWithCount(entry.label, count, countLabel),
     // "true", the only form shadcn's data-selected variant matches; Tailwind's matches any.
     "data-selected": isCurrent ? "true" : undefined,
     "data-ouro-navigation-rail-stop": key,
@@ -415,7 +452,7 @@ function RailEntry({
     onFocus: () => onFocus(key),
     className: itemClass[look],
   };
-  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, index, hideLabels);
+  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels, squeezed.has(entry.label));
   return (
     <li data-ouro-navigation-rail-entry={key} className={cn("flex shrink-0", hidden && "hidden")}>
       {withTip(
@@ -443,6 +480,7 @@ function MoreEntry({
   hideLabels,
   moreLabel,
   countLabel,
+  squeezed,
   isStop,
   onFocus,
 }: {
@@ -452,6 +490,7 @@ function MoreEntry({
   hideLabels: boolean;
   moreLabel: string;
   countLabel: string;
+  squeezed: boolean;
   isStop: boolean;
   onFocus: () => void;
 }) {
@@ -468,7 +507,6 @@ function MoreEntry({
             data-ouro-control="navigation-rail"
             data-ouro-part="more"
             data-ouro-navigation-rail-stop="more"
-            aria-label={namedWithCount(moreLabel, movedCount, countLabel)}
             tabIndex={isStop ? 0 : -1}
             onFocus={onFocus}
             // The trigger's own keys are off, since the arrows (which would open the menu) move along
@@ -484,8 +522,10 @@ function MoreEntry({
                 <circle cx="19" cy="12" r="1.75" />
               </svg>,
               movedCount,
+              countLabel,
               undefined,
               hideLabels,
+              squeezed,
             )}
           </button>,
         )}
@@ -582,6 +622,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   const fit = useFit(list, items, current);
   const hidden = new Set(fit.hidden);
   const truncated = new Set(fit.truncated);
+  const squeezed = new Set(fit.squeezed);
 
   // Roving tab stop: the item focused last, else the current one, else the first.
   const [focused, setFocused] = useState<string | null>(null);
@@ -610,12 +651,13 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
             countLabel={countLabel}
             hidden={hidden.has(index)}
             truncated={truncated.has(index)}
+            squeezed={squeezed}
             separatorShown={shownSeparatorSet.has(index)}
             onFocus={setFocused}
           />
         ))}
         {moved.length > 0 && (
-          <MoreEntry items={items} moved={moved} look={look} hideLabels={hideLabels} moreLabel={moreLabel} countLabel={countLabel} isStop={stop === "more"} onFocus={() => setFocused("more")} />
+          <MoreEntry items={items} moved={moved} look={look} hideLabels={hideLabels} moreLabel={moreLabel} countLabel={countLabel} squeezed={squeezed.has(moreLabel)} isStop={stop === "more"} onFocus={() => setFocused("more")} />
         )}
       </ul>
       {footer !== undefined && <div className={footerClass}>{footer}</div>}

@@ -25,6 +25,7 @@ expectTypeOf<{
 }>().toExtend<ConversationListProps>();
 expectTypeOf<{ id: "a"; title: "Trail crew"; subtitle: "Hikes"; preview: "Meet at eight"; time: "9:41"; unread: true; badges: null; avatar: false }>().toExtend<ConversationListItem>();
 expectTypeOf<{ id: "a"; title: "Design reviews"; where: "Lantern Labs"; icon: null; mark: "in 10 min"; avatar: ReactElement; section: "pinned" }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "halden"; title: "Halden"; nameTag: "AI agent" }>().toExtend<ConversationListItem>();
 expectTypeOf<{ id: "pinned"; title: "Pinned"; note: "your folder"; defaultOpen: false; open: true }>().toExtend<ConversationListSection>();
 expectTypeOf<{
   label: "Chats";
@@ -56,3 +57,8 @@ expectTypeOf<{ id: "a"; title: "Trail crew"; avatar: true }>().not.toExtend<Conv
 
 // @ts-expect-error label is required.
 createElement(ConversationList, { items, onSelect: () => {} });
+
+// A title as content needs its name as text; a text title may take one.
+expectTypeOf<{ id: "launch"; title: ReactElement; name: "Launch team"; where: ReactElement }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "ada"; title: "Ada Lovelace"; name: "Ada L." }>().toExtend<ConversationListItem>();
+expectTypeOf<{ id: "launch"; title: ReactElement }>().not.toExtend<ConversationListItem>();

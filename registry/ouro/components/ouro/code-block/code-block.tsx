@@ -5,6 +5,8 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { CopyButton } from "@/registry/ouro/components/ouro/copy-button/copy-button";
+import { Emoji, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 
 /** The props CodeBlock adds to the `<figure>` attributes it passes through. */
 export interface CodeBlockOwnProps {
@@ -36,6 +38,16 @@ export interface CodeBlockOwnProps {
    * so leave it off for code and turn it on for prose-like text such as a long command.
    */
   wrap?: boolean | undefined;
+  /**
+   * An image emoji catalogue: emoji characters in the code that it lists show as its pictures,
+   * 1em square, over the characters themselves, which stay in place unseen. The lines keep
+   * their length and wrapping, and copying or selecting gives the code's own characters.
+   * `:shortcode:` text stays text, since in code it means something else.
+   *
+   * @claim "1em square, over the characters themselves" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock emoji > draws the catalogue's emoji as 1em pictures over the code's own characters, without moving a line)
+   * @claim "copying or selecting gives the code's own characters" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock emoji > copies and selects the code's own characters, and leaves shortcode text as it is)
+   */
+  catalogue?: EmojiCatalogue | undefined;
   /** Layout only: margins, width, a maximum height that scrolls (`max-h-80`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
@@ -84,13 +96,37 @@ function useScrollableCode(): RefCallback<HTMLPreElement> {
 }
 
 /**
+ * The code with each emoji character the catalogue lists drawn as its picture: the characters
+ * stay in the text, unseen, so the line keeps its length and a selection copies them, and the
+ * picture sits over them, 1em square.
+ *
+ * @claim "so the line keeps its length" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock emoji > draws the catalogue's emoji as 1em pictures over the code's own characters, without moving a line)
+ * @claim "a selection copies them" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock emoji > copies and selects the code's own characters, and leaves shortcode text as it is)
+ */
+function CodeWithEmoji({ code, catalogue }: { code: string; catalogue: EmojiCatalogue }): ReactNode {
+  return splitEmojiText(code, catalogue, false).map((part, index) =>
+    typeof part === "string" ? (
+      part
+    ) : (
+      <span key={index} data-ouro-code-emoji="" className="relative">
+        <span className="text-transparent [forced-color-adjust:none]">{part.source}</span>
+        <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <Emoji item={part.item} skinTone={part.tone} play={false} alt="" className="size-[1em] align-baseline" />
+        </span>
+      </span>
+    ),
+  );
+}
+
+/**
  * Code or a command on a muted surface in the theme's monospace font, with a caption
  * and a button that copies it. The code shows exactly as given and scrolls sideways
  * rather than wrapping (unless `wrap`), and the block becomes a tab stop while it
  * overflows, so a keyboard can scroll it. Copying says "Copied" to screen readers.
  *
  * It does not color the code; to highlight it, set colors on the `data-language` block
- * from a highlighter of your own, or pass highlighted code to your own `<pre>`.
+ * from a highlighter of your own, or pass highlighted code to your own `<pre>`. With
+ * `catalogue`, the emoji characters in the code show as an image catalogue's pictures.
  *
  * Use `Kbd` instead for a key or shortcut in a sentence, `<code>` for a short name in
  * running text, and `CopyButton` for one value without a block around it.
@@ -110,6 +146,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
     copy = true,
     copyLabel = "Copy code",
     wrap,
+    catalogue,
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -184,7 +221,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
           wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre",
         )}
       >
-        <code className={cn("[font-family:inherit]", wrap ? "block" : "block w-max min-w-full")}>{code}</code>
+        <code className={cn("[font-family:inherit]", wrap ? "block" : "block w-max min-w-full")}>{catalogue ? <CodeWithEmoji code={code} catalogue={catalogue} /> : code}</code>
       </pre>
     </figure>
   );
