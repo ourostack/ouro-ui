@@ -952,7 +952,7 @@ describe("Composer expanded", () => {
     body.style.removeProperty("--ouro-duration-base");
     await userEvent.clear(textarea);
     await userEvent.click(expandButton()!);
-    expect(heights(body)).toEqual(["height"]);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
     await expect.poll(settled).toBe(true);
     // Collapsed again mid-way: it turns back from the height it shows, not from the full height, and ends at its own.
     const small = body.getBoundingClientRect().height;
@@ -965,7 +965,7 @@ describe("Composer expanded", () => {
     await expect.poll(settled).toBe(true);
     // A render that is no expand or collapse ends a change at once.
     await userEvent.click(expandButton()!);
-    expect(heights(body)).toEqual(["height"]);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
     await userEvent.keyboard("b");
     expect(settled()).toBe(true);
     body.style.removeProperty("--ouro-duration-base");
