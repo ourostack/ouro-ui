@@ -1312,3 +1312,31 @@ jobs:
           path: ${{ runner.temp }}/ci-timings.json
           if-no-files-found: ignore
           retention-days: 90
+  fail-fast:
+    # Fail fast on a pull request (scripts/ci-fail-fast.mjs): beside every other job, it reads this
+    # run attempt's jobs and, once one has failed and finished, cancels the run, so a red job frees
+    # the runners the run still holds rather than when its slowest job ends. The failed job keeps
+    # its failure conclusion, log and artifacts; the jobs the run had not finished report cancelled,
+    # and ci-budget does not run, so the pull request stays blocked. No job needs it, so where it is
+    # skipped (a merge-queue entry, a push to main, a dispatched run) every job runs as before. Its
+    # own failure never fails the run (continue-on-error), and it is the only job that may write to
+    # Actions.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci-fail-fast.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: node scripts/ci-fail-fast.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

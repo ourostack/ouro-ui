@@ -183,9 +183,40 @@ export function freshAttempt(jobs, attempt) {
   return jobs.filter((job) => job.conclusion !== "skipped").every((job) => job.run_attempt === undefined || Number(job.run_attempt) === Number(attempt));
 }
 
-/** Whether a run's ci-timings record shows every job but ci-budget passed or was skipped. */
+/** The fail-fast job (scripts/ci-fail-fast.mjs), which watches the run rather than doing its work. */
+const watcher = "fail-fast";
+
+/**
+ * Whether a run attempt's jobs (from the jobs API) all passed, so its work time can confirm
+ * another's: every job but ci-budget and fail-fast passed or was skipped. A skip then is one a green
+ * run makes too (install-github on a pull request, the install shards the plan leaves to the merge
+ * queue), since a job skipped for a failure or a cancel sits beside the job that failed or was
+ * cancelled. A failed or cancelled job ends its chain early, and the shorter work time would excuse
+ * a real regression: a flake that failed fast, motion-coverage skipped after ci failed, or a run
+ * fail-fast or a newer push cancelled.
+ */
+export function passedAttempt(jobs) {
+  const others = jobs.filter((job) => job.name !== self && job.name !== watcher);
+  return others.length > 0 && others.every((job) => job.conclusion === "success" || job.conclusion === "skipped");
+}
+
+/**
+ * The earlier evidence a regression needs, as `{ seconds, from }`: this run's earlier attempt
+ * (`attemptJobs(n)`), when this one ran its jobs afresh ("Re-run all jobs") and that one ran to its
+ * end with every job passed (`passedAttempt`), or else the pull request's previous full run (`previous()`), or none.
+ */
+export async function earlierWork({ attempt, jobs, graph, attemptJobs, previous }) {
+  if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
+    const before = await attemptJobs(Number(attempt) - 1);
+    if (passedAttempt(before)) return { seconds: criticalPath(before, graph, { work: true }).seconds, from: `attempt ${Number(attempt) - 1} of this run` };
+  }
+  const seconds = previous ? await previous() : null;
+  return seconds === null ? { seconds: null, from: null } : { seconds, from: "the pull request's previous full run" };
+}
+
+/** Whether a run's ci-timings record shows every job but ci-budget and fail-fast passed or was skipped. */
 export function recordPassed(record) {
-  const others = (record?.jobs ?? []).filter((job) => job.job !== self);
+  const others = (record?.jobs ?? []).filter((job) => job.job !== self && job.job !== watcher);
   return others.length > 0 && others.every((job) => job.conclusion === "success" || job.conclusion === "skipped");
 }
 
@@ -213,11 +244,13 @@ export function baseline(runs, count = budget.baselineRuns) {
 
 /**
  * The work time (`workPathSeconds`) of a pull request's previous full run: the newest of its earlier
- * runs' ci-timings records (newest first, null where a run kept none) that ran the full suite and
- * not as a fallback. Null when there is none.
+ * runs' ci-timings records (newest first, null where a run kept none) that ran the full suite, not
+ * as a fallback, and passed (`recordPassed`): a run with a failed job, one fail-fast did not cancel
+ * (a fork's pull request, a rate-limit stop, its deadline), ends its chain early, and its shorter
+ * work time would excuse a real regression. Null when there is none.
  */
 export function previousFull(records) {
-  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record.workPathSeconds === "number");
+  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record.workPathSeconds === "number" && recordPassed(record));
   return found ? found.workPathSeconds : null;
 }
 
@@ -284,16 +317,34 @@ async function timingsOf({ repository, token, runId }) {
   return artifact ? JSON.parse(unzipOne(await get(artifact.archive_download_url, token, { raw: true })).toString("utf8")) : null;
 }
 
-/** The work time of the pull request's previous full run (`previousFull`), from its branch's earlier runs. */
-async function previousRunWork({ repository, token, branch, runId }) {
-  const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&branch=${encodeURIComponent(branch)}&status=completed&per_page=10`, token);
+/** How many of a pull request's earlier runs that kept a ci-timings record are read, and over how many pages of its runs. */
+export const previousRuns = { records: 5, pages: 3, perPage: 20 };
+
+/**
+ * The work time of the pull request's previous full run (`previousFull`), from its branch's earlier
+ * runs, newest first (`runsPage(page)`, each run's record from `recordOf(runId)`): the newest of the
+ * latest `previousRuns.records` runs that kept a ci-timings record. A run that kept none, as one
+ * fail-fast or a newer push cancelled before ci-budget ran, is passed over rather than counted, so a
+ * few red pushes do not hide the full run before them; at most `previousRuns.pages` pages are read.
+ */
+export async function previousRunWorkFrom({ runsPage, recordOf, runId }, { records: keep, pages } = previousRuns) {
   const records = [];
-  for (const run of runs.filter((candidate) => String(candidate.id) !== String(runId)).slice(0, 5)) {
-    const record = await timingsOf({ repository, token, runId: run.id });
-    records.push(record);
-    if (previousFull([record]) !== null) break;
+  for (let page = 1; page <= pages && records.length < keep; page += 1) {
+    const runs = await runsPage(page);
+    for (const run of runs.filter((candidate) => String(candidate.id) !== String(runId))) {
+      const record = await recordOf(run.id);
+      if (record === null) continue;
+      records.push(record);
+      if (previousFull([record]) !== null || records.length >= keep) return previousFull(records);
+    }
+    if (runs.length < previousRuns.perPage) break;
   }
   return previousFull(records);
+}
+
+async function previousRunWork({ repository, token, branch, runId }) {
+  const runsPage = async (page) => (await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&branch=${encodeURIComponent(branch)}&status=completed&per_page=${previousRuns.perPage}&page=${page}`, token)).workflow_runs;
+  return previousRunWorkFrom({ runsPage, recordOf: (id) => timingsOf({ repository, token, runId: id }), runId });
 }
 
 /** How many of the latest runs the wall time's median and 90th percentile are taken over. */
@@ -335,8 +386,7 @@ async function main(argv) {
   }
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
   let mainBaseline = { seconds: null, values: [], workSeconds: null, workValues: [] };
-  // The earlier evidence a regression needs: this run's earlier attempt, when this one ran its jobs
-  // afresh ("Re-run all jobs"), or else the pull request's previous full run.
+  // The earlier evidence a regression needs (earlierWork).
   let earlier = { seconds: null, from: null };
   if (event === "pull_request" && !fallback) {
     try {
@@ -346,13 +396,13 @@ async function main(argv) {
     }
     if (path.seconds > limit) {
       try {
-        if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
-          const before = criticalPath(await fetchJobs({ repository, runId, attempt: Number(attempt) - 1, token }), graph, { work: true });
-          earlier = { seconds: before.seconds, from: `attempt ${Number(attempt) - 1} of this run` };
-        } else if (branch) {
-          const seconds = await previousRunWork({ repository, token, branch, runId });
-          if (seconds !== null) earlier = { seconds, from: "the pull request's previous full run" };
-        }
+        earlier = await earlierWork({
+          attempt,
+          jobs,
+          graph,
+          attemptJobs: (number) => fetchJobs({ repository, runId, attempt: number, token }),
+          previous: branch ? () => previousRunWork({ repository, token, branch, runId }) : null,
+        });
       } catch (error) {
         console.log(`::warning::The earlier attempt or the pull request's previous full run could not be read: ${error.message}`);
       }
