@@ -70,7 +70,7 @@ const wordsOfId = (id: string) =>
 
 /** The words that only reduce what the person exposes; an id with one stays an agent's. */
 const REDUCING = new Set(["off", "stop", "end", "disable", "mute"]);
-const ON = ["on", "start", "enable"];
+const ON = ["on", "start", "enable", "turn"];
 
 /** The canonical reserved id an action id means, or null: `share-screen` means `share`, `camera-off` nothing. */
 function reservedAs(id: string): string | null {
@@ -80,8 +80,8 @@ function reservedAs(id: string): string | null {
   if (has(...REDUCING)) return null;
   if (has("unmute") || (has("mic", "microphone") && has(...ON))) return "unmute";
   if (has("camera", "video") && only(["camera", "video", ...ON])) return "camera";
-  if (has("share", "present", "presenting")) return "share";
-  if (has("answer", "accept") || (has("pick") && has("up"))) return "answer";
+  if (has("share", "screenshare", "present", "presenting")) return "share";
+  if (has("answer", "accept", "pickup") || (has("pick") && has("up"))) return "answer";
   if (has("decline", "reject")) return "decline";
   if (has("admit") || (has("let") && has("in"))) return "admit";
   if (has("record", "recording", "transcribe", "transcription")) return "record";
