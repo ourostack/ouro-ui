@@ -43,7 +43,7 @@ test("bindAx needs a twin for every read and agent action, refuses one for a per
     { component: "CallControls", kind: "action", id: "unmute", effect: "others", personOnly: "You can't turn on the person's microphone, camera or screen; only they can.", refuseAs: "call unmute" },
     { component: "CallControls", kind: "action", id: "camera", effect: "others", personOnly: "You can't turn on the person's microphone, camera or screen; only they can.", refuseAs: "call camera" },
     { component: "CallControls", kind: "action", id: "share", effect: "others", personOnly: "You can't turn on the person's microphone, camera or screen; only they can.", refuseAs: "call share" },
-    { component: "CallControls", kind: "action", id: "captions", effect: "others", personOnly: "You can't turn on captions for the person, since others may see they are on; only they can.", refuseAs: "call captions on" },
+    { component: "CallControls", kind: "action", id: "captions", effect: "private", personOnly: "You can't turn the person's captions on or off; only they can.", refuseAs: "call captions on" },
     { component: "LiveCaptions", kind: "read", id: "captions", twin: "call captions <meeting>", consent: "listening", fields: ["speaker", "text", "at"], push: "call events <meeting> --stream live-transcript", trigger: "--on mention" },
   ]);
   const controls = { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>", "lower-hand": "call lower-hand <meeting>" };
