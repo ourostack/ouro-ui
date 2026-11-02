@@ -6,6 +6,8 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { fillTemplate } from "@/registry/ouro/components/ouro/carousel/carousel-styles";
@@ -249,7 +251,7 @@ interface ViewerProps {
  * showing that position at once (`choose`). A key with a modifier, or one typed into a field in a
  * caption, is left alone.
  */
-function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number) => void): void {
+function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number) => void, reduced: boolean): void {
   const { key } = event;
   if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -261,7 +263,7 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number)
     // announces where it settles. Right to left, the end is the most negative scrollLeft.
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
     const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
-    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    const behavior = reduced ? "instant" : "smooth";
     // Stryker disable next-line ArithmeticOperator: the position stops at the last image, so one past it shows the same.
     choose(key === "Home" ? 0 : viewport.children.length - 1);
     viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
@@ -736,6 +738,8 @@ function LightboxViewer({
  * @claim "The viewer grows from the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox motion > grows from the thumbnail that opened it, and only fades with reduced motion)
  */
 export function Lightbox(props: LightboxProps): JSX.Element {
+  const { motion } = useOuro();
+  const reduced = useReducedMotion();
   const {
     label,
     images,
@@ -865,7 +869,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             // viewer opened. A pressed thumbnail need not have had focus (Safari does not focus a
             // pressed button). A mosaic shows four: an image past them returns to the last, "+N".
             finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[mosaic ? Math.min(shown.current, 3) : shown.current]}
-            onKeyDown={(event) => stepWithKeys(event, choose.current!)}
+            onKeyDown={(event) => stepWithKeys(event, choose.current!, reduced)}
           >
             <LightboxViewer
               label={label}
@@ -906,9 +910,9 @@ export function Lightbox(props: LightboxProps): JSX.Element {
         setOwnOpen(true);
       }}
     >
-      {/* With reduced motion an animated image's thumbnail shows its still frame, chosen by the browser. */}
+      {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
       <picture className="contents">
-        {image.still !== undefined && <source media="(prefers-reduced-motion: reduce)" srcSet={image.still} />}
+        {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
         <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
       </picture>
       {more > 0 && (

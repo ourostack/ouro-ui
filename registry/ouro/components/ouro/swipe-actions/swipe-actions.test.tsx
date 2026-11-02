@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { SwipeActions, type SwipeActionsProps } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
@@ -525,6 +526,28 @@ describe("SwipeActions", () => {
     expect(offset(element)).toBe(-width(element, "trailing"));
     expect(asked).not.toHaveBeenCalled();
     expect(spies.remove).not.toHaveBeenCalled();
+  });
+
+  it("jumps to rest on release under OuroProvider's motion=\"reduced\", whatever the device says", async () => {
+    const element = await render(<OuroProvider motion="reduced">{row()}</OuroProvider>);
+    await swipe(element, -100, { hold: true });
+    wait(300);
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    await pointer(window, "pointerup", 100, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(element.hasAttribute("data-ouro-settling")).toBe(false);
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  it("springs to rest on release under OuroProvider's motion=\"full\", even when the device asks for reduced motion", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const element = await render(<OuroProvider motion="full">{row()}</OuroProvider>);
+    await swipe(element, -100, { hold: true });
+    wait(300);
+    await pointer(window, "pointerup", 100, 20);
+    expect(element.getAttribute("data-open")).toBe("trailing");
+    expect(element.hasAttribute("data-ouro-settling")).toBe(true);
+    await rest(element);
   });
 
   it("does not open toward a side with no actions", async () => {
