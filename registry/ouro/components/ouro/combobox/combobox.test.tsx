@@ -1019,6 +1019,8 @@ describe("Combobox keys", () => {
     expect(changed).not.toHaveBeenCalled();
     expect([...host.querySelectorAll("[data-ouro-combobox-chip]")].map((chip) => chip.textContent)).toEqual(["Basil"]);
     expect(host.querySelector("[data-ouro-combobox-chip-remove], [data-ouro-combobox-clear]")).toBeNull();
+    // A chip has no role that may carry aria-readonly; the input's readonly says it.
+    expect(host.querySelector("[data-ouro-combobox-chip][aria-readonly]")).toBeNull();
   });
 });
 

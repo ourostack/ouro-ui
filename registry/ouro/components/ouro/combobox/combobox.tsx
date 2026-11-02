@@ -919,7 +919,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
                   {(picked: Option[]) => (
                     <>
                       {picked.map((option) => (
-                        <BaseCombobox.Chip key={option.value} data-ouro-combobox-chip="" className={chipClass}>
+                        // Base UI marks a read-only field's chips aria-readonly, which a chip (no role) may
+                        // not carry; the input's readonly already says it.
+                        <BaseCombobox.Chip key={option.value} data-ouro-combobox-chip="" className={chipClass} render={(chip) => <div {...chip} aria-readonly={undefined} />}>
                           {option.media != null && (
                             <div data-ouro-combobox-chip-media="" className="-ms-1 flex shrink-0">
                               {option.media}
