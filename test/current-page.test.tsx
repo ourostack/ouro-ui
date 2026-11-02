@@ -19,7 +19,17 @@ afterEach(async () => {
   await page.viewport(414, 896);
 });
 
+/**
+ * Moves the real mouse off the test's page, so nothing a test mounts starts out under it. The
+ * mouse stays where the last test pressed (a phone drawer's Menu button), and WebKit sends a mouse
+ * move to whatever mounts under it: a current link hovered that way paints its hover background.
+ */
+async function parkPointer() {
+  await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
+}
+
 async function render(node: ReactNode, direction: "ltr" | "rtl", width = 1024) {
+  await parkPointer();
   await page.viewport(width, 768);
   document.documentElement.dir = direction;
   host = document.createElement("div");
@@ -100,6 +110,21 @@ for (const direction of ["ltr", "rtl"] as const) {
   test(`NavigationMenu keeps the ${direction} current-page bar distinct from its open panel`, async () => {
     await render(<NavigationMenu label="Main" items={[{ label: "Pricing", href: "/pricing" }, { label: "Recipes", links: [{ label: "Browse", href: "/recipes" }, { label: "Drafts", href: "/recipes/drafts" }] }]} currentPath="/pricing" />, direction);
     expectCurrentMark(page.getByRole("link", { name: "Pricing" }).element(), page.getByRole("button", { name: "Recipes" }).element(), direction);
+  });
+
+  test(`NavigationMenu keeps the ${direction} current-page mark when the pointer rested where the current link mounts`, async () => {
+    const menu = <NavigationMenu label="Main" items={[{ label: "Pricing", href: "/pricing" }, { label: "Recipes", href: "/recipes" }]} currentPath="/pricing" />;
+    await render(menu, direction);
+    const spot = page.getByRole("link", { name: "Pricing" }).element().getBoundingClientRect();
+    await act(async () => root!.unmount());
+    host!.remove();
+    // The pointer rests on the spot, as a press in the test before leaves it, and the menu mounts under it.
+    await userEvent.hover(document.documentElement, { position: { x: spot.left + spot.width / 2, y: spot.top + spot.height / 2 }, force: true });
+    await render(menu, direction);
+    // WebKit hovers what mounts under a resting pointer from a timer of its own (up to 250ms), which
+    // nothing in the page can wait on; past it, a pointer left there would have hovered the link.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expectCurrentMark(page.getByRole("link", { name: "Pricing" }).element(), page.getByRole("link", { name: "Recipes" }).element(), direction);
   });
 
   test(`NavigationMenu marks the current link inside its ${direction} panel`, async () => {
