@@ -27,7 +27,7 @@ async function render(node: ReactNode) {
   };
 }
 
-const base = { reason: "Asked you", title: "Design review", from: "Ada Lovelace" } as const;
+const base = { reason: "Asked you", title: "Design review", from: "Ana Lind" } as const;
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -49,7 +49,7 @@ describe("AttentionCard", () => {
     );
     expect(card.tagName).toBe("ARTICLE");
     await expect.element(page.getByRole("article", { name: "Asked you Design review" })).toBeVisible();
-    expect(card.textContent).toBe("Asked youDesign review9:41Ada Lovelace: Can you look at the second draft before noon?");
+    expect(card.textContent).toBe("Asked youDesign review9:41Ana Lind: Can you look at the second draft before noon?");
   });
 
   it("shows the reason in a soft badge in the tone's color", async () => {
@@ -74,7 +74,7 @@ describe("AttentionCard", () => {
         Can you review?
       </AttentionCard>,
     );
-    await userEvent.click(page.getByRole("button", { name: "Ada Lovelace: Can you review?" }));
+    await userEvent.click(page.getByRole("button", { name: "Ana Lind: Can you review?" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
     const open = card.querySelector<HTMLButtonElement>('[data-ouro-part="open"]')!;
     expect(open.type).toBe("button");
@@ -139,7 +139,7 @@ describe("AttentionCard", () => {
         Hi
       </AttentionCard>,
     );
-    expect(card.textContent).toBe("Asked youDesign reviewAda Lovelace: Hi");
+    expect(card.textContent).toBe("Asked youDesign reviewAna Lind: Hi");
   });
 
   it("renders in server HTML and hydrates without a warning", async () => {
@@ -196,14 +196,14 @@ describe("AttentionCard development messages", () => {
   ])("names the fix for %s", async (_name, extra, problem) => {
     const props = { ...base, children: "Hi", ...extra } as unknown as AttentionCardProps;
     await render(<AttentionCard {...props} />);
-    expect(warn).toHaveBeenCalledWith(`[ouro-ui] AttentionCard: ${problem}. Fix: <AttentionCard reason="Asked you" title="Design review" from="Ada">.`);
+    expect(warn).toHaveBeenCalledWith(`[ouro-ui] AttentionCard: ${problem}. Fix: <AttentionCard reason="Asked you" title="Design review" from="Ana">.`);
   });
 
   it.each([
     ["a renamed tone", { tone: "danger" }, 'tone="danger" is not a tone', '<AttentionCard tone="destructive">'],
     ["an unknown tone", { tone: "pink" }, 'tone="pink" is not a tone; use "primary", "secondary", "destructive", "success", "warning"', '<AttentionCard tone="primary">'],
-    ["message", { message: "Hi" }, "message is not a prop; what they wrote is the children", '<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>'],
-    ["text", { text: "Hi" }, "text is not a prop; what they wrote is the children", '<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>'],
+    ["message", { message: "Hi" }, "message is not a prop; what they wrote is the children", '<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>'],
+    ["text", { text: "Hi" }, "text is not a prop; what they wrote is the children", '<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>'],
     ["onClick", { onClick: () => {} }, "onClick is not a prop; the message opens with onOpen", "<AttentionCard onOpen={open}>"],
   ])("names the fix for %s prop", async (_name, extra, problem, fix) => {
     const props = { ...base, children: "Hi", ...extra } as unknown as AttentionCardProps;

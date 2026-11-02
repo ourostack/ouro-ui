@@ -25,7 +25,7 @@ it("gives each ConversationList row and section header a target at least 44px ta
         density="compact"
         items={[
           { id: "trail", title: "Trail crew", avatar: false },
-          { id: "ada", title: "Ada Lovelace", section: "pinned" },
+          { id: "ana", title: "Ana Lind", section: "pinned" },
         ]}
         sections={[{ id: "pinned", title: "Pinned" }]}
         onSelect={() => {}}

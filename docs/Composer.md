@@ -24,7 +24,7 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
   sendDisabledReason={offline ? "You're offline. Sending resumes when you reconnect." : undefined}
 />
 <Composer
-  label="Reply to Ada"
+  label="Reply to Ana"
   quote={quoted && { author: quoted.author, excerpt: quoted.text, onRemove: () => setQuoted(undefined), onActivate: () => scrollTo(quoted.id) }}
   onSend={(text) => { send(text, quoted?.id); setQuoted(undefined); }}
 />
@@ -82,7 +82,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `enterToSend`: Not a prop. Ouro UI uses `sendOn`: `<Composer sendOn="mod-enter">`.
 - `loading`: Not a prop. Ouro UI uses `sending`: `<Composer sending>`.
 - `onSubmit`: Not a prop. Sending calls `onSend`: `<Composer onSend={(text) => send(text)}>`.
-- `replyTo`: Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>`.
+- `replyTo`: Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>`.
 - `sendDisabled`: Not a prop. Ouro UI uses `sendDisabledReason`: `<Composer sendDisabledReason="Sending is off">`.
 - `submitOnEnter`: Not a prop. Ouro UI uses `sendOn`: `<Composer sendOn="mod-enter">`.
 
@@ -102,13 +102,13 @@ The message a reply quotes, for Composer's `quote`: who wrote it and a line of w
 
 ```ts
 interface ComposerQuote {
-  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  /** Who wrote the quoted message: "Ana Lind", or "You". */
   author: string;
   /**
    * What they wrote, or its start. One line shows, cut with an ellipsis.
    */
   excerpt: string;
-  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Removes the quote: called by the remove button, and by Escape while the box is empty. Set `quote` to `undefined` in it. */
   onRemove: () => void;
