@@ -401,7 +401,9 @@ function useActiveInView(activeId: string | undefined): void {
     const style = getComputedStyle(list);
     const top = list.scrollTop + parseFloat(style.scrollPaddingTop);
     const bottom = list.scrollTop + list.clientHeight - parseFloat(style.scrollPaddingBottom);
+    // Stryker disable next-line EqualityOperator: at the edge exactly, the scroll would move by 0.
     if (option.offsetTop < top) list.scrollTop -= top - option.offsetTop;
+    // Stryker disable next-line EqualityOperator: at the edge exactly, the scroll would move by 0.
     else if (option.offsetTop + option.offsetHeight > bottom) list.scrollTop += option.offsetTop + option.offsetHeight - bottom;
   }, [activeId]);
 }

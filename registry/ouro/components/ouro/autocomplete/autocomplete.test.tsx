@@ -629,6 +629,43 @@ describe("Autocomplete", () => {
     expect(document.scrollingElement!.scrollTop).toBe(pageTop);
   });
 
+  it("scrolls its list just far enough to show the active suggestion whole, at each arrow key", async () => {
+    const many = Array.from({ length: 30 }, (_, index) => ({ value: `p${index}`, label: `Person ${index + 1}` }));
+    const { control } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: () => many }]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    await type(control, "@");
+    await expect.poll(() => options().length).toBe(30);
+    const list = listbox()!;
+    const style = getComputedStyle(list);
+    // Where the active suggestion sits in the list's view, inside its scroll padding.
+    const placement = () => {
+      const option = options().find((element) => element.getAttribute("aria-selected") === "true")!;
+      return {
+        top: option.offsetTop - list.scrollTop - parseFloat(style.scrollPaddingTop),
+        bottom: list.clientHeight - parseFloat(style.scrollPaddingBottom) - (option.offsetTop + option.offsetHeight - list.scrollTop),
+      };
+    };
+    // Down past the list's end, then back up past its start: each move shows the suggestion whole,
+    // and one that was out of view lands right at the edge it came in from.
+    for (let step = 1; step <= 15; step++) {
+      await userEvent.keyboard("{ArrowDown}");
+      await expect.poll(() => placement().bottom).toBeGreaterThanOrEqual(-1);
+      expect(placement().top).toBeGreaterThanOrEqual(-1);
+    }
+    expect(list.scrollTop).toBeGreaterThan(0);
+    expect(Math.abs(placement().bottom)).toBeLessThanOrEqual(1);
+    for (let step = 1; step <= 12; step++) {
+      await userEvent.keyboard("{ArrowUp}");
+      await expect.poll(() => placement().top).toBeGreaterThanOrEqual(-1);
+      expect(placement().bottom).toBeGreaterThanOrEqual(-1);
+    }
+    expect(list.scrollTop).toBeGreaterThan(0);
+    expect(Math.abs(placement().top)).toBeLessThanOrEqual(1);
+  });
+
   it("warns when its open list renders outside every landmark of a page that has a main", async () => {
     const main = document.body.appendChild(document.createElement("main"));
     mounted.push(main);
