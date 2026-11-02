@@ -1,4 +1,4 @@
-export { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, READ_CONSENTS, RESERVED_PERSON_ONLY };
+export { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, isReservedPersonOnly, READ_CONSENTS, RESERVED_PERSON_ONLY };
 export type { AxAction, AxAgentAction, AxBindings, AxPersonOnlyAction, AxRead, ComponentAx, ReadConsent, ReadTwin, Rendered, UiEntry };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -12,7 +12,12 @@ import type { Effect } from "./effects.ts";
  * the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go
  * into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component
  * whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports
- * one only when it has agent reads or actions of its own.
+ * one only when it has agent reads or actions of its own. A component imports the kit as
+ * `import { defineComponentAx } from "@/registry/ouro/ax/component";`, which the shadcn CLI rewrites to the app's lib
+ * alias (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it.
+ *
+ * @claim "which the shadcn CLI rewrites to the app's lib alias" scripts/install-check.test.mjs verify:testExists(scripts/install-check.test.mjs::an installed file must equal its source once import paths are mapped to the app's aliases)
+ * @claim "its item brings `ax-component` with it" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::a component that imports the ax kit lists the ax item in its registryDependencies)
  *
  * @claim "each bound to the CLI command that does the same" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries)
  * @claim "the X-ray checks every twin from outside" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow)
@@ -29,13 +34,17 @@ type ReadConsent = (typeof READ_CONSENTS)[number];
 const MEDIA = "You can't turn on the person's microphone, camera or screen; only they can.";
 
 /**
- * Action ids that are the person's own, whatever the component: their microphone (`unmute`), camera (`camera`,
- * `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in from the lobby
- * (`admit`), and what is recorded (`record`). Each maps to the reason to declare it with; declaring one `agent: true`
- * throws, and the X-ray fails a `ui` entry with one of these ids that is not person-only.
+ * The canonical ids of the actions that are the person's own, whatever the component: their microphone (`unmute`),
+ * camera (`camera`, `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in
+ * from the lobby (`admit`), and what is recorded (`record`), each with the reason to declare it with. Aliases count too
+ * (`isReservedPersonOnly`): declaring one `agent: true` throws, and the X-ray fails a `ui` entry with one that is not
+ * person-only. The reverse stays an agent's, since an agent may always reduce what the person exposes: `mute`,
+ * `camera-off`, `stop-share`.
  *
+ * @claim "each with the reason to declare it with" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::a reserved action is always the person's: declaring it agent: true throws with its reason)
  * @claim "declaring one `agent: true` throws" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::a reserved action is always the person's: declaring it agent: true throws with its reason)
- * @claim "the X-ray fails a `ui` entry with one of these ids" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a call tool that breaks the component claims fails each, with what it saw)
+ * @claim "the X-ray fails a `ui` entry with one that is not" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a call tool that breaks the component claims fails each, with what it saw)
+ * @claim "an agent may always reduce what the person exposes" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's)
  */
 const RESERVED_PERSON_ONLY: Readonly<Record<string, string>> = Object.freeze({
   unmute: MEDIA,
@@ -47,6 +56,49 @@ const RESERVED_PERSON_ONLY: Readonly<Record<string, string>> = Object.freeze({
   admit: "You can't admit anyone from the lobby for the person; only they can.",
   record: "You can't start recording or transcription for the person; only they can.",
 });
+
+// An id's words, lower case: `shareScreen`, `share_screen` and `Share Screen` become `share screen`.
+const wordsOfId = (id: string) =>
+  id
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\bun mute\b/g, "unmute")
+    .split(" ");
+
+/** The words that only reduce what the person exposes; an id with one stays an agent's. */
+const REDUCING = new Set(["off", "stop", "end", "disable", "mute"]);
+const ON = ["on", "start", "enable"];
+
+/** The canonical reserved id an action id means, or null: `share-screen` means `share`, `camera-off` nothing. */
+function reservedAs(id: string): string | null {
+  const w = wordsOfId(id);
+  const has = (...words: string[]) => words.some((x) => w.includes(x));
+  const only = (allowed: readonly string[]) => w.every((x) => allowed.includes(x));
+  if (has(...REDUCING)) return null;
+  if (has("unmute") || (has("mic", "microphone") && has(...ON))) return "unmute";
+  if (has("camera", "video") && only(["camera", "video", ...ON])) return "camera";
+  if (has("share", "present", "presenting")) return "share";
+  if (has("answer", "accept") || (has("pick") && has("up"))) return "answer";
+  if (has("decline", "reject")) return "decline";
+  if (has("admit") || (has("let") && has("in"))) return "admit";
+  if (has("record", "recording", "transcribe", "transcription")) return "record";
+  return null;
+}
+
+/**
+ * Whether an action id is reserved for the person, by meaning rather than spelling: `Unmute`, `mic-on`, `share-screen`,
+ * `startRecording` and `pick_up` are, and so is a camera or video turned on; an id that only reduces what the person
+ * exposes (with off, stop, end, disable or mute in it, such as `mute`, `camera-off` or `stop-share`) is not. The
+ * declaration and the X-ray both ask it.
+ *
+ * @claim "by meaning rather than spelling" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's)
+ */
+function isReservedPersonOnly(id: string): boolean {
+  return reservedAs(id) !== null;
+}
 
 /** Something an agent may read from the component, with the fields its twin's `--json` carries. */
 interface AxRead {
@@ -132,7 +184,7 @@ const oneLine = (v: unknown): v is string => typeof v === "string" && v.trim() !
 /**
  * Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known
  * consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither,
- * and a reserved id (`RESERVED_PERSON_ONLY`) never `agent: true`. A problem throws one line with its fix.
+ * and a reserved id (`isReservedPersonOnly`) never `agent: true`. A problem throws one line with its fix.
  *
  * @example
  * const mediaTileAx = defineComponentAx({
@@ -183,7 +235,7 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
     if (raw.agent !== undefined && raw.personOnly !== undefined) throw fail(thing, "it says both agent and personOnly", "keep one: agent: true, or personOnly with its reason");
     if (raw.personOnly !== undefined && !oneLine(raw.personOnly)) throw fail(thing, "personOnly needs a one-line reason", 'personOnly: "You can\'t <do it> for the person; only they can."');
     if (raw.personOnly === undefined && raw.agent !== true) throw fail(thing, "it says neither agent: true nor personOnly", 'add agent: true, or personOnly: "You can\'t <do it> for the person; only they can."');
-    if (raw.agent === true && Object.hasOwn(RESERVED_PERSON_ONLY, a.id)) throw fail(thing, "it is the person's own, so it is never an agent action", `personOnly: ${JSON.stringify(RESERVED_PERSON_ONLY[a.id])}`);
+    if (raw.agent === true && isReservedPersonOnly(a.id)) throw fail(thing, "it is the person's own, so it is never an agent action", `personOnly: ${JSON.stringify(RESERVED_PERSON_ONLY[reservedAs(a.id)!])}`);
   }
   return Object.freeze({ component: name, reads: Object.freeze([...def.reads]), actions: Object.freeze([...def.actions]) });
 }

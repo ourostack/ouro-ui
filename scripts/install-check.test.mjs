@@ -151,6 +151,14 @@ test("an installed file must equal its source once import paths are mapped to th
   write(root, "registry/ouro/components/ouro/c/c.tsx", 'export const load = () => Promise.all([import("@/registry/ouro/components/ouro/b/b"), import( "@/registry/ouro/lib/ouro/cn")]);\n');
   write(dir, "src/components/ouro/c/c.tsx", 'export const load = () => Promise.all([import("~/components/ouro/b/b"), import( "~/lib/ouro/cn")]);\n');
   assert.deepEqual(checkSources(dir, root, aliases), []);
+  // A component's agent side comes from the ax kit, which installs under the lib alias: shadcn rewrites
+  // `@/registry/ouro/ax/component` to `~/lib/ouro/ax/component`.
+  write(root, "registry/ouro/components/ouro/d/d.tsx", 'import { defineComponentAx } from "@/registry/ouro/ax/component";\nexport const d = defineComponentAx;\n');
+  write(dir, "src/components/ouro/d/d.tsx", 'import { defineComponentAx } from "~/lib/ouro/ax/component";\nexport const d = defineComponentAx;\n');
+  assert.deepEqual(checkSources(dir, root, aliases), []);
+  write(dir, "src/components/ouro/d/d.tsx", 'import { defineComponentAx } from "~/components/ax/component";\nexport const d = defineComponentAx;\n');
+  assert.match(checkSources(dir, root, aliases).join("\n"), /d\.tsx differs from registry\/ouro\/components\/ouro\/d\/d\.tsx at line 1/);
+  write(dir, "src/components/ouro/d/d.tsx", 'import { defineComponentAx } from "~/lib/ouro/ax/component";\nexport const d = defineComponentAx;\n');
   write(dir, "src/components/ouro/a/a.tsx", 'import { cn } from "~/lib/ouro/cn";\nimport { B } from "~/components/ouro/b/b";\nexport const a = [B, cn];\n');
   assert.deepEqual(checkSources(dir, root, aliases), [
     'src/components/ouro/a/a.tsx differs from registry/ouro/components/ouro/a/a.tsx at line 3: "export const a = [cn, B];" became "export const a = [B, cn];"',

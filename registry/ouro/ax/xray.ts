@@ -11,7 +11,7 @@ import { homedir } from "node:os";
 import { basename, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
-import { RESERVED_PERSON_ONLY, type UiEntry } from "./component.ts";
+import { isReservedPersonOnly, type UiEntry } from "./component.ts";
 import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
 import { isWait, validateWait } from "./wait.ts";
 import { checkWorkEvent } from "./work-event.ts";
@@ -896,11 +896,12 @@ async function checkCli(ctx: Context) {
   // The follow each listening read answered with, the read's words and fields, for the consented reads.
   const resumes = new Map<UiEntry, { resume: string; twin: string[]; fields: readonly string[] }>();
   for (const e of ui) {
-    if (e.kind === "action" && Object.hasOwn(RESERVED_PERSON_ONLY, e.id)) {
+    if (e.kind === "action" && isReservedPersonOnly(e.id)) {
       const theirs = typeof e.personOnly === "string";
       rec.add("ui.reserved-person-only", label(e), theirs ? "pass" : "fail", theirs ? "person-only" : `"${e.id}" is the person's own, and this entry is not person-only`);
     }
     if (e.kind === "action" && typeof e.personOnly === "string" && typeof e.refuseAs !== "string") rec.add("ui.person-only-refuses", label(e), "fail", "it has no refuseAs words, so nothing shows that the words an agent might try refuse");
+    if (e.kind === "action" && typeof e.personOnly === "string" && typeof e.twin === "string") rec.add("ui.person-only-refuses", label(e), "fail", `it is person-only but has a twin, \`${e.twin}\`, so an agent could do it`);
     for (const twin of [e.twin, e.push].filter((t): t is string => typeof t === "string")) {
       const cmd = commandOf(wordsOf(twin));
       const surface = `${label(e)}${twin === e.push ? " stream" : ""}`;

@@ -514,6 +514,9 @@ test("a call tool that breaks the component claims fails each, with what it saw"
     { component: "CallControls", kind: "action" },
     { component: "CallControls", kind: "action", id: "hover", effect: "private", personOnly: "You can't point for the person; only they can.", refuseAs: "call hover" },
     { component: "RingCard", kind: "action", id: "answer", effect: "others", twin: "call leave <meeting>" },
+    { component: "Presenter", kind: "action", id: "shareScreen", effect: "others", twin: "call leave <meeting>" },
+    { component: "Presenter", kind: "action", id: "stop-share", effect: "others", twin: "call leave <meeting>" },
+    { component: "Lobby", kind: "action", id: "let-in", effect: "others", personOnly: "You can't admit anyone from the lobby for the person; only they can.", twin: "call leave <meeting>", refuseAs: "call let-in" },
     { component: "Lobby", kind: "action", id: "admit", effect: "others", personOnly: "You can't admit anyone from the lobby for the person; only they can." },
     { component: "MediaTile", kind: "read", id: "elsewhere", twin: "participants m9", consent: "none", fields: ["name"] },
     { component: "MediaTile", kind: "read", id: "bare", twin: "participants m1", consent: "none" },
@@ -528,9 +531,10 @@ test("a call tool that breaks the component claims fails each, with what it saw"
   assert.match(failingNotes(report, "ui.listening-needs-yes")[0]!, /not an outcome, so it may be what people say$/);
   assert.match(failingNotes(report, "cli.listening-push-filtered")[0]!, /; it delivered text, at; no refused outcome or error; it names no --on$/);
   assert.equal(failingNotes(report, "ui.person-only-refuses")[1], 'CallControls action hover: help --json lists no personOnly "hover"');
-  assert.equal(failingNotes(report, "ui.person-only-refuses")[2], "Lobby action admit: it has no refuseAs words, so nothing shows that the words an agent might try refuse");
-  assert.deepEqual(failingNotes(report, "ui.reserved-person-only"), ['RingCard action answer: "answer" is the person\'s own, and this entry is not person-only']);
-  assert.deepEqual(verdicts(report, "ui.reserved-person-only"), ["pass", "pass", "pass", "fail", "pass"]);
+  assert.ok(failingNotes(report, "ui.person-only-refuses").includes("Lobby action admit: it has no refuseAs words, so nothing shows that the words an agent might try refuse"));
+  assert.deepEqual(failingNotes(report, "ui.reserved-person-only"), ['RingCard action answer: "answer" is the person\'s own, and this entry is not person-only', 'Presenter action shareScreen: "shareScreen" is the person\'s own, and this entry is not person-only']);
+  assert.deepEqual(verdicts(report, "ui.reserved-person-only"), ["pass", "pass", "pass", "fail", "fail", "pass", "pass"]);
+  assert.ok(failingNotes(report, "ui.person-only-refuses").includes("Lobby action let-in: it is person-only but has a twin, `call leave <meeting>`, so an agent could do it"));
   assert.deepEqual(failingNotes(report, "ui.read-fields").map((n) => n.replace(/;.*/, "")), ["MediaTile read participant: `call participants m1 --json` has no connection", "MediaTile read elsewhere: `call participants m9 --json` → exit 1", "MediaTile read pinned: `call pin p1 --json` has no name"]);
   assert.equal(verdictOf(report, "ui.read-fields", "MediaTile read bare"), "pass");
   assert.deepEqual(verdicts(report, "cli.listening-cursor"), ["skip"]);

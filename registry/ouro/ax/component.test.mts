@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, READ_CONSENTS, RESERVED_PERSON_ONLY, type AxAction } from "./component.ts";
+import { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, isReservedPersonOnly, READ_CONSENTS, RESERVED_PERSON_ONLY, type AxAction } from "./component.ts";
 import { liveCaptionsAx, mediaTileAx, callControlsAx, ui } from "./fixtures/call-components.mts";
 
 const throwsLine = (fn: () => unknown, line: string) => assert.throws(fn, (e: Error) => e.message === line);
@@ -81,4 +81,27 @@ test("expectAxRendered finds each declared action's control by data-ax-action, a
   assert.doesNotThrow(() => expectAxRendered(callControlsAx, rendered(["raise-hand"]), { ids: ["raise-hand"] }));
   throwsLine(() => expectAxRendered(callControlsAx, rendered([]), { ids: ["wave"] }), 'CallControls: it declares no action "wave". Fix: check one of "mute", "leave", "raise-hand", "lower-hand", "unmute", "camera", "share", "captions".');
   throwsLine(() => expectAxRendered(liveCaptionsAx, rendered([]), { ids: ["toggle"] }), 'LiveCaptions: it declares no action "toggle". Fix: check one of none.');
+});
+
+test("reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's", () => {
+  const reserved = {
+    unmute: ["unmute", "Unmute", "UNMUTE", "un-mute", "mic-on", "micOn", "microphone_on", "start-mic", "enable microphone"],
+    camera: ["camera", "Camera", "camera-on", "cameraOn", "video", "video-on", "start-video", "enable_camera", "Video"],
+    share: ["share", "Share", "share-screen", "shareScreen", "screen share", "screen_share", "start-share", "present", "start-presenting"],
+    answer: ["answer", "Answer", "accept", "accept-call", "pick-up", "pickUp", "answerCall"],
+    decline: ["decline", "Decline", "reject", "reject-call", "declineCall"],
+    admit: ["admit", "Admit", "let-in", "letIn", "admit-from-lobby"],
+    record: ["record", "Record", "recording", "start-recording", "startRecording", "transcribe", "transcription", "start_transcription"],
+  };
+  for (const [canonical, ids] of Object.entries(reserved)) {
+    for (const id of ids) {
+      assert.equal(isReservedPersonOnly(id), true, id);
+      throwsLine(() => defineComponentAx({ component: "RingCard", reads: [], actions: [{ id, summary: "S.", effect: "others", agent: true }] }), `RingCard action "${id}": it is the person's own, so it is never an agent action. Fix: personOnly: ${JSON.stringify(RESERVED_PERSON_ONLY[canonical])}.`);
+    }
+  }
+  const agents = ["mute", "Mute", "mute-all", "camera-off", "cameraOff", "video-off", "stop-share", "stopSharing", "end-share", "stop-recording", "stopTranscription", "disable-camera", "mic-off", "end-call", "leave", "raise-hand", "lower-hand", "pin", "camera-flip", "video-settings", "mic", "let"];
+  for (const id of agents) {
+    assert.equal(isReservedPersonOnly(id), false, id);
+    assert.doesNotThrow(() => defineComponentAx({ component: "CallControls", reads: [], actions: [{ id, summary: "S.", effect: "others", agent: true }] }), id);
+  }
 });

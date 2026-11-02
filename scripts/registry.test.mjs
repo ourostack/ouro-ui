@@ -151,6 +151,16 @@ test("the generator fails when a runtime file imports test tooling", () => {
   assert.throws(() => buildRegistry(copy), /button is a runtime item but imports test tooling: vitest/);
 });
 
+test("a component that imports the ax kit lists the ax item in its registryDependencies", () => {
+  const copy = scratchDir("ouro-registry-ax-");
+  for (const path of ["registry", "docs", "package.json"]) copyTree(join(root, path), join(copy, path));
+  const button = join(copy, "registry/ouro/components/ouro/button/button.tsx");
+  writeFileSync(button, `${readFileSync(button, "utf8")}\nimport { defineComponentAx } from "@/registry/ouro/ax/component";\nexport const buttonAx = defineComponentAx;\n`);
+  const built = buildRegistry(copy).items.find((entry) => entry.name === "button");
+  assert.ok(built.registryDependencies.includes("ourostack/ouro-ui/ax-component"), JSON.stringify(built.registryDependencies));
+  assert.equal(item("ax-component").files[0].target, "@lib/ouro/ax/component.ts");
+});
+
 test("each -tests item's description names the kinds of file it ships", () => {
   assert.match(item("lib-cn-tests").description, /^Optional: the Vitest browser tests for lib-cn,/);
   assert.match(item("text-tests").description, /^Optional: the Vitest browser tests, type tests, stories and Playwright spec for text,/);
