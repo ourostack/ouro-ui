@@ -66,13 +66,15 @@ function scrollNow(y: number) {
   flushSync(() => dispatchEvent(new Event("scroll")));
 }
 
-const closed = (bars: HTMLElement) => bars.hasAttribute("data-closed");
+const closed = (bars: HTMLElement) => bars.getAttribute("data-closed") === "";
 
 describe("StackedLayout", () => {
   it("puts the navbar above the page's main landmark, at least as tall as the screen", async () => {
     const { root, main } = await render(<StackedLayout navbar={navbar}>Page content</StackedLayout>);
     expect(root.getBoundingClientRect().height).toBeGreaterThanOrEqual(innerHeight);
     expect(main.textContent).toBe("Page content");
+    expect(root.querySelector("[data-ouro-stacked-layout-toolbar]")).toBeNull();
+    expect(root.querySelector("section")).toBeNull();
     const bar = root.querySelector('[data-ouro="navbar"]')!.getBoundingClientRect();
     expect(bar.top).toBe(0);
     expect(Math.round(bar.width)).toBe(innerWidth);
@@ -219,10 +221,10 @@ describe("StackedLayout", () => {
     expect(Math.round(tools.getBoundingClientRect().width)).toBe(innerWidth);
     expect(tools.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().bottom);
     expect(main.getBoundingClientRect().top).toBeGreaterThanOrEqual(tools.getBoundingClientRect().bottom);
-    scrollTo(0, 800);
-    await expect.poll(() => scrollY).toBe(800);
+    scrollNow(800);
     expect(bar.getBoundingClientRect().top).toBe(0);
     expect(tools.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().bottom);
+    expect(bars.hasAttribute("data-closed")).toBe(false);
   });
 
   it("lets the navbar and toolbar scroll away with the page with navbarBehavior static", async () => {
@@ -233,12 +235,11 @@ describe("StackedLayout", () => {
     );
     expect(bars.getAttribute("data-behavior")).toBe("static");
     expect(getComputedStyle(bars).position).toBe("static");
-    scrollTo(0, 800);
-    await expect.poll(() => scrollY).toBe(800);
+    scrollNow(800);
     expect(root.querySelector('[data-ouro="navbar"]')!.getBoundingClientRect().top).toBe(-800);
     expect(bars.getBoundingClientRect().bottom).toBeLessThan(0);
     expect(bars.hasAttribute("data-open")).toBe(false);
-    expect(closed(bars)).toBe(false);
+    expect(bars.hasAttribute("data-closed")).toBe(false);
   });
 
   it("names the toolbar's landmark with toolbarLabel", async () => {
@@ -284,7 +285,7 @@ describe("StackedLayout with navbarBehavior auto-hide", () => {
     const { bars } = await render(layout());
     expect(warn).not.toHaveBeenCalled();
     expect(bars.getAttribute("data-behavior")).toBe("auto-hide");
-    expect(bars.hasAttribute("data-open")).toBe(true);
+    expect(bars.getAttribute("data-open")).toBe("");
     scrollNow(800);
     await expectMotion(bars, { stem: "stacked-layout", state: "data-closed", properties: { translate: duration() }, reduced: false });
     expect(bars.getBoundingClientRect().bottom).toBeLessThanOrEqual(0);
@@ -382,6 +383,6 @@ describe("StackedLayout with navbarBehavior auto-hide", () => {
     scrollNow(1000);
     await view.rerender(layout());
     expect(closed(view.bars)).toBe(false);
-    expect(view.bars.hasAttribute("data-open")).toBe(true);
+    expect(view.bars.getAttribute("data-open")).toBe("");
   });
 });

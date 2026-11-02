@@ -64,8 +64,6 @@ export interface StackedLayoutProps {
   sticky?: { 'Use <StackedLayout navbarBehavior="static"> to let the navbar scroll away': never };
 }
 
-const behaviors: readonly string[] = ["sticky", "static", "auto-hide"];
-
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
 // The first tab stop: hidden until it has keyboard focus, then shown at the top corner.
@@ -75,17 +73,14 @@ const skip =
   "focus-visible:rounded-lg focus-visible:bg-background focus-visible:text-foreground focus-visible:text-base focus-visible:leading-5 focus-visible:font-medium " +
   "focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid";
 
-// The navbar and the toolbar, for each navbarBehavior. Auto-hide is translucent over the page,
-// and solid where the reader asks for less transparency or more contrast.
-const barsClass = {
-  sticky: "sticky top-0 z-10",
-  static: "",
-  "auto-hide":
-    "sticky top-0 z-10 bg-background/80 backdrop-blur-md [&>[data-ouro=navbar]]:bg-transparent " +
-    "transition-[translate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-closed:-translate-y-full motion-reduce:transition-none " +
-    "[@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
-    "contrast-more:bg-background contrast-more:backdrop-blur-none",
-};
+// The navbar and the toolbar: sticky, or with auto-hide, translucent over the page and solid
+// where the reader asks for less transparency or more contrast. Static needs no class.
+const stickyClass = "sticky top-0 z-10";
+const autoHideClass =
+  "sticky top-0 z-10 bg-background/80 backdrop-blur-md [&>[data-ouro=navbar]]:bg-transparent " +
+  "transition-[translate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-closed:-translate-y-full motion-reduce:transition-none " +
+  "[@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
+  "contrast-more:bg-background contrast-more:backdrop-blur-none";
 
 // The toolbar's bar: full width, with the Navbar's padding and safe-area insets and its own line below.
 const toolbarClass =
@@ -163,7 +158,7 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
     hideOnScroll,
     sticky,
   } = props;
-  const behavior = (behaviors.includes(navbarBehavior) ? navbarBehavior : "sticky") as keyof typeof barsClass;
+  const behavior = navbarBehavior === "static" || navbarBehavior === "auto-hide" ? navbarBehavior : "sticky";
   useAppearanceClassNameCheck(
     "StackedLayout",
     className,
@@ -207,7 +202,7 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
         data-open={autoHide && !hidden ? "" : undefined}
         data-closed={hidden ? "" : undefined}
         onFocus={show}
-        className={barsClass[behavior]}
+        className={autoHide ? autoHideClass : behavior === "sticky" ? stickyClass : undefined}
       >
         {navbar}
         {toolbar !== undefined && (
