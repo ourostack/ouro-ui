@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
@@ -114,4 +114,30 @@ export const Stack: Story = {
       <ShowOnMount />
     </Surface>
   ),
+};
+
+/**
+ * `avoid` keeps the toasts clear of a control in their corner, here a call's Join button: they sit
+ * just above it while it shows. Press "Show a toast", then "Hide Join".
+ */
+export const KeepClear: Story = {
+  render: function Render(args) {
+    const [join, setJoin] = useState(true);
+    return (
+      <Surface>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Button onClick={() => toast("Recording saved", { description: "It's in the meeting's chat." })}>Show a toast</Button>
+          <Button variant="outline" tone="secondary" onClick={() => setJoin(!join)}>
+            {join ? "Hide Join" : "Show Join"}
+          </Button>
+        </div>
+        {join && (
+          <div data-keep-clear="" style={{ position: "fixed", insetInlineEnd: 24, bottom: 24 }}>
+            <Button tone="success">Join</Button>
+          </div>
+        )}
+        <Toaster {...args} avoid="[data-keep-clear]" />
+      </Surface>
+    );
+  },
 };
