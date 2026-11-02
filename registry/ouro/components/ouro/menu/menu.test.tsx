@@ -626,6 +626,50 @@ describe("Menu items", () => {
   });
 });
 
+describe("Menu focus", () => {
+  it("closes when focus moves outside it, so a forward Tab from before its trigger goes on to the trigger", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>
+        <button type="button">After</button>
+      </>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const before = page.getByRole("button", { name: "Before", exact: true }).element() as HTMLElement;
+    await act(async () => before.focus());
+    await expect.poll(menu).toBeNull();
+    expect(document.activeElement).toBe(before);
+    // Left open, Base UI's focus guard before the trigger sent this Tab back to Before.
+    await userEvent.tab();
+    expect(document.activeElement).toBe(trigger());
+    await userEvent.tab();
+    expect(document.activeElement?.textContent).toBe("After");
+  });
+
+  it("stays open while focus is in it, in its submenu or on its trigger", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await act(async () => trigger().focus());
+    await act(nextFrame);
+    expect(menu()).not.toBeNull();
+    await act(async () => (item("Edit").element() as HTMLElement).focus());
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
+    await act(nextFrame);
+    expect(menus()).toHaveLength(2);
+  });
+});
+
 describe("Menu presentation", () => {
   it("is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item", async () => {
     await page.viewport(390, 844);
