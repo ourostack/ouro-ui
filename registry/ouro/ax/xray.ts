@@ -298,8 +298,29 @@ function audienceWho(value: unknown): string {
 const problemsOf = (pairs: readonly (readonly [boolean, string])[]) => pairs.filter(([bad]) => bad).map(([, text]) => text);
 // The first problem whose condition holds, or the note when none does.
 const firstOf = (pairs: readonly (readonly [boolean, string])[], note: string) => (pairs.find(([bad]) => bad) ?? [false, note])[1];
-// The keys of an outcome envelope; a listening read's needs-human answer carries no others.
-const OUTCOME_KEYS = ["ax", "action", "effect", "audience", "target", "state", "summary", "postcondition", "receipt", "next", "error", "human"];
+// The keys of an outcome envelope and of its parts, by path; a listening read's needs-human answer, or a refused
+// stream, carries no others, so what people say cannot hide in it.
+const OUTCOME_SHAPE: Readonly<Record<string, readonly string[]>> = {
+  "": ["ax", "action", "effect", "audience", "target", "state", "summary", "postcondition", "receipt", "next", "error", "human"],
+  audience: ["only", "who"],
+  target: ["kind", "id", "name"],
+  postcondition: ["checked", "holds", "how"],
+  receipt: ["id", "at", "by", "why"],
+  error: ["code", "exit", "thing", "problem", "fix", "message"],
+  human: ["reason", "resume"],
+  "human.resume": ["command", "why"],
+  "next[]": ["command", "why"],
+};
+
+// The keys an outcome carries beyond its envelope, as paths (`lines`, `human.lines`).
+function outcomeExtras(v: object): string[] {
+  const out: string[] = [];
+  for (const [path, keys] of Object.entries(OUTCOME_SHAPE)) {
+    const parts = path.endsWith("[]") ? [at(v, path.slice(0, -2))].flat() : [path ? at(v, path) : v];
+    for (const part of parts.filter(isRecord)) for (const k of Object.keys(part)) if (!keys.includes(k)) out.push(path ? `${path.replace("[]", "")}.${k}` : k);
+  }
+  return out;
+}
 
 // Every key of every object in a JSON value, at any depth.
 function keysOf(value: unknown, out: Set<string> = new Set()): Set<string> {
@@ -882,6 +903,7 @@ async function checkCli(ctx: Context) {
           [!refuses(text), `${brief(text)}: it did not refuse`],
           [usageCode !== null && refuses(text) && text.code !== usageCode, `exit ${text.code}, not the usage code ${usageCode}`],
           [!refuses(json) || !isRefusal(jsonValue(json.stdout)), `${brief(json)}: no refused outcome or error`],
+          [usageCode !== null && refuses(json) && json.code !== usageCode, `--json exit ${json.code}, not the usage code ${usageCode}`],
           [!entry, `help --json lists no personOnly "${ws.join(" ")}"`],
           [entry !== undefined && !text.stderr.includes(reason), `the refusal does not name the reason help gives ("${clip(reason, 80)}")`],
           [!verdict.ok, `the state changed: ${verdict.note}`],
@@ -921,7 +943,7 @@ async function checkCli(ctx: Context) {
       const v = jsonValue(c.stdout);
       const resume = String(at(v, "human.resume.command"));
       const state = String(at(v, "state"));
-      const extra = isOutcome(v) ? Object.keys(v).filter((k) => !OUTCOME_KEYS.includes(k)) : [];
+      const extra = isOutcome(v) ? outcomeExtras(v) : [];
       const ok = !c.timedOut && isOutcome(v) && state === "needs-human" && validateOutcome(v).ok && commandOf(wordsOf(resume)) !== null && !extra.length;
       const why = firstOf(
         [
@@ -944,10 +966,12 @@ async function checkCli(ctx: Context) {
       const c = await call([...words.args, "--json"]);
       const values = [jsonValue(c.stdout), ...lines(c.stdout).map(jsonValue)];
       const leaked = fields.filter((f) => values.some((x) => !isOutcome(x) && keysOf(x).has(f)));
+      const carried = values.filter(isOutcome).flatMap(outcomeExtras);
       const flag = String(splitCommand(stream.trigger)[0]);
       const bad = problemsOf([
         [!refuses(c), `${brief(c)}: it did not refuse`],
         [leaked.length > 0, `it delivered ${leaked.join(", ")}`],
+        [carried.length > 0, `the refusal also carries ${[...new Set(carried)].join(", ")}`],
         [!isRefusal(jsonValue(c.stdout)), "no refused outcome or error"],
         [!`${c.stdout}\n${c.stderr}`.includes(flag), `it names no ${flag}`],
       ]);

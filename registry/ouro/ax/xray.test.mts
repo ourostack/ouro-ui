@@ -542,13 +542,19 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   assert.match(nolines.results.find((r) => r.claim === "cli.listening-cursor")!.note, /answered no lines to read past$/);
   const follow = await call("call-follow", "follow");
   assert.match(follow.results.find((r) => r.claim === "cli.listening-cursor")!.note, /^the follow failed: `call follow m1 --why/);
-  const odd = [...callUi, { component: "Captions", kind: "read", id: "questions", twin: "call events <meeting> --stream live-transcript --on question", consent: "listening", fields: ["text"] }];
-  const strange = await call("call-strange", "state,extra,unlisted,reason", { inventory: callInventory("call-strange", odd) });
+  const odd = [
+    ...callUi,
+    { component: "Captions", kind: "read", id: "questions", twin: "call events <meeting> --stream live-transcript --on question", consent: "listening", fields: ["text"] },
+    { component: "Captions", kind: "read", id: "topics", twin: "call events <meeting> --stream live-transcript --on topic:launch", consent: "listening", fields: ["text"] },
+  ];
+  const strange = await call("call-strange", "state,extra,unlisted,hidden,pushextra,reason", { inventory: callInventory("call-strange", odd) });
   assert.deepEqual(failingNotes(strange, "ui.listening-needs-yes").map((n) => n.replace(/^.*?\): /, "")), [
     "outcome in state done, not needs-human",
     "the outcome also carries lines",
     'needs-human without a resume command help lists (call sit-in m1 --why "<who asked you, and what they said>")',
+    "the outcome also carries human.lines",
   ]);
+  assert.match(failingNotes(strange, "cli.listening-push-filtered")[0]!, /: the refusal also carries lines$/);
   assert.ok(failingNotes(strange, "ui.person-only-refuses").every((n) => n.endsWith(`the refusal does not name the reason help gives ("agents never turn on a person's microphone, camera or screen")`)));
   const resume = await call("call-resume-room", "resume");
   assert.equal(resume.results.find((r) => r.claim === "cli.listening-cursor")!.note, "no sample for <room> in the follow command");

@@ -4,7 +4,8 @@
 // acts), `listen` (captions without a follow), `push` (every line, untriggered), `fields` (no connection, no speaker),
 // `cursor` (ignored), `nocursor`, `nolines`, `follow` (the follow fails), `resume` (a follow with a placeholder),
 // `state` (captions done without a follow), `extra` (a mention's needs-human carries lines), `unlisted` (a question's
-// follow is no command) and `reason` (a refusal that leaves out its reason).
+// follow is no command), `hidden` (a topic's needs-human hides the lines in human), `pushextra` (the untriggered
+// stream's refusal carries every line) and `reason` (a refusal that leaves out its reason).
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { quietPipes, runCli } from "../cli.ts";
 import { defineCli, defineCommand, type CommandDef, type Input } from "../command.ts";
@@ -42,6 +43,7 @@ function listening(input: Input, lines: typeof said) {
     if (faults.has("state") && input["on"] === undefined) return outcome({ action: "captions", state: "done", summary: "Read." });
     const follow = faults.has("unlisted") && input["on"] === "question" ? "call sit-in" : "call follow";
     const waiting = outcome({ action: "captions", state: "needs-human", summary: `You are not following "${m.title}", so you read nothing said there.`, human: { reason: "the person asks you to sit in on this meeting before you read what people say", resume: nextStep(`${follow} ${faults.has("resume") ? "<room>" : m.ref} --why "${why}"`, "follow it once the person asks you to") } });
+    if (faults.has("hidden") && input["on"] === "topic:launch") return { ...waiting, human: { ...waiting.human!, lines: said } };
     return faults.has("extra") && input["on"] === "mention" ? { ...waiting, lines: [] } : waiting;
   }
   const after = (faults.has("nolines") ? [] : lines).filter((l) => faults.has("cursor") || typeof input["cursor"] !== "string" || Number(l.at) > Number(input["cursor"]));
@@ -91,8 +93,10 @@ const cli = defineCli({
       run: (i) => {
         const m = meeting(i["meeting"]);
         if (i["stream"] !== "live-transcript") return { events: [{ ref: "e1", kind: "started" }] };
-        if (i["on"] === undefined && !faults.has("push"))
-          return outcome({ action: "events", state: "refused", summary: "Every line of a meeting is not a stream.", error: { code: "needs-trigger", exit: 2, thing: "events --stream live-transcript", problem: "what people say comes only on a trigger, never every line", fix: `call events ${m.ref} --stream live-transcript --on mention|question|topic:<t>` } });
+        if (i["on"] === undefined && !faults.has("push")) {
+          const refused = outcome({ action: "events", state: "refused", summary: "Every line of a meeting is not a stream.", error: { code: "needs-trigger", exit: 2, thing: "events --stream live-transcript", problem: "what people say comes only on a trigger, never every line", fix: `call events ${m.ref} --stream live-transcript --on mention|question|topic:<t>` } });
+          return faults.has("pushextra") ? { ...refused, lines: said } : refused;
+        }
         return listening(i, said.filter((l) => i["on"] === undefined || l.text.includes("?")));
       },
     }),
