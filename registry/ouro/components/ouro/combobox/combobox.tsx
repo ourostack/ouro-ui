@@ -2,6 +2,7 @@
 
 import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
+import { mergeProps } from "@base-ui/react/merge-props";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type ReactNode, type Ref, type RefCallback, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
@@ -553,18 +554,17 @@ export function Combobox(props: ComboboxProps): JSX.Element {
 }
 
 /**
- * The input's key handler: the app's `onInputKeyDown` first, then, unless it called
- * `preventDefault()`, Combobox's own (the page hold here, Base UI's after it).
+ * The input's press and key handlers: the page hold's, with the app's `onInputKeyDown` ahead of
+ * it. Base UI merges handlers so the last runs first; a key the app prevents skips the rest, the
+ * page hold's and Base UI's own.
  */
-function keyDown(onInputKeyDown: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined) {
-  return (event: KeyboardEvent<HTMLInputElement> & { preventBaseUIHandler: () => void }) => {
-    onInputKeyDown?.(event);
-    if (event.defaultPrevented) {
-      event.preventBaseUIHandler();
-      return;
-    }
-    holdPageAtPress.listInput.onKeyDown(event);
-  };
+function inputHandlers(onInputKeyDown: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined) {
+  return mergeProps<"input">(holdPageAtPress.listInput, {
+    onKeyDown: (event) => {
+      onInputKeyDown?.(event);
+      if (event.defaultPrevented) event.preventBaseUIHandler();
+    },
+  });
 }
 
 /** An item's row: its label alone, or with its picture, second line and mark. */
@@ -767,7 +767,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         ? null
         : toSelected(picked as string);
   // With allowCustomValue, typed text that is not an item gets a row of its own, first.
-  const typed = (inputValue ?? text).trim();
+  const typed = text.trim();
   const listed =
     custom && typed !== "" && !options.some((option) => option.label === typed)
       ? [{ value: typed, label: customValueLabel(typed), custom: true }, ...options]
@@ -780,6 +780,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const setInputRef = useMergedRef(inputRef, resetInputRef);
   useCustomReset(sheet ? triggerRef : resetInputRef, value, props.onReset);
   const report = onValueChange as ((value: string | string[] | null) => void) | undefined;
+  // The sheet's clear button, beside the field for a single pick that can change.
+  // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: the sheet shows only on a coarse-pointer phone, which the Chromium project mutation runs in cannot be; combobox.touch.test.tsx holds a read-only field's missing clear button there.
+  const sheetClear = !multiple && !readOnly;
   const showEmpty = !onInputChange || (inputValue ?? text) !== "";
 
   const renderItem = (option: Option) => (
@@ -806,8 +809,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const input = (className: string, extra: { "aria-label"?: string } = {}) => (
     <BaseCombobox.Input
       {...extra}
-      {...holdPageAtPress.listInput}
-      onKeyDown={keyDown(onInputKeyDown)}
+      {...inputHandlers(onInputKeyDown)}
       readOnly={readOnly}
       ref={setInputRef}
       data-ouro-control="combobox"
@@ -831,7 +833,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         // A pick's text is no new search, unless the app keeps the text (inputValue).
         if (details.reason !== "item-press" || inputValue !== undefined) onInputChange?.(next);
       }}
-      {...(inputValue !== undefined ? { inputValue } : {})}
+      inputValue={inputValue}
       autoHighlight={autoHighlight}
       readOnly={readOnly}
       required={required}
@@ -873,7 +875,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             </BaseCombobox.Value>
             <ChevronIcon />
           </BaseCombobox.Trigger>
-          {!multiple && !readOnly && (
+          {sheetClear && (
             // Beside the button, not in it: a button can't hold another. It is in the Tab order
             // here, since the button, not an input, has focus; clearing puts focus back on the button.
             <BaseCombobox.Clear
@@ -991,8 +993,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
     >
       <BaseAutocomplete.InputGroup ref={markDismiss} data-ouro-input-group="" className={groupClass}>
         <BaseAutocomplete.Input
-          {...holdPageAtPress.listInput}
-          onKeyDown={keyDown(onInputKeyDown)}
+          {...inputHandlers(onInputKeyDown)}
           readOnly={readOnly}
           ref={setInputRef}
           data-ouro-control="combobox"

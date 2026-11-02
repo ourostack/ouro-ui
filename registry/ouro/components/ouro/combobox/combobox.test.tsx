@@ -890,6 +890,33 @@ describe("Combobox rich items", () => {
     expect(chipMedia.getBoundingClientRect().height).toBeLessThanOrEqual(chip.getBoundingClientRect().height);
   });
 
+  it("lays out a row for whichever of media, description and meta it has, and keeps a plain row's long label whole", async () => {
+    const long = "Theo Brandt from the support team, who answers on weekends and holidays";
+    const { input } = await render(
+      <Combobox
+        label="To"
+        items={[
+          { value: "media", label: "Only a picture", media: <Avatar name="Only Picture" alt="" size="xs" /> },
+          { value: "description", label: "Only a line", description: "Designer" },
+          { value: "meta", label: "Only a mark", meta: <Badge>1:1</Badge> },
+          { value: "plain", label: long },
+        ]}
+      />,
+    );
+    await userEvent.click(input);
+    await expect.poll(options).toHaveLength(4);
+    const rows = [...document.querySelectorAll<HTMLElement>('[role="listbox"] [role="option"]')];
+    const parts = (row: HTMLElement) =>
+      ["media", "description", "meta"].filter((part) => row.querySelector(`[data-ouro-combobox-${part}]`)).join(",");
+    expect(rows.map(parts)).toEqual(["media", "description", "meta", ""]);
+    // A rich row's label stays on one line; a plain row's label wraps, whole.
+    for (const row of rows.slice(0, 3)) expect(row.getBoundingClientRect().height).toBeLessThan(60);
+    const plain = rows[3]!.lastElementChild as HTMLElement;
+    expect(plain.textContent).toBe(long);
+    expect(plain.scrollWidth).toBeLessThanOrEqual(plain.clientWidth);
+    expect(plain.getBoundingClientRect().height).toBeGreaterThan(2 * parseFloat(getComputedStyle(plain).lineHeight) - 1);
+  });
+
   it("shows rich suggestions with allowCustomValue too", async () => {
     const { input } = await render(<Combobox label="To" allowCustomValue items={people} />);
     await userEvent.click(input);
@@ -991,6 +1018,32 @@ describe("Combobox keys", () => {
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => [...host.querySelectorAll("[data-ouro-combobox-chip]")].map((chip) => chip.textContent)).toEqual(["ThymeRemove Thyme"]);
     expect(input.value).toBe("");
+  });
+
+  it("hands a pick's text to onInputChange when the app keeps the text", async () => {
+    const changes: string[] = [];
+    function Herb() {
+      const [text, setText] = useState("");
+      return (
+        <Combobox
+          label="Herb"
+          items={herbs.filter((herb) => herb.toLowerCase().includes(text.toLowerCase()))}
+          inputValue={text}
+          onInputChange={(next) => {
+            changes.push(next);
+            setText(next);
+          }}
+        />
+      );
+    }
+    const { input } = await render(<Herb />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await expect.poll(options).toEqual(["Thyme"]);
+    // A press on the item, which an uncontrolled search would not hear.
+    await userEvent.click(document.querySelector<HTMLElement>('[role="listbox"] [role="option"]')!);
+    await expect.poll(() => input.value).toBe("Thyme");
+    expect(changes.at(-1)).toBe("Thyme");
   });
 
   it("keeps a read-only field as it is", async () => {
