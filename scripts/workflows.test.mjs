@@ -2414,11 +2414,14 @@ test("a release rehearsal writes the release commit as Release does, on a branch
   // Release refuses to cut a version without a passing rehearsal of it that holds for main's commit
   // (scripts/rehearsal-evidence.mjs, scripts/rehearsal-evidence.test.mjs), read once, after main's own CI.
   const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
-  assert.equal(check.split("rehearsal-evidence.mjs").length, 2, "the rehearsal is read once");
+  // Its commands, without the comments, which name the script too.
+  const commands = check.split("\n").filter((line) => !/^\s*#/.test(line)).join("\n");
+  assert.equal(commands.split("rehearsal-evidence.mjs").length, 2, "the rehearsal is read once");
+  assert.equal(commands.split("release-rehearsal.yml --").length, 1, "and only through scripts/rehearsal-evidence.mjs");
   assert.doesNotMatch(check, /gh run list --workflow release-rehearsal\.yml/);
   assert.match(check, /^rehearsed=\$\(node scripts\/rehearsal-evidence\.mjs "\$TAG" "\$sha" --notes "\$RUNNER_TEMP\/rehearsal\.md"\) \|\| \{ echo "::error::No passing rehearsal of \$TAG holds for main \(\$sha\)\. Run it first: gh workflow run release-rehearsal\.yml -f version=\$VERSION"; exit 1; \}$/m);
-  assert.ok(check.indexOf("rehearsal-evidence.mjs") > check.indexOf("scripts/required-ci.sh $runs"));
-  assert.ok(check.indexOf("rehearsal-evidence.mjs") > check.indexOf('[ "$github" = success ]'));
+  assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") > check.indexOf("scripts/required-ci.sh $runs"));
+  assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") > check.indexOf('[ "$github" = success ]'));
 });
 
 test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
