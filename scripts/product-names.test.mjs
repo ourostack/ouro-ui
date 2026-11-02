@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, posix } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { treeFiles } from "./tree.mjs";
 
 // Examples never borrow a real product's name for a made-up agent or person ("do not reuse the names
 // of existing products that are different"). The scan reads the registry, docs, site and kits, and
@@ -44,24 +45,12 @@ const ROOTS = ["registry", "docs", "site/src", "site/scripts", "scripts", "READM
 const SKIP = ["scripts/agent-usability/runs/"];
 const TEXT = /\.(ts|tsx|mts|mjs|js|json|jsonl|md|mdx|html|txt)$/;
 
-function files(rel, out = []) {
-  if (SKIP.some((s) => rel.startsWith(s))) return out;
+/** The text files under a root, walked with treeFiles, which never enters a folder .gitignore ignores. */
+function files(rel) {
   const abs = join(root, rel);
-  let stat;
-  try {
-    stat = statSync(abs);
-  } catch {
-    return out;
-  }
-  if (stat.isFile()) {
-    if (TEXT.test(rel) && rel !== self) out.push(rel);
-    return out;
-  }
-  for (const e of readdirSync(abs, { withFileTypes: true })) {
-    if (e.name === "node_modules" || e.name === "dist" || e.name.startsWith(".")) continue;
-    files(posix.join(rel, e.name), out);
-  }
-  return out;
+  if (!existsSync(abs)) return [];
+  const all = statSync(abs).isFile() ? [rel] : treeFiles(abs).map((file) => `${rel}/${file}`);
+  return all.filter((file) => TEXT.test(file) && file !== self && !SKIP.some((s) => file.startsWith(s)));
 }
 
 const P = PERSONAS.join("|");
