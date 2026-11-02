@@ -55,14 +55,14 @@ export interface MessageAction {
 
 /** The message a message replies to, for Message's `quote`: who wrote it and a line of what they wrote. */
 export interface MessageQuote {
-  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  /** Who wrote the quoted message: "Ana Lind", or "You". */
   author: string;
   /**
    * What they wrote, or its start. One line shows, cut with an ellipsis.
    * @claim "One line shows, cut with" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
    */
   excerpt: string;
-  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
   onActivate?: (() => void) | undefined;
@@ -75,7 +75,7 @@ export interface MessageOwnProps {
   /**
    * Who wrote it. `user` is the person using the app: their messages sit at the end, in
    * the primary color. `assistant` is anyone else, such as an agent, at the start. `system`
-   * is the app's own note ("Ada joined"), centered and quiet.
+   * is the app's own note ("Ana joined"), centered and quiet.
    */
   role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
   /**
@@ -126,7 +126,7 @@ export interface MessageOwnProps {
   /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
-   * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
+   * avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}`
    * (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show
    * no avatar.
    *
@@ -159,7 +159,7 @@ export interface MessageOwnProps {
   /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
-   * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
+   * is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a
    * button, to show the quoted message.
    *
    * @claim "as Composer's `quote` shows it" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > looks as Message's quote does once the reply is sent)
@@ -243,20 +243,20 @@ export interface MessageOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
-  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`. */
-  from?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  sender?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  author?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`. */
-  content?: { 'Use <Message role="user" name="Ada">Hi</Message>': never };
+  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ana">`. */
+  from?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  sender?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  author?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The message is the children: `<Message role="user" name="Ana">Hi</Message>`. */
+  content?: { 'Use <Message role="user" name="Ana">Hi</Message>': never };
   /** Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`. */
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
-  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`. */
-  replyTo?: { 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>': never };
+  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>`. */
+  replyTo?: { 'Use <Message quote={{ author: "Ana", excerpt: "Lunch?" }}>': never };
   /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
   error?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
   /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
@@ -456,12 +456,12 @@ export function Message(props: MessageProps): JSX.Element {
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "default", "chat", "post" or "reply"`, '<Message variant="chat" role="assistant" name="Grace">'],
           actionsPlacement !== undefined &&
             placement !== actionsPlacement && [`actionsPlacement="${String(actionsPlacement)}" is not a placement; use "corner" or "beside"`, '<Message variant="chat" actionsPlacement="beside">'],
-          from !== undefined && ["from is not a prop", '<Message role="user" name="Ada">'],
-          (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ada">'],
-          content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
+          from !== undefined && ["from is not a prop", '<Message role="user" name="Ana">'],
+          (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ana">'],
+          content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ana">Hi</Message>'],
           own !== undefined && ["own is not a prop; the user's own messages are role=\"user\"", '<Message role="user" variant="chat">'],
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
-          replyTo !== undefined && ["replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
+          replyTo !== undefined && ["replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>'],
           (error !== undefined || status !== undefined || onRetry !== undefined) && [
             `${error !== undefined ? "error" : status !== undefined ? "status" : "onRetry"} is not a prop; a message that did not send is failed`,
             '<Message role="user" failed={{ onRetry: retry }}>',
@@ -799,7 +799,7 @@ const quoteButtonClass =
 
 /**
  * The message a message replies to: the bar, the avatar, the author and the excerpt. Screen
- * readers hear the label ("Quoting Ada") in place of the author's name, then the excerpt.
+ * readers hear the label ("Quoting Ana") in place of the author's name, then the excerpt.
  */
 function Quote({ quote }: { quote: MessageQuote }): JSX.Element {
   const body = (

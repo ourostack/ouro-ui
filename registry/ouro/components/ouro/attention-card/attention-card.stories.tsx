@@ -27,7 +27,7 @@ function OpenDemo() {
   const [opened, setOpened] = useState("Nothing opened yet");
   return (
     <Surface>
-      <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ada Lovelace" time="9:41" onOpen={() => setOpened("Opened Design review")}>
+      <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ana Lind" time="9:41" onOpen={() => setOpened("Opened Design review")}>
         Can you look at the second draft before noon? The layout section changed the most.
       </AttentionCard>
       <p style={{ margin: 0, fontSize: 14, color: "var(--muted-foreground)" }}>
@@ -72,7 +72,7 @@ export const Reasons: Story = {
       <AttentionCard reason="Mentioned you" title="Trail crew" from="Grace Hopper" time="8:15">
         Can you bring the spare map? The ridge path is closed past the second bridge.
       </AttentionCard>
-      <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ada Lovelace" time="9:41">
+      <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ana Lind" time="9:41">
         Can you look at the second draft before noon?
       </AttentionCard>
       <AttentionCard reason="Waiting on you" tone="secondary" title="Garden club" from="Alan Turing" time="Tue">
@@ -95,7 +95,7 @@ export const Actions: Story = {
         reason="Asked you"
         tone="warning"
         title="Design review"
-        from="Ada Lovelace"
+        from="Ana Lind"
         time="9:41"
         onOpen={() => {}}
         actions={

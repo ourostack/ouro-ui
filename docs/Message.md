@@ -35,7 +35,7 @@ The props the modes share. Type: `MessageProps`.
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
 | `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
 | `attachments` | `ReactNode` |  | Files and pictures sent with the message, shown under it: `<Attachment>` elements, and pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them full size. |
-| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
+| `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
@@ -49,10 +49,10 @@ The props the modes share. Type: `MessageProps`.
 | `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
 | `nameTag` | `string` |  | A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both are still read. |
-| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a button, to show the quoted message. |
+| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
-| `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ada joined"), centered and quiet. |
+| `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
 | `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
@@ -89,14 +89,14 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `author`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
-- `content`: Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`.
+- `author`: Not a prop. The author is `name`: `<Message role="user" name="Ana">`.
+- `content`: Not a prop. The message is the children: `<Message role="user" name="Ana">Hi</Message>`.
 - `error`: Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`.
-- `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`.
+- `from`: Not a prop. Who wrote it is `role`: `<Message role="user" name="Ana">`.
 - `onRetry`: Not a prop. Retry is part of `failed`: `<Message role="user" failed={{ onRetry: retry }}>`.
 - `own`: Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`.
-- `replyTo`: Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`.
-- `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ada">`.
+- `replyTo`: Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>`.
+- `sender`: Not a prop. The author is `name`: `<Message role="user" name="Ana">`.
 - `status`: Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`.
 - `timestamp`: Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`.
 
@@ -290,7 +290,7 @@ interface MessageOwnProps {
   /**
    * Who wrote it. `user` is the person using the app: their messages sit at the end, in
    * the primary color. `assistant` is anyone else, such as an agent, at the start. `system`
-   * is the app's own note ("Ada joined"), centered and quiet.
+   * is the app's own note ("Ana joined"), centered and quiet.
    */
   role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
   /**
@@ -329,7 +329,7 @@ interface MessageOwnProps {
   /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
-   * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
+   * avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}`
    * (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show
    * no avatar.
    */
@@ -354,7 +354,7 @@ interface MessageOwnProps {
   /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
-   * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
+   * is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a
    * button, to show the quoted message.
    */
   quote?: MessageQuote | undefined;
@@ -422,20 +422,20 @@ interface MessageOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
-  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`. */
-  from?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  sender?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  author?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`. */
-  content?: { 'Use <Message role="user" name="Ada">Hi</Message>': never };
+  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ana">`. */
+  from?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  sender?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  author?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The message is the children: `<Message role="user" name="Ana">Hi</Message>`. */
+  content?: { 'Use <Message role="user" name="Ana">Hi</Message>': never };
   /** Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`. */
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
-  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`. */
-  replyTo?: { 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>': never };
+  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>`. */
+  replyTo?: { 'Use <Message quote={{ author: "Ana", excerpt: "Lunch?" }}>': never };
   /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
   error?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
   /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
@@ -483,13 +483,13 @@ The message a message replies to, for Message's `quote`: who wrote it and a line
 
 ```ts
 interface MessageQuote {
-  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  /** Who wrote the quoted message: "Ana Lind", or "You". */
   author: string;
   /**
    * What they wrote, or its start. One line shows, cut with an ellipsis.
    */
   excerpt: string;
-  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
   onActivate?: (() => void) | undefined;

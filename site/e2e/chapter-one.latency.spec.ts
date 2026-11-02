@@ -22,7 +22,7 @@ const articles = (page: Page) => page.locator("[data-composition='articles']");
 const launchButton = (page: Page) => shipyard(page).locator("[data-chapter-control='launch'] button");
 
 async function fillArticles(page: Page): Promise<void> {
-  await page.getByRole("textbox", { name: ARTICLES.name }).fill("Ada");
+  await page.getByRole("textbox", { name: ARTICLES.name }).fill("Ana");
   await page.getByRole("combobox", { name: ARTICLES.trade }).click();
   await page.getByRole("option", { name: "Cook" }).click();
   await page.getByRole("checkbox", { name: ARTICLES.oath }).click();

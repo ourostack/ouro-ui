@@ -65,7 +65,7 @@ function ChatHistory({ items, initialAnchor }: { items: Item[]; initialAnchor?: 
           key={item.id}
           id={initialAnchor ? `found-${item.id}` : undefined}
           role={item.role}
-          name={item.role === "user" ? "Ada Lovelace" : "Ouro"}
+          name={item.role === "user" ? "Ana Lind" : "Ouro"}
           presence={item.role === "assistant" ? "available" : undefined}
           presenceLabel="Available"
           streaming={item.streaming}
@@ -166,10 +166,10 @@ export const ScrolledBack: Story = {
 
 const launchPosts = [
   { id: 1, author: "Grace Hopper", text: "The launch checklist is up. Have a look before Thursday." },
-  { id: 2, author: "Ada Lovelace", text: "Read it. The rollback step needs an owner." },
+  { id: 2, author: "Ana Lind", text: "Read it. The rollback step needs an owner." },
   { id: 3, author: "Grace Hopper", text: "I'll take rollback. Ouro drafts the release notes." },
   { id: 4, author: "Ouro", text: "Release notes drafted from the merged changes." },
-  { id: 5, author: "Ada Lovelace", text: "Thanks! Shipping Thursday at 10." },
+  { id: 5, author: "Ana Lind", text: "Thanks! Shipping Thursday at 10." },
   { id: 6, author: "Grace Hopper", text: "Calendar invite sent for the launch call." },
 ];
 const quickReactions = ["👍", "🎉", "❤️"];
@@ -240,7 +240,7 @@ export const ReadingWidth: Story = {
     <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)" }}>
       <MessageList label="Conversation with Ouro" style={{ height: 420 }} maxWidth={600}>
         {start.slice(0, 6).map((item) => (
-          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada Lovelace" : "Ouro"}>
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana Lind" : "Ouro"}>
             {item.text}
           </Message>
         ))}
@@ -270,7 +270,7 @@ export const LoadingOlder: Story = {
     <Surface>
       <MessageList label="Conversation with Ouro" style={{ height: 420 }} loadingOlder>
         {start.map((item) => (
-          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada Lovelace" : "Ouro"}>
+          <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana Lind" : "Ouro"}>
             {item.text}
           </Message>
         ))}

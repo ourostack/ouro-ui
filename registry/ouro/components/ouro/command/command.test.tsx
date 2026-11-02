@@ -743,18 +743,18 @@ describe("Command media", () => {
     await openPalette({
       items: [
         { label: "Grace Hopper", onSelect: () => {}, avatar: picture },
-        { label: "Ada Lovelace", onSelect: () => {}, avatar: <Avatar name="Ada Lovelace" alt="" size="xs" initials="A" idForColor="person-2" /> },
+        { label: "Ana Lind", onSelect: () => {}, avatar: <Avatar name="Ana Lind" alt="" size="xs" initials="A" idForColor="person-2" /> },
         { label: "Settings", onSelect: () => {}, icon: gear },
         { label: "Sign out", onSelect: () => {} },
       ],
     } as object);
-    const [grace, ada, settings, signOut] = ["Grace Hopper", "Ada Lovelace", "Settings", "Sign out"].map(row);
+    const [grace, ana, settings, signOut] = ["Grace Hopper", "Ana Lind", "Settings", "Sign out"].map(row);
     const picked = grace!.querySelector<HTMLElement>('[data-ouro-command-avatar] [data-ouro="avatar"]')!;
     expect(picked.getAttribute("aria-hidden")).toBe("true");
     expect(picked.getBoundingClientRect().width).toBe(24);
     expect(before(picked, label(grace!))).toBe(true);
     // The app's own element, as it is, not a picture's URL.
-    expect(ada!.querySelector("[data-ouro-command-avatar]")!.textContent).toBe("A");
+    expect(ana!.querySelector("[data-ouro-command-avatar]")!.textContent).toBe("A");
     const icon = settings!.querySelector<HTMLElement>("[data-ouro-command-icon]")!;
     expect(icon.getAttribute("aria-hidden")).toBe("true");
     expect(icon.querySelector("svg")!.getBoundingClientRect().width).toBe(16);
@@ -765,7 +765,7 @@ describe("Command media", () => {
     expect(signOut!.querySelector("[data-ouro-command-avatar], [data-ouro-command-icon]")).toBeNull();
     // An avatar keeps the row the height of the others.
     expect(grace!.getBoundingClientRect().height).toBe(signOut!.getBoundingClientRect().height);
-    expect(options()).toEqual(["Grace Hopper", "Ada Lovelace", "Settings", "Sign out"]);
+    expect(options()).toEqual(["Grace Hopper", "Ana Lind", "Settings", "Sign out"]);
   });
 
   it("marks an unread command with a bold label, a dot and a spoken label", async () => {
@@ -773,17 +773,17 @@ describe("Command media", () => {
       unreadLabel: "Non lu",
       items: [
         { label: "Grace Hopper", onSelect: () => {}, unread: true },
-        { label: "Ada Lovelace", onSelect: () => {} },
+        { label: "Ana Lind", onSelect: () => {} },
       ],
     } as object);
-    const [grace, ada] = ["Grace Hopper", "Ada Lovelace"].map(row);
+    const [grace, ana] = ["Grace Hopper", "Ana Lind"].map(row);
     expect(Number(getComputedStyle(label(grace!)).fontWeight)).toBeGreaterThanOrEqual(600);
-    expect(Number(getComputedStyle(label(ada!)).fontWeight)).toBe(400);
+    expect(Number(getComputedStyle(label(ana!)).fontWeight)).toBe(400);
     const unread = grace!.querySelector<HTMLElement>("[data-ouro-command-unread]")!;
     expect(unread.textContent).toBe("Non lu");
     expect(unread.querySelector('[aria-hidden="true"]')!.getBoundingClientRect().width).toBe(8);
     expect(before(label(grace!), unread)).toBe(true);
-    expect(ada!.querySelector("[data-ouro-command-unread]")).toBeNull();
+    expect(ana!.querySelector("[data-ouro-command-unread]")).toBeNull();
     await expect.element(page.getByRole("option", { name: /Grace Hopper.*Non lu/ })).toBeVisible();
   });
 
@@ -816,14 +816,14 @@ describe("Command media", () => {
     await openPalette({
       items: [
         { label: "Grace Hopper", onSelect: () => {}, avatar: picture, mark: "Draft" },
-        { label: "Ada Lovelace", onSelect: () => {}, icon: gear, keywords: ["engine"] },
+        { label: "Ana Lind", onSelect: () => {}, icon: gear, keywords: ["engine"] },
       ],
     } as object);
     await userEvent.type(input(), "draft");
     await expect.poll(options).toEqual([]);
     await userEvent.clear(input());
     await userEvent.type(input(), "engine");
-    await expect.poll(options).toEqual(["Ada Lovelace"]);
+    await expect.poll(options).toEqual(["Ana Lind"]);
   });
 });
 
@@ -915,7 +915,7 @@ describe("Command dev messages", () => {
     await openPalette({
       items: [
         { label: "Grace Hopper", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", icon: <svg viewBox="0 0 16 16" /> },
-        { label: "Ada Lovelace", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=" },
+        { label: "Ana Lind", onSelect: () => {}, avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACw=" },
         { label: "Settings", onSelect: () => {}, icon: <svg viewBox="0 0 16 16" /> },
         { label: "Sign out", onSelect: () => {} },
       ],

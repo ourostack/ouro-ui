@@ -11,7 +11,7 @@ import { AttentionCard } from "@/registry/ouro/components/ouro/attention-card/at
 ## Example
 
 ```tsx
-<AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ada Lovelace" time="9:41" onOpen={open}>
+<AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ana Lind" time="9:41" onOpen={open}>
   Can you look at the second draft before noon?
 </AttentionCard>
 ```
@@ -45,9 +45,9 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `message`: Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>`.
+- `message`: Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>`.
 - `onClick`: Not a prop. The message opens with `onOpen`: `<AttentionCard onOpen={open}>`.
-- `text`: Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>`.
+- `text`: Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>`.
 
 ## `className` is for layout only
 

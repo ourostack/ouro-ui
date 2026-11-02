@@ -13,7 +13,7 @@ function portrait(background: string, skin: string): string {
 }
 
 const people = [
-  { name: "Ada Lovelace", src: portrait("#c7d2fe", "#8d5524") },
+  { name: "Ana Lind", src: portrait("#c7d2fe", "#8d5524") },
   { name: "Grace Hopper", src: undefined },
   { name: "Alan Turing", src: portrait("#bbf7d0", "#f1c27d") },
   { name: "Katherine Johnson", src: undefined },
@@ -45,7 +45,7 @@ const meta = {
   title: "Display/Avatar",
   component: Avatar,
   parameters: { layout: "padded" },
-  args: { name: "Ada Lovelace", src: people[0]!.src },
+  args: { name: "Ana Lind", src: people[0]!.src },
   argTypes: {
     size: { control: "inline-radio", options: ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] },
     shape: { control: "inline-radio", options: ["circle", "square"] },
@@ -153,14 +153,14 @@ export const Colors: Story = {
   render: () => (
     <Surface>
       <div style={row}>
-        {["Jean Sammet", "Ada Lovelace", "Alan Turing", "Dennis Ritchie", "Grace Hopper", "Radia Perlman", "Katherine Johnson", "Ken Thompson"].map((name) => (
+        {["Jean Sammet", "Ana Lind", "Alan Turing", "Dennis Ritchie", "Grace Hopper", "Radia Perlman", "Katherine Johnson", "Ken Thompson"].map((name) => (
           <Avatar key={name} name={name} />
         ))}
       </div>
       <div style={row}>
         <Avatar name="Weekly sync" color="brand" icon={<Icon d={calendar} />} />
-        <Avatar name="Ada Lovelace" color="brand" />
-        <Avatar name="Ada Lovelace" color="neutral" />
+        <Avatar name="Ana Lind" color="brand" />
+        <Avatar name="Ana Lind" color="neutral" />
       </div>
     </Surface>
   ),
@@ -173,7 +173,7 @@ export const Shapes: Story = {
     <Surface>
       {(["sm", "md", "xl"] as const).map((size) => (
         <div key={size} style={row}>
-          <Avatar name="Ada Lovelace" size={size} />
+          <Avatar name="Ana Lind" size={size} />
           <Avatar name="Design reviews" shape="square" size={size} />
           <Avatar name="Release notes" shape="square" size={size} src={people[2]!.src} />
           <Avatar name="Build helper" shape="square" size={size} color="brand" icon={<Icon d={bot} />} />

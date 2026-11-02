@@ -45,10 +45,10 @@ export interface AttentionCardOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
-  /** Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>`. */
-  message?: { 'Use <AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>': never };
-  /** Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>`. */
-  text?: { 'Use <AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>': never };
+  /** Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>`. */
+  message?: { 'Use <AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>': never };
+  /** Not a prop. What they wrote is the children: `<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>`. */
+  text?: { 'Use <AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>': never };
   /** Not a prop. The message opens with `onOpen`: `<AttentionCard onOpen={open}>`. */
   onClick?: { 'Use onOpen={open}': never };
 }
@@ -79,7 +79,7 @@ const open =
  * @see https://ui.ouro.bot/docs/attention-card
  *
  * @example
- * <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ada Lovelace" time="9:41" onOpen={open}>
+ * <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ana Lind" time="9:41" onOpen={open}>
  *   Can you look at the second draft before noon?
  * </AttentionCard>
  * @claim "Screen readers hear the card by" registry/ouro/components/ouro/attention-card/attention-card.test.tsx verify:testExists(registry/ouro/components/ouro/attention-card/attention-card.test.tsx::AttentionCard > is an article named by its reason and where it happened)
@@ -115,13 +115,13 @@ export function AttentionCard(props: AttentionCardProps): JSX.Element {
     "AttentionCard",
     process.env.NODE_ENV !== "production"
       ? () => [
-          reason === undefined && ["reason is missing, so the card does not say why it needs the person", '<AttentionCard reason="Asked you" title="Design review" from="Ada">'],
-          title === undefined && ["title is missing, so the card does not say where it happened", '<AttentionCard reason="Asked you" title="Design review" from="Ada">'],
-          from === undefined && ["from is missing, so the card does not say who is asking", '<AttentionCard reason="Asked you" title="Design review" from="Ada">'],
+          reason === undefined && ["reason is missing, so the card does not say why it needs the person", '<AttentionCard reason="Asked you" title="Design review" from="Ana">'],
+          title === undefined && ["title is missing, so the card does not say where it happened", '<AttentionCard reason="Asked you" title="Design review" from="Ana">'],
+          from === undefined && ["from is missing, so the card does not say who is asking", '<AttentionCard reason="Asked you" title="Design review" from="Ana">'],
           tone !== toneProp && toneWarning("AttentionCard", String(toneProp), tones),
           (message !== undefined || text !== undefined) && [
             `${message !== undefined ? "message" : "text"} is not a prop; what they wrote is the children`,
-            '<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>',
+            '<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>',
           ],
           onClick !== undefined && ["onClick is not a prop; the message opens with onOpen", "<AttentionCard onOpen={open}>"],
         ]

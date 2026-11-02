@@ -22,7 +22,7 @@ export default function MessageListDemo(): JSX.Element {
         }}
       >
         {Array.from({ length: turns }, (_, turn) => [
-          <Message key={`q${turn}`} id={`demo-q${turn}`} role="user" name="Ada Lovelace">
+          <Message key={`q${turn}`} id={`demo-q${turn}`} role="user" name="Ana Lind">
             {questions[turn % questions.length]}
             {liked.includes(`demo-q${turn}`) ? " ♥" : ""}
           </Message>,
