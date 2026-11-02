@@ -39,32 +39,36 @@ export const scrollFadeClass =
  * @claim "It follows the scroll, the box's size and its first child's size" registry/ouro/lib/ouro/scroll-fade.test.tsx verify:testExists(registry/ouro/lib/ouro/scroll-fade.test.tsx::useScrollFade > follows the box's size and its content's, and stops when it unmounts)
  */
 export function useScrollFade(ref: RefObject<HTMLElement | null>): void {
-  useEffect(() => {
-    const element = ref.current!;
-    const update = () => {
-      const style = getComputedStyle(element);
-      const overflow = element.scrollWidth - element.clientWidth;
-      // More than a pixel, so a width that rounds up never fades.
-      if (overflow > 1 && /auto|scroll/.test(style.overflowX)) {
-        // In a right-to-left box, scrollLeft runs from 0 down to a negative number.
-        const scrolled = Math.abs(element.scrollLeft);
-        const [left, right] = style.direction === "rtl" ? [overflow - scrolled, scrolled] : [scrolled, overflow - scrolled];
-        element.setAttribute("data-ouro-scroll-fade", "");
-        element.style.setProperty("--ouro-scroll-fade-left", `${left}px`);
-        element.style.setProperty("--ouro-scroll-fade-right", `${right}px`);
-      } else {
-        element.removeAttribute("data-ouro-scroll-fade");
-        element.style.removeProperty("--ouro-scroll-fade-left");
-        element.style.removeProperty("--ouro-scroll-fade-right");
-      }
-    };
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    observer.observe(element.firstElementChild!);
-    element.addEventListener("scroll", update);
-    return () => {
-      observer.disconnect();
-      element.removeEventListener("scroll", update);
-    };
-  }, [ref]);
+  useEffect(
+    () => {
+      const element = ref.current!;
+      const update = () => {
+        const style = getComputedStyle(element);
+        const overflow = element.scrollWidth - element.clientWidth;
+        // More than a pixel, so a width that rounds up never fades.
+        if (overflow > 1 && /auto|scroll/.test(style.overflowX)) {
+          // In a right-to-left box, scrollLeft runs from 0 down to a negative number.
+          const scrolled = Math.abs(element.scrollLeft);
+          const [left, right] = style.direction === "rtl" ? [overflow - scrolled, scrolled] : [scrolled, overflow - scrolled];
+          element.setAttribute("data-ouro-scroll-fade", "");
+          element.style.setProperty("--ouro-scroll-fade-left", `${left}px`);
+          element.style.setProperty("--ouro-scroll-fade-right", `${right}px`);
+        } else {
+          element.removeAttribute("data-ouro-scroll-fade");
+          element.style.removeProperty("--ouro-scroll-fade-left");
+          element.style.removeProperty("--ouro-scroll-fade-right");
+        }
+      };
+      const observer = new ResizeObserver(update);
+      observer.observe(element);
+      observer.observe(element.firstElementChild!);
+      element.addEventListener("scroll", update);
+      return () => {
+        observer.disconnect();
+        element.removeEventListener("scroll", update);
+      };
+    },
+    // Stryker disable next-line ArrayDeclaration: a component's ref object is the same on each render, so it runs once either way.
+    [ref],
+  );
 }
