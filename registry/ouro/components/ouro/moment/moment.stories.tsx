@@ -210,6 +210,7 @@ function AskerArt() {
 
 /** An ask, docked in the conversation's header strip: one row in its own slot, never over the messages. Not now keeps it away for an hour. */
 export const Ask: Story = {
+  parameters: { screenshot: { name: "moment-ask" } },
   render: function Render() {
     const [shown, setShown] = useState(true);
     return (
