@@ -43,7 +43,7 @@ test("every refusal names the exact command to run instead", () => {
   assert.throws(() => parse(why, ["discard"]), /discard: it acts on the person's own things for them, so it needs --why: who asked you, and what they said\. Fix: t discard --why "<who asked you, and what they said>"\./);
   assert.equal(refusal(["rooms", "--limt", "5"]).fix, "notes rooms --limit 5");
   assert.match(refusal(["rooms", "--zzzzzz"]).problem, /there is no --zzzzzz; its flags are --limit/);
-  assert.equal(refusal(["rooms", "--limit", "500"]).fix, "notes rooms --limit 1");
+  assert.equal(refusal(["rooms", "--limit", "500"]).fix, "notes rooms --limit 100");
   assert.equal(refusal(["rooms", "--limit"]).fix, "notes rooms --limit <N>");
   assert.equal(refusal(["post", "abc123", "hi", "--why", "x", "--tone", "markdwn"]).fix, "notes post abc123 hi --why x --tone markdown");
   assert.equal(refusal(["note"]).fix, "notes rooms, then notes note <room>");
@@ -56,6 +56,26 @@ test("every refusal names the exact command to run instead", () => {
   assert.equal(refusal(["romos"]).fix, "notes rooms");
   assert.equal(refusal(["zzzzzzzz"]).fix, "notes --help");
   assert.equal(refusal([]).code, "no-command");
+});
+
+test("a number out of range gets the nearest allowed number as its fix: the most when too big, else the least", () => {
+  assert.deepEqual(refusal(["rooms", "--limit", "2000"]), { code: "bad-value", exit: 2, thing: "rooms", problem: '--limit takes a number from 1 to 100, not "2000"', fix: "notes rooms --limit 100" });
+  assert.equal(refusal(["rooms", "--limit", "101"]).fix, "notes rooms --limit 100");
+  assert.equal(refusal(["rooms", "--limit", "0"]).fix, "notes rooms --limit 1");
+  assert.equal(refusal(["rooms", "--limit", "many"]).fix, "notes rooms --limit 1");
+  assert.equal(refusal(["rooms", "--limit=   "]).fix, "notes rooms --limit 1");
+  const open = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "wait", summary: "W.", effect: "private", flags: { seconds: { type: "number", description: "S.", min: 5 }, times: { type: "number", description: "T." } } })] });
+  const fixOf = (argv: string[]) => {
+    try {
+      parse(open, argv);
+    } catch (e) {
+      assert.ok(e instanceof AxError);
+      return e.shape.fix;
+    }
+    throw new Error(`${argv.join(" ")} parsed`);
+  };
+  assert.equal(fixOf(["wait", "--seconds", "2"]), "t wait --seconds 5");
+  assert.equal(fixOf(["wait", "--times", "often"]), "t wait --times 1");
 });
 
 test("multi-word commands: the longest name wins, a bare group word lists its commands", () => {

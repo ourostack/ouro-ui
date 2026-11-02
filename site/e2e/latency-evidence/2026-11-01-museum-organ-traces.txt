@@ -1,0 +1,73 @@
+# Where museum's and organ's presses spend their time on main, at 4x CPU, from Chromium traces
+#
+# Probe workflow run https://github.com/ourostack/ouro-ui/actions/runs/41339001019 (branch
+# probe/museum-organ-trace, never merged; main at 3de00b2b, built with hidden source maps). On each of four
+# runners (an EPYC 9V45, two EPYC 9V74s and a Xeon 8573C) each counted press of museum and organ was
+# traced on its own (devtools.timeline, its frame categories, toplevel, v8.execute, viz and the V8 CPU
+# profiler); three traces of each were kept per runner. Per trace, from the click: the click's dispatch,
+# then the renderer main thread's work up to the first commit after it, and the wait for the viz
+# compositor's next draw. Times are throttled; V8.InvokeApiInterruptCallbacks is the throttle sleeping.
+# Then the JS self time in the click (museum 0-26 ms, organ 0-17 ms after it starts), source-mapped and
+# grouped by package or component folder, averaged over the twelve traces of each control.
+#
+museum: 12 presses; Event Timing 79.3; click processing 30.6; then style 3.8, layout 0.1, pre-paint 3.1, paint 8.5, layerize 2.6, rAF/transition/timer callbacks 9.3; commit ends 57.2 ms after the click starts; wait for draw 4.8, draw 2.0
+  trace-1 AMD EPYC 9V45 #12: ET 80 click 27.8 commit@52.6 wait 10.4 draw 1.8
+  trace-1 AMD EPYC 9V45 #2: ET 72 click 27.5 commit@53.7 wait 7.3 draw 1.5
+  trace-1 AMD EPYC 9V45 #7: ET 56 click 22.1 commit@42.8 wait 2.3 draw 1.7
+  trace-2 AMD EPYC 9V74 #12: ET 80 click 27.8 commit@54.6 wait 9.7 draw 1.6
+  trace-2 AMD EPYC 9V74 #2: ET 96 click 34.3 commit@62.2 wait 1.1 draw 2.7
+  trace-2 AMD EPYC 9V74 #7: ET 72 click 25.3 commit@48.6 wait 11.1 draw 2.3
+  trace-3 AMD EPYC 9V74 #12: ET 80 click 29.9 commit@57.6 wait 2.8 draw 2.6
+  trace-3 AMD EPYC 9V74 #2: ET 88 click 41.1 commit@72.3 wait 0.2 draw 2.4
+  trace-3 AMD EPYC 9V74 #7: ET 88 click 36.4 commit@66.9 wait 0.4 draw 1.8
+  trace-4 INTEL(R) XEON(R) PLATINUM 8573C #12: ET 80 click 28.7 commit@53.5 wait 9.8 draw 1.6
+  trace-4 INTEL(R) XEON(R) PLATINUM 8573C #2: ET 80 click 33.4 commit@59.0 wait 0.3 draw 1.7
+  trace-4 INTEL(R) XEON(R) PLATINUM 8573C #7: ET 80 click 33.4 commit@62.4 wait 1.9 draw 2.4
+organ: 12 presses; Event Timing 72.0; click processing 15.8; then style 3.1, layout 2.7, pre-paint 2.0, paint 5.6, layerize 2.6, rAF/transition/timer callbacks 5.6; commit ends 41.8 ms after the click starts; wait for draw 8.5, draw 3.7
+  trace-1 AMD EPYC 9V45 #12: ET 48 click 11.9 commit@30.8 wait 2.1 draw 3.0
+  trace-1 AMD EPYC 9V45 #2: ET 72 click 16.1 commit@43.8 wait 5.9 draw 2.9
+  trace-1 AMD EPYC 9V45 #7: ET 64 click 12.8 commit@32.4 wait 15.5 draw 3.1
+  trace-2 AMD EPYC 9V74 #12: ET 80 click 15.2 commit@41.3 wait 0.8 draw 1.1
+  trace-2 AMD EPYC 9V74 #2: ET 72 click 15.6 commit@43.4 wait 10.8 draw 3.8
+  trace-2 AMD EPYC 9V74 #7: ET 80 click 16.6 commit@46.3 wait 9.7 draw 5.0
+  trace-3 AMD EPYC 9V74 #12: ET 80 click 17.4 commit@45.1 wait 12.5 draw 4.3
+  trace-3 AMD EPYC 9V74 #2: ET 88 click 20.7 commit@50.9 wait 15.1 draw 4.8
+  trace-3 AMD EPYC 9V74 #7: ET 80 click 18.8 commit@47.2 wait 9.0 draw 4.4
+  trace-4 INTEL(R) XEON(R) PLATINUM 8573C #12: ET 64 click 14.8 commit@38.6 wait 4.0 draw 4.1
+  trace-4 INTEL(R) XEON(R) PLATINUM 8573C #2: ET 72 click 15.7 commit@41.6 wait 13.6 draw 3.2
+  trace-4 INTEL(R) XEON(R) PLATINUM 8573C #7: ET 64 click 14.2 commit@40.3 wait 3.2 draw 4.4
+#
+# One museum press (trace-2, a 9V74, press 7), the click's main-thread work by source: React's synchronous
+# render of the Sheet 10.3 ms and its commit 8.8 ms; in the commit, Base UI's DrawerVirtualKeyboardProvider
+# effect 4.6 ms (it reads the window's scroll position, a forced layout) and markOthers 1.9 ms (aria-hidden
+# on the rest of the page); after the click, the focus manager's animation frame 2.6 ms (it focuses the
+# Sheet, a forced style recalculation).
+#
+museum JS self in the click (ms per press):
+  6.55  react-dom
+  3.36  @base-ui/react/drawer
+  2.15  @base-ui/utils
+  1.17  @base-ui/react/internals
+  0.81  @base-ui/react/floating-ui-react
+  0.62  http://127.0.0.1:4179/assets/entry-D3XPLfh1.js
+  0.52  @base-ui/react/combobox
+  0.46  react
+  0.36  matchMedia
+  0.35  @base-ui/react/preview-card
+  0.35  @base-ui/react/merge-props
+  0.27  tailwind-merge/dist/bundle-mjs.mjs
+  0.25  @base-ui/react/utils
+  0.23  registry/ouro/components/ouro/combobox
+  0.23  registry/ouro/components/ouro/table
+  0.20  @base-ui/react/dialog
+organ JS self in the click (ms per press):
+  4.07  createOscillator
+  2.33  react-dom
+  0.99  AudioContext
+  0.79  createGain
+  0.74  src/voyage/chapters/chapter-three
+  0.70  connect
+  0.39  @base-ui/utils
+  0.21  @base-ui/react/menu
+  0.19  registry/ouro/components/ouro/button
+  0.18  @base-ui/react/merge-props

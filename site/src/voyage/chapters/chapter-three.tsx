@@ -14,7 +14,7 @@ import { Container } from "../layout";
 import { parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
-import { useAfterPaint } from "../after-paint";
+import { afterPaint, useAfterPaint } from "../after-paint";
 import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
@@ -188,9 +188,12 @@ function OrganArt({ small = false, played, label }: { small?: boolean; played: b
 }
 
 /**
- * The organ's tune, in the press that plays it: the famous opening flourish of Bach's Toccata in
+ * The organ's tune, from the press that plays it: the famous opening flourish of Bach's Toccata in
  * D minor, on a few sine waves an octave apart, quiet, about three seconds. Web Audio only, made
- * here; nothing is fetched. Where the browser has no Web Audio, the organ plays in silence.
+ * here; nothing is fetched. Where the browser has no Web Audio, the organ plays in silence. The
+ * press makes the audio context, so a browser that only lets a press start sound lets it play;
+ * its three dozen pipes are built in a task after the press's frame (afterPaint), which they held
+ * up by several milliseconds on a slow CPU, and the first note starts 50 ms after that.
  */
 const TUNE: ReadonlyArray<[midi: number, beats: number]> = [
   [81, 0.25], [79, 0.25], [81, 1.5], [79, 0.25], [77, 0.25], [76, 0.25], [74, 0.25], [73, 0.75], [74, 2],
@@ -199,6 +202,11 @@ export function playTune(): void {
   const Context = typeof window === "undefined" ? undefined : window.AudioContext;
   if (!Context) return;
   const audio = new Context();
+  afterPaint(() => play(audio));
+}
+
+/** Builds the tune's pipes on `audio` and plays them, then closes it. */
+function play(audio: AudioContext): void {
   const out = audio.createGain();
   out.gain.value = 0.08;
   out.connect(audio.destination);

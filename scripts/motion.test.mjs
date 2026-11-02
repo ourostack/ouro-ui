@@ -147,7 +147,11 @@ test("the reader rejects a declared part the stem's source does not render", () 
 
 test("the motion matrix is plain data a browser test can import, one row per stem, state and part", () => {
   const rows = buildMotionMatrix(root);
-  const file = JSON.parse(readFileSync(join(root, "test/generated/motion-matrix.json"), "utf8"));
+  const dir = scratch();
+  const motionOut = join(dir, "motion-matrix.json");
+  const written = spawnSync("node", [join(root, "scripts/control-matrix.mts"), "--out", join(dir, "control-matrix.json"), "--motion-out", motionOut], { cwd: root, encoding: "utf8" });
+  assert.equal(written.status, 0, written.stderr);
+  const file = JSON.parse(readFileSync(motionOut, "utf8"));
   assert.deepEqual(file, rows);
   for (const row of rows) assert.deepEqual(Object.keys(row), ["item", "stem", "state", "kind", "part", "properties", "reduced", "tests"]);
   assert.deepEqual(

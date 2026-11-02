@@ -413,7 +413,7 @@ function arrange(rows: readonly Specimen[], sort: Sort, show: string): Specimen[
 /**
  * Aronnax's catalogue: sort and filter the specimens (the site does both; HX Table shows the rows),
  * point at a name for Aronnax's note (HoverCard), class each new find (Combobox, checked by
- * Conseil with a Toast), and visit Nemo's museum (Sheet).
+ * Conseil with a Toast), and visit Nemo's museum (Museum).
  */
 function Catalogue(): JSX.Element {
   const store = usePlanStore();
@@ -423,7 +423,6 @@ function Catalogue(): JSX.Element {
   const [found, setFound] = useState<readonly string[]>([]);
   const [guess, setGuess] = useState<string | null>(null);
   const [line, setLine] = useState<CrewLine>(CLASSING.opening);
-  const [museum, setMuseum] = useState(false);
   const find = FINDS[found.length];
   const all = useMemo(() => [...SPECIMENS, ...FINDS.filter((each) => found.includes(each.id))], [found]);
   const rows = useMemo(() => arrange(all, sort, show), [all, sort, show]);
@@ -512,16 +511,27 @@ function Catalogue(): JSX.Element {
             {CATALOGUE.done}
           </p>
         )}
-        <div data-chapter-control="museum">
-          <Button variant="outline" tone="secondary" aria-haspopup="dialog" onClick={() => setMuseum(true)}>
-            {CATALOGUE.museum}
-          </Button>
-        </div>
+        <Museum />
       </div>
       <div className="border-t border-border/70 py-4">
         <Crew line={line} />
       </div>
-      <Sheet title={MUSEUM.title} description={MUSEUM.description} side="right" open={museum} onOpenChange={setMuseum}>
+    </div>
+  );
+}
+
+/**
+ * Nemo's museum: its button and its Sheet, which keep whether it is open to themselves, so opening
+ * it renders only the Sheet, not the catalogue's table, its notes and the find around it.
+ */
+function Museum(): JSX.Element {
+  const [open, setOpen] = useState(false);
+  return (
+    <div data-chapter-control="museum">
+      <Button variant="outline" tone="secondary" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        {CATALOGUE.museum}
+      </Button>
+      <Sheet title={MUSEUM.title} description={MUSEUM.description} side="right" open={open} onOpenChange={setOpen}>
         <ItemGroup aria-label={MUSEUM.title}>
           {MUSEUM.treasures.map((treasure) => (
             <Item key={treasure.name} title={treasure.name} description={treasure.note} />
