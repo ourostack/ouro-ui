@@ -92,7 +92,7 @@ const HEADLINES: Record<string, string> = {
 
 function XrayCard({ title, commit, side }: { title: string; commit: string; side: (typeof xray)["before"] }): JSX.Element {
   return (
-    <div className="ax-screen gap-2">
+    <div className="grid min-w-0 content-start gap-2 border-t border-border/70 pt-4">
       <span className="ax-card-head">{title}</span>
       <p className="m-0 site-h3">{side.conformant ? "Conforms" : "Does not conform yet"}</p>
       <p className="m-0">
@@ -158,7 +158,7 @@ export default function AxPage(): JSX.Element {
               Here it is before and after.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
             <XrayCard title="Before: its main branch" commit={xray.before.commit} side={xray.before} />
             <XrayCard title="After: its adoption" commit={xray.after.commit} side={xray.after} />
           </div>
@@ -180,9 +180,9 @@ export default function AxPage(): JSX.Element {
             })}{" "}
             Here is what changed, in plain words and then in the X-ray's own.
           </p>
-          <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2" aria-label="Must claims that changed">
+          <ul className="m-0 grid list-none gap-x-10 gap-y-8 p-0 md:grid-cols-2" aria-label="Must claims that changed">
             {flipped.map((item) => (
-              <li key={item.id} className="ax-screen gap-3" data-ax-claim={item.id}>
+              <li key={item.id} className="grid min-w-0 content-start gap-3 border-t border-border/70 pt-4" data-ax-claim={item.id}>
                 <div className="flex items-center gap-2">
                   <Mark state={item.before as "fails" | "skipped"} />
                   <span aria-hidden="true" className="text-muted-foreground">
@@ -209,7 +209,7 @@ export default function AxPage(): JSX.Element {
               </li>
             ))}
           </ul>
-          <details className="ax-screen">
+          <details className="border-t border-border/70 pt-4">
             <summary className="cursor-pointer font-medium">The {held.length} must claims that held before and after</summary>
             <ul className="m-0 mt-2 grid list-none gap-3 p-0">
               {held.map((item) => (
