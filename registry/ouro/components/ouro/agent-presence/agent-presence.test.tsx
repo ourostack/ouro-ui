@@ -152,6 +152,8 @@ describe("AgentPresence", () => {
     expect(avatar.getAttribute("aria-hidden")).toBe("true");
     expect(stops().map((stop) => stop.textContent)).toEqual(["Stop", "Stop"]);
     expect(stops().map((stop) => stop.getAttribute("aria-label"))).toEqual(["Stop inbox agent", "Stop notes agent"]);
+    // Popover's screen-reader close button, named in English by default.
+    expect(popup()!.querySelector("[data-ouro-popover-close]")!.textContent).toBe("Close");
     await expect.element(page.getByRole("button", { name: "Stop inbox agent", exact: true })).toBeVisible();
     await userEvent.click(chip());
     await expect.poll(() => popup()).toBeNull();
@@ -206,14 +208,15 @@ describe("AgentPresence", () => {
     await expect.poll(() => document.activeElement).toBe(stops()[0]);
   });
 
-  it("falls back to the chip when a row goes and nothing in the popover can take focus", async () => {
+  it("hands focus to the new row's Stop when the only row goes for another", async () => {
     const { rerender } = await render(<AgentPresence {...base} agents={[inbox]} />);
     await userEvent.click(chip());
     await settled();
-    stops()[0]!.focus();
-    // The only row goes for another, so the popover holds no control at that moment.
-    await rerender(<AgentPresence {...base} agents={[{ ...inbox, id: "inbox-2" }]} />);
-    await expect.poll(() => document.activeElement === stops()[0] || document.activeElement === chip()).toBe(true);
+    const before = stops()[0]!;
+    before.focus();
+    await rerender(<AgentPresence {...base} agents={[{ ...inbox, id: "inbox-2", name: "inbox agent 2" }]} />);
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Stop inbox agent 2");
+    expect(before.isConnected).toBe(false);
   });
 
   it("stops every agent with Stop all, which shows only with two or more", async () => {
@@ -278,23 +281,27 @@ describe("AgentPresence", () => {
   });
 
   it("leaves focus alone when the popover goes while focus is elsewhere", async () => {
-    const { rerender } = await render(
+    const app = (agents: ListeningAgent[]) => (
       <div>
-        <AgentPresence {...base} agents={[inbox]} />
         <input aria-label="Notes" data-test-harness="" />
-      </div>,
+        <AgentPresence {...base} agents={agents} />
+        <button type="button" data-test-harness="">
+          After
+        </button>
+      </div>
     );
+    const { rerender } = await render(app([inbox]));
     await userEvent.click(chip());
     await settled();
     const field = document.querySelector("input")!;
     field.focus();
-    await rerender(
-      <div>
-        <AgentPresence {...base} agents={[]} />
-        <input aria-label="Notes" data-test-harness="" />
-      </div>,
-    );
+    // Not even for a moment: a field that loses focus can check what was typed in it, or be read out again.
+    const blurred = vi.fn();
+    field.addEventListener("blur", blurred);
+    await rerender(app([]));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(document.activeElement).toBe(field);
+    expect(blurred).not.toHaveBeenCalled();
   });
 
   it("says once, politely, when an agent starts or stops listening", async () => {
@@ -304,11 +311,13 @@ describe("AgentPresence", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
       // The agents already listening are no news.
       expect(announced.count("inbox agent is now listening")).toBe(0);
+      // What an earlier test left to say has been said by now.
+      const start = announced.changes.length;
       await rerender(<AgentPresence {...base} agents={[inbox, research]} />);
-      await expect.poll(() => announced.count("research agent is now listening")).toBe(1);
-      // New words for the same agents are not news either.
+      // New words for the same agents are not news either, and don't cut off the news before them.
       await rerender(<AgentPresence {...base} agents={[{ ...inbox, doing: "listening for dates" }, research]} />);
       await rerender(<AgentPresence {...base} agents={[{ ...inbox, name: "mail agent" }, research]} />);
+      await expect.poll(() => announced.count("research agent is now listening")).toBe(1);
       await new Promise((resolve) => setTimeout(resolve, 150));
       expect(announced.count("mail agent")).toBe(0);
       // An agent that stops is named as the person last saw it.
@@ -317,6 +326,12 @@ describe("AgentPresence", () => {
       await rerender(<AgentPresence {...base} agents={[notes]} />);
       await expect.poll(() => announced.count("research agent stopped. notes agent is now listening")).toBe(1);
       expect(announced.count("research agent is now listening")).toBe(1);
+      // Each time, only who started or stopped.
+      expect(announced.changes.slice(start).map((change) => change.text)).toEqual([
+        "research agent is now listening",
+        "mail agent stopped",
+        "research agent stopped. notes agent is now listening",
+      ]);
       const region = document.querySelector("[data-ouro-announcer]")!;
       expect(region.getAttribute("aria-live")).toBe("polite");
     } finally {
@@ -381,6 +396,7 @@ describe("AgentPresence", () => {
       const [presence, button] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
       expect(presence!.getBoundingClientRect().height).toBe(button!.getBoundingClientRect().height);
     }
+    expect(messages()).toEqual([]);
   });
 
   it("takes its words in another language", async () => {

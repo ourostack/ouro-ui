@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type JSX, type Ref } from "react";
+import { useEffect, useRef, useState, type JSX, type Ref } from "react";
 import { agentPresenceSizes, doingClass, unreadDotClass } from "@/registry/ouro/components/ouro/agent-presence/agent-presence-styles";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -255,14 +255,15 @@ export function AgentPresence(props: AgentPresenceProps): JSX.Element | null {
   // When the chip goes with the last agent, focus moves to the control after it, from the
   // popover too: React detaches the root's ref before its children's, while the chip is still
   // there and the popover still holds focus.
-  const leave = useCallback((element: HTMLSpanElement) => () => {
+  const [leave] = useState(() => (element: HTMLSpanElement) => () => {
     if (list.current?.contains(element.ownerDocument.activeElement)) chip.current!.focus();
     handOffFocus(element);
-  }, []);
+  });
   const rootRef = useMergedRef(ref, leave);
-  // A row or Stop all that goes while it holds focus hands it to the next Stop, then the chip.
-  const handoffOptions = useCallback((element: Element) => ({ within: element.closest('[data-ouro="popover"]'), fallback: chip.current }), []);
-  const handoff = useFocusHandoff<HTMLElement>(handoffOptions);
+  // A row or Stop all that goes while it holds focus hands it to the next Stop, else the one
+  // before it. Every agent left has a Stop, so the search never leaves the popover; with no agent
+  // left, the chip goes too and `leave` moves focus on.
+  const handoff = useFocusHandoff<HTMLElement>();
 
   if (agents.length === 0) return null;
 
