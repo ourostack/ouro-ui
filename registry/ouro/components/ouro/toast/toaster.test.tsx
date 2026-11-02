@@ -1622,6 +1622,16 @@ describe("Toaster avoid", () => {
     await until(() => above(item, join), 8);
   });
 
+  it("measures when the page changes in the same moment as the toasts do", async () => {
+    await page.viewport(1280, 800);
+    const join = corner("right", "bottom", "display: none");
+    await render(<Toaster avoid="[data-keep-clear]" />);
+    const item = await show("Recording saved", { duration: Infinity });
+    item.setAttribute("data-seen", "");
+    join.style.display = "";
+    await until(() => above(item, join), 8);
+  });
+
   it("keeps clear of what a new selector matches when avoid changes", async () => {
     await page.viewport(1280, 800);
     const join = corner("right");
