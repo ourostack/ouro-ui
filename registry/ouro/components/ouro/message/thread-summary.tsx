@@ -159,6 +159,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
     <div
       {...rest}
       data-ouro="thread-summary"
+      // Stryker disable next-line StringLiteral: styles and tests read only whether the attribute is there, never its value.
       data-ouro-thread-summary-unanswered={replied ? undefined : ""}
       className={cn("box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1", !replied && quietReply, className)}
     >

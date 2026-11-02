@@ -822,6 +822,27 @@ describe("Message post", () => {
     expect(bubbleOf(message).compareDocumentPosition(reply) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("puts a post's rows under its text in order after the text, a waiting Reply on the name line, and leaves a chat message's in place", async () => {
+    const order = (message: HTMLElement, selector: string) => getComputedStyle(message.querySelector(selector)!).order;
+    const unanswered = <ThreadSummary count={0} onOpen={() => {}} />;
+    const post = await render(
+      <Message variant="post" role="user" name="Ada Lovelace" time="7:52 AM" failed={{ onRetry: () => {} }} footer={unanswered} thread={unanswered}>
+        Notes
+      </Message>,
+    );
+    expect(order(post.message, "[data-ouro-message-failed]")).toBe("3");
+    // Only the thread's own row takes the name line; a footer that holds a summary stays under the text.
+    expect(order(post.message, "[data-ouro-message-footer]")).toBe("3");
+    expect(order(post.message, "[data-ouro-message-thread]")).toBe("2");
+    const chat = await render(
+      <Message variant="chat" role="user" name="Ada Lovelace" time="7:52 AM" failed={{ onRetry: () => {} }} footer={<span>Seen</span>} thread={unanswered}>
+        Notes
+      </Message>,
+    );
+    expect(order(chat.message, "[data-ouro-message-failed]")).toBe("0");
+    expect(order(chat.message, "[data-ouro-message-thread]")).toBe("0");
+  });
+
   it("gives a post's name line order 1 in its row, and a chat message's name line none", async () => {
     const post = await render(
       <Message variant="post" role="assistant" name="Build bot" time="7:52 AM" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
