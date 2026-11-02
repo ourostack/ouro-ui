@@ -21,7 +21,19 @@ async function store(page: Page, value: { preset?: string; mode?: string }): Pro
 /** The two voyage pages: the home page (the stage, the ships, the themes) and the Nautilus's own (the story and Chapter I). */
 const PAGES = ["./", "nautilus/"] as const;
 
+/**
+ * Lets the page finish loading before a test navigates it again. WebKit's goto sometimes fails with
+ * "WebKit encountered an internal error" when it replaces a voyage page whose islands are still
+ * loading their chunks: 9 of 10,800 same-page navigations failed this way, and none of 5,400 that
+ * waited for the network to go quiet first (probe #345). A person reads a page once it has loaded,
+ * which is what these tests check, not a navigation in the middle of loading.
+ */
+async function settleBeforeLeaving(page: Page): Promise<void> {
+  if (page.url().startsWith("http")) await page.waitForLoadState("networkidle");
+}
+
 async function open(page: Page, path: (typeof PAGES)[number] = "./"): Promise<void> {
+  await settleBeforeLeaving(page);
   await page.goto(path);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
 }
@@ -347,6 +359,7 @@ for (const ship of SHIP_PAGES) {
     const items = Object.entries(shipComponents.items).filter(([, paths]) => paths.includes(ship.path)).map(([item]) => item);
     expect(items.length).toBeGreaterThan(3);
     for (const item of items) {
+      await settleBeforeLeaving(page);
       await page.goto(`.${ship.path}?xray=${item}`);
       await expect(page.locator("html[data-site-ready]")).toBeAttached();
       const bar = page.getByRole("region", { name: "X-ray" });
