@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory } from "./story";
+import { holdClock, openStory, pressTab } from "./story";
 
 test("is one tab stop whose arrow keys move between controls, and presses a toggle", async ({ page }) => {
   await openStory(page, "actions-toolbar--labeled");
@@ -43,4 +43,38 @@ test("keeps the caret in the message when a control is clicked", async ({ page }
   await page.getByRole("toolbar", { name: "Formatting" }).getByRole("button", { name: "Bold" }).click();
   await expect(message).toBeFocused();
   await expect(page.getByText("Bold on, italic off")).toBeVisible();
+});
+
+test("floats as glass over the call, and turns solid with a defined border for more contrast", async ({ page }) => {
+  await openStory(page, "actions-toolbar--floating");
+  const toolbar = page.getByRole("toolbar", { name: "Call controls" });
+  await expect(toolbar).toHaveCSS("backdrop-filter", /^blur\(/);
+  await expect(toolbar).toHaveCSS("border-top-width", "0px");
+  await page.emulateMedia({ contrast: "more" });
+  await expect(toolbar).toHaveCSS("backdrop-filter", "none");
+  await expect(toolbar).toHaveCSS("border-top-width", "2px");
+});
+
+test("fades after the pointer rests, comes back on a move over the stage, and Tab brings it back first", async ({ page }) => {
+  await page.clock.install();
+  await openStory(page, "actions-toolbar--auto-hide");
+  await holdClock(page);
+  const toolbar = page.locator('[data-ouro="toolbar"]');
+  const stage = page.getByRole("group", { name: "Design review" });
+  const box = (await stage.boundingBox())!;
+  await page.mouse.move(box.x + 40, box.y + 40);
+  await page.clock.runFor(3000);
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
+  await expect(page.getByRole("toolbar")).toHaveCount(0);
+  await expect(page.getByText("Controls faded")).toBeVisible();
+  await page.mouse.move(box.x + 60, box.y + 40);
+  await expect(toolbar).not.toHaveAttribute("data-hidden");
+  await expect(page.getByText("Controls showing")).toBeVisible();
+  await page.clock.runFor(3000);
+  await expect(toolbar).toHaveAttribute("data-hidden", "");
+  await pressTab(page);
+  await expect(page.getByRole("toolbar", { name: "Call controls" }).getByRole("button", { name: "Mute" })).toBeFocused();
+  // Keyboard use, and focus inside, hold it however long the pointer rests.
+  await page.clock.runFor(10_000);
+  await expect(toolbar).not.toHaveAttribute("data-hidden");
 });

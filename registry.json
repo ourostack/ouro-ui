@@ -11697,6 +11697,11 @@
       ],
       "files": [
         {
+          "path": "registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx",
+          "type": "registry:component",
+          "target": "@components/ouro/toolbar/toolbar.floating.test.tsx"
+        },
+        {
           "path": "registry/ouro/components/ouro/toolbar/toolbar.stories.tsx",
           "type": "registry:component",
           "target": "@components/ouro/toolbar/toolbar.stories.tsx"

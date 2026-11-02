@@ -1,4 +1,4 @@
-import { type AgentCase, hint } from "./shared.ts";
+import { type AgentCase, hint, notAssignable } from "./shared.ts";
 
 /** The toolbar snippets in toolbar.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [
@@ -22,7 +22,28 @@ export const agentCases: AgentCase[] = [
     tsc: ["error TS2741: Property 'label' is missing in type '{ items: { label: string; }[]; }' but required in type 'ToolbarProps'."],
     names: ["tsc"],
   },
+  {
+    id: "toolbar04",
+    habit: "autoHide as a flag, with no time",
+    tsc: [notAssignable("true", "number | (boolean & { 'Pass the milliseconds of rest: autoHide={3000}': never; }) | undefined")],
+    dev: "<Toolbar autoHide={3000}>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "toolbar05",
+    habit: "a glass flag for the floating look",
+    tsc: [hint("boolean", "Use <Toolbar floating>")],
+    dev: "<Toolbar floating>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "toolbar06",
+    habit: "autoHideDuration, as other libraries name the delay",
+    tsc: [hint("number", "Use <Toolbar autoHide={3000}>")],
+    dev: "<Toolbar autoHide={3000}>",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid toolbar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["toolbarOk"];
+export const validSnippets: string[] = ["toolbarOk", "toolbarOk02"];

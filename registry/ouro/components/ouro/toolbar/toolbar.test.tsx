@@ -327,6 +327,12 @@ describe("Toolbar", () => {
     expect(document.activeElement).toBe(buttons[0]);
   });
 
+  it("exports no agent side of its own", async () => {
+    const exports = Object.keys(await import("@/registry/ouro/components/ouro/toolbar/toolbar"));
+    expect(exports).toContain("Toolbar");
+    expect(exports.filter((name) => /ax$/i.test(name))).toEqual([]);
+  });
+
   it("takes the size of every control", async () => {
     const { buttons, toolbar, rerender } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 900);
     expect(toolbar.getAttribute("data-size")).toBe("sm");

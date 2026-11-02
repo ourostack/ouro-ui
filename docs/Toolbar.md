@@ -27,6 +27,10 @@ import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
 `keepFocus` leaves focus in a text editor when a control is pressed with a mouse or a finger, so its selection stays.
 
+`floating` draws the bar as glass over content, such as a calling app's controls over video, and `autoHide` fades it out while the pointer rests, until the pointer moves or a key is pressed: `<Toolbar label="Call controls" floating autoHide={3000} items={controls} />`, in a wrapper your layout places over the video (`absolute inset-x-0 bottom-4 flex justify-center` inside the `relative` stage). `onHiddenChange` tells your layout when it fades and comes back.
+
+Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent to read or do, so it declares no agent side; the controls inside declare their own, and a calling app declares its call controls once, in the component that holds them, not in the bar.
+
 ## Use instead when
 
 - Use `ToggleGroup` instead for toggles that share one value (text alignment), `ButtonGroup` for a few joined buttons that are one control, and `Menu` with `MenuBar` for an application's menus.
@@ -37,12 +41,15 @@ Type: `ToolbarProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `autoHide` | `number \| (boolean & { 'Pass the milliseconds of rest: autoHide={3000}': never })` |  | Fades the bar out after this many milliseconds of pointer rest, as a calling app's controls fade over video (`3000` is usual). It fades with opacity only, also with reduced motion. Any pointer move over the element the bar is placed in, or any key, brings it back. It never fades while the pointer is over it, focus is inside it, or a menu, popover or tooltip from one of its controls is open, nor after a key until the pointer moves again. While faded it is `aria-hidden`, cannot be focused and drops its blur, and the root has `data-hidden`; a key brings it back before Tab moves focus, so keyboard users never lose it. The area is the element the bar floats over, found from the layout rather than from a ref you pass, so the stage you place the bar on needs nothing wired up: the bar's offset parent (its nearest positioned ancestor), or, when that is an absolutely placed or fixed wrapper around the bar, the wrapper's own. A bar with no positioned ancestor, or in a fixed wrapper, listens to the whole page. |
 | `className` | `string` |  | Layout only: margins, width, flex and grid placement (`flex-1`, `mt-2`). Appearance classes warn in development. |
 | `disabled` | `boolean` |  | Disables every control. They stay reachable with the arrow keys. |
+| `floating` | `boolean` |  | Draws the bar as glass that floats over content, as a calling app's controls float over video: a translucent surface that blurs what is behind it, with a hairline edge, a soft shadow and rounded corners, all from the theme. It turns solid, with no blur, when the system asks for reduced transparency, and solid with a defined border when it asks for more contrast. It is the look only: where the bar floats stays your layout, such as an absolutely placed wrapper over the stage. |
 | `items` (required) | `readonly ToolbarEntry[]` |  | The controls, in order: buttons, toggles, groups of them and separators. |
 | `keepFocus` | `boolean` |  | A press with a mouse or a finger leaves focus where it was, so a text editor beside the toolbar keeps its caret and selection. With nothing focused, the control takes focus as usual. The keyboard still reaches the toolbar with Tab. |
 | `label` (required) | `string` |  | Names the toolbar for screen readers ("Formatting"). It is not shown. |
 | `moreLabel` | `string` | `"More"` | The name of the button that opens the controls that do not fit, and its tooltip. |
+| `onHiddenChange` | `((hidden: boolean) => void)` |  | With `autoHide`: called with `true` when the bar fades out and `false` when it comes back, so your layout can move into its space and back. |
 | `ref` | `Ref<HTMLDivElement>` |  | The toolbar element (`role="toolbar"`). |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | Every control's size, as Button's and Toggle's. |
 
@@ -51,7 +58,9 @@ Type: `ToolbarProps`.
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `actions`: Not a prop. Ouro UI uses `items`: `<Toolbar items={[...]}>`.
+- `autoHideDuration`: Not a prop. `autoHide` takes the milliseconds: `<Toolbar autoHide={3000}>`.
 - `children`: Not a prop. The controls come from `items`: `<Toolbar items={[{ label: "Bold", type: "toggle" }]}>`.
+- `glass`: Not a prop. Use `floating` for the glass look: `<Toolbar floating>`.
 - `orientation`: Not a prop. A Toolbar is a row; controls that do not fit move into its More menu.
 
 ## `className` is for layout only
