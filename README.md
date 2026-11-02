@@ -1,3 +1,9 @@
+<!-- ourostack:brand:start -->
+<p align="center">
+  <a href="https://github.com/ourostack"><img src="https://raw.githubusercontent.com/ourostack/.github/main/brand/ouro-hx.png" alt="Ouro HX" width="160" height="160"></a>
+</p>
+<!-- ourostack:brand:end -->
+
 # Ouro HX
 
 Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
