@@ -31,12 +31,8 @@ export interface LevelMeterProps {
    * samples an `AnalyserNode` gives, fed up to about 15 times a second. The meter maps it to its
    * bars on a decibel scale from -60 dBFS (no bar) to 0 dBFS (every bar), so ordinary speech,
    * around -40 to -20 dBFS, lights 3 to 5 of 8 bars. An amplitude below 0 or not a number shows as
-   * silence, and one above 1 as full scale.
-   *
-   * ```ts
-   * analyser.getFloatTimeDomainData(samples);
-   * const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
-   * ```
+   * silence, and one above 1 as full scale. To get it: `analyser.getFloatTimeDomainData(samples)`,
+   * then `Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length)`.
    * @claim "The microphone's linear amplitude now, from" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > maps a linear amplitude to the bars on a decibel scale from -60 dBFS to 0, so speech lights 3 to 5 of 8 bars)
    * @claim "The microphone's linear amplitude now, from" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > re-renders and changes the page only when a bar lights or goes out)
    * @claim "The meter maps it to its" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > maps a linear amplitude to the bars on a decibel scale from -60 dBFS to 0, so speech lights 3 to 5 of 8 bars)
@@ -178,7 +174,9 @@ const Bar = memo(function Bar({ lit, className }: BarProps): JSX.Element {
  * sound, so the person can tell it hears them before anyone else does (before joining a call, in
  * a device menu, in a "test your microphone" row). The app feeds `value`, the microphone's linear
  * amplitude from 0 to 1, as often as about 15 times a second, and the meter maps it to its bars on
- * a decibel scale, so ordinary speech lights about half of them.
+ * a decibel scale, so ordinary speech lights about half of them. To get the amplitude, read an
+ * `AnalyserNode`'s samples with `getFloatTimeDomainData(samples)` and take their RMS:
+ * `Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length)`.
  *
  * The bars move as an audio meter's do: they rise within about 50 ms and fall over about 350 ms,
  * so they hold between syllables. Every bar is the row's full height: lit bars are filled in the
