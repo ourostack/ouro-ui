@@ -16,6 +16,8 @@ expectTypeOf<{
   size: "lg";
   maxLines: 3;
   announce: true;
+  placeholder: "Captions are on";
+  unavailable: "Captions aren't available in this meeting";
   className: "max-w-3xl";
   id: "call-captions";
 }>().toExtend<LiveCaptionsProps>();
@@ -28,6 +30,9 @@ expectTypeOf<{ label: "Captions"; lines: typeof lines; captions: typeof lines }>
 expectTypeOf<{ label: "Captions"; lines: typeof lines; readAloud: true }>().not.toExtend<LiveCaptionsProps>();
 expectTypeOf<{ label: "Captions"; lines: typeof lines; size: "xl" }>().not.toExtend<LiveCaptionsProps>();
 expectTypeOf<{ label: "Captions"; lines: typeof lines; announce: "polite" }>().not.toExtend<LiveCaptionsProps>();
+expectTypeOf<{ label: "Captions"; lines: typeof lines; status: "Waiting" }>().not.toExtend<LiveCaptionsProps>();
+// What the band says before anyone speaks, or why there are no captions, is any content, or nothing.
+expectTypeOf<{ label: "Captions"; lines: typeof lines; placeholder: null; unavailable: false }>().toExtend<LiveCaptionsProps>();
 
 // A line needs all four fields, and says it is final with `final`.
 expectTypeOf<{ id: "1"; speaker: "Mara Lind"; text: "Hi"; final: false }>().toExtend<LiveCaptionLine>();

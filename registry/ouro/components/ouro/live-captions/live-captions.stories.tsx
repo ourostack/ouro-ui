@@ -4,23 +4,28 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { LiveCaptions, type LiveCaptionLine } from "@/registry/ouro/components/ouro/live-captions/live-captions";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 
-// Layout here uses inline styles and the theme's CSS variables (shadcn's names). The "picture"
-// behind each band is a gradient standing in for a call's video.
+// Layout here uses inline styles and the theme's CSS variables (shadcn's names). Gradients stand
+// in for a call's video, and the band sits in its own space under them, never over a face.
 
-function Picture({ children, width = 640 }: { children: ReactNode; width?: number }) {
-  return (
+/** A call stage: two people's pictures, and under them whatever the stage puts there (the band). */
+function Stage({ children }: { children: ReactNode }) {
+  const picture = (name: string, stop: string) => (
     <div
+      role="img"
+      aria-label={`${name}'s video`}
       style={{
-        maxWidth: width,
+        aspectRatio: "16 / 9",
         borderRadius: "calc(var(--radius) + 4px)",
-        padding: 16,
-        display: "grid",
-        gap: 16,
-        alignContent: "end",
-        minHeight: 200,
-        background: "linear-gradient(135deg, var(--muted), var(--primary) 60%, var(--background))",
+        background: `linear-gradient(135deg, var(--muted), ${stop} 60%, var(--background))`,
       }}
-    >
+    />
+  );
+  return (
+    <div style={{ maxWidth: 640, display: "grid", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {picture("Mara Lind", "var(--primary)")}
+        {picture("Jonas Ek", "color-mix(in oklab, var(--primary) 50%, var(--foreground))")}
+      </div>
       {children}
     </div>
   );
@@ -49,13 +54,47 @@ type Story = StoryObj<typeof meta>;
 /** Try every prop. */
 export const Playground: Story = {};
 
-/** A final line and an interim one (muted) under it, over a picture, with the label shown. */
+/**
+ * In a call, under the pictures: a final line and an interim one (muted) under it. Then the band
+ * before anyone speaks, with its quiet placeholder line, and in a meeting without captions.
+ */
 export const States: Story = {
   parameters: { screenshot: { name: "live-captions-states" } },
   render: () => (
-    <Picture>
+    <div style={{ display: "grid", gap: 16, maxWidth: 640 }}>
+      <Stage>
+        <LiveCaptions label="Captions" hideLabel lines={meeting} />
+      </Stage>
+      <LiveCaptions label="Captions before anyone speaks" hideLabel lines={[]} />
+      <LiveCaptions label="Captions in a meeting without them" hideLabel lines={[]} unavailable="Captions aren't available in this meeting" />
+    </div>
+  ),
+};
+
+/** With the label shown over the lines, for a band outside a call, such as under a video. */
+export const Labelled: Story = {
+  render: () => (
+    <div style={{ maxWidth: 640 }}>
       <LiveCaptions label="Captions" lines={meeting} />
-    </Picture>
+    </div>
+  ),
+};
+
+/** Turned on in a quiet moment: a muted line says captions are on, until someone speaks. */
+export const Waiting: Story = {
+  render: () => (
+    <Stage>
+      <LiveCaptions label="Captions" hideLabel lines={[]} />
+    </Stage>
+  ),
+};
+
+/** In a meeting that doesn't offer captions, the band says so with `unavailable`, at the same height. */
+export const Unavailable: Story = {
+  render: () => (
+    <Stage>
+      <LiveCaptions label="Captions" hideLabel lines={[]} unavailable="Captions aren't available in this meeting" />
+    </Stage>
   ),
 };
 
@@ -97,9 +136,9 @@ function LiveBand() {
 /** A live sequence: words arrive muted, turn white when final, and older lines slide up and off. */
 export const Live: Story = {
   render: () => (
-    <Picture>
+    <Stage>
       <LiveBand />
-    </Picture>
+    </Stage>
   ),
 };
 
@@ -119,9 +158,9 @@ function NextLine({ announce }: { announce?: boolean }) {
   const lines = Array.from({ length: count }, (_, index) => ({ id: `next-${index}`, ...script[index % script.length]!, final: true }));
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <Picture>
-        <LiveCaptions label="Captions" lines={lines} announce={announce} />
-      </Picture>
+      <Stage>
+        <LiveCaptions label="Captions" hideLabel lines={lines} announce={announce} />
+      </Stage>
       <div>
         <Button variant="outline" tone="secondary" onClick={() => setCount((current) => current + 1)}>
           Say the next line

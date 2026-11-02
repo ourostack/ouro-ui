@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties, type JSX, type Ref } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties, type JSX, type ReactNode, type Ref } from "react";
 import {
   ANNOUNCE_GAP_MS,
   bandClass,
@@ -14,9 +14,11 @@ import {
   MAX_LINES_DEFAULT,
   MAX_LINES_MAX,
   MAX_LINES_MIN,
+  placeholderClass,
   speakerClass,
   spokenText,
   trackClass,
+  unavailableClass,
 } from "@/registry/ouro/components/ouro/live-captions/live-captions-styles";
 import { announce as speak } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -46,7 +48,8 @@ export interface LiveCaptionsProps {
   /**
    * The caption lines, in the order they were said. Feed it as the words come: add a line when
    * someone starts speaking, replace it by its `id` as its words grow, and mark it `final` when
-   * they are settled. The band shows the newest lines and lets older ones go over its top.
+   * they are settled. The band shows the newest lines and lets older ones go over its top. Pass
+   * the recent lines only (a few more than `maxLines`), not the meeting's whole history.
    * @claim "The band shows the newest lines" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > is exactly maxLines lines tall, empty, full and overflowing, so nothing around it moves)
    */
   lines: readonly LiveCaptionLine[];
@@ -65,7 +68,8 @@ export interface LiveCaptionsProps {
   size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg"': never }) | undefined;
   /**
    * How many lines tall the band is, a whole number from 1 to 6. The band is always that
-   * tall, empty or full, so nothing around it moves as captions come and go.
+   * tall, empty or full, so nothing around it moves as captions come and go. In a narrow
+   * layout a long line wraps and takes more of the band, so give it a line more there.
    * @default 2
    * @claim "How many lines tall the band" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > keeps 2 lines by default, or the nearest whole number from 1 to 6)
    * @claim "The band is always that tall," registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > is exactly maxLines lines tall, empty, full and overflowing, so nothing around it moves)
@@ -79,6 +83,21 @@ export interface LiveCaptionsProps {
    * @claim "Off by default, because captions read" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions announcements > announces nothing by default, nor once announce is turned off)
    */
   announce?: boolean | undefined;
+  /**
+   * The quiet line the band shows before anyone has spoken, so the person can see captions are
+   * on. Muted, and never read aloud. Translate it here.
+   * @default "Waiting for someone to speak…"
+   * @claim "Muted, and never read aloud." registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows a quiet placeholder line, never read aloud, until the first line comes)
+   * @claim "The quiet line the band shows" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows a quiet placeholder line, never read aloud, until the first line comes)
+   */
+  placeholder?: ReactNode;
+  /**
+   * Why captions are missing, when the meeting doesn't offer them: "Captions aren't available
+   * in this meeting". The band shows it in place of the lines, at the same height, and shows
+   * and reads no lines while it is set.
+   * @claim "The band shows it in place" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows why captions are unavailable in place of the lines, at the same height, and reads nothing)
+   */
+  unavailable?: ReactNode;
   /** Layout only: width, margins, placement (`max-w-3xl`, `mx-auto`). Appearance classes warn in development; use `size`. */
   className?: string | undefined;
   /** The band's id, for `aria-describedby` or `aria-controls` elsewhere on the page. */
@@ -89,6 +108,23 @@ export interface LiveCaptionsProps {
   captions?: { 'Use <LiveCaptions lines={lines}>': never };
   /** Not a prop. Ouro UI uses `announce`: `<LiveCaptions announce>`. */
   readAloud?: { 'Use <LiveCaptions announce>': never };
+  /** Not a prop. Before anyone speaks the band shows `placeholder`; when the meeting doesn't offer captions, `unavailable`. */
+  status?: { 'Use placeholder, or unavailable when the meeting does not offer captions': never };
+}
+
+/**
+ * Where the lines sit in the window, by layout (so a slide under way doesn't count). A line
+ * wholly over the top edge is out of sight, so screen readers skip it too.
+ */
+function place(track: HTMLElement): Map<string, number> {
+  const tops = new Map<string, number>();
+  for (const row of track.children as HTMLCollectionOf<HTMLElement>) {
+    const top = track.offsetTop + row.offsetTop;
+    tops.set(row.dataset["ouroLiveCaptionsLine"]!, top);
+    if (top + row.offsetHeight <= 0) row.setAttribute("aria-hidden", "true");
+    else row.removeAttribute("aria-hidden");
+  }
+  return tops;
 }
 
 /**
@@ -100,20 +136,25 @@ export interface LiveCaptionsProps {
  * over any picture; put it in its own space under the pictures, never over a face. It is
  * always `maxLines` lines tall, two by default, so the layout never jumps as captions come and
  * go; the newest words sit on the last line, and older lines slide up and off the top (with
- * reduced motion they move at once).
+ * reduced motion they move at once). Resized, or given a new `size` or `maxLines`, the lines
+ * take their new places without a slide. Lines wholly over the top edge are hidden from screen
+ * readers too. Before anyone speaks it shows a quiet `placeholder` line, and when the meeting
+ * doesn't offer captions it shows why, from `unavailable`, in place of the lines.
  *
  * It is a region named by its `label`. With `announce`, it reads each line aloud once, when it
  * becomes final, through one polite live region, never a line's interim words; it says at most
  * one announcement every 2 seconds and gathers the lines that finish in between into the next,
  * so a fast talker doesn't flood a screen reader. Lines that were already final when
  * announcing began are not read. `announce` is off by default, since captions read aloud would
- * talk over the call.
+ * talk over the call. Hidden (under a hidden `<Activity>`, say) and shown again, it reads only
+ * the lines that become final from then on.
  *
  * Its agent side, `liveCaptionsAx` in `live-captions-styles.ts`, declares one read, `captions`
- * (the speaker, the words and when they were said), which an agent may read only while the
- * person has asked it to follow the meeting (consent `listening`), and only through a filtered
- * watch, never every word pushed. It declares no actions: turning captions on and off is the
- * person's, declared once in a calling app's own controls.
+ * (the speaker, the words, and when they were said, which comes from the app's caption feed),
+ * which an agent may read only while the person has asked it to follow the meeting (consent
+ * `listening`), and only through a filtered watch, never every word pushed. It declares no
+ * actions: turning captions on and off is the person's, declared once in a calling app's own
+ * controls.
  *
  * Use `Toaster` instead for a passing notice, `Text` for subtitles that don't change, and
  * `MessageList` for a transcript the person can scroll back through.
@@ -123,9 +164,14 @@ export interface LiveCaptionsProps {
  * @claim "The band is a solid, translucent" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > draws a solid translucent black band with rounded corners and no blur)
  * @claim "It is always `maxLines` lines tall," registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > is exactly maxLines lines tall, empty, full and overflowing, so nothing around it moves)
  * @claim "It is always `maxLines` lines tall," registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions motion > slides older lines up and off the top as a new line comes, and with reduced motion moves them at once)
+ * @claim "Resized, or given a new `size`" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions motion > takes new places without a slide after a resize, a new size or a new maxLines)
+ * @claim "Lines wholly over the top edge" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > hides lines wholly over the top edge from screen readers, as they leave and when a line wraps)
+ * @claim "Before anyone speaks it shows a" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows a quiet placeholder line, never read aloud, until the first line comes)
+ * @claim "when the meeting doesn't offer captions" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows why captions are unavailable in place of the lines, at the same height, and reads nothing)
  * @claim "It is a region named by" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > is a region named by its label, which hideLabel hides from sight only)
  * @claim "With `announce`, it reads each line" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions announcements > announces a line once, when it becomes final, and never its interim words)
  * @claim "it says at most one announcement" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions announcements > reads at most one announcement every 2 seconds, and batches the lines that finish in between into the next)
+ * @claim "Hidden (under a hidden `<Activity>`, say)" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions announcements > hidden under an Activity and shown again, reads only the lines that become final after)
  * @claim "Lines that were already final when" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions announcements > does not read lines that were final before announcing began)
  * @claim "`announce` is off by default, since" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions announcements > announces nothing by default, nor once announce is turned off)
  * @claim "It declares no actions: turning captions" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > declares one agent read, the captions, behind listening consent and a filtered push, and no actions)
@@ -136,6 +182,7 @@ export interface LiveCaptionsProps {
  * @example
  * <LiveCaptions label="Captions" hideLabel lines={[{ id: "1", speaker: "Mara Lind", text: "Shall we start?", final: true }]} />
  * <LiveCaptions label="Captions" lines={lines} size="lg" announce={readAloud} />
+ * <LiveCaptions label="Captions" lines={[]} unavailable="Captions aren't available in this meeting" />
  */
 export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
   const {
@@ -145,12 +192,15 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
     size: sizeProp = "md",
     maxLines: maxLinesProp = MAX_LINES_DEFAULT,
     announce = false,
+    placeholder = "Waiting for someone to speak…",
+    unavailable,
     className,
     id,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
     captions,
     readAloud,
+    status,
   } = props;
   const size = Object.hasOwn(bandSizes, sizeProp) ? (sizeProp as keyof typeof bandSizes) : "md";
   const maxLines = Math.min(Math.max(Math.round(maxLinesProp), MAX_LINES_MIN), MAX_LINES_MAX) || MAX_LINES_DEFAULT;
@@ -175,25 +225,30 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
           lines.some((line) => "isFinal" in line) && ["isFinal is not a line field", "{ id, speaker, text, final: true }"],
           captions !== undefined && ["captions is not a prop", "<LiveCaptions lines={lines}>"],
           readAloud !== undefined && ["readAloud is not a prop", "<LiveCaptions announce>"],
+          status !== undefined && ["status is not a prop; before anyone speaks the band shows placeholder, and unavailable says why there are no captions", `<LiveCaptions placeholder="Waiting for someone to speak…" unavailable="Captions aren't available in this meeting">`],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   // The newest lines, and one more above them, out of sight over the top edge until it leaves:
   // a line that pushes the others up slides them there, and the one leaving goes over the edge.
-  const shown = lines.slice(-(maxLines + 1));
+  // While the meeting has no captions, the band shows why, and no lines.
+  const off = unavailable !== undefined && unavailable !== null && typeof unavailable !== "boolean" && unavailable !== "";
+  const shown = off ? [] : lines.slice(-(maxLines + 1));
 
   const trackRef = useRef<HTMLDivElement>(null);
   const tops = useRef(new Map<string, number>());
+  const shape = useRef([size, maxLines]);
   useLayoutEffect(() => {
     const track = trackRef.current!;
-    const rows = [...track.children] as HTMLElement[];
-    // Where each line sits in the window, by layout (so a slide under way doesn't count).
-    const now = new Map(rows.map((row) => [row.dataset["ouroLiveCaptionsLine"]!, track.offsetTop + row.offsetTop]));
-    const kept = rows.find((row) => tops.current.has(row.dataset["ouroLiveCaptionsLine"]!));
-    const rise = kept ? tops.current.get(kept.dataset["ouroLiveCaptionsLine"]!)! - now.get(kept.dataset["ouroLiveCaptionsLine"]!)! : 0;
+    const now = place(track);
+    const kept = [...now.keys()].find((line) => tops.current.has(line));
+    const rise = kept === undefined ? 0 : tops.current.get(kept)! - now.get(kept)!;
     tops.current = now;
-    if (reduced || rise <= 0) return;
+    // A new size or height moves the lines by a fraction of a line: they take their places at once.
+    const reshaped = shape.current[0] !== size || shape.current[1] !== maxLines;
+    shape.current = [size, maxLines];
+    if (reduced || reshaped || rise <= 0) return;
     // Start the lines where they were drawn (with any slide still under way) and let them slide up.
     const [, under = "0"] = getComputedStyle(track).translate.split(" ");
     track.style.transition = "none";
@@ -208,9 +263,10 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
   const heard = useRef<Set<string> | null>(null);
   const waiting = useRef<LiveCaptionLine[]>([]);
   const gap = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const reading = announce && !off;
   useEffect(() => {
     const finals = new Set(lines.filter((line) => line.final).map((line) => line.id));
-    if (!announce) {
+    if (!reading) {
       heard.current = null;
       waiting.current = [];
       clearTimeout(gap.current);
@@ -231,9 +287,25 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
       gap.current = setTimeout(flush, ANNOUNCE_GAP_MS);
     };
     if (gap.current === undefined) flush();
-  }, [announce, lines]);
-  // Stryker disable next-line ArrayDeclaration: any constant dependency list runs the cleanup once, on unmount.
-  useEffect(() => () => clearTimeout(gap.current), []);
+  }, [reading, lines]);
+  // Hidden (unmounted, under a hidden <Activity>, or by Fast Refresh), the band lets go of its timer,
+  // its queue, what it has heard and where its lines were, so shown again it starts like a new band:
+  // no slide, nothing read from before, and the next final line read at once.
+  useEffect(() => {
+    const track = trackRef.current!;
+    // A resize rewraps the lines without a render: they take their new places, without a slide.
+    const resize = new ResizeObserver(() => void (tops.current = place(track)));
+    resize.observe(track);
+    return () => {
+      resize.disconnect();
+      clearTimeout(gap.current);
+      gap.current = undefined;
+      waiting.current = [];
+      heard.current = null;
+      tops.current = new Map();
+    };
+    // Stryker disable next-line ArrayDeclaration: any constant dependency list runs the setup on show and the cleanup on hide, and nowhere else.
+  }, []);
 
   return (
     <div
@@ -263,6 +335,17 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
             </p>
           ))}
         </div>
+        {off ? (
+          <div data-ouro-live-captions-unavailable="" className={unavailableClass}>
+            {unavailable}
+          </div>
+        ) : (
+          shown.length === 0 && (
+            <p data-ouro-live-captions-placeholder="" className={placeholderClass}>
+              {placeholder}
+            </p>
+          )
+        )}
       </div>
     </div>
   );

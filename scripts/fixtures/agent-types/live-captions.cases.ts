@@ -18,7 +18,14 @@ export const agentCases: AgentCase[] = [
     dev: '<LiveCaptions size="md">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "liveCaptions06",
+    habit: "a waiting or unavailable message as status",
+    tsc: [hint("string", "Use placeholder, or unavailable when the meeting does not offer captions")],
+    dev: `<LiveCaptions placeholder="Waiting for someone to speak…" unavailable="Captions aren't available in this meeting">`,
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid live-captions snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["liveCaptionsValid"];
+export const validSnippets: string[] = ["liveCaptionsValid", "liveCaptionsUnavailable"];

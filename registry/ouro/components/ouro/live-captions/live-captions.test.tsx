@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Activity, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -87,6 +87,14 @@ function contrast(a: Rgb, b: Rgb): number {
 
 /** How far a track is drawn below where it sits, in px. */
 const lift = (track: HTMLElement) => parseFloat(getComputedStyle(track).translate.split(" ")[1] ?? "0") || 0;
+
+/** Lets the page draw two frames, so a resize reaches the band's observer. */
+const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+/** Waits real time, for an announcement that should not come. */
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const long = "Shall we start with the plan for next week?";
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -330,7 +338,7 @@ describe("LiveCaptions", () => {
   });
 
   it("warns, once each, for guessed props, repeated ids and appearance classes, and renders the defaults", async () => {
-    const guessed = { captions: [], readAloud: true, size: "xl" } as unknown as LiveCaptionsProps;
+    const guessed = { captions: [], readAloud: true, size: "xl", status: "Waiting" } as unknown as LiveCaptionsProps;
     const lines = [mara("1", "a"), { ...jonas("1", "b"), isFinal: true } as unknown as LiveCaptionLine];
     // React reports the repeated key too; the development message says how to fix it.
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -346,9 +354,97 @@ describe("LiveCaptions", () => {
       "[ouro-ui] LiveCaptions: isFinal is not a line field. Fix: { id, speaker, text, final: true }.",
       "[ouro-ui] LiveCaptions: captions is not a prop. Fix: <LiveCaptions lines={lines}>.",
       "[ouro-ui] LiveCaptions: readAloud is not a prop. Fix: <LiveCaptions announce>.",
+      `[ouro-ui] LiveCaptions: status is not a prop; before anyone speaks the band shows placeholder, and unavailable says why there are no captions. Fix: <LiveCaptions placeholder="Waiting for someone to speak…" unavailable="Captions aren't available in this meeting">.`,
     ]);
     expect(band.hasAttribute("captions")).toBe(false);
     expect(band.hasAttribute("readaloud")).toBe(false);
+    expect(band.hasAttribute("status")).toBe(false);
+  });
+
+  it("hides lines wholly over the top edge from screen readers, as they leave and when a line wraps", async () => {
+    const hidden = (rows: HTMLElement[]) => rows.map((row) => row.getAttribute("aria-hidden"));
+    const a = mara("1", "Shall we start?");
+    const b = jonas("2", "Yes.");
+    const c = mara("3", "First, the plan.");
+    const view = await render(<LiveCaptions label="Captions" lines={[a, b]} />);
+    expect(hidden(view.rows)).toEqual([null, null]);
+    await view.rerender(<LiveCaptions label="Captions" lines={[a, b, c]} />);
+    // The line leaving over the top is out of sight at once, though it may still be sliding.
+    expect(hidden(view.rows)).toEqual(["true", null, null]);
+    await view.rerender(<LiveCaptions label="Captions" lines={[a, b, c]} maxLines={3} />);
+    expect(hidden(view.rows)).toEqual([null, null, null]);
+    // A long line wraps over the band's two lines: the one before it is out of sight, though it is
+    // within maxLines, and the wrapped one, partly showing, is still read.
+    const narrow = await render(<LiveCaptions label="Narrow captions" lines={[b, mara("3", `${long} Then the budget.`)]} />, 240);
+    expect(narrow.rows[1]!.getBoundingClientRect().height).toBeGreaterThan(56);
+    expect(hidden(narrow.rows)).toEqual(["true", null]);
+  });
+
+  it("shows a quiet placeholder line, never read aloud, until the first line comes", async () => {
+    const announced = watchAnnouncements();
+    try {
+      const { host, window: view, rerender } = await render(<LiveCaptions label="Captions" announce lines={[]} />);
+      const waiting = () => host.querySelector<HTMLElement>("[data-ouro-live-captions-placeholder]");
+      expect(waiting()!.textContent).toBe("Waiting for someone to speak…");
+      // On the last line, muted like words that may still change, and the band keeps its height.
+      expect(waiting()!.getBoundingClientRect().bottom).toBeCloseTo(view.getBoundingClientRect().bottom, 0);
+      expect(waiting()!.getBoundingClientRect().height).toBe(28);
+      const muted = over(getComputedStyle(waiting()!).color, [0, 0, 0]);
+      over("rgb(255 255 255 / 0.7)", [0, 0, 0]).forEach((channel, index) => expect(muted[index]).toBeCloseTo(channel, -0.5));
+      expect(view.getBoundingClientRect().height).toBe(56);
+      await pause(300);
+      expect(announced.changes).toEqual([]);
+      expect(host.querySelector('[aria-live], [role="status"], [role="alert"], [role="log"]')).toBeNull();
+      await rerender(<LiveCaptions label="Captions" announce lines={[mara("1", "Shall", false)]} />);
+      expect(waiting()).toBeNull();
+      await rerender(<LiveCaptions label="Captions" lines={[]} placeholder="Captions are on" />);
+      expect(waiting()!.textContent).toBe("Captions are on");
+      await rerender(<LiveCaptions label="Captions" lines={[]} placeholder={null} />);
+      expect(waiting()!.textContent).toBe("");
+      expect(view.getBoundingClientRect().height).toBe(56);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("shows why captions are unavailable in place of the lines, at the same height, and reads nothing", async () => {
+    const announced = watchAnnouncements();
+    const said = () => announced.changes.map((change) => change.text);
+    try {
+      const why = "Captions aren't available in this meeting";
+      const a = mara("1", "Shall we start?");
+      const b = jonas("2", "Yes.");
+      const { host, window: view, rerender } = await render(<LiveCaptions label="Captions" announce lines={[]} unavailable={why} />);
+      const message = () => host.querySelector<HTMLElement>("[data-ouro-live-captions-unavailable]");
+      const waiting = () => host.querySelector("[data-ouro-live-captions-placeholder]");
+      expect(message()!.textContent).toBe(why);
+      expect(waiting()).toBeNull();
+      expect(getComputedStyle(message()!).color).toBe("rgb(255, 255, 255)");
+      expect(message()!.getBoundingClientRect().bottom).toBeCloseTo(view.getBoundingClientRect().bottom, 0);
+      expect(view.getBoundingClientRect().height).toBe(56);
+      // Lines that come while it is set are neither shown nor read.
+      await rerender(<LiveCaptions label="Captions" announce lines={[a]} unavailable={why} />);
+      expect(host.querySelector("[data-ouro-live-captions-line]")).toBeNull();
+      expect(message()!.textContent).toBe(why);
+      await pause(300);
+      expect(said()).toEqual([]);
+      // Any element, such as a notice that says why.
+      await rerender(<LiveCaptions label="Captions" announce lines={[a]} unavailable={<strong>Not offered here</strong>} />);
+      expect(message()!.querySelector("strong")!.textContent).toBe("Not offered here");
+      // Captions come back: what was said before is not read, and the next final line is.
+      await rerender(<LiveCaptions label="Captions" announce lines={[a]} />);
+      expect(message()).toBeNull();
+      await rerender(<LiveCaptions label="Captions" announce lines={[a, b]} />);
+      await expect.poll(said).toEqual(["Jonas Ek: Yes."]);
+      // Nothing to say, from a condition that came out false or empty, shows the lines as usual.
+      for (const nothing of [false, null, true, ""]) {
+        await rerender(<LiveCaptions label="Captions" lines={[]} unavailable={nothing} />);
+        expect(message()).toBeNull();
+        expect(waiting()).not.toBeNull();
+      }
+    } finally {
+      announced.stop();
+    }
   });
 
   it("declares one agent read, the captions, behind listening consent and a filtered push, and no actions", () => {
@@ -495,6 +591,44 @@ describe("LiveCaptions announcements", () => {
     }
   });
 
+  it("hidden under an Activity and shown again, reads only the lines that become final after", async () => {
+    const announced = watchAnnouncements();
+    const said = () => announced.changes.map((change) => change.text);
+    try {
+      const a = mara("1", "One.");
+      const b = jonas("2", "Two.");
+      const c = mara("3", "Three.");
+      const d = jonas("4", "Four.");
+      const band = (mode: "visible" | "hidden", lines: LiveCaptionLine[]) => (
+        <Activity mode={mode}>
+          <LiveCaptions label="Captions" announce lines={lines} />
+        </Activity>
+      );
+      const { rerender } = await render(band("visible", []));
+      await rerender(band("visible", [a]));
+      await wait(100);
+      // Two finishes inside the gap and waits; then the band is hidden, and Three finishes while it is.
+      await rerender(band("visible", [a, b]));
+      await wait(100);
+      await rerender(band("hidden", [a, b]));
+      expect(vi.getTimerCount()).toBe(0);
+      await wait(100);
+      await rerender(band("hidden", [a, b, c]));
+      await wait(100);
+      // Shown again inside the first gap: nothing from before is read, and Four is read at once.
+      await rerender(band("visible", [a, b, c]));
+      await wait(100);
+      expect(said()).toEqual(["Mara Lind: One."]);
+      await rerender(band("visible", [a, b, c, d]));
+      await wait(100);
+      expect(said()).toEqual(["Mara Lind: One.", "Jonas Ek: Four."]);
+      await wait(5000);
+      expect(said().length).toBe(2);
+    } finally {
+      announced.stop();
+    }
+  });
+
   it("does not read lines that were final before announcing began", async () => {
     const announced = watchAnnouncements();
     try {
@@ -567,5 +701,54 @@ describe("LiveCaptions motion", () => {
     expect(lift(track)).toBe(0);
     expect(row("5").getBoundingClientRect().bottom).toBeCloseTo(bottom(), 0);
     expect(row("4").getBoundingClientRect().bottom).toBeCloseTo(bottom() - 28, 0);
+  });
+
+  it("takes new places without a slide after a resize, a new size or a new maxLines", async () => {
+    const a = mara("1", long);
+    const b = jonas("2", "Yes");
+    const c = mara("3", "First, the plan.");
+    const d = jonas("4", "Go on.");
+    const { host, window: view, track, line: row, rerender } = await render(<LiveCaptions label="Captions" lines={[a, b]} />);
+    expect(row("1").getBoundingClientRect().height).toBe(28);
+    // Narrower, the first line wraps and rises without a render; the next word on the last line moves nothing.
+    host.style.width = "240px";
+    await frames();
+    expect(row("1").getBoundingClientRect().height).toBeGreaterThan(28);
+    await rerender(<LiveCaptions label="Captions" lines={[a, jonas("2", "Yes, go", false)]} />);
+    expect(track.getAnimations()).toEqual([]);
+    expect(lift(track)).toBe(0);
+    host.style.width = "600px";
+    await frames();
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, c]} />);
+    await expect.poll(() => track.getAnimations().length).toBe(0);
+    // Larger words, then one line tall: the lines take their places at once.
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, c]} size="lg" />);
+    expect(track.getAnimations()).toEqual([]);
+    expect(lift(track)).toBe(0);
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, c]} size="lg" maxLines={1} />);
+    expect(track.getAnimations()).toEqual([]);
+    expect(lift(track)).toBe(0);
+    expect(row("3").getBoundingClientRect().bottom).toBeCloseTo(view.getBoundingClientRect().bottom, 0);
+    // And the next line slides in as usual.
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, c, d]} size="lg" maxLines={1} />);
+    expect(lift(track)).toBeGreaterThan(0);
+  });
+
+  it("shown again after a hidden Activity, takes its places without a slide", async () => {
+    const lines = [mara("1", "Shall we start?"), jonas("2", "Yes."), mara("3", "First, the plan."), jonas("4", "Go on.")];
+    const band = (mode: "visible" | "hidden", count: number) => (
+      <Activity mode={mode}>
+        <LiveCaptions label="Captions" lines={lines.slice(0, count)} />
+      </Activity>
+    );
+    const { track, rerender } = await render(band("visible", 3));
+    await expect.poll(() => track.getAnimations().length).toBe(0);
+    await rerender(band("hidden", 3));
+    await frames();
+    await rerender(band("hidden", 4));
+    await frames();
+    await rerender(band("visible", 4));
+    expect(track.getAnimations()).toEqual([]);
+    expect(lift(track)).toBe(0);
   });
 });

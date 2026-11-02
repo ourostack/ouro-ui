@@ -12,9 +12,11 @@ export {
   MAX_LINES_DEFAULT,
   MAX_LINES_MAX,
   MAX_LINES_MIN,
+  placeholderClass,
   speakerClass,
   spokenText,
   trackClass,
+  unavailableClass,
 };
 
 // Class strings, values, helpers and the agent side for LiveCaptions, apart from the component so
@@ -141,7 +143,21 @@ const interimWordsClass =
   "text-white/70 transition-colors duration-(--ouro-duration-fast) ease-[ease] contrast-more:text-white forced-colors:text-[GrayText]";
 
 /**
- * LiveCaptions' agent side, for Ouro AX's kit. Its one read, `captions`, is what people say, which
+ * The line before anyone speaks: on the last line, muted like words that may still change.
+ * @internal
+ * @claim "The line before anyone speaks: on" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows a quiet placeholder line, never read aloud, until the first line comes)
+ */
+const placeholderClass = "absolute inset-x-0 bottom-0 m-0 text-white/70 contrast-more:text-white forced-colors:text-[GrayText]";
+
+/**
+ * Why there are no captions, in white on the last lines. @internal
+ * @claim "Why there are no captions, in" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > shows why captions are unavailable in place of the lines, at the same height, and reads nothing)
+ */
+const unavailableClass = "absolute inset-x-0 bottom-0 text-white forced-colors:text-[CanvasText]";
+
+/**
+ * LiveCaptions' agent side, for Ouro AX's kit. Its one read, `captions`, is what people say (the
+ * speaker and words from `lines`, and `at`, when they were said, from the app's caption feed), which
  * an agent may read only while the person has asked it to follow the meeting (`consent:
  * "listening"`), and only through a filtered watch (`push: "filtered"`). It declares no actions:
  * turning captions on and off is declared once, in a calling app's own controls.

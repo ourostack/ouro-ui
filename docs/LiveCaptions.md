@@ -13,15 +13,16 @@ import { LiveCaptions } from "@/registry/ouro/components/ouro/live-captions/live
 ```tsx
 <LiveCaptions label="Captions" hideLabel lines={[{ id: "1", speaker: "Mara Lind", text: "Shall we start?", final: true }]} />
 <LiveCaptions label="Captions" lines={lines} size="lg" announce={readAloud} />
+<LiveCaptions label="Captions" lines={[]} unavailable="Captions aren't available in this meeting" />
 ```
 
 ## Usage
 
-The band is a solid, translucent black fill with rounded corners and no blur, so it reads over any picture; put it in its own space under the pictures, never over a face. It is always `maxLines` lines tall, two by default, so the layout never jumps as captions come and go; the newest words sit on the last line, and older lines slide up and off the top (with reduced motion they move at once).
+The band is a solid, translucent black fill with rounded corners and no blur, so it reads over any picture; put it in its own space under the pictures, never over a face. It is always `maxLines` lines tall, two by default, so the layout never jumps as captions come and go; the newest words sit on the last line, and older lines slide up and off the top (with reduced motion they move at once). Resized, or given a new `size` or `maxLines`, the lines take their new places without a slide. Lines wholly over the top edge are hidden from screen readers too. Before anyone speaks it shows a quiet `placeholder` line, and when the meeting doesn't offer captions it shows why, from `unavailable`, in place of the lines.
 
-It is a region named by its `label`. With `announce`, it reads each line aloud once, when it becomes final, through one polite live region, never a line's interim words; it says at most one announcement every 2 seconds and gathers the lines that finish in between into the next, so a fast talker doesn't flood a screen reader. Lines that were already final when announcing began are not read. `announce` is off by default, since captions read aloud would talk over the call.
+It is a region named by its `label`. With `announce`, it reads each line aloud once, when it becomes final, through one polite live region, never a line's interim words; it says at most one announcement every 2 seconds and gathers the lines that finish in between into the next, so a fast talker doesn't flood a screen reader. Lines that were already final when announcing began are not read. `announce` is off by default, since captions read aloud would talk over the call. Hidden (under a hidden `<Activity>`, say) and shown again, it reads only the lines that become final from then on.
 
-Its agent side, `liveCaptionsAx` in `live-captions-styles.ts`, declares one read, `captions` (the speaker, the words and when they were said), which an agent may read only while the person has asked it to follow the meeting (consent `listening`), and only through a filtered watch, never every word pushed. It declares no actions: turning captions on and off is the person's, declared once in a calling app's own controls.
+Its agent side, `liveCaptionsAx` in `live-captions-styles.ts`, declares one read, `captions` (the speaker, the words, and when they were said, which comes from the app's caption feed), which an agent may read only while the person has asked it to follow the meeting (consent `listening`), and only through a filtered watch, never every word pushed. It declares no actions: turning captions on and off is the person's, declared once in a calling app's own controls.
 
 ## Use instead when
 
@@ -38,10 +39,12 @@ Type: `LiveCaptionsProps`.
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still use it. |
 | `id` | `string` |  | The band's id, for `aria-describedby` or `aria-controls` elsewhere on the page. |
 | `label` (required) | `string` |  | What the band is: "Captions". It names the band for screen readers. |
-| `lines` (required) | `readonly LiveCaptionLine[]` |  | The caption lines, in the order they were said. Feed it as the words come: add a line when someone starts speaking, replace it by its `id` as its words grow, and mark it `final` when they are settled. The band shows the newest lines and lets older ones go over its top. |
-| `maxLines` | `number` | `2` | How many lines tall the band is, a whole number from 1 to 6. The band is always that tall, empty or full, so nothing around it moves as captions come and go. |
+| `lines` (required) | `readonly LiveCaptionLine[]` |  | The caption lines, in the order they were said. Feed it as the words come: add a line when someone starts speaking, replace it by its `id` as its words grow, and mark it `final` when they are settled. The band shows the newest lines and lets older ones go over its top. Pass the recent lines only (a few more than `maxLines`), not the meeting's whole history. |
+| `maxLines` | `number` | `2` | How many lines tall the band is, a whole number from 1 to 6. The band is always that tall, empty or full, so nothing around it moves as captions come and go. In a narrow layout a long line wraps and takes more of the band, so give it a line more there. |
+| `placeholder` | `ReactNode` | `"Waiting for someone to speak…"` | The quiet line the band shows before anyone has spoken, so the person can see captions are on. Muted, and never read aloud. Translate it here. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | The words' size: 14, 18 or 24px. Let the person choose. |
+| `unavailable` | `ReactNode` |  | Why captions are missing, when the meeting doesn't offer them: "Captions aren't available in this meeting". The band shows it in place of the lines, at the same height, and shows and reads no lines while it is set. |
 
 ## Don't use
 
@@ -49,6 +52,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `captions`: Not a prop. The lines are `lines`: `<LiveCaptions lines={lines}>`.
 - `readAloud`: Not a prop. Ouro UI uses `announce`: `<LiveCaptions announce>`.
+- `status`: Not a prop. Before anyone speaks the band shows `placeholder`; when the meeting doesn't offer captions, `unavailable`.
 
 ## `className` is for layout only
 
