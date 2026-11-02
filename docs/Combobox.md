@@ -78,7 +78,7 @@ A Combobox that picks several items, shown as chips in the input.
 | --- | --- | --- | --- |
 | `allowCustomValue` | `false` |  | Not with `multiple`: `allowCustomValue` keeps one typed value. |
 | `defaultValue` | `string[]` |  | The items picked at first, when the field keeps its own. |
-| `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`, which then hears a pick's text too. Set it to `""` in `onValueChange` to clear the input after a pick. |
+| `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
 | `onValueChange` | `((value: string[]) => void)` |  | Called with the picked items' values. |
 | `removeLabel` | `((label: string) => string)` | (label) => `Remove ${label}` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
@@ -96,7 +96,7 @@ A Combobox that picks one item: its value, or `null` when nothing is picked.
 | --- | --- | --- |
 | `allowCustomValue` | `false` | Accept any text, not only an item. |
 | `defaultValue` | `string \| null` | The item picked at first, when the field keeps its own. |
-| `inputValue` | `string` | The input's text, when you control it with `onInputChange`, which then hears a pick's text too. Set it to `""` in `onValueChange` to clear the input after a pick. |
+| `inputValue` | `string` | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` | `false` | Pick several items, shown as chips. |
 | `onValueChange` | `((value: string \| null) => void)` | Called with the picked item's value, or `null` when cleared. |
 | `value` | `string \| null` | The picked item's value, when you control it; `null` is nothing picked. |

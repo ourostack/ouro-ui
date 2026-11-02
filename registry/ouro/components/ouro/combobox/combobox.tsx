@@ -204,8 +204,8 @@ export type ComboboxSingleProps = ComboboxBaseProps & {
   /** Called with the picked item's value, or `null` when cleared. */
   onValueChange?: ((value: string | null) => void) | undefined;
   /**
-   * The input's text, when you control it with `onInputChange`, which then hears a pick's text
-   * too. Set it to `""` in `onValueChange` to clear the input after a pick.
+   * The input's text, when you control it with `onInputChange`. Set it to `""` in
+   * `onValueChange` to clear the input after a pick.
    */
   inputValue?: string | undefined;
   /** Only with `multiple`. */
@@ -227,8 +227,8 @@ export type ComboboxMultipleProps = ComboboxBaseProps & {
   /** Called with the picked items' values. */
   onValueChange?: ((value: string[]) => void) | undefined;
   /**
-   * The input's text, when you control it with `onInputChange`, which then hears a pick's text
-   * too. Set it to `""` in `onValueChange` to clear the input after a pick.
+   * The input's text, when you control it with `onInputChange`. Set it to `""` in
+   * `onValueChange` to clear the input after a pick.
    * @claim "in `onValueChange` to clear the input after a pick" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > takes its text from inputValue, and clears it after a pick when the app says so)
    */
   inputValue?: string | undefined;
@@ -830,8 +830,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       filter={onInputChange ? null : undefined}
       onInputValueChange={(next, details) => {
         setText(next);
-        // A pick's text is no new search, unless the app keeps the text (inputValue).
-        if (details.reason !== "item-press" || inputValue !== undefined) onInputChange?.(next);
+        if (details.reason !== "item-press") onInputChange?.(next);
       }}
       inputValue={inputValue}
       autoHighlight={autoHighlight}

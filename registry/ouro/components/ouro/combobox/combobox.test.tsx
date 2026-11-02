@@ -1020,7 +1020,7 @@ describe("Combobox keys", () => {
     expect(input.value).toBe("");
   });
 
-  it("hands a pick's text to onInputChange when the app keeps the text", async () => {
+  it("shows a single pick's label in a controlled input once the list closes", async () => {
     const changes: string[] = [];
     function Herb() {
       const [text, setText] = useState("");
@@ -1040,7 +1040,6 @@ describe("Combobox keys", () => {
     await userEvent.click(input);
     await userEvent.type(input, "thy");
     await expect.poll(options).toEqual(["Thyme"]);
-    // A press on the item, which an uncontrolled search would not hear.
     await userEvent.click(document.querySelector<HTMLElement>('[role="listbox"] [role="option"]')!);
     await expect.poll(() => input.value).toBe("Thyme");
     expect(changes.at(-1)).toBe("Thyme");
