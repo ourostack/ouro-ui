@@ -4,6 +4,7 @@ import { expect } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { App, loadPage } from "../src/app";
 import { docsItems } from "../src/docs/items";
+import { waitingIslands } from "../src/voyage/chapters/island";
 import { audit, axeExclude, describeFindings, type GateFinding } from "@/registry/ouro/lib/ouro/testing/axe";
 
 let mounted: { root: Root; host: HTMLElement } | undefined;
@@ -15,9 +16,10 @@ export async function renderPage(path: string): Promise<HTMLElement> {
   // The header is an island on the docs pages: the server's HTML has it, but a client render shows
   // it once its chunk loads, and it pushes the page down then. Wait for it, so nothing moves mid-test.
   await expect.poll(() => host.querySelector("[data-site-brand]")).not.toBeNull();
-  // The Ouro AX page's body and its hero's exhibit are islands (voyage/chapters/island.tsx): a client render shows
-  // them once their chunks load, which adds the page's headings. Wait for both, so a scan never sees the page change.
-  if (path === "/ax/") await expect.poll(() => host.querySelector("#ax") !== null && host.querySelector("#ax-exhibit") !== null).toBe(true);
+  // The voyage pages' islands (voyage/chapters/island.tsx: the home page's themes and reference, the Ouro AX page's
+  // body and exhibit, the Nautilus's chapters): a client render shows each once its chunk loads, in any order, which
+  // adds its section and its headings. Wait for every one, so a scan never sees the page change under it.
+  await expect.poll(waitingIslands).toEqual([]);
   const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
   if (name && docsItems.some((item) => item.name === name)) {
     await expect.poll(() => host.querySelector(`[data-site-demo="${name}"]`)?.childElementCount ?? 0).toBeGreaterThan(0);
