@@ -79,7 +79,10 @@ describe("LevelMeter", () => {
     expect(meter.getAttribute("aria-valuemax")).toBe("100");
     expect(meter.getAttribute("aria-valuenow")).toBe("46");
     expect(meter.getAttribute("aria-valuetext")).toBe("Speaking");
-    expect(meter.querySelector("[data-ouro-level-meter-label]")!.getBoundingClientRect().width).toBeGreaterThan(1);
+    const name = meter.querySelector("[data-ouro-level-meter-label]")!;
+    expect(name.getAttribute("data-ouro-level-meter-label")).toBe("");
+    expect(name.getBoundingClientRect().width).toBeGreaterThan(1);
+    expect(meter.querySelectorAll('[data-ouro-level-meter-bar=""]').length).toBe(8);
     expect(warnings()).toEqual([]);
   });
 

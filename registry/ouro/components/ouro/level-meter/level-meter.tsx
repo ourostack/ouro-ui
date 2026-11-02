@@ -221,7 +221,7 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
       <span id={labelId} data-ouro-level-meter-label="" className={hideLabel ? "sr-only" : "text-sm font-medium text-foreground"}>
         {label}
       </span>
-      <span data-ouro-level-meter-bars="" className={cn("flex items-end", rowSizes[size])}>
+      <span className={cn("flex items-end", rowSizes[size])}>
         {Array.from({ length: count }, (_, index) => (
           <Bar key={index} index={index} lit={index < lit} className={barClassName} fillClassName={fillClassName} />
         ))}
