@@ -2,7 +2,7 @@
 
 # StackedLayout
 
-The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. It renders the page's `<main>`, starts with a "Skip to content" link, and keeps its footer at the bottom of a short page.
+The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column. It renders the page's `<main>`, starts with a "Skip to content" link, and keeps its footer at the bottom of a short page. `navbarBehavior` lets the bars scroll away with a document, or slide out of the way of a reading surface.
 
 ```tsx
 import { StackedLayout } from "@/registry/ouro/components/ouro/sidebar/stacked-layout";
@@ -11,7 +11,10 @@ import { StackedLayout } from "@/registry/ouro/components/ouro/sidebar/stacked-l
 ## Example
 
 ```tsx
-<StackedLayout navbar={<Navbar label="Main" items={items} currentPath={pathname} />}>
+<StackedLayout
+  navbar={<Navbar label="Main" items={items} currentPath={pathname} />}
+  toolbar={<Toolbar label="Week" items={weekTools} />}
+>
   <Outlet />
 </StackedLayout>
 ```
@@ -37,16 +40,21 @@ Type: `StackedLayoutProps`.
 | `children` (required) | `ReactNode` |  | The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide. |
 | `className` | `string` |  | Layout only: height and margins (`min-h-96`). Appearance classes warn in development. |
 | `footer` | `ReactNode` |  | A line at the bottom of the page: links, a copyright. It sits at the bottom of the screen on a short page. |
-| `navbar` (required) | `ReactNode` |  | The app's `Navbar`. It stays at the top while the page scrolls. |
+| `navbar` (required) | `ReactNode` |  | The app's `Navbar`. It stays at the top while the page scrolls, unless `navbarBehavior` says otherwise. |
+| `navbarBehavior` | `"sticky" \| "static" \| "auto-hide"` | `"sticky"` | What the navbar, and the toolbar under it, do while the page scrolls. `"sticky"` keeps them at the top. `"static"` lets them scroll away with the page, for a document. `"auto-hide"`, for a reading surface with art that runs under the bars, slides them up out of view as the reader scrolls down and brings them back on any scroll up, at the top of the page, or when keyboard focus moves into them; they never hide while keyboard focus or an open menu is in them. Over the page they are translucent, with the page blurred behind them. With reduced motion they show and hide at once, without sliding. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `skipLabel` | `string` | `"Skip to content"` | The text of the link that skips the navbar, shown when it has keyboard focus. |
+| `toolbar` | `ReactNode` |  | A second bar right under the navbar, for the page's own tools: a search field, a view switcher, a week stepper. Usually a `Toolbar`. It runs the full width with the navbar's padding and its own line below, fills the bar's width (wrap several things in one element to put them in a row), and moves with the navbar: it sticks, scrolls away or hides with it. It is a landmark named `toolbarLabel`, so a screen-reader user can jump to it. |
+| `toolbarLabel` | `string` | `"Page tools"` | Names the toolbar's landmark for screen readers. It is not shown. |
 
 ## Don't use
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `header`: Not a prop. Ouro UI uses `navbar`: `<StackedLayout navbar={<Navbar … />}>`.
+- `hideOnScroll`: Not a prop. Use `navbarBehavior="auto-hide"`.
 - `sidebar`: Not a prop. A `Navbar` opens its own drawer on a phone; for a sidebar use `SidebarLayout`.
+- `sticky`: Not a prop. The navbar sticks by default; `navbarBehavior="static"` lets it scroll away.
 
 ## `className` is for layout only
 

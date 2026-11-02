@@ -1,14 +1,35 @@
 "use client";
 
-import { useId, useRef, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type JSX, type ReactNode, type Ref, type RefObject } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** Props for {@link StackedLayout}. */
 export interface StackedLayoutProps {
-  /** The app's `Navbar`. It stays at the top while the page scrolls. */
+  /** The app's `Navbar`. It stays at the top while the page scrolls, unless `navbarBehavior` says otherwise. */
   navbar: ReactNode;
+  /**
+   * A second bar right under the navbar, for the page's own tools: a search field, a view
+   * switcher, a week stepper. Usually a `Toolbar`. It runs the full width with the navbar's
+   * padding and its own line below, fills the bar's width (wrap several things in one element
+   * to put them in a row), and moves with the navbar: it sticks, scrolls away or hides with it.
+   * It is a landmark named `toolbarLabel`, so a screen-reader user can jump to it.
+   */
+  toolbar?: ReactNode;
+  /** Names the toolbar's landmark for screen readers. It is not shown. @default "Page tools" */
+  toolbarLabel?: string | undefined;
+  /**
+   * What the navbar, and the toolbar under it, do while the page scrolls. `"sticky"` keeps them
+   * at the top. `"static"` lets them scroll away with the page, for a document. `"auto-hide"`,
+   * for a reading surface with art that runs under the bars, slides them up out of view as the
+   * reader scrolls down and brings them back on any scroll up, at the top of the page, or when
+   * keyboard focus moves into them; they never hide while keyboard focus or an open menu is in
+   * them. Over the page they are translucent, with the page blurred behind them. With reduced
+   * motion they show and hide at once, without sliding.
+   * @default "sticky"
+   */
+  navbarBehavior?: "sticky" | "static" | "auto-hide" | (string & { 'default is "sticky"; use "sticky", "static" or "auto-hide"': never }) | undefined;
   /**
    * The page. It renders inside the page's `<main>`, in a centered column up to 72rem wide.
    *
@@ -37,7 +58,13 @@ export interface StackedLayoutProps {
   sidebar?: { "Use <StackedLayout navbar={<Navbar ... />}>, or <SidebarLayout sidebar={...}>": never };
   /** Not a prop. Ouro UI uses `navbar`: `<StackedLayout navbar={<Navbar … />}>`. */
   header?: { "Use <StackedLayout navbar={<Navbar ... />}>": never };
+  /** Not a prop. Use `navbarBehavior="auto-hide"`. */
+  hideOnScroll?: { 'Use <StackedLayout navbarBehavior="auto-hide">': never };
+  /** Not a prop. The navbar sticks by default; `navbarBehavior="static"` lets it scroll away. */
+  sticky?: { 'Use <StackedLayout navbarBehavior="static"> to let the navbar scroll away': never };
 }
+
+const behaviors: readonly string[] = ["sticky", "static", "auto-hide"];
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
@@ -48,10 +75,55 @@ const skip =
   "focus-visible:rounded-lg focus-visible:bg-background focus-visible:text-foreground focus-visible:text-base focus-visible:leading-5 focus-visible:font-medium " +
   "focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid";
 
+// The navbar and the toolbar, for each navbarBehavior. Auto-hide is translucent over the page,
+// and solid where the reader asks for less transparency or more contrast.
+const barsClass = {
+  sticky: "sticky top-0 z-10",
+  static: "",
+  "auto-hide":
+    "sticky top-0 z-10 bg-background/80 backdrop-blur-md [&>[data-ouro=navbar]]:bg-transparent " +
+    "transition-[translate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-closed:-translate-y-full motion-reduce:transition-none " +
+    "[@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
+    "contrast-more:bg-background contrast-more:backdrop-blur-none",
+};
+
+// The toolbar's bar: full width, with the Navbar's padding and safe-area insets and its own line below.
+const toolbarClass =
+  "box-border flex min-h-12 flex-col justify-center border-0 border-b border-solid border-border py-1.5 " +
+  "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
+
+/**
+ * With `auto-hide`: whether the bars are out of view. A scroll down past them hides them,
+ * unless keyboard focus or an open menu is in them; any scroll up, or the top of the page, shows them.
+ */
+function useAutoHide(enabled: boolean, bars: RefObject<HTMLDivElement | null>): [hidden: boolean, show: () => void] {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const region = bars.current!;
+    let last = scrollY;
+    const onScroll = () => {
+      const [y, previous] = [scrollY, last];
+      last = y;
+      if (y < previous || y <= region.offsetHeight) setHidden(false);
+      else if (y > previous && region.querySelector(":focus-visible, [aria-expanded=true]") === null) setHidden(true);
+    };
+    addEventListener("scroll", onScroll);
+    return () => {
+      removeEventListener("scroll", onScroll);
+      // So `hidden` is only ever true while auto-hide is on.
+      setHidden(false);
+    };
+  }, [enabled, bars]);
+  return [hidden, () => setHidden(false)];
+}
+
 /**
  * The shell of an app with a `Navbar`: the bar across the top, in view while the page
- * scrolls, and the page below it in a centered column. It renders the page's `<main>`,
- * starts with a "Skip to content" link, and keeps its footer at the bottom of a short page.
+ * scrolls, an optional `toolbar` under it for the page's own tools, and the page below them
+ * in a centered column. It renders the page's `<main>`, starts with a "Skip to content" link,
+ * and keeps its footer at the bottom of a short page. `navbarBehavior` lets the bars scroll
+ * away with a document, or slide out of the way of a reading surface.
  *
  * The phone menu opens once JavaScript has loaded (after hydration);
  * the links are in the server HTML from 640px up.
@@ -63,7 +135,10 @@ const skip =
  * @see https://ui.ouro.bot/docs/stacked-layout
  *
  * @example
- * <StackedLayout navbar={<Navbar label="Main" items={items} currentPath={pathname} />}>
+ * <StackedLayout
+ *   navbar={<Navbar label="Main" items={items} currentPath={pathname} />}
+ *   toolbar={<Toolbar label="Week" items={weekTools} />}
+ * >
  *   <Outlet />
  * </StackedLayout>
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > puts the nav and its links in the server HTML)
@@ -72,6 +147,9 @@ const skip =
 export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const {
     navbar,
+    toolbar,
+    toolbarLabel = "Page tools",
+    navbarBehavior = "sticky",
     children,
     as,
     footer,
@@ -82,7 +160,10 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
     // Guard props (hint types), dropped here so they never reach the DOM.
     sidebar,
     header,
+    hideOnScroll,
+    sticky,
   } = props;
+  const behavior = (behaviors.includes(navbarBehavior) ? navbarBehavior : "sticky") as keyof typeof barsClass;
   useAppearanceClassNameCheck(
     "StackedLayout",
     className,
@@ -100,6 +181,9 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
             "<StackedLayout navbar={<Navbar … />}>, or <SidebarLayout sidebar={<Sidebar … />}> for a sidebar",
           ],
           header !== undefined && ["header is not a prop", "<StackedLayout navbar={<Navbar … />}>"],
+          behavior !== navbarBehavior && [`navbarBehavior="${navbarBehavior}" is not a behavior`, '<StackedLayout navbarBehavior="sticky">'],
+          hideOnScroll !== undefined && ["hideOnScroll is not a prop", '<StackedLayout navbarBehavior="auto-hide">'],
+          sticky !== undefined && ["sticky is not a prop; the navbar sticks by default", '<StackedLayout navbarBehavior="static"> to let it scroll away'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
@@ -107,13 +191,30 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const Page = as === "div" ? "div" : "main";
   // The link's address moves focus by itself in most browsers; the handler makes it certain.
   const main = useRef<HTMLDivElement>(null);
+  const bars = useRef<HTMLDivElement>(null);
+  const autoHide = behavior === "auto-hide";
+  const [hidden, show] = useAutoHide(autoHide, bars);
   return (
     <div ref={ref} data-ouro="stacked-layout" className={cn("relative flex min-h-dvh flex-col bg-background text-foreground", className)}>
       <a href={`#${mainId}`} data-ouro-control="stacked-layout" data-ouro-part="skip-link" onClick={() => main.current!.focus()} className={skip}>
         {skipLabel}
       </a>
-      <div data-ouro-stacked-layout-navbar="" className="sticky top-0 z-10">
+      <div
+        ref={bars}
+        data-ouro-stacked-layout-navbar=""
+        data-ouro-part="bars"
+        data-behavior={behavior}
+        data-open={autoHide && !hidden ? "" : undefined}
+        data-closed={hidden ? "" : undefined}
+        onFocus={show}
+        className={barsClass[behavior]}
+      >
         {navbar}
+        {toolbar !== undefined && (
+          <section aria-label={toolbarLabel} data-ouro-stacked-layout-toolbar="" className={cn(toolbarClass, !autoHide && "bg-background")}>
+            {toolbar}
+          </section>
+        )}
       </div>
       <Page ref={main} id={mainId} tabIndex={-1} className={cn("box-border w-full min-w-0 flex-1 outline-none", !bleed && "mx-auto max-w-6xl p-4 sm:p-6")}>
         {children}

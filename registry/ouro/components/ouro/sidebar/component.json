@@ -15,5 +15,31 @@
     "stacked-layout": [
       {"part": "skip-link", "role": "link", "portal": false}
     ]
+  },
+  "motion": {
+    "stacked-layout": {
+      "states": {
+        "data-closed": {
+          "kind": "motion",
+          "parts": {
+            "bars": {"properties": ["translate"], "reduced": []}
+          },
+          "tests": [
+            "registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout with navbarBehavior auto-hide > slides the navbar and toolbar up out of view on a scroll down, and back on a scroll up",
+            "registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout with navbarBehavior auto-hide > shows and hides at once with reduced motion"
+          ]
+        },
+        "data-open": {
+          "kind": "motion",
+          "parts": {
+            "bars": {"properties": ["translate"], "reduced": []}
+          },
+          "tests": [
+            "registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout with navbarBehavior auto-hide > slides the navbar and toolbar up out of view on a scroll down, and back on a scroll up",
+            "registry/ouro/components/ouro/sidebar/stacked-layout.test.tsx::StackedLayout with navbarBehavior auto-hide > shows and hides at once with reduced motion"
+          ]
+        }
+      }
+    }
   }
 }
