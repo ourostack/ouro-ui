@@ -638,9 +638,9 @@ describe("Emoji placeholder", () => {
     const node = <Emoji item={party} placeholder={waitingSrc} />;
     const html = renderToString(node);
     expect(html).toContain(`src="${waitingSrc.replaceAll("&", "&amp;")}"`);
-    expect(html).not.toContain("data-loaded");
     const host = document.createElement("div");
     host.innerHTML = html;
+    expect(loaded(host)).toBe(false);
     document.body.append(host);
     mounted.push(host);
     const recoverable = vi.fn();
