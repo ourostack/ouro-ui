@@ -109,9 +109,9 @@ describe("Celebrate", () => {
       expect(rect.top).toBeGreaterThanOrEqual(box.top - 0.5);
       expect(rect.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
     }
-    // Every other piece lands nearer the middle, measured as a share of the box's width and height.
+    // Every other piece lands nearer the middle: as a share of the box's width and height, 0.44 out and 0.3 out.
     const reach = dots.map((rect) => Math.hypot((rect.left + rect.width / 2 - cx) / box.width, (rect.top + rect.height / 2 - cy) / box.height));
-    expect(Math.max(...reach.filter((_, index) => index % 2 === 1))).toBeLessThan(Math.min(...reach.filter((_, index) => index % 2 === 0)));
+    reach.forEach((share, index) => expect(Math.abs(share - (index % 2 ? 0.3 : 0.44))).toBeLessThan(0.02));
     const colours = new Set(pieces.map((piece) => getComputedStyle(piece.firstElementChild!).backgroundColor));
     expect(colours.size).toBe(4);
   });
