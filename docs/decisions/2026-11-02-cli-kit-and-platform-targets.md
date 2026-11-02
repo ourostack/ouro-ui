@@ -94,16 +94,16 @@ The verdict is on the last line, nothing moves while a write waits for the servi
 
 ```text
 $ app selfcheck
-✓ Every write works: 12 passed in 14.2s. The test messages are deleted.
-  7 not run: 4 need something you name, 2 need what the app doesn't hold, 1 is by hand.
+✓ Everything works: 11 writes and 1 read passed in 1.4s. The test messages are deleted.
+  7 not run: 5 need something you name (4 found), 1 needs what the app doesn't hold, 1 is by hand.
 
 Next
-  Run the 4 on what the self-check found (others see 2 of them):
+  Run the 4 the self-check found (others see 2 of them):
   $ app selfcheck --reply-in u2ynm2#1793000000000 --activity z4vug0 --rsvp cgl8c3 --answer accept --categorize 5le59j --yes
   See every check: app selfcheck --verbose
 ```
 
-While it runs, one line on stderr, redrawn in place and gone when it ends:
+On a run slow enough to need it, such as against the real service, one line on stderr, redrawn in place and gone when it ends:
 
 ```text
 ⠹ Send a picture  4 of 12 · 3.1s
@@ -113,13 +113,13 @@ When a write fails:
 
 ```text
 $ app selfcheck
-✗ 1 of 12 writes failed: React with a like. 11 passed in 12.9s. The test messages are deleted.
+✗ 1 of 12 checks failed: React with a like. 11 passed in 1.2s. The test messages are deleted.
 
 Failed
-  ✗ React with a like  0.4s
+  ✗ React with a like
     The service refused the reaction (HTTP 400). Nobody saw anything. Request id: a6ca84af9b234.
 
-Not run  7: 4 need something you name, 2 need what the app doesn't hold, 1 is by hand
+Not run  7: 5 need something you name (4 found), 1 needs what the app doesn't hold, 1 is by hand
 
 Next
   Paste this to your agent (no message text, no sign-in tokens):
@@ -141,13 +141,13 @@ Next
 Off a terminal, under `NO_COLOR` or in CI, the same facts in plain words, without progress:
 
 ```text
-FAIL 1 of 12 writes failed: React with a like. 11 passed in 12.9s. The test messages are deleted.
+FAIL 1 of 12 checks failed: React with a like. 11 passed in 1.2s. The test messages are deleted.
 ```
 
 And `--json` keeps today's fields and adds the verdict, the counts and the durations:
 
 ```json
-{ "verdict": "failed", "summary": "1 of 12 writes failed: React with a like. 11 passed in 12.9s.", "durationMs": 12900, "counts": { "passed": 11, "failed": 1, "skipped": 7 }, "steps": [{ "id": "react", "state": "failed", "durationMs": 400, "detail": "…", "fix": null }], "paste": "…" }
+{ "verdict": "failed", "summary": "1 of 12 checks failed: React with a like. 11 passed in 1.2s.", "durationMs": 1197, "counts": { "passed": 11, "failed": 1, "skipped": 7 }, "steps": [{ "id": "react", "state": "failed", "durationMs": 90, "detail": "…", "fix": "Paste the report to your agent." }], "paste": "…" }
 ```
 
 ## What comes next
