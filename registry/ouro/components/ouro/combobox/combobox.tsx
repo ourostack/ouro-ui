@@ -580,7 +580,12 @@ function ItemContent({ option }: { option: Option }): JSX.Element {
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate">{option.label}</span>
         {option.description && (
-          <span data-ouro-combobox-description="" title={option.description} className="truncate text-xs text-muted-foreground">
+          // Muted, nudged toward the text color (as ConversationList's quiet lines), so it keeps 4.5:1 on a highlighted row too.
+          <span
+            data-ouro-combobox-description=""
+            title={option.description}
+            className="truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]"
+          >
             {option.description}
           </span>
         )}
