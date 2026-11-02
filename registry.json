@@ -11239,6 +11239,8 @@
         "ourostack/ouro-ui/text-field-tests",
         "ourostack/ouro-ui/toggle",
         "ourostack/ouro-ui/toggle-tests",
+        "ourostack/ouro-ui/toolbar",
+        "ourostack/ouro-ui/toolbar-tests",
         "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
