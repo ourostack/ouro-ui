@@ -1434,8 +1434,11 @@ describe("MessageList keyboard", () => {
     // A message that arrives in the same change as an edit inside another is counted too.
     await rerender(list(3, true));
     expect(positions()).toEqual(["40/200", "null/null", "null/null", "3/5", "4/5", "5/5"]);
-    // The Tab stop moves to the new last message once the list has placed it, which a loaded browser can take a frame or two to do.
-    await expect.poll(() => document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
+    // Once the list has followed the new message, the scroll puts the Tab stop on it, the newest in view; until then
+    // the stop stays where it was. Read it after the scroll, so the result never depends on when the scroll event lands.
+    await settle(scroller);
+    expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("0");
+    expect(document.getElementById("post-1")!.getAttribute("tabindex")).toBe("-1");
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-part")).toBe("item");
     expect(document.getElementById("plain-item")!.getAttribute("data-ouro-control")).toBe("message-list");
     // The focus ring rounds on Ouro's Message only; an app's message keeps its corners.
