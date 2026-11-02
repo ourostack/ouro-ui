@@ -362,9 +362,14 @@ export function Moment(props: MomentProps): JSX.Element | null {
 
   // The art's own motion has a budget: its entrance plays once a session for a moment with a key,
   // and its loops settle, at the end of the turn they are on, a few seconds after it appears.
+  // Whether this moment's key had already appeared is asked once per key, so a second run of the
+  // effect, as React's StrictMode makes in development, does not count as a second showing.
+  const repeat = useRef<{ key: string; seen: boolean }>(undefined);
   useLayoutEffect(() => {
     const host = artRef.current;
-    if (!host || key === undefined || !seenThisSession(key)) return;
+    if (!host || key === undefined) return;
+    if (repeat.current?.key !== key) repeat.current = { key, seen: seenThisSession(key) };
+    if (!repeat.current.seen) return;
     for (const animation of host.getAnimations({ subtree: true })) if (animation.effect!.getComputedTiming().endTime !== Infinity) animation.finish();
   }, [art, key]);
   useEffect(() => {

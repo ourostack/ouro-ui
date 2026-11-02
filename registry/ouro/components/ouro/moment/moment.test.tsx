@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { StrictMode, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -472,8 +472,10 @@ describe("Moment motion budget", () => {
       const loop = host.querySelector(".ouro-test-moment-loop")!.getAnimations()[0]!;
       const once = host.querySelector(".ouro-test-moment-once")!.getAnimations()[0]!;
       const svg = host.querySelector("svg")!;
+      svg.setCurrentTime(0.5);
       await act(async () => void vi.advanceTimersByTime(4900));
       expect(loop.effect!.getComputedTiming().endTime).toBe(Infinity);
+      expect(svg.getCurrentTime()).toBeGreaterThan(0);
       expect(svg.animationsPaused()).toBe(false);
       await act(async () => void vi.advanceTimersByTime(100));
       expect(loop.effect!.getComputedTiming().iterations).toBe(loop.effect!.getComputedTiming().currentIteration! + 1);
@@ -535,6 +537,33 @@ describe("Moment motion budget", () => {
     expect(entrance(byDismissKey.host)).toBe(1);
     expect(entrance((await render(<Moment dismissKey="tour-in" title="Tour" art={art} />)).host)).toBe(0);
     for (let index = 0; index < 2; index++) expect(entrance((await render(<Moment title="Keyless" art={art} />)).host)).toBe(1);
+  });
+
+  it("asks once per key whether its entrance played, so StrictMode's second run still plays it, and finishes new art under a key already shown", async () => {
+    animated(
+      "@keyframes ouro-test-moment-in3 { from { opacity: 0; } } .ouro-test-moment-in3 { animation: ouro-test-moment-in3 30s linear; }" +
+        "@keyframes ouro-test-moment-in4 { from { scale: 0.5; } } .ouro-test-moment-in4 { animation: ouro-test-moment-in4 30s linear; }",
+    );
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith("ouro-moment:")) sessionStorage.removeItem(key);
+    const art = (name: string) => (
+      <svg viewBox="0 0 160 120">
+        <circle className={name} cx="80" cy="60" r="20" />
+      </svg>
+    );
+    const entrance = (host: Element, name: string) => host.querySelector(`.${name}`)!.getAnimations().length;
+    const strict = await render(
+      <StrictMode>
+        <Moment id="strict-in" title="Welcome" art={art("ouro-test-moment-in3")} />
+      </StrictMode>,
+    );
+    expect(entrance(strict.host, "ouro-test-moment-in3")).toBe(1);
+    // The same moment turns to a key already shown: its running entrance finishes.
+    sessionStorage.setItem("ouro-moment:seen:shown-in", "1");
+    await act(async () => strict.root.render(<StrictMode><Moment id="shown-in" title="Welcome" art={art("ouro-test-moment-in3")} /></StrictMode>));
+    expect(entrance(strict.host, "ouro-test-moment-in3")).toBe(0);
+    // New art under that key enters already finished too.
+    await act(async () => strict.root.render(<StrictMode><Moment id="shown-in" title="Welcome" art={art("ouro-test-moment-in4")} /></StrictMode>));
+    expect(entrance(strict.host, "ouro-test-moment-in4")).toBe(0);
   });
 
   it("remembers what it has shown for the page where the browser refuses session storage", async () => {
