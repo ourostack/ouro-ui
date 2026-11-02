@@ -9,18 +9,24 @@ export {
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
+  commandMarkClass,
   matchesQuery,
+  queryRanges,
+  type TextRange,
 };
 
 // Class strings and the search for Command, apart from the component so command.tsx exports
 // only components (React Fast Refresh). Class strings are literals so the app's Tailwind finds them.
 
 /**
- * The search row at the top of the palette: a magnifier and the input, over a hairline.
+ * The search row at the top of the palette: a magnifier and the input, over a hairline that takes the ring
+ * colour while the input has keyboard focus.
  *
  * @internal
+ * @claim "over a hairline that takes the" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command search focus > draws the search row's line in the ring colour while the search input has keyboard focus)
  */
-const commandSearchClass = "box-border flex shrink-0 items-center gap-2 border-0 border-b border-solid border-border px-4 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
+const commandSearchClass =
+  "box-border flex shrink-0 items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring px-4 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
 
 /**
  * The search row in the phone sheet: pinned to the top of the sheet's scrolling body.
@@ -28,7 +34,7 @@ const commandSearchClass = "box-border flex shrink-0 items-center gap-2 border-0
  * @internal
  */
 const commandSheetSearchClass =
-  "sticky top-0 z-1 -mx-5 -mt-2 mb-1 box-border flex items-center gap-2 border-0 border-b border-solid border-border bg-popover px-5 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
+  "sticky top-0 z-1 -mx-5 -mt-2 mb-1 box-border flex items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring bg-popover px-5 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
 
 /**
  * The search input: borderless, 48px tall, 16px text on a coarse pointer (so iOS does not
@@ -120,9 +126,48 @@ function fold(text: string): string {
  * @internal
  * @claim "Whether a command matches the query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
  */
-function matchesQuery(label: string, keywords: readonly string[] | undefined, query: string): boolean {
-  const text = fold([label, ...(keywords ?? [])].join(" "));
+function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
+  const text = fold([label, ...keywords].join(" "));
   return fold(query)
     .split(/\s+/)
     .every((word) => text.includes(word));
 }
+
+/** A range of a text, from `start` up to, and not including, `end`. */
+type TextRange = readonly [start: number, end: number];
+
+/**
+ * Where the words of a query appear in a text, ignoring case and accents, merged where they touch,
+ * in order. Nothing when folding the text changes its length, so a range would land off its letters.
+ *
+ * @internal
+ * @claim "Where the words of a query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks the words of the search in each command's label and description, and keeps the text as it was)
+ */
+function queryRanges(text: string, query: string): TextRange[] {
+  const folded = fold(text);
+  if (folded.length !== text.length) return [];
+  const ranges: [number, number][] = [];
+  // Stryker disable next-line Regex: an empty word between two spaces is dropped by the filter after it.
+  for (const word of fold(query).split(/\s+/).filter(Boolean)) {
+    for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + word.length)) ranges.push([at, at + word.length]);
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const range of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+    else merged.push(range);
+  }
+  return merged;
+}
+
+/**
+ * A marked word: a tint of the primary colour behind the text colour, in semibold, and the system's
+ * mark colours under forced colours.
+ *
+ * @internal
+ * @claim "A marked word: a tint of" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > draws marked words that keep their contrast in light and dark, highlighted or not, and in forced colours)
+ */
+const commandMarkClass =
+  "rounded-[0.2em] bg-[color-mix(in_oklab,var(--primary)_22%,transparent)] font-semibold text-foreground " +
+  "forced-colors:bg-[Mark] forced-colors:text-[MarkText]";

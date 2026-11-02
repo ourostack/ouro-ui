@@ -169,3 +169,18 @@ export const Media: Story = {
   args: { title: "Go to a chat", trigger: <Button variant="outline" tone="secondary">Go to…</Button>, items: chats, placeholder: "Search chats and actions…" },
   parameters: { screenshot: { name: "command-media", open: true } },
 };
+
+/** `highlightMatches` marks the words of the search in each label and its `description`, here a snippet of a message. Type "launch" or "notes". */
+export const SearchMatches: Story = {
+  args: {
+    title: "Search messages",
+    trigger: <Button variant="outline" tone="secondary">Search messages…</Button>,
+    placeholder: "Search messages…",
+    highlightMatches: true,
+    items: [
+      { label: "Launch planning", description: "Mara: the launch notes are in the shared folder", onSelect: () => {} },
+      { label: "Design reviews", description: "Theo: notes from Tuesday's review, with the new launch dates", onSelect: () => {} },
+      { label: "Weekly sync", description: "Priya: moving the sync to Thursday this week", onSelect: () => {} },
+    ],
+  },
+};
