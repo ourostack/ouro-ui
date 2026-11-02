@@ -585,6 +585,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const all = Children.toArray(children);
   const top = keyOf(all[0]);
   // The key of the first child, and of the first one drawn: a page of older ones above it waits.
+  // Stryker disable next-line ObjectLiteral: an empty start takes the first child's key in the first render instead; this only spares that render.
   const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
   if (top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
   const shown = all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
