@@ -52,8 +52,9 @@ export const InContext: Story = {
 export const InANarrowPane: Story = {
   parameters: { screenshot: { name: "description-list-narrow-pane" } },
   render: () => (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", padding: 24, display: "flex", gap: 24, alignItems: "flex-start" }}>
-      <div style={{ flex: 1, minWidth: 0, color: "var(--muted-foreground)" }}>The recipe, with its steps and photos.</div>
+    // On a phone the pane wraps below the recipe instead of squeezing it to nothing.
+    <div style={{ background: "var(--background)", color: "var(--foreground)", padding: 24, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start" }}>
+      <div style={{ flex: "1 1 12rem", color: "var(--muted-foreground)" }}>The recipe, with its steps and photos.</div>
       <div style={{ width: "min(100%, 352px)", flexShrink: 0, border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: 16 }}>
         <DescriptionList
           items={[
