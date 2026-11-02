@@ -2543,8 +2543,8 @@
       "name": "stacked-layout",
       "type": "registry:ui",
       "title": "StackedLayout",
-      "description": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column.",
-      "docs": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, and the page below it in a centered column. Import: import { StackedLayout } from \"@/components/ouro/sidebar/stacked-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/stacked-layout.md",
+      "description": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column.",
+      "docs": "The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column. Import: import { StackedLayout } from \"@/components/ouro/sidebar/stacked-layout\", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: the helpers it imports in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouro.bot/docs/stacked-layout.md",
       "registryDependencies": [
         "ourostack/ouro-ui/lib-class-name-check",
         "ourostack/ouro-ui/lib-cn",
@@ -8183,6 +8183,7 @@
         "ourostack/ouro-ui/button-tests",
         "ourostack/ouro-ui/heading",
         "ourostack/ouro-ui/heading-tests",
+        "ourostack/ouro-ui/kbd-tests",
         "ourostack/ouro-ui/lib-announce-tests",
         "ourostack/ouro-ui/lib-appearance-hints-tests",
         "ourostack/ouro-ui/lib-class-name-check-tests",
@@ -8190,12 +8191,16 @@
         "ourostack/ouro-ui/lib-current-path-tests",
         "ourostack/ouro-ui/lib-dev-tests",
         "ourostack/ouro-ui/lib-floating-tests",
+        "ourostack/ouro-ui/lib-key-shortcuts-tests",
+        "ourostack/ouro-ui/lib-last-input-tests",
         "ourostack/ouro-ui/lib-ouro-provider-tests",
         "ourostack/ouro-ui/lib-page-scroll-hold-tests",
         "ourostack/ouro-ui/lib-portal-container-tests",
         "ourostack/ouro-ui/lib-use-dev-messages-tests",
         "ourostack/ouro-ui/lib-use-keyboard-scrollable-tests",
         "ourostack/ouro-ui/lib-use-media-query-tests",
+        "ourostack/ouro-ui/lib-use-sheet-presentation-tests",
+        "ourostack/ouro-ui/menu-tests",
         "ourostack/ouro-ui/navbar",
         "ourostack/ouro-ui/navbar-tests",
         "ourostack/ouro-ui/navigation-menu-tests",
@@ -8203,7 +8208,11 @@
         "ourostack/ouro-ui/sheet-tests",
         "ourostack/ouro-ui/stacked-layout",
         "ourostack/ouro-ui/text",
-        "ourostack/ouro-ui/text-tests"
+        "ourostack/ouro-ui/text-tests",
+        "ourostack/ouro-ui/toggle-tests",
+        "ourostack/ouro-ui/toolbar",
+        "ourostack/ouro-ui/toolbar-tests",
+        "ourostack/ouro-ui/tooltip-tests"
       ],
       "files": [
         {
