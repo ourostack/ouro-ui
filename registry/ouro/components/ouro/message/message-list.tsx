@@ -34,11 +34,25 @@ export interface MessageListOwnProps {
   /**
    * Whether older messages are loading above, as after the reader reaches the top: a small
    * "Loading older messages" shows over the top of the list, and screen readers hear it once.
-   * It sits over the messages, not among them, so starting and ending it moves no message.
+   * It sits over the messages, not among them, so starting and ending it moves no message. At
+   * the very top it covers the first message unless `hasOlder` keeps room for it.
    * @claim "Whether older messages are loading above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
    * @claim "It sits over the messages, not" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
+   * @claim "At the very top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
    */
   loadingOlder?: boolean | undefined;
+  /**
+   * Whether older messages may still load above, until the reader reaches the start of the
+   * conversation. While it is true the list keeps room above the first message, where "Loading
+   * older messages" shows, so at the top it covers no message or focus ring, and nothing moves as
+   * loading starts. Set it to `false` once there is nothing older: the room stays until it has left
+   * the view, or the list is at its end, and then goes without moving a message.
+   * @default false
+   * @claim "so at the top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
+   * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view)
+   * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message)
+   */
+  hasOlder?: boolean | undefined;
   /** What shows while older messages load, for other languages. @default "Loading older messages" */
   loadingOlderLabel?: string | undefined;
   /**
@@ -482,6 +496,9 @@ interface Spoken {
  * bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
  * it too, even as the first messages arrive. Scrolling is never announced.
  *
+ * While older history may load, set `hasOlder`, and `loadingOlder` while it loads: the list keeps
+ * room above the first message for "Loading older messages", so nothing moves as it shows.
+ *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  * Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view
  * scrolls the list, not the page around it.
@@ -551,6 +568,7 @@ interface Spoken {
  * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
  * @claim "The scroll position never moves" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
  * @claim "`springy={false}` turns it off" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
+ * @claim "the list keeps room above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
  * @claim "Your own message components work too" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages)
  * @claim "A conversation: `Message`s in a scrolling" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > is a named region that opens at the newest message, which is its Tab stop)
  * @claim "The messages are one Tab stop" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > is one Tab stop: Tab lands on the newest message, goes through its controls, and leaves the list)
@@ -592,6 +610,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     jumpLabel = "Jump to latest",
     initialAnchor,
     loadingOlder = false,
+    hasOlder = false,
     loadingOlderLabel = "Loading older messages",
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
@@ -682,6 +701,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line all: a step left from before goes in the same render as the next one; cancelling it only spares the call.
     return () => cancelAnimationFrame(frame);
   }, [edge]);
+
+  // While older messages may load, room above the first message holds "Loading older messages". It outlasts `hasOlder`
+  // until it has left the view, or the list is at its end, so it goes without moving a message.
+  const [room, setRoom] = useState(hasOlder);
+  if (hasOlder && !room) setRoom(true);
+  const roomRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (hasOlder || !room) return;
+    const scroller = scrollerRef.current!;
+    const drop = () => {
+      // Stryker disable next-line EqualityOperator: room whose bottom meets the view's top to the pixel is out of view either way.
+      if (pinned.current || roomRef.current!.getBoundingClientRect().bottom <= scroller.getBoundingClientRect().top) setRoom(false);
+    };
+    drop();
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
+    scroller.addEventListener("scroll", drop, { passive: true });
+    // Stryker disable next-line all: once the room is gone or wanted again, nothing reads what this listener would change; removing it frees memory only.
+    return () => scroller.removeEventListener("scroll", drop);
+  }, [hasOlder, room]);
 
   const keyboardRef = useKeyboardScrollable<HTMLDivElement>(!hasItems);
   const setScroller = useMergedRef<HTMLDivElement | null>(keyboardRef, scrollerRef);
@@ -1196,6 +1234,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3"
           style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
         >
+          {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
+          {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
           {shown}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
