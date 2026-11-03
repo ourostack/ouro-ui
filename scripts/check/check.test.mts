@@ -55,7 +55,8 @@ const run = async (argv: string[], options: { cwd?: string; env?: Record<string,
 describe("Ouro check", () => {
   test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
-    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, chromium, log: quiet });
+    // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
+    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
     // http-error and not-ready are about the page, not its content, and have tests of their own.
     for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
@@ -78,7 +79,7 @@ describe("Ouro check", () => {
 
   test("a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again", async () => {
     const sizes: [number, number][] = [[320, 640], [390, 844], [1440, 900]];
-    const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, chromium, log: quiet };
+    const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet };
     const whole = await check({ ...options, out: dir("whole") });
     const shards = [dir("shard"), dir("shard"), dir("shard")];
     const parts = [];
@@ -220,6 +221,23 @@ describe("Ouro check", () => {
     assert.deepEqual((await merge({ dirs: [out, out], out: dir("opted-merged"), chromium })).allowances, expected);
   });
 
+  test("checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements", async () => {
+    const options = { targets: [fixtures], pages: "long-lines-*", sizes: [[1440, 900]] as [number, number][], themes: ["light"], chromium, log: quiet };
+    const none = await check({ ...options, out: dir("measure-none") });
+    assert.deepEqual(none.findings.filter((f) => f.rule === "long-lines"), []);
+    const everywhere = await check({ ...options, out: dir("measure-all"), config: { measure: { "**": "100 chars" } } });
+    assert.deepEqual(
+      everywhere.findings.filter((f) => f.rule === "long-lines").map((f) => [f.page, f.detail.replace(/\d+ characters/, "N characters")]),
+      [["/long-lines-fail.html", "about N characters a line (keep to 100)"]],
+    );
+    const elsewhere = await check({ ...options, out: dir("measure-glob"), config: { measure: { "/docs/**": "100 chars" } } });
+    assert.deepEqual(elsewhere.findings.filter((f) => f.rule === "long-lines"), []);
+    // A selector may hold a "/" of its own; only a leading "/" or a key of stars makes a page glob.
+    const selected = await check({ ...options, out: dir("measure-selector"), config: { measure: { 'main p:not([data-x="/"])': "800px" } } });
+    assert.deepEqual(selected.findings.filter((f) => f.rule === "long-lines").map((f) => f.page), ["/long-lines-fail.html"]);
+    assert.match(selected.findings.find((f) => f.rule === "long-lines")!.detail, /^lines up to \d+px wide \(measure 800px\)$/);
+  });
+
   test("names an axe finding the same at every size, whatever the other rules marked on the page", async () => {
     const faint = '<p style="width:60px;overflow:hidden;white-space:nowrap;color:#999;background:#aaa">Faint text cut off by its box</p>';
     const folder = site("faint", { "page.html": page(`<h1>Faint</h1>${faint}${faint}`) });
@@ -250,7 +268,7 @@ describe("Ouro check", () => {
     const prose = "Words that run on and on across the whole width of a wide screen, far past a hundred characters a line, and on.";
     const many = site("many", { "page.html": page(Array.from({ length: 45 }, (_, i) => `<p id="p${i}">${prose} ${prose}</p>`).join(""), "<style>main{max-width:none}</style>") });
     const out = dir("many");
-    const result = await check({ targets: [many], out, sizes: [[1440, 900]], themes: ["light", "dark"], chromium, log: quiet });
+    const result = await check({ targets: [many], out, sizes: [[1440, 900]], themes: ["light", "dark"], config: { measure: { "/**": "100 chars" } }, chromium, log: quiet });
     assert.equal(result.findings.length, 90);
     assert.equal(result.findings.filter((f) => f.closeUp).length, 40);
     const merged = await merge({ dirs: [out], out: dir("many-merged"), chromium });
@@ -358,6 +376,22 @@ describe("Ouro check's command", () => {
     const withAxe = await run([folder, ...fast, "--out", "axe", "--before", "missing.json"], { from: ["/", root], env: { AXE_CORE: require.resolve("axe-core/axe.min.js") } });
     assert.equal(withAxe.code, 2);
     assert.match(withAxe.err, /^Could not read .*missing\.json/);
+    writeFileSync(join(scratch, "wide.json"), JSON.stringify({ measure: { "**": "wide" } }));
+    const badMeasure = await run([folder, "--config", "wide.json"]);
+    assert.equal(badMeasure.code, 2);
+    assert.match(badMeasure.err, /wide\.json: the measure for "\*\*" is "wide"; give a number of px, ch or chars, such as "800px", "75ch" or "100 chars"\.$/);
+    writeFileSync(join(scratch, "number.json"), JSON.stringify({ measure: { "main p": 800 } }));
+    assert.equal((await run([folder, "--config", "number.json"])).code, 2);
+    writeFileSync(join(scratch, "list.json"), JSON.stringify({ measure: ["100 chars"] }));
+    const list = await run([folder, "--config", "list.json"]);
+    assert.equal(list.code, 2);
+    assert.match(list.err, /list\.json: "measure" maps page globs and CSS selectors to measures/);
+    writeFileSync(join(scratch, "null.json"), JSON.stringify({ measure: null }));
+    assert.equal((await run([folder, "--config", "null.json"])).code, 2);
+    writeFileSync(join(scratch, "selector.json"), JSON.stringify({ measure: { "main >": "800px" } }));
+    const selector = await run([folder, ...fast, "--no-axe", "--out", "selector", "--config", "selector.json"]);
+    assert.equal(selector.code, 2, selector.err);
+    assert.match(selector.err, /selector\.json: the measure for "main >" names no CSS selector a browser reads/);
     const badConfig = await run([folder, "--config", "missing.json"]);
     assert.equal(badConfig.code, 2);
     const noReport = await run(["merge", empty]);
