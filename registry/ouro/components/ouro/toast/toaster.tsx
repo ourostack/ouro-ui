@@ -659,7 +659,7 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
 
   /**
    * Whether a y offset points back past rest, the one way a toast cannot leave: up at the bottom
-   * edge, down at the top (the viewport's `data-edge`). At 0 either answer gives the same place.
+   * edge, down at the top (the viewport's `data-edge`).
    */
   const inward = useCallback(
     // Stryker disable next-line EqualityOperator: at an offset of 0 the band and its inverse are both 0, so < and <= agree.
