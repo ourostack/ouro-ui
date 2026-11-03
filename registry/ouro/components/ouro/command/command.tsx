@@ -452,6 +452,7 @@ export function Command(props: CommandProps): JSX.Element {
   const holdOnOpen = useCallback((popup: HTMLDivElement | null) => {
     popupRef.current = popup;
     if (popup) holdWidth(popup);
+    // Stryker disable next-line ArrayDeclaration: a constant dependency keeps the same callback, as no dependencies do.
   }, []);
   // A Server Component's trigger can arrive as a lazy wrapper; resolve it before cloning.
   const triggerElement = serverElement(trigger);
