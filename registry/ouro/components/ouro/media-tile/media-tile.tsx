@@ -230,6 +230,7 @@ function millisecondsOf(value: number | undefined): number | undefined {
 function useHeld(value: boolean, onDelay: number, offDelay: number): boolean {
   const [held, setHeld] = useState(value);
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: a timer that sets the value it already holds changes nothing.
     if (held === value) return;
     const timer = setTimeout(() => setHeld(value), value ? onDelay : offDelay);
     return () => clearTimeout(timer);
@@ -295,9 +296,11 @@ function useTileObservers(
     });
     resize.observe(element);
     let intersection: IntersectionObserver | undefined;
+    // Stryker disable next-line ConditionalExpression: without a callback nothing reads whether the tile is seen, so observing it too changes only the cost.
     if (watching) {
       intersection = new IntersectionObserver(
         ([entry]) => {
+          // Stryker disable next-line LogicalOperator,ConditionalExpression,EqualityOperator: with the one threshold at VISIBLE_RATIO, Chromium and WebKit already report isIntersecting false below it; the ratio guards an engine that does not.
           seen = entry!.isIntersecting && entry!.intersectionRatio >= VISIBLE_RATIO;
           known = true;
           schedule();
@@ -308,6 +311,7 @@ function useTileObservers(
     }
     // A hidden page runs no animation frames, so its change is reported at once.
     const onPageVisibility = () => {
+      // Stryker disable next-line CallExpression: a frame left waiting runs the same flush again, which reports nothing new.
       cancelAnimationFrame(frame);
       flush();
     };

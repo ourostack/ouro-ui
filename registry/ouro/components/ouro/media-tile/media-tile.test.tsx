@@ -257,6 +257,7 @@ describe("MediaTile", () => {
     await rerender(<MediaTile name="Jonas Ek" handRaised />);
     expect(glyph()).toBeNull();
     expect(tile.querySelector("[data-ouro-media-tile-hand]")!.getAttribute("title")).toBe("Hand raised");
+    expect(tile.querySelector("[data-ouro-media-tile-hand] svg")).not.toBeNull();
     // Both sit in the top start corner, clear of the name plate.
     const hand = tile.querySelector("[data-ouro-media-tile-hand]")!.getBoundingClientRect();
     const plate = tile.querySelector("[data-ouro-media-tile-plate]")!.getBoundingClientRect();
@@ -365,7 +366,7 @@ describe("MediaTile", () => {
     const html = renderToString(node);
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect(doc.querySelector('[role="group"]')!.getAttribute("aria-label")).toBe("Mara Lind, speaking, muted, camera on");
-    expect(doc.querySelector('[data-ouro-part="ring"]')!.hasAttribute("data-highlighted")).toBe(true);
+    expect(doc.querySelector('[data-ouro-part="ring"]')!.getAttribute("data-highlighted")).toBe("");
     const host = document.createElement("div");
     host.style.width = "320px";
     host.innerHTML = html;
@@ -441,9 +442,12 @@ describe("MediaTile", () => {
     await render(<MediaTile name="Mara Lind" hysteresis={{ off: -5 }} />);
     await render(<MediaTile name="Theo Okafor" source="screen" fit={"stretch" as "cover"} />);
     await render(<MediaTile name="Jonas Ek" hysteresis={{ on: 0, off: 0 }} />);
+    // Milliseconds as words, on the on side with a good off side.
+    await render(<MediaTile name="Priya Raman" hysteresis={{ on: "300" as unknown as number, off: 600 }} />);
     expect(warnings()).toEqual([
       "[ouro-ui] MediaTile: hysteresis takes milliseconds from 0. Fix: <MediaTile hysteresis={{ on: 300, off: 600 }}>.",
       '[ouro-ui] MediaTile: fit="stretch" is not a fit; use "cover", "contain". Fix: <MediaTile fit="contain">.',
+      "[ouro-ui] MediaTile: hysteresis takes milliseconds from 0. Fix: <MediaTile hysteresis={{ on: 300, off: 600 }}>.",
     ]);
   });
 
@@ -639,6 +643,7 @@ describe("MediaTile controls", () => {
       </MediaTile>,
     );
     await expect.poll(() => getComputedStyle(controls!).opacity).toBe("1");
+    expect(controls!.getAttribute("data-pinned")).toBe("");
     // Actions alone make the corner too; with neither there is none.
     await rerender(<MediaTile name="Mara Lind" actions={<button type="button">More</button>} />);
     expect(page.getByRole("button", { name: "Pin" }).query()).toBeNull();
