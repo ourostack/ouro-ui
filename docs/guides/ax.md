@@ -90,8 +90,11 @@ Receipt: a-t1
 | [`ax-mcp`](../ax/ax-mcp.md) | The same commands as MCP tools over stdio. A preview in this release. |
 | [`ax-component`](../ax/ax-component.md) | A component's agent side: what an agent reads from it and the actions it may take, bound to their CLI twins, for the X-ray to check. |
 | [`ax-lint`](../ax/ax-lint.md) | Checks the declarations, and against your command inventory that the commands you register run through them. |
+| [`ax-dev-commands`](../ax/ax-dev-commands.md) | Finds a developer command or a repository path in a message for an agent or a person, which the person's installed tool can't run; a step marked `sourceCheckout: true` passes. |
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
+| [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
+| [`ax-terminal`](../ax/ax-terminal.md) | Colour, status marks, times, next steps and a progress line for a person at a terminal, with plain words in a pipe, in CI or under `NO_COLOR`. |
 | [`ax-voice`](../ax/ax-voice.md) | An optional line of character for a person at a terminal, after the facts, kept out of what an agent parses. |
 | [`ax-flows`](../ax/ax-flows.md) | Your agent flows as data, run in CI without a model: the calls a good agent makes for a task, checked. |
 | [`ax-example`](../ax/ax-example.md) | A small tool built only from the kit; the tests use it. |
@@ -104,7 +107,7 @@ A wait takes a reference the agent already holds, such as a conversation id from
 
 ## A voice
 
-A tool may have a voice: a line of character after the facts, for a person at a terminal. Give `defineCli` a `voice` with any of four slots, each a list of variants: `banner` leads the help overview, `done(outcome)` follows an action that is done or queued, `summary` follows the command marked `summarizes`, and `empty` follows a list that came back empty. `emptyText("unread", next)` writes that list's fact first: `Nothing unread.` and the command to run next.
+A tool may have a voice: a line of character after the facts, for a person at a terminal. Give `defineCli` a `voice` with any of five slots, each a list of variants: `banner` leads the help overview, `done(outcome)` follows an action that is done or queued, `summary` follows the command marked `summarizes`, `empty` follows a list that came back empty, and `healthy` follows a checks report (ax-checks) whose checks all ran and passed. `emptyText("unread", next)` writes that list's fact first: `Nothing unread.` and the command to run next.
 
 ```ts
 voice: {

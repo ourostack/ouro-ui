@@ -47,7 +47,6 @@
 @source not "../../../registry/ouro/components/ouro/separator";
 @source not "../../../registry/ouro/components/ouro/share-button";
 @source not "../../../registry/ouro/components/ouro/sidebar";
-@source not "../../../registry/ouro/components/ouro/skeleton";
 @source not "../../../registry/ouro/components/ouro/skip-link";
 @source not "../../../registry/ouro/components/ouro/spinner";
 @source not "../../../registry/ouro/components/ouro/stack";
@@ -61,7 +60,9 @@
 @source not "../../../registry/ouro/components/ouro/toggle";
 @source not "../../../registry/ouro/components/ouro/toolbar";
 @source not "../../../registry/ouro/census";
+@source not "../../../registry/ouro/check";
 @source not "../../../registry/ouro/e2e";
+@source not "../../../registry/ouro/images";
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
 @source not "../ax/art/manifest.json";

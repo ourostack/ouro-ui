@@ -5,7 +5,7 @@ import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block
 import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
-import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
+import { Message, type MessageAction, type MessageBubble } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { ReactionBar, type Reaction, type ReactionOption } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
@@ -177,7 +177,7 @@ const menu = [
   { label: "Delete", tone: "destructive" as const, disabled: true },
 ];
 
-function ChatConversation() {
+function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
   const [reactions, setReactions] = useState<Reaction[]>([{ key: "heart", label: "Heart", emoji: "❤️", count: 2 }]);
   const [replying, setReplying] = useState("");
   const react = (key: string) => setReactions((current) => toggle(current, key));
@@ -185,14 +185,14 @@ function ChatConversation() {
   return (
     <Surface>
       <MessageList label="Chat with Mara Quill and Theo Brandt" style={{ height: 460 }}>
-        <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actions} menu={menu}>
+        <Message variant="chat" bubble={bubble} role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actions} menu={menu}>
           Morning! The venue confirmed the long table for Friday.
         </Message>
-        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41" continued actions={actions} menu={menu}>
+        <Message variant="chat" bubble={bubble} role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41" continued actions={actions} menu={menu}>
           Can someone bring the extension cord for the projector?
         </Message>
         <Message
-          variant="chat"
+          variant="chat" bubble={bubble}
           role="assistant"
           name="Theo Brandt"
           avatar={<Avatar name="Theo Brandt" alt="" size="sm" presence="away" presenceLabel="Away" />}
@@ -204,11 +204,11 @@ function ChatConversation() {
         >
           I have one. I will bring it with the speakers.
         </Message>
-        <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" dateTime="2026-05-04T09:45" actions={actions} menu={menu}>
+        <Message variant="chat" bubble={bubble} role="user" name="Priya Okafor" time="9:45 AM" dateTime="2026-05-04T09:45" actions={actions} menu={menu}>
           Perfect, thank you both.
         </Message>
         <Message
-          variant="chat"
+          variant="chat" bubble={bubble}
           role="user"
           name="Priya Okafor"
           time="9:45 AM"
@@ -229,12 +229,21 @@ function ChatConversation() {
 }
 
 /**
- * People writing to each other (`variant="chat"`): others at the start on a raised bubble under
- * their name and time, with their presence on the avatar, the user's own at the end in a tint,
- * runs from one author grouped with `continued`. Hover a message, or Tab to it, for its action bar.
+ * People writing to each other (`variant="chat"`): others at the start on the muted surface under
+ * their name and time, with their presence on the avatar, the user's own at the end filled with the
+ * primary color, runs from one author grouped with `continued`. Hover a message, or Tab to it, for
+ * its action bar.
  */
 export const Chat: Story = {
   render: () => <ChatConversation />,
+};
+
+/**
+ * The same chat with `bubble="raised"`, a workplace chat's look: others' messages on a raised card,
+ * the user's own in a tint of the primary color.
+ */
+export const ChatRaised: Story = {
+  render: () => <ChatConversation bubble="raised" />,
 };
 
 // Made-up pictures for the channel stories, drawn here: a settings page mockup and a photo of a lake at dusk.
@@ -632,6 +641,21 @@ export const Agent: Story = {
       </Message>
       <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="3:33 PM" dateTime="2026-05-04T15:33">
         Thanks, Halden. I'll add the photos.
+      </Message>
+    </Surface>
+  ),
+};
+
+/** While the author's name is still loading (`name={null}`), a name-sized line holds its place and the avatar shimmers; nothing moves when the name arrives. */
+export const NameLoading: Story = {
+  parameters: { screenshot: { name: "message-name-loading" } },
+  render: () => (
+    <Surface>
+      <Message variant="post" role="assistant" name={null} time="9:41">
+        The dough is ready when it springs back slowly.
+      </Message>
+      <Message variant="chat" role="assistant" name={null} time="9:42">
+        Cover it and leave it somewhere warm.
       </Message>
     </Surface>
   ),

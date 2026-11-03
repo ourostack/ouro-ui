@@ -204,7 +204,7 @@ test("a CLI that breaks the claims fails them, each with what it saw", async () 
   const calls = join(scratch, "bad-calls.jsonl");
   const state = join(scratch, "bad-state.txt");
   const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad", env: { FIXTURE_CALLS: calls, FIXTURE_STATE: state, TARGET: "http://127.0.0.1:9" }, state: ["count"] }));
-  for (const id of ["cli.exit-codes", "cli.read-json", "cli.unknown-command", "cli.unknown-flag", "cli.flag-suggest", "cli.ambiguous-verbs", "cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.one-line-error", "cli.error-teaches", "cli.no-stack-trace", "cli.help-width", "cli.reads-stay-reads"]) {
+  for (const id of ["cli.plain-pipe", "cli.check-verdict", "cli.exit-codes", "cli.read-json", "cli.unknown-command", "cli.unknown-flag", "cli.flag-suggest", "cli.ambiguous-verbs", "cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.one-line-error", "cli.error-teaches", "cli.no-stack-trace", "cli.help-width", "cli.reads-stay-reads"]) {
     assert.equal(holds(report, id), false, id);
   }
   assert.ok(report.results.find((r) => r.claim === "cli.unknown-flag")!.note.includes("ignored"));
@@ -217,6 +217,30 @@ test("a CLI that breaks the claims fails them, each with what it saw", async () 
   const md = renderMarkdown(report);
   assert.match(md, /## What fails, and the fix/);
   assert.match(md, /Does not conform yet: \d+ must claims not holding; no inventory given/);
+});
+
+test("a doctor built with ax-checks: its verdict leads its text and matches its --json, and its piped output is plain", async () => {
+  for (const env of [{}, { DOCTOR_BROKEN: "1" }]) {
+    const report = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env }));
+    for (const id of ["cli.check-verdict", "cli.plain-pipe", "cli.exit-codes", "cli.read-json"]) assert.equal(holds(report, id), true, `${id} ${JSON.stringify(env)}`);
+    assert.match(report.results.find((r) => r.claim === "cli.check-verdict")!.note, env.DOCTOR_BROKEN ? /^first line: FAIL 1 of 3 checks failed/ : /^first line: ok 2 of 3 checks passed/);
+  }
+  const broken = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env: { DOCTOR_BROKEN: "1" } }));
+  assert.match(broken.results.find((r) => r.claim === "cli.read-json")!.note, /exit 3 \(findings\)$/, "a doctor's findings exit with the declared code and still conform");
+  const crashed = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env: { DOCTOR_CRASH: "1" } }));
+  assert.equal(holds(crashed, "cli.read-json"), false, "a check that couldn't run exits 1, which a read may not");
+  const split = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env: { DOCTOR_TEXT_EXIT: "1" } }));
+  assert.match(split.results.find((r) => r.claim === "cli.check-verdict")!.note, /^exit 1 as text, 0 with --json, 0 in the report$/);
+  const bad = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
+  assert.match(bad.results.find((r) => r.claim === "cli.check-verdict")!.note, /starts "DOCTOR", not the verdict/);
+  assert.ok(bad.results.some((r) => r.claim === "cli.plain-pipe" && r.note.startsWith("escape codes in piped output")));
+  assert.ok(bad.results.some((r) => r.claim === "cli.plain-pipe" && r.note === "a carriage return redraws piped output"));
+  assert.ok(
+    bad.results.some((r) => r.claim === "cli.plain-pipe" && r.surface === "NO_COLOR=1 FORCE_COLOR=1 bad --help" && r.verdict === "fail"),
+    "colour forced over NO_COLOR fails, though plain --help passes",
+  );
+  const notes = await xray(base({ cli: fixture("notes.mts"), name: "notes" }));
+  assert.deepEqual(verdicts(notes, "cli.check-verdict"), ["skip"]);
 });
 
 test("an HTTP API: JSON, one error shape, an index, errors that teach, refusals that change nothing, its inventory", async () => {
@@ -605,4 +629,18 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   assert.equal(holds(plainer, "cli.listening-cursor"), true);
   const plain = await xray(base({ cli: fixture("plain-cli.mjs"), inventory: callInventory("plain-ui") }));
   assert.ok(failingNotes(plain, "ui.twin-exists").every((n) => n.endsWith("no help JSON to find the twin in")));
+});
+
+test("a CLI that asks for developer commands fails cli.no-dev-commands once per command, and a step marked sourceCheckout passes", async () => {
+  const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
+  const results = report.results.filter((r) => r.claim === "cli.no-dev-commands");
+  assert.deepEqual(results.map((r) => r.verdict), ["fail", "fail", "fail", "fail"]);
+  const note = (surface: string) => results.find((r) => r.surface === surface)?.note ?? "";
+  assert.match(note("pnpm build"), /^`bad help --json` commands\[2\]\.summary: "Checks the setup; run `pnpm build` first" asks for `pnpm build`$/);
+  assert.match(note("node scripts/doctor.mjs --fix"), /rows\[0\]\.fix\.command/);
+  assert.match(note("npm run writes -- on"), /prints: "Writes are off: run npm run writes -- on\." asks for/);
+  // The doctor's data (a row's detail) is the person's, and its sourceCheckout step passes in its own JSON and text,
+  // but not in another command's error.
+  assert.ok(!results.some((r) => /src\/cache\.json/.test(r.surface)));
+  assert.match(note("pnpm dev"), /^`bad edit/);
 });

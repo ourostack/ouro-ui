@@ -28,6 +28,9 @@ expectTypeOf<{ role: "user"; name: "Ana"; variant: "post"; subject: "Agenda" }>(
 expectTypeOf<{ role: "user"; name: "Ana"; variant: "reply" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; variant: "reply"; actionsPlacement: "corner" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; actionsPlacement: "beside" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; bubble: "filled" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; bubble: "raised" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; bubble: "glass" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; failed: { onRetry: () => void; onDelete: () => void }; failedLabel: "No enviado" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; failed: { onRetry: () => void } | false }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; failed: false }>().toExtend<MessageProps>();
@@ -47,6 +50,8 @@ expectTypeOf<{ key: "reply"; icon: "↩"; onClick: () => void }>().not.toExtend<
 // role and name are required; other roles and the names agents bring from other chat kits name the fix.
 expectTypeOf<{ name: "Ana" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user" }>().not.toExtend<MessageProps>();
+// A name still loading is null, not missing.
+expectTypeOf<{ role: "assistant"; name: null; nameLoadingLabel: "Nom en cours" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "bot"; name: "Ouro" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; from: "user" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; sender: "Ana" }>().not.toExtend<MessageProps>();

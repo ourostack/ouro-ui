@@ -10,6 +10,8 @@ Designed down to the last tap and the last prop. Interactions that feel right to
 
 **[See it live: ui.ouro.bot](https://ui.ouro.bot/)**, with the [docs](https://ui.ouro.bot/docs/) and [Storybook](https://ui.ouro.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
+**Check what you built first.** Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check could not run), `2` usage, `3` findings to fix.[^exit-codes]
+
 Ouro HX is the component library within Ouro UI. [Ouro AX](#ouro-ax), its counterpart for the interfaces agents use, is the other half. The repository, `@ouro` namespace and install addresses are unchanged.
 
 ```sh
@@ -350,10 +352,12 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
 Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `ax-example`, `ouro-ax-tests` with their `<name>-tests` items, and `ouro-ax`, which is:
+`ax-checks`,
 `ax-claims`,
 `ax-cli`,
 `ax-command`,
 `ax-component`,
+`ax-dev-commands`,
 `ax-effects`,
 `ax-exit-codes`,
 `ax-flows`,
@@ -362,12 +366,13 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-outcome`,
 `ax-output`,
 `ax-problem`,
+`ax-terminal`,
 `ax-voice`,
 `ax-wait`,
 `ax-work-event`,
 `ax-xray`.
 
-Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
+Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
 
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):
 `lib-announce`,
@@ -423,6 +428,8 @@ No component imports `lib-claims`: add it by name to mark your own copy's claims
 <!-- items:end -->
 
 ## For agents
+
+Before you call a screen done, run `node lib/ouro/check/check.ts <built folder>` and fix what it reports ([the screen check](https://ui.ouro.bot/docs/guardrails/#the-screen-check)).
 
 Each component has a page in `docs/` with its purpose, an example, every prop, its modes and what to use instead.[^docs-pages] The same text is in the JSDoc, so your editor shows it on hover.
 
@@ -530,7 +537,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **resetTimer** — Cancels or dismisses a timer by its timerId, including when its screen is not mounted. [Docs](docs/resetTimer.md)
 - **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)
 - **RouteProgress** — The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. [Docs](docs/RouteProgress.md)
-- **Spinner** — A spinning ring that says something is loading. [Docs](docs/Spinner.md)
+- **Spinner** — A small spinning ring that says an action is under way, inline: in a field's adornment, a toast's or a menu entry's icon, or beside the words that say what is happening. [Docs](docs/Spinner.md)
 - **SyncStatus** — One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem. [Docs](docs/SyncStatus.md)
 - **Timer** — A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. [Docs](docs/Timer.md)
 - **TimerTray** — The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. [Docs](docs/TimerTray.md)
@@ -692,3 +699,5 @@ MIT
 [^test-versions]: test:scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
 [^cn-wins]: test:registry/ouro/lib/ouro/cn.test.ts::lets a later class win over an earlier one that sets the same property verify:testExists(registry/ouro/lib/ouro/cn.test.ts::lets a later class win over an earlier one that sets the same property)
 [^spoonjoy]: site/scripts/spoonjoy.mts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\{item\.name\} \/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)
+[^exit-codes]: test:scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
+[^long-lines]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)

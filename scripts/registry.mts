@@ -267,6 +267,36 @@ const kits = [
       )} It installs scripts/ouro-source-rules.mjs.`,
     docs: `The source rule is scripts/ouro-source-rules.mjs. Run node scripts/ouro-source-rules.mjs --write-baseline once to record where your app starts, then node scripts/ouro-source-rules.mjs in CI (with --base <ref> on pull requests). Docs: ${DOCS_URL}/guardrails.md`,
   },
+  {
+    name: "ouro-check",
+    title: "Ouro check",
+    description:
+      `Optional: the screen check. ${claim(
+        "It opens every page of a built folder or a URL in headless Chromium at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where ouro-check.json declares a measure, each with a captioned close-up and a contact sheet per page.",
+        {
+          source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" }, { file: "registry/ouro/check/check.ts" }],
+          verify: [
+            { testExists: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" },
+            { fileLine: "registry/ouro/check/check.ts", pattern: "^  \\[320, 640\\], " },
+            { fileLine: "registry/ouro/check/check.ts", pattern: "\\[3840, 2160\\],$" },
+          ],
+        },
+      )} ${claim("It measures layout shift while loading, the time to the first content and each press's time to paint, each against a budget, and records each number in its report.", {
+        source: { test: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
+        verify: { testExists: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
+      })} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} It installs lib/ouro/check/.`,
+    docs: `Ouro check is in lib/ouro/check/. Build your app, run node lib/ouro/check/check.ts <built folder | URL> and fix what it reports. Docs: ${DOCS_URL}/guardrails.md`,
+    uses: ["axe-core", "playwright"],
+  },
+  {
+    name: "ouro-images",
+    title: "Ouro images",
+    description: `Optional: the picture sizes. ${claim(
+      "It writes each raster picture in a folder as AVIF and WebP at each width up to its own, with sharp, and images.json with the srcset of each, for a <picture> element.",
+      { source: { test: "scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each" }, verify: { testExists: "scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each" } },
+    )} It installs lib/ouro/images/.`,
+    docs: `Ouro images is in lib/ouro/images/. Run node lib/ouro/images/images.ts <folder of pictures> --out public/images --base /images/ and draw each picture from images.json. Docs: ${DOCS_URL}/guardrails.md`,
+  },
 ];
 
 type FileType = "registry:ui" | "registry:component" | "registry:lib" | "registry:file";
@@ -311,6 +341,8 @@ const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
 const censusDir = "registry/ouro/census/";
 const sourceRulesDir = "registry/ouro/source-rules/";
+const checkDir = "registry/ouro/check/";
+const imagesDir = "registry/ouro/images/";
 // Ouro AX: the agent-experience kit, Node TypeScript with no dependencies, one item per file (ax-<stem>), its node:test
 // tests as ax-<stem>-tests, the X-ray's fixtures with its tests (a flow suite's with ax-flows'), and the example tool as
 // ax-example.
@@ -363,6 +395,10 @@ export function itemForFile(path: string): string | null {
     return "ouro-census";
   } else if (path.startsWith(sourceRulesDir)) {
     return "ouro-source-rules";
+  } else if (path.startsWith(checkDir)) {
+    return "ouro-check";
+  } else if (path.startsWith(imagesDir)) {
+    return "ouro-images";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
@@ -390,6 +426,8 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(e2eDir)) return { path, type: "registry:file", target: `~/e2e/ouro/${file}` };
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
+  if (path.startsWith(checkDir)) return { path, type: "registry:file", target: `~/lib/ouro/check/${file}` };
+  if (path.startsWith(imagesDir)) return { path, type: "registry:file", target: `~/lib/ouro/images/${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
   if (path.startsWith(axDir)) return { path, type: "registry:lib", target: `@lib/ouro/ax/${path.slice(axDir.length)}` };
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
@@ -657,6 +695,8 @@ export function buildRegistry(root: string): Registry {
         for (const each of [name, ...(companions[name] ?? [])]) (isDev ? dev : runtime).add(each);
       }
     }
+    // A kit names the packages it loads at run time rather than imports (Ouro check loads axe-core's script).
+    for (const name of "uses" in entry ? entry.uses : []) dev.add(name);
     const dependencies = [...runtime].sort().map(pin);
     // devDependencies go without a version (see the header); meta.requires states the minimum.
     const devDependencies = [...dev].filter((name) => !runtime.has(name)).sort();

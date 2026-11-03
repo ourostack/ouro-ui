@@ -106,8 +106,10 @@ export default defineConfig({
       // The census kit's in-page collector is JavaScript an app's Playwright runs in the page; its
       // Node side is covered by scripts/kits.test.mjs.
       include: ["registry/**/*.{ts,tsx}", "registry/ouro/census/census-collect.mjs"],
-      // Ouro AX (registry/ouro/ax/) runs in Node: its node:test tests and their coverage run in scripts/ax.test.mjs.
-      exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "registry/ouro/ax/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
+      // Ouro AX (registry/ouro/ax/) runs in Node: its node:test tests and their coverage run in scripts/ax.test.mjs. So
+      // do the Node sides of Ouro check, in scripts/check.test.mjs (its in-page side is covered here), and Ouro images, in
+      // scripts/images.test.mjs.
+      exclude: ["**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "registry/ouro/ax/**", "registry/ouro/check/check.ts", "registry/ouro/check/serve.ts", "registry/ouro/images/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       // A shard writes its share as coverage/coverage-final.json; CI merges the shards' shares and
       // holds them to the same 100% (scripts/coverage-merge.mjs).
       reporter: shard ? ["json"] : ["text", "lcov"],

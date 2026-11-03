@@ -67,6 +67,11 @@
       "reason": "the Ouro AX probes' and evaluation's records (runs, tables, reports), copied as they were measured"
     },
     {
+      "match": "^docs/decisions/2026-11-02-cli-kit-and-platform-targets/evidence/",
+      "mode": "evidence",
+      "reason": "the CLI kit decision's records: a reference doctor's output and source notes, the first adopter's selfcheck output on made-up data, and this repository's measured size, copied as they were captured"
+    },
+    {
       "match": "^registry/ouro/ax/fixtures/",
       "mode": "input",
       "reason": "the X-ray's test fixtures"
@@ -149,6 +154,16 @@
       "file": "site/src/voyage/chapters/copy.ts",
       "sentence": "The sea is not for all.",
       "reason": "the Nautilus story: Ned Land when you leave the crew"
+    },
+    {
+      "file": "registry/ouro/check/check.ts",
+      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
+      "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe and --no-measured flags' names"
+    },
+    {
+      "file": "registry/ouro/check/check.ts",
+      "sentence": "Exit codes: 0 ok, 1 error (the check could not run), 2 usage, 3 findings to fix.`;",
+      "reason": "Ouro check's --help names its exit codes, every Ouro tool's table, which scripts/check/check.test.mts asserts (Ouro check's command > exits as every Ouro tool does: …)"
     }
   ],
   "instructionVerbs": [
@@ -296,6 +311,16 @@
       "match": "^registry/ouro/ax/.*\\.test\\.mts$",
       "job": "ci",
       "reason": "scripts/ax.test.mjs, in pnpm test:scripts, runs every Ouro AX test with coverage"
+    },
+    {
+      "match": "^scripts/check/.*\\.test\\.mts$",
+      "job": "ci",
+      "reason": "scripts/check.test.mjs, in pnpm test:scripts, runs Ouro check's Node tests with coverage"
+    },
+    {
+      "match": "^scripts/images/.*\\.test\\.mts$",
+      "job": "ci",
+      "reason": "scripts/images.test.mjs, in pnpm test:scripts, runs Ouro images' tests with coverage"
     },
     {
       "match": "\\.test\\.m[jt]s$",

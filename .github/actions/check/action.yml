@@ -1,0 +1,129 @@
+name: Ouro check
+description: >-
+  Runs Ouro check (node lib/ouro/check/check.ts, from the ouro-check item) on a built folder or
+  URLs: every page at every screen size, light and dark, for overlap, sideways scroll, clipped
+  text, long lines, blurry pictures and serious axe-core violations, and measures layout shift, first
+  content and each press against their budgets. Writes the report to the job's
+  summary and uploads the out folder (report.json, summary.md, a contact sheet per page and a
+  captioned close-up per finding) as an artifact. With shard (k/n) it checks the kth of n shares;
+  a later job with merge set joins every shard's artifact into one report. Run it after your
+  app's install (it needs playwright and axe-core) and build. Fails when a finding is not waived
+  in ouro-check.json, unless the step continues on error.
+inputs:
+  targets:
+    description: The built folders and URLs to check, separated by spaces. Not used with merge.
+    default: ""
+  pages:
+    description: Only the built folders' pages this glob matches, such as "docs/**".
+    default: ""
+  sizes:
+    description: The screen sizes, as WxH,WxH. Empty for the default, 320 to 3840 wide and four short landscape screens.
+    default: ""
+  themes:
+    description: light, dark or light,dark.
+    default: light,dark
+  shard:
+    description: This job's share, k/n, such as 1/4. Empty for the whole run.
+    default: ""
+  merge:
+    description: Set to "true" in a job after the shards to download their artifacts and merge them.
+    default: "false"
+  before:
+    description: An earlier report.json, for a captioned before and after of each finding gone since.
+    default: ""
+  config:
+    description: The waivers and budgets file. Empty for ouro-check.json when it exists.
+    default: ""
+  args:
+    description: Further options for check.ts, such as --no-axe, --no-measured or --ready-event app:drawn.
+    default: ""
+  script:
+    description: Where check.ts is.
+    default: lib/ouro/check/check.ts
+  artifact:
+    description: The artifact's name; a shard's is <artifact>-<k>-of-<n>, and report-<name> holds report.json and summary.md alone.
+    default: ouro-check
+  install-browser:
+    description: Whether to install Playwright's Chromium and its system packages first. Set "false" when the job has them (Playwright's container image).
+    default: "true"
+outputs:
+  exit-code:
+    description: "check.ts's exit code, as every Ouro tool's: 0 ok, 1 error (the check could not run), 2 usage, 3 findings."
+    value: ${{ steps.check.outputs.code }}
+runs:
+  using: composite
+  steps:
+    - if: inputs.install-browser == 'true'
+      shell: bash
+      run: npx playwright install --with-deps chromium
+    - id: name
+      shell: bash
+      env:
+        ARTIFACT: ${{ inputs.artifact }}
+        SHARD: ${{ inputs.shard }}
+        MERGE: ${{ inputs.merge }}
+      run: |
+        if [ -n "$SHARD" ] && [ "$MERGE" != true ]; then echo "name=$ARTIFACT-${SHARD/\//-of-}" >> "$GITHUB_OUTPUT"; else echo "name=$ARTIFACT" >> "$GITHUB_OUTPUT"; fi
+        # $RUNNER_TEMP, not runner.temp: in a container job only the variable names the folder as the container sees it.
+        echo "out=$RUNNER_TEMP/ouro-check" >> "$GITHUB_OUTPUT"
+        echo "shards=$RUNNER_TEMP/ouro-check-shards" >> "$GITHUB_OUTPUT"
+    - if: inputs.merge == 'true'
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        pattern: ${{ inputs.artifact }}-*-of-*
+        path: ${{ steps.name.outputs.shards }}
+    - id: check
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+        PAGES: ${{ inputs.pages }}
+        SIZES: ${{ inputs.sizes }}
+        THEMES: ${{ inputs.themes }}
+        SHARD: ${{ inputs.shard }}
+        MERGE: ${{ inputs.merge }}
+        BEFORE: ${{ inputs.before }}
+        CONFIG: ${{ inputs.config }}
+        ARGS: ${{ inputs.args }}
+        SCRIPT: ${{ inputs.script }}
+        OUT: ${{ steps.name.outputs.out }}
+        SHARDS: ${{ steps.name.outputs.shards }}
+      run: |
+        set +e
+        options=(--out "$OUT")
+        [ -n "$CONFIG" ] && options+=(--config "$CONFIG")
+        if [ "$MERGE" = true ]; then
+          node "$SCRIPT" merge "$SHARDS"/*/ "${options[@]}"
+        else
+          [ -n "$PAGES" ] && options+=(--pages "$PAGES")
+          [ -n "$SIZES" ] && options+=(--sizes "$SIZES")
+          [ -n "$THEMES" ] && options+=(--themes "$THEMES")
+          [ -n "$SHARD" ] && options+=(--shard "$SHARD")
+          [ -n "$BEFORE" ] && options+=(--before "$BEFORE")
+          # Word splitting is wanted: the targets and further options are separated by spaces.
+          # shellcheck disable=SC2086
+          node "$SCRIPT" $TARGETS "${options[@]}" $ARGS
+        fi
+        echo "code=$?" >> "$GITHUB_OUTPUT"
+    - if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ steps.name.outputs.name }}
+        path: ${{ steps.name.outputs.out }}
+        if-no-files-found: ignore
+    # The report alone, small enough to read without the pictures.
+    - if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: report-${{ steps.name.outputs.name }}
+        path: |
+          ${{ steps.name.outputs.out }}/report.json
+          ${{ steps.name.outputs.out }}/summary.md
+        if-no-files-found: ignore
+    - shell: bash
+      env:
+        CODE: ${{ steps.check.outputs.code }}
+      run: |
+        # Every Ouro tool's exit codes: 0 ok, 1 error, 2 usage, 3 findings.
+        if [ "$CODE" = 3 ]; then echo "::error::Ouro check found what the job's summary lists: fix it, or waive it with a reason in ouro-check.json."; fi
+        if [ "$CODE" = 1 ]; then echo "::error::Ouro check could not run: its log says why. This is no finding about your pages."; fi
+        exit "$CODE"

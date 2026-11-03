@@ -17,6 +17,8 @@ expectTypeOf<ComponentProps<typeof AvatarGroup>>().toEqualTypeOf<AvatarGroupProp
 
 // name is required; children, fallback and unknown sizes name the fix.
 expectTypeOf<{ src: "/ana.jpg" }>().not.toExtend<AvatarProps>();
+// A name still loading is null, not missing.
+expectTypeOf<{ name: null; nameLoadingLabel: "Nom en cours" }>().toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; children: "AL" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; fallback: "AL" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; size: "4xl" }>().not.toExtend<AvatarProps>();

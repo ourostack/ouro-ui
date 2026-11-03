@@ -36,6 +36,7 @@ The props the modes share. Type: `MessageProps`.
 | `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
 | `attachments` | `ReactNode` |  | Files and pictures sent with the message, shown under it: `<Attachment>` elements, and pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them full size. |
 | `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
+| `bubble` | `"filled" \| "raised"` | `"filled"` on a `chat` message; unboxed on a `reply` | How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's own message filled as a primary button is (`--ouro-action`, else the primary color), others' on the muted surface, each round with a smaller corner toward its sender, with an edge that forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link or mention in the primary color is a shade nearer the text color, so it keeps 4.5:1 on the muted surface. `raised` is a workplace chat's: others' messages on a raised card with a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at the end, others' at the start under their name, each in a bubble of that look. A `reply` without one stays unboxed, and `default` and `post` ignore it. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
@@ -46,8 +47,9 @@ The props the modes share. Type: `MessageProps`.
 | `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
-| `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
+| `name` (required) | `string \| null` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's place on its line, the avatar shimmers in its own shape, and screen readers hear `nameLoadingLabel`. Nothing moves when the name arrives. |
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
+| `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `nameTag` | `string` |  | A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both are still read. |
 | `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
@@ -58,7 +60,7 @@ The props the modes share. Type: `MessageProps`.
 | `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
 | `thread` | `ReactNode` |  | Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. |
 | `time` | `string` |  | When it was written, already formatted for the reader ("9:41 AM"), shown after the name. Format it in the browser after hydration, so the server and the reader's clock agree. |
-| `variant` | `"default" \| "chat" \| "post" \| "reply"` | `"default"` | How the message is laid out. `default` suits a conversation with an assistant. `chat` suits people writing to each other: others' messages at the start on a raised bubble under their name and time, the user's own at the end in a tint of the primary color, with only the time. `chat` also suits a channel without threads, which reads as a chat. `post` is a post in a threaded channel, unboxed: the author's name and time, an optional `subject`, the text, then the `footer` and the `thread` under it, with room around it and a hairline from the text's start to the end between it and a post just before it. `reply` is a reply in a thread: the same line of name and time, with the text unboxed under it, starting where a post's text starts. In `post` and `reply` the user's own messages sit at the start too. |
+| `variant` | `"default" \| "chat" \| "post" \| "reply"` | `"default"` | How the message is laid out. `default` suits a conversation with an assistant. `chat` suits people writing to each other: others' messages at the start under their name and time, the user's own at the end with only the time, each bubble at most 85% of the row's width and 36rem, so a line stays readable in a wide window. `chat` also suits a channel without threads, which reads as a chat. `post` is a post in a threaded channel, unboxed: the author's name and time, an optional `subject`, the text, then the `footer` and the `thread` under it, with room around it and a hairline from the text's start to the end between it and a post just before it. `bubble` sets how a `chat` message's bubble looks, and draws a `reply` as one. `reply` is a reply in a thread: the same line of name and time, with the text unboxed under it, starting where a post's text starts. In `post` and `reply` the user's own messages sit at the start too. |
 
 ## Modes
 
@@ -253,6 +255,14 @@ Where a `chat` or `reply` message's action bar sits: `corner` over the bubble's 
 type MessageActionsPlacement = "corner" | "beside";
 ```
 
+### `MessageBubble`
+
+How a `chat` message's bubble, or a `reply` drawn as one, looks: `filled`, the user's own in the primary color and others' on the muted surface, round with a small corner toward the sender; or `raised`, others' on a raised card and the user's own in a tint of the primary color.
+
+```ts
+type MessageBubble = "filled" | "raised";
+```
+
 ### `MessageFailed`
 
 What the person can do about a message of their own that did not send: `Message`'s `failed`.
@@ -295,12 +305,13 @@ interface MessageOwnProps {
   role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
   /**
    * How the message is laid out. `default` suits a conversation with an assistant. `chat`
-   * suits people writing to each other: others' messages at the start on a raised bubble
-   * under their name and time, the user's own at the end in a tint of the primary color,
-   * with only the time. `chat` also suits a channel without threads, which reads as a chat.
+   * suits people writing to each other: others' messages at the start under their name and
+   * time, the user's own at the end with only the time, each bubble at most 85% of the row's
+   * width and 36rem, so a line stays readable in a wide window. `chat` also suits a channel without threads, which reads as a chat.
    * `post` is a post in a threaded channel, unboxed: the author's name and time, an optional
    * `subject`, the text, then the `footer` and the `thread` under it, with room around it and
-   * a hairline from the text's start to the end between it and a post just before it. `reply`
+   * a hairline from the text's start to the end between it and a post just before it. `bubble`
+   * sets how a `chat` message's bubble looks, and draws a `reply` as one. `reply`
    * is a reply in a thread: the same line of name and time, with the text unboxed under it,
    * starting where a post's text starts. In `post` and `reply` the user's own messages sit at
    * the start too.
@@ -308,11 +319,31 @@ interface MessageOwnProps {
    */
   variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
   /**
+   * How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's
+   * own message filled as a primary button is (`--ouro-action`, else the primary color), others'
+   * on the muted surface, each round with a smaller corner toward its sender, with an edge that
+   * forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a
+   * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link or mention in the primary color is
+   * a shade nearer the text color, so it keeps 4.5:1 on the muted surface. `raised` is a workplace chat's: others' messages on a raised card with
+   * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
+   * `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at
+   * the end, others' at the start under their name, each in a bubble of that look. A `reply`
+   * without one stays unboxed, and `default` and `post` ignore it.
+   * @default "filled" on a `chat` message; unboxed on a `reply`
+   */
+  bubble?: MessageBubble | (string & { 'Use "filled" or "raised"': never }) | undefined;
+  /**
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   *
+   * Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's
+   * place on its line, the avatar shimmers in its own shape, and screen readers hear
+   * `nameLoadingLabel`. Nothing moves when the name arrives.
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /**
    * What shows as the author's name in place of `name`, when plain text cannot draw it: their
    * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).

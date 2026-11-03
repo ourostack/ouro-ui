@@ -1,10 +1,12 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { defineChecks } from "./checks.ts";
 import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "./cli.ts";
 import { defineCli, defineCommand, parse, type Parsed, type RunContext } from "./command.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
 import { nextStep, outcome } from "./outcome.ts";
+import { hasAnsi, stripAnsi } from "./terminal.ts";
 
 async function run(argv: string[], stdin?: string) {
   let out = "";
@@ -330,4 +332,78 @@ test("a person-only word refuses with its reason and how the person does it, as 
   const topicJson = io();
   assert.equal(await runCli(call, ["help", "unmute", "--json"], topicJson.io), 0);
   assert.deepEqual(JSON.parse(topicJson.o.out), { name: "unmute", reason: "You can't turn on the person's microphone; only they can.", how: "with the microphone button in the call's toolbar" });
+});
+
+test("a command that returns a checks report prints its verdict first, styled for stdout, and exits with its code", async () => {
+  const doctor = defineChecks<null>({
+    command: "kit doctor",
+    checks: [
+      { id: "config", label: "The config file reads", run: () => ({ state: "passed" }) },
+      { id: "later", label: "Share with a colleague", run: () => (process.env["KIT_LATER"] ? { state: "skipped", detail: "by hand", fix: { byHand: "Share it." } } : { state: "passed" }) },
+      { id: "cache", label: "Cache freshness", run: () => ({ state: process.env["KIT_BROKEN"] ? "failed" : "passed", detail: "3 days old", fix: { byHand: "Delete the cache." } }) },
+    ],
+  });
+  const kit = defineCli({
+    name: "kit",
+    about: ["kit: a doctor built from the kit."],
+    voice: { healthy: ["All clear. Go make something."] },
+    commands: [
+      defineCommand({
+        name: "doctor",
+        summary: "Checks the kit is ready.",
+        effect: "private",
+        readOnly: true,
+        flags: { verbose: { type: "boolean", description: "Show the passing checks too." } },
+        output: "{ ax, verdict, summary, counts, rows, next, exitCode }",
+        examples: ["kit doctor --verbose"],
+        run: () => doctor.run(null),
+      }),
+      defineCommand({
+        name: "health",
+        summary: "The same checks, without a --verbose flag.",
+        effect: "private",
+        readOnly: true,
+        output: "{ ax, verdict, summary, counts, rows, next, exitCode }",
+        examples: ["kit health"],
+        run: () => doctor.run(null),
+      }),
+    ],
+  });
+  const call = async (argv: string[], tty: boolean, env: Record<string, string> = {}) => {
+    let out = "";
+    const code = await runCli(kit, argv, { stdout: { write: (s) => (out += s), isTTY: tty }, stderr: { write: () => {} } }, { env });
+    return { code, out };
+  };
+  const piped = await call(["doctor"], false);
+  assert.equal(piped.code, 0);
+  assert.match(piped.out, /^ok All 3 checks passed in [^\n]+s\.\n$/, "a pipe gets words and no voice");
+  const coloured = (await call(["doctor"], true)).out;
+  assert.ok(hasAnsi(coloured));
+  assert.match(stripAnsi(coloured), /^✓ All 3 checks passed in [^\n]+\nAll clear\. Go make something\.\n$/, "a healthy report on a terminal gets the voice's healthy line");
+  process.env["KIT_LATER"] = "1";
+  try {
+    const later = stripAnsi((await call(["doctor"], true)).out);
+    assert.match(later, /Still to check\n {2}○ Share with a colleague\n {4}by hand\n {4}Share it\.\n$/, "no healthy line while something is left to check by hand");
+  } finally {
+    delete process.env["KIT_LATER"];
+  }
+  assert.match((await call(["doctor", "--verbose"], false)).out, /\nPassed\n {2}ok The config file reads/);
+  process.env["KIT_BROKEN"] = "1";
+  try {
+    const failed = await call(["doctor"], true, { NO_COLOR: "1" });
+    assert.equal(failed.code, 3);
+    assert.match(failed.out, /^✗ 1 of 3 checks failed: Cache freshness\./);
+    assert.ok(!failed.out.includes("All clear"), "no healthy line on a failure");
+    assert.match(failed.out, /kit doctor --verbose/);
+    assert.ok(!(await call(["health"], true)).out.includes("--verbose"), "a command without a --verbose flag is never told to use one");
+    const json = await call(["doctor", "--json"], false);
+    assert.equal(json.code, 3);
+    assert.equal(JSON.parse(json.out).verdict, "failed");
+    let out = "";
+    const report = await doctor.run(null);
+    assert.equal(printResult(kit, kit.commands[0]!, {}, report, false, { stdout: { write: (s) => (out += s) }, stderr: { write: () => {} } }), 3);
+    assert.match(out, /^FAIL 1 of 3/);
+  } finally {
+    delete process.env["KIT_BROKEN"];
+  }
 });

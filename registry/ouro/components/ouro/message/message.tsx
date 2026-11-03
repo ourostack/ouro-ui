@@ -2,6 +2,7 @@
 
 import {
   isValidElement,
+  type CSSProperties,
   useEffect,
   useId,
   useLayoutEffect,
@@ -18,6 +19,7 @@ import {
 } from "react";
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -38,6 +40,13 @@ export type MessageVariant = "default" | "chat" | "post" | "reply";
  * over the line above it, or `beside` the bubble, past its end and level with its top.
  */
 export type MessageActionsPlacement = "corner" | "beside";
+
+/**
+ * How a `chat` message's bubble, or a `reply` drawn as one, looks: `filled`, the user's own in the
+ * primary color and others' on the muted surface, round with a small corner toward the sender; or
+ * `raised`, others' on a raised card and the user's own in a tint of the primary color.
+ */
+export type MessageBubble = "filled" | "raised";
 
 /** One action in a message's action bar: an icon button with a tooltip. */
 export interface MessageAction {
@@ -80,18 +89,20 @@ export interface MessageOwnProps {
   role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
   /**
    * How the message is laid out. `default` suits a conversation with an assistant. `chat`
-   * suits people writing to each other: others' messages at the start on a raised bubble
-   * under their name and time, the user's own at the end in a tint of the primary color,
-   * with only the time. `chat` also suits a channel without threads, which reads as a chat.
+   * suits people writing to each other: others' messages at the start under their name and
+   * time, the user's own at the end with only the time, each bubble at most 85% of the row's
+   * width and 36rem, so a line stays readable in a wide window. `chat` also suits a channel without threads, which reads as a chat.
    * `post` is a post in a threaded channel, unboxed: the author's name and time, an optional
    * `subject`, the text, then the `footer` and the `thread` under it, with room around it and
-   * a hairline from the text's start to the end between it and a post just before it. `reply`
+   * a hairline from the text's start to the end between it and a post just before it. `bubble`
+   * sets how a `chat` message's bubble looks, and draws a `reply` as one. `reply`
    * is a reply in a thread: the same line of name and time, with the text unboxed under it,
    * starting where a post's text starts. In `post` and `reply` the user's own messages sit at
    * the start too.
    * @default "default"
    *
-   * @claim "`chat` suits people writing to each" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint)
+   * @claim "`chat` suits people writing to each" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender)
+   * @claim "each bubble at most 85% of" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message rows > keeps a bubble to 85% of its row and 36rem, however wide the window)
    * @claim "`post` is a post in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > is unboxed, with the name and time over the subject and text, and the footer and thread under them)
    * @claim "a hairline from the text's start" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > draws a hairline from the text's start to the end between two posts, and none above the first)
    * @claim "`reply` is a reply in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > lays a reply out unboxed under its name and time, at the start for everyone)
@@ -99,13 +110,43 @@ export interface MessageOwnProps {
    */
   variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
   /**
+   * How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's
+   * own message filled as a primary button is (`--ouro-action`, else the primary color), others'
+   * on the muted surface, each round with a smaller corner toward its sender, with an edge that
+   * forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a
+   * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link or mention in the primary color is
+   * a shade nearer the text color, so it keeps 4.5:1 on the muted surface. `raised` is a workplace chat's: others' messages on a raised card with
+   * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
+   * `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at
+   * the end, others' at the start under their name, each in a bubble of that look. A `reply`
+   * without one stays unboxed, and `default` and `post` ignore it.
+   * @default "filled" on a `chat` message; unboxed on a `reply`
+   *
+   * @claim "`filled`, the default, is a messaging" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender)
+   * @claim "on others', a link or mention" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps a link in the primary color at 4.5:1 or more on others' muted bubble)
+   * @claim "own message filled as a primary button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble as a primary button is, from --ouro-action when the theme sets it)
+   * @claim "with an edge that" registry/ouro/components/ouro/message/message.test.tsx verify:fileLine(registry/ouro/components/ouro/message/message.test.tsx, /chromiumOnly\("keeps both filled bubbles' edges under forced colors"/)
+   * @claim "link (underlined), a mention" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > underlines a link in the user's own filled bubble, and gives both filled bubbles a clear edge)
+   * @claim "the theme's colors follow the fill" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps the primary color readable inside the user's filled bubble: a link or mention in it takes the bubble's text color)
+   * @claim "A `reply` with a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > draws a reply given a bubble as a chat's message: the user's own filled at the end, others' at the start, and a reply without one unboxed)
+   * @claim "`raised` is a workplace chat's" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint)
+   */
+  bubble?: MessageBubble | (string & { 'Use "filled" or "raised"': never }) | undefined;
+  /**
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   *
+   * Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's
+   * place on its line, the avatar shimmers in its own shape, and screen readers hear
+   * `nameLoadingLabel`. Nothing moves when the name arrives.
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is an article that says who wrote it, then what they wrote)
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /expectTypeOf<\{\srole:\s"user"\s\}>\(\)\.not\.toExtend<MessageProps>/)
+   * @claim "Pass `null` while the name is" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > holds the name's place with a name-sized line while it loads, so nothing moves when it arrives)
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /**
    * What shows as the author's name in place of `name`, when plain text cannot draw it: their
    * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).
@@ -328,12 +369,61 @@ const bubbles = {
 // A raised surface: the theme's card with its hairline and small shadow, for a chat's bubbles.
 const raised = "bg-card text-card-foreground ring-1 ring-border/60 shadow-(--shadow-sm)";
 
+// The user's filled bubble is drawn as a primary button is (`--ouro-action`, else the primary color), and inside it
+// the theme's colors follow the fill, so a link, a mention, a quote, a card, a code block or a button in it stays
+// readable: the primary color, the foreground, the muted text, a primary button and the focus ring read as the
+// bubble's text color; the card, muted and accent surfaces as the fill, the accent a shade lighter for a hover; and a
+// primary button's hover and press as shades of its text color. The message sets the fill and its text color
+// (bubbleColors), because the bubble re-points the colors for what is inside it (filledColors). These are inline
+// custom properties, not classes, so they add nothing to an app's stylesheet.
+const bubbleColors = {
+  "--ouro-bubble": "var(--ouro-action,var(--primary))",
+  "--ouro-bubble-ink": "var(--ouro-action-foreground,var(--primary-foreground))",
+} as CSSProperties;
+const filledColors = {
+  "--primary": "var(--ouro-bubble-ink)",
+  "--primary-foreground": "var(--ouro-bubble)",
+  "--foreground": "var(--ouro-bubble-ink)",
+  "--muted-foreground": "var(--ouro-bubble-ink)",
+  "--muted": "var(--ouro-bubble)",
+  "--card": "var(--ouro-bubble)",
+  "--card-foreground": "var(--ouro-bubble-ink)",
+  "--accent": "color-mix(in oklab,var(--ouro-bubble-ink) 12%,var(--ouro-bubble))",
+  "--ring": "var(--ouro-bubble-ink)",
+  "--ouro-action": "var(--ouro-bubble-ink)",
+  "--ouro-action-foreground": "var(--ouro-bubble)",
+  "--ouro-action-hover": "color-mix(in oklab,var(--ouro-bubble-ink) 88%,var(--ouro-bubble))",
+  "--ouro-action-active": "color-mix(in oklab,var(--ouro-bubble-ink) 76%,var(--ouro-bubble))",
+} as CSSProperties;
+// Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined.
+const filledInk = "bg-(--ouro-bubble) text-(--ouro-bubble-ink) selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a]:underline";
+// On others' bubble, the muted surface: the primary, success and muted text colors take a little of the foreground, so
+// a link, a mention, a success mark or a table's header keeps 4.5:1 on it, as it has on the page. The message mixes
+// them (mutedColors) and the bubble reads them (mutedInk): a variable can't be mixed from itself.
+const mutedColors = {
+  "--ouro-bubble-link": "color-mix(in oklab,var(--primary) 85%,var(--foreground))",
+  "--ouro-bubble-success": "color-mix(in oklab,var(--success) 85%,var(--foreground))",
+  "--ouro-bubble-quiet": "color-mix(in oklab,var(--muted-foreground) 85%,var(--foreground))",
+} as CSSProperties;
+const mutedInk = {
+  "--primary": "var(--ouro-bubble-link)",
+  "--success": "var(--ouro-bubble-success)",
+  "--muted-foreground": "var(--ouro-bubble-quiet)",
+} as CSSProperties;
+
 const layouts = {
-  chat: {
+  filled: {
+    // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
+    user: `rounded-2xl rounded-ee-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
+    assistant: "rounded-2xl rounded-es-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
+  },
+  raised: {
     user: "rounded-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
     assistant: `rounded-lg px-3 py-2 ${raised}`,
   },
 } as const;
+
+const bubbleLooks = ["filled", "raised"] as const;
 
 // A post's line after its name line: one each, in order after the name line (and an unanswered post's Reply beside it).
 const postRow = "order-3 basis-full";
@@ -358,8 +448,25 @@ const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/mes
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
 const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
-/** The author's name as text, or the app's content for it shown while screen readers hear the text. */
-function AuthorName({ name, content }: { name: string; content: ReactNode }): ReactNode {
+/**
+ * The author's name as text, or the app's content for it shown while screen readers hear the text.
+ * While the name loads (`loading` is its label), the label laid out invisibly gives the line its
+ * height and baseline and the placeholder its width, and a Skeleton line shows over it.
+ */
+function AuthorName({ name, content, loading }: { name: string; content: ReactNode; loading: string | undefined }): ReactNode {
+  if (loading !== undefined) {
+    return (
+      <span data-ouro-message-name-loading="" className="relative inline-block max-w-full">
+        <span aria-hidden="true" className="invisible">
+          {loading}
+        </span>
+        <span aria-hidden="true" className="absolute inset-0 flex items-center">
+          <Skeleton shape="text" />
+        </span>
+        <span className="sr-only">{loading}</span>
+      </span>
+    );
+  }
   if (content === undefined) return name;
   return (
     <>
@@ -394,9 +501,11 @@ export function Message(props: MessageProps): JSX.Element {
   const {
     role: roleProp,
     name: nameProp,
+    nameLoadingLabel = "Name loading",
     nameContent,
     nameTag,
     variant: variantProp = "default",
+    bubble: bubbleProp,
     avatar,
     presence,
     presenceLabel,
@@ -435,9 +544,14 @@ export function Message(props: MessageProps): JSX.Element {
     ...rest
   } = props;
   const name = nameProp ?? "";
+  const nameLoading = nameProp === null;
   // A role that is not one of Ouro UI's (a type error) warns and renders as the assistant's.
   const role = (roles as readonly string[]).includes(roleProp) ? (roleProp as MessageRole) : "assistant";
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as MessageVariant) : "default";
+  const bubble = (bubbleLooks as readonly string[]).includes(bubbleProp as string) ? (bubbleProp as MessageBubble) : "filled";
+  // A chat's message is a bubble; a reply is one when it is given a bubble, laid out as a chat's.
+  const bubbled = variant === "chat" || (variant === "reply" && bubbleProp !== undefined);
+  const shape = bubbled ? "chat" : variant;
   // Stryker disable next-line StringLiteral: only "beside" is read; any other placement is the corner.
   const placement = (placements as readonly unknown[]).includes(actionsPlacement) ? (actionsPlacement as MessageActionsPlacement) : variant === "reply" ? "beside" : "corner";
   useAppearanceClassNameCheck(
@@ -454,6 +568,7 @@ export function Message(props: MessageProps): JSX.Element {
           nameProp === undefined && ["name is missing, so screen readers cannot say who wrote it", `<Message role="${role}" name="Ouro">`],
           role !== roleProp && [`role="${String(roleProp)}" is not a role; use "user", "assistant" or "system"`, '<Message role="assistant" name="Ouro">'],
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "default", "chat", "post" or "reply"`, '<Message variant="chat" role="assistant" name="Grace">'],
+          bubbleProp !== undefined && bubble !== bubbleProp && [`bubble="${String(bubbleProp)}" is not a bubble; use "filled" or "raised"`, '<Message variant="chat" bubble="raised">'],
           actionsPlacement !== undefined &&
             placement !== actionsPlacement && [`actionsPlacement="${String(actionsPlacement)}" is not a placement; use "corner" or "beside"`, '<Message variant="chat" actionsPlacement="beside">'],
           from !== undefined && ["from is not a prop", '<Message role="user" name="Ana">'],
@@ -471,7 +586,7 @@ export function Message(props: MessageProps): JSX.Element {
           presence !== undefined &&
             isValidElement(avatar) && [
               "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
-              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
+              `avatar={<Avatar name=${nameLoading ? "{null}" : `"${name}"`} alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
             ],
           presence !== undefined &&
             !presenceLabel && [
@@ -554,15 +669,15 @@ export function Message(props: MessageProps): JSX.Element {
   // avatar's column takes when it is at the start (w-8, and the row's gap-2 in a chat or gap-3 in a reply).
   const beside =
     placement === "beside" && (variant === "chat" || variant === "reply") && role !== "system"
-      ? avatar === false || (variant === "chat" && role === "user")
+      ? avatar === false || (shape === "chat" && role === "user")
         ? "0px"
-        : variant === "reply"
+        : shape === "reply"
           ? peopleGutter
           : "2.5rem"
       : undefined;
   const bar =
     hasBar && Bar ? (
-      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={variant === "chat" && role === "user"} post={variant === "post"} beside={beside} />
+      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={shape === "chat" && role === "user"} post={variant === "post"} beside={beside} />
     ) : null;
 
   if (variant === "default" || role === "system") {
@@ -594,7 +709,7 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
+        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
         <div
           className={cn(
             "flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
@@ -602,7 +717,7 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
-            <AuthorName name={name} content={nameContent} />
+            <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
             {nameTag && (
               <>
                 <span className="sr-only">, </span>
@@ -647,17 +762,17 @@ export function Message(props: MessageProps): JSX.Element {
 
   // chat, post and reply: the avatar's column at the start, then a line of name and time over the message.
   const mine = role === "user";
-  const end = variant === "chat" && mine;
+  const end = shape === "chat" && mine;
   const continued = continuedProp && variant !== "post";
   const post = variant === "post";
   // A post or a reply names its author in the text's size; a chat's bubbles carry a smaller line above them.
-  const people = variant !== "chat";
+  const people = shape !== "chat";
   // In chat the user's own name is not shown (the side says whose it is), only the time.
   const nameShown = !continued && !end;
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
-        <AuthorName name={name} content={nameContent} />
+        <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
       </span>
       {nameTag && (
         <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
@@ -676,7 +791,14 @@ export function Message(props: MessageProps): JSX.Element {
     </span>
   );
   // A chat's bubble; a post's and a reply's text sits on the page, unboxed.
-  const surface = variant === "chat" ? layouts.chat[mine ? "user" : "assistant"] : undefined;
+  const surface = shape === "chat" ? layouts[bubble][mine ? "user" : "assistant"] : undefined;
+  // A filled bubble's colors, as inline custom properties: the message sets them, and the bubble re-points the theme's.
+  const filled = shape === "chat" && bubble === "filled";
+  const ownColors = filled ? (mine ? bubbleColors : mutedColors) : undefined;
+  const surfaceColors = filled ? (mine ? filledColors : mutedInk) : undefined;
+  // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
+  const containerStyle = hasBar && beside !== undefined ? { containerType: "inline-size" as const } : undefined;
+  const articleStyle = { ...rest.style, ...ownColors, ...containerStyle };
   const titled = post && subject !== undefined && subject !== null;
   // A message of pictures or files alone draws no empty bubble above them.
   const worded = !empty || streaming || quote !== undefined || titled;
@@ -687,13 +809,13 @@ export function Message(props: MessageProps): JSX.Element {
       data-ouro="message"
       data-role={role}
       data-variant={variant}
+      data-bubble={bubbled ? bubble : undefined}
       data-continued={continued ? "" : undefined}
       data-ouro-message-active={active ? "" : undefined}
       aria-busy={streaming || rest["aria-busy"]}
       aria-describedby={describedBy}
       onPointerUp={tap}
-      // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
-      style={hasBar && beside !== undefined ? { ...rest.style, containerType: "inline-size" } : rest.style}
+      style={articleStyle}
       className={cn(
         "group/message box-border flex w-full min-w-0 items-start text-base pointer-fine:text-sm",
         people ? "gap-3" : "gap-2",
@@ -717,7 +839,7 @@ export function Message(props: MessageProps): JSX.Element {
               </time>
             )
           ) : (
-            <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" />
+            <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" />
           )}
         </span>
       )}
@@ -727,7 +849,7 @@ export function Message(props: MessageProps): JSX.Element {
           "relative flex min-w-0 gap-1",
           // A post's rows wrap in a row, so an unanswered post's Reply ends its name line and the rest take a line each.
           post ? "flex-row flex-wrap items-center gap-x-2" : "flex-col",
-          variant === "chat" ? "max-w-[min(85%,42rem)]" : "flex-1",
+          shape === "chat" ? "max-w-[min(85%,36rem)]" : "flex-1",
           !post && (end ? "items-end" : "items-start"),
           post && postHairline,
         )}
@@ -735,7 +857,7 @@ export function Message(props: MessageProps): JSX.Element {
         {header}
         <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
           {/* Hidden rather than left out when empty: MessageList reads every message's text from it. */}
-          <div data-ouro-message-content="" hidden={!worded} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+          <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
             {titled && (
               <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
                 {subject}
@@ -777,7 +899,7 @@ function AvatarSlot({
   className,
 }: {
   avatar: string | ReactElement | undefined;
-  name: string;
+  name: string | null;
   presence: string | undefined;
   presenceLabel: string | undefined;
   size: "sm" | "md";

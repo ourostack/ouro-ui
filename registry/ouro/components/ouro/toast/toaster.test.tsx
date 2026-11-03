@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Toaster, type ToasterProps } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast, type ToastOptions } from "@/registry/ouro/lib/ouro/toast";
-import { springAt } from "@/registry/ouro/lib/ouro/spring";
+import { rubberband, springAt } from "@/registry/ouro/lib/ouro/spring";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -110,6 +110,74 @@ afterEach(async () => {
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("Toaster", () => {
+  it("hangs from the top and unfurls downward when its layout classes put it at the top", async () => {
+    const box = (message: string) => toastNamed(message)!.getBoundingClientRect();
+    // At the bottom, by default: the older toast peeks out above the newest.
+    const { unmount } = await render(<Toaster />);
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    await show("Older", { duration: 0 });
+    await show("Newer", { duration: 0 });
+    expect(box("Older").top).toBeLessThan(box("Newer").top);
+    await act(async () => toast.dismiss());
+    await gone("Older");
+    await gone("Newer");
+    const removed = vi.spyOn(window, "removeEventListener");
+    await unmount();
+    expect(removed).toHaveBeenCalledWith("resize", expect.any(Function));
+    removed.mockRestore();
+    // At the top: the newest at the top, the older one peeking out below it.
+    await render(<Toaster className="top-4 bottom-auto" />);
+    expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    await show("Older", { duration: 0 });
+    await show("Newer", { duration: 0 });
+    expect(Math.abs(box("Newer").top - viewport()!.getBoundingClientRect().top)).toBeLessThan(2);
+    expect(box("Older").bottom).toBeGreaterThan(box("Newer").bottom);
+    // Fanned out, the older one sits below the newest.
+    await userEvent.hover(toastNamed("Newer")!);
+    await until(() => viewport()!.hasAttribute("data-expanded"), true);
+    await until(() => toastNamed("Older")!.getAnimations().length, 0);
+    expect(box("Older").top).toBeGreaterThanOrEqual(box("Newer").bottom);
+    // Layout classes that move it to the bottom read the edge again, with no resize.
+    await act(async () => roots.at(-1)!.render(<Toaster className="bottom-4" />));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    await act(async () => roots.at(-1)!.render(<Toaster className="top-4 bottom-auto" />));
+    expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    // A toast arriving reads the edge again, after the app's own CSS moved the toaster with no resize.
+    await act(async () => toast.dismiss());
+    await gone("Older");
+    await gone("Newer");
+    await act(async () => roots.at(-1)!.render(<Toaster />));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    const sheet = document.head.appendChild(document.createElement("style"));
+    sheet.textContent = '[data-ouro="toaster"] { top: 72px !important; bottom: auto !important; }';
+    try {
+      await show("Moved", { duration: 0 });
+      expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    } finally {
+      sheet.remove();
+    }
+    // The attribute is written only when the edge changes.
+    const writes: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => writes.push(...records));
+    observer.observe(viewport()!, { attributeFilter: ["data-edge"] });
+    window.dispatchEvent(new Event("resize"));
+    window.dispatchEvent(new Event("resize"));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    observer.disconnect();
+    expect(writes.length).toBe(1);
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    // A bottom toaster `avoid` lifted past the middle (an inline bottom) stays at the bottom.
+    viewport()!.style.bottom = `${window.innerHeight / 2 + 40}px`;
+    window.dispatchEvent(new Event("resize"));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    viewport()!.style.bottom = "";
+    await act(async () => roots.at(-1)!.render(<Toaster className="top-4 bottom-auto" />));
+    // A resize reads the edge again: a viewport whose top edge is at the middle counts as the bottom.
+    viewport()!.style.top = "50vh";
+    window.dispatchEvent(new Event("resize"));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+  });
+
   // Prospective cast lets the RED browser run reach unchanged pre-className runtime.
   // toaster.test-d.ts independently checks the real public API without a cast.
   const layoutProps = (className: string) => ({ className }) as unknown as ToasterProps;
@@ -1290,6 +1358,48 @@ describe("swiping", () => {
     }
     await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
     expect(showing("Follows")).toBe(true);
+  });
+
+  chromiumOnly("holds a mouse drag back toward the screen's edge it cannot leave by, and follows it 1:1 the way it can, at either edge", async () => {
+    const dragY = async (item: HTMLElement, dy: number, dx = 0) => {
+      const rect = item.getBoundingClientRect();
+      const [x, y] = [rect.left + 60, rect.top + rect.height / 2];
+      try {
+        await commands.drag({ from: [x, y], to: [x + dx, y + dy], steps: 8, durationMs: 200, hold: true });
+        const [shiftX = "0", shiftY = "0"] = getComputedStyle(item).translate.replace("none", "0").split(" ");
+        return dx ? parseFloat(shiftX) : parseFloat(shiftY);
+      } finally {
+        await commands.pointerPress({ action: "up" });
+        await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
+      }
+    };
+    const { unmount } = await render(<Toaster />);
+    let item = await show("Bottom", { duration: 0 });
+    const height = item.offsetHeight;
+    // At the bottom: up is held back, down follows the mouse (short of the 40px that would dismiss).
+    expect(await dragY(item, -60)).toBeCloseTo(rubberband(-60, height), 0);
+    expect(await dragY(item, 30)).toBe(30);
+    // Sideways follows 1:1 both ways: the band is only along the edge's axis.
+    expect(await dragY(item, 0, -30)).toBe(-30);
+    // Let go far up, where even the held-back offset is past the 40px a slow release needs: it comes back rather than leaving.
+    const below = item.getBoundingClientRect();
+    expect(Math.abs(rubberband(-300, height))).toBeGreaterThan(40);
+    await commands.drag({ from: [below.left + 60, below.top + below.height / 2], to: [below.left + 60, below.top + below.height / 2 - 300], steps: 12, durationMs: 400 });
+    await atRest(item);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
+    expect(showing("Bottom")).toBe(true);
+    await act(async () => toast.dismiss());
+    await gone("Bottom");
+    await unmount();
+    await render(<Toaster className="top-4 bottom-auto" />);
+    item = await show("Top", { duration: 0 });
+    // At the top: down is held back, up follows the mouse.
+    expect(await dragY(item, 60)).toBeCloseTo(rubberband(60, height), 0);
+    expect(await dragY(item, -30)).toBe(-30);
+    // Let go 60px up, past the 40px a slow release needs: it leaves.
+    const rect = item.getBoundingClientRect();
+    await commands.drag({ from: [rect.left + 60, rect.top + rect.height / 2], to: [rect.left + 60, rect.top + rect.height / 2 - 60], steps: 8, durationMs: 300 });
+    await gone("Top");
   });
 
   chromiumOnly("dismisses on a quick flick of 30px, short of the 40px a slow release needs", async () => {
