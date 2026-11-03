@@ -625,6 +625,19 @@ describe("Toolbar autoHide", () => {
     await act(async () => picker.hidePopover());
     await wait(1000);
     expect(isHidden(toolbar)).toBe(true);
+    // Focus that leaves the lent layer for somewhere that is no layer keeps the hold too.
+    await point(picture, "pointermove", (x += 1), 40);
+    const field = document.createElement("input");
+    document.body.append(field);
+    mounted.push(field);
+    let menu!: HTMLElement;
+    await act(async () => void (press(share), (menu = layer("popover"))));
+    await act(async () => field.focus());
+    await wait(3000);
+    expect(isHidden(toolbar)).toBe(false);
+    await act(async () => menu.hidePopover());
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
     await point(picture, "pointermove", (x += 1), 40);
     await act(async () => (picker.showPopover(), picker.focus()));
     await wait(1000);
@@ -908,6 +921,18 @@ describe("Toolbar hidden", () => {
     expect(isHidden(toolbar)).toBe(false);
     await wait(1);
     expect(isHidden(toolbar)).toBe(true);
+  });
+
+  it("starts a new rest each time the app sets hidden to false", async () => {
+    const onHiddenChange = vi.fn();
+    const { rerender } = await render(<Toolbar label="Call controls" autoHide={1000} hidden onHiddenChange={onHiddenChange} items={controls} />);
+    await wait(5000);
+    expect(onHiddenChange).not.toHaveBeenCalled();
+    await rerender(<Toolbar label="Call controls" autoHide={1000} hidden={false} onHiddenChange={onHiddenChange} items={controls} />);
+    await wait(999);
+    expect(onHiddenChange).not.toHaveBeenCalled();
+    await wait(1);
+    expect(onHiddenChange.mock.calls).toEqual([[true]]);
   });
 
   it("does nothing without autoHide", async () => {
