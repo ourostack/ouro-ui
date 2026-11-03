@@ -177,6 +177,9 @@ describe("SnapPiP", () => {
     await pressTab();
     expect(document.activeElement).toBe(element);
     expect(hintShown()).toBe(true);
+    expect(shown.getAttribute("data-open")).toBe("");
+    expect(shown.getAttribute("data-side")).toBe("top");
+    expect(shown.style.right).toBe("0px");
     await expect.poll(() => getComputedStyle(shown).opacity).toBe("1");
     expect(getComputedStyle(shown).pointerEvents).toBe("auto");
     // Beside the picture, toward the middle: above it in a bottom corner, lined up with its right edge, on one line.
@@ -193,6 +196,7 @@ describe("SnapPiP", () => {
     const top = await render(self({ defaultCorner: "top-left" }));
     await tabTo();
     expect(hintShown()).toBe(true);
+    expect(hint().getAttribute("data-side")).toBe("bottom");
     expect(hint().getBoundingClientRect().top).toBe(top.getBoundingClientRect().bottom);
     expect(hint().getBoundingClientRect().left).toBe(top.getBoundingClientRect().left);
     await act(async () => top.blur());
@@ -346,7 +350,7 @@ describe("SnapPiP", () => {
     expect(element.hasAttribute("data-dragging")).toBe(false);
     await fire("pointermove", x - 1, y);
     expect(at()).toEqual([RIGHT - 1, BOTTOM]);
-    expect(element.hasAttribute("data-dragging")).toBe(true);
+    expect(element.getAttribute("data-dragging")).toBe("");
     await expect.poll(() => getComputedStyle(element).scale).toBe("1.04");
     expect(getComputedStyle(element).cursor).toBe("grabbing");
     await fire("pointermove", x - 31, y - 52);
@@ -427,6 +431,33 @@ describe("SnapPiP", () => {
     frames!.release();
     frames = undefined;
     await expect.poll(() => announced.count("Top left")).toBe(1);
+    announced.stop();
+  });
+
+  it("keeps a flick going when the stage resizes mid-flight without moving its corner's place", async () => {
+    await render(self());
+    freeze();
+    await throwBy(-60, -40);
+    frames!.step(16);
+    expect(settling()).toBe(true);
+    expect(pip().getAttribute("data-ouro-settling")).toBe("");
+    // The top-left place doesn't depend on the stage's size.
+    stage.style.height = "500px";
+    await act(() => new Promise<void>((done) => setTimeout(done, 50)));
+    expect(settling()).toBe(true);
+    const seen = path();
+    expect(Math.min(...seen.map(([left]) => left))).toBeLessThan(LEFT - 1);
+    expect(at()).toEqual([LEFT, TOP]);
+  });
+
+  it("says nothing when the app moves it before the person has", async () => {
+    const announced = watchAnnouncements();
+    await render(self({ corner: "bottom-right", onCornerChange: () => {} }));
+    await render(self({ corner: "top-left", onCornerChange: () => {} }));
+    await rest();
+    expect(at()).toEqual([LEFT, TOP]);
+    await wait(100);
+    expect(announced.count("Top left")).toBe(0);
     announced.stop();
   });
 
@@ -843,6 +874,11 @@ describe("SnapPiP", () => {
     expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 176, y: 0, width: 204, height: 480 }])).toEqual({ x: 0, y: 364 });
     expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 380, height: 364 }])).toEqual({ x: 16, y: 380 });
     expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 0, y: 116, width: 380, height: 364 }])).toEqual({ x: 204, y: 0 });
+    // Places past the stage's edges, or out toward the corner's own edge, don't count.
+    expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 100, y: 0, width: 280, height: 480 }])).toEqual({ x: 204, y: 364 });
+    expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 300, height: 480 }])).toEqual({ x: 16, y: 16 });
+    expect(anchorFor("top-left", stageBox, small, 16, [{ x: -40, y: 0, width: 30, height: 480 }, { x: 170, y: 0, width: 20, height: 150 }])).toEqual({ x: 16, y: 166 });
+    expect(anchorFor("top-right", stageBox, small, 16, [{ x: 390, y: 0, width: 30, height: 480 }, { x: 190, y: 0, width: 20, height: 150 }])).toEqual({ x: 204, y: 166 });
     // With no inset, a place that only touches a keep-out clears it, on every side.
     expect([
       anchorFor("top-left", stageBox, small, 0, [{ x: 0, y: 0, width: 40, height: 480 }]),
