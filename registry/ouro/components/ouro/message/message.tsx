@@ -799,7 +799,9 @@ export function Message(props: MessageProps): JSX.Element {
         post && "py-1",
         focusRing,
         end && "flex-row-reverse",
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: only the user's filled bubble reads these two variables, so setting them on any other message changes nothing.
         end && bubble === "filled" && bubbleColors,
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: only others' filled bubble reads these, so setting them on any other message changes nothing.
         shape === "chat" && !mine && bubble === "filled" && mutedColors,
         className,
       )}
