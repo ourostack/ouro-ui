@@ -28,6 +28,9 @@ expectTypeOf<{ role: "user"; name: "Ana"; variant: "post"; subject: "Agenda" }>(
 expectTypeOf<{ role: "user"; name: "Ana"; variant: "reply" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; variant: "reply"; actionsPlacement: "corner" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; actionsPlacement: "beside" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; bubble: "filled" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; bubble: "raised" }>().toExtend<MessageProps>();
+expectTypeOf<{ role: "user"; name: "Ana"; variant: "chat"; bubble: "glass" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; failed: { onRetry: () => void; onDelete: () => void }; failedLabel: "No enviado" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; failed: { onRetry: () => void } | false }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; failed: false }>().toExtend<MessageProps>();
