@@ -35,7 +35,7 @@ const MEDIA = "You can't turn on the person's microphone, camera or screen; only
 
 /**
  * The canonical ids of the actions that are the person's own, whatever the component: their microphone (`unmute`),
- * camera (`camera`, `camera-on`) and screen (`share`), answering or declining a call (`answer`, `decline`), who comes in
+ * camera (`camera`, `camera-on`) and screen (`share`), answering, joining or declining a call (`answer`, `decline`), who comes in
  * from the lobby (`admit`), and what is recorded (`record`), each with the reason to declare it with. Aliases count too
  * (`isReservedPersonOnly`): declaring one `agent: true` throws, and the X-ray fails a `ui` entry with one that is not
  * person-only. The reverse stays an agent's, since an agent may always reduce what the person exposes: `mute`,
@@ -51,20 +51,24 @@ const RESERVED_PERSON_ONLY: Readonly<Record<string, string>> = Object.freeze({
   camera: MEDIA,
   "camera-on": MEDIA,
   share: MEDIA,
-  answer: "You can't answer or decline a call for the person; only they can.",
-  decline: "You can't answer or decline a call for the person; only they can.",
+  answer: "You can't answer, join or decline a call for the person; only they can.",
+  decline: "You can't answer, join or decline a call for the person; only they can.",
   admit: "You can't admit anyone from the lobby for the person; only they can.",
   record: "You can't start recording or transcription for the person; only they can.",
 });
 
-// An id's words, lower case: `shareScreen`, `share_screen` and `Share Screen` become `share screen`; `un mute`, `pick up`
-// and `let in` each become one word.
+// One-word compounds, split so their parts are matched.
+const COMPOUNDS: Readonly<Record<string, string>> = { sharescreen: "share screen", screenshare: "screen share", turnon: "turn on", turnoff: "turn off" };
+
+// An id's words, lower case: `shareScreen`, `share_screen`, `sharescreen` and `Share Screen` become `share screen`;
+// `turnon` becomes `turn on`; `un mute`, `pick up` and `let in` each become one word.
 const wordsOfId = (id: string) =>
   id
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .toLowerCase()
     .split(/[-_\s]+/)
     .filter(Boolean)
+    .map((word) => COMPOUNDS[word] ?? word)
     .join(" ")
     .replace(/\bun mute\b/g, "unmute")
     .replace(/\bpick up\b/g, "pickup")
@@ -89,10 +93,10 @@ const CALL_VERBS: Readonly<Record<string, readonly string[]>> = {
   share: ["share", "sharing", "present", "presenting"],
   answer: ["answer", "accept", "pickup"],
   decline: ["decline", "reject"],
-  admit: ["admit", "letin"],
   record: ["record", "recording"],
 };
 const CALL_WORDS = ["call", "meeting", "ring", "lobby", "screen", "room", "video", "audio", "incoming", "from", "the"];
+const CALL_NOUNS = CALL_WORDS.filter((x) => x !== "incoming" && x !== "from" && x !== "the");
 
 /** The canonical reserved id an action id means, or null: `share-screen` means `share`, `camera-off` nothing. */
 function reservedAs(id: string): string | null {
@@ -106,6 +110,10 @@ function reservedAs(id: string): string | null {
   for (const [canonical, nouns] of Object.entries(DEVICES)) {
     if (has(nouns) && (w.includes("toggle") || only([...nouns, ...ON]))) return canonical;
   }
+  // Who comes in is the person's, whoever it is: `admit-all`, `admit-guest`.
+  if (has(["admit", "letin"])) return "admit";
+  // Joining shows the person to others, as answering does, but `join-channel` is not a call.
+  if (w.includes("join") && has(CALL_NOUNS) && only(["join", ...ON, ...CALL_WORDS])) return "answer";
   for (const [canonical, verbs] of Object.entries(CALL_VERBS)) {
     if (has(verbs) && only([...verbs, ...ON, ...CALL_WORDS])) return canonical;
   }
@@ -116,9 +124,10 @@ function reservedAs(id: string): string | null {
  * Whether an action id is reserved for the person, by meaning rather than spelling: `Unmute`, `mic-on`, `share-screen`,
  * `startRecording` and `pick_up` are. So is a bare device or capture (`mic`, `camera`, `video`, `screen`, `transcript`)
  * alone or turned on, started, resumed or enabled, and any toggle of one (`toggle-mic`, `mute-toggle`), since a toggle
- * can turn it on. A call verb (answer, accept, decline, reject, admit, share, record) is the person's alone or beside a
- * call word (`accept-call`, `record-meeting`, `admit-lobby`), so `answer-message`, `share-link` and `record-note` stay an
- * agent's. An id that only reduces what the person exposes (with off, stop, end, disable or mute in it and no on,
+ * can turn it on. Admitting is the person's whoever it admits (`admit-all`, `let-in-guest`). A call verb (answer, accept,
+ * decline, reject, share, record) is the person's alone or beside a call word (`accept-call`, `record-meeting`), and
+ * join only beside one (`join-meeting`), so `answer-message`, `share-link`, `record-note` and `join-channel` stay an
+ * agent's. One-word compounds such as `sharescreen` and `turnon` count as their parts. An id that only reduces what the person exposes (with off, stop, end, disable or mute in it and no on,
  * toggle, resume, start, enable or unmute, such as `mute`, `camera-off` or `stop-share`) is not reserved, but
  * `mute-off` is, since it unmutes. Captions are not reserved: they are the person's own and private, and a component
  * declares its captions action person-only itself. The declaration and the X-ray both ask it.
