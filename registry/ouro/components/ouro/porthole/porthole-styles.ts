@@ -36,7 +36,7 @@ export const portholeAx = defineComponentAx({
 });
 
 /** The colour of the spot's light, by state. */
-export const portholeLight: Readonly<Record<PortholeState, string>> = {
+export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
   "rest-fresh": "bg-[color-mix(in_oklab,var(--success)_85%,var(--foreground))]",
   "rest-stale": "bg-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))]",
   unknown: "bg-transparent ring-[1.5px] ring-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] ring-inset",

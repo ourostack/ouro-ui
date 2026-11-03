@@ -19,7 +19,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { portholeView, type PortholeItem, type PortholeLabels, type PortholeSnapshot, type PortholeSource, type PortholeView } from "@/registry/ouro/lib/ouro/porthole-view";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLight } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLightClasses } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 
 /**
  * A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a
@@ -79,8 +79,10 @@ export interface PortholeOwnProps {
 /** Props for {@link Porthole}: its own props and the `<div>` attributes it passes through. */
 export type PortholeProps = Omit<HTMLAttributes<HTMLDivElement>, keyof PortholeOwnProps> & PortholeOwnProps;
 
+// Stryker disable next-line ArrowFunction: React takes a missing unsubscribe as nothing to undo, which this is
 const quiet = () => () => {};
 const onClient = () => true;
+// Stryker disable next-line ArrowFunction: undefined is as false as false to the one reader, a conditional
 const onServer = () => false;
 const live = (source: PortholeSource | PortholeFixed): source is PortholeSource => typeof (source as PortholeSource).subscribe === "function";
 // What the person sees: a deadline renders only when this changes.
@@ -106,7 +108,7 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
       </svg>
     );
   }
-  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLight[view.state])} />;
+  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLightClasses[view.state])} />;
 }
 
 /**
@@ -160,7 +162,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; Porthole takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only, which no test runs
+        /* istanbul ignore next @preserve -- production only */ "",
   );
 
   const subscribe = useCallback((listener: () => void) => (live(source) ? source.subscribe(listener) : quiet()), [source]);
@@ -201,6 +204,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
     };
     const check = () => {
       const next = portholeView(getSnapshot(), lastBeatAt(), Date.now(), { freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels });
+      // Stryker disable next-line ArrowFunction,ArithmeticOperator: any state but the last renders, and React renders the component even for the last one here, judging the view again
       if (seen(next) !== shown) look((n) => n + 1);
       else wait(due(next, polls));
     };
@@ -244,7 +248,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const open = pressed || hovered;
   const panelId = useId();
   const toggle = () => {
-    if (pressed) setHovered(false);
+    setHovered(false);
     setPressed(!pressed);
   };
   const close = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -266,18 +270,23 @@ export function Porthole(props: PortholeProps): JSX.Element {
   // The pill's width follows its content, so the change can be eased; the measure writes the style, never state.
   const pill = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const fit = () => {
-      const box = pill.current!;
-      box.style.width = `${content.current!.offsetWidth + box.offsetWidth - box.clientWidth}px`;
-    };
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(content.current!);
-    return () => observer.disconnect();
-  }, []);
+  useLayoutEffect(
+    () => {
+      const fit = () => {
+        const box = pill.current!;
+        box.style.width = `${content.current!.offsetWidth + box.offsetWidth - box.clientWidth}px`;
+      };
+      fit();
+      const observer = new ResizeObserver(fit);
+      observer.observe(content.current!);
+      return () => observer.disconnect();
+    },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs the measure once, as this does
+    [],
+  );
   // A press anywhere else puts pinned lines away, as a popover's would.
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: without it the listener only sets pressed to the false it is
     if (!pressed) return;
     const away = (event: Event) => {
       if (!pill.current!.parentElement!.contains(event.target as Node)) setPressed(false);
@@ -294,6 +303,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
     (node: HTMLButtonElement | null) => () => {
       hadFocus.current = node === document.activeElement;
     },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes keeps the ref callback the same
     [],
   );
   useLayoutEffect(() => {
@@ -305,8 +315,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const item = view.item;
   const action = item?.action !== undefined && onAction !== undefined ? item.action : null;
   const dismissable = item?.dismissable === true && onDismiss !== undefined;
-  const tone = view.state === "error" ? "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]" : view.state.startsWith("rest") || view.state === "unknown" ? "text-[color-mix(in_oklab,var(--muted-foreground)_88%,var(--foreground))]" : "text-foreground";
-  const fade = "whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)";
+  const toneClass = view.state === "error" ? "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]" : view.state.startsWith("rest") || view.state === "unknown" ? "text-[color-mix(in_oklab,var(--muted-foreground)_88%,var(--foreground))]" : "text-foreground";
+  const fadeClass = "whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)";
 
   return (
     <div
@@ -338,17 +348,17 @@ export function Porthole(props: PortholeProps): JSX.Element {
             onClick={toggle}
             className={cn(
               "inline-flex h-full cursor-pointer items-center gap-2 rounded-full border-0 bg-transparent ps-3 pe-3 font-[inherit] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
-              tone,
+              toneClass,
             )}
           >
             <Light view={view} />
             <span className="relative">
               {line.previous === null ? null : (
-                <span key={`was-${line.turn}`} aria-hidden="true" className={cn("pointer-events-none absolute start-0 top-0 opacity-0 starting:opacity-100", fade)}>
+                <span key={`was-${line.turn}`} aria-hidden="true" className={cn("pointer-events-none absolute start-0 top-0 opacity-0 starting:opacity-100", fadeClass)}>
                   {line.previous}
                 </span>
               )}
-              <span key={`is-${line.turn}`} className={cn("block opacity-100", line.turn > 0 && "starting:opacity-0", fade)}>
+              <span key={`is-${line.turn}`} className={cn("block opacity-100", line.turn > 0 && "starting:opacity-0", fadeClass)}>
                 {line.text}
               </span>
             </span>

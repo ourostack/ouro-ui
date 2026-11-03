@@ -7,6 +7,7 @@ import { bindAx, expectAxRendered } from "@/registry/ouro/ax/component";
 import { Porthole, type PortholeFixed, type PortholeProps } from "@/registry/ouro/components/ouro/porthole/porthole";
 import { PORTHOLE_ANNOUNCE_GAP_MS, portholeAx } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 import type { PortholeArea, PortholeItem, PortholeSnapshot, PortholeSource } from "@/registry/ouro/lib/ouro/porthole-view";
+import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -235,7 +236,7 @@ describe("Porthole", () => {
     const view = await render(base(fixed(), { defaultOpen: true }));
     expect(view.panel).not.toBeNull();
     expect(view.spot.getAttribute("aria-expanded")).toBe("true");
-    expect(view.porthole.hasAttribute("data-open")).toBe(true);
+    expect(view.porthole.getAttribute("data-open")).toBe("");
   });
 
   it("fades the detail lines in and lowers them a little as it opens, and with reduced motion only fades them", async () => {
@@ -367,6 +368,12 @@ describe("Porthole", () => {
     expect(was.className).toContain("starting:opacity-100");
     expect(view.host.querySelector('[data-ouro-part="spot"] span.block')!.className).toContain("starting:opacity-0");
     expect(view.line).toBe("Catching up");
+    // Each change is a new pair of elements, so the fades start again rather than carry on.
+    const is = view.host.querySelector('[data-ouro-part="spot"] span.block')!;
+    await view.rerender(base(fixed([item("offline", "error", { label: "Can't reach the service" })])));
+    expect(view.host.querySelector('[data-ouro-part="spot"] span.block')).not.toBe(is);
+    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute')).not.toBe(was);
+    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute')!.textContent).toBe("Catching up");
   });
 
   it("eases its width to fit the line, and with reduced motion changes it at once", async () => {
@@ -379,6 +386,69 @@ describe("Porthole", () => {
     await expect.poll(() => pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(pill).transitionProperty).toBe("none");
+  });
+
+  it("sets its width as it mounts, before the size observer first reports", async () => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    try {
+      const view = await render(base(fixed()));
+      const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+      const content = pill.firstElementChild as HTMLElement;
+      expect(pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("colours its words and its light by what they mean: an error in the destructive tone, rest and unknown muted, working and an action in the foreground", async () => {
+    const old = Date.now() - 2 * MINUTE;
+    const states = {
+      "rest-fresh": fixed(),
+      "rest-stale": fixed([], { chats: area(old) }),
+      unknown: fixed([], undefined, old),
+      working: fixed([item("sync", "working")]),
+      error: fixed([item("offline", "error")]),
+      action: fixed([item("update", "action")]),
+    };
+    const words: Record<string, string> = {};
+    const lights: Record<string, CSSStyleDeclaration> = {};
+    for (const [state, source] of Object.entries(states)) {
+      const view = await render(base(source));
+      expect(view.state).toBe(state);
+      words[state] = getComputedStyle(view.spot).color;
+      lights[state] = getComputedStyle(view.host.querySelector(state === "working" ? '[data-porthole-part="progress"]' : '[data-porthole-part="light"]')!);
+    }
+    expect(words["rest-stale"]).toBe(words["rest-fresh"]);
+    expect(words.unknown).toBe(words["rest-fresh"]);
+    expect(words.action).toBe(words.working);
+    expect(new Set([words["rest-fresh"], words.working, words.error]).size).toBe(3);
+    const transparent = "rgba(0, 0, 0, 0)";
+    for (const state of ["rest-fresh", "rest-stale", "error", "action"]) expect(lights[state]!.backgroundColor, state).not.toBe(transparent);
+    expect(new Set(["rest-fresh", "rest-stale", "error", "action"].map((state) => lights[state]!.backgroundColor)).size).toBe(4);
+    // Unknown is an empty ring: no fill, only an edge.
+    expect(lights.unknown!.backgroundColor).toBe(transparent);
+    expect(lights.unknown!.boxShadow).not.toBe("none");
+  });
+
+  it("says nothing in development when it is used as documented", async () => {
+    await render(base(fixed([item("update", "action", { action: { id: "restart", label: "Restart" }, dismissable: true })]), { onAction: () => {}, onDismiss: () => {}, className: "ms-auto" }));
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("puts its lines away on Escape and keeps that key from the page, and leaves every other key alone", async () => {
+    const view = await render(base(fixed()));
+    const press = async (key: string) => {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      await act(() => view.spot.dispatchEvent(event));
+      return event.defaultPrevented;
+    };
+    await act(() => view.spot.click());
+    expect(await press("a")).toBe(false);
+    expect(view.panel).not.toBeNull();
+    expect(await press("Escape")).toBe(true);
+    expect(view.panel).toBeNull();
+    // Closed, Escape is the page's.
+    expect(await press("Escape")).toBe(false);
   });
 
   it("passes its own attributes through, and warns about appearance classes", async () => {
@@ -495,6 +565,72 @@ describe("Porthole timing", () => {
     expect(view.line).toBe("Updated less than a minute ago");
   });
 
+  it("judges again with its own times when the clock reaches them", async () => {
+    const live = service(snapshot([], { chats: area(START) }));
+    const view = await render(base(live.source, { freshWithinMs: 10 * SECOND }));
+    for (let beat = 0; beat < 10; beat += 1) {
+      await run(SECOND);
+      live.beat();
+    }
+    expect(view.state).toBe("rest-fresh");
+    await run(1);
+    expect(view.state).toBe("rest-stale");
+  });
+
+  it("listens to the new source when it is given another", async () => {
+    const first = service();
+    const second = service();
+    const view = await render(base(first.source, { heartbeatTimeoutMs: 10 * MINUTE }));
+    await view.rerender(base(second.source, { heartbeatTimeoutMs: 10 * MINUTE }));
+    expect(first.listeners.size).toBe(0);
+    expect(second.listeners.size).toBe(1);
+    await second.send(snapshot([item("offline", "error")]));
+    expect(view.state).toBe("error");
+  });
+
+  it("while the heartbeat is stopped, still changes its words at the very moment they change, between its checks for a beat", async () => {
+    const live = service(snapshot([], { chats: area(START) }));
+    const view = await render(base(live.source, { defaultOpen: true }));
+    await run(5 * SECOND + 1);
+    expect(view.state).toBe("unknown");
+    // A snapshot 0.4 s later moves the once-a-second checks off the minute.
+    await run(399);
+    await live.send(snapshot([], { chats: area(START) }));
+    await run(MINUTE - 5_400 - 1);
+    const lines = () => [...view.panel!.querySelectorAll("li")].map((li) => li.textContent);
+    const before = commits;
+    expect(lines()).toContain("No heartbeat for less than a minute");
+    await run(1);
+    expect(commits).toBe(before + 1);
+    expect(lines()).toContain("No heartbeat for 1 min");
+  });
+
+  it("speaks at once when nothing was spoken within the gap, at the gap's very end too, and never as it settles to rest", async () => {
+    const live = service();
+    await render(base(live.source, { heartbeatTimeoutMs: 10 * MINUTE }));
+    announce("");
+    await run(200);
+    const region = document.querySelector<HTMLElement>("[data-ouro-announcer]")!;
+    // announce() empties the region at once and fills it a moment later, so an emptied region was spoken to now.
+    region.textContent = "before";
+    await live.send(snapshot([item("offline", "error", { label: "Can't reach the service" })]));
+    expect(region.textContent).toBe("");
+    await run(PORTHOLE_ANNOUNCE_GAP_MS);
+    expect(region.textContent).toBe("Can't reach the service");
+    region.textContent = "before";
+    await live.send(snapshot([item("update", "action", { label: "Restart to update" })]));
+    expect(region.textContent).toBe("");
+    await run(PORTHOLE_ANNOUNCE_GAP_MS);
+    region.textContent = "before";
+    await live.send(snapshot());
+    await run(PORTHOLE_ANNOUNCE_GAP_MS);
+    expect(region.textContent).toBe("before");
+    // The same update back again, after it went away, is not news.
+    await live.send(snapshot([item("update", "action", { label: "Restart to update" })]));
+    await run(PORTHOLE_ANNOUNCE_GAP_MS);
+    expect(region.textContent).toBe("before");
+  });
+
   it("looks again from each new snapshot", async () => {
     const live = service(snapshot([], { chats: area(START) }));
     const view = await render(base(live.source, { heartbeatTimeoutMs: 10 * MINUTE }));
@@ -555,6 +691,12 @@ describe("Porthole agent side", () => {
   it("declares one status read and only person-only actions, each rendered on its control", async () => {
     expect(portholeAx.component).toBe("Porthole");
     expect(portholeAx.reads.map((read) => [read.id, read.consent])).toEqual([["status", "none"]]);
+    expect(portholeAx.reads[0]!.summary).toMatch(/^What the status spot shows and why: /);
+    expect(portholeAx.actions.map((action) => action.summary)).toEqual([
+      "Open the status spot's detail lines.",
+      "Close the status spot's detail lines.",
+      "Dismiss news the person has seen, such as Up to date.",
+    ]);
     expect(portholeAx.reads[0]!.fields).toEqual(["asOf", "state", "headline", "fresh", "alive", "heartbeatAt", "heartbeatAgeMs", "areas", "priority", "shown"]);
     expect(portholeAx.actions.map((action) => action.id)).toEqual(["expand", "collapse", "dismiss"]);
     for (const action of portholeAx.actions) {
