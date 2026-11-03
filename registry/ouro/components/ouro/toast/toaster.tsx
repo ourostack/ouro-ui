@@ -144,11 +144,14 @@ export interface ToasterProps {
 export function Toaster(props: ToasterProps): JSX.Element | null {
   const { className, label = "Notifications", closeLabel = "Dismiss", avoid, position, richColors, theme, duration } = props;
   const viewportElement = useRef<HTMLElement | null>(null);
-  const edgeRef = useCallback((element: HTMLElement | null) => {
-    viewportElement.current = element;
-    return readEdge(element);
+  const edgeRef = useCallback(
+    (element: HTMLElement | null) => {
+      viewportElement.current = element;
+      return readEdge(element);
+    },
     // Stryker disable next-line ArrayDeclaration: any list that never changes keeps the same ref, as this one does.
-  }, []);
+    [],
+  );
   // Read the edge again when the layout classes change, as they may move the toasts to the other edge.
   useLayoutEffect(() => {
     if (viewportElement.current) markEdge(viewportElement.current);
@@ -666,12 +669,14 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
   const inward = useCallback(
     // Stryker disable next-line EqualityOperator: at an offset of 0 the band and its inverse are both 0, so < and <= agree.
     (offset: number) => (state.current.element!.closest('[data-edge="top"]') !== null ? offset > 0 : offset < 0),
+    // Stryker disable next-line ArrayDeclaration: it reads only the element, so any list that never changes keeps it the same.
     [],
   );
   /** Whether a y offset points the way a toast leaves: down at the bottom edge, up at the top. */
   const outward = useCallback(
     // Stryker disable next-line EqualityOperator: an offset of 0 is at rest, where a release settles whichever way it counts.
     (offset: number) => (state.current.element!.closest('[data-edge="top"]') !== null ? offset < 0 : offset > 0),
+    // Stryker disable next-line ArrayDeclaration: it reads only the element, so any list that never changes keeps it the same.
     [],
   );
   const write = useCallback((offset: number) => {

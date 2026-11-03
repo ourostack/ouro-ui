@@ -1331,12 +1331,13 @@ describe("swiping", () => {
   });
 
   chromiumOnly("holds a mouse drag back toward the screen's edge it cannot leave by, and follows it 1:1 the way it can, at either edge", async () => {
-    const dragY = async (item: HTMLElement, dy: number) => {
+    const dragY = async (item: HTMLElement, dy: number, dx = 0) => {
       const rect = item.getBoundingClientRect();
       const [x, y] = [rect.left + 60, rect.top + rect.height / 2];
       try {
-        await commands.drag({ from: [x, y], to: [x, y + dy], steps: 8, durationMs: 200, hold: true });
-        return parseFloat(getComputedStyle(item).translate.split(" ")[1] ?? "0");
+        await commands.drag({ from: [x, y], to: [x + dx, y + dy], steps: 8, durationMs: 200, hold: true });
+        const [shiftX = "0", shiftY = "0"] = getComputedStyle(item).translate.replace("none", "0").split(" ");
+        return dx ? parseFloat(shiftX) : parseFloat(shiftY);
       } finally {
         await commands.pointerPress({ action: "up" });
         await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
@@ -1348,6 +1349,8 @@ describe("swiping", () => {
     // At the bottom: up is held back, down follows the mouse (short of the 40px that would dismiss).
     expect(await dragY(item, -60)).toBeCloseTo(rubberband(-60, height), 0);
     expect(await dragY(item, 30)).toBe(30);
+    // Sideways follows 1:1 both ways: the band is only along the edge's axis.
+    expect(await dragY(item, 0, -30)).toBe(-30);
     await act(async () => toast.dismiss());
     await gone("Bottom");
     await unmount();
@@ -1356,6 +1359,10 @@ describe("swiping", () => {
     // At the top: down is held back, up follows the mouse.
     expect(await dragY(item, 60)).toBeCloseTo(rubberband(60, height), 0);
     expect(await dragY(item, -30)).toBe(-30);
+    // Let go 60px up, past the 40px a slow release needs: it leaves.
+    const rect = item.getBoundingClientRect();
+    await commands.drag({ from: [rect.left + 60, rect.top + rect.height / 2], to: [rect.left + 60, rect.top + rect.height / 2 - 60], steps: 8, durationMs: 300 });
+    await gone("Top");
   });
 
   chromiumOnly("dismisses on a quick flick of 30px, short of the 40px a slow release needs", async () => {
