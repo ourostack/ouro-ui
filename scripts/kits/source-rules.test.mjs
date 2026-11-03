@@ -259,10 +259,23 @@ describe("content-spinner", () => {
         expect(scan(`import { Spinner } from "~/components/loading"; export function A() { return <Spinner />; }`)).toEqual([]);
         expect(scan(`${SPINNER} export function A() { return <Spinner.Dots />; }`)).toEqual([]);
         expect(categories(`${SPINNER} import { Button } from "~/components/fancy-button"; export function A() { return <Button><Spinner label="Loading" /></Button>; }`)).toEqual(["content-spinner"]);
-        expect(categories(`${SPINNER} ${BUTTON} export function A() { return <div><Spinner label="Loading" /><Button>Retry</Button></div>; }`)).toEqual(["content-spinner"]);
-        expect(categories(`${SPINNER} import { TextField } from "~/components/ouro/text-field/text-field"; export function A() { return <TextField label="Find" endAdornment={<Spinner size="sm" label="Searching" />} />; }`)).toEqual(["content-spinner"]);
+
         expect(categories(`${SPINNER} function Panel(props) { return null; } export function A() { return <Panel><Spinner label="Loading" /></Panel>; }`)).toEqual(["content-spinner"]);
         expect(categories(`export function A() { return <span className="animate-ping animate-[ouro-pulse_1s_infinite] spin" />; }`)).toEqual([]);
+    });
+    it("lets inline progress for an action through: in a prop, in an object's icon, or beside the words that say what is under way", () => {
+        expect(scan(`${SPINNER} export function A() { return <span className="flex gap-2"><Spinner size="sm" label="Saving" /> Saving…</span>; }`)).toEqual([]);
+        expect(scan(`${SPINNER} import { TextField } from "~/components/ouro/text-field/text-field"; export function A() { return <TextField label="Find" endAdornment={<Spinner size="sm" label="Searching" />} />; }`)).toEqual([]);
+        expect(scan(`${SPINNER} import { toast } from "~/lib/ouro/toast"; export function upload() { toast("Uploading", { icon: <Spinner size="sm" /> }); }`)).toEqual([]);
+        expect(scan(`${SPINNER} export const entries = [{ label: "Syncing", icon: <Spinner size="sm" /> }];`)).toEqual([]);
+        expect(scan(`${SPINNER} ${BUTTON} export function A() { return <div><Spinner label="Loading" /><Button>Retry</Button></div>; }`)).toEqual([]);
+        expect(scan(`${SPINNER} export function A({ rows }) { return <ul>{rows}{<Spinner label="Loading more" />}</ul>; }`)).toEqual([]);
+    });
+    it("finds a spinner that stands where content would: the only thing in its element, through a condition, or returned alone", () => {
+        expect(categories(`${SPINNER} export function A({ loading, list }) { return <section>{loading ? <Spinner label="Loading" /> : null}</section>; }`)).toEqual(["content-spinner"]);
+        expect(categories(`${SPINNER} export function A({ loading }) { return <>{loading && (<Spinner label="Loading" />)}</>; }`)).toEqual(["content-spinner"]);
+        expect(categories(`${SPINNER} export function A() { return <div>\n  <Spinner label="Loading" />\n  {/* the rows */}\n</div>; }`)).toEqual(["content-spinner"]);
+        expect(categories(`${SPINNER} export const busy = <Spinner label="Loading" />;`)).toEqual(["content-spinner"]);
     });
     it("never makes the component around it a hand-rolled control at its call sites", () => {
         const offenders = scanFiles({
@@ -275,7 +288,7 @@ describe("content-spinner", () => {
         const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::A::content-spinner::span::", file: "app/x.tsx", line: 4 }], {});
         expect(formatComparison(comparison)).toEqual([`New spinner standing in for content: app/x.tsx::A::content-spinner::span:: (+1) at app/x.tsx:4. ${CONTENT_SPINNER_FIX}`]);
         expect(CONTENT_SPINNER_FIX).toContain('<Skeleton shape="row" count={6}>');
-        expect(CONTENT_SPINNER_FIX).toContain("Exception, an inline busy indicator inside a button: <Button loading>");
+        expect(CONTENT_SPINNER_FIX).toContain("Inline progress for an action is allowed: a spinner inside a button (<Button loading>)");
     });
 });
 describe("third-party-control", () => {
@@ -1321,7 +1334,7 @@ describe("main", () => {
     it("passes when the scan equals the baseline", () => {
         const { deps, io, exit, writeFile } = setup(matching);
         main([], deps);
-        expect(io.log).toHaveBeenCalledWith("ouro-source-rules: 1 file(s), 1 hand-rolled control(s), all in the baseline.");
+        expect(io.log).toHaveBeenCalledWith("ouro-source-rules: 1 file(s), 1 offender(s), all in the baseline.");
         expect(io.error).not.toHaveBeenCalled();
         expect(exit).not.toHaveBeenCalled();
         expect(writeFile).not.toHaveBeenCalled();
@@ -1359,7 +1372,7 @@ describe("main", () => {
         const { deps, io, exit, writeFile } = setup(matching, { "/repo/app/routes/a.tsx": `export const A = 1;` });
         main(["--write-baseline"], deps);
         expect(writeFile).toHaveBeenCalledWith(baselineFile, `${JSON.stringify({ offenders: {} }, null, 2)}\n`);
-        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 0 hand-rolled control(s), 0 move(s) and 0 allowed regression(s).`);
+        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 0 offender(s), 0 move(s) and 0 allowed regression(s).`);
         expect(exit).not.toHaveBeenCalled();
     });
     it("refuses to write a baseline that adds an offender", () => {
@@ -1374,14 +1387,14 @@ describe("main", () => {
         const { deps, io, exit, writeFile } = setup(undefined);
         main(["--write-baseline"], deps);
         expect(writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1 }));
-        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 hand-rolled control(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.`);
+        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 offender(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.`);
         expect(exit).not.toHaveBeenCalled();
     });
     it("writes a larger baseline only with a stated reason", () => {
         const { deps, io, exit, writeFile } = setup(baselineOf({}));
         main(["--write-baseline", "--allow-regression", "first baseline"], deps);
         expect(writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1 }, [{ fingerprint: A, count: 1, reason: "first baseline" }]));
-        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 hand-rolled control(s), 0 move(s) and 1 allowed regression(s).`);
+        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 offender(s), 0 move(s) and 1 allowed regression(s).`);
         expect(exit).not.toHaveBeenCalled();
     });
     it("writes a moved file without a reason, and drops allowed regressions an earlier pull request recorded", () => {
@@ -1389,7 +1402,7 @@ describe("main", () => {
         const { deps, io, writeFile } = setup(baselineOf({ [A]: 1 }, [{ fingerprint: A, count: 1, reason: "older pull request" }]), moved);
         main(["--write-baseline"], deps);
         expect(writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ "app/routes/c.tsx::A::raw-button::button::type=button": 1 }));
-        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 hand-rolled control(s), 1 move(s) and 0 allowed regression(s).`);
+        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 offender(s), 1 move(s) and 0 allowed regression(s).`);
     });
     it("writes against a base ref, keeping this pull request's earlier reasons", () => {
         const extra = { "/repo/app/routes/b.tsx": `const B = () => <a href="/" />;` };
@@ -1429,7 +1442,7 @@ describe("main", () => {
         const { deps, writeFile, io } = setup(baselineOf({ [A]: 1 }, [{ fingerprint: A, count: 1, reason: "old" }]), extra);
         main(["--write-baseline", "--base", "origin/main", "--allow-regression", "measure"], deps);
         expect(writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1, [B]: 1 }));
-        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 2 hand-rolled control(s), 0 move(s) and 0 allowed regression(s); origin/main has no baseline, so nothing is recorded to ratchet against.`);
+        expect(io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 2 offender(s), 0 move(s) and 0 allowed regression(s); origin/main has no baseline, so nothing is recorded to ratchet against.`);
     });
     it("refuses to write a rise against the base ref without a reason", () => {
         const extra = { "/repo/app/routes/b.tsx": `const B = () => <a href="/" />;` };
@@ -1453,6 +1466,17 @@ describe("main", () => {
             gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
             main(["--base", "abc123"], deps);
             expect(io.error).toHaveBeenCalledWith(`Regression against abc123: ${B} (+1) at app/routes/b.tsx:1. Use an Ouro component instead, or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`);
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives a spinner's rise the Skeleton advice, not \"use an Ouro component\"", () => {
+            const S = "app/routes/s.tsx::S::content-spinner::~/components/ouro/spinner/spinner.Spinner::";
+            const spinner = { "/repo/app/routes/s.tsx": `import { Spinner } from "~/components/ouro/spinner/spinner";\nconst S = () => <Spinner label="Loading" />;` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [S]: 1 }), spinner);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + S));
+            expect(line).toContain("Show a Skeleton shaped like the content instead");
+            expect(line).not.toContain("Use an Ouro component instead");
             expect(exit).toHaveBeenCalledWith(1);
         });
         it("passes a rise the new baseline allows with a reason and count, and not an empty reason or a smaller count", () => {
@@ -1575,7 +1599,7 @@ describe("main", () => {
             main(["--write-baseline", "--base", "abc123", "--allow-regression", "generated client"], written.deps);
             const recorded = baselineOf({ [A]: 1 }, [{ fingerprint, count: 1, reason: "generated client" }]);
             expect(written.writeFile).toHaveBeenCalledWith(baselineFile, recorded);
-            expect(written.io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 hand-rolled control(s), 0 move(s) and 1 allowed regression(s).`);
+            expect(written.io.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 1 offender(s), 0 move(s) and 1 allowed regression(s).`);
             const kept = setup(recorded, settings({ exclude: ["app/generated/"] }));
             kept.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
             main(["--write-baseline", "--base", "abc123"], kept.deps);
@@ -1613,7 +1637,7 @@ describe("main", () => {
             const write = setup(undefined, adopted);
             main(["--write-baseline", "--base", "abc123"], write.deps);
             expect(write.writeFile).toHaveBeenCalledWith(rules, baselineOf({ [A]: 1 }));
-            expect(write.io.log).toHaveBeenCalledWith("ouro-source-rules: wrote test/rules.json with 1 hand-rolled control(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.");
+            expect(write.io.log).toHaveBeenCalledWith("ouro-source-rules: wrote test/rules.json with 1 offender(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.");
             expect(write.exit).not.toHaveBeenCalled();
             const check = setup(undefined, { ...adopted, [rules]: baselineOf({ [A]: 1 }) });
             main(["--base", "abc123"], check.deps);
@@ -1676,11 +1700,11 @@ describe("defaults", () => {
             defaultDeps.writeFile(path.join(root, "src", "app.css"), ".card:focus { color: red; }\n");
             const written = { log: vi.fn(), error: vi.fn() };
             main(["--write-baseline"], { root, io: written });
-            expect(written.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 2 hand-rolled control(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.`);
+            expect(written.log).toHaveBeenCalledWith(`ouro-source-rules: wrote ${BASELINE_PATH} with 2 offender(s), 0 move(s) and 0 allowed regression(s); it is the first baseline, so it records where the app starts.`);
             const io = { log: vi.fn(), error: vi.fn() };
             main([], { root, io });
             expect(io.error).not.toHaveBeenCalled();
-            expect(io.log).toHaveBeenCalledWith("ouro-source-rules: 2 file(s), 2 hand-rolled control(s), all in the baseline.");
+            expect(io.log).toHaveBeenCalledWith("ouro-source-rules: 2 file(s), 2 offender(s), all in the baseline.");
         }
         finally {
             rmSync(root, { recursive: true, force: true });

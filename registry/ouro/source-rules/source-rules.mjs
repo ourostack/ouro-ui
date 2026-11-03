@@ -33,8 +33,10 @@ import ts from "typescript";
 //   selector puts that state on a class or a data-* hook (only the app's own hooks, `.<prefix>-`
 //   and `[data-<prefix>-`, when `hookPrefix` is set). Hover-only decoration and page motion are
 //   not control state.
-// - content-spinner: a spinner standing in for content that is loading: Ouro UI's `<Spinner>` (imported
-//   from a spinner/spinner module) or any element with an `animate-spin` class. Show a Skeleton shaped
+// - content-spinner: a spinner standing where content would: Ouro UI's `<Spinner>` (imported from a
+//   spinner/spinner module) or any element with an `animate-spin` class, returned or assigned on its
+//   own or the only thing in its element. Inline progress passes: in a prop, in an object's icon, or
+//   beside the words that say what is under way. Show a Skeleton shaped
 //   like the content instead, so the content takes its place and nothing moves when it arrives. The
 //   one exception is an inline busy indicator inside a button (a raw `<button>` or a `Button`, in its
 //   children or any of its props), which marks an action in progress, not missing content; Button's
@@ -119,7 +121,7 @@ export const THIRD_PARTY_CONTROL_PACKAGES = [
 export const CONTENT_SPINNER_FIX =
   'Show a Skeleton shaped like the content instead (<Skeleton shape="row" count={6}>, <Skeleton shape="text" lines={3}>, <Skeleton shape="card">), ' +
   "so the content takes its place and nothing moves when it arrives. " +
-  "Exception, an inline busy indicator inside a button: <Button loading>, or a spinner inside a button, marks an action in progress, not missing content, and is allowed.";
+  "Inline progress for an action is allowed: a spinner inside a button (<Button loading>), in a prop such as a field's endAdornment or an icon, or beside the words that say what is under way.";
 
 export const BASELINE_PATH = "ouro-source-rules.baseline.json";
 export const CONFIG_PATH = "ouro-source-rules.json";
@@ -691,6 +693,26 @@ function scanScript(module, resolver) {
   const isButton = (control) => [...control.tags, ...control.asTags].includes("button") || ouroExport(control, "Button", BUTTON_MODULE);
   // The exception: a raw <button> or an Ouro Button (a spin class on it turns an icon inside it), or
   // anywhere inside one, its children or its props.
+  // Whether a spinner stands where content would: returned or assigned on its own, or the only thing
+  // in its element. One in a prop (a field's adornment, a control's icon), in an object (a toast's or
+  // a menu entry's icon) or beside other content (text saying what is under way) is inline progress.
+  const standsAlone = (node) => {
+    let child = ts.isJsxOpeningElement(node) ? node.parent : node;
+    for (let parent = child.parent; parent; child = parent, parent = parent.parent) {
+      if (ts.isParenthesizedExpression(parent) || ts.isConditionalExpression(parent) || ts.isBinaryExpression(parent)) continue;
+      if (ts.isJsxExpression(parent)) {
+        if (ts.isJsxAttribute(parent.parent)) return false;
+        continue;
+      }
+      if (ts.isPropertyAssignment(parent)) return false;
+      if (ts.isJsxElement(parent) || ts.isJsxFragment(parent)) {
+        return parent.children.every((other) => other === child || (ts.isJsxText(other) ? other.containsOnlyTriviaWhiteSpaces : ts.isJsxExpression(other) && !other.expression));
+      }
+      return true;
+    }
+    /* istanbul ignore next @preserve -- a node always has a source file above it */
+    return true;
+  };
   const inButton = (node, control) => {
     if (isButton(control)) return true;
     for (let parent = node.parent; parent; parent = parent.parent) {
@@ -809,7 +831,7 @@ function scanScript(module, resolver) {
       .flatMap(([, initializer]) => collectStrings(initializer, declarations));
     if (hasControlStateClass(classStrings)) add("control-state-style", node, control.display, props);
     const spins = classStrings.some((text) => text.split(/\s+/).some((token) => SPIN_CLASS.test(splitVariants(token).at(-1))));
-    if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control)) addSpinner(node, control.display, props);
+    if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control) && standsAlone(node)) addSpinner(node, control.display, props);
   };
 
   const visit = (node) => {
@@ -1218,7 +1240,7 @@ export function main(argv, deps) {
         : "";
     writeFile(baselineFile, serializeBaseline(offenders, recorded));
     io.log(
-      `ouro-source-rules: wrote ${config.baseline} with ${offenders.length} hand-rolled control(s), ${moves.length} move(s) and ${recorded.length} allowed regression(s)${unrecorded}.`,
+      `ouro-source-rules: wrote ${config.baseline} with ${offenders.length} offender(s), ${moves.length} move(s) and ${recorded.length} allowed regression(s)${unrecorded}.`,
     );
     return;
   }
@@ -1262,7 +1284,7 @@ export function main(argv, deps) {
       }
       const permits = entry ? `, but its allowed regression permits ${entry.count ?? 0}` : "";
       lines.push(
-        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. Use an Ouro component instead, or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
+        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${fingerprint.split("::")[2] === "content-spinner" ? CONTENT_SPINNER_FIX.replace(/\.$/, ";") : "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
       );
     }
     notes.push(`ouro-source-rules: ratchet against ${options.base}: ${allowedCount} allowed regression(s), ${moves.length} move(s).`);
@@ -1272,7 +1294,7 @@ export function main(argv, deps) {
     exit(1);
     return;
   }
-  io.log(`ouro-source-rules: ${files.length} file(s), ${offenders.length} hand-rolled control(s), all in the baseline.`);
+  io.log(`ouro-source-rules: ${files.length} file(s), ${offenders.length} offender(s), all in the baseline.`);
   for (const note of notes) io.log(note);
 }
 
