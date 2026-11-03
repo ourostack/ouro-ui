@@ -11,6 +11,7 @@ import {
   type EmojiPickerUnicodeProps,
   type EmojiSkinTone,
 } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
+import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.
@@ -47,6 +48,12 @@ expectTypeOf<{
   className: "w-96";
 }>().toExtend<EmojiPickerProps>();
 expectTypeOf<ComponentProps<typeof EmojiPicker>>().toEqualTypeOf<EmojiPickerProps>();
+
+// A catalogue's picker passes a placeholder to every emoji it draws; the platform's emoji have none.
+type PickCatalogue = (selection: EmojiPickerCatalogueSelection) => void;
+expectTypeOf<{ label: "Add a reaction"; catalogue: EmojiCatalogue; trigger: typeof trigger; onSelect: PickCatalogue; placeholder: "/emoji/waiting.png" }>().toExtend<EmojiPickerProps>();
+expectTypeOf<{ label: "Add a reaction"; catalogue: EmojiCatalogue; trigger: typeof trigger; onSelect: PickCatalogue; placeholder: ReturnType<typeof createElement> }>().toExtend<EmojiPickerProps>();
+expectTypeOf<{ label: "Add a reaction"; categories: typeof categories; trigger: typeof trigger; onSelect: typeof onSelect; placeholder: "/emoji/waiting.png" }>().not.toExtend<EmojiPickerProps>();
 
 // An emoji's tones: Unicode's modifier, or its five toned forms.
 expectTypeOf<{ emoji: "👍"; name: "thumbs up"; keywords: ["like"]; skinTones: true }>().toExtend<EmojiPickerEmoji>();

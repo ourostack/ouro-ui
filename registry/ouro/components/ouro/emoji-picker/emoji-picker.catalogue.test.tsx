@@ -246,6 +246,36 @@ describe("EmojiPicker with a catalogue", () => {
     expect(art(cell("Smiling face"))).toBe(smile.src);
   });
 
+  it("passes its placeholder to every emoji it draws, each picture keeping its emoji's name, until each picture has decoded", async () => {
+    vi.spyOn(HTMLImageElement.prototype, "decode").mockReturnValue(new Promise(() => {}));
+    /** What an emoji shows until its picture has decoded: the placeholder image's address, or the element's test id. */
+    const standIn = (element: Element) => {
+      const stand = element.querySelector('[data-ouro="emoji"] > [aria-hidden="true"]');
+      return stand?.querySelector("img")?.getAttribute("src") ?? stand?.querySelector("[data-testid]")?.getAttribute("data-testid");
+    };
+    const picture = (element: Element) => element.querySelector<HTMLImageElement>('[data-ouro="emoji"] > img')!;
+    const waiting = image("waiting");
+    const toneButton = () => panel().querySelector('[data-ouro-part="skin-tone"]')!;
+    const everywhere = () => [...cells(), ...quickCells(), ...categoryButtons(), toneButton(), panel().lastElementChild!].map(standIn);
+    const { rerender } = await open({ quick: ["party"], placeholder: waiting });
+    expect(everywhere()).toEqual(Array(12).fill(waiting));
+    expect(cells().map((element) => picture(element).getAttribute("src"))).toEqual([smile.src, wave.src, heart.src, party.src, fern.src, mug.src]);
+    expect(cells().map((element) => picture(element).alt)).toEqual(["Smiling face", "Waving hand", "Red heart", "Party popper", "Fernwood fern", "Team coffee"]);
+    expect(cells().map((element) => getComputedStyle(picture(element)).opacity)).toEqual(Array(6).fill("0"));
+    expect(page.getByRole("button", { name: "Fernwood fern" }).element()).toBe(cell("Fernwood fern"));
+    // The skin tones' choices wait for their pictures too.
+    await userEvent.click(page.getByRole("button", { name: "Skin tone: Default" }));
+    expect([...panel().querySelectorAll('[role="radio"]')].map(standIn)).toEqual(Array(6).fill(waiting));
+    await userEvent.keyboard("{Escape}");
+    // A new placeholder reaches every emoji, and without one each is its bare image again.
+    await rerender(picker({ quick: ["party"], placeholder: <svg data-testid="dot" viewBox="0 0 1 1" /> }));
+    expect(everywhere()).toEqual(Array(12).fill("dot"));
+    await rerender(picker({ quick: ["party"] }));
+    expect(everywhere()).toEqual(Array(12).fill(undefined));
+    expect(cells().map(art)).toEqual([smile.src, wave.src, heart.src, party.src, fern.src, mug.src]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("names an empty catalogue with the fix, and opens empty", async () => {
     await open({ catalogue: { categories: [] } } as Partial<EmojiPickerProps>);
     expect(warn.mock.calls.map((call: unknown[]) => String(call[0]))).toEqual([

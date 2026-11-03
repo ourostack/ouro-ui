@@ -212,6 +212,8 @@ export type EmojiPickerUnicodeProps = {
   onSelect: (selection: EmojiPickerSelection, event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
   /** Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead. */
   catalogue?: never;
+  /** Not with `categories`. A placeholder stands in for a catalogue's pictures; `renderEmoji` draws your own art. */
+  placeholder?: never;
 };
 
 /**
@@ -240,6 +242,17 @@ export type EmojiPickerCatalogueProps = {
   frequent?: readonly string[] | undefined;
   /** The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. */
   quick?: readonly string[] | undefined;
+  /**
+   * Shows in each emoji's place until its picture has loaded and decoded, as `Emoji`'s
+   * `placeholder`: an image's address, or an element. The picker passes it to every emoji it
+   * draws: the grid, the quick row, the preview, the category buttons and the skin tones. Pass
+   * a value that stays the same between renders (an address, or an element made once), so the
+   * grid is not redrawn while the app renders.
+   *
+   * @claim "Shows in each emoji's place until" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > passes its placeholder to every emoji it draws, each picture keeping its emoji's name, until each picture has decoded)
+   * @claim "The picker passes it to every" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > passes its placeholder to every emoji it draws, each picture keeping its emoji's name, until each picture has decoded)
+   */
+  placeholder?: string | ReactElement | undefined;
   /**
    * Called with the chosen emoji when the person presses one, or presses Enter in the search
    * for its first result; the picker then closes. The event comes second, so the app can check
@@ -344,6 +357,7 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  *   catalogue={catalogue}
  *   frequent={recentIds}
  *   quick={["like", "heart", "laugh"]}
+ *   placeholder="/emoji/waiting.svg"
  *   onSelect={(selection) => react(message.id, selection.id)}
  * />
  * @claim "drawn only as the catalogue's images" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > draws only the catalogue's images, each named by its emoji's name, with the custom category labelled by the app)
@@ -364,6 +378,7 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
     frequent,
     quick,
     renderEmoji,
+    placeholder,
     onSelect,
     skinTone: skinToneProp,
     onSkinToneChange,
@@ -396,6 +411,7 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
     frequent?: readonly EmojiPickerEmoji[] | readonly string[];
     quick?: readonly EmojiPickerEmoji[] | readonly string[];
     renderEmoji?: EmojiRender;
+    placeholder?: string | ReactElement;
     onSelect: (selection: EmojiPickerSelection & EmojiPickerCatalogueSelection, event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
     trigger?: ReactElement;
     open?: boolean;
@@ -447,7 +463,7 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
     onSkinToneChange?.(next);
   };
 
-  const content = usePickerContent(catalogue, categories, frequent, quick, renderEmoji);
+  const content = usePickerContent(catalogue, categories, frequent, quick, renderEmoji, placeholder);
 
   // A presentation that is not one of Popover's is a popover there, and is no sheet here either.
   const asSheet = useSheetPresentation(presentation);
@@ -545,9 +561,6 @@ function entryOf(item: EmojiItem): CatalogueEntry {
   return entry;
 }
 
-/** Draws a catalogue's emoji: its image, in the tone, playing for its button unless told otherwise. */
-const drawCatalogue: GlyphRender = (item, skinTone, play) => <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} />;
-
 /** What the panel shows: the app's categories as they are, or a catalogue's as entries, with the frequent and quick ids found in it. */
 function usePickerContent(
   catalogue: EmojiCatalogue | undefined,
@@ -555,6 +568,7 @@ function usePickerContent(
   frequent: readonly EmojiPickerEmoji[] | readonly string[] | undefined,
   quick: readonly EmojiPickerEmoji[] | readonly string[] | undefined,
   renderEmoji: EmojiRender | undefined,
+  placeholder: string | ReactElement | undefined,
 ) {
   // A catalogue's ids stand in as their text, so a new array of the same ids keeps the content.
   const frequentKey = catalogue ? (frequent as readonly string[] | undefined)?.join("\n") : frequent;
@@ -575,6 +589,8 @@ function usePickerContent(
     const list = catalogue.categories.map((category) => ({ label: category.label, icon: category.icon, emoji: category.items.map(entryOf) }));
     const found = { frequent: byIds(frequentKey as string | undefined), quick: byIds(quickKey as string | undefined) };
     const sample = [...(found.quick ?? []), ...(found.frequent ?? []), ...list.flatMap((category) => category.emoji)].find((entry) => entry.skinTones);
+    // Draws a catalogue's emoji: its image, in the tone, playing for its button unless told otherwise.
+    const drawCatalogue: GlyphRender = (item, skinTone, play) => <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} placeholder={placeholder} />;
     return {
       categories: list,
       ...found,
@@ -582,7 +598,7 @@ function usePickerContent(
       // Shown only when some emoji has tones, so there is a sample.
       toneGlyph: (tone: EmojiSkinTone): ReactNode => drawCatalogue(sample!, tone, false),
     };
-  }, [catalogue, categories, frequentKey, quickKey, renderEmoji]);
+  }, [catalogue, categories, frequentKey, quickKey, renderEmoji, placeholder]);
 }
 
 /** A run of grid cells: one category, or the search results. */

@@ -1,0 +1,1 @@
+- Fixed: under forced colours, the pressed SegmentedControl segment keeps its HighlightText letters while the pointer rests on it, where hover used to turn them back to the page's text colour on the Highlight thumb.
