@@ -28,7 +28,7 @@ const portalClass = "relative isolate z-[calc(var(--ouro-layer)+1)]";
  * @claim "Same-element [&] variants retain distinct candidates" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > keeps named spacing-scale values on the viewport as well as the universal spacing fallback)
  */
 const viewportClass =
-  "fixed outline-none " +
+  "group/toaster fixed outline-none [--ouro-toast-dir:-1] data-[edge=top]:[--ouro-toast-dir:1] " +
   "start-(--ouro-toaster-start) end-(--ouro-toaster-end) bottom-(--ouro-toaster-bottom) w-(--ouro-toaster-width) " +
   "[&]:[&]:[--ouro-toaster-start:var(--spacing-4,--spacing(4))] [&]:[--ouro-toaster-start:--theme(--spacing-4)] " +
   "[&]:[&]:[--ouro-toaster-end:var(--spacing-4,--spacing(4))] [&]:[--ouro-toaster-end:--theme(--spacing-4)] " +
@@ -58,20 +58,25 @@ const viewportClass =
  * @claim "Collapsed, the newest is in front" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::waits while a finger is on a toast, and fans the stack out, as a mouse over it does)
  */
 const rootClass =
-  "absolute inset-x-0 bottom-0 box-border origin-bottom touch-none select-none [-webkit-tap-highlight-color:transparent] " +
+  "absolute inset-x-0 bottom-0 box-border origin-bottom touch-none " +
+  // At the top edge (the viewport's `data-edge="top"`) the stack hangs from the top and unfurls downward:
+  // `--ouro-toast-dir` turns every offset below toward the screen's middle.
+  "group-data-[edge=top]/toaster:top-0 group-data-[edge=top]/toaster:bottom-auto group-data-[edge=top]/toaster:origin-top " +
+  " select-none [-webkit-tap-highlight-color:transparent] " +
   "rounded-lg border border-solid border-border bg-popover text-popover-foreground shadow-(--shadow-lg) " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "[--gap:0.75rem] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] " +
   "[--height:var(--toast-frontmost-height,var(--toast-height))] " +
-  "[--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1))] " +
+  "[--offset-y:calc(var(--ouro-toast-dir)*(var(--toast-offset-y)+var(--toast-index)*var(--gap)))] " +
   "z-[calc(1000-var(--toast-index))] h-(--height) data-expanded:h-(--toast-height) " +
-  "[transform:translateY(calc(0px-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] " +
+  "[transform:translateY(calc(var(--ouro-toast-dir)*(var(--toast-index)*var(--peek)+var(--shrink)*var(--height))))_scale(var(--scale))] " +
   "data-expanded:[transform:translateY(var(--offset-y))] " +
   // A strip under each toast bridges the gap, so moving between fanned-out toasts keeps them open.
   "after:absolute after:inset-x-0 after:top-full after:h-[calc(var(--gap)+1px)] after:content-[''] " +
+  "group-data-[edge=top]/toaster:after:top-auto group-data-[edge=top]/toaster:after:bottom-full " +
   "data-starting-style:opacity-0 data-ending-style:opacity-0 data-limited:opacity-0 " +
-  "motion-safe:data-starting-style:[transform:translateY(150%)] motion-safe:data-expanded:data-starting-style:[transform:translateY(150%)] " +
-  "motion-safe:[&[data-ending-style]:not([data-limited]):not([data-ouro-swiped])]:[transform:translateY(150%)] " +
+  "motion-safe:data-starting-style:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] motion-safe:data-expanded:data-starting-style:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] " +
+  "motion-safe:[&[data-ending-style]:not([data-limited]):not([data-ouro-swiped])]:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] " +
   "motion-safe:[transition:transform_var(--ouro-duration-slow)_var(--ouro-ease-out),opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)]";
 

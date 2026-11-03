@@ -96,6 +96,10 @@ export interface ToasterProps {
  * touch screen reader too, while the stack is collapsed, and focus in a toast fans the stack out
  * and pauses it, however it got there, even while a pointer passes over and away.
  *
+ * Put it at the top with layout classes (`className="top-4 bottom-auto"`) and the stack hangs
+ * from the top: the newest toast is at the top, older ones peek out below it, it fans out
+ * downward, toasts slide in from above, and a swipe up dismisses one.
+ *
  * Render one Toaster. A second one warns in development and shows nothing until the
  * first unmounts, then takes over.
  *
@@ -111,6 +115,7 @@ export interface ToasterProps {
  * Use `Alert` instead for a message that stays on the page, and `Dialog` when the user
  * must answer before going on.
  *
+ * @claim "Put it at the top with layout" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hangs from the top and unfurls downward when its layout classes put it at the top)
  * @group Feedback
  * @see https://ui.ouro.bot/docs/toaster
  *
@@ -176,6 +181,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
               aria-atomic={undefined}
               aria-relevant={undefined}
               data-ouro="toaster"
+              ref={readEdge}
               className={cn(viewportClass, className)}
               onFocus={onViewportFocus}
               onBlur={onViewportBlur}
@@ -354,6 +360,22 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
  *
  * @claim "Focus in the toasts fans the stack out" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves)
  */
+/**
+ * Marks the viewport with the edge it sits at, `data-edge="top"` or `"bottom"`, from where its
+ * layout classes put it: its top edge above the window's middle, or not. The stack unfurls away from that
+ * edge, and a toast swipes away toward it. Read again when the window is resized.
+ */
+function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
+  /* istanbul ignore if @preserve -- React 19 calls a ref that returns a cleanup only with the element */
+  if (!viewport) return undefined;
+  const read = () => {
+    viewport.setAttribute("data-edge", viewport.getBoundingClientRect().top < window.innerHeight / 2 ? "top" : "bottom");
+  };
+  read();
+  window.addEventListener("resize", read);
+  return () => window.removeEventListener("resize", read);
+}
+
 function onViewportFocus(event: FocusEvent<HTMLElement>): void {
   rememberEntry(event);
   hover(event.currentTarget, true);
@@ -624,6 +646,8 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
   const reduced = useReducedMotion();
   const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });
 
+  /** Which way a toast leaves along y: down at the bottom edge, up at the top (the viewport's `data-edge`). */
+  const away = useCallback(() => (state.current.element!.closest('[data-edge="top"]') ? -1 : 1), []);
   const write = useCallback((offset: number) => {
     const now = state.current;
     now.offset = offset;
@@ -693,25 +717,25 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
       now.moved = true;
       now.pressed[axis] = false;
       // Above rest the toast is held back: start from the finger travel that puts it there.
-      now.grab = axis === "y" && now.offset < 0 ? unband(now.offset, size()) : now.offset;
+      now.grab = axis === "y" && now.offset * away() < 0 ? unband(now.offset, size()) : now.offset;
       return true;
     },
-    [size],
+    [size, away],
   );
   const move = useCallback(
     (axis: Axis, { delta }: DragState) => {
       const wanted = state.current.grab + delta;
       // Following a finger is not an animation: the toast does it with reduced motion too.
-      write(axis === "y" && wanted < 0 ? rubberband(wanted, size()) : wanted);
+      write(axis === "y" && wanted * away() < 0 ? rubberband(wanted, size()) : wanted);
     },
-    [size, write],
+    [size, write, away],
   );
   const end = (axis: Axis, { velocity, flick, cancelled }: DragState & { cancelled: boolean }) => {
     const now = state.current;
     const { offset } = now;
     // Whether the finger was moving the toast away from rest when it lifted.
     const toward = velocity * offset;
-    const canLeave = axis === "x" || offset > 0;
+    const canLeave = axis === "x" || offset * away() > 0;
     if (cancelled || !canLeave || !(flick ? toward > 0 : Math.abs(offset) > AWAY && toward >= 0)) return settle(cancelled ? 0 : velocity, flick && !cancelled);
     now.leaving = true;
     // Before the close: a swiped toast fades on its way, and does not slide down as a closed one does.

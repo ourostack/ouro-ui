@@ -141,3 +141,15 @@ export const KeepClear: Story = {
     );
   },
 };
+
+/** At the top of the screen, placed with layout classes: the newest toast at the top, older ones peeking out below, fanning out downward. */
+export const AtTheTop: Story = {
+  parameters: { conformance: Stack.parameters!.conformance },
+  render: (args) => (
+    <Surface>
+      <span style={{ color: "var(--muted-foreground)" }}>Hover the toasts to fan them out, downward.</span>
+      <Toaster {...args} className="top-4 bottom-auto" />
+      <ShowOnMount />
+    </Surface>
+  ),
+};

@@ -110,6 +110,36 @@ afterEach(async () => {
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("Toaster", () => {
+  it("hangs from the top and unfurls downward when its layout classes put it at the top", async () => {
+    const box = (message: string) => toastNamed(message)!.getBoundingClientRect();
+    // At the bottom, by default: the older toast peeks out above the newest.
+    const { unmount } = await render(<Toaster />);
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    await show("Older", { duration: 0 });
+    await show("Newer", { duration: 0 });
+    expect(box("Older").top).toBeLessThan(box("Newer").top);
+    await act(async () => toast.dismiss());
+    await gone("Older");
+    await gone("Newer");
+    await unmount();
+    // At the top: the newest at the top, the older one peeking out below it.
+    await render(<Toaster className="top-4 bottom-auto" />);
+    expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    await show("Older", { duration: 0 });
+    await show("Newer", { duration: 0 });
+    expect(Math.abs(box("Newer").top - viewport()!.getBoundingClientRect().top)).toBeLessThan(2);
+    expect(box("Older").bottom).toBeGreaterThan(box("Newer").bottom);
+    // Fanned out, the older one sits below the newest.
+    await userEvent.hover(toastNamed("Newer")!);
+    await until(() => viewport()!.hasAttribute("data-expanded"), true);
+    await until(() => toastNamed("Older")!.getAnimations().length, 0);
+    expect(box("Older").top).toBeGreaterThanOrEqual(box("Newer").bottom);
+    // A resize reads the edge again: a viewport whose top edge is at the middle counts as the bottom.
+    viewport()!.style.top = "50vh";
+    window.dispatchEvent(new Event("resize"));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+  });
+
   // Prospective cast lets the RED browser run reach unchanged pre-className runtime.
   // toaster.test-d.ts independently checks the real public API without a cast.
   const layoutProps = (className: string) => ({ className }) as unknown as ToasterProps;

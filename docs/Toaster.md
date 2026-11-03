@@ -21,6 +21,8 @@ toast("Recipe saved", { tone: "success" });
 
 ## Usage
 
+Put it at the top with layout classes (`className="top-4 bottom-auto"`) and the stack hangs from the top: the newest toast is at the top, older ones peek out below it, it fans out downward, toasts slide in from above, and a swipe up dismisses one.
+
 Render one Toaster. A second one warns in development and shows nothing until the first unmounts, then takes over.
 
 The viewport is portaled to the body. A variable set only on an app-shell wrapper does not reach it: put app clearance variables on a real ancestor of the portal (such as `:root`) or declare them through the viewport's supplied classes. Do not construct arbitrary-value class names from runtime numbers. A width override changes the width, not the anchoring mode or centering. Bottom overrides replace the default phone safe-area expression; the app owns its clearance and safe area. Shared `--popover`, `--popover-foreground` and `--radius` theme tokens style the toast surface and also affect other components; a wrapper cannot style this portal.
