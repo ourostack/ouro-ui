@@ -245,11 +245,13 @@ describe("content-spinner", () => {
     it("finds a hand-made spinner by its animate-spin class, under any variant", () => {
         expect(fingerprints(`export function Busy() { return <span className="size-6 rounded-full motion-safe:animate-spin" />; }`)).toEqual(["app/routes/fixture.tsx::Busy::content-spinner::span::"]);
         expect(categories(`export function Busy() { return <span className="animate-spin-slow" />; }`)).toEqual(["content-spinner"]);
+        expect(categories(`export function Busy() { return <svg className="animate-[spin_1s_linear_infinite]" />; }`)).toEqual(["content-spinner"]);
         expect(categories(`const spin = "!animate-[ouro-spin_1s_linear_infinite]"; export function Busy() { return <svg className={spin}><circle /></svg>; }`)).toEqual(["content-spinner"]);
     });
     it("allows the named exception, an inline busy indicator inside a button, in its children or its props", () => {
         expect(scan(`${SPINNER} ${BUTTON} export function Save() { return <Button disabled><Spinner size="sm" label="Saving" /> Save</Button>; }`)).toEqual([]);
         expect(scan(`${SPINNER} ${BUTTON} export function Save() { return <Button startIcon={<Spinner size="sm" label="Saving" />}>Save</Button>; }`)).toEqual([]);
+        expect(scan(`${BUTTON} export function Save({ busy }) { return <Button className={busy ? "[&_svg]:animate-spin" : ""}>Save</Button>; }`)).toEqual([]);
         expect(categories(`export function Save() { return <button type="button"><span className="animate-spin" /> Save</button>; }`)).toEqual(["raw-button"]);
         expect(categories(`function Box(props) { return null; } export function Save() { return <Box as="button"><span className="animate-spin" /></Box>; }`)).toEqual(["raw-button"]);
     });

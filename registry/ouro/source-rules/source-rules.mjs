@@ -663,7 +663,7 @@ function ownersOf(node) {
 // Ouro UI's Spinner, by its install path (`components/ouro/spinner/spinner`), and the utility class
 // a hand-made spinner turns with.
 const SPINNER_MODULE = /(?:^|\/)spinner\/spinner(?:\.[cm]?[jt]sx?)?$/;
-const SPIN_CLASS = /^!?animate-(?:spin|\[ouro-spin(?:_|\]))/;
+const SPIN_CLASS = /^!?animate-(?:spin|\[(?:ouro-)?spin(?:_|\]))/;
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
 function scanScript(module, resolver) {
@@ -688,14 +688,16 @@ function scanScript(module, resolver) {
     const [exported, ...rest] = binding.namespace ? control.ref.members : [binding.imported, ...control.ref.members];
     return rest.length === 0 && exported === name;
   };
-  // The exception: anywhere inside a raw <button> or an Ouro Button, its children or its props.
-  const insideButton = (node) => {
+  const isButton = (control) => [...control.tags, ...control.asTags].includes("button") || ouroExport(control, "Button", BUTTON_MODULE);
+  // The exception: a raw <button> or an Ouro Button (a spin class on it turns an icon inside it), or
+  // anywhere inside one, its children or its props.
+  const inButton = (node, control) => {
+    if (isButton(control)) return true;
     for (let parent = node.parent; parent; parent = parent.parent) {
       const opening = ts.isJsxElement(parent) ? parent.openingElement : ts.isJsxSelfClosingElement(parent) ? parent : undefined;
       if (!opening || opening === node) continue;
       const as = opening.attributes.properties.find((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText() === "as");
-      const control = describe(opening.tagName.getText(), as?.initializer, true);
-      if ([...control.tags, ...control.asTags].includes("button") || ouroExport(control, "Button", BUTTON_MODULE)) return true;
+      if (isButton(describe(opening.tagName.getText(), as?.initializer, true))) return true;
     }
     return false;
   };
@@ -807,7 +809,7 @@ function scanScript(module, resolver) {
       .flatMap(([, initializer]) => collectStrings(initializer, declarations));
     if (hasControlStateClass(classStrings)) add("control-state-style", node, control.display, props);
     const spins = classStrings.some((text) => text.split(/\s+/).some((token) => SPIN_CLASS.test(splitVariants(token).at(-1))));
-    if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !insideButton(node)) addSpinner(node, control.display, props);
+    if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control)) addSpinner(node, control.display, props);
   };
 
   const visit = (node) => {
