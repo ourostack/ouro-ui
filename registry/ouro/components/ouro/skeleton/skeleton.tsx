@@ -126,7 +126,7 @@ const detailWidths = ["w-4/5", "w-3/4", "w-11/12", "w-2/3", "w-5/6"] as const;
 
 type Shape = "rect" | "text" | "circle" | "row" | "card";
 const shapeNames: readonly Shape[] = ["rect", "text", "circle", "row", "card"];
-const sizesFor = { text: textSizes, circle: avatarSizes, row: rowSizes, card: cardSizes } as const;
+const sizesFor = { rect: {}, text: textSizes, circle: avatarSizes, row: rowSizes, card: cardSizes } as const;
 
 const muiVariants: Readonly<Record<string, Shape>> = { circular: "circle", text: "text", rectangular: "rect", rounded: "rect" };
 
@@ -142,7 +142,7 @@ function sizeClass(prefix: "w" | "h", value: unknown): string {
 
 /** A whole number of at least one, or one. */
 function atLeastOne(value: number | undefined): number {
-  return value !== undefined && Number.isInteger(value) && value >= 1 ? value : 1;
+  return Math.max(1, Number.isInteger(value) ? (value as number) : 1);
 }
 
 function Bar({ className }: { className: string | undefined }): JSX.Element {
@@ -167,9 +167,9 @@ function Bar({ className }: { className: string | undefined }): JSX.Element {
  * @see https://ui.ouro.bot/docs/skeleton
  *
  * @example
- * <ul aria-busy="true" aria-label="Messages">
+ * <div aria-busy="true" aria-label="Messages" role="group">
  *   <Skeleton shape="row" count={6} />
- * </ul>
+ * </div>
  * <Skeleton shape="text" size="sm" lines={3} />
  * <Skeleton shape="circle" size="lg" />
  */
@@ -179,8 +179,8 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
       Omit<HTMLAttributes<HTMLDivElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
   const shape: Shape = (shapeNames as readonly string[]).includes(shapeProp) ? (shapeProp as Shape) : "rect";
-  const sizes = shape === "rect" ? undefined : sizesFor[shape];
-  const sizeKnown = sizeProp === undefined || (sizes !== undefined && Object.hasOwn(sizes, sizeProp));
+  const sizes: object = sizesFor[shape];
+  const sizeKnown = sizeProp === undefined || Object.hasOwn(sizes, sizeProp);
   const size = sizeKnown ? sizeProp : undefined;
   useAppearanceClassNameCheck(
     "Skeleton",
@@ -193,12 +193,16 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
       ? () => [
           shape !== shapeProp && [
             `shape="${shapeProp}" is not a shape; use "rect", "text", "circle", "row", "card"`,
-            `<Skeleton shape="${shapeProp === "avatar" ? "circle" : "rect"}">`,
+            shapeProp === "avatar"
+              ? `<Skeleton shape="circle"${Object.hasOwn(avatarSizes, String(sizeProp)) ? ` size="${sizeProp}"` : ""}>`
+              : '<Skeleton shape="rect">',
           ],
-          !sizeKnown && [
-            `size="${String(sizeProp)}" is not a size for shape="${shape}"; use ${sizes ? Object.keys(sizes).map((name) => `"${name}"`).join(", ") : "a layout class"}`,
-            sizes ? `<Skeleton shape="${shape}" size="${Object.keys(sizes)[0]}">` : '<Skeleton className="h-32">',
-          ],
+          // A size for a shape that isn't one says nothing more: the shape's fix comes first.
+          !sizeKnown &&
+            shape === shapeProp && [
+              `size="${String(sizeProp)}" is not a size for shape="${shape}"; use ${Object.keys(sizes).length ? Object.keys(sizes).map((name) => `"${name}"`).join(", ") : "a layout class"}`,
+              Object.keys(sizes).length ? `<Skeleton shape="${shape}" size="${Object.keys(sizes)[0]}">` : '<Skeleton className="h-32">',
+            ],
           variant !== undefined && [
             "variant is not a prop",
             `<Skeleton shape="${Object.hasOwn(muiVariants, String(variant)) ? muiVariants[String(variant)] : "rect"}">`,

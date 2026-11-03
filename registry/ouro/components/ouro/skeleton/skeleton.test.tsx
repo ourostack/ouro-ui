@@ -89,6 +89,7 @@ describe("Skeleton", () => {
         const bars = [...skeleton.querySelectorAll("span span")].map((bar) => bar.getBoundingClientRect().width);
         expect(bars).toHaveLength(lines);
         if (lines > 1) expect(bars.at(-1)).toBeLessThan(bars[0]!);
+        else expect(bars[0]).toBe(skeleton.getBoundingClientRect().width);
       }
     }
   });
@@ -135,6 +136,8 @@ describe("Skeleton", () => {
           </>,
         ),
       );
+      // Every bar shows, row after row.
+      for (const bar of host.querySelectorAll('[data-skeleton] [data-ouro="skeleton"] span:empty')) expect(bar.getBoundingClientRect().width).toBeGreaterThan(0);
       for (const shape of ["row", "card"]) {
         const real = host.querySelector(`[data-real="${shape}"]`)!.getBoundingClientRect().height;
         expect(host.querySelector(`[data-skeleton="${shape}"]`)!.getBoundingClientRect().height).toBeCloseTo(real, 1);
@@ -222,11 +225,14 @@ describe("Skeleton", () => {
     expect(circle.getBoundingClientRect().width).toBe(40);
     await render(<Skeleton {...({ size: "md" } as unknown as SkeletonProps)} />);
     await render(<Skeleton {...({ shape: "row", size: "lg" } as unknown as SkeletonProps)} />);
+    // An avatar with one of Avatar's sizes keeps it in the fix, and its size says nothing more.
+    await render(<Skeleton {...({ shape: "avatar", size: "lg" } as unknown as SkeletonProps)} />);
     expect(warnings()).toEqual([
       '[ouro-ui] Skeleton: shape="avatar" is not a shape; use "rect", "text", "circle", "row", "card". Fix: <Skeleton shape="circle">.',
       '[ouro-ui] Skeleton: size="huge" is not a size for shape="circle"; use "xs", "sm", "md", "lg", "xl", "2xl", "3xl". Fix: <Skeleton shape="circle" size="xs">.',
       '[ouro-ui] Skeleton: size="md" is not a size for shape="rect"; use a layout class. Fix: <Skeleton className="h-32">.',
       '[ouro-ui] Skeleton: size="lg" is not a size for shape="row"; use "md", "sm". Fix: <Skeleton shape="row" size="md">.',
+      '[ouro-ui] Skeleton: shape="avatar" is not a shape; use "rect", "text", "circle", "row", "card". Fix: <Skeleton shape="circle" size="lg">.',
     ]);
   });
 });
