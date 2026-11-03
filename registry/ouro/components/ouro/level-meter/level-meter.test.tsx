@@ -296,6 +296,24 @@ describe("LevelMeter", () => {
     }
   });
 
+  it("stops asking for frames once its lit bars match the goal, and cancels the one it asked for when unmounted", async () => {
+    holdClock();
+    const { segments, rerender } = await render(<LevelMeter label="Level" value={0} />);
+    await rerender(<LevelMeter label="Level" value={1} />);
+    await pass(500);
+    expect(litCount(segments)).toBe(8);
+    // At rest only the reading's check is left: no frame waits.
+    const atRest = vi.getTimerCount();
+    await pass(500);
+    expect(vi.getTimerCount()).toBe(atRest);
+    // Mid-fall one frame waits; unmounting cancels it with the check, so no timer is left behind.
+    await rerender(<LevelMeter label="Level" value={0} />);
+    await pass(50);
+    expect(vi.getTimerCount()).toBe(atRest + 1);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("shows an amplitude outside 0 to 1, or not a number, as silence or full scale, and says so in development", async () => {
     const shown = async (value: number) => {
       const { meter, segments } = await render(<LevelMeter label="Level" value={value} bars={4} />);
@@ -452,6 +470,7 @@ describe("LevelMeter", () => {
 
   it("declares no agent reads and no actions", () => {
     expect(levelMeterAx).toEqual({ component: "LevelMeter", reads: [], actions: [] });
+    expect(Object.isFrozen(levelMeterAx)).toBe(true);
   });
 });
 

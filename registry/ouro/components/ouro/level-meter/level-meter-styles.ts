@@ -10,6 +10,7 @@ export {
   DB_FLOOR,
   HOLD_MS,
   levelFromAmplitude,
+  levelMeterAx,
   litTones,
   LOUD_FROM,
   mutedLit,
@@ -25,6 +26,8 @@ export {
 // Values, the level's arithmetic, class strings and the agent side for LevelMeter, apart from the
 // component so its file exports only components (React Fast Refresh). Class strings are literal so
 // the app's Tailwind finds them when it compiles.
+
+import { defineComponentAx } from "@/registry/ouro/ax/component";
 
 /** How many bars a meter draws without `bars`. @internal */
 const BARS_DEFAULT = 8;
@@ -203,16 +206,11 @@ const mutedLit =
   "forced-colors:data-highlighted:border-[GrayText] forced-colors:data-highlighted:bg-[GrayText]";
 
 /**
- * LevelMeter's agent side, for Ouro AX's kit. It declares no reads and no actions: audio levels
- * stay with the person.
+ * LevelMeter's agent side, declared with Ouro AX's `defineComponentAx`. It declares no reads and no
+ * actions: audio levels stay with the person.
  *
  * @example
  * levelMeterAx.reads.length; // 0
  * @claim "It declares no reads and no" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > declares no agent reads and no actions)
  */
-// TODO(ourostack/ouro-ui ax/component): wrap with defineComponentAx once it lands
-export const levelMeterAx = {
-  component: "LevelMeter",
-  reads: [],
-  actions: [],
-} as const;
+const levelMeterAx = defineComponentAx({ component: "LevelMeter", reads: [], actions: [] });
