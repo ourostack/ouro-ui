@@ -174,6 +174,33 @@ describe("MessageList windowing", () => {
     for (const space of scroller.querySelectorAll("[data-ouro-message-list-space]")) expect(space.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length", async () => {
+    for (const count of [10, 200]) {
+      const items = conversation(count);
+      const { scroller } = await render(
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+          {items.map((item, index) => (
+            <Message key={item.id} id={`m${item.id}`} role="assistant" name="Ouro" continued={index === count - 1}>
+              {item.text}
+            </Message>
+          ))}
+        </MessageList>,
+      );
+      const content = scroller.querySelector("[data-ouro-message-list-content]")!;
+      const slots = [...content.querySelectorAll(":scope > [data-ouro-message-list-slot]")];
+      expect(slots.length).toBe(messages(scroller).length);
+      for (const slot of slots) {
+        expect(getComputedStyle(slot).display).toBe("contents");
+        expect(slot.children).toHaveLength(1);
+        expect(slot.firstElementChild!.matches('[data-ouro="message"]')).toBe(true);
+      }
+      // A continued message sits closer to the one before it: 16px apart, less 12.
+      const last = document.getElementById(`m${count - 1}`)!;
+      const before = document.getElementById(`m${count - 2}`)!;
+      expect(last.getBoundingClientRect().top - before.getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+    }
+  });
+
   it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
     const { scroller, rerender } = await render(<Chat items={conversation(60, 40, true)} />);
     expect(messages(scroller)).toHaveLength(60);

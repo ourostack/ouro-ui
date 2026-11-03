@@ -216,7 +216,10 @@ function slotKeyOf(item: Element): string {
   return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
 }
 
-/** From `index`, stepping by `step`, the first child not known to hold no message; out of range when there is none. */
+/**
+ * From `index`, stepping by `step`, the first child not known to hold no message; out of range when there is none.
+ * @claim "From `index`, stepping by `step`" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves focus to the first message with Home and back to the newest with End, drawing the message it reaches)
+ */
 function holding(keys: readonly string[], counts: ReadonlyMap<string, number>, index: number, step: number): number {
   while (index >= 0 && index < keys.length && counts.get(keys[index]!) === 0) index += step;
   return index;
@@ -259,12 +262,21 @@ const OVERSCAN = 800;
 const FIRST_VIEW = 1600;
 /** A message's height, with its margins, before any is measured. */
 const ESTIMATE = 96;
-/** How many messages that arrive at once draw where the reader is not, so each is heard. */
+/**
+ * How many messages that arrive at once draw where the reader is not, so each is heard.
+ * @claim "How many messages that arrive at once" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > announces a new message once, and never a message drawn again as the reader scrolls)
+ */
 const KEEP_ARRIVED = 20;
-/** What marks each child's slot, holding the child's key. */
+/**
+ * What marks each child's slot, holding the child's key.
+ * @claim "What marks each child's slot" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length)
+ */
 const SLOT = "data-ouro-message-list-slot";
 
-/** Each child's height as last measured, by key, with its margins and without the gap before it; and the gap. */
+/**
+ * Each child's height as last measured, by key, with its margins and without the gap before it; and the gap.
+ * @claim "Each child's height as last measured" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
+ */
 interface Measured {
   heights: ReadonlyMap<string, number>;
   gap: number;
@@ -295,6 +307,8 @@ function estimateOf(heights: ReadonlyMap<string, number>): number {
 /**
  * Where a slot's child sits, from the top of its first box's margin to the bottom of its last one's, in viewport pixels
  * (less the springs): a slot draws no box of its own (`display: contents`). One with nothing drawn has no size.
+ * @claim "a slot draws no box of its own" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length)
+ * @claim "One with nothing drawn has no size" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /if \(parts\.length === 0\) return \{ top: 0, size: 0 \};/)
  */
 function extentOf(slot: Element): { top: number; size: number } {
   const parts = [...slot.children].filter((part) => part.getClientRects().length > 0);
@@ -749,7 +763,7 @@ interface Spoken {
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
  * @claim "At the bottom it also follows" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > follows its end at the bottom when something in a message reaches past it, though no message changes size)
  * @claim "A conversation of more than 60 children draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
- * @claim "A conversation of more than 60 children draws" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList windowing benchmark > draws a conversation of 2000 messages in a fraction of the elements and time it takes whole)
+ * @claim "A conversation of more than 60 children draws" test/message-list-windowing.bench.test.tsx verify:fileLine(test/message-list-windowing.bench.test.tsx, /expect\(windowed\.redraw\)\.toBeLessThan\(whole\.redraw \/ 2\)/)
  * @claim "The reader's place holds as the messages above" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place while messages above are measured, scrolling up through them)
  * @claim "The reader's place holds as the messages above" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place when a page of older messages loads above, putting it in at once)
  * @claim "The newest message, the one with focus" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the message with focus drawn, and focus on it, as the reader scrolls far away)
@@ -757,6 +771,7 @@ interface Spoken {
  * @claim "and the arrow keys, Home and End reach every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves focus to the first message with Home and back to the newest with End, drawing the message it reaches)
  * @claim "and the arrow keys, Home and End reach every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > walks up past the messages first drawn with the Up arrow, each one drawn and shown as focus reaches it)
  * @claim "The browser's find in page sees only" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > finds a message by its text among the app's messages, which the page does not hold, and reveals it)
+ * @claim "Each child sits in an element of its own" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length)
  * @claim "as a quote does" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > shows the quoted message far up the conversation when the reader presses its quote)
  * @claim "A short conversation sits at" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits a short conversation at its bottom, by the composer under it, with the room above it empty)
  * @claim "put what starts it (who" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits what starts a short conversation, its first child, right above the first message)
