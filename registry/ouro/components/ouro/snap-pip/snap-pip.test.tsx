@@ -857,6 +857,8 @@ describe("SnapPiP", () => {
     const element = await render(self({ onCornerChange }));
     const announced = watchAnnouncements();
     element.focus();
+    // Held frames, so a slow runner can't finish a move before the test sees it start.
+    freeze();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
     expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
     expect(element.getAttribute("data-corner")).toBe("top-right");
@@ -884,10 +886,12 @@ describe("SnapPiP", () => {
     expect(settling()).toBe(true);
     await rest();
     expect(at()).toEqual([LEFT, TOP]);
+    await expect.poll(() => announced.count("Top left")).toBe(1);
     await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
     expect(settling()).toBe(true);
     await rest();
     expect(at()).toEqual([LEFT, BOTTOM]);
+    await expect.poll(() => announced.count("Bottom left")).toBe(1);
     await userEvent.keyboard("{Alt>}{ArrowRight}{/Alt}");
     expect(settling()).toBe(true);
     await rest();
