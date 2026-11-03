@@ -745,6 +745,7 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
       now.grab = axis === "y" && inward(now.offset) ? unband(now.offset, size()) : now.offset;
       return true;
     },
+    // Stryker disable next-line ArrayDeclaration: these callbacks never change, so any list keeps this one the same.
     [size, inward],
   );
   const move = useCallback(
@@ -753,6 +754,7 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
       // Following a finger is not an animation: the toast does it with reduced motion too.
       write(axis === "y" && inward(wanted) ? rubberband(wanted, size()) : wanted);
     },
+    // Stryker disable next-line ArrayDeclaration: these callbacks never change, so any list keeps this one the same.
     [size, write, inward],
   );
   const end = (axis: Axis, { velocity, flick, cancelled }: DragState & { cancelled: boolean }) => {
