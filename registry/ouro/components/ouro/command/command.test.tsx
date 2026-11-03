@@ -554,6 +554,8 @@ describe("Command server search", () => {
     const text = (element: Element | null | undefined) => element?.textContent?.replace(/\u2060/g, "");
     expect(text(empty())).toBe("No chats by that name.Searching the directory…");
     expect(document.querySelector("[data-ouro-command-loading]")).toBeNull();
+    // Nothing matches yet, so no result-shaped rows sit under the empty state.
+    expect(document.querySelector("[data-ouro-command-loading-rows]")).toBeNull();
     await act(async () => roots[0]!.render(jump(false)));
     expect(text(empty())).toBe("No chats by that name.");
     await act(async () => roots[0]!.render(jump(true, ["Noor Haddad"])));
@@ -576,6 +578,10 @@ describe("Command server search", () => {
       expect(row.getBoundingClientRect().height).toBe(item.getBoundingClientRect().height);
       expect(row.querySelectorAll('[data-ouro="skeleton"]')).toHaveLength(2);
     }
+    // Their lines differ in width, as results' labels do.
+    const widths = rows.map((row) => row.querySelector<HTMLElement>('[data-shape="text"]')!.getBoundingClientRect().width / row.getBoundingClientRect().width);
+    expect(new Set(widths.map((w) => w.toFixed(2))).size).toBe(3);
+    for (const w of widths) expect(w).toBeLessThan(0.8);
     expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
     await act(async () => roots[0]!.render(jump(false)));
     expect(document.querySelector("[data-ouro-command-loading-rows]")).toBeNull();

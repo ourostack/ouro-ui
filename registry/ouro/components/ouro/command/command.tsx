@@ -179,7 +179,7 @@ export interface CommandBaseProps {
    * directory…"), and announces it politely for the first load of each opening (not again while
    * typing goes on). Set it back to false when the request fails or aborts. While it is true,
    * rows in a result's shape, as tall as a result, hold the place of the results on their way
-   * under the ones already shown, and screen readers skip them.
+   * under the ones already shown (none while nothing matches), and screen readers skip them.
    * @claim "rows in a result's shape" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > holds the place of results on their way with rows a result's height, gone once loading ends)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > says it is searching politely, once while typing goes on, and shows the empty state only after loading)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends)
@@ -615,16 +615,7 @@ export function Command(props: CommandProps): JSX.Element {
             )}
           </CommandList>
           {/* While results are on their way, rows in their shape hold their place under the ones already shown. */}
-          {loading && (
-            <div data-ouro-command-loading-rows="" aria-hidden="true">
-              {LOADING_ROWS.map((width) => (
-                <div key={width} className={commandLoadingRowClass}>
-                  <Skeleton shape="circle" size="xs" className="shrink-0" />
-                  <Skeleton shape="text" className={width} />
-                </div>
-              ))}
-            </div>
-          )}
+          {loading && <LoadingRows />}
         </div>
       </div>
     </Autocomplete.Root>
@@ -696,6 +687,21 @@ function SearchingLabel({ label }: { label: string }): JSX.Element | null {
  * The list of results, hidden while nothing matches: an empty listbox says nothing, and the
  * empty state beside it says why.
  */
+/** Rows in a result's shape under the results shown; none while nothing matches, where the empty state says so. */
+function LoadingRows(): JSX.Element | null {
+  if (Autocomplete.useFilteredItems().length === 0) return null;
+  return (
+    <div data-ouro-command-loading-rows="" aria-hidden="true">
+      {LOADING_ROWS.map((width) => (
+        <div key={width} className={commandLoadingRowClass}>
+          <Skeleton shape="circle" size="xs" className="shrink-0" />
+          <Skeleton shape="text" className={width} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CommandList({ children }: { children: Autocomplete.List.Props["children"] }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
   return (
