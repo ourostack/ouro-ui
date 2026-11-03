@@ -8,7 +8,7 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 /** Avatar's sizes, for `<Skeleton shape="circle" size>`. */
 export type SkeletonAvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 
-/** The props every Skeleton shape takes. */
+/** Skeleton's layout props, ref and hint props, whatever its shape. */
 interface SkeletonCommonProps {
   /** Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. */
   className?: string | undefined;
@@ -32,6 +32,9 @@ type ShapeHint = string & { 'Use "rect", "text", "circle", "row" or "card"; for 
  * Text's `size`; `circle` is an avatar at Avatar's `size`; `row` is a list row the height of
  * an Item with a title, a description and 40px media; `card` is an outline Card with a title,
  * a description and two lines of body text. `row` and `card` repeat `count` times.
+ * @claim "`rect` is a block (an image, a chart)" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact height of an Item row and an outline Card, at each size, so nothing moves when they arrive)
+ * @claim "`rect` is a block (an image, a chart)" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > takes the space of the text it stands in for at each of Text's sizes, the last of several lines shorter)
+ * @claim "`rect` is a block (an image, a chart)" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact box of an Avatar at each of its sizes)
  */
 export type SkeletonShapeProps =
   | {
@@ -43,7 +46,10 @@ export type SkeletonShapeProps =
     }
   | {
       shape: "text";
-      /** Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size. */
+      /**
+       * Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size.
+       * @claim "Text's size, so each line is one line box" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > takes the space of the text it stands in for at each of Text's sizes, the last of several lines shorter)
+       */
       size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg", Text\'s sizes': never }) | undefined;
       /**
        * How many lines of text it stands in for; the last of several is shorter, like a paragraph's.
@@ -66,11 +72,13 @@ export type SkeletonShapeProps =
       shape: "row" | "card";
       /**
        * Item's or Card's size, so each placeholder is that component's exact height.
+       * @claim "Item's or Card's size, so each placeholder" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact height of an Item row and an outline Card, at each size, so nothing moves when they arrive)
        * @default "md"
        */
       size?: "sm" | "md" | (string & { 'Use "sm" or "md", Item\'s and Card\'s sizes': never }) | undefined;
       /**
        * How many rows or cards to show. Each is its own element, so they sit in the list or grid the content will fill.
+       * @claim "Each is its own element, so they sit" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > repeats rows and cards count times, each its own element, with the ref and the id on the first)
        * @default 1
        */
       count?: number | undefined;
