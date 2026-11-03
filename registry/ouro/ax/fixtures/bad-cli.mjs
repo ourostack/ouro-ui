@@ -54,6 +54,8 @@ switch (cmd) {
     break;
   case "edit":
     bump();
+    // The doctor marks "pnpm dev" sourceCheckout; that lets its own text pass, not this.
+    process.stderr.write("Start the dev server with pnpm dev.\n");
     process.stdout.write("editing\redited\n");
     process.exit(0);
     break;

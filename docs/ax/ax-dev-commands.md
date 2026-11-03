@@ -4,7 +4,7 @@
 
 A message for an agent or a person names only what the installed tool runs: never a developer command, a repository path or a step that only works in a source checkout. An agent passes a next step on to the person, who has the installed tool and no checkout, so a step such as `npm run writes -- on` fails for them and leaves both stuck. A step that only a source checkout shows is marked `sourceCheckout: true`, and only then is it exempt.
 
-Developer commands: `npm`, `pnpm`, `yarn` and `bun` scripts and installs (a global install is fine), `npx` of a dev tool or a file, `node`, `tsx` or another interpreter given a file in the repository, `git`, `make`, `cargo` and the other build tools, and a script run by its path. Repository paths: `src/`, `scripts/`, `registry/`, `packages/`, `apps/`, `.github/`, `node_modules/` and root files such as `package.json`. A web address is never a path.
+Developer commands: `npm`, `pnpm`, `yarn` and `bun` scripts and installs (a global install is fine), `npx` of a dev tool or a file, `node`, `tsx` or another interpreter given a file in the repository, `git`, `make`, `cargo` and the other build tools, and a script run by its path. Repository paths: `src/`, `scripts/`, `registry/`, `packages/`, `apps/`, `.github/`, `node_modules/`, and in a command root files such as `package.json`. A web address is never a path.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-dev-commands#v1.3.3
@@ -18,7 +18,7 @@ It installs `lib/ouro/ax/dev-commands.ts`. Its tests are `ax-dev-commands-tests`
 
 A message for an agent or a person names only what the installed tool runs: never a developer command, a repository path or a step that only works in a source checkout. An agent passes a next step on to the person, who has the installed tool and no checkout, so a step such as `npm run writes -- on` fails for them and leaves both stuck. A step that only a source checkout shows is marked `sourceCheckout: true`, and only then is it exempt.
 
-Developer commands: `npm`, `pnpm`, `yarn` and `bun` scripts and installs (a global install is fine), `npx` of a dev tool or a file, `node`, `tsx` or another interpreter given a file in the repository, `git`, `make`, `cargo` and the other build tools, and a script run by its path. Repository paths: `src/`, `scripts/`, `registry/`, `packages/`, `apps/`, `.github/`, `node_modules/` and root files such as `package.json`. A web address is never a path.
+Developer commands: `npm`, `pnpm`, `yarn` and `bun` scripts and installs (a global install is fine), `npx` of a dev tool or a file, `node`, `tsx` or another interpreter given a file in the repository, `git`, `make`, `cargo` and the other build tools, and a script run by its path. Repository paths: `src/`, `scripts/`, `registry/`, `packages/`, `apps/`, `.github/`, `node_modules/`, and in a command root files such as `package.json`. A web address is never a path.
 
 ```ts
 interface DevCommand {
@@ -54,7 +54,7 @@ devCommandIn("notes sync", true); // null
 
 ### `devCommandsIn`
 
-Every developer command and repository path in a value: a message, a `help --json`, an outcome, an error or a checks report. `command` and `fix` strings are read as commands, everything else as prose; an object marked `sourceCheckout: true` is skipped with all it holds. With `messagesOnly`, only what is under `MESSAGE_KEYS`.
+Every developer command and repository path in a value: a message, a `help --json`, an outcome, an error or a checks report. `command` and `fix` strings are read as commands, everything else but a step's `why` as prose; an object marked `sourceCheckout: true` is skipped with all it holds. With `messagesOnly`, only what is under `MESSAGE_KEYS`.
 
 ```ts
 function devCommandsIn(value: unknown, options?: DevCommandsOptions): DevCommandFinding[]

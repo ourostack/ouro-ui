@@ -13,7 +13,7 @@ export type { DevCommand, DevCommandFinding, DevCommandsOptions };
  * Developer commands: `npm`, `pnpm`, `yarn` and `bun` scripts and installs (a global install is fine), `npx` of a dev
  * tool or a file, `node`, `tsx` or another interpreter given a file in the repository, `git`, `make`, `cargo` and the
  * other build tools, and a script run by its path. Repository paths: `src/`, `scripts/`, `registry/`, `packages/`,
- * `apps/`, `.github/`, `node_modules/` and root files such as `package.json`. A web address is never a path.
+ * `apps/`, `.github/`, `node_modules/`, and in a command root files such as `package.json`. A web address is never a path.
  *
  * @claim "fails for them and leaves both stuck" registry/ouro/ax/dev-commands.test.mts verify:testExists(registry/ouro/ax/dev-commands.test.mts::finds developer commands and repository paths in a command and in prose)
  * @claim "never a developer command, a repository path or a step that only works in a source checkout" registry/ouro/ax/dev-commands.test.mts verify:testExists(registry/ouro/ax/dev-commands.test.mts::finds developer commands and repository paths in a command and in prose)
@@ -48,7 +48,7 @@ const RUNNERS = new Set(["npm", "pnpm", "yarn", "bun"]);
 /** Subcommands of a package manager that run a project's scripts or install its dependencies. */
 const SCRIPT_SUBS = new Set(["run", "run-script", "test", "t", "start", "stop", "restart", "ci", "clean-install", "install", "i", "add", "link", "rebuild", "build", "dev", "lint"]);
 /** Subcommands of pnpm, yarn and bun that work outside a checkout; any other runs a project script. */
-const RUNNER_SAFE = new Set(["create", "global", "help", "view", "info", "--version", "-v", "--help"]);
+const RUNNER_SAFE = new Set(["create", "global", "help", "view", "info"]);
 const EXECUTE_SUBS = new Set(["dlx", "exec", "x"]);
 const EXECUTORS = new Set(["npx", "bunx"]);
 const DEV_TOOLS = new Set(["tsx", "ts-node", "vitest", "jest", "mocha", "tsc", "eslint", "oxlint", "prettier", "biome", "playwright", "vite", "turbo", "nx", "lerna", "changeset"]);
@@ -59,20 +59,38 @@ const FILLER = new Set(["sure", "it", "a", "an", "the", "this", "that", "them", 
 const GO_SUBS = new Set(["run", "build", "test", "generate", "vet", "mod"]);
 const GIT_SUBS = new Set(["clone", "pull", "push", "fetch", "checkout", "switch", "commit", "add", "stash", "rebase", "merge", "reset", "restore", "status", "log", "diff", "branch", "worktree", "submodule", "tag", "cherry-pick"]);
 
-/** Where prose may start a command: the words above that are not also ordinary English. */
-const PROSE_HEAD = /(?<![\w./@-])(?:npm|pnpm|yarn|bun|npx|bunx|node|tsx|git|cargo)\s+\S[^\n]*/g;
+/** Where prose may start a command: the words above that are not also ordinary English. A start is read to the end of its clause. */
+const PROSE_HEAD = /(?<![\w./@-])(?:npm|pnpm|yarn|bun|npx|bunx|node|tsx|git)\s+\S/g;
 /** A clause ends at punctuation before a space or the end (so `x.mjs` stays whole), or at a joining word. */
 const CLAUSE_END = /[.,;:!?)](?=\s|$)|\s(?:and|then|or|so|to)\s/;
 const URL = /\b[a-z][\w+.-]*:\/\/\S+/gi;
 const CODE_SPAN = /`([^`\n]+)`/g;
-const REPO_PATH =
-  /(?<![\w./~@:-])(?:(?:\.\/)?(?:src|scripts|registry|packages|apps|\.github|node_modules)\/(?:[\w.@/-]*[\w@/-])?|(?:package(?:-lock)?\.json|pnpm-(?:lock|workspace)\.yaml|yarn\.lock|tsconfig(?:\.[\w-]+)?\.json|Makefile|Cargo\.toml|go\.mod|pyproject\.toml)(?![\w-]))/g;
+const REPO_PATH = /(?<![\w./~@:$-])(?:\.\/)?(?:src|scripts|registry|packages|apps|\.github|node_modules)\/(?:[\w.@/-]*[\w@/-])?/g;
+/** A repository's root files, a path only in a command: in prose they may be the person's own project's. */
+const ROOT_FILE = /(?<![\w./~@:$-])(?:package(?:-lock)?\.json|pnpm-(?:lock|workspace)\.yaml|yarn\.lock|tsconfig(?:\.[\w-]+)?\.json|Makefile|Cargo\.toml|go\.mod|pyproject\.toml)(?![\w-])/g;
+const SCRIPT_FILE = /\.(?:[cm]?[jt]sx?|py|sh|rb|pl|ps1)$/;
+/** Flags of a package manager that take a value, so the value is not read as its subcommand. */
+const VALUE_FLAGS = new Set(["-w", "--workspace", "--prefix", "-C", "--dir", "--cwd", "--filter", "-F"]);
 
+/** A relative word: not a flag, an absolute, home or `$VAR` path, a scope or a `jsr:`/`npm:` specifier. */
+const isRelative = (word: string) => !/^[-/~@$]|^[a-z]+:/i.test(word);
 /** A word that names a file in the repository rather than an installed thing: relative, with a slash or a script's extension. */
-const isRepoFile = (word: string) => !/^[-/~@]/.test(word) && (word.includes("/") || /\.(?:[cm]?[jt]sx?|py|sh|rb|pl|ps1)$/.test(word));
+const isRepoFile = (word: string) => isRelative(word) && (word.includes("/") || SCRIPT_FILE.test(word));
 
-/** What `npx` and its kin run: a dev tool, or a file of the repository. */
-const executesDev = (args: readonly string[]) => args.some((w) => DEV_TOOLS.has(w) || isRepoFile(w));
+/** The first word that is not a flag or a flag's value, and the words after it. */
+function subOf(args: readonly string[]): [string, string[]] {
+  for (let i = 0; i < args.length; i++) {
+    if (!args[i]!.startsWith("-")) return [args[i]!, args.slice(i + 1)];
+    if (VALUE_FLAGS.has(args[i]!)) i++;
+  }
+  return ["", []];
+}
+
+/** What `npx` and its kin run: a dev tool, or a file of the repository; the arguments after it are its own. */
+const executesDev = (args: readonly string[]) => {
+  const [pkg] = subOf(args);
+  return DEV_TOOLS.has(pkg) || isRepoFile(pkg);
+};
 
 /**
  * Whether one command, a single segment of a command line, needs a source checkout. `strict` reads it as a command field or a code span,
@@ -81,9 +99,9 @@ const executesDev = (args: readonly string[]) => args.some((w) => DEV_TOOLS.has(
 function isDevSegment(segment: string, strict: boolean): boolean {
   const words = segment.split(/\s+/).map((w) => w.replace(/^["']|["']$/g, "")).filter(Boolean);
   while (words[0] === "$" || /^\w+=/.test(words[0] ?? "")) words.shift();
-  const [head = "", sub = "", ...more] = words;
-  const rest = [sub, ...more];
-  const global = rest.includes("-g") || rest.includes("--global");
+  const [head = "", ...rest] = words;
+  const [sub, more] = subOf(rest);
+  const global = rest.some((w) => w === "-g" || w === "--global" || w === "--location=global");
   if (head.includes("/")) return isRepoFile(head);
   if (BUILD_TOOLS.has(head)) return !FILLER.has(sub);
   if (head === "git") return strict || GIT_SUBS.has(sub);
@@ -92,9 +110,11 @@ function isDevSegment(segment: string, strict: boolean): boolean {
   if (RUNNERS.has(head)) {
     if (EXECUTE_SUBS.has(sub)) return executesDev(more);
     if (global) return false;
-    return head === "npm" || !strict ? SCRIPT_SUBS.has(sub) : !RUNNER_SAFE.has(sub);
+    // Bare `yarn` installs a project's dependencies; `pnpm --version` names no project.
+    if (head === "npm" || !strict) return SCRIPT_SUBS.has(sub);
+    return sub ? !RUNNER_SAFE.has(sub) : !rest.length;
   }
-  if (INTERPRETERS.has(head)) return rest.some(isRepoFile);
+  if (INTERPRETERS.has(head)) return rest.some((w) => isRelative(w) && SCRIPT_FILE.test(w));
   return false;
 }
 
@@ -114,11 +134,13 @@ function devCommandsInText(text: string, asCommand: boolean): DevCommand[] {
   const add = (f: DevCommand) => void (found.some((g) => g.match.includes(f.match) || f.match.includes(g.match)) || found.push(f));
   if (asCommand) devSegments(plain, true).forEach(add);
   for (const span of plain.matchAll(CODE_SPAN)) devSegments(span[1]!, true).forEach(add);
-  for (const m of plain.replace(CODE_SPAN, " ").matchAll(PROSE_HEAD)) {
-    const clause = m[0].split(CLAUSE_END)[0]!.trim();
+  const prose = plain.replace(CODE_SPAN, " ");
+  for (const m of prose.matchAll(PROSE_HEAD)) {
+    const clause = prose.slice(m.index!).split(/\n/)[0]!.split(CLAUSE_END)[0]!.trim();
     if (isDevSegment(clause, false)) add({ match: clause, kind: "command" });
   }
   for (const m of plain.matchAll(REPO_PATH)) add({ match: m[0], kind: "path" });
+  if (asCommand) for (const m of plain.matchAll(ROOT_FILE)) add({ match: m[0], kind: "path" });
   return found;
 }
 
@@ -146,11 +168,11 @@ function walk(value: unknown, visit: (text: string, where: string, key: string, 
 
 /**
  * Every developer command and repository path in a value: a message, a `help --json`, an outcome, an error or a
- * checks report. `command` and `fix` strings are read as commands, everything else as prose; an object marked
+ * checks report. `command` and `fix` strings are read as commands, everything else but a step's `why` as prose; an object marked
  * `sourceCheckout: true` is skipped with all it holds. With `messagesOnly`, only what is under {@link MESSAGE_KEYS}.
  *
  * @claim "Every developer command and repository path in a value" registry/ouro/ax/dev-commands.test.mts verify:testExists(registry/ouro/ax/dev-commands.test.mts::walks a value, reads command and fix as commands, and skips what is marked sourceCheckout)
- * @claim "`command` and `fix` strings are read as commands, everything else as prose" registry/ouro/ax/dev-commands.test.mts verify:testExists(registry/ouro/ax/dev-commands.test.mts::walks a value, reads command and fix as commands, and skips what is marked sourceCheckout)
+ * @claim "`command` and `fix` strings are read as commands" registry/ouro/ax/dev-commands.test.mts verify:testExists(registry/ouro/ax/dev-commands.test.mts::walks a value, reads command and fix as commands, and skips what is marked sourceCheckout)
  *
  * @example
  * devCommandsIn({ next: [{ command: "npm run writes -- on", why: "Turn writes on" }] });
@@ -162,7 +184,7 @@ function devCommandsIn(value: unknown, options: DevCommandsOptions = {}): DevCom
     for (const f of devCommandsInText(text, COMMAND_KEYS.has(key))) out.push({ ...f, where, text });
   };
   walk(value, (text, where, key, marked) => {
-    if (marked) return;
+    if (marked || key === "why") return;
     if (!options.messagesOnly) return read(text, where, key);
     if (where.split(/[.[]/).some((part) => MESSAGE_KEYS.has(part))) read(text, where, key);
   });

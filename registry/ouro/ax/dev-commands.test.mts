@@ -30,7 +30,11 @@ test("finds developer commands and repository paths in a command and in prose", 
   assert.equal(prose("Fetch it with git pull."), "git pull");
   assert.equal(prose("Start it with node dist/main.js."), "node dist/main.js");
   assert.deepEqual(devCommandIn("The switch is in src/cli/writes.ts."), { match: "src/cli/writes.ts", kind: "path" });
-  assert.equal(prose("Edit package.json and retry."), "package.json");
+  assert.equal(command("cat package.json"), "package.json");
+  assert.equal(prose("This node can't write. Run npm run writes -- on."), "npm run writes -- on");
+  assert.equal(prose("Writes are off in this git repo. Run npm run writes -- on."), "npm run writes -- on");
+  assert.equal(command("npm --silent run writes -- on"), "npm --silent run writes -- on");
+  assert.equal(command("npm -w notes run writes -- on"), "npm -w notes run writes -- on");
   assert.equal(prose("See .github/workflows/ci.yml"), ".github/workflows/ci.yml");
   // A path inside a command is that command's finding, not a second one.
   assert.deepEqual(
@@ -42,10 +46,10 @@ test("finds developer commands and repository paths in a command and in prose", 
 });
 
 test("leaves alone what an installed tool runs, prose, global installs and web addresses", () => {
-  for (const text of ["notes sync", "notes doctor --json", "", "/usr/local/bin/notes sync", "~/bin/notes", "npm install -g @scope/notes", "pnpm add --global notes", "npm view notes", "pnpm dlx notes init", "npx @scope/notes init", "pnpm --version", "node --version", "deno", "go version", "make sure the file exists", "notes sync;"]) {
+  for (const text of ["notes sync", "notes doctor --json", "", "/usr/local/bin/notes sync", "~/bin/notes", "npm install -g @scope/notes", "pnpm add --global notes", "npm view notes", "pnpm dlx notes init", "npx @scope/notes init", "pnpm --version", "node --version", "deno", "go version", "make sure the file exists", "notes sync;", "npm --silent", "pnpm -C", "npm install --location=global notes", "npx @scope/notes import ./today.md", "npx notes init my-notes/", "pnpm dlx create-notes@latest notes/app", "deno run -A jsr:@scope/notes", "$HOME/.local/bin/notes sync", "python3 -m notes ./today.md"]) {
     assert.equal(command(text), null, text);
   }
-  for (const text of ["The git history is long.", "Every node is offline.", "pnpm is fast", "yarn is soft", "Make sure the file exists.", "tools/list returned nothing", "https://example.com/o/r/blob/main/src/x.ts", "Saved to ~/notes/src/today.md", "Open docs/guide.md"]) {
+  for (const text of ["The git history is long.", "Every node is offline.", "pnpm is fast", "yarn is soft", "Make sure the file exists.", "tools/list returned nothing", "https://example.com/o/r/blob/main/src/x.ts", "Saved to ~/notes/src/today.md", "Open docs/guide.md", 'Add "type": "module" to your package.json.', "Your cargo is ready for pickup."]) {
     assert.equal(prose(text), null, text);
   }
 });
@@ -72,6 +76,8 @@ test("walks a value, reads command and fix as commands, and skips what is marked
     devCommandsIn(outcome).map((f) => f.where),
     ["items[0].title", "next[0].command", "human.resume.command", "error.fix"],
   );
+  // A step's why says why, so the words in it are not a step.
+  assert.deepEqual(devCommandsIn({ command: "notes sync", why: "so git push works" }), []);
   assert.deepEqual(devCommandsIn("npm ci"), [{ match: "npm ci", kind: "command", where: "", text: "npm ci" }]);
   assert.deepEqual(devCommandsIn({ dev: { sourceCheckout: true, steps: ["npm run dev", { command: "make" }] } }), []);
   assert.deepEqual(sourceCheckoutTexts(outcome), ["pnpm dev", "Start the dev server"]);

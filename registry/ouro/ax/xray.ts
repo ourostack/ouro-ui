@@ -1133,16 +1133,19 @@ async function checkCli(ctx: Context) {
   // No message asks for a developer command or a repository path: help in full, and of the rest only what speaks to
   // the agent or the person (stderr, a failed call's text, and the next, human, error and fix fields of its JSON).
   {
-    const exempt = calls.flatMap((c) => {
+    // A step marked sourceCheckout in a call's --json lets the same command pass in that call's text, and nowhere else.
+    const twin = (c: { args: string[] }) => c.args.filter((a) => a !== "--json").join(" ");
+    const marked = calls.flatMap((c) => {
       const j = parseJson(c.stdout);
-      return j.ok ? sourceCheckoutTexts(j.value) : [];
+      return j.ok ? sourceCheckoutTexts(j.value).map((text) => [twin(c), text] as const) : [];
     });
     const found = new Map<string, string>();
     for (const c of calls) {
       const isHelp = c.args[0] === "help" || c.args.includes("--help");
       const j = parseJson(c.stdout);
+      const exempt = marked.filter(([key]) => key === twin(c)).map(([, text]) => text);
       const say = (where: string, match: string, text: string) => {
-        if (!exempt.some((e) => e.includes(match)) && !found.has(match)) found.set(match, `\`${clip(c.shown, 80)}\` ${where}: ${JSON.stringify(clip(text, 120))} asks for \`${match}\``);
+        if (!exempt.includes(match) && !found.has(match)) found.set(match, `\`${clip(c.shown, 80)}\` ${where}: ${JSON.stringify(clip(text, 120))} asks for \`${match}\``);
       };
       if (j.ok) for (const f of devCommandsIn(j.value, { messagesOnly: !isHelp })) say(f.where, f.match, f.text);
       const text = [c.stderr, ...(!j.ok && (isHelp || c.code !== 0) ? [c.stdout] : [])];
