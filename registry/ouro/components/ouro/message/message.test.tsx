@@ -2,7 +2,7 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -47,6 +47,8 @@ async function render(node: ReactNode) {
 
 // An inline picture: a path such as "/priya.png" would ask an app's dev server for its index page.
 const picture = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4AWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
+// WebKit emulates forced colors' media query but doesn't force the colors.
+const chromiumOnly = it.skipIf(server.browser !== "chromium");
 const bubbleOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!;
 
 let warn: ReturnType<typeof vi.spyOn>;
@@ -663,32 +665,40 @@ describe("Message chat", () => {
     expect(visible(plain!.querySelector("[data-ouro-message-author]")!)).toBe(true);
   });
 
-  it("keeps both filled bubbles' edges under forced colors, and underlines a link in the user's own", async () => {
+  const bubblesWithLinks = () =>
+    render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill">
+          <a href="#theirs">Their notes</a>
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor">
+          <a href="#mine">My notes</a>
+        </Message>
+      </>,
+    );
+  const bubblesOf = (host: HTMLElement) => [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')].map((m) => bubbleOf(m));
+  const seen = (bubble: HTMLElement) => getComputedStyle(bubble).borderTopColor !== "rgba(0, 0, 0, 0)";
+
+  it("underlines a link in the user's own filled bubble, and gives both filled bubbles a clear edge", async () => {
+    const { host } = await bubblesWithLinks();
+    const [other, mine] = bubblesOf(host);
+    // The text's own color is the link's in the user's bubble, so the underline says it is one.
+    expect(getComputedStyle(mine!.querySelector("a")!).textDecorationLine).toContain("underline");
+    const edge = (bubble: HTMLElement) => {
+      const style = getComputedStyle(bubble);
+      return ["top", "right", "bottom", "left"].every((side) => parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 && style.getPropertyValue(`border-${side}-style`) === "solid");
+    };
+    expect([other, mine].every((b) => edge(b!))).toBe(true);
+    expect([other, mine].some((b) => seen(b!))).toBe(false);
+  });
+
+  chromiumOnly("keeps both filled bubbles' edges under forced colors", async () => {
     try {
-      const { host } = await render(
-        <>
-          <Message variant="chat" role="assistant" name="Mara Quill">
-            <a href="#theirs">Their notes</a>
-          </Message>
-          <Message variant="chat" role="user" name="Priya Okafor">
-            <a href="#mine">My notes</a>
-          </Message>
-        </>,
-      );
-      const [other, mine] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')].map((m) => bubbleOf(m));
-      // The text's own color is the link's in the user's bubble, so the underline says it is one.
-      expect(getComputedStyle(mine!.querySelector("a")!).textDecorationLine).toContain("underline");
-      const edge = (bubble: HTMLElement) => {
-        const style = getComputedStyle(bubble);
-        return ["top", "right", "bottom", "left"].every((side) => parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 && style.getPropertyValue(`border-${side}-style`) === "solid");
-      };
-      const seen = (bubble: HTMLElement) => getComputedStyle(bubble).borderTopColor !== "rgba(0, 0, 0, 0)";
-      expect([other, mine].every((b) => edge(b!))).toBe(true);
-      expect([other, mine].some((b) => seen(b!))).toBe(false);
+      const { host } = await bubblesWithLinks();
       await commands.emulateMedia({ forcedColors: "active" });
       expect(matchMedia("(forced-colors: active)").matches).toBe(true);
       // Forced colors drop the fills and draw the border in the system's text color, so each bubble keeps its edge.
-      await expect.poll(() => [other, mine].every((b) => seen(b!))).toBe(true);
+      await expect.poll(() => bubblesOf(host).every((b) => seen(b))).toBe(true);
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
