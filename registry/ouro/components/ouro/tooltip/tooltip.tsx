@@ -9,14 +9,13 @@ import {
   floatingPlacementWarnings,
   floatingPortalClass,
   floatingSide,
-  TooltipsHidden,
   type FloatingAlign,
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { PortalScope, TooltipsHidden, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 
 export type { FloatingAlign as TooltipAlign, FloatingSide as TooltipSide } from "@/registry/ouro/lib/ouro/floating";
 

@@ -6,7 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Tooltip, type TooltipProps } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
-import { TooltipsHidden } from "@/registry/ouro/lib/ouro/floating";
+import { TooltipsHidden } from "@/registry/ouro/lib/ouro/portal-container";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 

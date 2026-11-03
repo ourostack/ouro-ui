@@ -9,7 +9,7 @@ import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { TooltipsHidden } from "@/registry/ouro/lib/ouro/floating";
+import { TooltipsHidden } from "@/registry/ouro/lib/ouro/portal-container";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
