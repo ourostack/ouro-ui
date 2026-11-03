@@ -124,8 +124,8 @@ const titleWidths = ["w-3/5", "w-2/5", "w-1/2", "w-2/3", "w-1/3"] as const;
 const detailWidths = ["w-4/5", "w-3/4", "w-11/12", "w-2/3", "w-5/6"] as const;
 
 type Shape = "rect" | "text" | "circle" | "row" | "card";
-const shapeNames: readonly Shape[] = ["rect", "text", "circle", "row", "card"];
 const sizesFor = { rect: {}, text: textSizes, circle: avatarSizes, row: rowSizes, card: cardSizes } as const;
+const shapeNames = Object.keys(sizesFor);
 
 const muiVariants: Readonly<Record<string, Shape>> = { circular: "circle", text: "text", rectangular: "rect", rounded: "rect" };
 
@@ -177,7 +177,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
     props as SkeletonCommonProps &
       Omit<HTMLAttributes<HTMLDivElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
-  const shape: Shape = (shapeNames as readonly string[]).includes(shapeProp) ? (shapeProp as Shape) : "rect";
+  const shape: Shape = shapeNames.includes(shapeProp) ? (shapeProp as Shape) : "rect";
   const sizes: object = sizesFor[shape];
   const sizeKnown = sizeProp === undefined || Object.hasOwn(sizes, sizeProp);
   const size = sizeKnown ? sizeProp : undefined;
