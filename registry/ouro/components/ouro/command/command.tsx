@@ -687,7 +687,7 @@ function SearchingLabel({ label }: { label: string }): JSX.Element | null {
  * The list of results, hidden while nothing matches: an empty listbox says nothing, and the
  * empty state beside it says why.
  */
-/** Rows in a result's shape under the results shown; none while nothing matches, where the empty state says so. */
+/** Rows in a result's shape under the results shown, while some match; otherwise the empty state speaks. */
 function LoadingRows(): JSX.Element | null {
   if (Autocomplete.useFilteredItems().length === 0) return null;
   return (
