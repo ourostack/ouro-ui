@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, renderPage, setScheme } from "../../../test/render";
+import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "./copy";
+
+await loadPageCode("/nautilus/");
 
 // Chapter I (site-design.md, slice S2): its words read at grade 6 or under, it renders in the page
 // with each control marked, and the shipyard and the articles do what they say. The end-to-end spec
