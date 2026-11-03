@@ -11,9 +11,9 @@ import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 ## Example
 
 ```tsx
-<ul aria-busy="true" aria-label="Messages">
+<div aria-busy="true" aria-label="Messages" role="group">
   <Skeleton shape="row" count={6} />
-</ul>
+</div>
 <Skeleton shape="text" size="sm" lines={3} />
 <Skeleton shape="circle" size="lg" />
 ```
