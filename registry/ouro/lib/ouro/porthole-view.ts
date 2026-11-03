@@ -198,6 +198,14 @@ interface PortholeView {
   heartbeatAgeMs: number | null;
   /** Whether the heartbeat is current, and so whether the snapshot can be trusted as live. */
   alive: boolean;
+  /**
+   * Whether every area is fresh and the heartbeat current, whatever item is shown.
+   *
+   * @claim "Whether every area is fresh" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeStatus > says whether the data is fresh and the heartbeat alive, whatever is shown, as of the clock it was judged at)
+   */
+  fresh: boolean;
+  /** The `now` the view was judged at. */
+  asOf: number;
   /** What is shown (an item's id, `rest` or `unknown`) and why it wins. */
   priority: { shown: string; why: string };
   /**
@@ -214,12 +222,42 @@ interface PortholeView {
 /** The agent read of the status spot, the same JSON a CLI status command prints. */
 interface PortholeStatusRead {
   version: typeof PORTHOLE_SNAPSHOT_VERSION;
+  /** The `now` the view was judged at, in ms since the epoch. */
+  asOf: number;
   state: PortholeStatus;
   headline: string;
-  areas: { id: string; lastVerifiedAt: number | null; age: string | null; ageMs: number | null; troubleSince: number | null }[];
+  /**
+   * Whether every area is fresh and the heartbeat current, whatever item is shown.
+   *
+   * @claim "Whether every area is fresh" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeStatus > says whether the data is fresh and the heartbeat alive, whatever is shown, as of the clock it was judged at)
+   */
+  fresh: boolean;
+  /** Whether the heartbeat is current, judged at `asOf`. */
+  alive: boolean;
   heartbeatAt: number;
+  /** Ms from the last beat to `asOf`, null when it cannot be checked. */
+  heartbeatAgeMs: number | null;
+  areas: {
+    id: string;
+    lastVerifiedAt: number | null;
+    age: string | null;
+    ageMs: number | null;
+    troubleSince: number | null;
+    troubleMs: number | null;
+  }[];
   priority: { shown: string; why: string };
-  shown: { id: string; priority: PortholePriority; label: string; detail: string[]; progress: number | null; action: string | null } | null;
+  /**
+   * The item shown. `action` and `actionLabel` are the person's action, by id and by its words, for the person to press.
+   */
+  shown: {
+    id: string;
+    priority: PortholePriority;
+    label: string;
+    detail: string[];
+    progress: number | null;
+    action: string | null;
+    actionLabel: string | null;
+  } | null;
 }
 
 /**
@@ -280,7 +318,7 @@ function usable(item: PortholeItem): boolean {
 
 // Most urgent first; on a tie the newest `since`, then the lower id, so the order sent does not matter.
 function compare(a: PortholeItem, b: PortholeItem): number {
-  return rank[a.priority] - rank[b.priority] || b.since - a.since || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  return rank[a.priority] - rank[b.priority] || b.since - a.since || (a.id < b.id ? -1 : 1);
 }
 
 /**
@@ -360,7 +398,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
 
   const items: PortholeItem[] = readable && Array.isArray(snapshot.items) ? snapshot.items.filter(usable).sort(compare) : [];
   const top = items[0] ?? null;
-  const ties = items.filter((item) => item.priority === top?.priority).length;
+  const ties = (priority: PortholePriority) => items.filter((item) => item.priority === priority).length;
 
   const undated = areas.find((area) => area.ageMs === null);
   const oldest = undated || areas.length === 0 ? null : areas.reduce((a, b) => (b.ageMs! > a.ageMs! ? b : a));
@@ -383,7 +421,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     state = top.priority as PortholeState;
     item = top;
     text = top.label;
-    why = `"${top.id}" ${whyOf[top.priority]}${ties > 1 ? `, and is the newest of ${ties} ${top.priority} items` : ""}`;
+    why = `"${top.id}" ${whyOf[top.priority]}${ties(top.priority) > 1 ? `, and is the newest of ${ties(top.priority)} ${top.priority} items` : ""}`;
   } else if (!alive) {
     state = "unknown";
     text = words.unknown;
@@ -411,7 +449,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     if (top !== null && allFresh) {
       item = top;
       text = top.label;
-      why = `"${top.id}" ${whyOf.rest}${ties > 1 ? `, and is the newest of ${ties} rest items` : ""}; ${restWhy}`;
+      why = `"${top.id}" ${whyOf.rest}${ties(top.priority) > 1 ? `, and is the newest of ${ties(top.priority)} rest items` : ""}; ${restWhy}`;
     } else {
       text = allFresh ? words.fresh : words.stale(age(oldestAgeMs!));
       why = top === null ? `Nothing is under way, and ${restWhy}` : `The age line outranks "${top.id}" while not every area is fresh: ${restWhy}`;
@@ -456,6 +494,8 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     heartbeatAt,
     heartbeatAgeMs,
     alive,
+    fresh: alive && areas.length > 0 && areas.every((area) => area.fresh),
+    asOf: now,
     priority: { shown: item?.id ?? (state === "unknown" ? "unknown" : "rest"), why },
     nextChangeAt,
   };
@@ -484,10 +524,21 @@ function portholeStatus(view: PortholeView): PortholeStatusRead {
   const item = view.item;
   return {
     version: PORTHOLE_SNAPSHOT_VERSION,
+    asOf: view.asOf,
     state: view.status,
     headline: view.text,
-    areas: view.areas.map((area) => ({ id: area.id, lastVerifiedAt: area.lastVerifiedAt, age: area.age, ageMs: area.ageMs, troubleSince: area.troubleSince })),
+    fresh: view.fresh,
+    alive: view.alive,
     heartbeatAt: view.heartbeatAt,
+    heartbeatAgeMs: view.heartbeatAgeMs,
+    areas: view.areas.map((area) => ({
+      id: area.id,
+      lastVerifiedAt: area.lastVerifiedAt,
+      age: area.age,
+      ageMs: area.ageMs,
+      troubleSince: area.troubleSince,
+      troubleMs: area.troubleMs,
+    })),
     priority: { ...view.priority },
     shown:
       item === null
@@ -499,6 +550,7 @@ function portholeStatus(view: PortholeView): PortholeStatusRead {
             detail: [...(item.detail ?? [])],
             progress: finite(item.progress) ? Math.min(1, Math.max(0, item.progress)) : null,
             action: item.action?.id ?? null,
+            actionLabel: item.action?.label ?? null,
           },
   };
 }

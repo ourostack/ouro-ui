@@ -251,6 +251,15 @@ describe("portholeView", () => {
     expect(view(snap([], { chats: area(NOW - 4_900, null) })).state).toBe("rest-fresh");
   });
 
+  it("names a troubled area only when its trouble reached troubleAfterMs", () => {
+    expect(view(snap([], { chats: area(NOW, NOW - SECOND), calendar: area(NOW - 3 * MINUTE) })).priority.why).toBe(
+      'Nothing is under way, and "calendar" was verified longest ago, past 60 s',
+    );
+    expect(view(snap([], { calendar: area(NOW - 3 * MINUTE), chats: area(NOW, NOW) }), NOW, { troubleAfterMs: 0 }).priority.why).toBe(
+      'Nothing is under way, and "chats" has been in trouble for less than a minute, and "calendar" was verified longest ago',
+    );
+  });
+
   it("with troubleAfterMs at 0, any trouble stops fresh at once and none leaves it fresh", () => {
     expect(view(snap([], { chats: area(NOW - SECOND) }), NOW, { troubleAfterMs: 0 })).toMatchObject({ state: "rest-fresh", priority: { why: "Nothing is under way, and every area was verified within 60 s" } });
     expect(view(snap([], { chats: area(NOW - SECOND, NOW) }), NOW, { troubleAfterMs: 0 })).toMatchObject({
@@ -378,6 +387,8 @@ describe("portholeView", () => {
       expect(at(NOW - 2 * HOUR - 10 * MINUTE)).toBe(NOW + 50 * MINUTE);
       expect(at(NOW - DAY - 3 * HOUR)).toBe(NOW + 21 * HOUR);
       expect(at(NOW - 2 * MINUTE)).toBe(NOW + MINUTE);
+      expect(at(NOW - HOUR)).toBe(NOW + HOUR);
+      expect(at(NOW - DAY)).toBe(NOW + DAY);
     });
 
     it("with trouble, is the moment the trouble reaches troubleAfterMs, then each minute it lasts", () => {
@@ -406,17 +417,33 @@ describe("portholeView", () => {
 });
 
 describe("portholeStatus", () => {
+  it("says whether the data is fresh and the heartbeat alive, whatever is shown, as of the clock it was judged at", () => {
+    const at = (snapshot: PortholeSnapshot, beat: number) => {
+      const { fresh, alive, heartbeatAgeMs, asOf } = portholeStatus(portholeView(snapshot, beat, NOW + 7));
+      return { fresh, alive, heartbeatAgeMs, asOf };
+    };
+    expect(at(snap([item("sync", "working")]), NOW)).toEqual({ fresh: true, alive: true, heartbeatAgeMs: 7, asOf: NOW + 7 });
+    expect(at(snap([], { chats: area(NOW - 2 * MINUTE) }), NOW)).toEqual({ fresh: false, alive: true, heartbeatAgeMs: 7, asOf: NOW + 7 });
+    expect(at(snap(), NOW - MINUTE)).toEqual({ fresh: false, alive: false, heartbeatAgeMs: MINUTE + 7, asOf: NOW + 7 });
+    expect(at(snap([], {}), NOW)).toMatchObject({ fresh: false, alive: true });
+    expect(at(snap([], { chats: area(NOW), calendar: area(NOW - 2 * MINUTE) }), NOW).fresh).toBe(false);
+  });
+
   it("reads as versioned JSON with needs-person for an action, and survives a round trip", () => {
     const action = item("update", "action", NOW, { label: "Restart to update", detail: ["Version 2"], action: { id: "restart", label: "Restart" }, progress: 2 });
     const read = portholeStatus(view(snap([action], { chats: area(NOW - 2 * MINUTE, NOW - MINUTE) })));
     expect(read).toEqual({
       version: 1,
+      asOf: NOW,
       state: "needs-person",
       headline: "Restart to update",
-      areas: [{ id: "chats", lastVerifiedAt: NOW - 2 * MINUTE, age: "2 min", ageMs: 2 * MINUTE, troubleSince: NOW - MINUTE }],
+      fresh: false,
+      alive: true,
       heartbeatAt: NOW,
+      heartbeatAgeMs: 0,
+      areas: [{ id: "chats", lastVerifiedAt: NOW - 2 * MINUTE, age: "2 min", ageMs: 2 * MINUTE, troubleSince: NOW - MINUTE, troubleMs: MINUTE }],
       priority: { shown: "update", why: '"update" waits for the person, which outranks every other item' },
-      shown: { id: "update", priority: "action", label: "Restart to update", detail: ["Version 2"], progress: 1, action: "restart" },
+      shown: { id: "update", priority: "action", label: "Restart to update", detail: ["Version 2"], progress: 1, action: "restart", actionLabel: "Restart" },
     });
     expect(JSON.parse(JSON.stringify(read))).toEqual(read);
   });
@@ -430,7 +457,7 @@ describe("portholeStatus", () => {
     expect(progress(-1)).toBe(0);
     expect(progress(undefined)).toBeNull();
     expect(progress(Number.NaN)).toBeNull();
-    expect(portholeStatus(view(snap([item("sync", "working")]))).shown).toEqual({ id: "sync", priority: "working", label: "sync label", detail: [], progress: null, action: null });
+    expect(portholeStatus(view(snap([item("sync", "working")]))).shown).toEqual({ id: "sync", priority: "working", label: "sync label", detail: [], progress: null, action: null, actionLabel: null });
   });
 
   it("returns a read the caller can change without changing the view", () => {
