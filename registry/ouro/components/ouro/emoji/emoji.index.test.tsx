@@ -49,7 +49,7 @@ describe("catalogueIndex", () => {
       { id: "smileys", label: "Smileys", items: smileys },
       { id: "people", label: "People", items: people },
     ];
-    // A new object around the same categories, around the same item arrays, and around new arrays of the same emoji.
+    // A new object around the same categories, and around new arrays of the same emoji.
     const fresh = [wrap(categories), ...Array.from({ length: 50 }, () => wrap(categories)), wrap(copyCategories(categories)), wrap(copyCategories(categories))];
     expect(buildsOf(fresh)).toBe(1);
     const index = catalogueIndex(fresh[0]!);
@@ -81,7 +81,7 @@ describe("catalogueIndex", () => {
     expect(catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }], "contoso-1"))).not.toBe(first);
   });
 
-  it("finds a fresh catalogue's index without reading its emoji again, and the same object's without reading anything", () => {
+  it("finds a fresh catalogue's index reading each emoji once, and the same object's without reading anything", () => {
     let reads = 0;
     const counted = (items: EmojiItem[]) =>
       new Proxy(items, {
@@ -107,10 +107,41 @@ describe("catalogueIndex", () => {
     // The same object: no look at its categories at all.
     expect(catalogueIndex(once)).toBe(index);
     expect(looks).toBe(0);
-    // A new object around the same item arrays: a lookup per category, and no emoji read.
+    // A new object around the same item arrays: a lookup per emoji, each read once, and no build, which would read them again.
     expect(catalogueIndex(wrap(categories))).toBe(index);
+    expect(reads).toBe(80);
+    reads = 0;
     expect(catalogueIndex(wrap(categories.map((category) => ({ ...category }))))).toBe(index);
-    expect(reads).toBe(0);
+    expect(reads).toBe(80);
+  });
+
+  it("finds an emoji the app pushed into the same array, in a fresh catalogue", () => {
+    const custom = freshEmoji();
+    const categories = [{ id: "custom", label: "Contoso", items: custom }];
+    const before = catalogueIndex(wrap(categories));
+    // An array the app changes in place, as a reactive store's array keeps its identity.
+    const [added] = freshEmoji(1);
+    custom.push(added!);
+    const after = wrap(categories);
+    expect(catalogueIndex(after)).not.toBe(before);
+    expect(catalogueIndex(after).byId.get(added!.id)).toEqual({ item: added, tone: "default" });
+    expect(splitEmojiText(`hi :${added!.shortcodes![0]}:`, after)).toEqual(["hi ", { item: added, tone: "default", source: `:${added!.shortcodes![0]}:` }]);
+    // Taken out again, the emoji is gone from the next catalogue's index.
+    custom.pop();
+    expect(catalogueIndex(wrap(categories))).toBe(before);
+    expect(catalogueIndex(wrap(categories)).byId.has(added!.id)).toBe(false);
+  });
+
+  it("keeps the ids used most recently, letting go of the one used longest ago", () => {
+    const copy = (id: string) => wrap([{ id: "all", label: "All", items: freshEmoji(1) }], id);
+    const first = catalogueIndex(copy("busy"));
+    const second = catalogueIndex(copy("quiet"));
+    for (let id = 3; id <= 16; id += 1) catalogueIndex(copy(`other-${id}`));
+    // Sixteen ids now. Using the first again keeps it, so the seventeenth lets the second go instead.
+    expect(catalogueIndex(copy("busy"))).toBe(first);
+    catalogueIndex(copy("other-17"));
+    expect(catalogueIndex(copy("busy"))).toBe(first);
+    expect(catalogueIndex(copy("quiet"))).not.toBe(second);
   });
 
   it("stays quiet for many different catalogues, and for equivalent fresh ones however often an app makes them", () => {

@@ -136,17 +136,25 @@ function pathOf(steps: readonly object[]): IndexPath {
 }
 
 /**
- * The indexes of catalogues an app named with an `id`, at most `NAMED` of them, the oldest let go first.
+ * The indexes of catalogues an app named with an `id`, at most `NAMED` of them, the one used
+ * longest ago let go first.
  *
- * @claim "at most `NAMED` of them" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between catalogues with the same id, and keeps the most recent ids)
+ * @claim "the one used longest ago let go first" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > keeps the ids used most recently, letting go of the one used longest ago)
  */
 const named = new Map<string, CatalogueIndex>();
 const NAMED = 16;
 
-/** When a set of emoji, named by their ids, was built in the last `REBUILD_SPAN` milliseconds, in development only. */
-const builds = new Map<string, number[]>();
+/** The builds of the last `REBUILD_SPAN` milliseconds, oldest first: when, and a hash of their emoji's ids. In development only. */
+const builds: { at: number; emoji: number }[] = [];
 const REBUILD_SPAN = 1000;
 const REBUILD_LIMIT = 3;
+
+/** A short hash of text, so a build's record holds a number rather than its emoji's ids. */
+function hashOf(text: string): number {
+  let hash = 0x811c9dc5;
+  for (const char of text) hash = Math.imul(hash ^ char.codePointAt(0)!, 0x01000193);
+  return hash;
+}
 
 /**
  * Warns once, in development, when the index of the same emoji is built more than
@@ -158,14 +166,13 @@ const REBUILD_LIMIT = 3;
  */
 function noteBuild(items: readonly EmojiItem[]): void {
   const now = Date.now();
-  const key = items.map((item) => item.id).join();
-  // Stryker disable next-line ArrayDeclaration: the filter keeps only recent times, so anything else the empty list starts with is dropped.
-  const times = (builds.get(key) ?? []).filter((time) => time > now - REBUILD_SPAN);
-  times.push(now);
-  builds.set(key, times);
+  const emoji = hashOf(items.map((item) => item.id).join());
+  builds.push({ at: now, emoji });
+  // Only the last second's builds are kept, so the record stays as small as the builds in it.
+  while (builds[0]!.at <= now - REBUILD_SPAN) builds.shift();
   /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
   if (process.env.NODE_ENV !== "production") {
-    if (times.length > REBUILD_LIMIT) {
+    if (builds.filter((build) => build.emoji === emoji).length > REBUILD_LIMIT) {
       devWarn(
         "EmojiCatalogue",
         `the index of the same emoji was built more than ${REBUILD_LIMIT} times within a second, each time for a catalogue of new emoji objects. Each build maps every emoji and compiles two patterns of their text, so drawing a conversation this way can take seconds`,
@@ -177,23 +184,25 @@ function noteBuild(items: readonly EmojiItem[]): void {
 
 /**
  * The catalogue's index, built on first use and kept while the catalogue's emoji live. A fresh
- * catalogue object with the same emoji shares it: one with the same `id`, or else one whose
- * categories hold the same `items` arrays (a lookup per category), or the same emoji objects in
- * the same order (a lookup per emoji). @internal
+ * catalogue object with the same emoji shares it: one with the same `id`, or else one holding
+ * the same emoji objects in the same order, found with a lookup per emoji, so an array the app
+ * changed in place counts as new. An emoji object edited in place (its shortcodes or text)
+ * keeps the index it had, so an app that edits emoji that way passes a new `id` or new emoji
+ * objects. @internal
  *
  * @claim "A fresh catalogue object with the same emoji shares it" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
+ * @claim "an array the app changed in place counts as new" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > finds an emoji the app pushed into the same array, in a fresh catalogue)
  */
 function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
-  let index = indexes.get(catalogue) ?? named.get(catalogue.id!);
-  if (!index) {
-    const arrays = pathOf(catalogue.categories.map((category) => category.items));
-    const emoji = arrays.index ? arrays : pathOf(catalogue.categories.flatMap((category) => category.items));
-    index = emoji.index ?? buildCatalogueIndex(catalogue);
-    arrays.index = emoji.index = index;
-    if (catalogue.id !== undefined) {
-      named.set(catalogue.id, index);
-      if (named.size > NAMED) named.delete(named.keys().next().value!);
-    }
+  const known = indexes.get(catalogue);
+  if (known) return known;
+  const { id } = catalogue;
+  const index = named.get(id!) ?? (pathOf(catalogue.categories.flatMap((category) => category.items)).index ??= buildCatalogueIndex(catalogue));
+  if (id !== undefined) {
+    // Most recently used last, so the first is the one to let go.
+    named.delete(id);
+    named.set(id, index);
+    if (named.size > NAMED) named.delete(named.keys().next().value!);
   }
   indexes.set(catalogue, index);
   return index;
