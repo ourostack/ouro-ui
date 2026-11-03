@@ -157,8 +157,8 @@
     },
     {
       "file": "registry/ouro/check/check.ts",
-      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measure skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
-      "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe and --no-measure flags' names"
+      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
+      "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe and --no-measured flags' names"
     },
     {
       "file": "registry/ouro/check/check.ts",
@@ -316,6 +316,11 @@
       "match": "^scripts/check/.*\\.test\\.mts$",
       "job": "ci",
       "reason": "scripts/check.test.mjs, in pnpm test:scripts, runs Ouro check's Node tests with coverage"
+    },
+    {
+      "match": "^scripts/images/.*\\.test\\.mts$",
+      "job": "ci",
+      "reason": "scripts/images.test.mjs, in pnpm test:scripts, runs Ouro images' tests with coverage"
     },
     {
       "match": "\\.test\\.m[jt]s$",

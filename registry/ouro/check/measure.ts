@@ -95,7 +95,16 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
   const m = (window as unknown as { __ouroCheckMeasures: Measures }).__ouroCheckMeasures;
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
-  const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
+  // Whether an element, or one around it, opts out of `rule` with a reason. A reason of spaces is no reason; the page's
+  // attributes are read, never rewritten.
+  const reasonOf = (el: Element, name: string) => (el.getAttribute(name) ?? "").trim();
+  const optedOut = (el: Element, rule: string) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const rules = reasonOf(n, "data-ouro-allow").split(/\s+/);
+      if ((rules.includes(rule) || rules.includes("all")) && reasonOf(n, "data-ouro-allow-why")) return true;
+    }
+    return false;
+  };
   const words = (el: Element) => (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ");
   const name = (el: Element) => {
     const w = words(el);
@@ -105,7 +114,7 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     const found = node instanceof Element ? node : (node?.parentElement ?? null);
     // Content that has left the page since is named as the page, and pictured as the screen.
     const el = found?.isConnected ? found : document.body;
-    if (el.closest(`[data-ouro-allow~="${rule}"]${why}, [data-ouro-allow~="all"]${why}`)) return;
+    if (optedOut(el, rule)) return;
     counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
     const ref = `m${counter.__ouroCheckRef}`;
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${ref}`.trim());
@@ -120,8 +129,8 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
 
 // What inp never presses, even when listed, nor clicks inside: a control with a destructive tone (Ouro's and shadcn's
 // destructive classes, or data-tone or data-variant "destructive"), one marked data-ouro-check-no-press, a link, whatever
-// its role, which would leave the page, a form's submit button, inside the form or tied to it by its form attribute,
-// which would send it, and one allowed the rule with a reason.
+// its role, which would leave the page, and a form's submit button, inside the form or tied to it by its form attribute,
+// which would send it.
 const NEVER_PRESS = [
   "a[href]",
   "area[href]",
@@ -133,7 +142,6 @@ const NEVER_PRESS = [
   'button[form]:not([type="button"]):not([type="reset"])',
   'input[type="submit"]',
   'input[type="image"]',
-  ...["inp", "all"].map((rule) => `[data-ouro-allow~="${rule}"][data-ouro-allow-why]:not([data-ouro-allow-why=""])`),
 ].join(", ");
 
 // Marks the first `limit` controls listed for pressing, shown and enabled, and names each: the ones ouro-check.json's
@@ -141,15 +149,23 @@ const NEVER_PRESS = [
 // says, on whatever server the app talks to. Never one that `never` (NEVER_PRESS) matches, or inside one.
 function markPressables({ limit, press, never }: { limit: number; press: string[]; never: string }): Pressable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
-  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
-  for (const el of document.querySelectorAll("[data-ouro-allow-why]")) el.setAttribute("data-ouro-allow-why", el.getAttribute("data-ouro-allow-why")!.trim());
+  // Whether an element, or one around it, opts out of inp with a reason. A reason of spaces is no reason; the page's
+  // attributes are read, never rewritten.
+  const reasonOf = (el: Element, name: string) => (el.getAttribute(name) ?? "").trim();
+  const optedOut = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const rules = reasonOf(n, "data-ouro-allow").split(/\s+/);
+      if ((rules.includes("inp") || rules.includes("all")) && reasonOf(n, "data-ouro-allow-why")) return true;
+    }
+    return false;
+  };
   const words = (el: Element) => (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ");
   const name = (el: Element) => {
     const w = words(el);
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}${w ? ` "${w.slice(0, 40)}${w.length > 40 ? "…" : ""}"` : ""}`;
   };
   const pressable = (el: Element) => {
-    if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(never)) return false;
+    if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(never) || optedOut(el)) return false;
     const r = el.getBoundingClientRect();
     return r.width >= 2 && r.height >= 2 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   };

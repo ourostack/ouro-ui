@@ -35,7 +35,7 @@ inputs:
     description: The waivers and budgets file. Empty for ouro-check.json when it exists.
     default: ""
   args:
-    description: Further options for check.ts, such as --no-axe, --no-measure or --ready-event app:drawn.
+    description: Further options for check.ts, such as --no-axe, --no-measured or --ready-event app:drawn.
     default: ""
   script:
     description: Where check.ts is.

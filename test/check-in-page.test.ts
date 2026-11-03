@@ -206,13 +206,47 @@ describe("findSizeIssues: broken-image", () => {
 });
 
 describe("findSizeIssues: long-lines", () => {
-  it("finds prose whose lines average more than the limit, and marks an element once per finding", async () => {
+  const prose = (measure: string) => ({ measures: [{ selector: null, measure }] });
+
+  it("finds nothing without a declared measure, however long the lines run", async () => {
+    render(`<p style="width:2000px">${LONG} ${LONG}</p>`);
+    expect(rules(await findSizeIssues())).not.toContain("long-lines");
+  });
+
+  it("with 100 chars on the prose, finds prose whose lines average more than 100 characters, as the rule always counted, and marks an element once per finding", async () => {
     render(`<p id="wide" style="width:2000px;white-space:nowrap;overflow:hidden">${LONG}</p>`);
-    const issues = await findSizeIssues({ maxChars: 100 });
+    const issues = await findSizeIssues(prose("100 chars"));
     expect(rules(issues)).toContain("long-lines");
     const long = issues.find((issue) => issue.rule === "long-lines")!;
     expect(long.detail).toBe(`about ${LONG.length} characters a line (keep to 100)`);
     expect(document.getElementById("wide")!.getAttribute("data-ouro-check-ref")!.split(" ").length).toBe(issues.filter((i) => i.element.startsWith("p#wide")).length);
+  });
+
+  it("holds the elements a selector names to a measure in px, and leaves the rest alone", async () => {
+    render(`
+      <div class="chat"><p id="wide" style="width:1000px">${LONG} <b>${LONG}</b></p><p style="width:700px">${LONG} ${LONG}</p></div>
+      <p style="width:1600px">${LONG} ${LONG}</p>`);
+    const issues = (await findSizeIssues({ measures: [{ selector: ".chat p", measure: " 800px " }] })).filter((issue) => issue.rule === "long-lines");
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#wide"]);
+    expect(issues[0]!.detail).toMatch(/^lines up to (9\d\d|1000)px wide \(measure 800px\)$/);
+    // A selector holds what it names, a container of paragraphs included.
+    host.remove();
+    render(`<div class="message" style="width:1000px"><p>${LONG} ${LONG}</p><p>Short.</p></div>`);
+    expect(rules(await findSizeIssues({ measures: [{ selector: ".message", measure: "800px" }] })).filter((rule) => rule === "long-lines")).toEqual(["long-lines"]);
+  });
+
+  it("holds prose to a measure in ch, the width of so many zeros in its own font", async () => {
+    // A font feature empties the font shorthand; the measure still reads the element's own font, not the canvas's 10px.
+    render(`<p id="wide" style="width:1200px;font-size:16px">${LONG} ${LONG}</p><p style="width:300px;font-size:16px">${LONG}</p><p style="width:640px;font-size:16px;font-feature-settings:'tnum' on;font-variant-numeric:tabular-nums">${LONG} ${LONG}</p>`);
+    const issues = (await findSizeIssues(prose("75ch"))).filter((issue) => issue.rule === "long-lines");
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#wide"]);
+    expect(issues[0]!.detail).toMatch(/^lines up to \d+px wide \(measure 75ch\)$/);
+  });
+
+  it("checks an element two measures hold against the first only", async () => {
+    render(`<p id="wide" style="width:1800px">${LONG} ${LONG}</p>`);
+    const issues = await findSizeIssues({ measures: [{ selector: "#wide", measure: "1900px" }, { selector: null, measure: "100 chars" }] });
+    expect(issues.filter((issue) => issue.rule === "long-lines")).toEqual([]);
   });
 
   it("passes short lines, short text, code, tables, navigation and allowed prose", async () => {
@@ -225,7 +259,7 @@ describe("findSizeIssues: long-lines", () => {
       <p style="width:2000px">A <div>block</div> inside ${LONG}</p>
       <p style="width:2000px" hidden>${LONG}</p>
       <p style="width:2000px" data-ouro-allow="long-lines" data-ouro-allow-why="a one-line ticker">${LONG}</p>`);
-    expect(rules(await findSizeIssues())).not.toContain("long-lines");
+    expect(rules(await findSizeIssues(prose("100 chars")))).not.toContain("long-lines");
   });
 });
 
@@ -338,7 +372,10 @@ describe("aliases", () => {
       <p data-ouro-allow="overlap" data-ouro-allow-why="  ">Spaces are no reason</p>
       <span data-clip-ok="a code"></span>
       <div data-scroll-x="a timeline"></div>`);
-    expect(listAllowances(ALIASES)).toEqual([
+    const allowances = listAllowances(ALIASES);
+    // Read, never rewritten: the page keeps its own attributes.
+    expect(host.querySelector("[data-overlap-ignore]")!.getAttribute("data-overlap-ignore")).toBe("  a stamp ");
+    expect(allowances).toEqual([
       { rules: "long-lines clipped-text", element: `p#ticker "${LONG.slice(0, 40)}…"`, reason: "a ticker" },
       { rules: "overlap", element: 'div.a.b.c "Stamp" [data-overlap-ignore]', reason: "a stamp" },
       { rules: "clipped-text", element: "span [data-clip-ok]", reason: "a code" },
@@ -410,15 +447,19 @@ describe("close-ups", () => {
 });
 
 describe("runAxe", () => {
-  it("reports serious and critical violations, one per rule, and leaves out allowed elements", async () => {
+  it("reports serious and critical violations, one per rule, and leaves out allowed elements, read with their reasons trimmed", async () => {
     render(`
       <button id="unnamed"><svg width="10" height="10" aria-hidden="true"></svg></button>
       <button class="nameless"><svg width="10" height="10" aria-hidden="true"></svg></button>
       <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20">
-      <div data-ouro-allow="axe" data-ouro-allow-why="a third-party widget we do not own"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>`);
+      <div data-ouro-allow="axe" data-ouro-allow-why="a third-party widget we do not own"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow=" all " data-ouro-allow-why="a vendor's frame"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow="axe"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow="all" data-ouro-allow-why="   "><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow="overlap" data-ouro-allow-why="another rule"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>`);
     const issues = await runAxe();
     const button = issues.find((issue) => issue.element.startsWith("button-name"))!;
-    expect(button).toMatchObject({ rule: "axe", impact: "critical", element: "button-name: #unnamed", detail: "critical: Buttons must have discernible text (2 elements)" });
+    expect(button).toMatchObject({ rule: "axe", impact: "critical", element: "button-name: #unnamed", detail: "critical: Buttons must have discernible text (5 elements)" });
     expect(document.getElementById("unnamed")!.getAttribute("data-ouro-check-ref")).toBe(button.ref);
     const image = issues.find((issue) => issue.element.startsWith("image-alt"))!;
     expect(image.detail).toBe("critical: Images must have alternative text");

@@ -11,7 +11,7 @@ import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, 
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
-import { findSizeIssues, type PageIssue } from "./size-check.ts";
+import { findSizeIssues, type Measure, type PageIssue } from "./size-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -19,7 +19,7 @@ import { findSizeIssues, type PageIssue } from "./size-check.ts";
 //
 //   node lib/ouro/check/check.ts <url | built folder>… [--pages <glob>] [--out <folder>] [--sizes WxH,…]
 //        [--themes light,dark] [--before <old report.json>] [--config ouro-check.json] [--no-axe]
-//        [--no-measure] [--ready-event <name>] [--shard k/n]
+//        [--no-measured] [--ready-event <name>] [--shard k/n]
 //   node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json]
 //
 // Exits as every Ouro tool does (EXIT): 0 ok, 1 error (the check could not run), 2 usage, 3 findings. Playwright comes
@@ -102,6 +102,9 @@ interface Gate {
   // each.
   press?: string[];
   pressRepeat?: number;
+  // Where long lines are checked, and against what: a page glob (two stars for all pages) holds the page's prose, a
+  // CSS selector ("main .chat-message") holds what it matches. Without one the rule is off.
+  measure?: Record<string, string>;
 }
 
 interface CheckOptions {
@@ -115,7 +118,7 @@ interface CheckOptions {
   beforeDir?: string;
   config?: Gate;
   axe?: string | false;
-  measure?: boolean;
+  measured?: boolean;
   readyEvents?: string[];
   chromium: BrowserType;
   executablePath?: string;
@@ -209,6 +212,16 @@ async function shoot(page: Page, path: string, box: Box): Promise<Box> {
   return { x: clip.x + at.sx, y: clip.y + at.sy, width: clip.width, height: clip.height };
 }
 
+// A measure key is a page glob when it starts with a slash, or is only stars (two of them for all pages); anything else
+// is a CSS selector, which may hold a slash of its own, as an attribute selector on an address can.
+const isPageGlob = (key: string) => key.startsWith("/") || /^\*+$/.test(key);
+const MEASURE = /^\d+(?:\.\d+)?\s*(?:px|ch|chars)$/;
+// The measures that hold on `page`, in the order the config lists them.
+const measuresFor = (config: Gate, page: string): Measure[] =>
+  Object.entries(config.measure ?? {}).flatMap(([key, measure]): Measure[] =>
+    !isPageGlob(key) ? [{ selector: key, measure }] : globToRegExp(key.startsWith("/") ? key : `/${key}`).test(page) ? [{ selector: null, measure }] : [],
+  );
+
 // Whether a finding fails the check: every one does unless the config waives its rule ("*" for every rule) on a page
 // glob it matches.
 const isGated = (config: Gate, page: string, rule: string) =>
@@ -258,7 +271,7 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
 }
 
 async function check(options: CheckOptions): Promise<CheckResult> {
-  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measure = true, readyEvents = [], readyTimeout = 15000, log = console.log } = options;
+  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
   const repeats = config.pressRepeat ?? PRESS_REPEAT;
   const { list, close } = await targetsOf(options.targets, options.pages);
@@ -280,6 +293,16 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await close();
     throw problem;
   });
+  // A measure's selector the browser cannot read is a mistake in the config, found once before the sweep.
+  const probe = await browser.newPage();
+  const selectors = Object.keys(config.measure ?? {}).filter((key) => !isPageGlob(key));
+  const unreadable = (await probe.evaluate(`${JSON.stringify(selectors)}.filter((s) => { try { document.querySelector(s); return false; } catch { return true; } })`)) as string[];
+  await probe.close();
+  if (unreadable.length) {
+    await browser.close();
+    await close();
+    throw Object.assign(new Error(`the measure for "${unreadable[0]}" names no CSS selector a browser reads; write a valid selector, or a page glob that starts with "/".`), { usage: true });
+  }
   const { findings, shots, candidates } = report;
   const pictured = new Set<string>();
   const allowed = new Set<string>();
@@ -300,7 +323,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const contextFor = async (width: number, height: number, theme: string) => {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dprAt(width), colorScheme: theme as "light" | "dark", reducedMotion: "reduce" });
     await context.addInitScript(listenForReady, ["ouro:ready", ...readyEvents]);
-    if (measure) await context.addInitScript(listenForMeasures);
+    if (measured) await context.addInitScript(listenForMeasures);
     return context;
   };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
@@ -371,8 +394,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       }
       issues.push(...(await page.evaluate(findOverlaps, {})));
       await page.evaluate(decodeImages);
-      issues.push(...(await page.evaluate(findSizeIssues, {})));
-      if (measure) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
+      issues.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
+      if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
         if (allowed.has(key)) continue;
@@ -387,7 +410,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     // Pressed in a context of its own, so what a press saves (a theme, a dismissed banner) reaches no other page.
     // Only on a page with a control listed for pressing: pressing is opt-in.
     let pressed = 0;
-    const listed = measure && !failed && inpAt === `${width}x${height} ${theme}` && ((await page.evaluate(anyListed(config.press ?? [])).catch(refused)) as boolean);
+    const listed = measured && !failed && inpAt === `${width}x${height} ${theme}` && ((await page.evaluate(anyListed(config.press ?? [])).catch(refused)) as boolean);
     if (listed) {
       const own = await contextFor(width, height, theme);
       const tab = await own.newPage();
@@ -617,7 +640,7 @@ interface Args {
   before?: string;
   config?: string;
   axe: boolean;
-  measure: boolean;
+  measured: boolean;
   readyEvents: string[];
   help: boolean;
 }
@@ -625,10 +648,11 @@ interface Args {
 const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [options]
        node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>]
 
-Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, long lines,
-blurry pictures and serious accessibility problems, measures layout shift, first content and each press against their
-budgets, and writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins
-the out folders of a sharded run into one.
+Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken and blurry
+pictures, pages that fail to load or draw, and serious accessibility problems, and long lines only where ouro-check.json
+declares a measure. It measures layout shift, first content and the presses the app lists against their budgets, and
+writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out
+folders of a sharded run into one.
 
   --pages <glob>           only the built folder's pages the glob matches, such as "docs/**"
   --out <folder>           where the report goes (default ouro-check)
@@ -638,14 +662,14 @@ the out folders of a sharded run into one.
   --before <report.json>   an earlier report, to show a before and after of what was fixed since
   --config <file>          the waivers and budgets (default ouro-check.json, when it exists)
   --no-axe                 skip axe-core
-  --no-measure             skip the measured rules, and press nothing
+  --no-measured            skip the measured rules, and press nothing
   --ready-event <name>     an event the page fires once it has drawn, besides ouro:ready
 
 Exit codes: 0 ok, 1 error (the check could not run), 2 usage, 3 findings to fix.`;
 
 // The command line, or the usage problem as a thrown Error.
 function parseArgs(argv: string[]): Args {
-  const args: Args = { merge: argv[0] === "merge", targets: [], out: "ouro-check", sizes: SIZES, themes: ["light", "dark"], shard: [1, 1], axe: true, measure: true, readyEvents: [], help: false };
+  const args: Args = { merge: argv[0] === "merge", targets: [], out: "ouro-check", sizes: SIZES, themes: ["light", "dark"], shard: [1, 1], axe: true, measured: true, readyEvents: [], help: false };
   for (let i = args.merge ? 1 : 0; i < argv.length; i++) {
     const arg = argv[i]!;
     const value = () => {
@@ -657,7 +681,7 @@ function parseArgs(argv: string[]): Args {
     if (flag) throw new Error(`merge takes --out and --config, not ${arg}.`);
     if (arg === "--help" || arg === "-h") args.help = true;
     else if (arg === "--no-axe") args.axe = false;
-    else if (arg === "--no-measure") args.measure = false;
+    else if (arg === "--no-measured") args.measured = false;
     else if (arg === "--out") args.out = value();
     else if (arg === "--pages") args.pages = value();
     else if (arg === "--before") args.before = value();
@@ -754,6 +778,15 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
     error(`${configFile}: ${wrong}`);
     return EXIT.usage;
   }
+  if (config.measure !== undefined && (typeof config.measure !== "object" || config.measure === null || Array.isArray(config.measure))) {
+    error(`${configFile}: "measure" maps page globs and CSS selectors to measures, such as { "**": "100 chars" }.`);
+    return EXIT.usage;
+  }
+  const unreadable = Object.entries(config.measure ?? {}).find(([, measure]) => typeof measure !== "string" || !MEASURE.test(measure.trim()));
+  if (unreadable) {
+    error(`${configFile}: the measure for "${unreadable[0]}" is ${JSON.stringify(unreadable[1])}; give a number of px, ch or chars, such as "800px", "75ch" or "100 chars".`);
+    return EXIT.usage;
+  }
   // The check itself failing (no browser, a full disk) is no finding: it exits 3, never 1, which means "fix these".
   try {
     const out = resolve(cwd, args.out);
@@ -792,7 +825,7 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
         ...(args.before === undefined ? {} : { beforeDir: dirname(resolve(cwd, args.before)) }),
         config,
         axe,
-        measure: args.measure,
+        measured: args.measured,
         readyEvents: args.readyEvents,
         chromium,
         ...executable,
@@ -808,6 +841,10 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
     log(`\n${group(result.findings).length} finding(s), ${failing.length} gated, ${result.fixed.length} fixed since --before. Report: ${relative(cwd, join(out, "report.json"))}`);
     return failing.length ? EXIT.findings : EXIT.ok;
   } catch (problem) {
+    if ((problem as { usage?: boolean }).usage) {
+      error(`${configFile}: ${(problem as Error).message}`);
+      return EXIT.usage;
+    }
     error(`Ouro check could not run: ${(problem as Error).message}`);
     return EXIT.error;
   }

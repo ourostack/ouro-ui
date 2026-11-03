@@ -130,7 +130,7 @@ The screen check (`ouro-check`) opens every page of your built app in headless C
 | `overlap` | A line of text drawn over another line, or over a picture, in the same section. |
 | `sideways-scroll` | A page wider than the screen, naming the outermost elements that stick out. |
 | `clipped-text` | Text cut off by its box. An ellipsis or a line clamp is truncation on purpose and passes while the whole text is still there: in a `title`, an `aria-label`, or the text itself in the accessibility tree.[^check-truncate] |
-| `long-lines` | Prose whose lines average more than 100 characters.[^check-long-lines] |
+| `long-lines` | Off unless `ouro-check.json` declares a measure; then the elements it names whose lines run past it.[^check-measure] |
 | `blurry-image` | A picture drawn larger than its file's own pixels allow at the screen's density, often a wrong `sizes` on a cropped, height-driven image. |
 | `axe` | Serious and critical axe-core violations, at a phone and a laptop size. |
 | `broken-image` | A picture that loaded empty: a missing file, or one that is no picture.[^check-pages] |
@@ -145,7 +145,7 @@ It also measures how a page responds, each against a budget:[^check-measured]
 | `first-content` | How long the page took to draw its largest text or picture, its largest contentful paint.[^check-measured] A skeleton draws neither, so a page that shows one first is timed to the content that replaces it.[^check-measured] | 2500 ms[^check-budgets] |
 | `inp` | How long a press of a control you list took to paint: its longest event, from the press to the next frame drawn after its handlers ran, at the 75th percentile of several presses.[^check-measured] | 200 ms[^check-budgets] |
 
-The budgets are the thresholds browsers' own field data calls good.[^check-budgets] Each measured finding records its number, its budget and their unit in `report.json` (`value`, `budget` and `unit`), so a later run can be compared with it.[^check-measured] `--no-measure` skips the measured rules.[^check-measured]
+The budgets are the thresholds browsers' own field data calls good.[^check-budgets] Each measured finding records its number, its budget and their unit in `report.json` (`value`, `budget` and `unit`), so a later run can be compared with it.[^check-measured] `--no-measured` skips the measured rules.[^check-measured]
 
 ### Pressing is opt-in
 
@@ -208,6 +208,18 @@ An element that still sticks out past the screen makes the page scroll sideways,
 { "waive": { "docs/legacy/**": { "long-lines": "Imported articles keep their layout until they are rewritten." } } }
 ```
 
+### Long lines are opt-in
+
+How long a line of text may run is a design choice, so the check assumes no measure and never asks you to cap text width.[^check-measure] `long-lines` runs only where `ouro-check.json` declares the measure your design or the request already sets.[^check-measure] Every other rule runs by default.[^check-rules]
+
+```json
+{ "measure": { "**": "100 chars", "main .chat-message": "800px" } }
+```
+
+- A key that starts with `/`, such as `/docs/**`, or one made only of `*`, is a page glob; it holds the prose on the pages it matches: `p`, `li`, `dd`, `blockquote`, `figcaption` and `[data-prose]`. `"**"` matches every page.[^check-measure] Any other key is a CSS selector, which may hold a `/` of its own, and it holds exactly the elements it matches on every page, a container of paragraphs included.[^check-measure] An element two keys hold is checked against the first.[^check-measure]
+- A measure is `px` (how wide a rendered line may be), `ch` (the width of that many zeros in the element's own font) or `chars`. `"100 chars"` counts the characters a rendered line holds on average, as the rule always has, so it is met by how the text is composed, not by capping its CSS width.[^check-chars]
+- A measure that is none of these, or a selector the browser cannot read, makes the check exit `2`.[^check-exit]
+
 In GitHub Actions, the check's action runs the shards side by side and merges their reports into the job summary, with the out folder as an artifact:
 
 ```yaml
@@ -234,6 +246,30 @@ jobs:
           merge: "true"
 ```
 
+### Pictures at the widths a screen needs
+
+A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.3
+node lib/ouro/images/images.ts pictures --out public/images --base /images/
+```
+
+Then draw each picture from the manifest, and the browser takes the smallest file that is sharp on its screen:
+
+```tsx
+import images from "../public/images/images.json";
+
+const hero = images["hero.png"];
+
+<picture>
+  {hero.sources.map((source) => <source key={source.type} type={source.type} srcSet={source.srcset} sizes="100vw" />)}
+  <img src={hero.src} width={hero.width} height={hero.height} alt="The team at the launch" />
+</picture>;
+```
+
+`ouro-images` installs `lib/ouro/images/images.ts` and names `sharp` as a devDependency.
+
 [^ratchets]: test:scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a baseline that raises a state's unmarked count without --allow-regression; test:scripts/kits/source-rules.test.mjs::main > refuses to write a baseline that adds an offender verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a baseline that raises a state's unmarked count without --allow-regression) verify:testExists(scripts/kits/source-rules.test.mjs::main > refuses to write a baseline that adds an offender)
 [^baselines]: test:scripts/kits/census-update.test.mjs::census-update.mjs > refuses a regression, writing nothing, and accepts it with a recorded reason; test:scripts/kits/source-rules.test.mjs::main > writes a larger baseline only with a stated reason verify:testExists(scripts/kits/census-update.test.mjs::census-update.mjs > refuses a regression, writing nothing, and accepts it with a recorded reason) verify:testExists(scripts/kits/source-rules.test.mjs::main > writes a larger baseline only with a stated reason)
 [^census-axe]: registry/ouro/lib/ouro/testing/axe-version.ts verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > refuses an axe-core older than the kit's minimum before it loads axe into the page, naming the version it found)
@@ -259,7 +295,6 @@ jobs:
 [^check-ready]: test:test/check-in-page.test.ts::readiness > is ready once the page fires a ready event, marks itself ready, or has drawn its h1 verify:testExists(test/check-in-page.test.ts::readiness > is ready once the page fires a ready event, marks itself ready, or has drawn its h1)
 [^check-allow]: test:test/check-in-page.test.ts::findSizeIssues: sideways-scroll > names the page when only an allowed element sticks out, and passes a page that allows it with a reason verify:testExists(test/check-in-page.test.ts::findSizeIssues: sideways-scroll > names the page when only an allowed element sticks out, and passes a page that allows it with a reason)
 [^check-sizes]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^  \[320, 640\], /) verify:fileLine(registry/ouro/check/check.ts, /\[3840, 2160\],$/) verify:fileLine(registry/ouro/check/check.ts, /^  \[640, 360\], \[720, 420\], \[900, 500\], \[1000, 600\],$/) verify:fileLine(registry/ouro/check/check.ts, /^const dprAt = \(width: number\) => \(width <= 3072 \? 2 : 1\);$/) verify:testExists(scripts/check/check.test.mts::Ouro check > draws a screen wider than 3072px at density 1, holds its pictures to that, and records the density of each finding)
-[^check-long-lines]: registry/ouro/check/size-check.ts verify:fileLine(registry/ouro/check/size-check.ts, /\{ maxChars = 100, /)
 [^check-truncate]: test:test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there; test:test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere)
 [^check-measured]: test:scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number verify:testExists(scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number)
 [^check-shift]: test:test/check-measure.test.ts::listenForMeasures > scores the largest burst of shifts no input caused, and keeps the element that moved most verify:testExists(test/check-measure.test.ts::listenForMeasures > scores the largest burst of shifts no input caused, and keeps the element that moved most)
@@ -271,3 +306,8 @@ jobs:
 [^check-pages]: test:test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason; test:scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it; test:scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out verify:testExists(test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason) verify:testExists(scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it) verify:testExists(scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out)
 [^check-allowances]: test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one; test:scripts/check/check.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one) verify:testExists(scripts/check/check.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge)
 [^check-aliases]: test:test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why; test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one verify:testExists(test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why) verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one) verify:fileLine(registry/ouro/check/in-page.ts, /^  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image",$/)
+[^images]: test:scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each; test:scripts/images/images.test.mts::Ouro images > plans each width narrower than the picture, then its own verify:testExists(scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each) verify:testExists(scripts/images/images.test.mts::Ouro images > plans each width narrower than the picture, then its own) verify:fileLine(registry/ouro/images/images.ts, /^const WIDTHS = \[320, 640, 960, 1280, 1920, 2560, 3840, 5120\];$/)
+[^images-kept]: test:scripts/images/images.test.mts::Ouro images > keeps a picture's files while its bytes and options are the same, and writes them again when either changes verify:testExists(scripts/images/images.test.mts::Ouro images > keeps a picture's files while its bytes and options are the same, and writes them again when either changes)
+[^images-upright]: test:scripts/images/images.test.mts::Ouro images > turns a photo upright as its EXIF orientation says, and percent-encodes an address with a space or a #; test:scripts/images/images.test.mts::Ouro images > reads a source folder inside the out folder, and leaves out an animated picture verify:testExists(scripts/images/images.test.mts::Ouro images > turns a photo upright as its EXIF orientation says, and percent-encodes an address with a space or a #) verify:testExists(scripts/images/images.test.mts::Ouro images > reads a source folder inside the out folder, and leaves out an animated picture)
+[^check-measure]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements; test:test/check-in-page.test.ts::findSizeIssues: long-lines > finds nothing without a declared measure, however long the lines run; test:test/check-in-page.test.ts::findSizeIssues: long-lines > holds the elements a selector names to a measure in px, and leaves the rest alone; test:test/check-in-page.test.ts::findSizeIssues: long-lines > holds prose to a measure in ch, the width of so many zeros in its own font verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > finds nothing without a declared measure, however long the lines run) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > holds the elements a selector names to a measure in px, and leaves the rest alone) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > holds prose to a measure in ch, the width of so many zeros in its own font)
+[^check-chars]: test:test/check-in-page.test.ts::findSizeIssues: long-lines > with 100 chars on the prose, finds prose whose lines average more than 100 characters, as the rule always counted, and marks an element once per finding verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > with 100 chars on the prose, finds prose whose lines average more than 100 characters, as the rule always counted, and marks an element once per finding)
