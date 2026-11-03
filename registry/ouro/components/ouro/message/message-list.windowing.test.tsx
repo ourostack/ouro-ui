@@ -281,7 +281,8 @@ describe("MessageList windowing", () => {
       await rerender(<Chat items={items} />);
     }
     watching = false;
-    expect(moved).toBeLessThanOrEqual(1);
+    // Held in every frame, to within WebKit's whole-pixel scrolling of space whose height has fractions.
+    expect(moved).toBeLessThanOrEqual(ROUNDING);
     // Put in at once, as space: a page draws no more messages than the view needs.
     expect(messages(scroller).length).toBeLessThan(60);
     expect(document.getElementById("m-300")).toBeNull();
@@ -674,6 +675,83 @@ describe("MessageList windowing", () => {
     expect(warn).toHaveBeenCalled();
     expect(messages(scroller).length).toBeLessThan(60);
     expect(inView(scroller, "m99")).toBe(true);
+  });
+
+  it("keeps a button before the messages drawn, and focus on it, as older messages load below it", async () => {
+    let items = conversation(200, 0, true);
+    const loadOlder = <button key="older">Load older messages</button>;
+    const { scroller, rerender } = await render(<Chat items={items} first={loadOlder} />);
+    await scrollTo(scroller, 0);
+    await act(async () => page.getByRole("button", { name: "Load older messages" }).element().focus());
+    // Older history goes in between the button and the messages, and the reader's place holds: the button is far above.
+    items = [...conversation(300, -300, true), ...items];
+    await rerender(<Chat items={items} first={loadOlder} />);
+    expect(document.activeElement?.textContent).toBe("Load older messages");
+    expect(scroller.scrollTop).toBeGreaterThan(10_000);
+  });
+
+  it("announces a reply that finishes streaming out of view, though a newer message came after it", async () => {
+    let items = [...conversation(300, 0, true), { id: 301, text: "Thinking", streaming: true }];
+    const { scroller, rerender, live } = await render(<Chat items={items} />);
+    const spoken = recordAnnouncements(live);
+    items = [...items, { id: 302, text: "Never mind." }];
+    await rerender(<Chat items={items} />);
+    await scrollTo(scroller, 0);
+    expect(document.getElementById("m301")).not.toBeNull();
+    items = items.map((item) => (item.id === 301 ? { id: 301, text: "Done thinking." } : item));
+    await rerender(<Chat items={items} />);
+    expect(spoken).toEqual(["Ouro: Done thinking."]);
+    // Heard, it is drawn no longer.
+    await expect.poll(() => document.getElementById("m301")).toBeNull();
+  });
+
+  it("scrolls through a message taller than the list with the arrow keys before moving on", async () => {
+    const items = conversation(300, 0, true).map((item) => (item.id === 150 ? { ...item, text: "A long reply. ".repeat(400) } : item));
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(<Chat items={items} actionsRef={actions} />);
+    await act(async () => void actions.current!.reveal("m150", { focus: true, block: "start" }));
+    await settle(scroller);
+    const top = scroller.scrollTop;
+    await userEvent.keyboard("{ArrowDown}");
+    await settle(scroller);
+    expect(document.activeElement?.id).toBe("m150");
+    expect(scroller.scrollTop - top).toBeCloseTo(40, 0);
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    await settle(scroller);
+    expect(document.activeElement?.id).toBe("m149");
+  });
+
+  it("opens a conversation that fills a list holding only a greeting at its end, drawing only the newest", async () => {
+    const greeting = <p key="greeting">Ask Ouro anything.</p>;
+    const { scroller, host, rerender } = await render(<Chat items={[]} first={greeting} />);
+    let added = 0;
+    const counting = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) added += node.querySelectorAll('[data-ouro="message"]').length;
+    });
+    counting.observe(host, { childList: true, subtree: true });
+    await rerender(<Chat items={conversation(2000, 0, true)} first={greeting} />);
+    counting.disconnect();
+    expect(added).toBeLessThan(60);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  });
+
+  it("moves focus to the message now in the place of a focused message that is deleted, wherever the window has gone", async () => {
+    let items = conversation(1000, 0, true);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await act(async () => document.getElementById("m999")!.focus());
+    for (let step = 0; step < 5; step++) await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(() => document.activeElement?.id).toBe("m994");
+    await settle(scroller);
+    items = items.filter((item) => item.id !== 994);
+    await rerender(<Chat items={items} />);
+    expect(document.activeElement?.id).toBe("m995");
+    // Scrolled far from it, the message in its place is drawn first.
+    await act(async () => void document.getElementById("m995")!.focus());
+    await scrollTo(scroller, 0);
+    items = items.filter((item) => item.id !== 995);
+    await rerender(<Chat items={items} />);
+    await expect.poll(() => document.activeElement?.id).toBe("m996");
+    expect(inView(scroller, "m996")).toBe(true);
   });
 
   it("draws the newest screenful in server HTML and hydrates it without a warning", async () => {
