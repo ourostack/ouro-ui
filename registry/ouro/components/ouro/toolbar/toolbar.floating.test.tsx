@@ -591,6 +591,13 @@ describe("Toolbar autoHide", () => {
     // A press on a control, then somewhere that is no dialog.
     expect(await holds(() => (press(share), layer("plain")))).toBe(false);
 
+    // A <dialog> already in the page but closed, which a control then opens, is the press's.
+    const settings = document.createElement("dialog");
+    settings.tabIndex = -1;
+    document.body.append(settings);
+    mounted.push(settings);
+    expect(await holds(() => (press(share), settings.showModal(), settings.focus(), settings))).toBe(true);
+
     // A dialog that was open before the press, as a chat panel beside the call: Tab into it lends nothing.
     const chat = document.createElement("div");
     chat.setAttribute("role", "dialog");
