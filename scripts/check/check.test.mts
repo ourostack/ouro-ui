@@ -202,6 +202,24 @@ describe("Ouro check", () => {
     }
   });
 
+  test("records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge", async () => {
+    const opted = site("opted", {
+      "page.html": page(
+        '<h1>Opted</h1><div data-scroll-x="a timeline people pan sideways" style="overflow-x:auto"><div style="width:2000px;height:8px"></div></div><p data-clip-ok="">An alias without a reason counts for nothing</p><p data-ouro-allow="long-lines" data-ouro-allow-why="a ticker">Ticker</p>',
+      ),
+    });
+    const out = dir("opted");
+    const result = await check({ targets: [opted], out, sizes: two, themes: ["light", "dark"], chromium, log: quiet });
+    const expected = [
+      { site: "opted", page: "/page.html", rules: "long-lines", element: 'p "Ticker"', reason: "a ticker" },
+      { site: "opted", page: "/page.html", rules: "sideways-scroll", element: "div [data-scroll-x]", reason: "a timeline people pan sideways" },
+    ];
+    assert.deepEqual(result.allowances, expected);
+    assert.deepEqual(result.gated, []);
+    assert.deepEqual((JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report).allowances, expected);
+    assert.deepEqual((await merge({ dirs: [out, out], out: dir("opted-merged"), chromium })).allowances, expected);
+  });
+
   test("names an axe finding the same at every size, whatever the other rules marked on the page", async () => {
     const faint = '<p style="width:60px;overflow:hidden;white-space:nowrap;color:#999;background:#aaa">Faint text cut off by its box</p>';
     const folder = site("faint", { "page.html": page(`<h1>Faint</h1>${faint}${faint}`) });
@@ -371,18 +389,19 @@ describe("Ouro check's command", () => {
     assert.equal(caption(f), `/a.html at 390×844@2x light: ${LABELS.overlap}, p.a|b (over | under)`);
     assert.equal(caption({ ...f, width: 3840, height: 2160, rule: "blurry-image", dpr: 1 }), "/a.html at 3840×2160@1x light: blurry picture, p.a|b (over | under): often a wrong `sizes` on a cropped, height-driven image");
     assert.deepEqual([dprAt(320), dprAt(3072), dprAt(3200), dprAt(3840)], [2, 2, 1, 1]);
-    const text = summary({ targets: [], sizes: [[390, 844]], themes: ["light"], pages: [{ site: "s", page: "/a.html", name: "a" }, { site: "s", page: "/b.html", name: "b" }], findings: rows, fixed: [f], candidates: [], shots: [] });
+    const text = summary({ targets: [], sizes: [[390, 844]], themes: ["light"], pages: [{ site: "s", page: "/a.html", name: "a" }, { site: "s", page: "/b.html", name: "b" }], findings: rows, fixed: [f], candidates: [], shots: [], allowances: [{ site: "s", page: "/a.html", rules: "overlap", element: "p", reason: "a stamp" }] });
     assert.match(text, /^### Ouro check: 2 pages at 1 size, light, density 2 \(1 above 3072px wide\)$/m);
     assert.match(text, /^\| ✗ \| `s \/a\.html` \| 1 \| {2}\|/m);
     assert.match(text, /^\| ✓ \| `s \/b\.html` \|/m);
     assert.match(text, /^Fixed since the earlier report: 1,/m);
+    assert.match(text, /^Opted out on purpose: 1, each with its reason in `report\.json` \(`allowances`\)\.$/m);
     assert.match(text, /^\| · \| `s \/a\.html` \| overlap \| p\.a\\\|b \| 5 sizes, 390×844 light to 900×844 light \| over \\\| under \|$/m);
     assert.match(text, /^\| ✗ \| `s \/a\.html` \| made-up \| p\.a\\\|b \| 390×844 light \|/m);
-    const one = summary({ targets: [], sizes: two, themes: ["light", "dark"], pages: [{ site: "s", page: "/a.html", name: "a" }], findings: [f], fixed: [], candidates: [], shots: [] });
+    const one = summary({ targets: [], sizes: two, themes: ["light", "dark"], pages: [{ site: "s", page: "/a.html", name: "a" }], findings: [f], fixed: [], candidates: [], shots: [], allowances: [] });
     assert.match(one, /^### Ouro check: 1 page at 2 sizes, light and dark, density 2 \(1 above 3072px wide\)$/m);
     assert.match(one, /^\| · \| `s \/a\.html` \|/m);
     assert.doesNotMatch(one, /Fixed since/);
-    assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [] }), /Every finding/);
+    assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [], allowances: [] }), /Every finding/);
   });
 });
 
