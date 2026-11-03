@@ -38,6 +38,17 @@ describe("Heading", () => {
     expect(getComputedStyle(el).marginTop).toBe("0px");
   });
 
+  it("cuts to one line with an ellipsis with truncate, without balancing it back onto two", async () => {
+    const long = "A heading far too long for its narrow column, cut short";
+    const { el } = await render(<Heading level={2} truncate>{long}</Heading>);
+    const style = getComputedStyle(el);
+    expect([style.whiteSpace, style.textOverflow, style.overflow, style.textWrapStyle]).toEqual(["nowrap", "ellipsis", "hidden", "auto"]);
+    expect(el.scrollWidth).toBeGreaterThan(el.clientWidth);
+    expect(parseFloat(style.height)).toBeLessThan(2 * parseFloat(style.lineHeight));
+    const balanced = (await render(<Heading level={2}>{long}</Heading>)).el;
+    expect(getComputedStyle(balanced).textWrapStyle).toBe("balance");
+  });
+
   it("derives a smaller default size for deeper levels", async () => {
     const { host } = await render(
       <>
