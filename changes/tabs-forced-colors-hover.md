@@ -1,1 +1,0 @@
-- Fixed: under forced colours, the selected tab keeps its HighlightText letters while the pointer rests on it, where hover used to turn them back to the page's text colour on the Highlight fill.

@@ -18,6 +18,7 @@ import {
 } from "react";
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -55,14 +56,14 @@ export interface MessageAction {
 
 /** The message a message replies to, for Message's `quote`: who wrote it and a line of what they wrote. */
 export interface MessageQuote {
-  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  /** Who wrote the quoted message: "Ana Lind", or "You". */
   author: string;
   /**
    * What they wrote, or its start. One line shows, cut with an ellipsis.
    * @claim "One line shows, cut with" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
    */
   excerpt: string;
-  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
   onActivate?: (() => void) | undefined;
@@ -75,7 +76,7 @@ export interface MessageOwnProps {
   /**
    * Who wrote it. `user` is the person using the app: their messages sit at the end, in
    * the primary color. `assistant` is anyone else, such as an agent, at the start. `system`
-   * is the app's own note ("Ada joined"), centered and quiet.
+   * is the app's own note ("Ana joined"), centered and quiet.
    */
   role: MessageRole | (string & { 'Use "user", "assistant" or "system"': never });
   /**
@@ -102,10 +103,17 @@ export interface MessageOwnProps {
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   *
+   * Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's
+   * place on its line, the avatar shimmers in its own shape, and screen readers hear
+   * `nameLoadingLabel`. Nothing moves when the name arrives.
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is an article that says who wrote it, then what they wrote)
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /expectTypeOf<\{\srole:\s"user"\s\}>\(\)\.not\.toExtend<MessageProps>/)
+   * @claim "Pass `null` while the name is" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > holds the name's place with a name-sized line while it loads, so nothing moves when it arrives)
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /**
    * What shows as the author's name in place of `name`, when plain text cannot draw it: their
    * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).
@@ -126,7 +134,7 @@ export interface MessageOwnProps {
   /**
    * The author's picture URL. Without it the avatar shows initials; `false` shows no avatar.
    * For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square
-   * avatar or a color of your own: `avatar={<Avatar name="Ada" src={url} alt="" size="sm" />}`
+   * avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}`
    * (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show
    * no avatar.
    *
@@ -159,7 +167,7 @@ export interface MessageOwnProps {
   /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
-   * is sent. Screen readers hear it first, as "Quoting Ada: …". With `onActivate` it is a
+   * is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a
    * button, to show the quoted message.
    *
    * @claim "as Composer's `quote` shows it" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > looks as Message's quote does once the reply is sent)
@@ -243,20 +251,20 @@ export interface MessageOwnProps {
   className?: string | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
-  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ada">`. */
-  from?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  sender?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The author is `name`: `<Message role="user" name="Ada">`. */
-  author?: { 'Use <Message role="user" name="Ada">': never };
-  /** Not a prop. The message is the children: `<Message role="user" name="Ada">Hi</Message>`. */
-  content?: { 'Use <Message role="user" name="Ada">Hi</Message>': never };
+  /** Not a prop. Who wrote it is `role`: `<Message role="user" name="Ana">`. */
+  from?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  sender?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The author is `name`: `<Message role="user" name="Ana">`. */
+  author?: { 'Use <Message role="user" name="Ana">': never };
+  /** Not a prop. The message is the children: `<Message role="user" name="Ana">Hi</Message>`. */
+  content?: { 'Use <Message role="user" name="Ana">Hi</Message>': never };
   /** Not a prop. The user's own messages are `role="user"`: `<Message role="user" variant="chat">`. */
   own?: { 'Use <Message role="user" variant="chat">': never };
   /** Not a prop. The time is `time`, formatted: `<Message time="9:41 AM" dateTime={iso}>`. */
   timestamp?: { 'Use <Message time="9:41 AM" dateTime={iso}>': never };
-  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>`. */
-  replyTo?: { 'Use <Message quote={{ author: "Ada", excerpt: "Lunch?" }}>': never };
+  /** Not a prop. The message this one replies to is `quote`: `<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>`. */
+  replyTo?: { 'Use <Message quote={{ author: "Ana", excerpt: "Lunch?" }}>': never };
   /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
   error?: { 'Use <Message role="user" failed={{ onRetry: retry }}>': never };
   /** Not a prop. A message that did not send is `failed`: `<Message role="user" failed={{ onRetry: retry }}>`. */
@@ -358,8 +366,25 @@ const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/mes
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
 const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
-/** The author's name as text, or the app's content for it shown while screen readers hear the text. */
-function AuthorName({ name, content }: { name: string; content: ReactNode }): ReactNode {
+/**
+ * The author's name as text, or the app's content for it shown while screen readers hear the text.
+ * While the name loads (`loading` is its label), the label laid out invisibly gives the line its
+ * height and baseline and the placeholder its width, and a Skeleton line shows over it.
+ */
+function AuthorName({ name, content, loading }: { name: string; content: ReactNode; loading: string | undefined }): ReactNode {
+  if (loading !== undefined) {
+    return (
+      <span data-ouro-message-name-loading="" className="relative inline-block max-w-full">
+        <span aria-hidden="true" className="invisible">
+          {loading}
+        </span>
+        <span aria-hidden="true" className="absolute inset-0 flex items-center">
+          <Skeleton shape="text" />
+        </span>
+        <span className="sr-only">{loading}</span>
+      </span>
+    );
+  }
   if (content === undefined) return name;
   return (
     <>
@@ -394,6 +419,7 @@ export function Message(props: MessageProps): JSX.Element {
   const {
     role: roleProp,
     name: nameProp,
+    nameLoadingLabel = "Name loading",
     nameContent,
     nameTag,
     variant: variantProp = "default",
@@ -435,6 +461,7 @@ export function Message(props: MessageProps): JSX.Element {
     ...rest
   } = props;
   const name = nameProp ?? "";
+  const nameLoading = nameProp === null;
   // A role that is not one of Ouro UI's (a type error) warns and renders as the assistant's.
   const role = (roles as readonly string[]).includes(roleProp) ? (roleProp as MessageRole) : "assistant";
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as MessageVariant) : "default";
@@ -456,12 +483,12 @@ export function Message(props: MessageProps): JSX.Element {
           variant !== variantProp && [`variant="${String(variantProp)}" is not a variant; use "default", "chat", "post" or "reply"`, '<Message variant="chat" role="assistant" name="Grace">'],
           actionsPlacement !== undefined &&
             placement !== actionsPlacement && [`actionsPlacement="${String(actionsPlacement)}" is not a placement; use "corner" or "beside"`, '<Message variant="chat" actionsPlacement="beside">'],
-          from !== undefined && ["from is not a prop", '<Message role="user" name="Ada">'],
-          (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ada">'],
-          content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
+          from !== undefined && ["from is not a prop", '<Message role="user" name="Ana">'],
+          (sender !== undefined || author !== undefined) && [`${sender !== undefined ? "sender" : "author"} is not a prop`, '<Message role="user" name="Ana">'],
+          content !== undefined && ["content is not a prop; the message is the children", '<Message role="user" name="Ana">Hi</Message>'],
           own !== undefined && ["own is not a prop; the user's own messages are role=\"user\"", '<Message role="user" variant="chat">'],
           timestamp !== undefined && ["timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
-          replyTo !== undefined && ["replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
+          replyTo !== undefined && ["replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>'],
           (error !== undefined || status !== undefined || onRetry !== undefined) && [
             `${error !== undefined ? "error" : status !== undefined ? "status" : "onRetry"} is not a prop; a message that did not send is failed`,
             '<Message role="user" failed={{ onRetry: retry }}>',
@@ -471,7 +498,7 @@ export function Message(props: MessageProps): JSX.Element {
           presence !== undefined &&
             isValidElement(avatar) && [
               "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
-              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
+              `avatar={<Avatar name=${nameLoading ? "{null}" : `"${name}"`} alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
             ],
           presence !== undefined &&
             !presenceLabel && [
@@ -594,7 +621,7 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
+        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
         <div
           className={cn(
             "flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
@@ -602,7 +629,7 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
-            <AuthorName name={name} content={nameContent} />
+            <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
             {nameTag && (
               <>
                 <span className="sr-only">, </span>
@@ -657,7 +684,7 @@ export function Message(props: MessageProps): JSX.Element {
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
-        <AuthorName name={name} content={nameContent} />
+        <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
       </span>
       {nameTag && (
         <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
@@ -717,7 +744,7 @@ export function Message(props: MessageProps): JSX.Element {
               </time>
             )
           ) : (
-            <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" />
+            <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" />
           )}
         </span>
       )}
@@ -777,7 +804,7 @@ function AvatarSlot({
   className,
 }: {
   avatar: string | ReactElement | undefined;
-  name: string;
+  name: string | null;
   presence: string | undefined;
   presenceLabel: string | undefined;
   size: "sm" | "md";
@@ -799,7 +826,7 @@ const quoteButtonClass =
 
 /**
  * The message a message replies to: the bar, the avatar, the author and the excerpt. Screen
- * readers hear the label ("Quoting Ada") in place of the author's name, then the excerpt.
+ * readers hear the label ("Quoting Ana") in place of the author's name, then the excerpt.
  */
 function Quote({ quote }: { quote: MessageQuote }): JSX.Element {
   const body = (

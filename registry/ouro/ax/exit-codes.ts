@@ -1,4 +1,4 @@
-export { BASE_EXIT_CODES, defineExitCodes };
+export { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE };
 export type { ExitCode, ExitTable };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -26,6 +26,15 @@ const BASE_EXIT_CODES: readonly ExitCode[] = Object.freeze([
   { code: 1, name: "error", short: "error", meaning: "error: the message says what to do" },
   { code: 2, name: "usage", short: "usage", meaning: "usage: a missing or wrong argument; nothing was done" },
 ]);
+
+/**
+ * The code a check or doctor tool declares beside the base codes: its checks ran and found a problem, with a fix
+ * beside it. A check that couldn't run is a crash and exits with the base `error` code instead, so an agent tells "the
+ * tool found something" from "the tool broke" by the code alone.
+ *
+ * @claim "exits with the base `error` code instead" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::findings exit with the declared findings code and a check that couldn't run exits 1, never the same code)
+ */
+const FINDINGS_EXIT_CODE: ExitCode = Object.freeze({ code: 3, name: "findings", short: "findings", meaning: "findings: a check found a problem; its fix says what to do" });
 
 interface ExitTable {
   readonly codes: readonly ExitCode[];

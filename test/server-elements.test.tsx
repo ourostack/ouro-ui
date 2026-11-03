@@ -82,7 +82,7 @@ const cases: Array<[string, (wrap: Wrap) => ReactElement]> = [
     "AvatarGroup avatars",
     (wrap) => (
       <AvatarGroup label="Cooks" max={1}>
-        {wrap(<Avatar name="Ada Lovelace" />)}
+        {wrap(<Avatar name="Ana Lind" />)}
         {wrap(<Avatar name="Grace Hopper" />)}
       </AvatarGroup>
     ),
@@ -92,7 +92,7 @@ const cases: Array<[string, (wrap: Wrap) => ReactElement]> = [
     (wrap) => (
       <MessageList label="Conversation">
         {wrap(
-          <Message role="user" name="Ada">
+          <Message role="user" name="Ana">
             Question
           </Message>,
         )}

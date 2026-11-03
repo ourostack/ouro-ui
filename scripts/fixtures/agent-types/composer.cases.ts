@@ -33,8 +33,8 @@ export const agentCases: AgentCase[] = [
   {
     id: "composer05",
     habit: "replyTo for the message a reply quotes",
-    tsc: [hint("string", 'Use <Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>')],
-    dev: '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>',
+    tsc: [hint("string", 'Use <Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>')],
+    dev: '<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>',
     names: ["tsc", "dev"],
   },
 ];

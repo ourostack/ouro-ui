@@ -22,7 +22,7 @@ import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 
 ## Usage
 
-Moments behave so they never get in the way: the art is decorative unless labelled, the art's own motion stops with reduced motion, the close button keeps a dismissal through `dismissKey`, `cap` limits how often a success celebrates, and `quiet` (or `MomentProvider`) makes them compact. The root carries `data-moment` (the kind), `data-celebrate` while it celebrates and `data-quiet` when quiet.
+Moments behave so they never get in the way: the art is decorative unless labelled, the art's own motion stops with reduced motion, the close button keeps a dismissal through `dismissKey`, `cap` limits how often a success celebrates, and `quiet` (or `MomentProvider`) makes them compact. The root carries `data-moment` (the kind), `data-celebrate` while it celebrates and `data-quiet` when quiet, and the art `data-moment-art` (its `artName`).
 
 ## Use instead when
 
@@ -36,8 +36,9 @@ Type: `MomentProps`.
 | --- | --- | --- | --- |
 | `action` | `ReactNode` |  | The way forward, usually one `Button`: `action={<Button onClick={compose}>New message</Button>}`. |
 | `announce` | `boolean` |  | Speaks a `success` or `error` moment politely to screen readers when it appears: the title, then the description when it is text. Other kinds are never spoken. |
-| `art` | `ReactNode` |  | The picture: any node, usually an inline SVG, which fills the art's height (160px, 96px when the moment is narrower than 24rem, 40px when quiet, 24px inline). It is decorative and hidden from screen readers unless you pass `artLabel`. Draw it with `currentColor` and the theme's variables so it follows the kind, the theme and dark mode. With reduced motion, its CSS animations stop and its SVG animations pause. |
+| `art` | `ReactNode` |  | The picture: any node, usually an inline SVG, which fills the art's height (160px, 96px when the moment is narrower than 24rem, 40px when quiet, 24px inline). It is decorative and hidden from screen readers unless you pass `artLabel`. Draw it with `currentColor` and the theme's variables so it follows the kind, the theme and dark mode. With reduced motion, its CSS animations stop and its SVG animations pause. Its motion has a budget too: its loops settle at the end of their turn about 5 s after it appears, and with a `dismissKey` or `id` its entrance plays once a session, so a moment that comes back as people switch views or filters arrives still. |
 | `artLabel` | `string` |  | Names the art for screen readers (`role="img"`), for a picture that says something the title does not. |
+| `artName` | `string` |  | Which picture this is, such as a pose ("waving", "pedalling"), for checkers, tests and styles: the art carries it as `data-moment-art`, which it has, empty, whenever there is art. Not shown or spoken. |
 | `cap` | `{ times: number; per: "day" \| "week" \| "month" \| "ever" \| (string & { 'Use "day", "week", "month" or "ever"': never }) }` |  | Shows the flourish at most `times` times `per` day, week, 30-day month or ever, counted in `localStorage` under the moment's `dismissKey`, or its `id`; after that the moment is quiet. Without a key the flourish shows every time the moment appears. |
 | `celebrate` | `boolean` | `true` for `kind="success"`, otherwise `false` | A short flourish when the moment appears: a soft disc swells from behind the art and four sparks grow and fade, all inside the art's frame. With reduced motion only the disc fades. Never when quiet or inline. Capped with `cap`. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development; use `kind` and `quiet`. |
@@ -50,7 +51,7 @@ Type: `MomentProps`.
 | `quiet` | `boolean` | the nearest `MomentProvider`'s `quiet`, or `false` | A compact row: 40px art, the title and one line, no celebration. For dense panes, and for people who want less: set it for the whole app with `MomentProvider`. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `secondaryAction` | `ReactNode` |  | A second, quieter way, beside `action`: `secondaryAction={<Button variant="plain">Learn more</Button>}`. Two at most. |
-| `size` | `"inline" \| "default"` | `"default"` | `default` stacks the art, title, line and actions in the space it is given. `inline` is a single row with 24px art, for a "working" row in a list or toolbar. |
+| `size` | `"inline" \| "default" \| "hero"` | `"default"` | `default` stacks the art, title, line and actions in the space it is given. `hero` does too, with art up to 220px tall, for the main state of a large, otherwise empty pane; narrower than 24rem it holds at 96px, as `default` does. `inline` is a single row with 24px art, for a "working" row in a list or toolbar. |
 | `title` (required) | `string` |  | What happened or what is here, in a few words: "Inbox cleared". Required, because it is what a screen reader finds. |
 
 ## Native attributes

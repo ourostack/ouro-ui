@@ -85,20 +85,20 @@ describe("Chapter I", () => {
 
   it("says the signing aloud once: the toast, and Conseil's welcome", async () => {
     await renderPage("/nautilus/");
-    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ada");
+    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ana");
     await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
     await userEvent.click(page.getByRole("option", { name: "Cook" }));
     await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
     const announced = watchAnnouncements();
     await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
-    await expect.poll(() => announced.count(ARTICLES.signed("Ada"))).toBe(1);
-    await expect.poll(() => announced.count(SIGN.welcome("Ada", "Cook").text)).toBe(1);
+    await expect.poll(() => announced.count(ARTICLES.signed("Ana"))).toBe(1);
+    await expect.poll(() => announced.count(SIGN.welcome("Ana", "Cook").text)).toBe(1);
     announced.stop();
   });
 
   it("has Conseil refuse aloud, politely, while the articles want a trade and the oath", async () => {
     await renderPage("/nautilus/");
-    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ada");
+    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ana");
     const announced = watchAnnouncements();
     await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
     await expect.poll(() => announced.count(SIGN.refuse(["trade", "oath"]).text)).toBe(1);

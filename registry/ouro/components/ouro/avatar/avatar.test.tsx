@@ -2,7 +2,7 @@ import { type CSSProperties, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -47,15 +47,15 @@ afterEach(async () => {
 
 describe("Avatar", () => {
   it("shows initials from the name, and the name to screen readers", async () => {
-    const { avatar } = await render(<Avatar name="Ada King Lovelace" />);
+    const { avatar } = await render(<Avatar name="Ana Rae Lind" />);
     expect(avatar.getAttribute("role")).toBe("img");
-    expect(avatar.getAttribute("aria-label")).toBe("Ada King Lovelace");
+    expect(avatar.getAttribute("aria-label")).toBe("Ana Rae Lind");
     expect(avatar.textContent).toBe("AL");
-    await expect.element(page.getByRole("img", { name: "Ada King Lovelace" })).toBeVisible();
+    await expect.element(page.getByRole("img", { name: "Ana Rae Lind" })).toBeVisible();
   });
 
   it.each([
-    ["Ada", "A"],
+    ["Ana", "A"],
     ["  grace   hopper ", "GH"],
     ["Émile Zola", "ÉZ"],
     ["😀 Smile", "😀S"],
@@ -66,31 +66,31 @@ describe("Avatar", () => {
   });
 
   it("takes initials and alt that override the name", async () => {
-    const { avatar } = await render(<Avatar name="Ada Lovelace" initials="AdL" alt="Ada, the author" />);
-    expect(avatar.textContent).toBe("AdL");
-    expect(avatar.getAttribute("aria-label")).toBe("Ada, the author");
+    const { avatar } = await render(<Avatar name="Ana Lind" initials="AnL" alt="Ana, the author" />);
+    expect(avatar.textContent).toBe("AnL");
+    expect(avatar.getAttribute("aria-label")).toBe("Ana, the author");
   });
 
   it("is hidden from assistive technology with an empty alt", async () => {
-    const { avatar } = await render(<Avatar name="Ada Lovelace" alt="" />);
+    const { avatar } = await render(<Avatar name="Ana Lind" alt="" />);
     expect(avatar.getAttribute("aria-hidden")).toBe("true");
     expect(avatar.hasAttribute("role")).toBe(false);
     expect(avatar.hasAttribute("aria-label")).toBe(false);
   });
 
   it("shows the image once it loads", async () => {
-    const { avatar } = await render(<Avatar name="Ada Lovelace" src={photo} />);
+    const { avatar } = await render(<Avatar name="Ana Lind" src={photo} />);
     await expect.poll(() => avatar.querySelector("img")).not.toBeNull();
     const img = avatar.querySelector("img")!;
     expect(img.getAttribute("alt")).toBe("");
     expect(img.getAttribute("src")).toBe(photo);
     expect(avatar.textContent).toBe("");
-    expect(avatar.getAttribute("aria-label")).toBe("Ada Lovelace");
+    expect(avatar.getAttribute("aria-label")).toBe("Ana Lind");
     expect(getComputedStyle(img).objectFit).toBe("cover");
   });
 
   it("falls back to initials when the image fails", async () => {
-    const { avatar } = await render(<Avatar name="Ada Lovelace" src={broken} />);
+    const { avatar } = await render(<Avatar name="Ana Lind" src={broken} />);
     await expect.poll(() => avatar.getAttribute("data-image")).toBe("error");
     expect(avatar.querySelector("img")).toBeNull();
     expect(avatar.textContent).toBe("AL");
@@ -98,9 +98,9 @@ describe("Avatar", () => {
 
   it("renders initials in server HTML and hydrates without a warning", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const node = <Avatar name="Ada Lovelace" src={photo} />;
+    const node = <Avatar name="Ana Lind" src={photo} />;
     const html = renderToString(node);
-    expect(html).toContain('aria-label="Ada Lovelace"');
+    expect(html).toContain('aria-label="Ana Lind"');
     expect(html).toContain(">AL<");
     const host = document.createElement("div");
     host.innerHTML = html;
@@ -122,7 +122,7 @@ describe("Avatar", () => {
     const { host } = await render(
       <>
         {sizes.map((size) => (
-          <Avatar key={size} name="Ada Lovelace" size={size} />
+          <Avatar key={size} name="Ana Lind" size={size} />
         ))}
       </>,
     );
@@ -140,9 +140,51 @@ describe("Avatar", () => {
 
   it("forwards a ref and lets app layout classes win", async () => {
     let element: HTMLElement | null = null;
-    const { avatar } = await render(<Avatar name="Ada" className="ms-2" ref={(node) => void (element = node)} />);
+    const { avatar } = await render(<Avatar name="Ana" className="ms-2" ref={(node) => void (element = node)} />);
     expect(element).toBe(avatar);
     expect(getComputedStyle(avatar).marginInlineStart).toBe("8px");
+  });
+
+  it("keeps a loading avatar's edge in forced colours, in each shape", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      for (const shape of ["circle", "square", "hexagon"] as const) {
+        const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
+        const style = getComputedStyle(avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!);
+        expect(style.outlineStyle).toBe("solid");
+        expect(style.outlineWidth).toBe("1px");
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("shimmers in its own size and shape while the name loads, and says so", async () => {
+    for (const shape of ["circle", "square", "hexagon"] as const) {
+      const named = (await render(<Avatar name="Ana Lind" size="lg" shape={shape} />)).avatar.getBoundingClientRect();
+      const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
+      expect(avatar.getAttribute("aria-label")).toBe("Name loading");
+      expect(avatar.getAttribute("data-name-loading")).toBe("");
+      expect(avatar.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(avatar.querySelector("[data-ouro-avatar-initials]")).toBeNull();
+      const fallback = avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!.parentElement!;
+      expect(getComputedStyle(fallback).overflow).toBe("hidden");
+      expect(getComputedStyle(fallback).borderTopLeftRadius).toBe(getComputedStyle(avatar).borderTopLeftRadius);
+      const box = avatar.getBoundingClientRect();
+      expect([box.width, box.height]).toEqual([named.width, named.height]);
+      expect(avatar.querySelector('[data-ouro="skeleton"]')!.getBoundingClientRect().width).toBe(box.width);
+    }
+    const busy = (await render(<Avatar name={null} nameLoadingLabel="Nom en cours" presence="busy" presenceLabel="Occupé" />)).avatar;
+    expect(busy.getAttribute("aria-label")).toBe("Nom en cours, Occupé");
+    // The presence dot stays whole: the same box as beside a name.
+    const dot = (avatar: HTMLElement) => {
+      const [box, at] = [avatar.querySelector("[data-ouro-avatar-presence]")!.getBoundingClientRect(), avatar.getBoundingClientRect()];
+      return [box.left - at.left, box.top - at.top, box.width, box.height];
+    };
+    expect(dot(busy)).toEqual(dot((await render(<Avatar name="Ana Lind" presence="busy" presenceLabel="Busy" />)).avatar));
+    expect(busy.querySelector("[data-ouro-avatar-presence]")!.checkVisibility()).toBe(true);
+    expect((await render(<Avatar name={null} alt="" />)).avatar.getAttribute("aria-hidden")).toBe("true");
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 
@@ -189,8 +231,8 @@ describe("Avatar colors", () => {
         {names.map((name) => (
           <Avatar key={name} name={name} />
         ))}
-        <Avatar name="Ada Lovelace" />
-        <Avatar name="  ada lovelace " />
+        <Avatar name="Ana Lind" />
+        <Avatar name="  ana lind " />
       </>,
     );
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
@@ -204,7 +246,7 @@ describe("Avatar colors", () => {
     // FNV-1a over the trimmed, lowercased name, mixed by MurmurHash3's finalizer, scaled from its top bits to the eight hues.
     const expected = [
       ["Jean Sammet", 1],
-      ["Ada Lovelace", 2],
+      ["Ana Lind", 2],
       ["Alan Turing", 3],
       ["Dennis Ritchie", 4],
       ["Grace Hopper", 5],
@@ -271,7 +313,7 @@ describe("Avatar colors", () => {
         {names.map((name) => (
           <Avatar key={name} name={name} />
         ))}
-        <Avatar name="Ada Lovelace" color="brand" />
+        <Avatar name="Ana Lind" color="brand" />
       </>,
     );
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
@@ -284,8 +326,8 @@ describe("Avatar colors", () => {
   it("tints with the theme's primary for brand, and uses the secondary surface for neutral", async () => {
     const { host } = await render(
       <>
-        <Avatar name="Ada Lovelace" color="brand" />
-        <Avatar name="Ada Lovelace" color="neutral" />
+        <Avatar name="Ana Lind" color="brand" />
+        <Avatar name="Ana Lind" color="neutral" />
       </>,
     );
     const [brand, neutral] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar));
@@ -305,7 +347,7 @@ describe("Avatar shapes and icons", () => {
   it("is a circle by default and a rounded square for a team", async () => {
     const { host } = await render(
       <>
-        <Avatar name="Ada Lovelace" size="lg" />
+        <Avatar name="Ana Lind" size="lg" />
         <Avatar name="Design reviews" shape="square" size="lg" />
       </>,
     );
@@ -382,7 +424,7 @@ describe("Avatar shapes and icons", () => {
     await render(
       <>
         <Avatar name="Halden" shape="hexagon" />
-        <Avatar name="Ada Lovelace" presence="busy" presenceLabel="Busy" />
+        <Avatar name="Ana Lind" presence="busy" presenceLabel="Busy" />
         <Avatar name="Design reviews" shape="square" presence="away" presenceLabel="Away" />
       </>,
     );
@@ -485,8 +527,8 @@ describe("Avatar presence", () => {
       <>
         <Avatar name="Weekly sync" icon={icon} size="lg" />
         <Avatar name="Weekly sync" icon={icon} size="lg" presence="away" presenceLabel="Away" />
-        <Avatar name="Ada Lovelace" src={photo} size="lg" />
-        <Avatar name="Ada Lovelace" src={photo} size="lg" presence="away" presenceLabel="Away" />
+        <Avatar name="Ana Lind" src={photo} size="lg" />
+        <Avatar name="Ana Lind" src={photo} size="lg" presence="away" presenceLabel="Away" />
       </>,
     );
     await expect.poll(() => host.querySelectorAll('[data-ouro="avatar"][data-image="loaded"]').length).toBe(2);
@@ -507,23 +549,23 @@ describe("Avatar presence", () => {
   it("says the presence after the name, and alone when the name is written beside it", async () => {
     const { host } = await render(
       <>
-        <Avatar name="Ada Lovelace" presence="busy" presenceLabel="In a meeting" />
-        <Avatar name="Ada Lovelace" alt="" presence="busy" presenceLabel="In a meeting" />
+        <Avatar name="Ana Lind" presence="busy" presenceLabel="In a meeting" />
+        <Avatar name="Ana Lind" alt="" presence="busy" presenceLabel="In a meeting" />
       </>,
     );
     const [named, beside] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
-    expect(named!.getAttribute("aria-label")).toBe("Ada Lovelace, In a meeting");
+    expect(named!.getAttribute("aria-label")).toBe("Ana Lind, In a meeting");
     expect(named!.getAttribute("data-presence")).toBe("busy");
     expect(beside!.getAttribute("role")).toBe("img");
     expect(beside!.getAttribute("aria-label")).toBe("In a meeting");
-    await expect.element(page.getByRole("img", { name: "Ada Lovelace, In a meeting" })).toBeVisible();
+    await expect.element(page.getByRole("img", { name: "Ana Lind, In a meeting" })).toBeVisible();
   });
 
   it("sits on the lower end corner at every size, with a ring in the surface's color", async () => {
     const { host } = await render(
       <>
         {sizes.map((size) => (
-          <Avatar key={size} name="Ada Lovelace" size={size} presence="available" presenceLabel="Available" />
+          <Avatar key={size} name="Ana Lind" size={size} presence="available" presenceLabel="Available" />
         ))}
       </>,
     );
@@ -554,7 +596,7 @@ describe("Avatar presence", () => {
   it("takes the ring's color from --ouro-avatar-ring, as on a card", async () => {
     const { host } = await render(
       <div style={{ "--ouro-avatar-ring": "var(--card)" } as CSSProperties}>
-        <Avatar name="Ada Lovelace" presence="away" presenceLabel="Away" />
+        <Avatar name="Ana Lind" presence="away" presenceLabel="Away" />
       </div>,
     );
     expect(getComputedStyle(host.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!).backgroundColor).toBe(token("card"));
@@ -563,7 +605,7 @@ describe("Avatar presence", () => {
   it("moves to the other corner right to left", async () => {
     const { host } = await render(
       <div dir="rtl">
-        <Avatar name="Ada Lovelace" presence="available" presenceLabel="Available" />
+        <Avatar name="Ana Lind" presence="available" presenceLabel="Available" />
       </div>,
     );
     const box = host.querySelector<HTMLElement>('[data-ouro="avatar"]')!.getBoundingClientRect();
@@ -583,7 +625,7 @@ describe("Avatar presence", () => {
     const { host } = await render(
       <>
         {states.map(([presence]) => (
-          <Avatar key={presence} name="Ada Lovelace" presence={presence} presenceLabel={presence} />
+          <Avatar key={presence} name="Ana Lind" presence={presence} presenceLabel={presence} />
         ))}
       </>,
     );
@@ -619,15 +661,15 @@ describe("Avatar presence", () => {
   });
 
   it("renders the dot in server HTML", () => {
-    const html = renderToString(<Avatar name="Ada Lovelace" presence="do-not-disturb" presenceLabel="Do not disturb" shape="square" />);
-    expect(html).toContain('aria-label="Ada Lovelace, Do not disturb"');
+    const html = renderToString(<Avatar name="Ana Lind" presence="do-not-disturb" presenceLabel="Do not disturb" shape="square" />);
+    expect(html).toContain('aria-label="Ana Lind, Do not disturb"');
     expect(html).toContain('data-presence="do-not-disturb"');
     expect(html).toContain("data-ouro-avatar-presence");
   });
 });
 
 describe("AvatarGroup", () => {
-  const cooks = ["Ada Lovelace", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra"];
+  const cooks = ["Ana Lind", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra"];
 
   it("stacks avatars in a labeled group, overlapping", async () => {
     const { group } = await render(
@@ -665,7 +707,7 @@ describe("AvatarGroup", () => {
   it("counts from total when more people exist than avatars passed", async () => {
     const { group } = await render(
       <AvatarGroup label="Members" total={120} moreLabel={(count) => `${count} weitere`}>
-        <Avatar name="Ada Lovelace" />
+        <Avatar name="Ana Lind" />
         <Avatar name="Grace Hopper" />
       </AvatarGroup>,
     );
@@ -676,7 +718,7 @@ describe("AvatarGroup", () => {
   it("passes its size to every avatar and the count", async () => {
     const { group } = await render(
       <AvatarGroup label="Cooks" size="lg" max={1}>
-        <Avatar name="Ada Lovelace" />
+        <Avatar name="Ana Lind" />
         <Avatar name="Grace Hopper" size="xs" />
       </AvatarGroup>,
     );
@@ -690,7 +732,7 @@ describe("AvatarGroup", () => {
     let element: HTMLDivElement | null = null;
     const { group } = await render(
       <AvatarGroup label="Cooks" className="mt-4" ref={(node) => void (element = node)}>
-        <Avatar name="Ada" />
+        <Avatar name="Ana" />
       </AvatarGroup>,
     );
     expect(element).toBe(group);
@@ -700,12 +742,12 @@ describe("AvatarGroup", () => {
 
 describe("Avatar development messages", () => {
   it.each([
-    ["children", { children: "AL" }, "Avatar takes name and initials, not children", '<Avatar name="Ada Lovelace" initials="AL" />'],
-    ["fallback", { fallback: "AL" }, "fallback is not a prop", '<Avatar name="Ada Lovelace" initials="AL" />'],
+    ["children", { children: "AL" }, "Avatar takes name and initials, not children", '<Avatar name="Ana Lind" initials="AL" />'],
+    ["fallback", { fallback: "AL" }, "fallback is not a prop", '<Avatar name="Ana Lind" initials="AL" />'],
     ["size", { size: "4xl" }, 'size="4xl" is not a size; use "xs", "sm", "md", "lg", "xl", "2xl", "3xl"', '<Avatar size="3xl">'],
     ["a numeric size", { size: 40 }, "size={40} is not a size; use \"xs\", \"sm\", \"md\", \"lg\", \"xl\", \"2xl\", \"3xl\"", '<Avatar size="md">'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
-    const props = { name: "Ada Lovelace", ...extra } as unknown as Parameters<typeof Avatar>[0];
+    const props = { name: "Ana Lind", ...extra } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Avatar: ${problem}. Fix: ${fix}.`);
     expect(avatar.textContent).toBe("AL");
@@ -723,38 +765,38 @@ describe("Avatar development messages", () => {
       '<Avatar presence="do-not-disturb" presenceLabel="Do not disturb">',
     ],
   ])("renders the default for an unknown %s, with the fix", async (_name, extra, problem, fix) => {
-    const props = { name: "Ada Lovelace", ...extra } as unknown as Parameters<typeof Avatar>[0];
+    const props = { name: "Ana Lind", ...extra } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Avatar: ${problem}. Fix: ${fix}.`);
     expect(avatar.getAttribute("data-shape")).toBe("circle");
     expect(avatar.hasAttribute("data-presence")).toBe(false);
     expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
-    expect(avatar.getAttribute("aria-label")).toBe("Ada Lovelace");
+    expect(avatar.getAttribute("aria-label")).toBe("Ana Lind");
   });
 
   it("names the presence label when it is missing, and still speaks the presence", async () => {
-    const props = { name: "Ada Lovelace", presence: "out-of-office" } as unknown as Parameters<typeof Avatar>[0];
+    const props = { name: "Ana Lind", presence: "out-of-office" } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Avatar: presenceLabel is missing, so screen readers hear no presence. Fix: <Avatar presence="out-of-office" presenceLabel="Out of office">.',
     );
-    expect(avatar.getAttribute("aria-label")).toBe("Ada Lovelace, out of office");
+    expect(avatar.getAttribute("aria-label")).toBe("Ana Lind, out of office");
   });
 
   it("warns once when name is missing", async () => {
     const props = { src: photo } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: name is missing, so screen readers hear nothing. Fix: <Avatar name="Ada Lovelace" src={url} />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: name is missing, so screen readers hear nothing. Fix: <Avatar name="Ana Lind" src={url} />.');
     expect(avatar.getAttribute("aria-hidden")).toBe("true");
   });
 
   it.each([
     ["max", { max: 0 }, "max={0} hides every avatar", "<AvatarGroup max={3}>"],
-    ["total", { total: 0, children: [<Avatar key="a" name="Ada Lovelace" />, <Avatar key="g" name="Grace Hopper" />] }, "total={0} is less than the 2 avatars passed", "<AvatarGroup total={2}>"],
-    ["children", { children: "Ada" }, "AvatarGroup holds Avatars", '<AvatarGroup label="Cooks"><Avatar name="Ada Lovelace" /></AvatarGroup>'],
+    ["total", { total: 0, children: [<Avatar key="a" name="Ana Lind" />, <Avatar key="g" name="Grace Hopper" />] }, "total={0} is less than the 2 avatars passed", "<AvatarGroup total={2}>"],
+    ["children", { children: "Ana" }, "AvatarGroup holds Avatars", '<AvatarGroup label="Cooks"><Avatar name="Ana Lind" /></AvatarGroup>'],
     ["size", { size: "huge" }, 'size="huge" is not a size; use "xs", "sm", "md", "lg", "xl", "2xl", "3xl"', '<AvatarGroup size="md">'],
   ])("warns for an AvatarGroup %s with the fix", async (_name, extra, problem, fix) => {
-    const props = { label: "Cooks", children: <Avatar name="Ada Lovelace" />, ...extra } as unknown as Parameters<typeof AvatarGroup>[0];
+    const props = { label: "Cooks", children: <Avatar name="Ana Lind" />, ...extra } as unknown as Parameters<typeof AvatarGroup>[0];
     await render(<AvatarGroup {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] AvatarGroup: ${problem}. Fix: ${fix}.`);
   });
@@ -766,7 +808,7 @@ describe("Avatar development messages", () => {
     ["text-lg", 'size="lg"'],
     ["size-12", ""],
   ])("checks the className %s", async (className, fix) => {
-    await render(<Avatar name="Ada" className={className} />);
+    await render(<Avatar name="Ana" className={className} />);
     if (fix) {
       expect(warn).toHaveBeenCalledWith(`[ouro-ui] Avatar: "${className}" sets appearance, and className is for layout only. Fix: ${fix}.`);
     } else {
@@ -777,7 +819,7 @@ describe("Avatar development messages", () => {
   it("checks the AvatarGroup className", async () => {
     await render(
       <AvatarGroup label="Cooks" className="bg-muted">
-        <Avatar name="Ada" />
+        <Avatar name="Ana" />
       </AvatarGroup>,
     );
     expect(warn).toHaveBeenCalledWith('[ouro-ui] AvatarGroup: "bg-muted" sets appearance, and className is for layout only. Fix: <div className="bg-muted"><AvatarGroup /></div>.');
@@ -787,7 +829,7 @@ describe("Avatar development messages", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(
       <AvatarGroup label="Cooks" max={1} className="bg-muted">
-        <Avatar name="Ada Lovelace" className="bg-red-500" />
+        <Avatar name="Ana Lind" className="bg-red-500" />
         <Avatar name="Grace Hopper" />
       </AvatarGroup>,
     );

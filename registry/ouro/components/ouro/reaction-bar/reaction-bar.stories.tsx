@@ -64,7 +64,7 @@ function Reacting() {
     <Surface>
       <Message
         role="assistant"
-        name="Ada Lovelace"
+        name="Ana Lind"
         attachments={<ReactionBar reactions={list} quick={quick} onReact={(key) => setList((current) => toggle(current, key))} />}
       >
         The engine notes are attached. Can someone check the second table?
@@ -81,7 +81,7 @@ function Picking() {
     <Surface>
       <Message
         role="assistant"
-        name="Ada Lovelace"
+        name="Ana Lind"
         attachments={
           <ReactionBar
             reactions={list}
@@ -218,7 +218,7 @@ function CatalogueReacting() {
   const [list, setList] = useState<CatalogueReaction[]>([
     { key: "party", count: 3, mine: true, tooltip: "You, Riley Example and Jo Rivera" },
     { key: "wave-tone3", count: 1, tooltip: "Riley Example" },
-    { key: "fern", count: 2, tooltip: "Jo Rivera and Ada Lovelace" },
+    { key: "fern", count: 2, tooltip: "Jo Rivera and Ana Lind" },
   ]);
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLElement | null>(null);
@@ -226,7 +226,7 @@ function CatalogueReacting() {
     <Surface>
       <Message
         role="assistant"
-        name="Ada Lovelace"
+        name="Ana Lind"
         attachments={
           <ReactionBar
             catalogue={imageCatalogue}

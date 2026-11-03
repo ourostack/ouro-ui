@@ -1,1 +1,0 @@
-- New: Message takes `nameContent`, what shows as the author's name in place of `name` (such as their name with its emoji as pictures through `EmojiText`), while `name` stays what screen readers hear and the avatar's initials come from.

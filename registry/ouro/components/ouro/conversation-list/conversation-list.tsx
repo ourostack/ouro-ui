@@ -2,6 +2,7 @@
 
 import {
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
@@ -192,6 +193,53 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
 
 const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
+// Above this many conversations the list renders only the rows near the view, so a long list costs what a screenful does.
+const windowAbove = 60;
+// How far past the view's top and bottom edges rows still render, in pixels, so a scroll shows rows already drawn.
+const overscan = 320;
+// How much of the list renders before the view is known, as in server HTML, in pixels.
+const firstView = 1000;
+// A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
+const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
+const noHeights: ReadonlyMap<string, number> = new Map();
+
+// What a windowed list's last render laid out, for the scroll, resize and measuring that follow it.
+interface Laid {
+  keys: readonly string[];
+  offsets: readonly number[];
+  total: number;
+  range: readonly [number, number];
+  heights: ReadonlyMap<string, number>;
+}
+const kindOf = (key: string) => (key.startsWith("section:") ? "section" : "row");
+
+// Where each control's slot starts in a windowed list, and the list's height. A slot not measured yet takes the average
+// height of the measured slots of its kind, leaving out the first slot, which has no gap before it; before any is
+// measured, it takes the estimate.
+function place(keys: readonly string[], heights: ReadonlyMap<string, number>, estimate: number) {
+  const known = { row: { sum: 0, count: 0 }, section: { sum: 0, count: 0 } };
+  keys.forEach((key, index) => {
+    const height = heights.get(key);
+    if (height === undefined || index === 0) return;
+    known[kindOf(key)].sum += height;
+    known[kindOf(key)].count++;
+  });
+  const offsets: number[] = [];
+  let total = 0;
+  for (const key of keys) {
+    offsets.push(total);
+    const { sum, count } = known[kindOf(key)];
+    total += heights.get(key) ?? (count ? sum / count : estimate);
+  }
+  return { offsets, total };
+}
+
+// Scrolls a control into view: as little as it takes, or to the middle of the view.
+function reveal(controls: ReadonlyMap<string, HTMLElement>, key: string, block: "nearest" | "center") {
+  // Stryker disable next-line OptionalChaining: the rows revealed are kept rendered (the open row, the row with focus, the row the keyboard reached); this only guards a crash.
+  controls.get(key)?.scrollIntoView({ block });
+}
+
 /** The unread dot, or only its spoken label when a mark takes its place. */
 function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
   // Without its dot it is only words for screen readers, out of the line's flow, so it adds no gap.
@@ -226,6 +274,11 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
  * is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows
  * move between rows, Home and End jump to the first and last, and Enter, Space or a click
  * calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
+ * A list of more than 60 conversations renders only the rows near the view, and the Tab stop and the open row,
+ * each placed where it would be in the whole list and measured as it renders, so a long list costs about what a
+ * screenful does. The arrow keys, Home and End still reach every row, and the open conversation's row scrolls
+ * into view. A long list's other rows are not in the page, so code that reads the rows from the page, and the
+ * browser's find in page, see only the rows rendered: read `items` instead.
  *
  * Use `ItemGroup` instead for a static list with nothing open, and `Tabs` for a handful of
  * views that switch in place.
@@ -235,13 +288,20 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
  *
  * @example
  * <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />
- * <ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ada", title: "Ada Lovelace", section: "pinned" }]} onSelect={open} />
+ * <ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ana", title: "Ana Lind", section: "pinned" }]} onSelect={open} />
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is a named list of buttons, one per conversation, in order)
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows unread conversations with a bold title, a dot and a spoken label)
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > marks the open conversation current and highlights it)
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation highlighted under the pointer)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is one Tab stop, which lands on the open conversation)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > moves focus with the arrow keys, Home and End)
+ * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > keeps a list of 60 conversations whole, as a short list always was)
+ * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
+ * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders the rows a scroll reaches, in order, and drops the rows it leaves)
+ * @claim "The arrow keys, Home and End still reach every row" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > moves focus to the last row with End and back with Home, rendering and showing the row it reaches)
+ * @claim "The arrow keys, Home and End still reach every row" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > walks down past the rows first rendered with the Down arrow, scrolling only as far as the row with focus needs)
+ * @claim "A long list's other rows are not in the page" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
+ * @claim "the open conversation's row scrolls" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders the open conversation far down the list and scrolls it into view, and again when another opens)
  * @claim "Rows can group under" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList sections > groups rows under headers that open and close them)
  */
 export function ConversationList(props: ConversationListProps): JSX.Element {
@@ -272,6 +332,22 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   // Stryker disable next-line StringLiteral: no control's key is this string, which is all "nothing has focus" needs.
   const [active, setActive] = useState("");
   const [opened, setOpened] = useState<Readonly<Record<string, boolean>>>({});
+  // A long list renders only the rows near the view, and those it must keep: the Tab stop, the open row and the row
+  // the keyboard is moving to. Each sits at its place in a list as tall as all of them, measured as they render.
+  const windowed = items.length > windowAbove;
+  const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
+  const [range, setRange] = useState<readonly [number, number] | null>(null);
+  const [reach, setReach] = useState<string | null>(null);
+  const controls = useRef(new Map<string, HTMLButtonElement>());
+  const latest = useRef<Laid | null>(null);
+  const clips = useRef<HTMLElement[] | null>(null);
+  const scroller = useRef<Element | null>(null);
+  // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
+  const sync = useRef<(() => void) | null>(null);
+  const revealed = useRef<string | null>(null);
+  const focusNext = useRef<string | null>(null);
+  // The row to keep in view while the heights around it settle, and where in the view.
+  const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
   const known = new Set<string | undefined>(sections.map((section) => section.id));
   const stray = items.find((item) => item.section !== undefined && !known.has(item.section));
   useAppearanceClassNameCheck(
@@ -318,15 +394,149 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const current = `row:${String(selectedId)}`;
   const tabStop = keys.includes(active) ? active : keys.includes(current) ? current : keys[0];
 
-  const move = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const to = moves[event.key];
-    if (!to) return;
-    const controls = [...listRef.current!.querySelectorAll<HTMLButtonElement>('[data-ouro-control="conversation-list"]')];
-    event.preventDefault();
-    controls[to(controls.indexOf(event.currentTarget), controls.length - 1)]!.focus();
+  const heights = measured?.density === density ? measured.heights : noHeights;
+  const { offsets, total } = place(keys, heights, estimates[density]);
+  // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
+  const [start, end] = range ?? [0, offsets.filter((offset) => offset < firstView).length];
+  const indexes = new Map(keys.map((key, index) => [key, index]));
+  const kept = new Set([tabStop, current, reach]);
+  const rendered = (key: string) => {
+    const index = indexes.get(key)!;
+    return !windowed || (index >= start && index < end) || kept.has(key);
+  };
+  // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says
+  // where it is in its list, since screen readers cannot count the rows that are not there.
+  const slot = (key: string) => {
+    const index = indexes.get(key)!;
+    return { className: cn("absolute inset-x-0", index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5")), style: { top: offsets[index] } };
+  };
+  const controlRef = (key: string) => (node: HTMLButtonElement | null) => {
+    if (node) controls.current.set(key, node);
+    else controls.current.delete(key);
   };
 
-  const rowFor = (item: ConversationListItem) => {
+  // The list's view, from its top: the part no scrolling box around it, or the window, clips.
+  const view = () => {
+    const box = listRef.current!.getBoundingClientRect();
+    let top = 0;
+    let bottom = innerHeight;
+    for (const clip of clips.current!) {
+      const edges = clip.getBoundingClientRect();
+      top = Math.max(top, edges.top);
+      bottom = Math.min(bottom, edges.bottom);
+    }
+    return { top: top - box.top, bottom: bottom - box.top };
+  };
+  // Renders the slots the view and its overscan reach.
+  const update = () => {
+    const { offsets: at, total: height, range: was } = latest.current!;
+    const { top, bottom } = view();
+    let first = at.length;
+    let last = 0;
+    at.forEach((offset, index) => {
+      if ((at[index + 1] ?? height) > top - overscan && offset < bottom + overscan) {
+        first = Math.min(first, index);
+        last = index + 1;
+      }
+    });
+    if (was[0] !== first || was[1] !== last) setRange([first, last]);
+  };
+  // Measures the rendered slots; says whether a height changed.
+  const measure = () => {
+    const { keys: order, offsets: at, total: height, heights: had } = latest.current!;
+    let next: Map<string, number> | undefined;
+    for (const [key, control] of controls.current) {
+      const size = control.parentElement!.offsetHeight;
+      if (size && had.get(key) !== size) (next ??= new Map(had)).set(key, size);
+    }
+    if (!next) return false;
+    // The first slot measured before (which the person has seen) that ends below the view's top stays where it
+    // shows, so the rows measured above it never push the rows in view.
+    const { top } = view();
+    // Stryker disable next-line EqualityOperator: a slot that ends exactly at the view's top keeps the next one where it is too.
+    const anchor = order.findIndex((key, index) => had.has(key) && (at[index + 1] ?? height) > top);
+    scroller.current!.scrollTop += (place(order, next, estimates[density]).offsets[anchor] ?? 0) - (at[anchor] ?? 0);
+    setMeasured({ density, heights: next });
+    return true;
+  };
+  const focusKey = (key: string) => {
+    const control = controls.current.get(key);
+    if (!control) {
+      focusNext.current = key;
+      setReach(key);
+    } else if (windowed) {
+      // A rendered row has been measured, so it shows now and stays where it shows; a key that leaves focus where it
+      // is (Home on the first row) brings no render to wait for.
+      control.focus({ preventScroll: true });
+      reveal(controls.current, key, "nearest");
+    } else control.focus();
+  };
+
+  // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
+  useLayoutEffect(() => {
+    if (!windowed) return;
+    const list = listRef.current!;
+    const found: HTMLElement[] = [];
+    for (let node = list.parentElement; node; node = node.parentElement) if (getComputedStyle(node).overflowY !== "visible") found.push(node);
+    clips.current = found;
+    scroller.current = found.find((clip) => /auto|scroll/.test(getComputedStyle(clip).overflowY)) ?? document.scrollingElement;
+    const onScroll = (event: Event) => {
+      // Stryker disable next-line ConditionalExpression: a scroll elsewhere would only read a view that has not changed.
+      if (event.target === document || found.includes(event.target as HTMLElement)) sync.current!();
+    };
+    const onResize = () => sync.current!();
+    document.addEventListener("scroll", onScroll, { capture: true });
+    addEventListener("resize", onResize);
+    const resizes = new ResizeObserver(onResize);
+    for (const clip of found) resizes.observe(clip);
+    return () => {
+      document.removeEventListener("scroll", onScroll, { capture: true });
+      removeEventListener("resize", onResize);
+      resizes.disconnect();
+    };
+  }, [windowed]);
+  useLayoutEffect(() => {
+    latest.current = { keys, offsets, total, range: [start, end], heights };
+    // The open row is tracked in a short list too, so a list that grows long, or long again, sees no row newly opened.
+    const opened = revealed.current;
+    revealed.current = current;
+    if (!windowed) return;
+    // The open conversation's row comes to the middle of the view when it opens out of view, as it may not have
+    // rendered yet; one that opens in view stays where it is.
+    if (opened !== current) {
+      const row = controls.current.get(current)?.getBoundingClientRect();
+      const listTop = listRef.current!.getBoundingClientRect().top;
+      const { top, bottom } = view();
+      if (row && (row.top - listTop < top || row.bottom - listTop > bottom)) {
+        keepInView.current = { key: current, block: "center" };
+      }
+    }
+    // Measures what rendered, moves focus to the row the keyboard reached once it has, keeps a row that must show in
+    // view while the heights around it settle, and renders the slots in view; on every render, scroll and resize.
+    sync.current = () => {
+      const changed = measure();
+      const reached = focusNext.current && controls.current.get(focusNext.current);
+      if (reached) {
+        keepInView.current = { key: focusNext.current!, block: "nearest" };
+        focusNext.current = null;
+        reached.focus({ preventScroll: true });
+      }
+      if (keepInView.current) reveal(controls.current, keepInView.current.key, keepInView.current.block);
+      // A row to keep in view stays so until nothing new is measured, since rows measured around it may move it.
+      if (!changed) keepInView.current = null;
+      update();
+    };
+    sync.current();
+  });
+
+  const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
+    const to = moves[event.key];
+    if (!to) return;
+    event.preventDefault();
+    focusKey(keys[to(keys.indexOf(key), keys.length - 1)]!);
+  };
+
+  const rowFor = (item: ConversationListItem, position: number, count: number) => {
     const key = `row:${item.id}`;
     const drafted = shown(item.draft);
     const withPreview = density === "comfortable" && (drafted || shown(item.preview));
@@ -347,15 +557,20 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       </>
     );
     return (
-      <li key={item.id} className="m-0 p-0">
+      <li
+        key={item.id}
+        {...(windowed && { ...slot(key), "aria-posinset": position, "aria-setsize": count })}
+        className={cn("m-0 p-0", windowed && slot(key).className)}
+      >
         <button
+          ref={controlRef(key)}
           type="button"
           data-ouro-control="conversation-list"
           data-ouro-part="row"
           tabIndex={key === tabStop ? 0 : -1}
           aria-current={item.id === selectedId ? "true" : undefined}
           onClick={(event) => (onSelect.length > 1 ? onSelect(item.id, event) : (onSelect as (id: string) => void)(item.id))}
-          onKeyDown={move}
+          onKeyDown={(event) => move(event, key)}
           onFocus={() => setActive(key)}
           className={cn(controlClass, rowClass, item.id === selectedId && currentClass, density === "compact" ? "py-1.5" : "py-2")}
         >
@@ -444,56 +659,78 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     );
   };
 
+  const outer = loose.length + groupsShown.length;
   return (
     <div {...rest} data-ouro="conversation-list" data-density={density} className={cn("box-border min-w-0", className)}>
       {items.length === 0 ? (
         <p className={cn("m-0 px-3 py-2 text-sm", quiet)}>{empty}</p>
       ) : (
         // Focus moving to another control sets it again; leaving the list hands the stop back to the open conversation.
-        // Stryker disable next-line StringLiteral: no control's key is this string, which is all "nothing has focus" needs.
-        <ul ref={listRef} aria-label={label} onBlur={() => setActive("")} className={listClass}>
-          {loose.map(rowFor)}
+        // The window losing focus blurs the row too, but focus stays on it, and so do the stop and the row.
+        <ul
+          ref={listRef}
+          aria-label={label}
+          onBlur={() => {
+            // Stryker disable next-line StringLiteral: no control's key is this string, which is all "nothing has focus" needs.
+            if (!listRef.current!.contains(document.activeElement)) setActive("");
+          }}
+          className={cn(listClass, windowed && "relative block")}
+          style={windowed ? { height: total } : undefined}
+        >
+          {loose.map((item, index) => rendered(`row:${item.id}`) && rowFor(item, index + 1, outer))}
           {groupsShown.map(({ section, rows }, index) => {
             const key = `section:${section.id}`;
             const open = isOpen(section);
             const groupId = `${baseId}-section-${index}`;
-            return (
-              <li key={key} data-ouro-conversation-section={section.id} className="m-0 p-0 not-first:mt-2">
-                <button
-                  type="button"
-                  data-ouro-control="conversation-list"
-                  data-ouro-part="section"
-                  aria-expanded={open}
-                  aria-controls={open ? groupId : undefined}
-                  tabIndex={key === tabStop ? 0 : -1}
-                  onClick={() => toggle(section, !open)}
-                  onKeyDown={(event) => {
-                    if ((event.key === "ArrowRight" && !open) || (event.key === "ArrowLeft" && open)) {
-                      event.preventDefault();
-                      toggle(section, !open);
-                    } else move(event);
-                  }}
-                  onFocus={() => setActive(key)}
-                  className={cn(controlClass, headerClass)}
-                >
-                  <Chevron open={open} />
-                  <span data-ouro-conversation-section-title="" className="min-w-0 truncate font-semibold">
-                    {section.title}
+            const shownRows = open ? rows.flatMap((item, at) => (rendered(`row:${item.id}`) ? [rowFor(item, at + 1, rows.length)] : [])) : [];
+            if (!rendered(key) && shownRows.length === 0) return null;
+            const header = (
+              <button
+                ref={controlRef(key)}
+                type="button"
+                data-ouro-control="conversation-list"
+                data-ouro-part="section"
+                aria-expanded={open}
+                aria-controls={open ? groupId : undefined}
+                tabIndex={key === tabStop ? 0 : -1}
+                onClick={() => toggle(section, !open)}
+                onKeyDown={(event) => {
+                  if ((event.key === "ArrowRight" && !open) || (event.key === "ArrowLeft" && open)) {
+                    event.preventDefault();
+                    toggle(section, !open);
+                  } else move(event, key);
+                }}
+                onFocus={() => setActive(key)}
+                className={cn(controlClass, headerClass)}
+              >
+                <Chevron open={open} />
+                <span data-ouro-conversation-section-title="" className="min-w-0 truncate font-semibold">
+                  {section.title}
+                </span>
+                {shown(section.note) && (
+                  <span data-ouro-conversation-section-note="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-xs", quiet)}>
+                    {section.note}
                   </span>
-                  {shown(section.note) && (
-                    <span data-ouro-conversation-section-note="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-xs", quiet)}>
-                      {section.note}
-                    </span>
-                  )}
-                  {!open && rows.some((item) => item.unread) && (
-                    <span className="ms-auto flex shrink-0 items-center">
-                      <Unread label={unreadLabel} dot />
-                    </span>
-                  )}
-                </button>
+                )}
+                {!open && rows.some((item) => item.unread) && (
+                  <span className="ms-auto flex shrink-0 items-center">
+                    <Unread label={unreadLabel} dot />
+                  </span>
+                )}
+              </button>
+            );
+            return (
+              <li
+                key={key}
+                data-ouro-conversation-section={section.id}
+                aria-posinset={windowed ? loose.length + index + 1 : undefined}
+                aria-setsize={windowed ? outer : undefined}
+                className={windowed ? "m-0 p-0" : "m-0 p-0 not-first:mt-2"}
+              >
+                {!windowed ? header : rendered(key) && <div {...slot(key)}>{header}</div>}
                 {open && (
-                  <ul id={groupId} aria-label={section.title} className={cn(listClass, "mt-0.5")}>
-                    {rows.map(rowFor)}
+                  <ul id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
+                    {shownRows}
                   </ul>
                 )}
               </li>

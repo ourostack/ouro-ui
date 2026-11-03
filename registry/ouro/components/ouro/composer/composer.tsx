@@ -19,14 +19,30 @@ export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement> | MouseEvent<
 
 /** The message a reply quotes, for Composer's `quote`: who wrote it and a line of what they wrote. */
 export interface ComposerQuote {
-  /** Who wrote the quoted message: "Ada Lovelace", or "You". */
+  /** Who wrote the quoted message: "Ana Lind", or "You". */
   author: string;
   /**
    * What they wrote, or its start. One line shows, cut with an ellipsis.
    * @claim "One line shows, cut with" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows the quote inside the frame above the text: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
    */
   excerpt: string;
-  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ada" src={url} alt="" size="xs" />`. */
+  /**
+   * What the quote shows in place of `author`, when plain text cannot draw it: a name with its
+   * emoji as pictures (`<EmojiText text={name} catalogue={catalogue} />`). `author` stays the
+   * name in the remove button's and screen readers' words.
+   *
+   * @claim "What the quote shows in place of `author`" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows authorContent and excerptContent in place of the author and the excerpt, while screen readers hear the text)
+   */
+  authorContent?: ReactNode;
+  /**
+   * What the quote shows in place of `excerpt`, when plain text cannot draw it: the line with its
+   * emoji as pictures (`<EmojiText text={line} catalogue={catalogue} />`), on one line, cut with an
+   * ellipsis. `excerpt` stays what screen readers hear.
+   *
+   * @claim "What the quote shows in place of `excerpt`" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows authorContent and excerptContent in place of the author and the excerpt, while screen readers hear the text)
+   */
+  excerptContent?: ReactNode;
+  /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Removes the quote: called by the remove button, and by Escape while the box is empty. Set `quote` to `undefined` in it. */
   onRemove: () => void;
@@ -152,8 +168,8 @@ export interface ComposerOwnProps {
   loading?: { 'Use <Composer sending>': never };
   /** Not a prop. Ouro UI uses `sendDisabledReason`: `<Composer sendDisabledReason="Sending is off">`. */
   sendDisabled?: { 'Use <Composer sendDisabledReason="Sending is off">': never };
-  /** Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>`. */
-  replyTo?: { 'Use <Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>': never };
+  /** Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>`. */
+  replyTo?: { 'Use <Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>': never };
 }
 
 /** Props for {@link Composer}: its own props and the `<textarea>` attributes it passes through (`onKeyDown`, `onPaste`, `readOnly`). */
@@ -182,7 +198,7 @@ const quoteButtonClass =
 
 /**
  * What the quote shows: the bar, the avatar, the author and the excerpt. Screen readers hear the
- * label ("Quoting Ada") in place of the author's name, then the excerpt.
+ * label ("Quoting Ana") in place of the author's name, then the excerpt.
  */
 function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Element {
   return (
@@ -194,10 +210,17 @@ function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Ele
           {quote.label ?? `Quoting ${quote.author}`}:{" "}
         </span>
         <span aria-hidden="true" data-ouro-composer-quote-author="" className="truncate text-xs font-semibold text-foreground">
-          {quote.author}
+          {quote.authorContent ?? quote.author}
         </span>
         <span id={`${id}-excerpt`} data-ouro-composer-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
-          {quote.excerpt}
+          {quote.excerptContent === undefined ? (
+            quote.excerpt
+          ) : (
+            <>
+              <span aria-hidden="true">{quote.excerptContent}</span>
+              <span className="sr-only">{quote.excerpt}</span>
+            </>
+          )}
         </span>
       </span>
     </>
@@ -277,7 +300,7 @@ function insertTokens(control: HTMLTextAreaElement, event: { preventDefault(): v
  *
  * @example
  * <Composer
- *   label="Reply to Ada"
+ *   label="Reply to Ana"
  *   quote={quoted && { author: quoted.author, excerpt: quoted.text, onRemove: () => setQuoted(undefined), onActivate: () => scrollTo(quoted.id) }}
  *   onSend={(text) => { send(text, quoted?.id); setQuoted(undefined); }}
  * />
@@ -358,7 +381,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           enterToSend !== undefined && ["enterToSend is not a prop", '<Composer sendOn="enter">'],
           loading !== undefined && ["loading is not a prop", "<Composer sending>"],
           sendDisabled !== undefined && ["sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
-          replyTo !== undefined && ["replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ada", excerpt: "Lunch?", onRemove }}>'],
+          replyTo !== undefined && ["replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
