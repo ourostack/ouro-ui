@@ -37,10 +37,12 @@ interface Pressable {
 
 // An init script: records layout shifts, the largest content drawn, and the events of each press, from the page's start.
 function listenForMeasures(): void {
+  // The burst under way: its score, when it began and its last shift, and the node of its largest shift.
   let burst = 0;
-  let first = 0;
-  let last = 0;
+  let first = -Infinity;
+  let last = -Infinity;
   let worst = 0;
+  let worstNode: Node | null = null;
   const m: Measures = {
     shift: 0,
     shiftNode: null,
@@ -53,14 +55,20 @@ function listenForMeasures(): void {
       if (entry.startTime - last > 1000 || entry.startTime - first > 5000) {
         burst = 0;
         first = entry.startTime;
+        worst = 0;
+        worstNode = null;
       }
       burst += entry.value;
       last = entry.startTime;
-      m.shift = Math.max(m.shift, burst);
       const node = entry.sources.map((source) => source.node).find(Boolean);
       if (node && entry.value > worst) {
         worst = entry.value;
-        m.shiftNode = node;
+        worstNode = node;
+      }
+      // The score is the largest burst's, and the node the one that moved most in that burst.
+      if (burst > m.shift) {
+        m.shift = burst;
+        m.shiftNode = worstNode;
       }
     },
   };
@@ -110,8 +118,9 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
   return issues;
 }
 
-// Marks the first `limit` controls a person can press, shown and enabled, and names each. Not a link, which would leave
-// the page, nor a form's submit button, which would send it.
+// Marks the first `limit` controls a person can press, shown and enabled, and names each. Not a link, whatever its role,
+// which would leave the page, nor a form's submit button, inside the form or tied to it by its form attribute, which
+// would send it.
 function markPressables(limit: number): Pressable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
   const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
@@ -122,8 +131,8 @@ function markPressables(limit: number): Pressable[] {
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}${w ? ` "${w.slice(0, 40)}${w.length > 40 ? "…" : ""}"` : ""}`;
   };
   const pressable = (el: Element) => {
-    if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(`[data-ouro-allow~="inp"]${why}, [data-ouro-allow~="all"]${why}`)) return false;
-    if (el.matches("button") && el.closest("form") && (el as HTMLButtonElement).type === "submit") return false;
+    if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(`a[href], area[href], [data-ouro-allow~="inp"]${why}, [data-ouro-allow~="all"]${why}`)) return false;
+    if (el.matches("button") && (el as HTMLButtonElement).form && (el as HTMLButtonElement).type === "submit") return false;
     const r = el.getBoundingClientRect();
     return r.width >= 2 && r.height >= 2 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   };

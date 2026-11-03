@@ -349,8 +349,15 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     const file = `${target.name}-${width}x${height}-${theme}.jpg`;
     await page.evaluate("window.scrollTo(0, 0)");
     await page.screenshot({ path: join(out, "sheets/shots", file), type: "jpeg", quality: 70, scale: "css" });
-    // Pressed after the contact sheet's shot, which shows the page as it loaded.
-    const pressed = measure && !failed && inpAt === `${width}x${height} ${theme}` ? await press(page, target, width, height, theme) : 0;
+    // Pressed in a context of its own, so what a press saves (a theme, a dismissed banner) reaches no other page.
+    let pressed = 0;
+    if (measure && !failed && inpAt === `${width}x${height} ${theme}`) {
+      const own = await contextFor(width, height, theme);
+      const tab = await own.newPage();
+      await open(tab, target.url, readyTimeout);
+      pressed = await press(tab, target, width, height, theme);
+      await own.close();
+    }
     const count = issues.length + pressed;
     log(`${count ? "✗" : "✓"} ${`${width}×${height}`.padEnd(9)} ${theme.padEnd(5)} ${pageOf(target)}${count ? `: ${count}` : ""}`);
     shots.push({ site: target.site, page: target.page, file, width, height, theme, count });

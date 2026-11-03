@@ -49,7 +49,6 @@ describe("listenForMeasures", () => {
     const m = measures();
     const [a, b, c] = ["a", "b", "c"].map((id) => Object.assign(document.createElement("div"), { id }));
     const shift = (value: number, startTime: number, nodes: (Node | null)[], hadRecentInput = false) => m.add({ value, startTime, hadRecentInput, sources: nodes.map((node) => ({ node })) });
-    m.shift = 0;
     shift(0.05, 2000, [a!]);
     shift(0.08, 2600, [null, b!]);
     expect(m.shift).toBeCloseTo(0.13);
@@ -62,10 +61,20 @@ describe("listenForMeasures", () => {
     shift(0.01, 4500, [c!]);
     expect(m.shift).toBeCloseTo(0.13);
     expect(m.shiftNode).toBe(b);
-    // So does a burst five seconds long, however close its shifts: the last one here starts its own.
+    // That burst, grown past the first, takes the score, and its own largest shift's node.
     for (const at of [5000, 5900, 6800, 7700, 8600]) shift(0.04, at, []);
-    shift(0.1, 9100, []);
     expect(m.shift).toBeCloseTo(0.23);
+    expect(m.shiftNode).toBe(c);
+    // A burst five seconds long ends, however close its shifts: the next shift starts its own.
+    shift(0.1, 9100, [a!]);
+    expect(m.shift).toBeCloseTo(0.23);
+    expect(m.shiftNode).toBe(c);
+  });
+
+  it("counts shifts from the start of the load in one burst, for up to five seconds", () => {
+    const m = measures();
+    for (const at of [300, 1200, 2100, 3000, 3900, 4800, 5100]) m.add({ value: 0.02, startTime: at, hadRecentInput: false, sources: [] });
+    expect(m.shift).toBeCloseTo(0.14);
   });
 });
 
@@ -117,8 +126,10 @@ describe("markPressables", () => {
       <button hidden>Hidden</button>
       <button style="visibility:hidden">Invisible</button>
       <span data-ouro-allow="inp" data-ouro-allow-why="slow on purpose"><button>Allowed</button></span>
-      <form><button>Send</button><button type="button">Add a row</button></form>
+      <form id="f"><button>Send</button><button type="button">Add a row</button></form>
+      <button form="f">Send too</button>
       <a href="#">A link</a>
+      <a href="#" role="button">A link as a button</a>
       <button>${"A long label ".repeat(5)}</button>
       <button>Past the limit</button>`);
     expect(markPressables(7)).toEqual([
