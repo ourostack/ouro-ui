@@ -153,6 +153,7 @@ function useShownLevel(level: number, bars: number): number {
 function useReading(level: number): LevelMeterBand {
   const [band, setBand] = useState(() => bandFor(level));
   const latest = useRef(level);
+  // Stryker disable next-line ArrayDeclaration: the first check drops every entry without a time before it reads one.
   const heard = useRef<Array<readonly [time: number, level: number]>>([]);
   useEffect(() => {
     latest.current = level;
@@ -167,7 +168,9 @@ function useReading(level: number): LevelMeterBand {
       setBand(bandFor(loudest));
     }, READ_EVERY_MS);
     return () => clearInterval(timer);
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: any constant dependency list starts the check once, as this one does.
+  []);
   return band;
 }
 
