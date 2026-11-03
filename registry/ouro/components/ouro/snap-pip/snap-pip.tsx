@@ -305,6 +305,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const place = useCallback((x: number, y: number) => {
     at.current = { x, y };
     element.current!.style.translate = `${x}px ${y}px`;
+    // Stryker disable next-line ArrayDeclaration: place reads only refs, so any constant list keeps it as this one does.
   }, []);
 
   /** The keep-outs as rectangles in the container, elements measured now. */
