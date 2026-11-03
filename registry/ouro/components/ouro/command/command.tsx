@@ -449,11 +449,14 @@ export function Command(props: CommandProps): JSX.Element {
   const popupRef = useRef<HTMLDivElement | null>(null);
   // The dialog fits the commands it opens with, from 32rem to 40rem, and then keeps that width while it is open: taken as
   // it mounts with its rows, so filtering or a server's answer never moves the input or the rows sideways.
-  const holdOnOpen = useCallback((popup: HTMLDivElement | null) => {
-    popupRef.current = popup;
-    if (popup) holdWidth(popup);
-    // Stryker disable next-line ArrayDeclaration: a constant dependency keeps the same callback, as no dependencies do.
-  }, []);
+  const holdOnOpen = useCallback(
+    (popup: HTMLDivElement | null) => {
+      popupRef.current = popup;
+      if (popup) holdWidth(popup);
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
+    [],
+  );
   // A Server Component's trigger can arrive as a lazy wrapper; resolve it before cloning.
   const triggerElement = serverElement(trigger);
   const triggerProps = (triggerElement?.props ?? {}) as TriggerProps;
