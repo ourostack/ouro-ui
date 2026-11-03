@@ -83,6 +83,7 @@ export const Avatars: Story = {
 
 /** A list while it loads: six rows the height of Items with a picture, a title and a description. */
 export const ListRows: Story = {
+  parameters: { screenshot: { name: "skeleton-list-rows" } },
   render: () => (
     <Surface>
       <div aria-busy="true" aria-label="Loading conversations" role="group">
@@ -94,6 +95,7 @@ export const ListRows: Story = {
 
 /** Cards while they load, each its own element, so they sit in the grid the cards will fill. */
 export const Cards: Story = {
+  parameters: { screenshot: { name: "skeleton-cards" } },
   render: () => (
     <div aria-busy="true" aria-label="Loading recipes" role="group" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, maxWidth: 720 }}>
       <Skeleton shape="card" count={3} />

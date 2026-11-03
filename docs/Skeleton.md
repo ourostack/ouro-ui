@@ -11,11 +11,13 @@ import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 ## Example
 
 ```tsx
-<div aria-busy="true" aria-label="Messages" role="group">
-  <Skeleton shape="row" count={6} />
-</div>
-<Skeleton shape="text" size="sm" lines={3} />
-<Skeleton shape="circle" size="lg" />
+<>
+  <div aria-busy="true" aria-label="Messages" role="group">
+    <Skeleton shape="row" count={6} />
+  </div>
+  <Skeleton shape="text" size="sm" lines={3} />
+  <Skeleton shape="circle" size="lg" />
+</>
 ```
 
 ## Usage
@@ -33,53 +35,67 @@ The props the modes share. Type: `SkeletonProps`.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `className` | `string` | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
-| `ref` | `Ref<HTMLDivElement>` | Reaches the rendered element. |
-| `shape` | `S` | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. Leave it out for `rect`. |
+| `ref` | `Ref<HTMLSpanElement>` | Reaches the rendered element. |
 
 ## Modes
 
 `SkeletonProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
-### With 
+### Circle: `SkeletonCircleProps`
 
-Not in this mode (typed `never`):
-
-- `count`: 
-- `lines`: 
-- `size`: 
-
-### With `size`
+Skeleton's props for an avatar.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | Avatar's size, so it is the avatar's exact box. Leave it out to size it with a layout class. |
+| `shape` (required) | `"circle"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
+| `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | Avatar's size, so it is the avatar's exact box. A layout class (`size-12`) sizes it instead. |
 
 Not in this mode (typed `never`):
 
-- `count`: 
-- `lines`: 
+- `count`: Only with `shape="row"` or `"card"`.
+- `lines`: Only with `shape="text"`.
 
-### With `size` and `count`
+### Rect: `SkeletonRectProps`
+
+Skeleton's props for a block.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `count` | `number` | `1` | How many rows or cards to show. Each is its own element, so they sit in the list or grid the content will fill. |
+| `shape` | `"rect"` | `"rect"` | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
+
+Not in this mode (typed `never`):
+
+- `count`: Only with `shape="row"` or `"card"`.
+- `lines`: Only with `shape="text"`.
+- `size`: Only with `shape="text"`, `"circle"`, `"row"` or `"card"`. Size a block with a layout class.
+
+### Row or card: `SkeletonRowOrCardProps`
+
+Skeleton's props for list rows or Cards.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `count` | `number` | `1` | How many rows or cards to show. Each is its own element, so they sit in the grid or the `div` the content will fill (not directly in a `ul`: the rows are `span`s with `display: grid`). |
+| `shape` (required) | `"row" \| "card"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
 | `size` | `"sm" \| "md"` | `"md"` | Item's or Card's size, so each placeholder is that component's exact height. |
 
 Not in this mode (typed `never`):
 
-- `lines`: 
+- `lines`: Only with `shape="text"`.
 
-### With `size` and `lines`
+### Text: `SkeletonTextProps`
+
+Skeleton's props for lines of text.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `lines` | `number` | `1` | How many lines of text it stands in for; the last of several is shorter, like a paragraph's. |
+| `shape` (required) | `"text"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
 | `size` | `"sm" \| "md" \| "lg"` |  | Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size. |
 
 Not in this mode (typed `never`):
 
-- `count`: 
+- `count`: Only with `shape="row"` or `"card"`. For several lines use `lines`.
 
 ## Native attributes
 

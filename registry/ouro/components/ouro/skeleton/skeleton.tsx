@@ -12,7 +12,7 @@ export type SkeletonAvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl
 interface SkeletonCommonProps {
   /** Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. */
   className?: string | undefined;
-  ref?: Ref<HTMLDivElement> | undefined;
+  ref?: Ref<HTMLSpanElement> | undefined;
 
   /** Not a prop. Ouro UI uses `shape`: `<Skeleton shape="circle">`. */
   variant?: { 'Use <Skeleton shape="circle">': never };
@@ -24,10 +24,73 @@ interface SkeletonCommonProps {
   height?: { 'Use <Skeleton className="h-6">, or <Skeleton shape="text" lines={3}>': never };
 }
 
-/** The `shape` prop, declared once and shared by the shapes, so hovering it shows its JSDoc. */
-interface ShapeOf<S> {
-  /** The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. Leave it out for `rect`. */
-  shape: S;
+/** A block, such as an image or a chart: `<Skeleton className="h-32" />`. */
+export interface SkeletonRectShape {
+  /**
+   * The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`.
+   * @default "rect"
+   */
+  shape?: "rect" | undefined;
+  /** Only with `shape="text"`, `"circle"`, `"row"` or `"card"`. Size a block with a layout class. */
+  size?: never;
+  /** Only with `shape="text"`. */
+  lines?: never;
+  /** Only with `shape="row"` or `"card"`. */
+  count?: never;
+}
+
+/** Lines of text: `<Skeleton shape="text" size="sm" lines={3} />`. */
+export interface SkeletonTextShape {
+  /** The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. */
+  shape: "text";
+  /**
+   * Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size.
+   * @claim "Text's size, so each line is one line box" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > takes the space of the text it stands in for at each of Text's sizes, the last of several lines shorter)
+   */
+  size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg", Text\'s sizes': never }) | undefined;
+  /**
+   * How many lines of text it stands in for; the last of several is shorter, like a paragraph's.
+   * @default 1
+   */
+  lines?: number | undefined;
+  /** Only with `shape="row"` or `"card"`. For several lines use `lines`. */
+  count?: never;
+}
+
+/** An avatar: `<Skeleton shape="circle" size="lg" />`. */
+export interface SkeletonCircleShape {
+  /** The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. */
+  shape: "circle";
+  /**
+   * Avatar's size, so it is the avatar's exact box. A layout class (`size-12`) sizes it instead.
+   * @default "md"
+   */
+  size?: SkeletonAvatarSize | (string & { 'Use Avatar\'s sizes: "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
+  /** Only with `shape="text"`. */
+  lines?: never;
+  /** Only with `shape="row"` or `"card"`. */
+  count?: never;
+}
+
+/** List rows or Cards: `<Skeleton shape="row" count={6} />`. */
+export interface SkeletonRowOrCardShape {
+  /** The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. */
+  shape: "row" | "card";
+  /**
+   * Item's or Card's size, so each placeholder is that component's exact height.
+   * @claim "Item's or Card's size, so each placeholder" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact height of an Item row and an outline Card, at each size, so nothing moves when they arrive)
+   * @default "md"
+   */
+  size?: "sm" | "md" | (string & { 'Use "sm" or "md", Item\'s and Card\'s sizes': never }) | undefined;
+  /**
+   * How many rows or cards to show. Each is its own element, so they sit in the grid or the
+   * `div` the content will fill (not directly in a `ul`: the rows are `span`s with `display: grid`).
+   * @claim "Each is its own element, so they sit" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > repeats rows and cards count times, each its own element, with the ref and the id on the first)
+   * @default 1
+   */
+  count?: number | undefined;
+  /** Only with `shape="text"`. */
+  lines?: never;
 }
 
 /**
@@ -40,63 +103,34 @@ interface ShapeOf<S> {
  * @claim "`rect` is a block (an image, a chart)" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > takes the space of the text it stands in for at each of Text's sizes, the last of several lines shorter)
  * @claim "`rect` is a block (an image, a chart)" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact box of an Avatar at each of its sizes)
  */
-export type SkeletonShapeProps =
-  | (Partial<ShapeOf<"rect">> & {
-      size?: never;
-      lines?: never;
-      count?: never;
-    })
-  | (ShapeOf<"text"> & {
-      /**
-       * Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size.
-       * @claim "Text's size, so each line is one line box" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > takes the space of the text it stands in for at each of Text's sizes, the last of several lines shorter)
-       */
-      size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg", Text\'s sizes': never }) | undefined;
-      /**
-       * How many lines of text it stands in for; the last of several is shorter, like a paragraph's.
-       * @default 1
-       */
-      lines?: number | undefined;
-      count?: never;
-    })
-  | (ShapeOf<"circle"> & {
-      /**
-       * Avatar's size, so it is the avatar's exact box. Leave it out to size it with a layout class.
-       * @default "md"
-       */
-      size?: SkeletonAvatarSize | (string & { 'Use Avatar\'s sizes: "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
-      lines?: never;
-      count?: never;
-    })
-  | (ShapeOf<"row" | "card"> & {
-      /**
-       * Item's or Card's size, so each placeholder is that component's exact height.
-       * @claim "Item's or Card's size, so each placeholder" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact height of an Item row and an outline Card, at each size, so nothing moves when they arrive)
-       * @default "md"
-       */
-      size?: "sm" | "md" | (string & { 'Use "sm" or "md", Item\'s and Card\'s sizes': never }) | undefined;
-      /**
-       * How many rows or cards to show. Each is its own element, so they sit in the list or grid the content will fill.
-       * @claim "Each is its own element, so they sit" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > repeats rows and cards count times, each its own element, with the ref and the id on the first)
-       * @default 1
-       */
-      count?: number | undefined;
-      lines?: never;
-    });
+export type SkeletonShapeProps = SkeletonRectShape | SkeletonTextShape | SkeletonCircleShape | SkeletonRowOrCardShape;
 
-/** The props Skeleton adds to the `<div>` attributes it passes through. */
+/** The props Skeleton adds to the `<span>` attributes it passes through. */
 export type SkeletonOwnProps = SkeletonCommonProps & SkeletonShapeProps;
 
-/** Props for {@link Skeleton}: its own props and the `<div>` attributes it passes through. */
-export type SkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, keyof SkeletonCommonProps | "shape" | "size" | "lines" | "count" | "children"> &
-  SkeletonOwnProps;
+/** The `<span>` attributes Skeleton passes through, and its props that every shape takes. */
+type SkeletonBaseProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof SkeletonCommonProps | "shape" | "size" | "lines" | "count" | "children"> &
+  SkeletonCommonProps;
+/** Skeleton's props for a block. */
+export type SkeletonRectProps = SkeletonBaseProps & SkeletonRectShape;
+/** Skeleton's props for lines of text. */
+export type SkeletonTextProps = SkeletonBaseProps & SkeletonTextShape;
+/** Skeleton's props for an avatar. */
+export type SkeletonCircleProps = SkeletonBaseProps & SkeletonCircleShape;
+/** Skeleton's props for list rows or Cards. */
+export type SkeletonRowOrCardProps = SkeletonBaseProps & SkeletonRowOrCardShape;
+
+/** Props for {@link Skeleton}: its own props and the `<span>` attributes it passes through, by shape. */
+export type SkeletonProps = SkeletonRectProps | SkeletonTextProps | SkeletonCircleProps | SkeletonRowOrCardProps;
 
 // Class strings are literal so the app's Tailwind finds them when it compiles. A band a
 // little toward the muted foreground sweeps across the muted surface, which reads in light
 // and dark themes alike. With reduced motion the band holds still in the middle.
 const fill =
   "block bg-muted bg-[linear-gradient(90deg,transparent_25%,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent_75%)] " +
-  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-position-[50%_0]";
+  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-position-[50%_0] " +
+  // Forced colours paint the fill as the page's own Canvas, so an outline in the text colour keeps the shape.
+  "forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]";
 
 const shapes = {
   rect: "h-4 w-full rounded-md",
@@ -166,16 +200,18 @@ function Bar({ className }: { className: string | undefined }): JSX.Element {
  * @see https://ui.ouro.bot/docs/skeleton
  *
  * @example
- * <div aria-busy="true" aria-label="Messages" role="group">
- *   <Skeleton shape="row" count={6} />
- * </div>
- * <Skeleton shape="text" size="sm" lines={3} />
- * <Skeleton shape="circle" size="lg" />
+ * <>
+ *   <div aria-busy="true" aria-label="Messages" role="group">
+ *     <Skeleton shape="row" count={6} />
+ *   </div>
+ *   <Skeleton shape="text" size="sm" lines={3} />
+ *   <Skeleton shape="circle" size="lg" />
+ * </>
  */
 export function Skeleton(props: SkeletonProps): JSX.Element {
   const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, variant, animation, width, height, ref, ...rest } =
     props as SkeletonCommonProps &
-      Omit<HTMLAttributes<HTMLDivElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
+      Omit<HTMLAttributes<HTMLSpanElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
   const shape: Shape = shapeNames.includes(shapeProp) ? (shapeProp as Shape) : "rect";
   const sizes: object = sizesFor[shape];
@@ -216,18 +252,18 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
 
   if (shape === "rect" || shape === "circle") {
     const shapeClass = shape === "circle" ? cn(shapes.circle, avatarSizes[(size ?? "md") as SkeletonAvatarSize]) : shapes.rect;
-    return <div {...rest} {...common} ref={ref} className={cn(fill, shapeClass, className)} />;
+    return <span {...rest} {...common} ref={ref} className={cn(fill, shapeClass, className)} />;
   }
   if (shape === "text") {
     const lines = atLeastOne(linesProp);
     return (
-      <div {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
+      <span {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
         {Array.from({ length: lines }, (_, index) => (
           <span key={index} className={line}>
             <Bar className={lines > 1 && index === lines - 1 ? "w-2/3" : "w-full"} />
           </span>
         ))}
-      </div>
+      </span>
     );
   }
   const frame = (size ?? "md") as keyof typeof rowSizes;
@@ -240,7 +276,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
         const detail = detailWidths[index % detailWidths.length];
         if (shape === "row") {
           return (
-            <div key={index} {...own} {...common} className={cn("grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4", rowSizes[frame], className)}>
+            <span key={index} {...own} {...common} className={cn("grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4", rowSizes[frame], className)}>
               <Bar className="mt-0.75 size-10 self-start rounded-md" />
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className={cn(line, "text-base")}>
@@ -250,12 +286,12 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
                   <Bar className={detail} />
                 </span>
               </span>
-            </div>
+            </span>
           );
         }
         const card = cardSizes[frame];
         return (
-          <div
+          <span
             key={index}
             {...own}
             {...common}
@@ -277,7 +313,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
                 <Bar className="w-2/3" />
               </span>
             </span>
-          </div>
+          </span>
         );
       })}
     </>

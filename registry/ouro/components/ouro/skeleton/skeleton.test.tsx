@@ -59,7 +59,7 @@ describe("Skeleton", () => {
     const text = await render(<Skeleton shape="text" />);
     const lineHeight = Number.parseFloat(getComputedStyle(text).lineHeight);
     expect(text.getBoundingClientRect().height).toBeCloseTo(lineHeight, 1);
-    expect(text.querySelector("span span")!.getBoundingClientRect().height).toBeCloseTo(16 * 0.75, 0);
+    expect(text.querySelector(":scope > span > span")!.getBoundingClientRect().height).toBeCloseTo(16 * 0.75, 0);
     const circle = await render(<Skeleton shape="circle" />);
     const rect = circle.getBoundingClientRect();
     expect(rect.width).toBe(40);
@@ -86,7 +86,7 @@ describe("Skeleton", () => {
         );
         const [content, skeleton] = [host.firstElementChild!, host.querySelector('[data-ouro="skeleton"]')!];
         expect(skeleton.getBoundingClientRect().height).toBeCloseTo(content.getBoundingClientRect().height, 1);
-        const bars = [...skeleton.querySelectorAll("span span")].map((bar) => bar.getBoundingClientRect().width);
+        const bars = [...skeleton.querySelectorAll(":scope > span > span")].map((bar) => bar.getBoundingClientRect().width);
         expect(bars).toHaveLength(lines);
         if (lines > 1) expect(bars.at(-1)).toBeLessThan(bars[0]!);
         else expect(bars[0]).toBe(skeleton.getBoundingClientRect().width);
@@ -146,7 +146,7 @@ describe("Skeleton", () => {
   });
 
   it("repeats rows and cards count times, each its own element, with the ref and the id on the first", async () => {
-    const ref = { current: null as HTMLDivElement | null };
+    const ref = { current: null as HTMLSpanElement | null };
     const first = await render(<Skeleton shape="row" count={3} id="loading" data-testid="row" ref={ref} />);
     const rows = mounted.at(-1)!.querySelectorAll('[data-ouro="skeleton"]');
     expect(rows).toHaveLength(3);
@@ -157,7 +157,7 @@ describe("Skeleton", () => {
     await render(<Skeleton shape="card" count={0} />);
     expect(mounted.at(-1)!.querySelectorAll('[data-ouro="skeleton"]')).toHaveLength(1);
     await render(<Skeleton shape="text" lines={2.5} />);
-    expect(mounted.at(-1)!.querySelectorAll("span span")).toHaveLength(1);
+    expect(mounted.at(-1)!.querySelectorAll('[data-ouro="skeleton"] > span > span')).toHaveLength(1);
   });
 
   it("takes its size from layout classes, and a circle stays round", async () => {
@@ -165,6 +165,27 @@ describe("Skeleton", () => {
     expect((await render(<Skeleton shape="circle" className="size-12" />)).getBoundingClientRect()).toMatchObject({ width: 48, height: 48 });
     expect((await render(<Skeleton shape="circle" className="w-16" />)).getBoundingClientRect()).toMatchObject({ width: 64, height: 64 });
     expect(warnings()).toEqual([]);
+  });
+
+  it("keeps each shape's edge in forced colours, where the fill becomes the page's own colour", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const shapes = [
+        await render(<Skeleton />),
+        await render(<Skeleton shape="circle" />),
+        (await render(<Skeleton shape="text" lines={2} />)).querySelector<HTMLElement>(":scope > span > span")!,
+        (await render(<Skeleton shape="row" />)).querySelector<HTMLElement>(":scope > span")!,
+        (await render(<Skeleton shape="card" />)).querySelector<HTMLElement>(":scope > span > span > span")!,
+      ];
+      for (const shape of shapes) {
+        const style = getComputedStyle(shape);
+        expect(style.outlineStyle).toBe("solid");
+        expect(style.outlineWidth).toBe("1px");
+        expect(style.outlineColor).not.toBe(style.backgroundColor);
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("shimmers, and holds the shimmer still with reduced motion", async () => {

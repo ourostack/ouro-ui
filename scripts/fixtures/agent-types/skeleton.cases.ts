@@ -7,7 +7,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "skeleton03",
     habit: "an avatar shape",
-    tsc: [notAssignable('"avatar"', '"rect" | "text" | "circle" | "row" | "card"')],
+    tsc: [notAssignable('"avatar"', '"rect" | "text" | "circle" | "row" | "card" | undefined')],
     dev: '<Skeleton shape="circle">',
     names: ["dev"],
     hoverLost:
