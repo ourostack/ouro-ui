@@ -27,7 +27,7 @@ const meta = {
   title: "Feedback/Skeleton",
   component: Skeleton,
   parameters: { layout: "padded" },
-  argTypes: { shape: { control: "inline-radio", options: ["rect", "text", "circle"] } },
+  argTypes: { shape: { control: "inline-radio", options: ["rect", "text", "circle", "row", "card"] } },
 } satisfies Meta<typeof Skeleton>;
 export default meta;
 
@@ -54,5 +54,49 @@ export const RecipeCard: Story = {
         <Skeleton shape="text" className="w-4/5" />
       </div>
     </Surface>
+  ),
+};
+
+/** A paragraph while it loads: three lines of small text, each one line box tall, the last shorter. */
+export const Paragraph: Story = {
+  render: () => (
+    <Surface>
+      <div aria-busy="true" aria-label="Loading the note" role="group">
+        <Skeleton shape="text" size="sm" lines={3} />
+      </div>
+    </Surface>
+  ),
+};
+
+/** Avatars at each of Avatar's sizes. */
+export const Avatars: Story = {
+  render: () => (
+    <Surface>
+      <div aria-busy="true" aria-label="Loading people" role="group" style={{ display: "flex", alignItems: "end", gap: 12 }}>
+        {(["xs", "sm", "md", "lg", "xl", "2xl"] as const).map((size) => (
+          <Skeleton key={size} shape="circle" size={size} />
+        ))}
+      </div>
+    </Surface>
+  ),
+};
+
+/** A list while it loads: six rows the height of Items with a picture, a title and a description. */
+export const ListRows: Story = {
+  render: () => (
+    <Surface>
+      <div aria-busy="true" aria-label="Loading conversations" role="group">
+        <Skeleton shape="row" count={6} />
+      </div>
+    </Surface>
+  ),
+};
+
+/** Cards while they load, each its own element, so they sit in the grid the cards will fill. */
+export const Cards: Story = {
+  render: () => (
+    <div aria-busy="true" aria-label="Loading recipes" role="group" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, maxWidth: 720 }}>
+      <Skeleton shape="card" count={3} />
+    </div>
   ),
 };

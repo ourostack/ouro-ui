@@ -5,46 +5,122 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
-/** The props Skeleton adds to the `<div>` attributes it passes through. */
-export interface SkeletonOwnProps {
-  /**
-   * The outline of what is loading: `rect` for a block such as an image or a card, `text`
-   * for a line of text, `circle` for an avatar. Size it with layout classes:
-   * `className="h-32"`, `className="w-1/2"`, `className="size-12"`.
-   * @default "rect"
-   */
-  shape?: "rect" | "text" | "circle" | (string & { 'Use "rect", "text" or "circle"': never }) | undefined;
-  /** Layout only: size, margins and placement (`h-32`, `w-1/2`, `size-12`). The color and corners come from the theme and `shape`. */
+/** Avatar's sizes, for `<Skeleton shape="circle" size>`. */
+export type SkeletonAvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
+
+/** The props every Skeleton shape takes. */
+interface SkeletonCommonProps {
+  /** Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
 
   /** Not a prop. Ouro UI uses `shape`: `<Skeleton shape="circle">`. */
   variant?: { 'Use <Skeleton shape="circle">': never };
-  /** Not a prop. Skeleton shimmers, and pulses instead with reduced motion. */
-  animation?: { 'Not a prop: Skeleton shimmers, and pulses with reduced motion': never };
+  /** Not a prop. Skeleton shimmers, and holds still with reduced motion. */
+  animation?: { 'Not a prop: Skeleton shimmers, and holds still with reduced motion': never };
   /** Not a prop. Size it with a layout class: `<Skeleton className="w-32">`. */
   width?: { 'Use <Skeleton className="w-32">': never };
-  /** Not a prop. Size it with a layout class: `<Skeleton className="h-6">`. */
-  height?: { 'Use <Skeleton className="h-6">': never };
+  /** Not a prop. Size it with a layout class, or give `shape="text"` its `lines`: `<Skeleton className="h-6">`. */
+  height?: { 'Use <Skeleton className="h-6">, or <Skeleton shape="text" lines={3}>': never };
 }
 
+type ShapeHint = string & { 'Use "rect", "text", "circle", "row" or "card"; for an avatar use "circle"': never };
+
+/**
+ * The outline of what is loading, and the sizes that make it take the content's exact space.
+ * `rect` is a block (an image, a chart); `text` is lines of text, each one line box tall in
+ * Text's `size`; `circle` is an avatar at Avatar's `size`; `row` is a list row the height of
+ * an Item with a title, a description and 40px media; `card` is an outline Card with a title,
+ * a description and two lines of body text. `row` and `card` repeat `count` times.
+ */
+export type SkeletonShapeProps =
+  | {
+      /** @default "rect" */
+      shape?: "rect" | ShapeHint | undefined;
+      size?: never;
+      lines?: never;
+      count?: never;
+    }
+  | {
+      shape: "text";
+      /** Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size. */
+      size?: "sm" | "md" | "lg" | (string & { 'Use "sm", "md" or "lg", Text\'s sizes': never }) | undefined;
+      /**
+       * How many lines of text it stands in for; the last of several is shorter, like a paragraph's.
+       * @default 1
+       */
+      lines?: number | undefined;
+      count?: never;
+    }
+  | {
+      shape: "circle";
+      /**
+       * Avatar's size, so it is the avatar's exact box. Leave it out to size it with a layout class.
+       * @default "md"
+       */
+      size?: SkeletonAvatarSize | (string & { 'Use Avatar\'s sizes: "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
+      lines?: never;
+      count?: never;
+    }
+  | {
+      shape: "row" | "card";
+      /**
+       * Item's or Card's size, so each placeholder is that component's exact height.
+       * @default "md"
+       */
+      size?: "sm" | "md" | (string & { 'Use "sm" or "md", Item\'s and Card\'s sizes': never }) | undefined;
+      /**
+       * How many rows or cards to show. Each is its own element, so they sit in the list or grid the content will fill.
+       * @default 1
+       */
+      count?: number | undefined;
+      lines?: never;
+    };
+
+/** The props Skeleton adds to the `<div>` attributes it passes through. */
+export type SkeletonOwnProps = SkeletonCommonProps & SkeletonShapeProps;
+
 /** Props for {@link Skeleton}: its own props and the `<div>` attributes it passes through. */
-export type SkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, keyof SkeletonOwnProps | "children"> & SkeletonOwnProps;
+export type SkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, keyof SkeletonCommonProps | "shape" | "size" | "lines" | "count" | "children"> &
+  SkeletonOwnProps;
 
 // Class strings are literal so the app's Tailwind finds them when it compiles. A band a
 // little toward the muted foreground sweeps across the muted surface, which reads in light
-// and dark themes alike.
-const base =
+// and dark themes alike. With reduced motion the band holds still in the middle.
+const fill =
   "block bg-muted bg-[linear-gradient(90deg,transparent_25%,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent_75%)] " +
-  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite] motion-reduce:bg-none";
+  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-position-[50%_0]";
 
 const shapes = {
   rect: "h-4 w-full rounded-md",
-  text: "h-[0.75em] w-full rounded-sm",
-  circle: "aspect-square w-10 rounded-full",
+  circle: "aspect-square rounded-full",
 } as const;
 
-const muiVariants: Readonly<Record<string, keyof typeof shapes>> = { circular: "circle", text: "text", rectangular: "rect", rounded: "rect" };
+const avatarSizes = { xs: "w-6", sm: "w-8", md: "w-10", lg: "w-12", xl: "w-16", "2xl": "w-18", "3xl": "w-28" } as const;
+const textSizes = { sm: "text-sm", md: "text-base", lg: "text-lg" } as const;
+
+// A line is one line box of its text (`1lh`), with a bar the height of the letters in the middle,
+// so the text that replaces it takes the same space.
+const line = "flex h-[1lh] items-center";
+const bar = "h-[0.75em] rounded-sm";
+
+// Item's row (item.tsx): a 40px media lined up with the title, a medium title and a small description.
+const rowSizes = { md: "py-3", sm: "py-2" } as const;
+// Card's outline frame (card.tsx): its gap, padding and the heading's size.
+const cardSizes = {
+  md: { root: "gap-6 py-6", pad: "px-6", title: "text-lg" },
+  sm: { root: "gap-4 py-4", pad: "px-4", title: "text-base" },
+} as const;
+
+// Widths that vary from row to row, the same on the server and in the browser.
+const titleWidths = ["w-3/5", "w-2/5", "w-1/2", "w-2/3", "w-1/3"] as const;
+const detailWidths = ["w-4/5", "w-3/4", "w-11/12", "w-2/3", "w-5/6"] as const;
+
+type Shape = "rect" | "text" | "circle" | "row" | "card";
+const shapeNames: readonly Shape[] = ["rect", "text", "circle", "row", "card"];
+const sizesFor = { text: textSizes, circle: avatarSizes, row: rowSizes, card: cardSizes } as const;
+
+const muiVariants: Readonly<Record<string, Shape>> = { circular: "circle", text: "text", rectangular: "rect", rounded: "rect" };
 
 function skeletonHint(token: string): string {
   if (token.startsWith("rounded")) return token === "rounded-full" ? 'shape="circle"' : 'shape="rect"';
@@ -56,28 +132,48 @@ function sizeClass(prefix: "w" | "h", value: unknown): string {
   return `${prefix}-[${typeof value === "number" ? `${value}px` : String(value)}]`;
 }
 
+/** A whole number of at least one, or one. */
+function atLeastOne(value: number | undefined): number {
+  return value !== undefined && Number.isInteger(value) && value >= 1 ? value : 1;
+}
+
+function Bar({ className }: { className: string | undefined }): JSX.Element {
+  return <span className={cn(fill, bar, className)} />;
+}
+
 /**
- * A shimmering placeholder in the shape of content that is still loading. Screen readers
- * skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced
- * motion it is a flat fill that pulses instead of shimmering.
+ * A shimmering placeholder in the shape and size of content that is still loading, so the
+ * content takes its place without moving anything. Screen readers skip it, so mark the region
+ * that is loading with `aria-busy` while it shows. With reduced motion the shimmer holds still.
  *
- * Use `Spinner` instead for a wait with no layout to hold, and `Progress` when you know how
+ * Pick the shape of what is coming: `shape="text"` with `lines` and Text's `size` for a
+ * paragraph, `shape="circle"` with Avatar's `size` for an avatar, `shape="row"` with `count`
+ * for a list of Items, `shape="card"` for Cards, and `rect` sized with a layout class for an
+ * image or a chart. A placeholder stands in for content; a spinner does not, so an app shows
+ * a Skeleton wherever content loads.
+ *
+ * Use `Button`'s `loading` instead for an action in progress, and `Progress` when you know how
  * far along the work is.
  *
  * @group Display
  * @see https://ui.ouro.bot/docs/skeleton
  *
  * @example
- * <div aria-busy="true" className="grid gap-2">
- *   <Skeleton shape="circle" />
- *   <Skeleton shape="text" className="w-1/2" />
- *   <Skeleton className="h-32" />
- * </div>
+ * <ul aria-busy="true" aria-label="Messages">
+ *   <Skeleton shape="row" count={6} />
+ * </ul>
+ * <Skeleton shape="text" size="sm" lines={3} />
+ * <Skeleton shape="circle" size="lg" />
  */
 export function Skeleton(props: SkeletonProps): JSX.Element {
-  const { shape: shapeProp = "rect", className, variant, animation, width, height, ...rest } = props;
+  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, variant, animation, width, height, ref, ...rest } =
+    props as SkeletonCommonProps &
+      Omit<HTMLAttributes<HTMLDivElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
-  const shape = Object.hasOwn(shapes, shapeProp) ? (shapeProp as keyof typeof shapes) : "rect";
+  const shape: Shape = (shapeNames as readonly string[]).includes(shapeProp) ? (shapeProp as Shape) : "rect";
+  const sizes = shape === "rect" ? undefined : sizesFor[shape];
+  const sizeKnown = sizeProp === undefined || (sizes !== undefined && Object.hasOwn(sizes, sizeProp));
+  const size = sizeKnown ? sizeProp : undefined;
   useAppearanceClassNameCheck(
     "Skeleton",
     className,
@@ -87,16 +183,92 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
     "Skeleton",
     process.env.NODE_ENV !== "production"
       ? () => [
-          shape !== shapeProp && [`shape="${String(shapeProp)}" is not a shape; use "rect", "text", "circle"`, '<Skeleton shape="rect">'],
+          shape !== shapeProp && [
+            `shape="${shapeProp}" is not a shape; use "rect", "text", "circle", "row", "card"`,
+            `<Skeleton shape="${shapeProp === "avatar" ? "circle" : "rect"}">`,
+          ],
+          !sizeKnown && [
+            `size="${String(sizeProp)}" is not a size for shape="${shape}"; use ${sizes ? Object.keys(sizes).map((name) => `"${name}"`).join(", ") : "a layout class"}`,
+            sizes ? `<Skeleton shape="${shape}" size="${Object.keys(sizes)[0]}">` : '<Skeleton className="h-32">',
+          ],
           variant !== undefined && [
             "variant is not a prop",
             `<Skeleton shape="${Object.hasOwn(muiVariants, String(variant)) ? muiVariants[String(variant)] : "rect"}">`,
           ],
-          animation !== undefined && ["animation is not a prop; Skeleton shimmers, and pulses with reduced motion", "<Skeleton>"],
+          animation !== undefined && ["animation is not a prop; Skeleton shimmers, and holds still with reduced motion", "<Skeleton>"],
           width !== undefined && ["width is not a prop", `<Skeleton className="${sizeClass("w", width)}">`],
           height !== undefined && ["height is not a prop", `<Skeleton className="${sizeClass("h", height)}">`],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  return <div {...rest} aria-hidden="true" data-ouro="skeleton" data-shape={shape} className={cn(base, shapes[shape], className)} />;
+  const common = { "aria-hidden": true, "data-ouro": "skeleton", "data-shape": shape } as const;
+
+  if (shape === "rect" || shape === "circle") {
+    const shapeClass = shape === "circle" ? cn(shapes.circle, avatarSizes[(size ?? "md") as SkeletonAvatarSize]) : shapes.rect;
+    return <div {...rest} {...common} ref={ref} className={cn(fill, shapeClass, className)} />;
+  }
+  if (shape === "text") {
+    const lines = atLeastOne(linesProp);
+    return (
+      <div {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
+        {Array.from({ length: lines }, (_, index) => (
+          <span key={index} className={line}>
+            <Bar className={lines > 1 && index === lines - 1 ? "w-3/5" : "w-full"} />
+          </span>
+        ))}
+      </div>
+    );
+  }
+  const frame = (size ?? "md") as keyof typeof rowSizes;
+  const count = atLeastOne(countProp);
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => {
+        const own = index === 0 ? { ...rest, ref } : { ...rest, id: undefined };
+        const title = titleWidths[index % titleWidths.length];
+        const detail = detailWidths[index % detailWidths.length];
+        if (shape === "row") {
+          return (
+            <div key={index} {...own} {...common} className={cn("grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4", rowSizes[frame], className)}>
+              <Bar className="mt-0.75 size-10 self-start rounded-md" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className={cn(line, "text-base")}>
+                  <Bar className={title} />
+                </span>
+                <span className={cn(line, "text-sm")}>
+                  <Bar className={detail} />
+                </span>
+              </span>
+            </div>
+          );
+        }
+        const card = cardSizes[frame];
+        return (
+          <div
+            key={index}
+            {...own}
+            {...common}
+            className={cn("flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card", card.root, className)}
+          >
+            <span className={cn("flex min-w-0 flex-col gap-1", card.pad)}>
+              <span className={cn(line, card.title)}>
+                <Bar className={title} />
+              </span>
+              <span className={cn(line, "text-sm")}>
+                <Bar className={detail} />
+              </span>
+            </span>
+            <span className={cn("block min-w-0 text-sm", card.pad)}>
+              <span className={line}>
+                <Bar className="w-full" />
+              </span>
+              <span className={line}>
+                <Bar className="w-3/5" />
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
 }

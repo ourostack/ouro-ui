@@ -4,7 +4,8 @@ import { type AgentCase, hint } from "./shared.ts";
 export const agentCases: AgentCase[] = [
   { id: "skeleton01", habit: "MUI's Skeleton variant", tsc: [hint("string", 'Use <Skeleton shape="circle">')], dev: '<Skeleton shape="circle">', names: ["tsc", "dev"] },
   { id: "skeleton02", habit: "MUI's Skeleton width", tsc: [hint("number", 'Use <Skeleton className="w-32">')], dev: '<Skeleton className="w-[120px]">', names: ["tsc", "dev"] },
+  { id: "skeleton03", habit: "an avatar shape", tsc: [hint("string", 'Use "rect", "text", "circle", "row" or "card"; for an avatar use "circle"')], dev: '<Skeleton shape="circle">', names: ["tsc", "dev"] },
 ];
 
 /** Valid skeleton snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["skeletonValid"];
+export const validSnippets: string[] = ["skeletonValid", "skeletonValidRows", "skeletonValidText"];
