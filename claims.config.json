@@ -67,6 +67,11 @@
       "reason": "the Ouro AX probes' and evaluation's records (runs, tables, reports), copied as they were measured"
     },
     {
+      "match": "^docs/decisions/2026-11-02-cli-kit-and-platform-targets/evidence/",
+      "mode": "evidence",
+      "reason": "the CLI kit decision's records: a reference doctor's output and source notes, the first adopter's selfcheck output on made-up data, and this repository's measured size, copied as they were captured"
+    },
+    {
       "match": "^registry/ouro/ax/fixtures/",
       "mode": "input",
       "reason": "the X-ray's test fixtures"
