@@ -147,12 +147,16 @@ describe("createPeopleCache", () => {
 
   it.each([
     [5 * MINUTE, 5 * MINUTE],
+    [30 * MINUTE, 30 * MINUTE],
     [MINUTE, 2 * MINUTE],
+    [-MINUTE, 2 * MINUTE],
+    [Infinity, 2 * MINUTE],
+    [NaN, 2 * MINUTE],
     ["soon", 2 * MINUTE],
     [undefined, 2 * MINUTE],
-  ])("pauses for a failure's retryAfterMs when it is longer than pauseFor, else for pauseFor: %s gives %i ms", async (retryAfterMs, pause) => {
+  ])("honours a failure's retryAfterMs as given when it is longer than the step, even past longestPause, and ignores one that is no length: %s gives %i ms", async (retryAfterMs, pause) => {
     const { read, calls } = held();
-    const cache = createPeopleCache({ read, pauseFor: 2 * MINUTE });
+    const cache = createPeopleCache({ read, pauseFor: 2 * MINUTE, longestPause: 10 * MINUTE });
     const load = cache.load("a");
     await run();
     calls[0]!.reject(retryAfterMs === undefined ? null : Object.assign(new Error("throttled"), { retryAfterMs }));
@@ -182,13 +186,10 @@ describe("createPeopleCache", () => {
     expect(await pausesOf(cache, options.calls, Array(4).fill(down))).toEqual([1, 2, 3, 3].map((m) => m * MINUTE));
   });
 
-  it("pauses no longer than longestPause, even when pauseFor or a failure's retryAfterMs asks for longer", async () => {
+  it("caps each step of the pause at longestPause, the first step too", async () => {
+    const { read, calls } = held();
     const down = new Error("down");
-    const long = held();
-    expect(await pausesOf(createPeopleCache({ read: long.read, pauseFor: 20 * MINUTE, longestPause: 10 * MINUTE }), long.calls, [down, down])).toEqual([10 * MINUTE, 10 * MINUTE]);
-    const throttled = held();
-    const failures = [Infinity, 365 * DAY].map((retryAfterMs) => Object.assign(new Error("throttled"), { retryAfterMs }));
-    expect(await pausesOf(createPeopleCache({ read: throttled.read }), throttled.calls, failures)).toEqual([10 * MINUTE, 10 * MINUTE]);
+    expect(await pausesOf(createPeopleCache({ read, pauseFor: 20 * MINUTE, longestPause: 10 * MINUTE }), calls, [down, down])).toEqual([10 * MINUTE, 10 * MINUTE]);
   });
 
   it("starts the pause from pauseFor again after a read that succeeds, even one that finds nothing", async () => {
