@@ -184,3 +184,19 @@ export const Shapes: Story = {
     </Surface>
   ),
 };
+
+/** While the name is still loading (`name={null}`), each avatar shimmers in its own size and shape, and screen readers hear "Name loading". */
+export const NameLoading: Story = {
+  parameters: { screenshot: { name: "avatar-name-loading" } },
+  render: () => (
+    <Surface>
+      <div style={row}>
+        {(["sm", "md", "lg"] as const).map((size) => (
+          <Avatar key={size} name={null} size={size} />
+        ))}
+        <Avatar name={null} size="lg" shape="square" />
+        <Avatar name={null} size="lg" shape="hexagon" />
+      </div>
+    </Surface>
+  ),
+};

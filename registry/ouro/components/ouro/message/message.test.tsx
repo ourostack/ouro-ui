@@ -264,6 +264,64 @@ describe("Message", () => {
     expect(element).toBe(message);
     expect(getComputedStyle(message).marginTop).toBe("16px");
   });
+
+  it("keeps the loading name's line and avatar visible in forced colours", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { message } = await render(
+        <Message variant="post" role="assistant" name={null} time="9:41">
+          Hi
+        </Message>,
+      );
+      for (const shape of message.querySelectorAll<HTMLElement>('[data-ouro="skeleton"]')) {
+        const bar = shape.matches("[data-shape=text]") ? shape.querySelector<HTMLElement>(":scope > span > span")! : shape;
+        expect(getComputedStyle(bar).outlineStyle).toBe("solid");
+      }
+      expect(message.querySelectorAll('[data-ouro="skeleton"]').length).toBe(2);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("holds the name's place with a name-sized line while it loads, so nothing moves when it arrives", async () => {
+    for (const variant of ["default", "chat", "post", "reply"] as const) {
+      const shown = (name: string | null) => (
+        <Message variant={variant} role="assistant" name={name} time="9:41">
+          Preheat the oven to 220°C.
+        </Message>
+      );
+      const { message, rerender } = await render(shown(null));
+      const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+      const loading = author.querySelector<HTMLElement>("[data-ouro-message-name-loading]")!;
+      expect(loading.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(loading.querySelector(".sr-only")!.textContent).toBe("Name loading");
+      expect(loading.getBoundingClientRect().width).toBeGreaterThan(20);
+      const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]');
+      expect(avatar!.getAttribute("data-name-loading")).toBe("");
+      const [height, authorHeight] = [message.getBoundingClientRect().height, author.getBoundingClientRect().height];
+      await rerender(shown("Ana Lind"));
+      expect(message.querySelector("[data-ouro-message-name-loading]")).toBeNull();
+      expect(message.querySelector("[data-ouro-message-author]")!.textContent).toContain("Ana Lind");
+      expect(message.querySelector("[data-name-loading]")).toBeNull();
+      expect(message.getBoundingClientRect().height).toBe(height);
+      expect(message.querySelector<HTMLElement>("[data-ouro-message-author]")!.getBoundingClientRect().height).toBe(authorHeight);
+    }
+    await render(
+      <Message role="assistant" name={null} nameLoadingLabel="Nom en cours" nameContent={<b>Ana</b>}>
+        Hi
+      </Message>,
+    );
+    const last = mounted.at(-1)!.querySelector<HTMLElement>("[data-ouro-message-name-loading] .sr-only")!;
+    expect(last.textContent).toBe("Nom en cours");
+    expect(mounted.at(-1)!.querySelector("b")).toBeNull();
+    // An Avatar element with a presence gets a fix that keeps the name loading.
+    await render(
+      <Message role="assistant" name={null} avatar={<Avatar name={null} alt="" />} presence="busy" presenceLabel="Busy">
+        Hi
+      </Message>,
+    );
+    expect(String(warn.mock.calls.at(-1)?.[0])).toContain('avatar={<Avatar name={null} alt="" size="sm" presence="busy"');
+  });
 });
 
 describe("Message development messages", () => {
