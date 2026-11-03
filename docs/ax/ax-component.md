@@ -157,7 +157,7 @@ expectAxRendered(callControlsAx, document.body);
 
 ### `isReservedPersonOnly`
 
-Whether an action id is reserved for the person, by meaning rather than spelling: `Unmute`, `mic-on`, `share-screen`, `startRecording` and `pick_up` are, and so is a camera or video turned on; an id that only reduces what the person exposes (with off, stop, end, disable or mute in it, such as `mute`, `camera-off` or `stop-share`) is not. The declaration and the X-ray both ask it.
+Whether an action id is reserved for the person, by meaning rather than spelling: `Unmute`, `mic-on`, `share-screen`, `startRecording` and `pick_up` are. So is a bare device or capture (`mic`, `camera`, `video`, `screen`, `transcript`) alone or turned on, started, resumed or enabled, and any toggle of one (`toggle-mic`, `mute-toggle`), since a toggle can turn it on. A call verb (answer, accept, decline, reject, admit, share, record) is the person's alone or beside a call word (`accept-call`, `record-meeting`, `admit-lobby`), so `answer-message`, `share-link` and `record-note` stay an agent's. An id that only reduces what the person exposes (with off, stop, end, disable or mute in it and no on, toggle, resume, start, enable or unmute, such as `mute`, `camera-off` or `stop-share`) is not reserved, but `mute-off` is, since it unmutes. Captions are not reserved: they are the person's own and private, and a component declares its captions action person-only itself. The declaration and the X-ray both ask it.
 
 ```ts
 function isReservedPersonOnly(id: string): boolean

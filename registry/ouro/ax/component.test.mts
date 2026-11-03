@@ -85,13 +85,13 @@ test("expectAxRendered finds each declared action's control by data-ax-action, a
 
 test("reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's", () => {
   const reserved = {
-    unmute: ["unmute", "Unmute", "UNMUTE", "un-mute", "mic-on", "micOn", "microphone_on", "start-mic", "enable microphone", "turn-on-mic"],
-    camera: ["camera", "Camera", "camera-on", "cameraOn", "video", "video-on", "start-video", "enable_camera", "Video", "turn-on-camera", "turnVideoOn"],
-    share: ["share", "Share", "share-screen", "shareScreen", "screen share", "screen_share", "start-share", "present", "start-presenting", "screenshare", "start-screenshare"],
-    answer: ["answer", "Answer", "accept", "accept-call", "pick-up", "pickUp", "pickup", "answerCall"],
+    unmute: ["unmute", "Unmute", "UNMUTE", "un-mute", "mic-on", "micOn", "microphone_on", "start-mic", "enable microphone", "turn-on-mic", "mic", "microphone", "toggle-mic", "toggle-mute", "mute-toggle", "mute-off"],
+    camera: ["camera", "Camera", "camera-on", "cameraOn", "video", "video-on", "start-video", "enable_camera", "Video", "turn-on-camera", "turnVideoOn", "cam", "cam-on", "webcam-on", "toggle-camera", "resume-video"],
+    share: ["share", "Share", "share-screen", "shareScreen", "screen share", "screen_share", "start-share", "present", "start-presenting", "screenshare", "start-screenshare", "screen", "toggle-screenshare"],
+    answer: ["answer", "Answer", "accept", "accept-call", "pick-up", "pickUp", "pickup", "answerCall", "accept-incoming-call"],
     decline: ["decline", "Decline", "reject", "reject-call", "declineCall"],
-    admit: ["admit", "Admit", "let-in", "letIn", "admit-from-lobby"],
-    record: ["record", "Record", "recording", "start-recording", "startRecording", "transcribe", "transcription", "start_transcription"],
+    admit: ["admit", "Admit", "let-in", "letIn", "admit-from-lobby", "admit-lobby"],
+    record: ["record", "Record", "recording", "start-recording", "startRecording", "transcribe", "transcription", "start_transcription", "transcript", "transcript-on", "start-transcript", "record-meeting"],
   };
   for (const [canonical, ids] of Object.entries(reserved)) {
     for (const id of ids) {
@@ -99,7 +99,7 @@ test("reserved ids are matched by meaning: every alias and case is the person's,
       throwsLine(() => defineComponentAx({ component: "RingCard", reads: [], actions: [{ id, summary: "S.", effect: "others", agent: true }] }), `RingCard action "${id}": it is the person's own, so it is never an agent action. Fix: personOnly: ${JSON.stringify(RESERVED_PERSON_ONLY[canonical])}.`);
     }
   }
-  const agents = ["mute", "Mute", "mute-all", "camera-off", "cameraOff", "video-off", "stop-share", "stopSharing", "end-share", "stop-recording", "stopTranscription", "disable-camera", "mic-off", "turn-off-camera", "stop-screenshare", "end-call", "leave", "raise-hand", "lower-hand", "pin", "camera-flip", "video-settings", "mic", "let"];
+  const agents = ["mute", "Mute", "mute-all", "camera-off", "cameraOff", "video-off", "stop-share", "stopSharing", "end-share", "stop-recording", "stopTranscription", "disable-camera", "mic-off", "turn-off-camera", "stop-screenshare", "end-call", "leave", "raise-hand", "lower-hand", "pin", "camera-flip", "video-settings", "let", "accept-invite-link", "answer-message", "share-link", "record-note", "decline-suggestion", "captions", "toggle", "leave-call"];
   for (const id of agents) {
     assert.equal(isReservedPersonOnly(id), false, id);
     assert.doesNotThrow(() => defineComponentAx({ component: "CallControls", reads: [], actions: [{ id, summary: "S.", effect: "others", agent: true }] }), id);

@@ -57,7 +57,8 @@ const RESERVED_PERSON_ONLY: Readonly<Record<string, string>> = Object.freeze({
   record: "You can't start recording or transcription for the person; only they can.",
 });
 
-// An id's words, lower case: `shareScreen`, `share_screen` and `Share Screen` become `share screen`.
+// An id's words, lower case: `shareScreen`, `share_screen` and `Share Screen` become `share screen`; `un mute`, `pick up`
+// and `let in` each become one word.
 const wordsOfId = (id: string) =>
   id
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -66,33 +67,61 @@ const wordsOfId = (id: string) =>
     .filter(Boolean)
     .join(" ")
     .replace(/\bun mute\b/g, "unmute")
+    .replace(/\bpick up\b/g, "pickup")
+    .replace(/\blet in\b/g, "letin")
     .split(" ");
 
-/** The words that only reduce what the person exposes; an id with one stays an agent's. */
-const REDUCING = new Set(["off", "stop", "end", "disable", "mute"]);
-const ON = ["on", "start", "enable", "turn"];
+/** The words that only reduce what the person exposes; they free an id only when no turn-on word is in it. */
+const REDUCING = ["off", "stop", "end", "disable", "mute"];
+/** The words that can turn something on, so an id with one is never freed by a reducing word. */
+const TURN_ON = ["on", "toggle", "resume", "start", "enable", "unmute", "un"];
+/** The words that may sit beside a device or capture noun without changing what the id turns on. */
+const ON = [...TURN_ON, "turn"];
+/** The person's devices and captures, each with the canonical id it means. */
+const DEVICES: Readonly<Record<string, readonly string[]>> = {
+  unmute: ["mic", "microphone", "audio", "mute"],
+  camera: ["camera", "cam", "webcam", "video"],
+  share: ["screen", "screenshare", "share", "sharing"],
+  record: ["transcript", "transcription", "transcribe", "record", "recording"],
+};
+/** The call verbs, which are the person's only alone or beside a call word, since `share-link` is not a call. */
+const CALL_VERBS: Readonly<Record<string, readonly string[]>> = {
+  share: ["share", "sharing", "present", "presenting"],
+  answer: ["answer", "accept", "pickup"],
+  decline: ["decline", "reject"],
+  admit: ["admit", "letin"],
+  record: ["record", "recording"],
+};
+const CALL_WORDS = ["call", "meeting", "ring", "lobby", "screen", "room", "video", "audio", "incoming", "from", "the"];
 
 /** The canonical reserved id an action id means, or null: `share-screen` means `share`, `camera-off` nothing. */
 function reservedAs(id: string): string | null {
   const w = wordsOfId(id);
-  const has = (...words: string[]) => words.some((x) => w.includes(x));
+  const has = (words: readonly string[]) => words.some((x) => w.includes(x));
   const only = (allowed: readonly string[]) => w.every((x) => allowed.includes(x));
-  if (has(...REDUCING)) return null;
-  if (has("unmute") || (has("mic", "microphone") && has(...ON))) return "unmute";
-  if (has("camera", "video") && only(["camera", "video", ...ON])) return "camera";
-  if (has("share", "screenshare", "present", "presenting")) return "share";
-  if (has("answer", "accept", "pickup") || (has("pick") && has("up"))) return "answer";
-  if (has("decline", "reject")) return "decline";
-  if (has("admit") || (has("let") && has("in"))) return "admit";
-  if (has("record", "recording", "transcribe", "transcription")) return "record";
+  // `mute-off` turns the microphone on, whatever its reducing words.
+  if (w.includes("mute") && has(REDUCING.filter((x) => x !== "mute"))) return "unmute";
+  if (has(REDUCING) && !has(TURN_ON)) return null;
+  if (has(["unmute", "mute"])) return "unmute";
+  for (const [canonical, nouns] of Object.entries(DEVICES)) {
+    if (has(nouns) && (w.includes("toggle") || only([...nouns, ...ON]))) return canonical;
+  }
+  for (const [canonical, verbs] of Object.entries(CALL_VERBS)) {
+    if (has(verbs) && only([...verbs, ...ON, ...CALL_WORDS])) return canonical;
+  }
   return null;
 }
 
 /**
  * Whether an action id is reserved for the person, by meaning rather than spelling: `Unmute`, `mic-on`, `share-screen`,
- * `startRecording` and `pick_up` are, and so is a camera or video turned on; an id that only reduces what the person
- * exposes (with off, stop, end, disable or mute in it, such as `mute`, `camera-off` or `stop-share`) is not. The
- * declaration and the X-ray both ask it.
+ * `startRecording` and `pick_up` are. So is a bare device or capture (`mic`, `camera`, `video`, `screen`, `transcript`)
+ * alone or turned on, started, resumed or enabled, and any toggle of one (`toggle-mic`, `mute-toggle`), since a toggle
+ * can turn it on. A call verb (answer, accept, decline, reject, admit, share, record) is the person's alone or beside a
+ * call word (`accept-call`, `record-meeting`, `admit-lobby`), so `answer-message`, `share-link` and `record-note` stay an
+ * agent's. An id that only reduces what the person exposes (with off, stop, end, disable or mute in it and no on,
+ * toggle, resume, start, enable or unmute, such as `mute`, `camera-off` or `stop-share`) is not reserved, but
+ * `mute-off` is, since it unmutes. Captions are not reserved: they are the person's own and private, and a component
+ * declares its captions action person-only itself. The declaration and the X-ray both ask it.
  *
  * @claim "by meaning rather than spelling" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's)
  */
