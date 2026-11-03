@@ -1,4 +1,4 @@
-export { findLoadingIssues, interactionSince, listenForMeasures, markPressables, pressPoint };
+export { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint };
 export type { LoadingBudgets, Measures, Pressable };
 
 import type { PageIssue } from "./size-check.ts";
@@ -118,18 +118,31 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
   return issues;
 }
 
+// What inp never presses, even when listed, nor clicks inside: a control with a destructive tone (Ouro's and shadcn's
+// destructive classes, or data-tone or data-variant "destructive"), one marked data-ouro-check-no-press, a link, whatever
+// its role, which would leave the page, a form's submit button, inside the form or tied to it by its form attribute,
+// which would send it, and one allowed the rule with a reason.
+const NEVER_PRESS = [
+  "a[href]",
+  "area[href]",
+  "[data-ouro-check-no-press]",
+  '[data-tone="destructive"]',
+  '[data-variant="destructive"]',
+  '[class*="destructive"]',
+  'form button:not([type="button"]):not([type="reset"])',
+  'button[form]:not([type="button"]):not([type="reset"])',
+  'input[type="submit"]',
+  'input[type="image"]',
+  ...["inp", "all"].map((rule) => `[data-ouro-allow~="${rule}"][data-ouro-allow-why]:not([data-ouro-allow-why=""])`),
+].join(", ");
+
 // Marks the first `limit` controls listed for pressing, shown and enabled, and names each: the ones ouro-check.json's
 // "press" selectors match, and the ones marked data-ouro-check-press. Pressing is opt-in because a press does what it
-// says, on whatever server the app talks to. Even when listed, it never marks a control with a destructive tone or
-// inside one (Ouro's and shadcn's destructive classes, or data-tone or data-variant "destructive"), one marked
-// data-ouro-check-no-press, a link, whatever its role, which would leave the page, or a form's submit button, inside
-// the form or tied to it by its form attribute, which would send it.
-function markPressables({ limit, press }: { limit: number; press: string[] }): Pressable[] {
+// says, on whatever server the app talks to. Never one that `never` (NEVER_PRESS) matches, or inside one.
+function markPressables({ limit, press, never }: { limit: number; press: string[]; never: string }): Pressable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
   // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
   for (const el of document.querySelectorAll("[data-ouro-allow-why]")) el.setAttribute("data-ouro-allow-why", el.getAttribute("data-ouro-allow-why")!.trim());
-  const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
-  const never = `a[href], area[href], [data-ouro-check-no-press], [data-tone="destructive"], [data-variant="destructive"], [class*="destructive"], [data-ouro-allow~="inp"]${why}, [data-ouro-allow~="all"]${why}`;
   const words = (el: Element) => (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ");
   const name = (el: Element) => {
     const w = words(el);
@@ -137,7 +150,6 @@ function markPressables({ limit, press }: { limit: number; press: string[] }): P
   };
   const pressable = (el: Element) => {
     if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(never)) return false;
-    if (el.matches("button") && (el as HTMLButtonElement).form && (el as HTMLButtonElement).type === "submit") return false;
     const r = el.getBoundingClientRect();
     return r.width >= 2 && r.height >= 2 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   };
@@ -153,15 +165,17 @@ function markPressables({ limit, press }: { limit: number; press: string[] }): P
 }
 
 // Where to press a marked control, in the screen's coordinates once it is scrolled into view; null when it has left
-// the page, or something else covers its middle.
-function pressPoint(ref: string): { x: number; y: number } | null {
+// the page, something else covers its middle, or what its middle would click is something `never` matches or is inside
+// one, such as a destructive button inside a listed wrapper.
+function pressPoint({ ref, never }: { ref: string; never: string }): { x: number; y: number } | null {
   const el = document.querySelector(`[data-ouro-check-ref~="${ref}"]`);
   if (!el) return null;
   el.scrollIntoView({ block: "center", behavior: "instant" });
   const r = el.getBoundingClientRect();
   const x = r.left + r.width / 2;
   const y = r.top + r.height / 2;
-  return el.contains(document.elementFromPoint(x, y)) ? { x, y } : null;
+  const hit = document.elementFromPoint(x, y);
+  return el.contains(hit) && !hit!.closest(never) ? { x, y } : null;
 }
 
 // The longest event of the presses since `since` (performance.now()), in ms, once two frames have drawn; 0 when every

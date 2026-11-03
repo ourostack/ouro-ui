@@ -8,7 +8,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page } from "playwright";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
-import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, pressPoint } from "./measure.ts";
+import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
 import { findSizeIssues, type PageIssue } from "./size-check.ts";
@@ -325,14 +325,14 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
     let at = page.url();
-    const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [] });
+    const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS });
     let controls = await mark();
     // By index: a page opened again is marked again, in the same order.
     for (let i = 0; i < controls.length; i++) {
       const { ref, element } = controls[i]!;
       const samples: number[] = [];
       for (let n = 0; n < repeats; n++) {
-        const point = await page.evaluate(pressPoint, ref);
+        const point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
         if (!point) break;
         const since = (await page.evaluate("performance.now()")) as number;
         await page.mouse.click(point.x, point.y);
@@ -718,6 +718,13 @@ async function readJson<T>(file: string, error: (line: string) => void): Promise
   }
 }
 
+// What is wrong with a config's press settings, which JSON leaves unchecked: a string would read as its letters.
+function configProblem({ press, pressRepeat }: Gate): string | null {
+  if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
+  if (pressRepeat !== undefined && !(Number.isInteger(pressRepeat) && pressRepeat >= 1)) return '"pressRepeat" takes a whole number of presses, 1 or more.';
+  return null;
+}
+
 // The command: returns the exit code.
 async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname(fileURLToPath(import.meta.url))] }: Env): Promise<number> {
   let args: Args;
@@ -742,6 +749,11 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
   const hasConfig = args.config !== undefined || (await readFile(configFile).then(() => true, () => false));
   const config = hasConfig ? await readJson<Gate>(configFile, error) : {};
   if (!config) return EXIT.usage;
+  const wrong = configProblem(config);
+  if (wrong) {
+    error(`${configFile}: ${wrong}`);
+    return EXIT.usage;
+  }
   // The check itself failing (no browser, a full disk) is no finding: it exits 3, never 1, which means "fix these".
   try {
     const out = resolve(cwd, args.out);

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { server, userEvent } from "vitest/browser";
-import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, pressPoint, type Measures } from "@/registry/ouro/check/measure";
+import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint, type Measures } from "@/registry/ouro/check/measure";
 
 // Ouro check's measured rules, in the page (ouro-check). The check runs in Chromium, the browser that reports layout
 // shifts, the largest content drawn and each event's timing, so these run there. scripts/check.test.mjs runs the whole
@@ -117,7 +117,7 @@ describe("findLoadingIssues", () => {
 describe("markPressables", () => {
   it("marks nothing unless it is listed for pressing", () => {
     render('<button id="one">One</button><div role="button">Two</div><input type="checkbox" aria-label="Three">');
-    expect(markPressables({ limit: 24, press: [] })).toEqual([]);
+    expect(markPressables({ limit: 24, press: [], never: NEVER_PRESS })).toEqual([]);
     expect(document.querySelector("[data-ouro-check-ref]")).toBeNull();
   });
 
@@ -138,12 +138,12 @@ describe("markPressables", () => {
       <button data-ouro-check-no-press class="listed">Buy</button>
       <span data-ouro-allow="inp" data-ouro-allow-why="slow on purpose"><button data-ouro-check-press>Allowed</button></span>
       <span data-ouro-allow="inp" data-ouro-allow-why="  "><button id="spaces" data-ouro-check-press>A reason of spaces</button></span>
-      <form id="f"><button data-ouro-check-press>Send</button><button type="button" data-ouro-check-press>Add a row</button></form>
+      <form id="f"><button data-ouro-check-press>Send</button><button type="button" data-ouro-check-press>Add a row</button><input type="submit" value="Go" class="listed"><input type="image" alt="Go" class="listed"><button><span class="listed">Inside a submit button</span></button></form>
       <button form="f" data-ouro-check-press>Send too</button>
       <a href="#" role="button" data-ouro-check-press>A link as a button</a>
       <button data-ouro-check-press>${"A long label ".repeat(5)}</button>
       <button data-ouro-check-press>Past the limit</button>`);
-    expect(markPressables({ limit: 8, press: [".listed:not(button)"] })).toEqual([
+    expect(markPressables({ limit: 8, press: [".listed:not(button)"], never: NEVER_PRESS })).toEqual([
       { ref: "p1", element: 'button#one.a.b.c "One"' },
       { ref: "p2", element: 'div.listed "Second tab"' },
       { ref: "p3", element: 'summary.listed "More"' },
@@ -153,28 +153,33 @@ describe("markPressables", () => {
       { ref: "p7", element: 'button "A long label A long label A long label A…"' },
       { ref: "p8", element: 'button "Past the limit"' },
     ]);
-    expect(markPressables({ limit: 1, press: [] })).toEqual([{ ref: "p9", element: 'button#one.a.b.c "One"' }]);
+    expect(markPressables({ limit: 1, press: [], never: NEVER_PRESS })).toEqual([{ ref: "p9", element: 'button#one.a.b.c "One"' }]);
     expect(document.getElementById("one")!.getAttribute("data-ouro-check-ref")).toBe("p1 p9");
     // Listed by a selector, a destructive or opted-out control is still never pressed.
-    expect(markPressables({ limit: 24, press: ["[data-variant]", "[data-ouro-check-no-press]", ".bg-destructive"] }).map((p) => p.element)).not.toContain('button "Remove"');
+    expect(markPressables({ limit: 24, press: ["[data-variant]", "[data-ouro-check-no-press]", ".bg-destructive"], never: NEVER_PRESS }).map((p) => p.element)).not.toContain('button "Remove"');
     host.remove();
     render('<button aria-label="" style="width:24px;height:24px" data-ouro-check-press></button>');
-    expect(markPressables({ limit: 20, press: [] }).at(-1)!.element).toBe("button");
+    expect(markPressables({ limit: 20, press: [], never: NEVER_PRESS }).at(-1)!.element).toBe("button");
   });
 });
 
 describe("pressPoint", () => {
+  it("gives no point where the press would click a control it never presses, such as a destructive button in a listed wrapper", () => {
+    render('<div data-ouro-check-ref="p1" style="width:120px"><button class="bg-destructive" style="width:120px;height:40px">Delete</button></div>');
+    expect(pressPoint({ ref: "p1", never: NEVER_PRESS })).toBeNull();
+  });
+
   it("gives the middle of a control scrolled into view, and null for one covered or gone", () => {
     render(`
       <div style="height:${innerHeight * 2}px"></div>
       <button data-ouro-check-ref="p1" style="width:80px;height:40px">Press</button>
       <span style="position:relative;display:inline-block"><button data-ouro-check-ref="p2">Covered</button><span style="position:absolute;inset:0"></span></span>`);
-    const point = pressPoint("p1")!;
+    const point = pressPoint({ ref: "p1", never: NEVER_PRESS })!;
     const rect = host.querySelector('[data-ouro-check-ref="p1"]')!.getBoundingClientRect();
     expect(point).toEqual({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
     expect(point.y).toBeLessThan(innerHeight);
-    expect(pressPoint("p2")).toBeNull();
-    expect(pressPoint("p9")).toBeNull();
+    expect(pressPoint({ ref: "p2", never: NEVER_PRESS })).toBeNull();
+    expect(pressPoint({ ref: "p9", never: NEVER_PRESS })).toBeNull();
   });
 });
 

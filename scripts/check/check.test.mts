@@ -431,6 +431,18 @@ describe("Ouro check's command", () => {
     assert.match(withAxe.err, /^Could not read .*missing\.json/);
     const badConfig = await run([folder, "--config", "missing.json"]);
     assert.equal(badConfig.code, 2);
+    // A press setting JSON leaves unchecked: a string would read as its letters, and 0 presses would turn inp off.
+    for (const [config, message] of [
+      [{ press: "button" }, /"press" takes a list of CSS selectors/],
+      [{ press: ["[role=tab]", " "] }, /"press" takes a list of CSS selectors/],
+      [{ pressRepeat: 0 }, /"pressRepeat" takes a whole number of presses, 1 or more/],
+      [{ pressRepeat: 2.5 }, /"pressRepeat" takes a whole number/],
+    ] as [object, RegExp][]) {
+      writeFileSync(join(scratch, "press.json"), JSON.stringify(config));
+      const wrong = await run([folder, "--config", "press.json"]);
+      assert.equal(wrong.code, 2, JSON.stringify(config));
+      assert.match(wrong.err, message);
+    }
     const noReport = await run(["merge", empty]);
     assert.equal(noReport.code, 2);
     assert.match(noReport.err, /report\.json/);
