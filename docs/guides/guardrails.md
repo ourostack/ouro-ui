@@ -204,6 +204,30 @@ jobs:
           merge: "true"
 ```
 
+### Pictures at the widths a screen needs
+
+A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.3
+node lib/ouro/images/images.ts pictures --out public/images --base /images/
+```
+
+Then draw each picture from the manifest, and the browser takes the smallest file that is sharp on its screen:
+
+```tsx
+import images from "../public/images/images.json";
+
+const hero = images["hero.png"];
+
+<picture>
+  {hero.sources.map((source) => <source key={source.type} type={source.type} srcSet={source.srcset} sizes="100vw" />)}
+  <img src={hero.src} width={hero.width} height={hero.height} alt="The team at the launch" />
+</picture>;
+```
+
+`ouro-images` installs `lib/ouro/images/images.ts` and names `sharp` as a devDependency.
+
 [^ratchets]: test:scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a baseline that raises a state's unmarked count without --allow-regression; test:scripts/kits/source-rules.test.mjs::main > refuses to write a baseline that adds an offender verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a baseline that raises a state's unmarked count without --allow-regression) verify:testExists(scripts/kits/source-rules.test.mjs::main > refuses to write a baseline that adds an offender)
 [^baselines]: test:scripts/kits/census-update.test.mjs::census-update.mjs > refuses a regression, writing nothing, and accepts it with a recorded reason; test:scripts/kits/source-rules.test.mjs::main > writes a larger baseline only with a stated reason verify:testExists(scripts/kits/census-update.test.mjs::census-update.mjs > refuses a regression, writing nothing, and accepts it with a recorded reason) verify:testExists(scripts/kits/source-rules.test.mjs::main > writes a larger baseline only with a stated reason)
 [^census-axe]: registry/ouro/lib/ouro/testing/axe-version.ts verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > refuses an axe-core older than the kit's minimum before it loads axe into the page, naming the version it found)
@@ -234,3 +258,6 @@ jobs:
 [^check-pages]: test:test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason; test:scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it; test:scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out verify:testExists(test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason) verify:testExists(scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it) verify:testExists(scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out)
 [^check-allowances]: test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one; test:scripts/check/check.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one) verify:testExists(scripts/check/check.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge)
 [^check-aliases]: test:test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why; test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one verify:testExists(test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why) verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one) verify:fileLine(registry/ouro/check/in-page.ts, /^  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image",$/)
+[^images]: test:scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each; test:scripts/images/images.test.mts::Ouro images > plans each width narrower than the picture, then its own verify:testExists(scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each) verify:testExists(scripts/images/images.test.mts::Ouro images > plans each width narrower than the picture, then its own) verify:fileLine(registry/ouro/images/images.ts, /^const WIDTHS = \[320, 640, 960, 1280, 1920, 2560, 3840, 5120\];$/)
+[^images-kept]: test:scripts/images/images.test.mts::Ouro images > keeps a picture's files while its bytes and options are the same, and writes them again when either changes verify:testExists(scripts/images/images.test.mts::Ouro images > keeps a picture's files while its bytes and options are the same, and writes them again when either changes)
+[^images-upright]: test:scripts/images/images.test.mts::Ouro images > turns a photo upright as its EXIF orientation says, and percent-encodes an address with a space or a #; test:scripts/images/images.test.mts::Ouro images > reads a source folder inside the out folder, and leaves out an animated picture verify:testExists(scripts/images/images.test.mts::Ouro images > turns a photo upright as its EXIF orientation says, and percent-encodes an address with a space or a #) verify:testExists(scripts/images/images.test.mts::Ouro images > reads a source folder inside the out folder, and leaves out an animated picture)

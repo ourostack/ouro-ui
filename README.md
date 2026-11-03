@@ -372,7 +372,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-work-event`,
 `ax-xray`.
 
-Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, and `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
+Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
 
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):
 `lib-announce`,
