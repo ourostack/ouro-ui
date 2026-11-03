@@ -5,7 +5,7 @@
 One definition of a command: its words, effect, arguments and flags, examples and output. From it come the parser (whose refusals name the exact fix), the usage and help, `help --json` and the MCP tool's input schema, so the CLI and the MCP server can never disagree.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.2
+npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.3
 ```
 
 It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -61,6 +61,7 @@ interface Cli<C extends RunContext = RunContext> {
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
   readonly ambiguous: Readonly<Record<string, readonly Meaning[]>>;
+  readonly personOnly: Readonly<Record<string, PersonOnly>>;
   readonly groups: Readonly<Record<string, string>>;
   readonly outcomeExits: OutcomeExits;
   readonly waitExits: WaitExits;
@@ -79,6 +80,7 @@ interface CliDef<C extends RunContext = RunContext> {
   headings?: EffectHeadings;
   globalFlags?: Readonly<Record<string, FlagSpec>>;
   ambiguous?: Readonly<Record<string, readonly Meaning[]>>;
+  personOnly?: Readonly<Record<string, PersonOnly>>;
   groups?: Readonly<Record<string, string>>;
   outcomeExits?: OutcomeExits;
   waitExits?: WaitExits;
@@ -258,6 +260,17 @@ interface Parsed {
   input: Input;
   json: boolean;
   unchecked: Readonly<Record<string, string | true>>;
+}
+```
+
+### `PersonOnly`
+
+Words only the person acts on, such as `unmute`: the reason, one sentence to you, the agent ("You can't turn on the person's microphone; only they can."), and how the person does it (`with the microphone button in the call's controls`). The words refuse, `refused`, with both in one line, and `help --json` lists them under `personOnly`, so an agent learns them before it tries.
+
+```ts
+interface PersonOnly {
+  reason: string;
+  how: string;
 }
 ```
 

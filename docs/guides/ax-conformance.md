@@ -3,7 +3,7 @@
 `ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface whether or not the kit built it.[^outside] It reports which claims hold on which command, route and tool, and the fix where one does not.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.2
+npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.3
 node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --mock "http://127.0.0.1:5999/api/state mock=true"
 ```
 
@@ -12,6 +12,7 @@ node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --mock "htt
 - **A CLI** (`--cli "<command>"`): it reads `help --json` for the commands and who sees each, then calls every command's `--help`, every read with `--json`, an unknown command and flag, a misspelt flag, the ambiguous verbs, the wait command on a reference a read gave, and each command other people see without `--why`, with a made-up target, and with `--dry-run` on a real one.[^cli] It also runs the overview into a pipe that is already closed, runs each read that lists refs again as text, and checks every call for the voice lines `help --json` lists: none may reach a pipe or `--json`.[^v13]
 - **An HTTP API** (`--http <url> --routes <manifest.json>`): it requests the base path's index, an unknown route and every read route, and sends the refused probes the manifest names.[^http] The manifest is `{ "base": "/api", "routes": ["GET /api/x", ...], "state": ["GET /api/log"], "others": [{ "route": "POST /api/send", "why": "why", "body": { "to": "{ref}" } }] }`.
 - **An MCP server** (`--mcp "<command>"`): it initializes, lists the tools, calls a tool that has required arguments with none, and calls a tool that does not exist.[^mcp]
+- **Components** (the inventory's `ui` list, from `bindAx`, beside `--cli`): it looks each twin up in `help --json` and compares its effect with the action's, runs each person-only action's words, which must refuse, and runs each read's twin for its declared fields.[^ui] A read of what people say must answer `needs-human` until the person asks the agent to follow the meeting, and its stream, asked for every line, must refuse; on a proven mock, the X-ray then runs the follow the read named, the one write it makes on purpose and reports as an effect, and reads again from the cursor it got ([ax-component](../ax/ax-component.md)).[^ui]
 
 `--state "<args>"` names the commands (or, in the manifest, the routes) whose output is the state that must not change. The X-ray reads it twice before it starts, around each refused call and preview, and at the end, and it reports any change that is not a record of a refusal as an unplanned write.[^effects]
 
@@ -31,7 +32,7 @@ Without that proof it runs the reads and skips every call other people would see
 A report only proves the surfaces it covered. `--inventory <file>` names the surfaces your interface registers, generated from its own registration rather than written by hand:
 
 ```json
-{ "cli": ["look", "send", "watch"], "http": ["GET /api/state", "POST /api/agent-actions"], "mcp": ["look"] }
+{ "cli": ["look", "send", "watch"], "http": ["GET /api/state", "POST /api/agent-actions"], "mcp": ["look"], "ui": [/* bindAx(...) entries */] }
 ```
 
 The X-ray compares the inventory with what it covered, the commands in `help --json`, the routes in the manifest and the tools in tools/list, and fails `cli.inventory`, `http.inventory` or `mcp.inventory` on a surface missing from either side or listed twice.[^inventory]
@@ -87,6 +88,7 @@ Each failing check names the call it made and what came back, then the claim's f
 [^outside]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
 [^effects]: test:registry/ouro/ax/xray.test.mts::a CLI that breaks the claims fails them, each with what it saw verify:testExists(registry/ouro/ax/xray.test.mts::a CLI that breaks the claims fails them, each with what it saw)
 [^safety]: test:registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock; test:registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock) verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
+[^ui]: test:registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow; test:registry/ouro/ax/xray.test.mts::a call tool that breaks the component claims fails each, with what it saw verify:testExists(registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow) verify:testExists(registry/ouro/ax/xray.test.mts::a call tool that breaks the component claims fails each, with what it saw)
 [^inventory]: test:registry/ouro/ax/xray.test.mts::compareInventory names what is missing, unknown or listed twice; test:registry/ouro/ax/xray.test.mts::an HTTP API: JSON, one error shape, an index, errors that teach, refusals that change nothing, its inventory verify:testExists(registry/ouro/ax/xray.test.mts::compareInventory names what is missing, unknown or listed twice) verify:testExists(registry/ouro/ax/xray.test.mts::an HTTP API: JSON, one error shape, an index, errors that teach, refusals that change nothing, its inventory)
 [^conformance]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing; test:registry/ouro/ax/xray.test.mts::the command: claims, help, usage errors with the fix, exit codes, written reports verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing) verify:testExists(registry/ouro/ax/xray.test.mts::the command: claims, help, usage errors with the fix, exit codes, written reports)
 [^v13]: test:registry/ouro/ax/xray.test.mts::a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe verify:testExists(registry/ouro/ax/xray.test.mts::a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe)

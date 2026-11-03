@@ -5,15 +5,11 @@ import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 
 export default function SkeletonDemo(): JSX.Element {
   return (
-    <div aria-busy="true" aria-label="Loading recipe" role="group" className="grid w-full max-w-sm gap-3">
-      <div className="flex items-center gap-3">
-        <Skeleton shape="circle" />
-        <div className="grid flex-1 gap-2">
-          <Skeleton shape="text" className="w-1/2" />
-          <Skeleton shape="text" className="w-1/3" />
-        </div>
+    <div aria-busy="true" aria-label="Loading messages" role="group" className="grid w-full max-w-sm gap-4">
+      <div>
+        <Skeleton shape="row" count={3} />
       </div>
-      <Skeleton className="h-32" />
+      <Skeleton shape="text" size="sm" lines={3} />
     </div>
   );
 }

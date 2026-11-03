@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { StrictMode, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -136,6 +136,16 @@ describe("Moment", () => {
     }
   });
 
+  it("marks its art with data-moment-art, carrying artName", async () => {
+    const plain = await render(<Moment art={<Art />} title="Nothing here" />);
+    expect(plain.art!.getAttribute("data-moment-art")).toBe("");
+    const named = await render(<Moment art={<Art />} artName="waving" title="Welcome" />);
+    expect(named.art!.getAttribute("data-moment-art")).toBe("waving");
+    expect(named.host.querySelectorAll("[data-moment-art]")).toHaveLength(1);
+    const bare = await render(<Moment kind="loading" title="Loading" />);
+    expect(bare.host.querySelector("[data-moment-art]")).toBeNull();
+  });
+
   it("hides the art from screen readers, or names it with artLabel", async () => {
     const hidden = await render(<Moment art={<Art />} title="Nothing here" />);
     expect(hidden.art!.getAttribute("aria-hidden")).toBe("true");
@@ -265,6 +275,22 @@ describe("Moment sizes", () => {
       expect(frame!.getBoundingClientRect().height).toBe(px);
       expect(art!.querySelector("svg")!.getBoundingClientRect().height).toBe(px);
     }
+  });
+
+  it("gives hero art 220px, and 96px in a pane narrower than 24rem", async () => {
+    for (const [width, px] of [
+      [640, 220],
+      [376, 96],
+    ] as const) {
+      const { moment, frame, art } = await render(<Moment size="hero" art={<Art />} title="Pick a conversation" />, width);
+      expect(frame!.getBoundingClientRect().height).toBe(px);
+      expect(art!.querySelector("svg")!.getBoundingClientRect().height).toBe(px);
+      expect(getComputedStyle(moment!).flexDirection).toBe("column");
+    }
+    // Quiet wins over hero: a quiet hero moment keeps the quiet row's art.
+    const { frame } = await render(<Moment size="hero" quiet art={<Art />} title="Pick a conversation" />, 640);
+    expect(frame!.getBoundingClientRect().height).toBe(40);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("is one row inline, with a plain-text title unless given a heading level", async () => {
@@ -454,6 +480,149 @@ describe("Moment motion", () => {
     expect(host.querySelector("[data-ouro-moment-frame]")).toBeNull();
     await act(async () => root.render(<Moment kind="loading" title="Art now" art={<Art />} />));
     await expect.poll(() => host.querySelector<SVGSVGElement>("[data-ouro-moment-art] svg")!.animationsPaused()).toBe(true);
+  });
+});
+
+describe("Moment motion budget", () => {
+  function animated(css: string) {
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.append(style);
+    mounted.push(style);
+  }
+
+  it("settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone", async () => {
+    animated(
+      "@keyframes ouro-test-moment-spin { to { rotate: 1turn; } } .ouro-test-moment-loop { animation: ouro-test-moment-spin 0.2s linear infinite; }" +
+        "@keyframes ouro-test-moment-glow { to { opacity: 0.5; } } .ouro-test-moment-once { animation: ouro-test-moment-glow 60s linear 2; }",
+    );
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const { host } = await render(
+        <Moment
+          kind="loading"
+          title="Working"
+          art={
+            <svg viewBox="0 0 160 120">
+              <circle className="ouro-test-moment-loop" cx="80" cy="60" r="20" />
+              <rect className="ouro-test-moment-once" width="10" height="10" />
+              <circle cx="20" cy="20" r="4">
+                <animate attributeName="r" values="4;8;4" dur="1s" repeatCount="indefinite" />
+              </circle>
+            </svg>
+          }
+        />,
+      );
+      const loop = host.querySelector(".ouro-test-moment-loop")!.getAnimations()[0]!;
+      const once = host.querySelector(".ouro-test-moment-once")!.getAnimations()[0]!;
+      const svg = host.querySelector("svg")!;
+      svg.setCurrentTime(0.5);
+      await act(async () => void vi.advanceTimersByTime(4900));
+      expect(loop.effect!.getComputedTiming().endTime).toBe(Infinity);
+      expect(svg.getCurrentTime()).toBeGreaterThan(0);
+      expect(svg.animationsPaused()).toBe(false);
+      await act(async () => void vi.advanceTimersByTime(100));
+      expect(loop.effect!.getComputedTiming().iterations).toBe(loop.effect!.getComputedTiming().currentIteration! + 1);
+      expect(svg.animationsPaused()).toBe(true);
+      expect(svg.getCurrentTime()).toBe(0);
+      expect(once.playState).toBe("running");
+      expect(once.effect!.getComputedTiming().iterations).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+    const loopElement = document.querySelector(".ouro-test-moment-loop")!;
+    await expect.poll(() => loopElement.getAnimations().length).toBe(0);
+  });
+
+  it("settles again when the art or the kind changes, and stops counting once gone", async () => {
+    animated("@keyframes ouro-test-moment-spin2 { to { rotate: 1turn; } } .ouro-test-moment-loop2 { animation: ouro-test-moment-spin2 0.2s linear infinite; }");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const art = (
+        <svg viewBox="0 0 160 120">
+          <circle className="ouro-test-moment-loop2" cx="80" cy="60" r="20" />
+        </svg>
+      );
+      const { root, host } = await render(<Moment kind="loading" title="Working" art={art} />);
+      await act(async () => void vi.advanceTimersByTime(3000));
+      await act(async () => root.render(<Moment kind="success" celebrate={false} title="Done" art={art} />));
+      await act(async () => void vi.advanceTimersByTime(3000));
+      expect(host.querySelector(".ouro-test-moment-loop2")!.getAnimations()[0]!.effect!.getComputedTiming().endTime).toBe(Infinity);
+      await act(async () => void vi.advanceTimersByTime(2000));
+      expect(host.querySelector(".ouro-test-moment-loop2")!.getAnimations()[0]!.effect!.getComputedTiming().endTime).not.toBe(Infinity);
+      await act(async () => root.render(<Moment kind="empty" title="Nothing" />));
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("plays the art's entrance once a session for a moment with a key, and every time without one", async () => {
+    animated(
+      "@keyframes ouro-test-moment-in { from { opacity: 0; } } .ouro-test-moment-in { animation: ouro-test-moment-in 30s linear; }" +
+        "@keyframes ouro-test-moment-bob3 { to { translate: 0 2px; } } .ouro-test-moment-bob3 { animation: ouro-test-moment-bob3 1s infinite alternate; }",
+    );
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith("ouro-moment:")) sessionStorage.removeItem(key);
+    const art = (
+      <svg viewBox="0 0 160 120">
+        <circle className="ouro-test-moment-in" cx="80" cy="60" r="20" />
+        <circle className="ouro-test-moment-bob3" cx="20" cy="20" r="4" />
+      </svg>
+    );
+    const entrance = (host: Element) => host.querySelector(".ouro-test-moment-in")!.getAnimations().length;
+    const first = await render(<Moment id="welcome-in" title="Welcome" art={art} />);
+    expect(entrance(first.host)).toBe(1);
+    expect(sessionStorage.getItem("ouro-moment:seen:welcome-in")).toBe("1");
+    const again = await render(<Moment id="welcome-in" title="Welcome" art={art} />);
+    expect(entrance(again.host)).toBe(0);
+    // A loop is not an entrance: it keeps running, until it settles.
+    expect(again.host.querySelector(".ouro-test-moment-bob3")!.getAnimations()).toHaveLength(1);
+    const byDismissKey = await render(<Moment dismissKey="tour-in" title="Tour" art={art} />);
+    expect(entrance(byDismissKey.host)).toBe(1);
+    expect(entrance((await render(<Moment dismissKey="tour-in" title="Tour" art={art} />)).host)).toBe(0);
+    for (let index = 0; index < 2; index++) expect(entrance((await render(<Moment title="Keyless" art={art} />)).host)).toBe(1);
+  });
+
+  it("asks once per key whether its entrance played, so StrictMode's second run still plays it, and finishes new art under a key already shown", async () => {
+    animated(
+      "@keyframes ouro-test-moment-in3 { from { opacity: 0; } } .ouro-test-moment-in3 { animation: ouro-test-moment-in3 30s linear; }" +
+        "@keyframes ouro-test-moment-in4 { from { scale: 0.5; } } .ouro-test-moment-in4 { animation: ouro-test-moment-in4 30s linear; }",
+    );
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith("ouro-moment:")) sessionStorage.removeItem(key);
+    const art = (name: string) => (
+      <svg viewBox="0 0 160 120">
+        <circle className={name} cx="80" cy="60" r="20" />
+      </svg>
+    );
+    const entrance = (host: Element, name: string) => host.querySelector(`.${name}`)!.getAnimations().length;
+    const strict = await render(
+      <StrictMode>
+        <Moment id="strict-in" title="Welcome" art={art("ouro-test-moment-in3")} />
+      </StrictMode>,
+    );
+    expect(entrance(strict.host, "ouro-test-moment-in3")).toBe(1);
+    // The same moment turns to a key already shown: its running entrance finishes.
+    sessionStorage.setItem("ouro-moment:seen:shown-in", "1");
+    await act(async () => strict.root.render(<StrictMode><Moment id="shown-in" title="Welcome" art={art("ouro-test-moment-in3")} /></StrictMode>));
+    expect(entrance(strict.host, "ouro-test-moment-in3")).toBe(0);
+    // New art under that key enters already finished too.
+    await act(async () => strict.root.render(<StrictMode><Moment id="shown-in" title="Welcome" art={art("ouro-test-moment-in4")} /></StrictMode>));
+    expect(entrance(strict.host, "ouro-test-moment-in4")).toBe(0);
+  });
+
+  it("remembers what it has shown for the page where the browser refuses session storage", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("denied", "SecurityError");
+    });
+    animated("@keyframes ouro-test-moment-in2 { from { opacity: 0; } } .ouro-test-moment-in2 { animation: ouro-test-moment-in2 30s linear; }");
+    const art = (
+      <svg viewBox="0 0 160 120">
+        <circle className="ouro-test-moment-in2" cx="80" cy="60" r="20" />
+      </svg>
+    );
+    const entrance = (host: Element) => host.querySelector(".ouro-test-moment-in2")!.getAnimations().length;
+    expect(entrance((await render(<Moment id="private-in" title="Hello" art={art} />)).host)).toBe(1);
+    expect(entrance((await render(<Moment id="private-in" title="Hello" art={art} />)).host)).toBe(0);
   });
 });
 
@@ -721,7 +890,7 @@ describe("Moment dismissal", () => {
 describe("Moment development messages", () => {
   it.each([
     ["kind", { title: "x", kind: "info" }, 'kind="info" is not a kind; use "empty", "loading", "error", "welcome", "success"', '<Moment kind="empty">'],
-    ["size", { title: "x", size: "small" }, 'size="small" is not a size; use "default", "inline"', "<Moment quiet>"],
+    ["size", { title: "x", size: "small" }, 'size="small" is not a size; use "default", "hero", "inline"', "<Moment quiet>"],
     ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Moment headingLevel={2}>"],
     ["cap per", { title: "x", id: "a", cap: { times: 1, per: "hour" } }, 'cap per "hour" is not a period; use "day", "week", "month", "ever"', '<Moment cap={{ times: 1, per: "day" }}>'],
     ["cap times", { title: "x", id: "a", cap: { times: 1.5, per: "day" } }, "cap times must be a whole number, 0 or more, got 1.5", '<Moment cap={{ times: 1, per: "day" }}>'],

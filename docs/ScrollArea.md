@@ -2,7 +2,7 @@
 
 # ScrollArea
 
-A scrolling region with a slim scrollbar that matches the theme, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; the custom scrollbar is for a mouse and never takes a touch.
+A scrolling region with a slim scrollbar that matches the theme, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; the custom scrollbar is for a mouse and never takes a touch. Content wider than the area fades out at the side where it goes on, so at rest it reads as more to scroll to, not as cut off.
 
 ```tsx
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";

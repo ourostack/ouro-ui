@@ -56,6 +56,16 @@ export interface MessageListOwnProps {
    */
   onMessageKeyDown?: ((message: HTMLElement, event: KeyboardEvent<HTMLElement>) => void) | undefined;
   /**
+   * Whether Page Up and Page Down on a focused message move a page through the messages, as ⌥↑ and
+   * ⌥↓ do on a Mac. With `false` the list leaves those keys alone: it neither acts on them nor calls
+   * `preventDefault()`, so an app's own shortcut on them, such as ⌥↓ for the next conversation, gets
+   * them as pressed, and the browser scrolls the list. The other keys still move between messages.
+   * @default true
+   * @claim "With `false` the list leaves those" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys)
+   * @claim "The other keys still move between" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys)
+   */
+  pageKeys?: boolean | undefined;
+  /**
    * Whether the messages spring as the reader scrolls, as in a phone's messages app: each one
    * trails the scroll a little, the farther from where the reader scrolls (the finger, the
    * pointer, the focused message) the more, and catches up on a spring. A fling, or a push past
@@ -495,6 +505,12 @@ interface Spoken {
  * (`aria-posinset`, `aria-setsize`). `onMessageKeyDown` adds keys of your own on the focused
  * message, such as 1 to 6 for quick reactions.
  *
+ * On a Mac the list reads ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a focused message as Home, End, Page Up and Page
+ * Down, and calls `preventDefault()` on them. Listen for an app shortcut on those keys in the
+ * capture phase (`window.addEventListener("keydown", onKey, { capture: true })`), which runs
+ * before the list: call `preventDefault()` there and the list leaves the key alone. Or set
+ * `pageKeys={false}` to leave Page Up, Page Down, ⌥↑ and ⌥↓ to the app.
+ *
  * Your own message components work too: mark each one's root `data-ouro-message-list-item`, the
  * reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its
  * author's name and its text in elements marked `data-ouro-message-author` and
@@ -548,6 +564,8 @@ interface Spoken {
  * @claim "A new message never takes focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > keeps focus where it is when a message arrives, and the Tab stop on the message focused last while it shows)
  * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app)
  * @claim "Each message that is an article carries" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives each message its place among them for screen readers, and keeps an app's own)
+ * @claim "On a Mac the list reads" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reads ⌘↑ and ⌘↓ as Home and End, and ⌥↑ and ⌥↓ as Page Up and Page Down, on a Mac)
+ * @claim "which runs before the list" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > leaves ⌘↑, ⌘↓, ⌥↑ and ⌥↓ alone on a Mac once an app's capture-phase shortcut prevented them)
  * @claim "`onMessageKeyDown` adds keys of your own" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > hands the app a key pressed on the focused message, and not one pressed in a control inside it)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply still streaming in the first messages to fill an empty list, once it finishes)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply that was streaming when the list mounted, once it finishes)
@@ -577,6 +595,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     loadingOlderLabel = "Loading older messages",
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
+    pageKeys = true,
     springy = true,
     maxWidth,
     className,
@@ -620,10 +639,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const labelFor = useRef(newMessageLabel);
   const keyFor = useRef(onMessageKeyDown);
   const anchorFor = useRef(initialAnchor);
+  const pagesFor = useRef(pageKeys);
   useLayoutEffect(() => {
     labelFor.current = newMessageLabel;
     keyFor.current = onMessageKeyDown;
     anchorFor.current = initialAnchor;
+    pagesFor.current = pageKeys;
   });
   // The list's ends, which Tab passes through to leave the messages behind (see the keyboard effect).
   const startRef = useRef<HTMLSpanElement | null>(null);
@@ -1087,6 +1108,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         case "PageUp": {
           const forward = key.endsWith("Down");
           const paging = key.startsWith("Page");
+          // The app's, with pageKeys={false}: not acted on, nor prevented.
+          if (paging && !pagesFor.current) return;
           // A message taller than the list scrolls through first, a line or a page at a time.
           const beyond = forward ? box.bottom - view.bottom + EDGE : view.top + EDGE - box.top;
           // Stryker disable next-line EqualityOperator: a pixel past the edge is a rounding, not more message.

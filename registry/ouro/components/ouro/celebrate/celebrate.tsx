@@ -58,6 +58,9 @@ const pieces = Array.from({ length: PIECES }, (_, index) => {
  * Use `toast()` instead to confirm an everyday action (saved, sent), and `Alert` for a
  * message that should stay.
  *
+ * While the moment lasts, the root carries `data-celebrate`, so a checker or a test can find it.
+ *
+ * @claim "While the moment lasts, the root" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > carries data-celebrate while the moment lasts, and not before or after)
  * @claim "The message waits about 1.5 s" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > says the message once after a delay when the moment starts, and again for the next one)
  * @group Feedback
  * @see https://ui.ouro.bot/docs/celebrate
@@ -106,6 +109,7 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
       {...rest}
       data-ouro="celebrate"
       data-open={show ? "" : undefined}
+      data-celebrate={show ? "" : undefined}
       className={cn("relative inline-flex min-h-7 items-center justify-center", className)}
     >
       {show ? (

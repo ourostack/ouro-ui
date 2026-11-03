@@ -11,6 +11,7 @@ import { homedir } from "node:os";
 import { basename, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
+import { isReservedPersonOnly, type UiEntry } from "./component.ts";
 import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
 import { isWait, validateWait } from "./wait.ts";
 import { checkWorkEvent } from "./work-event.ts";
@@ -26,7 +27,7 @@ import { checkWorkEvent } from "./work-event.ts";
  * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
  * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
-const XRAY_VERSION = "1.1.0";
+const XRAY_VERSION = "1.2.0";
 
 type Verdict = "pass" | "fail" | "skip";
 
@@ -37,11 +38,15 @@ interface CheckResult {
   note: string;
 }
 
-/** The surfaces an adopter generates from its own registration: CLI command names, HTTP `METHOD /path` routes, MCP tool names. */
+/**
+ * The surfaces an adopter generates from its own registration: CLI command names, HTTP `METHOD /path` routes, MCP tool
+ * names, and its components' bound reads and actions (`ui`, the entries `bindAx` returns), whose twins it checks.
+ */
 interface Inventory {
   cli?: string[];
   http?: string[];
   mcp?: string[];
+  ui?: UiEntry[];
 }
 
 interface InventoryCompare {
@@ -183,6 +188,11 @@ const parseJson = (s: string): Parsed => {
     return { ok: false };
   }
 };
+/** A JSON answer's value, or undefined when it is not one JSON document. */
+const jsonValue = (s: string): unknown => {
+  const p = parseJson(s);
+  return p.ok ? p.value : undefined;
+};
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const hasStack = (s: string) => /^\s+at (?:async )?(?:\S+ \()?(?:file:\/\/|node:|\/|[A-Za-z]:\\)\S*:\d+:\d+\)?$/m.test(s);
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -282,6 +292,73 @@ function refsOf(value: unknown, out: string[] = []): string[] {
 function audienceWho(value: unknown): string {
   const audience = isRecord(value) ? value["audience"] : null;
   return isRecord(audience) && typeof audience["who"] === "string" ? audience["who"] : "";
+}
+
+// The texts of the problems whose condition holds, in order.
+const problemsOf = (pairs: readonly (readonly [boolean, string])[]) => pairs.filter(([bad]) => bad).map(([, text]) => text);
+// The first problem whose condition holds, or the note when none does.
+const firstOf = (pairs: readonly (readonly [boolean, string])[], note: string) => (pairs.find(([bad]) => bad) ?? [false, note])[1];
+// The keys of an outcome envelope and of its objects, by path (`next[]` for each next step); every other key holds a
+// scalar. A listening read's needs-human answer, or a refused stream, carries nothing else, so what people say cannot
+// hide in it.
+const OUTCOME_SHAPE: Readonly<Record<string, readonly string[]>> = {
+  "": ["ax", "action", "effect", "audience", "target", "state", "summary", "postcondition", "receipt", "next", "error", "human"],
+  audience: ["only", "who"],
+  target: ["kind", "id", "name"],
+  postcondition: ["checked", "holds", "how"],
+  receipt: ["id", "at", "by", "why"],
+  error: ["code", "exit", "thing", "problem", "fix", "message"],
+  human: ["reason", "resume"],
+  "human.resume": ["command", "why"],
+  "next[]": ["command", "why"],
+};
+
+// What an outcome carries beyond its envelope, as paths (`lines`, `human.lines`, `target`): a key it does not have,
+// an object or list where it has a scalar, or anything but an object (or null) where it has one.
+function outcomeExtras(v: object): string[] {
+  const out: string[] = [];
+  const walk = (value: Record<string, unknown>, path: string) => {
+    for (const [k, x] of Object.entries(value)) {
+      const sub = path ? `${path}.${k}` : k;
+      if (!OUTCOME_SHAPE[path]!.includes(k)) out.push(sub);
+      else if (Object.hasOwn(OUTCOME_SHAPE, sub)) {
+        if (isRecord(x)) walk(x, sub);
+        else if (x !== null) out.push(sub);
+      } else if (Object.hasOwn(OUTCOME_SHAPE, `${sub}[]`)) {
+        if (!Array.isArray(x)) out.push(sub);
+        else
+          for (const item of x) {
+            if (isRecord(item)) walk(item, `${sub}[]`);
+            else out.push(`${sub}[]`);
+          }
+      } else if (typeof x === "object" && x !== null) out.push(sub);
+    }
+  };
+  walk(v as Record<string, unknown>, "");
+  return out;
+}
+
+// Every key of every object in a JSON value, at any depth.
+function keysOf(value: unknown, out: Set<string> = new Set()): Set<string> {
+  if (Array.isArray(value)) for (const v of value) keysOf(v, out);
+  else if (isRecord(value))
+    for (const [k, v] of Object.entries(value)) {
+      out.add(k);
+      keysOf(v, out);
+    }
+  return out;
+}
+
+// Every member of every array in a JSON value, as JSON text: the lines a read answered.
+function itemsOf(value: unknown, out: string[] = []): string[] {
+  if (Array.isArray(value)) for (const v of value) out.push(JSON.stringify(v));
+  else if (isRecord(value)) for (const v of Object.values(value)) itemsOf(v, out);
+  return out;
+}
+
+// A `ui` inventory entry the X-ray can read: a component, a kind and an id, each words.
+function isUiEntry(v: unknown): v is UiEntry {
+  return isRecord(v) && typeof v["component"] === "string" && (v["kind"] === "read" || v["kind"] === "action") && typeof v["id"] === "string";
 }
 
 /** Drops one inner letter: --limit becomes --limt. */
@@ -769,6 +846,212 @@ async function checkCli(ctx: Context) {
     rec.add("cli.audience-named", cmd.name, isGenericAudience(who) || !who.trim() ? "fail" : "pass", `audience.who: ${JSON.stringify(who)}`);
   }
 
+  // Components: the twins the inventory's `ui` list binds. Reads and refused words run here; the follow that unlocks
+  // what people say runs after the whole run's state check, since it is the one write the X-ray makes on purpose.
+  const ui = (ctx.inventory?.ui ?? []).filter(isUiEntry);
+  const wordsOf = (line: string) => {
+    const w = splitCommand(line);
+    return w[0] === name ? w.slice(1) : w;
+  };
+  const listed = help ? commands : [];
+  /** The command the leading words name, the longest first, as help --json lists it. */
+  const commandOf = (ws: readonly string[]): CliCommand | null => {
+    for (let n = ws.length; n > 0; n--) {
+      const found = listed.find((c) => c.name === ws.slice(0, n).join(" "));
+      if (found) return found;
+    }
+    return null;
+  };
+  // The words with each `<placeholder>` filled from the samples, or the first placeholder that has none.
+  const filled = (ws: readonly string[]): { args: string[] } | { missing: string } => {
+    const args: string[] = [];
+    for (const w of ws) {
+      if (!/^<[^<>]+>$/.test(w)) {
+        args.push(w);
+        continue;
+      }
+      const v = samples[placeholderKey(w)];
+      if (v === undefined) return { missing: placeholderKey(w) };
+      args.push(v);
+    }
+    return { args };
+  };
+  const label = (e: UiEntry) => `${e.component} ${e.kind} ${e.id}`;
+  const noSample = (key: string) => `no sample for <${key}>; pass --sample ${key}=<value>`;
+  const refuses = (c: RunResult) => !c.timedOut && c.code !== 0;
+  const privateRead = (c: CliCommand) => c.effect === "private" && c.readOnly !== false;
+  // Why a read's twin may not run (it is no private read, and the target is not proven a mock), or null when it may.
+  const blocked = (line: string) => {
+    const cmd = commandOf(wordsOf(line));
+    return (cmd !== null && privateRead(cmd)) || ctx.safety.ok ? null : `not run: \`${line}\` is no private read in help --json, and the target is not proven a mock`;
+  };
+  const isRefusal = (v: unknown) => (isOutcome(v) ? v.state === "refused" : isRecord(v) && isRecord(v["error"]));
+  const personOnlyList = [at(help, "personOnly")].flat().filter(isRecord);
+  const recordFields = (e: UiEntry, fields: readonly string[], c: RunResult & { shown: string }) => {
+    const keys = keysOf(jsonValue(c.stdout));
+    const lacks = fields.filter((f) => !keys.has(f));
+    const bad = problemsOf([[c.code !== 0, brief(c)], [lacks.length > 0, `\`${c.shown}\` has no ${lacks.join(", ")}`]]);
+    rec.add("ui.read-fields", label(e), bad.length ? "fail" : "pass", bad.length ? bad.join("; ") : `has ${fields.join(", ")}`);
+  };
+  // The follow each listening read answered with, the read's words and fields, for the consented reads.
+  const resumes = new Map<UiEntry, { resume: string; twin: string[]; fields: readonly string[] }>();
+  for (const e of ui) {
+    if (e.kind === "action" && isReservedPersonOnly(e.id)) {
+      const theirs = typeof e.personOnly === "string";
+      rec.add("ui.reserved-person-only", label(e), theirs ? "pass" : "fail", theirs ? "person-only" : `"${e.id}" is the person's own, and this entry is not person-only`);
+    }
+    if (e.kind === "action" && typeof e.personOnly === "string" && typeof e.refuseAs !== "string") rec.add("ui.person-only-refuses", label(e), "fail", "it has no refuseAs words, so nothing shows that the words an agent might try refuse");
+    if (e.kind === "action" && typeof e.personOnly === "string" && typeof e.twin === "string") rec.add("ui.person-only-refuses", label(e), "fail", `it is person-only but has a twin, \`${e.twin}\`, so an agent could do it`);
+    for (const twin of [e.twin, e.push].filter((t): t is string => typeof t === "string")) {
+      const cmd = commandOf(wordsOf(twin));
+      const surface = `${label(e)}${twin === e.push ? " stream" : ""}`;
+      rec.add("ui.twin-exists", surface, cmd ? "pass" : "fail", cmd ? `\`${twin}\` is \`${name} ${cmd.name}\`` : help ? `\`${twin}\` names no command in help --json` : "no help JSON to find the twin in");
+      const matches = cmd !== null && (e.kind === "action" ? cmd.effect === e.effect : privateRead(cmd));
+      const wanted = e.kind === "action" ? `the action is ${String(e.effect)}` : "the read wants a private read";
+      rec.add("ui.twin-effect-matches", surface, cmd ? (matches ? "pass" : "fail") : "skip", cmd ? `${wanted}; \`${name} ${cmd.name}\` is ${String(cmd.effect)}${e.kind === "read" && cmd.readOnly === false ? ", not a read" : ""}` : "the twin is no command (ui.twin-exists)");
+    }
+    if (typeof e.refuseAs === "string") {
+      if (!ctx.safety.ok) rec.add("ui.person-only-refuses", label(e), "skip", refusedNote(ctx.safety));
+      else {
+        const ws = wordsOf(e.refuseAs);
+        const pre = stateBefore ? await snapshot() : null;
+        const text = await call(ws);
+        const json = await call([...ws, "--json"]);
+        const d = pre ? stateDelta(pre, await snapshot()) : null;
+        const verdict = d ? refusalVerdict(d) : { ok: true, note: "" };
+        const entry = personOnlyList.find((p) => p["name"] === ws.join(" "));
+        const reason = String(at(entry, "reason")).trim().replace(/[.\s]+$/, "");
+        const bad = problemsOf([
+          [!refuses(text), `${brief(text)}: it did not refuse`],
+          [usageCode !== null && refuses(text) && text.code !== usageCode, `exit ${text.code}, not the usage code ${usageCode}`],
+          [!refuses(json) || !isRefusal(jsonValue(json.stdout)), `${brief(json)}: no refused outcome or error`],
+          [usageCode !== null && refuses(json) && json.code !== usageCode, `--json exit ${json.code}, not the usage code ${usageCode}`],
+          [!entry, `help --json lists no personOnly "${ws.join(" ")}"`],
+          [entry !== undefined && !text.stderr.includes(reason), `the refusal does not name the reason help gives ("${clip(reason, 80)}")`],
+          [!verdict.ok, `the state changed: ${verdict.note}`],
+        ]);
+        rec.add("ui.person-only-refuses", label(e), bad.length ? "fail" : "pass", bad.length ? bad.join("; ") : clip(firstLine(text.stderr)));
+        if (d && !d.same) ctx.effects.push({ surface: `${e.refuseAs} (refused)`, note: verdict.note });
+        if (refuses(text)) errorChecks(e.refuseAs, text);
+      }
+    }
+    if (e.kind !== "read" || typeof e.twin !== "string") continue;
+    const fields = e.fields ?? [];
+    const stopped = blocked(e.twin);
+    if (stopped) {
+      for (const id of e.consent === "listening" ? ["ui.listening-needs-yes", "cli.listening-push-filtered"] : ["ui.read-fields"]) rec.add(id, label(e), "skip", stopped);
+      continue;
+    }
+    const twin = filled(wordsOf(e.twin));
+    if ("missing" in twin) {
+      rec.add(e.consent === "listening" ? "ui.listening-needs-yes" : "ui.read-fields", label(e), "skip", noSample(twin.missing));
+      continue;
+    }
+    if (e.consent !== "listening") {
+      recordFields(e, fields, await call([...twin.args, "--json"]));
+      continue;
+    }
+    // What people say: before a follow the read and its triggered stream answer needs-human; every line refuses.
+    const stream = typeof e.push === "string" && typeof e.trigger === "string" && blocked(e.push) === null ? { push: e.push, trigger: e.trigger } : null;
+    if (typeof e.push === "string" && stream === null) rec.add("cli.listening-push-filtered", label(e), "skip", blocked(e.push) ?? "no trigger is bound for the stream");
+    const probes = [twin.args, ...(stream ? [[...wordsOf(stream.push), ...splitCommand(stream.trigger)]] : [])];
+    for (const probe of probes) {
+      const words = filled(probe);
+      if ("missing" in words) {
+        rec.add("ui.listening-needs-yes", label(e), "skip", noSample(words.missing));
+        continue;
+      }
+      const c = await call([...words.args, "--json"]);
+      const v = jsonValue(c.stdout);
+      const resume = String(at(v, "human.resume.command"));
+      const state = String(at(v, "state"));
+      const extra = isOutcome(v) ? outcomeExtras(v) : [];
+      const ok = !c.timedOut && isOutcome(v) && state === "needs-human" && validateOutcome(v).ok && commandOf(wordsOf(resume)) !== null && !extra.length;
+      const why = firstOf(
+        [
+          [!isOutcome(v), `${brief(c)}; not an outcome, so it may be what people say`],
+          [state !== "needs-human", `outcome in state ${state}, not needs-human`],
+          [extra.length > 0, `the outcome also carries ${extra.join(", ")}`],
+          [!ok, `needs-human without a resume command help lists (${clip(resume, 100)})`],
+        ],
+        `needs-human; resume: ${clip(resume, 120)}`,
+      );
+      rec.add("ui.listening-needs-yes", `${label(e)} (\`${clip(c.shown, 80)}\`)`, ok ? "pass" : "fail", why);
+      if (ok && !resumes.has(e)) resumes.set(e, { resume, twin: twin.args, fields });
+    }
+    if (stream) {
+      const words = filled(wordsOf(stream.push));
+      if ("missing" in words) {
+        rec.add("cli.listening-push-filtered", label(e), "skip", noSample(words.missing));
+        continue;
+      }
+      const c = await call([...words.args, "--json"]);
+      const values = [jsonValue(c.stdout), ...lines(c.stdout).map(jsonValue)];
+      const leaked = fields.filter((f) => values.some((x) => !isOutcome(x) && keysOf(x).has(f)));
+      const carried = values.filter(isOutcome).flatMap(outcomeExtras);
+      const flag = String(splitCommand(stream.trigger)[0]);
+      const bad = problemsOf([
+        [!refuses(c), `${brief(c)}: it did not refuse`],
+        [leaked.length > 0, `it delivered ${leaked.join(", ")}`],
+        [carried.length > 0, `the refusal also carries ${[...new Set(carried)].join(", ")}`],
+        [!isRefusal(jsonValue(c.stdout)), "no refused outcome or error"],
+        [!`${c.stdout}\n${c.stderr}`.includes(flag), `it names no ${flag}`],
+      ]);
+      rec.add("cli.listening-push-filtered", `${label(e)} (\`${clip(c.shown, 80)}\`)`, bad.length ? "fail" : "pass", bad.length ? bad.join("; ") : `refused, naming ${flag}`);
+    }
+  }
+  /** The person's yes on the mock: follow, then read what people say, its fields, and again from its cursor. */
+  const consented = async () => {
+    for (const e of ui.filter((x) => x.kind === "read" && x.consent === "listening")) {
+      const skip = (note: string) => {
+        for (const id of ["ui.read-fields", "cli.listening-cursor"]) rec.add(id, label(e), "skip", note);
+      };
+      const found = resumes.get(e);
+      if (!ctx.safety.ok) {
+        skip(refusedNote(ctx.safety));
+        continue;
+      }
+      if (!found) {
+        skip("the read gave no follow command to resume with (ui.listening-needs-yes)");
+        continue;
+      }
+      const rw = wordsOf(found.resume);
+      const follow = filled(rw.map((w, i) => (rw[i - 1] === "--why" ? WHY : w)));
+      if ("missing" in follow) {
+        skip(`no sample for <${follow.missing}> in the follow command`);
+        continue;
+      }
+      const f = await call(follow.args);
+      if (f.code !== 0) {
+        skip(`the follow failed: ${brief(f)}`);
+        continue;
+      }
+      ctx.effects.push({ surface: f.shown, note: "the person's yes, on the mock: followed, to read what people say" });
+      const first = await call([...found.twin, "--json"]);
+      recordFields(e, found.fields, first);
+      const v1 = jsonValue(first.stdout);
+      const cursor = at(v1, "cursor");
+      if (typeof cursor !== "string") {
+        rec.add("cli.listening-cursor", label(e), "fail", `\`${first.shown}\` gives no cursor`);
+        continue;
+      }
+      const seen = itemsOf(v1);
+      if (!seen.length) {
+        rec.add("cli.listening-cursor", label(e), "skip", `\`${first.shown}\` answered no lines to read past`);
+        continue;
+      }
+      const again = await call([...found.twin, "--cursor", cursor, "--json"]);
+      const v2 = jsonValue(again.stdout);
+      const repeated = itemsOf(v2).filter((x) => seen.includes(x));
+      const bad = problemsOf([
+        [again.code !== 0, brief(again)],
+        [typeof at(v2, "cursor") !== "string", `\`${again.shown}\` gives no next cursor`],
+        [repeated.length > 0, `\`${again.shown}\` repeats a line it already gave: ${clip(String(repeated[0]), 120)}`],
+      ]);
+      rec.add("cli.listening-cursor", label(e), bad.length ? "fail" : "pass", bad.length ? bad.join("; ") : `from ${cursor}: no line again, and a next cursor`);
+    }
+  };
+
   // Work events, read through the interface.
   if (opts.events) {
     const c = await call(splitCommand(opts.events));
@@ -788,6 +1071,8 @@ async function checkCli(ctx: Context) {
     rec.add("cli.refusals-change-nothing", "the whole run", v.ok ? "pass" : "fail", v.ok ? `planned effects: none; ${v.note}` : `an unplanned write: ${v.note}`);
     if (!d.same) ctx.effects.push({ surface: "the whole run", note: v.note });
   }
+
+  await consented();
 
   // Across every call: voice only on a terminal, JSON alone under --json, commands named are listed.
   const isVoice = (l: string) => voiceLines.includes(l.trim());
@@ -1223,7 +1508,7 @@ const USAGE = `ax-xray ${XRAY_VERSION}: checks an agent-facing interface against
 
 Options:
   --inventory <file>     the surfaces your interface registers, generated from its own registration:
-                         { "cli": [names], "http": ["GET /api/x"], "mcp": [names] }
+                         { "cli": [names], "http": ["GET /api/x"], "mcp": [names], "ui": [bindAx entries] }
   --conformance          exit 1 unless it conforms: every applicable must claim holds, none skipped, inventory given
   --mock "<url> k=v"     prove the target is a mock: a loopback URL whose JSON has k=v (such as mock=true)
   --guard "<command>"    run this first; refuse to check unless it exits 0 (it also proves a mock)
@@ -1314,7 +1599,7 @@ async function xray(opts: XrayOptions): Promise<Report> {
   if (opts.cli) target.cli = await checkCli(ctx);
   if (opts.http) target.http = await checkHttp(ctx);
   if (opts.mcp) target.mcp = await checkMcp(ctx);
-  const surfaces = (["cli", "http", "mcp"] as const).filter((s) => Array.isArray(inventory?.[s]));
+  const surfaces = (["cli", "http", "mcp", "ui"] as const).filter((s) => Array.isArray(inventory?.[s]));
   return summarize(ctx.rec.results, { target, safety: ctx.safety, inventory: { given: inventory !== null, surfaces }, effects: ctx.effects });
 }
 
