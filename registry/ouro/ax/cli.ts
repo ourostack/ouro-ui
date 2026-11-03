@@ -6,9 +6,9 @@ export type { CliIo, RunOptions };
 
 import { flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
 import { DRY_RUN_FLAG } from "./effects.ts";
-import { AxError, errorJson, errorLine, isAxError, type AxErrorShape } from "./problem.ts";
+import { AxError, errorJson, errorLine, errorMessage, isAxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest, helpJson, renderCommand, renderOverview, type OverviewOptions } from "./help.ts";
-import { isOutcome, outcomeExit, outcomeText, type Outcome } from "./outcome.ts";
+import { isOutcome, outcome, outcomeExit, outcomeText, type Outcome } from "./outcome.ts";
 import { render } from "./output.ts";
 import { isWait, waitExit, waitText } from "./wait.ts";
 import { createVoice, type Voice, type VoiceMemory, type VoiceSlot } from "./voice.ts";
@@ -140,6 +140,11 @@ async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: Run
         io.stdout.write(parsed.json ? `${JSON.stringify(commandManifest(cli, found.command), null, 2)}\n` : renderCommand(cli, found.command));
         return 0;
       }
+      if (Object.hasOwn(cli.personOnly, topic)) {
+        const p = cli.personOnly[topic]!;
+        io.stdout.write(parsed.json ? `${JSON.stringify({ name: topic, reason: p.reason, how: p.how }, null, 2)}\n` : `${cli.name} ${topic}: only the person does this, never you.\n  Why: ${p.reason}\n  How the person does it: ${p.how}\n`);
+        return 0;
+      }
       const text = options.topics && Object.hasOwn(options.topics, topic) ? options.topics[topic] : undefined;
       if (text !== undefined) {
         io.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
@@ -160,7 +165,8 @@ async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: Run
   } catch (e) {
     const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: cli.name, problem: e instanceof Error ? e.message : String(e), fix: null };
     io.stderr.write(`${errorLine(cli.name, shape)}\n`);
-    if (json) io.stdout.write(`${JSON.stringify(errorJson(shape), null, 2)}\n`);
+    // A person-only word is a refusal of an action, so --json answers with its outcome, which carries the same error.
+    if (json) io.stdout.write(`${JSON.stringify(shape.code === "person-only" ? outcome({ action: shape.thing, state: "refused", summary: errorMessage(shape), error: shape }) : errorJson(shape), null, 2)}\n`);
     return shape.exit;
   }
 }
