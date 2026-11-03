@@ -4,9 +4,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
+import { Table } from "@/registry/ouro/components/ouro/table/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -464,6 +467,42 @@ describe("Message quote", () => {
 });
 
 describe("Message chat", () => {
+  it("shows that a wide table or a long line of code in a bubble scrolls sideways, with a fade where it goes on", async () => {
+    const columns = ["Task", "Owner", "Status", "Due", "Notes"];
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <Table caption="Launch tasks">
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead key={column}>{column}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              {columns.map((column) => (
+                // No-break spaces, so each cell is one long line.
+                <TableCell key={column}>{`Waiting on the final copy of the ${column.toLowerCase()}`.replaceAll(" ", "\u00a0")}</TableCell>
+              ))}
+            </TableRow>
+          </TableBody>
+        </Table>
+        <CodeBlock code={`curl https://api.example.com/v1/launches?${"status=waiting&".repeat(8)}`} />
+      </Message>,
+    );
+    const viewport = message.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const code = message.querySelector<HTMLElement>('[data-ouro-part="code"]')!;
+    for (const box of [viewport, code]) {
+      await expect.poll(() => box.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+      expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
+      expect(getComputedStyle(box).maskImage).toContain("linear-gradient");
+      expect(box.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
+    }
+    // The bubble stays inside the list's width, rather than growing to the table's.
+    expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
+  });
+
   it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
     const { host } = await render(
       <>

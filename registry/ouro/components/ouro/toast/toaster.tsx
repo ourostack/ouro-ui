@@ -10,6 +10,7 @@ import { useFocusHandoff, type FocusHandoffOptions } from "@/registry/ouro/lib/o
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
+import { keepClear } from "@/registry/ouro/lib/ouro/keep-clear";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
@@ -50,6 +51,18 @@ export interface ToasterProps {
    * @claim "The accessible name of each toast's" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > translates the region name and the dismiss button with label and closeLabel)
    */
   closeLabel?: string | undefined;
+  /**
+   * A CSS selector for controls the toasts must stay clear of, such as a call's Join button in a
+   * corner. While one is on screen in the lower half of the window, under the toasts' column, the
+   * toasts rise to sit 8px above it, and they come back down when it goes. They measure again when
+   * the page changes outside the toasts and when the window resizes. Mark the controls and
+   * pass the selector: `<Toaster avoid="[data-keep-clear]" />`.
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > keeps the toasts clear of a control the selector matches under them, and comes back down when it goes)
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > stays where it is for a matched control away from its column or in the window's top half)
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > measures again when the window resizes: a control beside the column on a wide screen is under it on a phone)
+   * @claim "They measure again when" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > measures again when the window resizes: a control beside the column on a wide screen is under it on a phone)
+   */
+  avoid?: string | undefined;
 
   /** Not a prop. Toasts default to the bottom: full width on phones, at the bottom end from `sm`; className adjusts viewport layout. */
   position?: { 'Not a prop: toasts show at the bottom. Use <Toaster />': never };
@@ -124,7 +137,7 @@ export interface ToasterProps {
  * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  */
 export function Toaster(props: ToasterProps): JSX.Element | null {
-  const { className, label = "Notifications", closeLabel = "Dismiss", position, richColors, theme, duration } = props;
+  const { className, label = "Notifications", closeLabel = "Dismiss", avoid, position, richColors, theme, duration } = props;
   const [active, setActive] = useState(false);
   useAppearanceClassNameCheck(
     "Toaster",
@@ -147,6 +160,8 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // Stryker disable next-line ConditionalExpression: without a selector it would match the tag name "undefined", which no page has.
+  const keepingClear = avoid !== undefined && <KeepClear avoid={avoid} />;
   return (
     <Toast.Provider limit={VISIBLE}>
       <Connect onActive={setActive} />
@@ -168,12 +183,23 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
             >
               <ToastList closeLabel={closeLabel} />
               <ToastAnnouncer />
+              {keepingClear}
             </Toast.Viewport>
           </PortalScope>
         </Toast.Portal>
       )}
     </Toast.Provider>
   );
+}
+
+/**
+ * Keeps the toasts' viewport clear of the elements `avoid` matches (see keepClear). It lives in the
+ * viewport, so it runs while there are toasts.
+ */
+function KeepClear({ avoid }: { avoid: string }): JSX.Element {
+  const mark = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => keepClear(mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!, avoid), [avoid]);
+  return <span ref={mark} hidden data-ouro-toaster-keep-clear="" />;
 }
 
 /** Whether a toast waits ahead of the others: a destructive one. */

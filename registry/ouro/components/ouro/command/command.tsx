@@ -34,6 +34,7 @@ import {
   commandGroupLabelClass,
   commandInputClass,
   commandItemClass,
+  commandMarkClass,
   commandListClass,
   commandLoadingClass,
   commandLoadingRowClass,
@@ -41,6 +42,8 @@ import {
   commandSheetListClass,
   commandSheetSearchClass,
   matchesQuery,
+  queryRanges,
+  type TextRange,
 } from "@/registry/ouro/components/ouro/command/command-styles";
 
 /** One command in a Command palette's `items`. */
@@ -57,6 +60,31 @@ export interface CommandItem {
   labelContent?: ReactNode;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
+  /**
+   * What tells this command apart from the others, when results change around it: the highlight
+   * stays on the command with the same value. Give one when two commands can share a label.
+   * @default its label
+   * @claim "What tells this command apart from" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > tells commands with the same label apart by value)
+   */
+  value?: string | undefined;
+  /**
+   * Whether closing the palette after this command runs puts focus back where it was (the
+   * trigger). `false` leaves focus where `onSelect` puts it, as a command that opens a
+   * conversation and focuses its messages does. @default true
+   * @claim "Whether closing the palette after this" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > returns focus to its trigger after a choice, and leaves it where the choice put it with restoreFocus false)
+   */
+  restoreFocus?: boolean | undefined;
+  /**
+   * A second line under the label, such as a snippet of a message, which the search matches too.
+   * @claim "A second line under the label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks nothing without highlightMatches, and searches a command's description)
+   */
+  description?: string | undefined;
+  /**
+   * Where to mark the label and the description, as `[start, end]` ranges of each, such as the
+   * matches a server found. With these, `highlightMatches` marks nothing else on this command.
+   * @claim "Where to mark the label and" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks what the app's ranges say, in place of the search's words)
+   */
+  highlight?: { label?: readonly TextRange[] | undefined; description?: readonly TextRange[] | undefined } | undefined;
   /**
    * More words the search matches, which never show: `keywords: ["dark mode"]`.
    *
@@ -130,6 +158,14 @@ export interface CommandBaseProps {
   placeholder?: string | undefined;
   /** The search input's label for screen readers. @default "Search commands" */
   searchLabel?: string | undefined;
+  /**
+   * Marks the words of the search in each command's label and description, with the theme's
+   * colours (the system's mark colours under forced colours). The commands' names stay their
+   * plain text.
+   * @claim "Marks the words of the search" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks the words of the search in each command's label and description, and keeps the text as it was)
+   * @claim "Marks the words of the search" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > draws marked words that keep their contrast in light and dark, highlighted or not, and in forced colours)
+   */
+  highlightMatches?: boolean | undefined;
   /** What shows when nothing matches the search. @default "No results" */
   emptyLabel?: string | undefined;
   /**
@@ -188,6 +224,13 @@ export interface CommandBaseProps {
   loading?: boolean | undefined;
   /** What shows, and is announced, while `loading`. @default "Searching…" */
   loadingLabel?: string | undefined;
+  /**
+   * What screen readers hear, politely and once, when the results for what was typed have settled
+   * (not while `loading`, and not for an empty search, whose list is the palette's own).
+   * @default (count) => count === 1 ? "1 result" : `${count} results`
+   * @claim "What screen readers hear, politely and" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says how many results there are, politely and once, after they settle)
+   */
+  resultsLabel?: ((count: number) => string) | undefined;
   /** What screen readers hear after an `unread` command's label, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
 
@@ -385,11 +428,13 @@ export function Command(props: CommandProps): JSX.Element {
     searchLabel = "Search commands",
     emptyLabel = "No results",
     empty,
+    highlightMatches = false,
     closeLabel = "Close",
     className,
     onQueryChange,
     loading = false,
     loadingLabel = "Searching…",
+    resultsLabel = countResults,
     unreadLabel = "Unread",
     trigger,
     open,
@@ -481,7 +526,18 @@ export function Command(props: CommandProps): JSX.Element {
       "aria-expanded": isOpenNow,
     });
   // Focus returns to the trigger on close; Safari does not focus a button on click.
-  const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
+  // A command with restoreFocus: false leaves focus where its onSelect put it.
+  const keepFocus = useRef(false);
+  const finalFocus = {
+    finalFocus: () => {
+      const keep = keepFocus.current;
+      keepFocus.current = false;
+      if (keep) return false;
+      // Stryker disable next-line ConditionalExpression: a controlled palette has no trigger, so its ref is null, which Base UI takes as true.
+      if (trigger === undefined) return true;
+      return triggerRef.current;
+    },
+  };
 
   // The search text: emptied when the palette opens (not when it closes, so a closing
   // palette keeps showing what it showed), and kept across the swap between dialog and sheet.
@@ -520,7 +576,28 @@ export function Command(props: CommandProps): JSX.Element {
   if (!loading && announcement === "on") setAnnouncement("done");
   if (!isOpenNow && announcement !== "idle") setAnnouncement("idle");
 
+  // The command the person has highlighted, by its value, and what was typed when it was. Base UI
+  // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
+  // Stryker disable next-line ObjectLiteral,StringLiteral: before any highlight, every start moves it to the first command, where autoHighlight puts it anyway.
+  const held = useRef<{ value: string; query: string }>({ value: "", query: "" });
+
+  // The app's ranges for a command, or the search's words when the palette marks matches.
+  const rangesFor = (item: CommandItem, part: "label" | "description"): readonly TextRange[] =>
+    item.highlight?.[part] ?? (highlightMatches && item.highlight === undefined ? queryRanges(item[part]!, query) : []);
+
+  // An app's own label content is shown as it is, with the label for screen readers; a plain label is marked.
+  const labelOf = (item: CommandItem) =>
+    item.labelContent === undefined ? (
+      <Marked text={item.label} ranges={rangesFor(item, "label")} />
+    ) : (
+      <>
+        <span aria-hidden="true">{item.labelContent}</span>
+        <span className="sr-only">{item.label}</span>
+      </>
+    );
+
   const run = (item: CommandItem) => {
+    keepFocus.current = item.restoreFocus === false;
     setOpen(false);
     item.onSelect();
   };
@@ -533,9 +610,14 @@ export function Command(props: CommandProps): JSX.Element {
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, item.keywords, text)}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, [item.description ?? "", ...(item.keywords ?? [])], text)}
       value={query}
       inputRef={markInput}
+      onItemHighlighted={(item: CommandItem | undefined) => {
+        // No highlight holds no command: when the results come back, the first one is highlighted.
+        // Stryker disable next-line StringLiteral: a value no command has falls back to the first command, as the empty one does.
+        held.current = { value: item ? valueOf(item) : "", query };
+      }}
       onValueChange={(next: string) => {
         setQuery(next);
         if (onQueryChange) search(next);
@@ -573,6 +655,7 @@ export function Command(props: CommandProps): JSX.Element {
                       // Two commands may share a label; the position keeps their rows apart.
                       key={`${item.label}-${itemIndex}`}
                       value={item}
+                      data-ouro-command-value={valueOf(item)}
                       disabled={item.disabled}
                       onClick={() => run(item)}
                       data-ouro-control="command"
@@ -591,16 +674,20 @@ export function Command(props: CommandProps): JSX.Element {
                           </span>
                         )
                       )}
-                      <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
-                        {item.labelContent === undefined ? (
-                          item.label
-                        ) : (
-                          <>
-                            <span aria-hidden="true">{item.labelContent}</span>
-                            <span className="sr-only">{item.label}</span>
-                          </>
-                        )}
-                      </span>
+                      {item.description === undefined ? (
+                        <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
+                          {labelOf(item)}
+                        </span>
+                      ) : (
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span data-ouro-command-label="" className={cn("block truncate", item.unread ? "font-semibold" : "font-normal")}>
+                            {labelOf(item)}
+                          </span>
+                          <span data-ouro-command-description="" className={cn("block truncate text-xs leading-4", quiet)}>
+                            <Marked text={item.description} ranges={rangesFor(item, "description")} />
+                          </span>
+                        </span>
+                      )}
                       {shown(item.mark) && (
                         <span data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
                           {item.mark}
@@ -617,6 +704,8 @@ export function Command(props: CommandProps): JSX.Element {
           {/* While results are on their way, rows in their shape hold their place under the ones already shown. */}
           {loading && <LoadingRows />}
         </div>
+        <KeepHighlight heldRef={held} query={query} />
+        <ResultCount query={query} loading={loading} label={resultsLabel} />
       </div>
     </Autocomplete.Root>
   );
@@ -666,6 +755,82 @@ export function Command(props: CommandProps): JSX.Element {
         </DialogRoot>
       )}
     </>
+  );
+}
+
+/** A text with its ranges marked; a range past the text's end is cut to it, and one with nothing left is dropped. */
+function Marked({ text, ranges }: { text: string; ranges: readonly TextRange[] }): ReactNode {
+  const parts: ReactNode[] = [];
+  let at = 0;
+  for (const [start, end] of ranges) {
+    const from = Math.max(start, at);
+    const to = Math.min(end, text.length);
+    if (to <= from) continue;
+    parts.push(text.slice(at, from), <mark key={from} className={commandMarkClass}>{text.slice(from, to)}</mark>);
+    at = to;
+  }
+  parts.push(text.slice(at));
+  return parts;
+}
+
+/** The default `resultsLabel`. */
+const countResults = (count: number) => (count === 1 ? "1 result" : `${count} results`);
+
+/** What tells a command apart when the results change around it. */
+const valueOf = (item: CommandItem) => item.value ?? item.label;
+
+/**
+ * Puts the highlight back on the command the person had highlighted when the results change while
+ * the query stays the same (results arriving from a slow source), or on the first command when that
+ * one has gone. Base UI's Autocomplete takes no highlighted item as a prop, so it moves it the way
+ * a pointer does, through the list's own handler for a pointer moving over a row. It runs after the
+ * rows' own layout effects, as the last child of the list's root.
+ * @claim "Base UI's Autocomplete takes no" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > keeps the highlight on the same command when results arrive above it)
+ */
+function KeepHighlight({
+  heldRef,
+  query,
+}: {
+  heldRef: { current: { value: string; query: string } };
+  query: string;
+}): JSX.Element {
+  // A mark of its own in the palette, since a dialog and a sheet may both be mounted while one replaces the other.
+  const mark = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const want = heldRef.current;
+    if (want.query !== query) return;
+    const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
+    const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
+    if (!row) return;
+    // Stryker disable next-line ConditionalExpression,StringLiteral: moving the highlight onto the row it is already on changes nothing.
+    if (row.hasAttribute("data-highlighted")) return;
+    // movementX, so WebKit does not take it for a pointer that stands still.
+    row.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, movementX: 1 }));
+  });
+  return <span ref={mark} hidden data-ouro-command-keeper="" />;
+}
+
+/**
+ * Says how many results there are, politely, once they settle: 400ms after the last change, not
+ * while loading, and not for an empty search. With no results, the empty state, a live region of
+ * its own, says so instead.
+ * @claim "Says how many results there are" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says how many results there are, politely and once, after they settle)
+ * @claim "Says how many results there are" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says nothing of an empty search's results, which are the palette's own list)
+ * @claim "With no results, the empty" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > says how many results there are, politely and once, after they settle)
+ */
+function ResultCount({ query, loading, label }: { query: string; loading: boolean; label: (count: number) => string }): JSX.Element {
+  const filtered = Autocomplete.useFilteredItems() as readonly Group[];
+  const count = filtered.reduce((sum, group) => sum + group.items.length, 0);
+  const [said, setSaid] = useState("");
+  useEffect(() => {
+    if (loading || query === "") return undefined;
+    const timer = setTimeout(() => setSaid(count > 0 ? label(count) : ""), 400);
+    return () => clearTimeout(timer);
+  }, [loading, query, count, label]);
+  return (
+    <span data-ouro-command-results="" role="status" aria-live="polite" className="sr-only">
+      {said}
+    </span>
   );
 }
 

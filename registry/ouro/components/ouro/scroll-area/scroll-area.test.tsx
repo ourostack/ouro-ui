@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -106,8 +106,52 @@ describe("ScrollArea", () => {
     await expect.poll(() => both.querySelectorAll(":scope > [data-orientation]").length).toBe(2);
   });
 
+  it("fades out at the side that hides more, drawing its focus ring over the fade, and keeps keyboard scrolling", async () => {
+    const { area, viewport } = await render(
+      <ScrollArea orientation="horizontal" label="Tags">
+        {wide}
+      </ScrollArea>,
+    );
+    await expect.poll(() => viewport.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+    expect(viewport.style.getPropertyValue("--ouro-scroll-fade-right")).toBe(`${900 - viewport.clientWidth}px`);
+    expect(getComputedStyle(viewport).maskImage).toContain("linear-gradient");
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    expect(getComputedStyle(area).outlineStyle).toBe("none");
+    viewport.focus();
+    expect(getComputedStyle(viewport).outlineStyle).toBe("none");
+    expect(getComputedStyle(area).outlineStyle).toBe("solid");
+    expect(getComputedStyle(area).outlineWidth).toBe("2px");
+    // WebKit under Playwright scrolls a focused box with no arrow key, masked or not, so it scrolls by script there.
+    if (server.browser === "chromium") await userEvent.keyboard("{ArrowRight}");
+    else viewport.scrollLeft = 40;
+    await expect.poll(() => viewport.scrollLeft).toBeGreaterThan(0);
+    // The arrow key may scroll smoothly, so the fade catches up with each frame of it.
+    await expect.poll(() => viewport.style.getPropertyValue("--ouro-scroll-fade-left") === `${viewport.scrollLeft}px`).toBe(true);
+    // Content that fits adds no fade.
+    const { viewport: fits } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    await act(async () => new Promise(requestAnimationFrame));
+    expect(fits.hasAttribute("data-ouro-scroll-fade")).toBe(false);
+    expect(getComputedStyle(fits).maskImage).toBe("none");
+  });
+
+  it("draws its scrollbar thumb in CanvasText under forced colors", async () => {
+    try {
+      const { area } = await render(<ScrollArea orientation="horizontal">{wide}</ScrollArea>);
+      await expect.poll(() => area.querySelector('[data-orientation="horizontal"] > *')).not.toBeNull();
+      const thumb = area.querySelector<HTMLElement>('[data-orientation="horizontal"] > *')!;
+      await commands.emulateMedia({ forcedColors: "active" });
+      const probe = document.body.appendChild(document.createElement("span"));
+      probe.style.backgroundColor = "CanvasText";
+      const canvasText = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      expect(getComputedStyle(thumb).backgroundColor).toBe(canvasText);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("is a keyboard-scrollable region named by label", async () => {
-    const { viewport } = await render(
+    const { area, viewport } = await render(
       <ScrollArea className="h-40" label="Method">
         {tall}
       </ScrollArea>,
@@ -117,7 +161,7 @@ describe("ScrollArea", () => {
     expect(region.element()).toBe(viewport);
     await expect.poll(() => viewport.tabIndex).toBe(0);
     viewport.focus();
-    expect(getComputedStyle(viewport).outlineStyle).toBe("solid");
+    expect(getComputedStyle(area).outlineStyle).toBe("solid");
     await userEvent.keyboard("{PageDown}");
     await expect.poll(() => viewport.scrollTop).toBeGreaterThan(0);
   });

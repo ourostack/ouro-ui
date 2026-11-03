@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   artFrameClass,
@@ -10,6 +10,8 @@ import {
   kindToneClass,
   periods,
   rootClass,
+  SETTLE_MS,
+  seenThisSession,
   sparkClasses,
   sparkleClass,
   subscribeMoments,
@@ -52,7 +54,12 @@ export interface MomentOwnProps {
    * when the moment is narrower than 24rem, 40px when quiet, 24px inline). It is decorative
    * and hidden from screen readers unless you pass `artLabel`. Draw it with `currentColor`
    * and the theme's variables so it follows the kind, the theme and dark mode. With reduced
-   * motion, its CSS animations stop and its SVG animations pause.
+   * motion, its CSS animations stop and its SVG animations pause. Its motion has a budget too:
+   * its loops settle at the end of their turn about 5 s after it appears, and with a `dismissKey`
+   * or `id` its entrance plays once a session, so a moment that comes back as people switch
+   * views or filters arrives still.
+   * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone)
+   * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > plays the art's entrance once a session for a moment with a key, and every time without one)
    * @claim "which fills the art's height (160px," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
    * @claim "It is decorative and hidden from" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > hides the art from screen readers, or names it with artLabel)
    * @claim "With reduced motion, its CSS animations" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > stops the art's CSS animations and pauses its SVG animations with reduced motion, and lets them run again after)
@@ -60,6 +67,13 @@ export interface MomentOwnProps {
   art?: ReactNode;
   /** Names the art for screen readers (`role="img"`), for a picture that says something the title does not. */
   artLabel?: string | undefined;
+  /**
+   * Which picture this is, such as a pose ("waving", "pedalling"), for checkers, tests and
+   * styles: the art carries it as `data-moment-art`, which it has, empty, whenever there is
+   * art. Not shown or spoken.
+   * @claim "the art carries it as `data-moment-art`," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > marks its art with data-moment-art, carrying artName)
+   */
+  artName?: string | undefined;
   /** The way forward, usually one `Button`: `action={<Button onClick={compose}>New message</Button>}`. */
   action?: ReactNode;
   /**
@@ -75,13 +89,16 @@ export interface MomentOwnProps {
    */
   headingLevel?: 2 | 3 | 4 | 5 | 6 | (number & { "Use 2 to 6, one below the section's heading": never }) | undefined;
   /**
-   * `default` stacks the art, title, line and actions in the space it is given. `inline` is a
-   * single row with 24px art, for a "working" row in a list or toolbar.
+   * `default` stacks the art, title, line and actions in the space it is given. `hero` does too,
+   * with art up to 220px tall, for the main state of a large, otherwise empty pane; narrower than
+   * 24rem it holds at 96px, as `default` does. `inline` is a single row with 24px art, for a
+   * "working" row in a list or toolbar.
    * @default "default"
+   * @claim "`hero` does too, with art up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives hero art 220px, and 96px in a pane narrower than 24rem)
    * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
    * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > is one row inline, with a plain-text title unless given a heading level)
    */
-  size?: "default" | "inline" | (string & { 'Use "default" or "inline"; for a compact moment use quiet': never }) | undefined;
+  size?: "default" | "hero" | "inline" | (string & { 'Use "default", "hero" or "inline"; for a compact moment use quiet': never }) | undefined;
   /**
    * A compact row: 40px art, the title and one line, no celebration. For dense panes, and for
    * people who want less: set it for the whole app with `MomentProvider`.
@@ -191,7 +208,7 @@ export function MomentProvider({ quiet = false, children }: MomentProviderProps)
 }
 
 const levels = [2, 3, 4, 5, 6] as const;
-const sizes = ["default", "inline"] as const;
+const sizes = ["default", "hero", "inline"] as const;
 const spoken = new Set<MomentKind>(["success", "error"]);
 
 // A slot holds something to render unless it is undefined, null or false.
@@ -215,7 +232,8 @@ function CloseIcon(): JSX.Element {
  * art's own motion stops with reduced motion, the close button keeps a dismissal through
  * `dismissKey`, `cap` limits how often a success celebrates, and `quiet` (or
  * `MomentProvider`) makes them compact. The root carries `data-moment` (the kind),
- * `data-celebrate` while it celebrates and `data-quiet` when quiet.
+ * `data-celebrate` while it celebrates and `data-quiet` when quiet, and the art
+ * `data-moment-art` (its `artName`).
  *
  * Use `Empty` instead for a plain empty list with an icon and no art, `Alert` for a message
  * about something that happened beside the content, `Skeleton` for the shape of content that
@@ -247,6 +265,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
     description,
     art,
     artLabel,
+    artName,
     action,
     secondaryAction,
     headingLevel,
@@ -293,7 +312,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
       ? () => [
           !title && ["title is required; it says what the moment is about", '<Moment title="No messages yet">'],
           kind !== kindProp && [`kind="${String(kindProp)}" is not a kind; use "empty", "loading", "error", "welcome", "success"`, '<Moment kind="empty">'],
-          !(sizes as readonly string[]).includes(sizeProp) && [`size="${String(sizeProp)}" is not a size; use "default", "inline"`, "<Moment quiet>"],
+          !(sizes as readonly string[]).includes(sizeProp) && [`size="${String(sizeProp)}" is not a size; use "default", "hero", "inline"`, "<Moment quiet>"],
           headingLevel !== undefined && level !== headingLevel && [`headingLevel must be 2, 3, 4, 5 or 6, got ${String(headingLevel)}`, "<Moment headingLevel={2}>"],
           cap !== undefined && per !== cap.per && [`cap per "${String(cap.per)}" is not a period; use "day", "week", "month", "ever"`, '<Moment cap={{ times: 1, per: "day" }}>'],
           cap !== undefined && times !== cap.times && [`cap times must be a whole number, 0 or more, got ${String(cap.times)}`, '<Moment cap={{ times: 1, per: "day" }}>'],
@@ -353,6 +372,34 @@ export function Moment(props: MomentProps): JSX.Element | null {
     return () => svgs.forEach((svg) => svg.unpauseAnimations());
   }, [reduced, art]);
 
+  // The art's own motion has a budget: its entrance plays once a session for a moment with a key,
+  // and its loops settle, at the end of the turn they are on, a few seconds after it appears.
+  // Whether this moment's key had already appeared is asked once per key, so a second run of the
+  // effect, as React's StrictMode makes in development, does not count as a second showing.
+  const repeat = useRef<{ key: string; seen: boolean }>(undefined);
+  useLayoutEffect(() => {
+    const host = artRef.current;
+    if (!host || key === undefined) return;
+    if (repeat.current?.key !== key) repeat.current = { key, seen: seenThisSession(key) };
+    if (!repeat.current.seen) return;
+    for (const animation of host.getAnimations({ subtree: true })) if (animation.effect!.getComputedTiming().endTime !== Infinity) animation.finish();
+  }, [art, key]);
+  useEffect(() => {
+    const host = artRef.current;
+    if (!host) return;
+    const timer = setTimeout(() => {
+      for (const animation of host.getAnimations({ subtree: true })) {
+        const timing = animation.effect!.getComputedTiming();
+        if (timing.endTime === Infinity) animation.effect!.updateTiming({ iterations: timing.currentIteration! + 1 });
+      }
+      for (const svg of host.querySelectorAll("svg")) {
+        svg.pauseAnimations();
+        svg.setCurrentTime(0);
+      }
+    }, SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [art, kind]);
+
   const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
   if (!visible) return null;
 
@@ -402,7 +449,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
         </span>
       )}
       {hasArt && (
-        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout], kindToneClass[kind])}>
+        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout === "default" && sizeProp === "hero" ? "hero" : layout], kindToneClass[kind])}>
           {flourish && <span aria-hidden="true" data-ouro-part="halo" className={haloClass} />}
           {flourish &&
             sparkClasses.map((spark) => (
@@ -414,6 +461,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
             ref={artRef}
             {...(artLabel ? { role: "img", "aria-label": artLabel } : { "aria-hidden": true })}
             data-ouro-moment-art=""
+            data-moment-art={artName ?? ""}
             className="relative flex h-(--ouro-moment-art) max-w-full items-center justify-center *:h-(--ouro-moment-art) *:w-auto *:max-w-full motion-reduce:**:[animation:none]!"
           >
             {art}

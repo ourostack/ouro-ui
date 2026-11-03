@@ -57,11 +57,13 @@ The props the modes share. Type: `CommandProps`.
 | `closeLabel` | `string` | `"Close"` | The label of the close button, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the palette. |
 | `empty` | `ReactNode` |  | Content for the empty state in place of `emptyLabel`, such as a picture with words: `empty={<Empty icon={<SearchIcon />} title="Nothing matches" />}`. While `loading`, the loading line still shows under it. |
 | `emptyLabel` | `string` | `"No results"` | What shows when nothing matches the search. |
+| `highlightMatches` | `boolean` |  | Marks the words of the search in each command's label and description, with the theme's colours (the system's mark colours under forced colours). The commands' names stay their plain text. |
 | `items` (required) | `readonly CommandEntry[]` |  | The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. |
 | `loading` | `boolean` |  | Whether results are on their way: shows `loadingLabel` beside the input, or under the empty state while nothing matches yet ("No chats by that name." over "Searching the directory…"), and announces it politely for the first load of each opening (not again while typing goes on). Set it back to false when the request fails or aborts. While it is true, rows in a result's shape, as tall as a result, hold the place of the results on their way under the ones already shown (none while nothing matches), and screen readers skip them. |
 | `loadingLabel` | `string` | `"Searching…"` | What shows, and is announced, while `loading`. |
 | `onQueryChange` | `((query: string, context: { signal: AbortSignal }) => void)` |  | For results from a server: called with the search text on every change, and with the current text (`""` at each opening) whenever the palette opens or swaps between dialog and sheet. The palette then stops filtering `items` itself and shows them as they are, so keep the last results in `items` until new ones arrive. `signal` aborts when a newer query replaces this one or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app owns the request, and must set `loading` back to false when the request fails or its signal aborts, or "Searching…" stays up. |
 | `placeholder` | `string` | `"Type a command or search…"` | The search input's placeholder. |
+| `resultsLabel` | `((count: number) => string)` | (count) => count === 1 ? "1 result" : `${count} results` | What screen readers hear, politely and once, when the results for what was typed have settled (not while `loading`, and not for an empty search, whose list is the palette's own). |
 | `searchLabel` | `string` | `"Search commands"` | The search input's label for screen readers. |
 | `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. It is always required. |
 | `unreadLabel` | `string` | `"Unread"` | What screen readers hear after an `unread` command's label, for other languages. |
@@ -152,6 +154,27 @@ interface CommandItem {
   labelContent?: ReactNode;
   /** Runs the command. The palette closes first. */
   onSelect: () => void;
+  /**
+   * What tells this command apart from the others, when results change around it: the highlight
+   * stays on the command with the same value. Give one when two commands can share a label.
+   * @default its label
+   */
+  value?: string | undefined;
+  /**
+   * Whether closing the palette after this command runs puts focus back where it was (the
+   * trigger). `false` leaves focus where `onSelect` puts it, as a command that opens a
+   * conversation and focuses its messages does. @default true
+   */
+  restoreFocus?: boolean | undefined;
+  /**
+   * A second line under the label, such as a snippet of a message, which the search matches too.
+   */
+  description?: string | undefined;
+  /**
+   * Where to mark the label and the description, as `[start, end]` ranges of each, such as the
+   * matches a server found. With these, `highlightMatches` marks nothing else on this command.
+   */
+  highlight?: { label?: readonly TextRange[] | undefined; description?: readonly TextRange[] | undefined } | undefined;
   /**
    * More words the search matches, which never show: `keywords: ["dark mode"]`.
    */
