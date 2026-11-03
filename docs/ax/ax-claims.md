@@ -170,6 +170,8 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `cli.one-line-error` | should | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
 | `cli.error-teaches` | should | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
 | `cli.no-stack-trace` | should | principle |
+| `cli.plain-pipe` | should | hazard |
+| `cli.check-verdict` | should | principle |
 | `cli.outcome` | should | evaluation: [outcomes-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md) |
 | `cli.wait-typed` | should | evaluation: [outcomes-results.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-results.md) |
 | `cli.work-events` | should | evaluation: [flow-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/flow-probe.md) |

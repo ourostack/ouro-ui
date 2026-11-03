@@ -8,7 +8,7 @@ The whole front door for a tool built on the kit: parse, help, run (or, on `--dr
 npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.3
 ```
 
-It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-checks`, `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-terminal`, `ax-voice`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports of cli.ts
 
@@ -42,10 +42,10 @@ function isEmptyResult(result: unknown): boolean
 
 ### `printResult`
 
-Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, anything else as its text or `--json`. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
+Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks all ran and passed may get the voice's `healthy` line. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
 
 ```ts
-function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined): number
+function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined, env?: Readonly<Record<string, string | undefined>>): number
 ```
 
 ### `quietPipes`
