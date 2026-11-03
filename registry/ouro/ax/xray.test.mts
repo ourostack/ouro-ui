@@ -631,3 +631,17 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   const plain = await xray(base({ cli: fixture("plain-cli.mjs"), inventory: callInventory("plain-ui") }));
   assert.ok(failingNotes(plain, "ui.twin-exists").every((n) => n.endsWith("no help JSON to find the twin in")));
 });
+
+test("a CLI that asks for developer commands fails cli.no-dev-commands once per command, and a step marked sourceCheckout passes", async () => {
+  const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
+  const results = report.results.filter((r) => r.claim === "cli.no-dev-commands");
+  assert.deepEqual(results.map((r) => r.verdict), ["fail", "fail", "fail", "fail"]);
+  const note = (surface: string) => results.find((r) => r.surface === surface)?.note ?? "";
+  assert.match(note("pnpm build"), /^`bad help --json` commands\[2\]\.summary: "Checks the setup; run `pnpm build` first" asks for `pnpm build`$/);
+  assert.match(note("node scripts/doctor.mjs --fix"), /rows\[0\]\.fix\.command/);
+  assert.match(note("npm run writes -- on"), /prints: "Writes are off: run npm run writes -- on\." asks for/);
+  // The doctor's data (a row's detail) is the person's, and its sourceCheckout step passes in its own JSON and text,
+  // but not in another command's error.
+  assert.ok(!results.some((r) => /src\/cache\.json/.test(r.surface)));
+  assert.match(note("pnpm dev"), /^`bad edit/);
+});

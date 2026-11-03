@@ -1,5 +1,5 @@
-export { boxOf, decodeImages, isReady, listenForReady, outline, runAxe };
-export type { AxeIssue, Box };
+export { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe };
+export type { Allowance, AxeIssue, Box };
 
 import type { PageIssue } from "./size-check.ts";
 
@@ -12,6 +12,23 @@ interface Box {
   width: number;
   height: number;
 }
+
+// An element a rule leaves alone on purpose, with the reason it was given.
+interface Allowance {
+  rules: string;
+  element: string;
+  reason: string;
+}
+
+// The plain opt-outs, for an app whose own rules keep data-ouro-* for Ouro's components, and the rules each covers.
+// They are API, not deprecated: each counts only with its reason as its value.
+const ALIASES: Record<string, string> = {
+  "data-overlap-ignore": "overlap",
+  "data-long-lines-ok": "long-lines",
+  "data-clip-ok": "clipped-text",
+  "data-scroll-x": "sideways-scroll",
+  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image",
+};
 
 interface AxeIssue extends PageIssue {
   impact: string;
@@ -75,9 +92,12 @@ function outline({ ref, on }: { ref: string; on: boolean }): void {
 // Runs axe-core (already on window.axe) and returns its serious and critical violations, one per rule, the first
 // element it names marked for the close-up. Elements with data-ouro-allow="axe" and a reason are left out.
 async function runAxe(): Promise<AxeIssue[]> {
-  const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
   const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: AxeResult[] }> } }).axe;
-  const exclude = [[`[data-ouro-allow~="axe"]${why}`], [`[data-ouro-allow~="all"]${why}`]];
+  // The elements that opt out, read with their reasons trimmed (a reason of spaces is none), never rewritten.
+  const exclude = [...document.querySelectorAll("[data-ouro-allow]")].filter((el) => {
+    const rules = el.getAttribute("data-ouro-allow")!.trim().split(/\s+/);
+    return (rules.includes("axe") || rules.includes("all")) && (el.getAttribute("data-ouro-allow-why") ?? "").trim();
+  });
   const { violations } = await axe.run({ exclude }, { resultTypes: ["violations"] });
   const counter = window as unknown as { __ouroCheckRef?: number };
   return violations
@@ -89,4 +109,26 @@ async function runAxe(): Promise<AxeIssue[]> {
       for (const el of [...document.querySelectorAll(target)].slice(0, 1)) el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${ref}`.trim());
       return { ref, rule: "axe", impact: v.impact!, element: `${v.id}: ${target}`, detail: `${v.impact}: ${v.help}${v.nodes.length > 1 ? ` (${v.nodes.length} elements)` : ""}` };
     });
+}
+
+// Every element the page opts out of a rule, with its reason, for the report: data-ouro-allow with data-ouro-allow-why,
+// and the aliases with their values. An opt-out without a reason does not count, so it is not listed.
+function listAllowances(aliases: Record<string, string>): Allowance[] {
+  const describe = (el: Element) => {
+    const words = (el.textContent || el.getAttribute("aria-label") || el.getAttribute("alt") || "").trim().replace(/\s+/g, " ");
+    return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}${words ? ` "${words.slice(0, 40)}${words.length > 40 ? "…" : ""}"` : ""}`;
+  };
+  // Reasons are read trimmed (a reason of spaces is none); the page's attributes are never rewritten.
+  const found: Allowance[] = [];
+  for (const el of document.querySelectorAll("[data-ouro-allow][data-ouro-allow-why]")) {
+    const reason = el.getAttribute("data-ouro-allow-why")!.trim();
+    if (reason) found.push({ rules: el.getAttribute("data-ouro-allow")!, element: describe(el), reason });
+  }
+  for (const [name, rules] of Object.entries(aliases)) {
+    for (const el of document.querySelectorAll(`[${name}]`)) {
+      const reason = el.getAttribute(name)!.trim();
+      if (reason) found.push({ rules, element: `${describe(el)} [${name}]`, reason });
+    }
+  }
+  return found;
 }

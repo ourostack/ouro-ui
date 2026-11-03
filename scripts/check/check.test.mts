@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -55,7 +55,8 @@ const run = async (argv: string[], options: { cwd?: string; env?: Record<string,
 describe("Ouro check", () => {
   test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
-    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, chromium, log: quiet });
+    // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
+    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
     // http-error and not-ready are about the page, not its content, and have tests of their own.
     for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
@@ -64,10 +65,10 @@ describe("Ouro check", () => {
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
-    assert.equal(result.shots.length, 14 * 2);
+    assert.equal(result.shots.length, 20 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 14);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 14 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 20);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 20 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -78,7 +79,7 @@ describe("Ouro check", () => {
 
   test("a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again", async () => {
     const sizes: [number, number][] = [[320, 640], [390, 844], [1440, 900]];
-    const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, chromium, log: quiet };
+    const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet };
     const whole = await check({ ...options, out: dir("whole") });
     const shards = [dir("shard"), dir("shard"), dir("shard")];
     const parts = [];
@@ -88,12 +89,82 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 7);
+    assert.equal(merged.pages.length, 10);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
     assert.ok(waived.gated.length > 0 && waived.gated.every((f) => !f.page.startsWith("/axe-") && !(f.page === "/overlap-fail.html" && f.rule === "overlap")));
     assert.ok(waived.findings.some((f) => !f.gated && f.rule === "overlap"));
+  });
+
+  test("measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number", async () => {
+    const out = dir("measured");
+    const sizes: [number, number][] = [[390, 844], [1280, 800]];
+    const pages = ["inp", "layout-shift", "first-content"].flatMap((rule) => ["fail", "pass"].map((kind) => `${rule}-${kind}.html`));
+    const folder = site("measured", Object.fromEntries(pages.map((file) => [file, readFileSync(join(fixtures, file), "utf8")])));
+    const result = await check({ targets: [folder], out, sizes, themes: ["dark", "light"], chromium, log: quiet });
+    const measured = result.findings.filter((f) => f.rule === "inp" || f.rule === "layout-shift" || f.rule === "first-content");
+    assert.deepEqual(new Set(measured.map((f) => f.page)), new Set(["/inp-fail.html", "/layout-shift-fail.html", "/first-content-fail.html"]));
+    // Pressed at the widest size given, without 1440×900, in the first theme only.
+    const pressed = measured.filter((f) => f.rule === "inp");
+    assert.deepEqual(pressed.map((f) => `${f.width}x${f.height} ${f.theme} ${f.element}`), ['1280x800 dark button#slow "Save"']);
+    assert.ok(pressed[0]!.value! >= 400 && pressed[0]!.budget === BUDGETS.inp && pressed[0]!.unit === "ms", pressed[0]!.detail);
+    assert.match(pressed[0]!.detail, /^\d+ ms from the press to its paint at the 75th percentile of 5 presses, over the budget of 200 ms$/);
+    // Pressed five times, and gated on the 75th percentile of the five.
+    const samples = pressed[0]!.samples!;
+    assert.equal(samples.length, 5);
+    assert.equal(pressed[0]!.value, [...samples].sort((a, b) => a - b)[3]);
+    const shifted = measured.find((f) => f.rule === "layout-shift")!;
+    assert.ok(shifted.value! > BUDGETS["layout-shift"] && shifted.budget === BUDGETS["layout-shift"] && shifted.unit === "", shifted.detail);
+    assert.equal(shifted.element, "div#board");
+    const late = measured.find((f) => f.rule === "first-content")!;
+    assert.ok(late.value! >= 3000 && late.unit === "ms" && late.element.startsWith('p#late "This paragraph'), late.detail);
+    for (const f of measured.filter((f) => f.closeUp)) assert.ok(existsSync(join(out, f.closeUp!)), f.closeUp);
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
+    assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms" && f.samples!.length === 5));
+    assert.ok(report.findings.filter((f) => f.rule !== "inp").every((f) => !("samples" in f)));
+    assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
+    assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
+
+    // Budgets from the config, and none with the measured rules off.
+    const config = { budgets: { inp: 5000, "layout-shift": 5, "first-content": 60000 } };
+    const relaxed = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
+    assert.deepEqual(relaxed.findings.filter((f) => f.value !== undefined), []);
+    const off = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(off.findings, []);
+  });
+
+  test("presses only what a page or the config lists, never a destructive control, as often as the config says", async () => {
+    const slow = '<script>for (const b of document.querySelectorAll("button")) b.addEventListener("click", () => { const t = performance.now(); while (performance.now() - t < 400); });</script>';
+    const folder = site("opt-in", {
+      "page.html": page(`<h1>Opt in</h1><button id="save" type="button">Save</button><button id="delete" type="button" class="bg-destructive">Delete</button><button id="buy" type="button" data-ouro-check-no-press>Buy</button>${slow}`),
+    });
+    const run = (config: Gate) => check({ targets: [folder], out: dir("opt-in"), sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
+    const inp = (result: { findings: Finding[] }) => result.findings.filter((f) => f.rule === "inp");
+    // Nothing is listed: nothing is pressed.
+    assert.deepEqual(inp(await run({})), []);
+    // A listed control is pressed, as often as pressRepeat says.
+    const listed = inp(await run({ press: ["#save"], pressRepeat: 3 }));
+    assert.deepEqual(listed.map((f) => f.element), ['button#save "Save"']);
+    assert.equal(listed[0]!.samples!.length, 3);
+    // A destructive or opted-out control is never pressed, even when listed.
+    assert.deepEqual(inp(await run({ press: ["#delete", "#buy", ".bg-destructive"] })), []);
+    await assert.rejects(run({ press: ["[unclosed"] }), /ouro-check.json's "press" has a selector the browser refuses: /);
+  });
+
+  test("presses in a context of its own, so what a press saves reaches no other page", async () => {
+    // The pages after the pressed one load slowly, so the tab that pressed takes the last page next.
+    const slow = page("<h1>Slow</h1>", '<script>document.documentElement.setAttribute("data-app-ready", "false"); setTimeout(() => document.documentElement.setAttribute("data-app-ready", "true"), 2500);</script>');
+    const folder = site("pressed", {
+      "a-press.html": page('<h1>Press</h1><button type="button" data-ouro-check-press onclick="localStorage.setItem(\'pressed\', \'1\')">Remember</button>'),
+      "b-slow.html": slow,
+      "c-slow.html": slow,
+      "d-slow.html": slow,
+      "e-reads.html": page('<h1>Reads</h1><div id="wide" style="height:8px"></div>', '<script>addEventListener("DOMContentLoaded", () => { if (localStorage.getItem("pressed")) document.getElementById("wide").style.width = "3000px"; });</script>'),
+    });
+    const result = await check({ targets: [folder], out: dir("pressed"), sizes: [[1440, 900]], themes: ["light"], chromium, log: quiet });
+    assert.deepEqual(result.findings, []);
+    assert.equal(result.shots.length, 5);
   });
 
   test("gives a finding gone since --before a captioned before and after, and none to one still there at another size", async () => {
@@ -202,6 +273,41 @@ describe("Ouro check", () => {
     }
   });
 
+  test("records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge", async () => {
+    const opted = site("opted", {
+      "page.html": page(
+        '<h1>Opted</h1><div data-scroll-x="a timeline people pan sideways" style="overflow-x:auto"><div style="width:2000px;height:8px"></div></div><p data-clip-ok="">An alias without a reason counts for nothing</p><p data-ouro-allow="long-lines" data-ouro-allow-why="a ticker">Ticker</p>',
+      ),
+    });
+    const out = dir("opted");
+    const result = await check({ targets: [opted], out, sizes: two, themes: ["light", "dark"], chromium, log: quiet });
+    const expected = [
+      { site: "opted", page: "/page.html", rules: "long-lines", element: 'p "Ticker"', reason: "a ticker" },
+      { site: "opted", page: "/page.html", rules: "sideways-scroll", element: "div [data-scroll-x]", reason: "a timeline people pan sideways" },
+    ];
+    assert.deepEqual(result.allowances, expected);
+    assert.deepEqual(result.gated, []);
+    assert.deepEqual((JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report).allowances, expected);
+    assert.deepEqual((await merge({ dirs: [out, out], out: dir("opted-merged"), chromium })).allowances, expected);
+  });
+
+  test("checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements", async () => {
+    const options = { targets: [fixtures], pages: "long-lines-*", sizes: [[1440, 900]] as [number, number][], themes: ["light"], chromium, log: quiet };
+    const none = await check({ ...options, out: dir("measure-none") });
+    assert.deepEqual(none.findings.filter((f) => f.rule === "long-lines"), []);
+    const everywhere = await check({ ...options, out: dir("measure-all"), config: { measure: { "**": "100 chars" } } });
+    assert.deepEqual(
+      everywhere.findings.filter((f) => f.rule === "long-lines").map((f) => [f.page, f.detail.replace(/\d+ characters/, "N characters")]),
+      [["/long-lines-fail.html", "about N characters a line (keep to 100)"]],
+    );
+    const elsewhere = await check({ ...options, out: dir("measure-glob"), config: { measure: { "/docs/**": "100 chars" } } });
+    assert.deepEqual(elsewhere.findings.filter((f) => f.rule === "long-lines"), []);
+    // A selector may hold a "/" of its own; only a leading "/" or a key of stars makes a page glob.
+    const selected = await check({ ...options, out: dir("measure-selector"), config: { measure: { 'main p:not([data-x="/"])': "800px" } } });
+    assert.deepEqual(selected.findings.filter((f) => f.rule === "long-lines").map((f) => f.page), ["/long-lines-fail.html"]);
+    assert.match(selected.findings.find((f) => f.rule === "long-lines")!.detail, /^lines up to \d+px wide \(measure 800px\)$/);
+  });
+
   test("names an axe finding the same at every size, whatever the other rules marked on the page", async () => {
     const faint = '<p style="width:60px;overflow:hidden;white-space:nowrap;color:#999;background:#aaa">Faint text cut off by its box</p>';
     const folder = site("faint", { "page.html": page(`<h1>Faint</h1>${faint}${faint}`) });
@@ -232,7 +338,7 @@ describe("Ouro check", () => {
     const prose = "Words that run on and on across the whole width of a wide screen, far past a hundred characters a line, and on.";
     const many = site("many", { "page.html": page(Array.from({ length: 45 }, (_, i) => `<p id="p${i}">${prose} ${prose}</p>`).join(""), "<style>main{max-width:none}</style>") });
     const out = dir("many");
-    const result = await check({ targets: [many], out, sizes: [[1440, 900]], themes: ["light", "dark"], chromium, log: quiet });
+    const result = await check({ targets: [many], out, sizes: [[1440, 900]], themes: ["light", "dark"], config: { measure: { "/**": "100 chars" } }, chromium, log: quiet });
     assert.equal(result.findings.length, 90);
     assert.equal(result.findings.filter((f) => f.closeUp).length, 40);
     const merged = await merge({ dirs: [out], out: dir("many-merged"), chromium });
@@ -246,7 +352,7 @@ describe("Ouro check's command", () => {
   const fast = ["--sizes", "390x844", "--themes", "light"];
 
   test("reads every option, and refuses what it cannot run", () => {
-    assert.deepEqual(parseArgs(["site", "--pages", "docs/**", "--out", "o", "--sizes", " 390x844 ,1440x900", "--themes", "dark", "--shard", "2/4", "--before", "b.json", "--config", "c.json", "--no-axe", "--ready-event", "a", "--ready-event", "b"]), {
+    assert.deepEqual(parseArgs(["site", "--pages", "docs/**", "--out", "o", "--sizes", " 390x844 ,1440x900", "--themes", "dark", "--shard", "2/4", "--before", "b.json", "--config", "c.json", "--no-axe", "--no-measured", "--ready-event", "a", "--ready-event", "b"]), {
       merge: false,
       targets: ["site"],
       out: "o",
@@ -257,6 +363,7 @@ describe("Ouro check's command", () => {
       before: "b.json",
       config: "c.json",
       axe: false,
+      measured: false,
       readyEvents: ["a", "b"],
       help: false,
     });
@@ -340,8 +447,36 @@ describe("Ouro check's command", () => {
     const withAxe = await run([folder, ...fast, "--out", "axe", "--before", "missing.json"], { from: ["/", root], env: { AXE_CORE: require.resolve("axe-core/axe.min.js") } });
     assert.equal(withAxe.code, 2);
     assert.match(withAxe.err, /^Could not read .*missing\.json/);
+    writeFileSync(join(scratch, "wide.json"), JSON.stringify({ measure: { "**": "wide" } }));
+    const badMeasure = await run([folder, "--config", "wide.json"]);
+    assert.equal(badMeasure.code, 2);
+    assert.match(badMeasure.err, /wide\.json: the measure for "\*\*" is "wide"; give a number of px, ch or chars, such as "800px", "75ch" or "100 chars"\.$/);
+    writeFileSync(join(scratch, "number.json"), JSON.stringify({ measure: { "main p": 800 } }));
+    assert.equal((await run([folder, "--config", "number.json"])).code, 2);
+    writeFileSync(join(scratch, "list.json"), JSON.stringify({ measure: ["100 chars"] }));
+    const list = await run([folder, "--config", "list.json"]);
+    assert.equal(list.code, 2);
+    assert.match(list.err, /list\.json: "measure" maps page globs and CSS selectors to measures/);
+    writeFileSync(join(scratch, "null.json"), JSON.stringify({ measure: null }));
+    assert.equal((await run([folder, "--config", "null.json"])).code, 2);
+    writeFileSync(join(scratch, "selector.json"), JSON.stringify({ measure: { "main >": "800px" } }));
+    const selector = await run([folder, ...fast, "--no-axe", "--out", "selector", "--config", "selector.json"]);
+    assert.equal(selector.code, 2, selector.err);
+    assert.match(selector.err, /selector\.json: the measure for "main >" names no CSS selector a browser reads/);
     const badConfig = await run([folder, "--config", "missing.json"]);
     assert.equal(badConfig.code, 2);
+    // A press setting JSON leaves unchecked: a string would read as its letters, and 0 presses would turn inp off.
+    for (const [config, message] of [
+      [{ press: "button" }, /"press" takes a list of CSS selectors/],
+      [{ press: ["[role=tab]", " "] }, /"press" takes a list of CSS selectors/],
+      [{ pressRepeat: 0 }, /"pressRepeat" takes a whole number of presses, 1 or more/],
+      [{ pressRepeat: 2.5 }, /"pressRepeat" takes a whole number/],
+    ] as [object, RegExp][]) {
+      writeFileSync(join(scratch, "press.json"), JSON.stringify(config));
+      const wrong = await run([folder, "--config", "press.json"]);
+      assert.equal(wrong.code, 2, JSON.stringify(config));
+      assert.match(wrong.err, message);
+    }
     const noReport = await run(["merge", empty]);
     assert.equal(noReport.code, 2);
     assert.match(noReport.err, /report\.json/);
@@ -371,18 +506,19 @@ describe("Ouro check's command", () => {
     assert.equal(caption(f), `/a.html at 390×844@2x light: ${LABELS.overlap}, p.a|b (over | under)`);
     assert.equal(caption({ ...f, width: 3840, height: 2160, rule: "blurry-image", dpr: 1 }), "/a.html at 3840×2160@1x light: blurry picture, p.a|b (over | under): often a wrong `sizes` on a cropped, height-driven image");
     assert.deepEqual([dprAt(320), dprAt(3072), dprAt(3200), dprAt(3840)], [2, 2, 1, 1]);
-    const text = summary({ targets: [], sizes: [[390, 844]], themes: ["light"], pages: [{ site: "s", page: "/a.html", name: "a" }, { site: "s", page: "/b.html", name: "b" }], findings: rows, fixed: [f], candidates: [], shots: [] });
+    const text = summary({ targets: [], sizes: [[390, 844]], themes: ["light"], pages: [{ site: "s", page: "/a.html", name: "a" }, { site: "s", page: "/b.html", name: "b" }], findings: rows, fixed: [f], candidates: [], shots: [], allowances: [{ site: "s", page: "/a.html", rules: "overlap", element: "p", reason: "a stamp" }] });
     assert.match(text, /^### Ouro check: 2 pages at 1 size, light, density 2 \(1 above 3072px wide\)$/m);
     assert.match(text, /^\| ✗ \| `s \/a\.html` \| 1 \| {2}\|/m);
     assert.match(text, /^\| ✓ \| `s \/b\.html` \|/m);
     assert.match(text, /^Fixed since the earlier report: 1,/m);
+    assert.match(text, /^Opted out on purpose: 1, each with its reason in `report\.json` \(`allowances`\)\.$/m);
     assert.match(text, /^\| · \| `s \/a\.html` \| overlap \| p\.a\\\|b \| 5 sizes, 390×844 light to 900×844 light \| over \\\| under \|$/m);
     assert.match(text, /^\| ✗ \| `s \/a\.html` \| made-up \| p\.a\\\|b \| 390×844 light \|/m);
-    const one = summary({ targets: [], sizes: two, themes: ["light", "dark"], pages: [{ site: "s", page: "/a.html", name: "a" }], findings: [f], fixed: [], candidates: [], shots: [] });
+    const one = summary({ targets: [], sizes: two, themes: ["light", "dark"], pages: [{ site: "s", page: "/a.html", name: "a" }], findings: [f], fixed: [], candidates: [], shots: [], allowances: [] });
     assert.match(one, /^### Ouro check: 1 page at 2 sizes, light and dark, density 2 \(1 above 3072px wide\)$/m);
     assert.match(one, /^\| · \| `s \/a\.html` \|/m);
     assert.doesNotMatch(one, /Fixed since/);
-    assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [] }), /Every finding/);
+    assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [], allowances: [] }), /Every finding/);
   });
 });
 
