@@ -23,6 +23,8 @@ export {
 // its file exports only components and types (React Fast Refresh). Class strings are literal so
 // the app's Tailwind finds them when it compiles.
 
+import { defineComponentAx } from "@/registry/ouro/ax/component";
+
 /** How many lines the band shows without `maxLines`. @internal */
 const MAX_LINES_DEFAULT = 2;
 /**
@@ -156,7 +158,7 @@ const placeholderClass = "absolute inset-x-0 bottom-0 m-0 text-white/70 contrast
 const unavailableClass = "absolute inset-x-0 bottom-0 text-white forced-colors:text-[CanvasText]";
 
 /**
- * LiveCaptions' agent side, for Ouro AX's kit. Its one read, `captions`, is what people say (the
+ * LiveCaptions' agent side, declared with Ouro AX's `defineComponentAx`. Its one read, `captions`, is what people say (the
  * speaker and words from `lines`, and `at`, when they were said, from the app's caption feed), which
  * an agent may read only while the person has asked it to follow the meeting (`consent:
  * "listening"`), and only through a filtered watch (`push: "filtered"`). It declares no actions:
@@ -167,8 +169,7 @@ const unavailableClass = "absolute inset-x-0 bottom-0 text-white forced-colors:t
  * @claim "It declares no actions: turning captions" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > declares one agent read, the captions, behind listening consent and a filtered push, and no actions)
  * @claim "Its one read, `captions`, is what" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > declares one agent read, the captions, behind listening consent and a filtered push, and no actions)
  */
-// TODO(ourostack/ouro-ui ax/component): wrap with defineComponentAx once it lands
-const liveCaptionsAx = {
+const liveCaptionsAx = defineComponentAx({
   component: "LiveCaptions",
   reads: [
     {
@@ -180,4 +181,4 @@ const liveCaptionsAx = {
     },
   ],
   actions: [],
-} as const;
+});

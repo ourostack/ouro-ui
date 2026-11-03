@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
+import { AX_ACTION_ATTRIBUTE } from "@/registry/ouro/ax/component";
 import { LiveCaptions, type LiveCaptionLine, type LiveCaptionsProps } from "@/registry/ouro/components/ouro/live-captions/live-captions";
 import { liveCaptionsAx } from "@/registry/ouro/components/ouro/live-captions/live-captions-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -454,7 +455,7 @@ describe("LiveCaptions", () => {
       actions: [],
     });
     // No toggle: no element in the band carries an agent action.
-    return render(<LiveCaptions label="Captions" lines={[mara("1", "Hello")]} />).then(({ band }) => expect(band.querySelector("[data-ax-action]")).toBeNull());
+    return render(<LiveCaptions label="Captions" lines={[mara("1", "Hello")]} />).then(({ band }) => expect(band.querySelector(`[${AX_ACTION_ATTRIBUTE}]`)).toBeNull());
   });
 });
 
@@ -731,6 +732,24 @@ describe("LiveCaptions motion", () => {
     expect(row("3").getBoundingClientRect().bottom).toBeCloseTo(view.getBoundingClientRect().bottom, 0);
     // And the next line slides in as usual.
     await rerender(<LiveCaptions label="Captions" lines={[a, b, c, d]} size="lg" maxLines={1} />);
+    expect(lift(track)).toBeGreaterThan(0);
+  });
+
+  it("slides the kept lines up when an interim fragment is merged into the line before it and the line grows taller than both", async () => {
+    const a = mara("1", "Shall we start?");
+    const b = jonas("2", "Yes.");
+    const c = mara("3", "First", false);
+    const d = mara("4", "the plan", false);
+    const { track, rerender } = await render(<LiveCaptions label="Captions" lines={[a, b, c, d]} />);
+    await expect.poll(() => track.getAnimations().length).toBe(0);
+    // The service folds the fragment into the line before it. Two lines tall, it fills the place the
+    // two took, so nothing kept moves; three lines tall, the lines kept from before slide up.
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, mara("3", `First the plan, then the budget, the hiring, the launch and ${long}`)]} />);
+    expect((track.lastElementChild as HTMLElement).offsetHeight / parseFloat(getComputedStyle(track).lineHeight)).toBe(2);
+    expect(track.getAnimations().length).toBe(0);
+    await rerender(<LiveCaptions label="Captions" lines={[a, b, mara("3", `First the plan, then the budget, the hiring, the launch and ${long} ${long}`)]} />);
+    expect((track.lastElementChild as HTMLElement).offsetHeight / parseFloat(getComputedStyle(track).lineHeight)).toBe(3);
+    expect(track.getAnimations().length).toBe(1);
     expect(lift(track)).toBeGreaterThan(0);
   });
 

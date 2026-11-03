@@ -1,6 +1,7 @@
 import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { LiveCaptions, type LiveCaptionLine, type LiveCaptionsProps } from "@/registry/ouro/components/ouro/live-captions/live-captions";
+import type { ComponentAx } from "@/registry/ouro/ax/component";
 import { liveCaptionsAx } from "@/registry/ouro/components/ouro/live-captions/live-captions-styles";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
@@ -41,17 +42,5 @@ expectTypeOf<{ id: "1"; speaker: "Mara Lind"; text: "Hi"; final: true; isFinal: 
 // @ts-expect-error label is required.
 createElement(LiveCaptions, { lines });
 
-// The agent side: one read behind listening consent, and no actions, as literal types for Ouro AX's kit.
-expectTypeOf(liveCaptionsAx).toEqualTypeOf<{
-  readonly component: "LiveCaptions";
-  readonly reads: readonly [
-    {
-      readonly id: "captions";
-      readonly summary: "What people say, once the person asks you to follow the meeting.";
-      readonly fields: readonly ["speaker", "text", "at"];
-      readonly consent: "listening";
-      readonly push: "filtered";
-    },
-  ];
-  readonly actions: readonly [];
-}>();
+// The agent side is a checked Ouro AX declaration.
+expectTypeOf(liveCaptionsAx).toEqualTypeOf<ComponentAx>();

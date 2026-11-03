@@ -306,8 +306,9 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
       heard.current = null;
       tops.current = new Map();
     };
-    // Stryker disable next-line ArrayDeclaration: any constant dependency list runs the setup on show and the cleanup on hide, and nowhere else.
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: any constant dependency list runs the setup on show and the cleanup on hide, and nowhere else.
+  []);
 
   return (
     <div
