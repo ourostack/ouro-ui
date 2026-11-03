@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page } from "playwright";
-import { boxOf, decodeImages, isReady, listenForReady, outline, runAxe, type Box } from "./in-page.ts";
+import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, pressPoint } from "./measure.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
@@ -78,6 +78,8 @@ interface Report {
   findings: Finding[];
   fixed: Finding[];
   candidates: Candidate[];
+  // The elements a page opts out of a rule, with their reasons, once a page.
+  allowances: (Allowance & { site: string; page: string })[];
   shots: Shot[];
 }
 
@@ -248,7 +250,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const [k, n] = shard;
   const unit = (size: number, page: number) => (size + page) % n === k - 1;
   const swept = list.filter((_, p) => sizes.some((_, s) => unit(s, p)));
-  const report: Report = { targets: options.targets, sizes, themes, ...(n > 1 ? { shard: `${k}/${n}` } : {}), pages: swept.map(({ site, page, name }) => ({ site, page, name })), findings: [], fixed: [], candidates: [], shots: [] };
+  const report: Report = { targets: options.targets, sizes, themes, ...(n > 1 ? { shard: `${k}/${n}` } : {}), pages: swept.map(({ site, page, name }) => ({ site, page, name })), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
   if (!swept.length) {
     await close();
     // A shard with nothing to sweep still writes its report, so a merge of every shard's folder works.
@@ -263,6 +265,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   });
   const { findings, shots, candidates } = report;
   const pictured = new Set<string>();
+  const allowed = new Set<string>();
   const closeUps = new Map(list.map((t) => [t, 0]));
   const sizeKeys = sizes.map(([w, h]) => `${w}x${h}`);
   const axeAt = new Set(sizeKeys.some((key) => AXE_SIZES.includes(key)) ? AXE_SIZES : [sizeKeys[0], sizeKeys.at(-1)]);
@@ -344,6 +347,12 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await page.evaluate(decodeImages);
       issues.push(...(await page.evaluate(findSizeIssues, {})));
       if (measure) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
+      for (const a of await page.evaluate(listAllowances, ALIASES)) {
+        const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
+        if (allowed.has(key)) continue;
+        allowed.add(key);
+        report.allowances.push({ site: target.site, page: target.page, ...a });
+      }
     }
     for (const issue of issues) await record(page, target, issue, width, height, theme);
     const file = `${target.name}-${width}x${height}-${theme}.jpg`;
@@ -473,7 +482,14 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
   const pages = new Map<string, PageRef>();
   for (const r of reports) for (const p of r.pages) pages.set(pageOf(p), p);
   const order = [...pages.keys()].sort();
-  const merged: Report = { targets: [...new Set(reports.flatMap((r) => r.targets))], sizes, themes, pages: order.map((key) => pages.get(key)!), findings: [], fixed: [], candidates: [], shots: [] };
+  const merged: Report = { targets: [...new Set(reports.flatMap((r) => r.targets))], sizes, themes, pages: order.map((key) => pages.get(key)!), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+  const allowed = new Set<string>();
+  for (const a of reports.flatMap((r) => r.allowances)) {
+    const key = JSON.stringify([a.site, a.page, a.rules, a.element, a.reason]);
+    if (allowed.has(key)) continue;
+    allowed.add(key);
+    merged.allowances.push(a);
+  }
   for (const dir of ["sheets/shots", "findings", "pairs/raw"]) await mkdir(join(out, dir), { recursive: true });
   const rank = (f: Finding) => [sizes.findIndex(([w, h]) => w === f.width && h === f.height), themes.indexOf(f.theme), order.indexOf(pageOf(f))];
   const byRank = (a: Finding, b: Finding) => {
@@ -534,7 +550,7 @@ function group(findings: Finding[]): (Finding & { sizes: string[] })[] {
 }
 
 // The Markdown report: a row per page with each rule's count, then every finding with the sizes it shows at.
-function summary({ findings, fixed, pages, sizes, themes, shard }: Report): string {
+function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: Report): string {
   const rows = group(findings);
   const lines = [
     `### Ouro check: ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}, density 2 (1 above 3072px wide)${shard ? `, shard ${shard}` : ""}`,
@@ -549,6 +565,7 @@ function summary({ findings, fixed, pages, sizes, themes, shard }: Report): stri
   }
   lines.push("", "✗ fails; · is waived in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
   if (fixed.length) lines.push(`Fixed since the earlier report: ${fixed.length}, each with a before and after in \`pairs/\`.`, "");
+  if (allowances.length) lines.push(`Opted out on purpose: ${allowances.length}, each with its reason in \`report.json\` (\`allowances\`).`, "");
   if (rows.length) {
     lines.push("<details><summary>Every finding</summary>", "", "| | Page | Rule | Element | At | Example |", "|---|---|---|---|---|---|");
     const cell = (text: string) => text.replaceAll("|", "\\|");

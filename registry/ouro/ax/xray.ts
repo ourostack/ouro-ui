@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
 import { isChecksReport, type ChecksReport } from "./checks.ts";
 import { isReservedPersonOnly, type UiEntry } from "./component.ts";
+import { devCommandIn, devCommandsIn, sourceCheckoutTexts } from "./dev-commands.ts";
 import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
 import { hasAnsi, stripAnsi } from "./terminal.ts";
 import { isWait, validateWait } from "./wait.ts";
@@ -29,7 +30,7 @@ import { checkWorkEvent } from "./work-event.ts";
  * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
  * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
-const XRAY_VERSION = "1.3.0";
+const XRAY_VERSION = "1.4.0";
 
 type Verdict = "pass" | "fail" | "skip";
 
@@ -1127,6 +1128,34 @@ async function checkCli(ctx: Context) {
     const same = text.code === json.code && json.code === report.exitCode;
     const note = !leads ? `\`${clip(text.shown, 120)}\` starts "${clip(first, 120)}", not the verdict "${clip(report.summary, 120)}"` : `exit ${text.code} as text, ${json.code} with --json, ${report.exitCode} in the report`;
     rec.add("cli.check-verdict", cmd.name, leads && same ? "pass" : "fail", leads && same ? `first line: ${clip(first, 160)}` : note);
+  }
+
+  // No message asks for a developer command or a repository path: help in full, and of the rest only what speaks to
+  // the agent or the person (stderr, a failed call's text, and the next, human, error and fix fields of its JSON).
+  {
+    // A step marked sourceCheckout in a call's --json lets the same command pass in that call's text, and nowhere else.
+    const twin = (c: { args: string[] }) => c.args.filter((a) => a !== "--json").join(" ");
+    const marked = calls.flatMap((c) => {
+      const j = parseJson(c.stdout);
+      return j.ok ? sourceCheckoutTexts(j.value).map((text) => [twin(c), text] as const) : [];
+    });
+    const found = new Map<string, string>();
+    for (const c of calls) {
+      const isHelp = c.args[0] === "help" || c.args.includes("--help");
+      const j = parseJson(c.stdout);
+      const exempt = marked.filter(([key]) => key === twin(c)).map(([, text]) => text);
+      const say = (where: string, match: string, text: string) => {
+        if (!exempt.includes(match) && !found.has(match)) found.set(match, `\`${clip(c.shown, 80)}\` ${where}: ${JSON.stringify(clip(text, 120))} asks for \`${match}\``);
+      };
+      if (j.ok) for (const f of devCommandsIn(j.value, { messagesOnly: !isHelp })) say(f.where, f.match, f.text);
+      const text = [c.stderr, ...(!j.ok && (isHelp || c.code !== 0) ? [c.stdout] : [])];
+      for (const line of lines(text.join("\n"))) {
+        const f = devCommandIn(line);
+        if (f) say("prints", f.match, line.trim());
+      }
+    }
+    for (const [match, note] of found) rec.add("cli.no-dev-commands", match, "fail", note);
+    if (!found.size) rec.add("cli.no-dev-commands", `all ${calls.length} calls`, "pass", "no developer command or repository path in help, errors, refusals or next steps");
   }
 
   // Across every call.

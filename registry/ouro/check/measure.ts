@@ -130,6 +130,8 @@ function markPressables(limit: number): Pressable[] {
     const w = words(el);
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}${w ? ` "${w.slice(0, 40)}${w.length > 40 ? "…" : ""}"` : ""}`;
   };
+  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
+  for (const el of document.querySelectorAll("[data-ouro-allow-why]")) el.setAttribute("data-ouro-allow-why", el.getAttribute("data-ouro-allow-why")!.trim());
   const pressable = (el: Element) => {
     if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(`a[href], area[href], [data-ouro-allow~="inp"]${why}, [data-ouro-allow~="all"]${why}`)) return false;
     if (el.matches("button") && (el as HTMLButtonElement).form && (el as HTMLButtonElement).type === "submit") return false;

@@ -10,7 +10,10 @@ export type { PageIssue, SizeCheckOptions };
 //   long-lines       a paragraph whose lines average more than maxChars characters
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and data-ouro-allow-why="<reason>"; an allow without
-// a reason does not count. data-scroll-x, data-clip-ok, data-long-lines-ok and data-size-ignore are older aliases.
+// a reason does not count. For an app whose own rules keep data-ouro-* for Ouro's components, plain aliases do the same,
+// each with its reason as its value, and stay: data-scroll-x (sideways-scroll), data-clip-ok (clipped-text),
+// data-long-lines-ok (long-lines) and data-size-ignore (all four of these rules and blurry-image; a broken picture is
+// broken at any size, so it is never ignored).
 // `element` names the element the same way at every size, so a sweep can say where it shows; `detail` has this size's
 // numbers; `ref` marks it (data-ouro-check-ref) so the runner can photograph it.
 
@@ -41,7 +44,11 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${id}`.trim());
     return id;
   };
+  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
+  for (const name of ["data-ouro-allow-why", "data-scroll-x", "data-clip-ok", "data-long-lines-ok", "data-size-ignore"]) for (const el of document.querySelectorAll(`[${name}]`)) el.setAttribute(name, el.getAttribute(name)!.trim());
   const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
+  // An alias counts only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why.
+  const alias = (name: string) => `[${name}]:not([${name}=""])`;
   const allowed = (rule: string, aliases: string) => `${aliases}, [data-ouro-allow~="${rule}"]${why}, [data-ouro-allow~="all"]${why}`;
   const describe = (el: Element) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}`;
   // The text as written, not as drawn (innerText): a line clamp or a narrow box would name the element differently at
@@ -65,7 +72,7 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
 
   // Sideways scrolling.
   const over = document.documentElement.scrollWidth - document.documentElement.clientWidth;
-  const sideways = allowed("sideways-scroll", "[data-scroll-x], [data-size-ignore]");
+  const sideways = allowed("sideways-scroll", `${alias("data-scroll-x")}, ${alias("data-size-ignore")}`);
   if (over > 1 && !document.body.closest(sideways)) {
     const edge = document.documentElement.clientWidth + 1;
     const out = [...document.body.querySelectorAll("*")].filter((el) => !el.closest(sideways) && shown(el) && el.getBoundingClientRect().right > edge);
@@ -74,7 +81,7 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
   }
 
   // Clipped text.
-  const clipping = allowed("clipped-text", "[data-clip-ok], [data-size-ignore], svg, select, textarea, script, style");
+  const clipping = allowed("clipped-text", `${alias("data-clip-ok")}, ${alias("data-size-ignore")}, svg, select, textarea, script, style`);
   for (const el of document.body.querySelectorAll("*")) {
     if (el.closest(clipping)) continue;
     if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()) || !inlineOnly(el)) continue;
@@ -103,8 +110,8 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
 
   // Blurry pictures. naturalWidth is in CSS pixels, divided by the srcset density the browser chose, so the file's own
   // pixels come from loading the chosen source into an Image of its own.
-  const blur = allowed("blurry-image", "[data-size-ignore]");
-  const broken = allowed("broken-image", "[data-size-ignore]");
+  const blur = allowed("blurry-image", alias("data-size-ignore"));
+  const broken = `[data-ouro-allow~="broken-image"]${why}, [data-ouro-allow~="all"]${why}`;
   // By its path's last two folders, never its host: a run's local server has a new port each time. A data: or blob:
   // picture has no lasting address, so it goes by its name.
   const nameOf = (img: HTMLImageElement, src: string) => (/^(data|blob):/.test(src) ? `img${quoted(img)}` : new URL(src).pathname.split("/").filter(Boolean).slice(-2).join("/"));
@@ -139,7 +146,7 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
   }
 
   // Long lines.
-  const prose = allowed("long-lines", "[data-long-lines-ok], [data-size-ignore], pre, code, table, nav");
+  const prose = allowed("long-lines", `${alias("data-long-lines-ok")}, ${alias("data-size-ignore")}, pre, code, table, nav`);
   for (const el of document.body.querySelectorAll("p, li, dd, blockquote, figcaption, [data-prose]")) {
     if (el.closest(prose) || !inlineOnly(el) || !shown(el)) continue;
     const text = el.textContent!.replace(/\s+/g, " ").trim();

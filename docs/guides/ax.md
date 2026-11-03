@@ -90,6 +90,7 @@ Receipt: a-t1
 | [`ax-mcp`](../ax/ax-mcp.md) | The same commands as MCP tools over stdio. A preview in this release. |
 | [`ax-component`](../ax/ax-component.md) | A component's agent side: what an agent reads from it and the actions it may take, bound to their CLI twins, for the X-ray to check. |
 | [`ax-lint`](../ax/ax-lint.md) | Checks the declarations, and against your command inventory that the commands you register run through them. |
+| [`ax-dev-commands`](../ax/ax-dev-commands.md) | Finds a developer command or a repository path in a message for an agent or a person, which the person's installed tool can't run; a step marked `sourceCheckout: true` passes. |
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
 | [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
