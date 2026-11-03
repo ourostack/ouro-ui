@@ -143,6 +143,15 @@ export interface ToasterProps {
  */
 export function Toaster(props: ToasterProps): JSX.Element | null {
   const { className, label = "Notifications", closeLabel = "Dismiss", avoid, position, richColors, theme, duration } = props;
+  const viewportElement = useRef<HTMLElement | null>(null);
+  const edgeRef = useCallback((element: HTMLElement | null) => {
+    viewportElement.current = element;
+    return readEdge(element);
+  }, []);
+  // Read the edge again when the layout classes change, as they may move the toasts to the other edge.
+  useLayoutEffect(() => {
+    if (viewportElement.current) markEdge(viewportElement.current);
+  }, [className]);
   const [active, setActive] = useState(false);
   useAppearanceClassNameCheck(
     "Toaster",
@@ -181,7 +190,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
               aria-atomic={undefined}
               aria-relevant={undefined}
               data-ouro="toaster"
-              ref={readEdge}
+              ref={edgeRef}
               className={cn(viewportClass, className)}
               onFocus={onViewportFocus}
               onBlur={onViewportBlur}
@@ -363,14 +372,16 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
 /**
  * Marks the viewport with the edge it sits at, `data-edge="top"` or `"bottom"`, from where its
  * layout classes put it: its top edge above the window's middle, or not. The stack unfurls away from that
- * edge, and a toast swipes away toward it. Read again when the window is resized.
+ * edge, and a toast swipes away toward it. Read again when the window is resized, and by Toaster when its className changes.
  */
+function markEdge(viewport: HTMLElement): void {
+  viewport.setAttribute("data-edge", viewport.getBoundingClientRect().top < window.innerHeight / 2 ? "top" : "bottom");
+}
+
 function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
   /* istanbul ignore if @preserve -- React 19 calls a ref that returns a cleanup only with the element */
   if (!viewport) return undefined;
-  const read = () => {
-    viewport.setAttribute("data-edge", viewport.getBoundingClientRect().top < window.innerHeight / 2 ? "top" : "bottom");
-  };
+  const read = () => markEdge(viewport);
   read();
   window.addEventListener("resize", read);
   return () => window.removeEventListener("resize", read);
@@ -646,8 +657,21 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
   const reduced = useReducedMotion();
   const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });
 
-  /** Which way a toast leaves along y: down at the bottom edge, up at the top (the viewport's `data-edge`). */
-  const away = useCallback(() => (state.current.element!.closest('[data-edge="top"]') ? -1 : 1), []);
+  /**
+   * Whether a y offset points back past rest, the one way a toast cannot leave: up at the bottom
+   * edge, down at the top (the viewport's `data-edge`). At 0 either answer gives the same place.
+   */
+  const inward = useCallback(
+    // Stryker disable next-line EqualityOperator: at an offset of 0 the band and its inverse are both 0, so < and <= agree.
+    (offset: number) => (state.current.element!.closest('[data-edge="top"]') !== null ? offset > 0 : offset < 0),
+    [],
+  );
+  /** Whether a y offset points the way a toast leaves: down at the bottom edge, up at the top. */
+  const outward = useCallback(
+    // Stryker disable next-line EqualityOperator: an offset of 0 is at rest, where a release settles whichever way it counts.
+    (offset: number) => (state.current.element!.closest('[data-edge="top"]') !== null ? offset < 0 : offset > 0),
+    [],
+  );
   const write = useCallback((offset: number) => {
     const now = state.current;
     now.offset = offset;
@@ -717,25 +741,25 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
       now.moved = true;
       now.pressed[axis] = false;
       // Above rest the toast is held back: start from the finger travel that puts it there.
-      now.grab = axis === "y" && now.offset * away() < 0 ? unband(now.offset, size()) : now.offset;
+      now.grab = axis === "y" && inward(now.offset) ? unband(now.offset, size()) : now.offset;
       return true;
     },
-    [size, away],
+    [size, inward],
   );
   const move = useCallback(
     (axis: Axis, { delta }: DragState) => {
       const wanted = state.current.grab + delta;
       // Following a finger is not an animation: the toast does it with reduced motion too.
-      write(axis === "y" && wanted * away() < 0 ? rubberband(wanted, size()) : wanted);
+      write(axis === "y" && inward(wanted) ? rubberband(wanted, size()) : wanted);
     },
-    [size, write, away],
+    [size, write, inward],
   );
   const end = (axis: Axis, { velocity, flick, cancelled }: DragState & { cancelled: boolean }) => {
     const now = state.current;
     const { offset } = now;
     // Whether the finger was moving the toast away from rest when it lifted.
     const toward = velocity * offset;
-    const canLeave = axis === "x" || offset * away() > 0;
+    const canLeave = axis === "x" || outward(offset);
     if (cancelled || !canLeave || !(flick ? toward > 0 : Math.abs(offset) > AWAY && toward >= 0)) return settle(cancelled ? 0 : velocity, flick && !cancelled);
     now.leaving = true;
     // Before the close: a swiped toast fades on its way, and does not slide down as a closed one does.

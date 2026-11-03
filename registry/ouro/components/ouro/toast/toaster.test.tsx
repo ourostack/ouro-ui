@@ -121,7 +121,10 @@ describe("Toaster", () => {
     await act(async () => toast.dismiss());
     await gone("Older");
     await gone("Newer");
+    const removed = vi.spyOn(window, "removeEventListener");
     await unmount();
+    expect(removed).toHaveBeenCalledWith("resize", expect.any(Function));
+    removed.mockRestore();
     // At the top: the newest at the top, the older one peeking out below it.
     await render(<Toaster className="top-4 bottom-auto" />);
     expect(viewport()!.getAttribute("data-edge")).toBe("top");
@@ -134,6 +137,11 @@ describe("Toaster", () => {
     await until(() => viewport()!.hasAttribute("data-expanded"), true);
     await until(() => toastNamed("Older")!.getAnimations().length, 0);
     expect(box("Older").top).toBeGreaterThanOrEqual(box("Newer").bottom);
+    // Layout classes that move it to the bottom read the edge again, with no resize.
+    await act(async () => roots.at(-1)!.render(<Toaster className="bottom-4" />));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    await act(async () => roots.at(-1)!.render(<Toaster className="top-4 bottom-auto" />));
+    expect(viewport()!.getAttribute("data-edge")).toBe("top");
     // A resize reads the edge again: a viewport whose top edge is at the middle counts as the bottom.
     viewport()!.style.top = "50vh";
     window.dispatchEvent(new Event("resize"));
