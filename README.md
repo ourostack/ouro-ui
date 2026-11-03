@@ -393,6 +393,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-open-mode`,
 `lib-ouro-provider`,
 `lib-page-scroll-hold`,
+`lib-people-cache`,
 `lib-portal-container`,
 `lib-refs`,
 `lib-router-link`,
@@ -414,6 +415,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-media-query`,
 `lib-use-mounted-open`,
 `lib-use-ouro`,
+`lib-use-person`,
 `lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`.
@@ -606,13 +608,17 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **Composer** — A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. [Docs](docs/Composer.md)
 - **ConversationList** — A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. [Docs](docs/ConversationList.md)
+- **createPeopleCache** — A cache of people's names, photos or profiles for an app's avatars and message names, read from your service in batches. [Docs](docs/createPeopleCache.md)
 - **Emoji** — One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named by its `alt` (the emoji's name). [Docs](docs/Emoji.md)
 - **EmojiPicker** — An emoji picker for reactions and for putting emoji into text. [Docs](docs/EmojiPicker.md)
 - **EmojiText** — A message's text with its emoji drawn from an image catalogue: each token (`:party:`, an emoji's first shortcode or else its id, as `EmojiPicker` and `Autocomplete` put into a `Composer`) and each emoji's `text` the catalogue lists becomes the emoji's image, which screen readers hear by name. [Docs](docs/EmojiText.md)
 - **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
+- **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
+- **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
+- **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)
 
 ### App setup
 
