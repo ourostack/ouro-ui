@@ -423,7 +423,8 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? "MediaTile draws its own surface; set --ouro-media-tile-ring for the ring's colour, or wrap the tile in an element of your own"
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "MediaTile",

@@ -147,6 +147,7 @@ describe("MediaTile", () => {
     );
     expect(tile.getAttribute("aria-label")).toBe("Mara Lind, spricht, stumm, camera on, pinned");
     expect(tile.querySelector("[data-ouro-media-tile-muted]")!.getAttribute("title")).toBe("Stumm");
+    expect(tile.querySelector("[data-ouro-media-tile-muted] svg")).not.toBeNull();
   });
 
   it("shows the app's media while the camera is on, and the photo while it is off or paused, keeping the media mounted", async () => {
@@ -192,6 +193,14 @@ describe("MediaTile", () => {
       </MediaTile>,
     );
     expect(media.querySelector("[data-test-camera]")).toBe(camera);
+    expect(getComputedStyle(media).visibility).toBe("visible");
+    // A shared screen shows whatever the camera does.
+    await rerender(
+      <MediaTile name="Mara Lind" avatar={{ initials: "ML" }} source="screen" cameraOn={false}>
+        <Camera />
+      </MediaTile>,
+    );
+    expect(tile.getAttribute("data-picture")).toBe("");
     expect(getComputedStyle(media).visibility).toBe("visible");
     // The camera is on before its first picture arrives: the photo shows, and the sentence says so.
     await rerender(<MediaTile name="Mara Lind" cameraOn />);
