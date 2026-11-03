@@ -2,6 +2,7 @@
 
 import {
   isValidElement,
+  type CSSProperties,
   useEffect,
   useId,
   useLayoutEffect,
@@ -372,32 +373,49 @@ const raised = "bg-card text-card-foreground ring-1 ring-border/60 shadow-(--sha
 // the theme's colors follow the fill, so a link, a mention, a quote, a card, a code block or a button in it stays
 // readable: the primary color, the foreground, the muted text, a primary button and the focus ring read as the
 // bubble's text color; the card, muted and accent surfaces as the fill, the accent a shade lighter for a hover; and a
-// primary button's hover and press as shades of its text color. The message hands the fill and its text color down
-// as two variables (bubbleColors), because the bubble re-points the colors for what is inside it.
-const bubbleColors =
-  "[--ouro-bubble:var(--ouro-action,var(--primary))] [--ouro-bubble-ink:var(--ouro-action-foreground,var(--primary-foreground))]";
-const filledInk =
-  "bg-(--ouro-bubble) text-(--ouro-bubble-ink) [--primary:var(--ouro-bubble-ink)] [--primary-foreground:var(--ouro-bubble)] " +
-  "[--foreground:var(--ouro-bubble-ink)] [--muted-foreground:var(--ouro-bubble-ink)] [--muted:var(--ouro-bubble)] [--card:var(--ouro-bubble)] " +
-  "[--card-foreground:var(--ouro-bubble-ink)] [--accent:color-mix(in_oklab,var(--ouro-bubble-ink)_12%,var(--ouro-bubble))] [--ring:var(--ouro-bubble-ink)] " +
-  "[--ouro-action:var(--ouro-bubble-ink)] [--ouro-action-foreground:var(--ouro-bubble)] " +
-  "[--ouro-action-hover:color-mix(in_oklab,var(--ouro-bubble-ink)_88%,var(--ouro-bubble))] " +
-  "[--ouro-action-active:color-mix(in_oklab,var(--ouro-bubble-ink)_76%,var(--ouro-bubble))] " +
-  // Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined.
-  "selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a]:underline";
+// primary button's hover and press as shades of its text color. The message sets the fill and its text color
+// (bubbleColors), because the bubble re-points the colors for what is inside it (filledColors). These are inline
+// custom properties, not classes, so they add nothing to an app's stylesheet.
+const bubbleColors = {
+  "--ouro-bubble": "var(--ouro-action,var(--primary))",
+  "--ouro-bubble-ink": "var(--ouro-action-foreground,var(--primary-foreground))",
+} as CSSProperties;
+const filledColors = {
+  "--primary": "var(--ouro-bubble-ink)",
+  "--primary-foreground": "var(--ouro-bubble)",
+  "--foreground": "var(--ouro-bubble-ink)",
+  "--muted-foreground": "var(--ouro-bubble-ink)",
+  "--muted": "var(--ouro-bubble)",
+  "--card": "var(--ouro-bubble)",
+  "--card-foreground": "var(--ouro-bubble-ink)",
+  "--accent": "color-mix(in oklab,var(--ouro-bubble-ink) 12%,var(--ouro-bubble))",
+  "--ring": "var(--ouro-bubble-ink)",
+  "--ouro-action": "var(--ouro-bubble-ink)",
+  "--ouro-action-foreground": "var(--ouro-bubble)",
+  "--ouro-action-hover": "color-mix(in oklab,var(--ouro-bubble-ink) 88%,var(--ouro-bubble))",
+  "--ouro-action-active": "color-mix(in oklab,var(--ouro-bubble-ink) 76%,var(--ouro-bubble))",
+} as CSSProperties;
+// Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined.
+const filledInk = "bg-(--ouro-bubble) text-(--ouro-bubble-ink) selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a]:underline";
 // On others' bubble, the muted surface: the primary, success and muted text colors take a little of the foreground, so
 // a link, a mention, a success mark or a table's header keeps 4.5:1 on it, as it has on the page. The message mixes
-// them (mutedColors) and the bubble reads them: a variable can't be mixed from itself.
-const mutedColors =
-  "[--ouro-bubble-link:color-mix(in_oklab,var(--primary)_85%,var(--foreground))] [--ouro-bubble-success:color-mix(in_oklab,var(--success)_85%,var(--foreground))] " +
-  "[--ouro-bubble-quiet:color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))]";
-const mutedInk = "[--primary:var(--ouro-bubble-link)] [--success:var(--ouro-bubble-success)] [--muted-foreground:var(--ouro-bubble-quiet)]";
+// them (mutedColors) and the bubble reads them (mutedInk): a variable can't be mixed from itself.
+const mutedColors = {
+  "--ouro-bubble-link": "color-mix(in oklab,var(--primary) 85%,var(--foreground))",
+  "--ouro-bubble-success": "color-mix(in oklab,var(--success) 85%,var(--foreground))",
+  "--ouro-bubble-quiet": "color-mix(in oklab,var(--muted-foreground) 85%,var(--foreground))",
+} as CSSProperties;
+const mutedInk = {
+  "--primary": "var(--ouro-bubble-link)",
+  "--success": "var(--ouro-bubble-success)",
+  "--muted-foreground": "var(--ouro-bubble-quiet)",
+} as CSSProperties;
 
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
     user: `rounded-2xl rounded-ee-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
-    assistant: `rounded-2xl rounded-es-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground ${mutedInk}`,
+    assistant: "rounded-2xl rounded-es-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
   },
   raised: {
     user: "rounded-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
@@ -774,6 +792,13 @@ export function Message(props: MessageProps): JSX.Element {
   );
   // A chat's bubble; a post's and a reply's text sits on the page, unboxed.
   const surface = shape === "chat" ? layouts[bubble][mine ? "user" : "assistant"] : undefined;
+  // A filled bubble's colors, as inline custom properties: the message sets them, and the bubble re-points the theme's.
+  const filled = shape === "chat" && bubble === "filled";
+  const ownColors = filled ? (mine ? bubbleColors : mutedColors) : undefined;
+  const surfaceColors = filled ? (mine ? filledColors : mutedInk) : undefined;
+  // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
+  const containerStyle = hasBar && beside !== undefined ? { containerType: "inline-size" as const } : undefined;
+  const articleStyle = ownColors || containerStyle ? { ...rest.style, ...ownColors, ...containerStyle } : rest.style;
   const titled = post && subject !== undefined && subject !== null;
   // A message of pictures or files alone draws no empty bubble above them.
   const worded = !empty || streaming || quote !== undefined || titled;
@@ -790,8 +815,7 @@ export function Message(props: MessageProps): JSX.Element {
       aria-busy={streaming || rest["aria-busy"]}
       aria-describedby={describedBy}
       onPointerUp={tap}
-      // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
-      style={hasBar && beside !== undefined ? { ...rest.style, containerType: "inline-size" } : rest.style}
+      style={articleStyle}
       className={cn(
         "group/message box-border flex w-full min-w-0 items-start text-base pointer-fine:text-sm",
         people ? "gap-3" : "gap-2",
@@ -799,10 +823,6 @@ export function Message(props: MessageProps): JSX.Element {
         post && "py-1",
         focusRing,
         end && "flex-row-reverse",
-        // Stryker disable next-line ConditionalExpression,LogicalOperator: only the user's filled bubble reads these two variables, so setting them on any other message changes nothing.
-        end && bubble === "filled" && bubbleColors,
-        // Stryker disable next-line ConditionalExpression,LogicalOperator: only others' filled bubble reads these, so setting them on any other message changes nothing.
-        shape === "chat" && !mine && bubble === "filled" && mutedColors,
         className,
       )}
     >
@@ -837,7 +857,7 @@ export function Message(props: MessageProps): JSX.Element {
         {header}
         <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
           {/* Hidden rather than left out when empty: MessageList reads every message's text from it. */}
-          <div data-ouro-message-content="" hidden={!worded} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+          <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
             {titled && (
               <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
                 {subject}

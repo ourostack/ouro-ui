@@ -751,6 +751,12 @@ describe("Message chat", () => {
     expect(contrast(getComputedStyle(quiet).color, getComputedStyle(bubble).backgroundColor)).toBeGreaterThan(contrast(probeColor(host, "var(--muted-foreground)"), getComputedStyle(bubble).backgroundColor));
     // A shade between the two, not the text color itself.
     expect(rgb(getComputedStyle(quiet).color)).not.toEqual(rgb(getComputedStyle(bubble).color));
+    // And a success mark, a shade of the success color nearer the text color.
+    const done = document.createElement("span");
+    done.style.color = "var(--success)";
+    bubble.append(done);
+    expect(rgb(getComputedStyle(done).color)).not.toEqual(rgb(probeColor(host, "var(--success)")));
+    expect(rgb(getComputedStyle(done).color)).not.toEqual(rgb(getComputedStyle(bubble).color));
     // A shade of the primary color nearer the text color: neither the theme's own primary nor the text color itself.
     expect(link).not.toBe(probeColor(host, "var(--primary)"));
     expect(rgb(link)).not.toEqual(rgb(getComputedStyle(bubble).color));
