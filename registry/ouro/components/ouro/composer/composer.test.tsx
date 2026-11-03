@@ -6,7 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
-import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
@@ -497,6 +497,35 @@ describe("Composer quote", () => {
     const avatar = quote!.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
     expect(avatar.compareDocumentPosition(quote!.querySelector("[data-ouro-composer-quote-author]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(quote!.querySelector("[data-ouro-composer-quote-bar]")!.compareDocumentPosition(avatar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows authorContent and excerptContent in place of the author and the excerpt, while screen readers hear the text", async () => {
+    const image = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>party</title></svg>')}`;
+    const catalogue: EmojiCatalogue = { categories: [{ id: "activities", label: "Activities", items: [{ id: "party", name: "Party popper", shortcodes: ["party"], text: "🎉", src: image }] }] };
+    const { quote } = await render(
+      <Composer
+        label="Reply to Ana"
+        quote={quoteOf({
+          author: "Ana Lind 🎉",
+          authorContent: <EmojiText text="Ana Lind :party:" catalogue={catalogue} />,
+          excerpt: `🎉 ${lunch}`,
+          excerptContent: <EmojiText text={`:party: ${lunch}`} catalogue={catalogue} />,
+        })}
+        onSend={() => {}}
+      />,
+    );
+    const author = quote!.querySelector<HTMLElement>("[data-ouro-composer-quote-author]")!;
+    const excerpt = quote!.querySelector<HTMLElement>("[data-ouro-composer-quote-excerpt]")!;
+    expect(author.querySelector("img")!.getAttribute("src")).toBe(image);
+    expect(author.textContent).not.toContain(":party:");
+    const picture = excerpt.querySelector<HTMLElement>("[aria-hidden='true'] img")!;
+    expect(picture.getAttribute("src")).toBe(image);
+    expect(excerpt.textContent).not.toContain(":party:");
+    expect(getComputedStyle(excerpt).textOverflow).toBe("ellipsis");
+    expect(excerpt.scrollWidth).toBeGreaterThan(excerpt.clientWidth);
+    expect(excerpt.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(excerpt).lineHeight), 0);
+    await expect.element(page.getByRole("textbox", { name: "Reply to Ana" })).toHaveAccessibleDescription(`Quoting Ana Lind 🎉: 🎉 ${lunch}`);
+    await expect.element(page.getByRole("button", { name: "Remove quote from Ana Lind 🎉" })).toBeVisible();
   });
 
   it("describes the text with the quote, so screen readers hear what the reply quotes", async () => {
