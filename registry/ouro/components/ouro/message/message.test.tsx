@@ -1025,7 +1025,7 @@ describe("Message rows", () => {
           Mine
         </Message>
         <Message variant="post" bubble="filled" role="user" name="Priya Okafor">
-          A post
+          A post with <a href="#notes" style={{ color: "var(--primary)" }}>the notes</a>
         </Message>
         <Message bubble="filled" role="assistant" name="Ouro">
           Default
@@ -1036,6 +1036,8 @@ describe("Message rows", () => {
     expect(chat!.dataset.bubble).toBe("filled");
     expect(post!.hasAttribute("data-bubble")).toBe(false);
     expect(getComputedStyle(bubbleOf(post!)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    // Nor does a post re-point the theme's colors: its link is the page's.
+    expect(getComputedStyle(post!.querySelector("a")!).color).toBe(probeColor(host, "var(--primary)"));
     expect(plain!.hasAttribute("data-bubble")).toBe(false);
     // A chat's message with no bubble given takes the default and says nothing about it.
     expect(warn).not.toHaveBeenCalled();
