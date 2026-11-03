@@ -239,6 +239,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const descriptionId = `${useId()}-description`;
   // What shows the hint: keyboard focus, the pointer resting on it; and whether the person put it
   // away, which lasts until both have left.
+  // Stryker disable next-line ObjectLiteral,BooleanLiteral: nothing reads dismissed before the first show, which sets it from focus and pointer, and both start falsy.
   const [hintBy, setHintBy] = useState({ focus: false, pointer: false, dismissed: false });
   const hintOpen = (hintBy.focus || hintBy.pointer) && !hintBy.dismissed;
   const hintTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -432,7 +433,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       watching.disconnect();
       watched.current = [];
     };
-  }, [reflow, rewatch]);
+  },
+  // Stryker disable next-line ArrayDeclaration: reflow and rewatch keep their identity for the component's life, so any constant list runs it as this one does.
+  [reflow, rewatch]);
 
   // A new size, shape or container size: it stays in its corner, at once.
   useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, reflow]);
