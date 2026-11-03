@@ -381,6 +381,7 @@ function markEdge(viewport: HTMLElement): void {
 
 function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
   /* istanbul ignore if @preserve -- React 19 calls a ref that returns a cleanup only with the element */
+  // Stryker disable next-line ConditionalExpression,BooleanLiteral: React 19 calls a ref that returns a cleanup only with the element.
   if (!viewport) return undefined;
   const read = () => markEdge(viewport);
   read();
