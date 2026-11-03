@@ -1,0 +1,1 @@
+- Emoji: an animated emoji fetches its animation once its still image has loaded, so the first play under the mouse or in focus starts at once; with reduced motion, which plays nothing, the animation is not fetched.

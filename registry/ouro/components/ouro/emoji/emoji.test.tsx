@@ -370,6 +370,36 @@ describe("Emoji", () => {
   });
 });
 
+describe("Emoji's animation", () => {
+  /** Every address an image was given; nothing on the page shows an animation that is not playing, so one here was fetched ahead. */
+  const fetched = (sources: { mock: { calls: unknown[][] } }) => sources.mock.calls.map(([src]) => src);
+
+  it("is fetched once the still image has loaded, so the first play starts at once, the still showing until then", async () => {
+    await motion();
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    const { host } = await render(
+      <p>
+        <Emoji item={party} /> <Emoji item={blink} /> <Emoji item={heart} />
+      </p>,
+    );
+    await expect.poll(() => fetched(sources)).toEqual(expect.arrayContaining([party.animatedSrc, blink.filmstrip!.src]));
+    expect(images(host).map((picture) => picture.getAttribute("src"))).toEqual([party.src, blink.src, heart.src]);
+  });
+
+  it("is not fetched under reduced motion, which plays nothing, or for a still that fails to load", async () => {
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    const { host, rerender } = await render(<Emoji item={party} />);
+    await act(() => emoji(host).decode());
+    expect(fetched(sources)).not.toContain(party.animatedSrc);
+    // Gone before motion is let through, which would let it play.
+    await rerender(null);
+    await motion();
+    const broken = await render(<Emoji item={{ id: "broken", name: "Broken", src: "data:image/png;base64,AAAA", animatedSrc: image("broken moving") }} />);
+    await act(() => emoji(broken.host).decode().catch(() => {}));
+    expect(fetched(sources)).not.toContain(image("broken moving"));
+  });
+});
+
 describe("Emoji placeholder", () => {
   const waitingSrc = image("waiting");
   /** The emoji's picture: the root's own `<img>`, named by the emoji. */
