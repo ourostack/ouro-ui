@@ -16,6 +16,7 @@ import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
 import {
@@ -35,6 +36,7 @@ import {
   commandItemClass,
   commandListClass,
   commandLoadingClass,
+  commandLoadingRowClass,
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
@@ -175,7 +177,10 @@ export interface CommandBaseProps {
    * Whether results are on their way: shows `loadingLabel` beside the input, or under the
    * empty state while nothing matches yet ("No chats by that name." over "Searching the
    * directory…"), and announces it politely for the first load of each opening (not again while
-   * typing goes on). Set it back to false when the request fails or aborts.
+   * typing goes on). Set it back to false when the request fails or aborts. While it is true,
+   * rows in a result's shape, as tall as a result, hold the place of the results on their way
+   * under the ones already shown, and screen readers skip them.
+   * @claim "rows in a result's shape" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > holds the place of results on their way with rows a result's height, gone once loading ends)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > says it is searching politely, once while typing goes on, and shows the empty state only after loading)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > shows the empty state at once while loading finds nothing yet, with the loading line under it, and alone once loading ends)
    * @claim "Whether results are on their way" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command server search > announces loading again after the palette closes and opens)
@@ -264,6 +269,9 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
   }
   return groups;
 }
+
+/** The widths of the rows that hold the place of results on their way. */
+const LOADING_ROWS = ["w-2/3", "w-1/2", "w-3/4"] as const;
 
 const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
@@ -606,6 +614,17 @@ export function Command(props: CommandProps): JSX.Element {
               </Autocomplete.Group>
             )}
           </CommandList>
+          {/* While results are on their way, rows in their shape hold their place under the ones already shown. */}
+          {loading && (
+            <div data-ouro-command-loading-rows="" aria-hidden="true">
+              {LOADING_ROWS.map((width) => (
+                <div key={width} className={commandLoadingRowClass}>
+                  <Skeleton shape="circle" size="xs" className="shrink-0" />
+                  <Skeleton shape="text" className={width} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Autocomplete.Root>

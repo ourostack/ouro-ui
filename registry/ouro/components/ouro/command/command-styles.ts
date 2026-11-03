@@ -6,6 +6,7 @@ export {
   commandItemClass,
   commandListClass,
   commandLoadingClass,
+  commandLoadingRowClass,
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
@@ -129,3 +130,12 @@ function matchesQuery(label: string, keywords: readonly string[] | undefined, qu
     .split(/\s+/)
     .every((word) => text.includes(word));
 }
+
+/**
+ * A row's shape while results are on their way: the item's own height, padding and line, so
+ * the results that arrive take its place without moving the rows around them.
+ *
+ * @internal
+ */
+const commandLoadingRowClass =
+  "box-border flex min-h-11 pointer-fine:min-h-9 items-center gap-3 px-2 py-1.5 text-base leading-5 pointer-fine:text-sm";

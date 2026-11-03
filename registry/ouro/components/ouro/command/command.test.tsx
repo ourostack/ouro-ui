@@ -561,6 +561,26 @@ describe("Command server search", () => {
     expect(document.querySelector("[data-ouro-command-loading]")?.textContent).toBe("Searching the directory…");
   });
 
+  it("holds the place of results on their way with rows a result's height, gone once loading ends", async () => {
+    const jump = (loading: boolean) => (
+      <Command title="Jump to a chat" open onOpenChange={() => {}} items={[{ label: "Noor Haddad", onSelect() {} }]} onQueryChange={() => {}} loading={loading} />
+    );
+    await render(jump(true));
+    await settled();
+    const block = document.querySelector<HTMLElement>("[data-ouro-command-loading-rows]")!;
+    expect(block.getAttribute("aria-hidden")).toBe("true");
+    const rows = [...block.children] as HTMLElement[];
+    expect(rows).toHaveLength(3);
+    const item = document.querySelector<HTMLElement>('[data-ouro-part="item"]')!;
+    for (const row of rows) {
+      expect(row.getBoundingClientRect().height).toBe(item.getBoundingClientRect().height);
+      expect(row.querySelectorAll('[data-ouro="skeleton"]')).toHaveLength(2);
+    }
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
+    await act(async () => roots[0]!.render(jump(false)));
+    expect(document.querySelector("[data-ouro-command-loading-rows]")).toBeNull();
+  });
+
   it("takes content for its empty state, such as a picture with words, with the loading line under it while loading", async () => {
     const empty = (
       <figure data-testid="nothing" style={{ margin: 0 }}>
