@@ -23,8 +23,11 @@ import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLight } from "@/registry/ouro/compone
 
 /**
  * A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a
- * test. It is plain data, so a Server Component can pass it. The spot still judges it against the clock, so it says
+ * test. It is plain data, so a Server Component can pass it. The server renders it as of its last beat, so a page read
+ * later from a cache hydrates without a mismatch; once hydrated, the spot judges it against the clock, so it says
  * "Status unknown" once the beat is older than `heartbeatTimeoutMs`.
+ *
+ * @claim "The server renders it as of its last beat" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > renders on the server as of its last beat, hydrates later without a mismatch, then judges against the clock)
  */
 export interface PortholeFixed {
   snapshot: PortholeSnapshot;
@@ -77,6 +80,8 @@ export interface PortholeOwnProps {
 export type PortholeProps = Omit<HTMLAttributes<HTMLDivElement>, keyof PortholeOwnProps> & PortholeOwnProps;
 
 const quiet = () => () => {};
+const onClient = () => true;
+const onServer = () => false;
 const live = (source: PortholeSource | PortholeFixed): source is PortholeSource => typeof (source as PortholeSource).subscribe === "function";
 // What the person sees: a deadline renders only when this changes.
 const seen = (view: PortholeView) => JSON.stringify([view.state, view.text, view.detail]);
@@ -163,8 +168,12 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const lastBeatAt = useCallback(() => (live(source) ? source.lastBeatAt() : source.lastBeatAt), [source]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const options = { freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels };
+  // The server, and the hydration that must match it, judge as of the last beat, the one time both know; the render
+  // right after hydration judges against the clock.
+  const hydrated = useSyncExternalStore(quiet, onClient, onServer);
+  const beat = lastBeatAt();
   // eslint-disable-next-line react-hooks/purity -- each render judges against the real clock; the one timeout renders again when that judgement would change
-  const view = portholeView(snapshot, lastBeatAt(), Date.now(), options);
+  const view = portholeView(snapshot, beat, hydrated ? Date.now() : beat, options);
   const shown = seen(view);
 
   useDevWarnings(

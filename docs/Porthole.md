@@ -59,7 +59,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `PortholeFixed`
 
-A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a test. It is plain data, so a Server Component can pass it. The spot still judges it against the clock, so it says "Status unknown" once the beat is older than `heartbeatTimeoutMs`.
+A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a test. It is plain data, so a Server Component can pass it. The server renders it as of its last beat, so a page read later from a cache hydrates without a mismatch; once hydrated, the spot judges it against the clock, so it says "Status unknown" once the beat is older than `heartbeatTimeoutMs`.
 
 ```ts
 interface PortholeFixed {

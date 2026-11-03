@@ -1,5 +1,5 @@
 import { Profiler, type ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
@@ -387,6 +387,24 @@ describe("Porthole", () => {
     const html = renderToString(base(fixed([item("offline", "error", { label: "Can't reach the service" })])));
     expect(html).toContain('data-porthole-state="error"');
     expect(html).toContain("Can&#x27;t reach the service");
+  });
+
+  it("renders on the server as of its last beat, hydrates later without a mismatch, then judges against the clock", async () => {
+    vi.useFakeTimers({ now: START, toFake: ["setTimeout", "clearTimeout", "Date"] });
+    const source = fixed([], { chats: area(START - SECOND) }, START - SECOND);
+    const html = renderToString(base(source));
+    expect(html).toContain('data-porthole-state="rest-fresh"');
+    // The page is read a minute later, from a cache, long after the beat timed out.
+    vi.setSystemTime(START + MINUTE);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const onRecoverableError = vi.fn();
+    await act(async () => void roots.push(hydrateRoot(host, base(source), { onRecoverableError })));
+    expect(onRecoverableError).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-ouro="porthole"]')!.getAttribute("data-porthole-state")).toBe("unknown");
+    expect(host.querySelector('[data-ouro-part="spot"] span.block')!.textContent).toBe("Status unknown");
   });
 
   it("stops listening and looking when it leaves the page", async () => {
