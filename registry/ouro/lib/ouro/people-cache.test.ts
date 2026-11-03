@@ -182,6 +182,15 @@ describe("createPeopleCache", () => {
     expect(await pausesOf(cache, options.calls, Array(4).fill(down))).toEqual([1, 2, 3, 3].map((m) => m * MINUTE));
   });
 
+  it("pauses no longer than longestPause, even when pauseFor or a failure's retryAfterMs asks for longer", async () => {
+    const down = new Error("down");
+    const long = held();
+    expect(await pausesOf(createPeopleCache({ read: long.read, pauseFor: 20 * MINUTE, longestPause: 10 * MINUTE }), long.calls, [down, down])).toEqual([10 * MINUTE, 10 * MINUTE]);
+    const throttled = held();
+    const failures = [Infinity, 365 * DAY].map((retryAfterMs) => Object.assign(new Error("throttled"), { retryAfterMs }));
+    expect(await pausesOf(createPeopleCache({ read: throttled.read }), throttled.calls, failures)).toEqual([10 * MINUTE, 10 * MINUTE]);
+  });
+
   it("starts the pause from pauseFor again after a read that succeeds, even one that finds nothing", async () => {
     const { read, calls } = held();
     const cache = createPeopleCache({ read, pauseFor: MINUTE });

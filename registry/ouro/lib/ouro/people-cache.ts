@@ -45,7 +45,8 @@ interface PeopleCacheOptions<T> {
   /**
    * Reads a batch of people from the service: a result for each id it has an answer for, or a
    * rejection when the service failed. An id the result leaves out is `"missing"`. A rejection's
-   * `retryAfterMs`, if it has one, lengthens the pause.
+   * `retryAfterMs`, if it has one, lengthens the pause, up to `longestPause`.
+   * @claim "lengthens the pause, up" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > pauses no longer than longestPause, even when pauseFor or a failure's retryAfterMs asks for longer)
    * @claim "Reads a batch of people" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > keeps a person the service had nothing for, or left out of its answer, as missing until missingFor runs out)
    */
   read: (ids: string[]) => Promise<Record<string, PersonRead<T>>>;
@@ -66,7 +67,12 @@ interface PeopleCacheOptions<T> {
    * @claim "a read that succeeds, even" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > starts the pause from pauseFor again after a read that succeeds, even one that finds nothing)
    */
   pauseFor?: number | undefined;
-  /** The longest pause after the service fails, in ms. @default 600_000 */
+  /**
+   * The longest pause after the service fails, in ms, even when `pauseFor` or a failure's
+   * `retryAfterMs` asks for longer.
+   * @default 600_000
+   * @claim "The longest pause after" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > pauses no longer than longestPause, even when pauseFor or a failure's retryAfterMs asks for longer)
+   */
   longestPause?: number | undefined;
 }
 
@@ -229,10 +235,10 @@ function createPeopleCache<T>(options: PeopleCacheOptions<T>): PeopleCache<T> {
     else {
       // One step per round: a read that fails while a pause is in force started before it, in the round that set it.
       if (at >= pausedUntil) {
-        pause = pause === 0 ? pauseFor : Math.min(longestPause, pause * 2);
+        pause = Math.min(longestPause, pause === 0 ? pauseFor : pause * 2);
         pausedUntil = at + pause;
       }
-      pausedUntil = Math.max(pausedUntil, at + retryAfter);
+      pausedUntil = Math.max(pausedUntil, at + Math.min(longestPause, retryAfter));
     }
     for (const id of ids) {
       if (Object.hasOwn(changes, id)) settle(id, changes[id]!);
