@@ -307,6 +307,9 @@ describe("Menu items", () => {
     await render(<Menu trigger={<Button>Call</Button>} items={items} />);
     await userEvent.click(page.getByRole("button", { name: "Call" }));
     await expect.element(page.getByRole("menuitem", { name: "Mute" })).toHaveAttribute("data-ax-action", "mute");
+    // Its part attributes stay as they were.
+    await expect.element(page.getByRole("menuitem", { name: "Mute" })).toHaveAttribute("data-ouro-control", "menu");
+    await expect.element(page.getByRole("menuitem", { name: "Mute" })).toHaveAttribute("data-ouro-part", "item");
     await expect.element(page.getByRole("menuitemcheckbox", { name: "Captions" })).toHaveAttribute("data-ax-action", "toggle-captions");
     await expect.element(page.getByRole("menuitem", { name: "Leave" })).not.toHaveAttribute("data-ax-action");
     await expect.element(page.getByRole("menuitemcheckbox", { name: "Noise suppression" })).not.toHaveAttribute("data-ax-action");
