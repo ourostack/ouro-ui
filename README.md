@@ -305,6 +305,7 @@ Components:
 `page-header`,
 `pagination`,
 `popover`,
+`porthole`,
 `progress`,
 `radio-group`,
 `reaction-bar`,
@@ -535,6 +536,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **InstallPrompt** — A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. [Docs](docs/InstallPrompt.md)
 - **Moment** — A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished. [Docs](docs/Moment.md)
 - **MomentProvider** — Sets `quiet` for every `Moment` inside it, so an app can make its moments compact everywhere, for a dense layout or for people who asked for less. [Docs](docs/MomentProvider.md)
+- **Porthole** — The status spot: a small round window that always says one thing about how current the app's data is, and opens into the facts behind it. [Docs](docs/Porthole.md)
 - **portholeStatus** — The agent read of a view: the stable, versioned JSON an agent reads through the status spot's `status` read and a CLI status command prints, so a person, the window and an agent see one truth. [Docs](docs/portholeStatus.md)
 - **portholeView** — Decides what the status spot shows, as a pure function of the service's snapshot, its last heartbeat and this clock, so a window, a CLI and a test reach the same answer. [Docs](docs/portholeView.md)
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)

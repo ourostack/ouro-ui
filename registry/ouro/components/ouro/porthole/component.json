@@ -1,0 +1,11 @@
+{
+  "order": 2660,
+  "components": ["porthole"],
+  "controls": {
+    "porthole": [
+      {"part": "spot", "role": "button", "portal": false},
+      {"part": "act", "role": "button", "portal": false},
+      {"part": "dismiss", "role": "button", "portal": false}
+    ]
+  }
+}
