@@ -55,6 +55,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://developer.apple.com/videos/play/wwdc2026/295": {
+    "status": 200,
+    "checked": "2026-11-03"
+  },
   "https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent": {
     "status": 200,
     "checked": "2026-10-30"
@@ -78,6 +82,10 @@
   "https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site": {
     "status": 200,
     "checked": "2026-10-30"
+  },
+  "https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository": {
+    "status": 200,
+    "checked": "2026-11-03"
   },
   "https://docs.github.com/en/rest/actions/workflow-runs#approve-a-workflow-run-for-a-fork-pull-request": {
     "status": 200,
@@ -370,5 +378,9 @@
   "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html": {
     "status": 200,
     "checked": "2026-10-30"
+  },
+  "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/": {
+    "status": 200,
+    "checked": "2026-11-03"
   }
 }

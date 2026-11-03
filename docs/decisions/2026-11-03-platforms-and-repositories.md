@@ -1,0 +1,125 @@
+# Decision: Ouro UI's platforms and repositories
+
+Ouro HX and Ouro AX gain Apple as a second platform. Our iOS apps share no code, several of them built the same colour, motion and haptics helpers separately, and nothing ties their tokens to the web's.[^twice] This record amends the [record of 2026-11-02](2026-11-02-cli-kit-and-platform-targets.md), which kept the platform names and left open where the Apple source lives.[^open] It decides that, what Ouro AX means on Apple, how one token source serves both platforms, and how the move happens without interrupting anyone working in this repository. The maintainer approved it on 2026-11-03.[^approved]
+
+## The decision
+
+1. **Split Ouro UI into three repositories,** one for the core and one per platform.[^split]
+   - `ouro-ui-core` holds what is true on every platform: the tokens and their generators, Ouro HX's design language and component specs, Ouro AX's standard and claims, the protocol X-ray for CLI, HTTP and MCP, the decision records, the brand, and the `ui.ouro.bot` site.[^core]
+   - `ouro-ui-web` is this repository, renamed later: the React components, the AX TypeScript kit, Storybook and their release.
+   - `ouro-ui-apple` is a Swift package with the products `OuroHX`, `OuroHXTesting`, `OuroAX` and `OuroAXTesting`, and the App Intents X-ray.
+2. **Never reuse the bare name `ouro-ui`** for a repository. Name a later platform's repository `ouro-ui-<platform>`, and accept it by a proposal pull request.
+3. **Check App Intents in Ouro AX for Apple,** as new surface types, from outside the app, through Apple's AppIntentsTesting.
+4. **Keep one token source in core,** in the DTCG format, generating today's CSS byte for byte, and Swift.[^dtcg] Pin a core tag in each platform and record it there.[^provenance]
+5. **Move without interrupting anyone,** by the rules below.[^interrupt]
+
+## What changes in the earlier record
+
+- **Replaced:** "Where the Apple source lives. Decide it when the first Apple component is built." It lives in `ouro-ui-apple`, and the claims it meets live in `ouro-ui-core`.
+- **Kept:** the family names, Ouro HX and Ouro AX; "Ouro HX for web" and "Ouro HX for Apple", likewise for AX; `web` and `apple` in code, paths and tags; the library `OuroHX`, whose components take the web components' names (`Button`, `Dialog`); one page per component, with a Web and an Apple tab.[^names]
+- **Added:** a platform's name appears only after "for", less prominent than the product name. Apple's guidelines let a third party use its marks only in a referential phrase such as "for" and never as part of a product name, so "Ouro HX for Apple" works where "Apple Native" would not.[^trademark]
+
+## Why separate repositories
+
+A Swift package is fetched by Git URL with its manifest at the repository root, and this repository's history is 263 MB for every app to clone.[^gitsize] The two platforms also need different runners (macOS and Xcode against Node and browsers), and GitHub grants write access per repository, so a contributor to one platform need not hold another's release.[^reasons] Microsoft's Fluent splits the same way (`fluentui`, `fluentui-apple`, `fluentui-android`).[^fluent]
+
+Core is platform-neutral in what it says, not language-free: its tooling is TypeScript. A checker that observes over a protocol lives in core, and one that needs a platform's SDK lives with that platform, so the App Intents X-ray lives in `ouro-ui-apple`, because AppIntentsTesting runs on a Mac.[^xray-home] Platforms meet one standard, so the Apple X-ray emits the same report shape as `ax-xray`, pinned to a claim-set version and the app's commit.
+
+The name `ouro-ui` stays free because GitHub redirects a renamed repository's old address only until a repository takes that name.[^redirect] Existing clones, open pull requests and `shadcn add ourostack/ouro-ui/<item>#<tag>` rely on that redirect.[^redirect]
+
+A new platform starts as a page, not an empty repository. The site gets a placeholder page per platform saying what HX and AX would mean there; a person who has built something opens a pull request adding `docs/platforms/<platform>.md`, and if the maintainer likes it, we create `ouro-ui-<platform>`, import the work with its history, and make them a contributor.[^placeholders]
+
+## Ouro AX for Apple
+
+Apple's only door for agents in the 27 releases is App Intents: entities, schemas, view annotations and Spotlight indexing, with no MCP and no third-party agent API.[^door] Ouro AX takes those as three surface types, beside CLI, HTTP and MCP:[^surfaces]
+
+| Surface | What it is |
+| --- | --- |
+| `app-intent` | an action an app declares for Siri, Shortcuts and Spotlight |
+| `app-entity` | a thing an app exposes for those to find and act on, indexed for personal context |
+| `view-annotation` | the entities a view says are on screen, for onscreen awareness |
+
+AppIntentsTesting runs an app's intents, queries and annotations by bundle ID without importing the app's code, so it is a black-box X-ray in the sense Ouro AX already uses.[^ait] App Intents claims start as `should` under the existing admission rule, and become `must` only through a reproduced agent failure or a stated hazard with a check.[^admission] AppIntentsTesting does not drive Siri itself and does not test schemas, so an Apple X-ray report says it does not prove Siri, and Siri is checked by hand on a device.[^not-siri]
+
+## One token source
+
+Core holds the tokens as DTCG 2025.10 JSON, the format's first stable version.[^dtcg] Its generators publish each platform's output in a core release:[^outputs]
+
+- `dist/web/ouro-theme.css` and `dist/web/ouro-base.css`, byte-identical to this repository's `registry/ouro/theme/ouro-theme.css` and `ouro-base.css` at the pinned web tag. The check compares bytes, not parsed values, because one changed byte changes every web app's appearance.[^css]
+- `dist/apple/OuroTokens.swift`, the same tokens as SwiftUI values.
+
+A platform repository pins a core tag and commits `core-provenance.json`, the tag and the SHA-256 of each file it took, and its CI checks it.[^provenance] A token change is then a core release plus a bump pull request in each platform.[^cost]
+
+## Moving without interrupting anyone
+
+Others are working in this repository, and the move must not stop them.[^interrupt]
+
+- **Copy first, remove later.** Start core as a copy, with history, of the files that move. Give the copies left here a one-line header pointing to core, and keep them until every open pull request that touches them has merged or closed; remove them in a later pull request.[^copy-first]
+- **Verify the redirect.** Before and after the rename, check `git fetch` and `git push` on an old remote, `shadcn add ourostack/ouro-ui/<item>#<tag>`, release asset URLs, and every CI badge and workflow that names the repository.[^copy-first] Look for workflows that use an action from this repository too: GitHub redirects clones, fetches and pushes after a rename, but not calls to an action.[^redirect]
+- **Write it down where each reader looks.** List each moved file's old path and new home in a `MIGRATION.md` here, say where things live now in each repository's AGENTS.md and README, and say it once in the next web release notes.[^guidance]
+- **Move no URL.** Keep the addresses of `ui.ouro.bot`, its pages and `/r/{name}.json`. Move the site to core only once core's build serves every `/r/*.json` byte for byte, checked by a diff before the Pages domain moves.[^no-url]
+- **Move between releases.** Check `gh pr list` and the merge queue first, never move during a release run, and never rebase or force-push anyone's branch.[^timing]
+- **Keep it reversible.** A repository rename reverses while the old name is free, and the Pages domain moves back in minutes.[^rollback]
+
+## Prior art
+
+Each piece has neighbours, and none found combines a standard whose `must` claims an agent evaluation admits with one system for both people's and agents' interfaces.[^none] Searches were thin for repositories from the second half of 2026, so absence here means not found.[^thin]
+
+| Find | What we take | Call |
+| --- | --- | --- |
+| [Apple AppIntentsTesting](https://developer.apple.com/videos/play/wwdc2026/295) | the engine of the App Intents X-ray | adopt |
+| [DTCG format](https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/) with [Terrazzo](https://terrazzo.app/docs/integrations/swift/) or [Style Dictionary](https://styledictionary.com/info/dtcg/) | the token source and generator, plus our own SwiftUI formatter | adopt |
+| [MCP conformance suite](https://github.com/modelcontextprotocol/conformance) | protocol compliance under `ax-mcp`, outside AX's own claims | adopt |
+| [Storybook MCP](https://storybook.js.org/docs/ai/mcp/overview) | on our Storybook, measured by our own evaluation before we call it helpful | adopt |
+| [SwiftMCP](https://github.com/Cocoanetics/SwiftMCP) | its `@MCPAppIntentTool` bridge, for an evaluation bridge and a Mac MCP door | borrow |
+| [incur](https://github.com/wevm/incur) | a CLI framework for agents and people; compare the kit with it, and its `--llms` manifest | borrow |
+| [Netlify AXIS](https://github.com/netlify/axis) and [Microsoft DevAX](https://microsoft.github.io/agent-experience/) | evaluation method, and the lift and drag vocabulary for readouts | borrow |
+| [Backpack](https://github.com/Skyscanner/backpack-foundations) | token layering: a base layer, then a layer per platform | borrow |
+| [Open Design System Bench](https://github.com/christophhdesign/open-design-system-bench) | run once against HX for an outside score; its context-level matrix | borrow |
+| [app_intents_codegen](https://pub.dev/packages/app_intents_codegen) | one definition for App Intents and Android's AppFunctions | watch |
+| [Figma Code Connect](https://developers.figma.com/docs/code-connect/swiftui) | SwiftUI mapping into Figma's MCP; needs Figma files we don't keep | watch |
+| [fluentui-apple](https://github.com/microsoft/fluentui-apple) and community SwiftUI kits | repository precedent only; we build our own thin SwiftUI layer | ignore |
+
+The full pass, with its sources, is in the [evidence folder](2026-11-03-platforms-and-repositories/evidence/03-prior-art.md). Looking around first is now a standing habit for this repository: give every decision record a section like this one (pull request #553 adds the rule to AGENTS.md).[^meerkat]
+
+## What comes next
+
+- **Core bootstrap:** `ouro-ui-core` with the tokens, the generators, the byte-parity check and its first tag.
+- **Apple bootstrap:** `ouro-ui-apple` with the package, macOS CI and DocC, then tokens, motion, haptics, fold posture and colour helpers extracted from Gatefold and Spoonjoy, which built them separately.[^twice]
+- **Ouro AX for Apple:** the App Intents claims in core, `OuroAX` and the X-ray in `ouro-ui-apple`, run against Ouro MD, Spoonjoy and Gatefold, with an amendment listing the claims admitted.
+- **The split:** copy into core, serve the site from it with the same URLs, then rename this repository to `ouro-ui-web`.
+- **The site:** Web and Apple tabs, an AX for Apple section, and placeholder pages for Android, Windows and any other platform.
+- **Components and adopters:** `Button`, `EmptyState`, `Banner`, `Sheet` and `Toast` for Apple, then our apps adopt them through their own reviewers.
+
+[^twice]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/01-native-inventory.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/01-native-inventory.md, /^On the native side there is no shared design system\./) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/01-native-inventory.md, /^\*\*Primitives built twice or more:\*\*$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/01-native-inventory.md, /^- \*\*Shared code:\*\* the three iOS apps share nothing\.$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/01-native-inventory.md, /^- \*\*Tokens:\*\* nothing connects native tokens to HX tokens\.$/)
+[^open]: docs/decisions/2026-11-02-cli-kit-and-platform-targets.md verify:fileLine(docs/decisions/2026-11-02-cli-kit-and-platform-targets.md, /\*\*Where the Apple source lives\.\*\* Decide it when the first Apple component is built/)
+[^approved]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md, /^- The maintainer approved this record's content on 2026-11-03/)
+[^names]: docs/decisions/2026-11-02-cli-kit-and-platform-targets.md verify:fileLine(docs/decisions/2026-11-02-cli-kit-and-platform-targets.md, /A target is "Ouro HX for web" or "Ouro HX for Apple"; in code, paths and tags, `web` and `apple`\./) verify:fileLine(docs/decisions/2026-11-02-cli-kit-and-platform-targets.md, /Name its library `OuroHX` and give its components the web components' names/) verify:fileLine(docs/decisions/2026-11-02-cli-kit-and-platform-targets.md, /show a Web and an Apple tab on the page/)
+[^trademark]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /may not use an Apple trademark "as or as part of a \.\.\. product name"/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /only in a referential phrase such as "for" or "runs on"/)
+[^gitsize]: evidence:docs/decisions/2026-11-02-cli-kit-and-platform-targets/evidence/repository-size.md verify:fileLine(docs/decisions/2026-11-02-cli-kit-and-platform-targets/evidence/repository-size.md, /^263M\t\.git$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /packages are fetched by git URL, with `Package\.swift` at the repository root/)
+[^reasons]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^2\. \*\*Toolchains and CI:\*\* Xcode and macOS runners on one side, Node and browsers on the other\./) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^3\. \*\*Contributors:\*\* GitHub write access is per repository\./)
+[^fluent]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^4\. \*\*Precedent:\*\* Fluent \(fluentui, fluentui-apple, fluentui-android\)/)
+[^xray-home]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^Core is platform-neutral in content, not language-free: its tooling is TypeScript\.$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /the App Intents X-ray needs AppIntentsTesting on a Mac, so it lives in apple/)
+[^redirect]: https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository verify:urlOk(https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /GitHub keeps the old name redirecting only while no repository takes that name\./)
+[^placeholders]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^- \*\*No empty repositories ahead of demand\.\*\*/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md, /if i like their work i'll make em contributors/)
+[^door]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md, /^Apple's agent path in the 27 releases is App Intents and nothing else/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md, /^- There is no MCP, no third-party agent API/)
+[^ait]: https://developer.apple.com/videos/play/wwdc2026/295 verify:urlOk(https://developer.apple.com/videos/play/wwdc2026/295) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md, /It works by bundle ID with no app imports, through `IntentDefinitions`, `makeIntent\(\)\.run\(\)`, `spotlightQuery\(_:\)` and `viewAnnotations\(\)`/) verify:fileLine(docs/decisions/2026-10-30-ouro-ax.md, /It calls an interface the way an agent would, without importing its code/)
+[^admission]: test:registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard verify:testExists(registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard)
+[^not-siri]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md, /It does not drive Siri itself and does not test schemas\./) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/02-apple-agent-platform.md, /then Siri by hand/)
+[^dtcg]: https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/ verify:urlOk(https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/)
+[^css]: registry/ouro/theme/ouro-theme.css; registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-theme.css, /--primary: #0066cc;/) verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-press-scale: 0\.97;/)
+[^interrupt]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md, /others are also working on these libs and should not be interrupted/)
+[^none]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/03-prior-art.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/03-prior-art.md, /\*\*Every part of Ouro UI has a neighbour, but nobody has put the parts together\.\*\*/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/03-prior-art.md, /^\| HX \+ AX under one system \| none found \| none \| Genuinely new\. \|$/)
+[^thin]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/03-prior-art.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/03-prior-art.md, /Absence here means "not found in about 25 searches", not "doesn't exist"\./)
+[^meerkat]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md, /make it a standing rule for all the ouro ui stuff!! not just for me/)
+[^split]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md; evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^## Revision 2026-11-03: core, web and apple as three repositories$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/maintainer-rulings.md, /shouldn't we have ouro ui core/)
+[^core]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^\*\*What core is:\*\* everything true on every platform, plus the hub\.$/)
+[^provenance]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md, /^3\. \*\*Provenance:\*\* each platform repository has `core-provenance\.json`/)
+[^surfaces]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md, /^4\. \*\*AX surface type `app-intent`\*\* in core's claims standard, with sibling surfaces `app-entity` and `view-annotation`\./)
+[^outputs]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md, /^2\. \*\*Generated outputs, in each core release:\*\*$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/program-plan.md, /\*\*byte-identical\*\* to web's current files at the pinned web tag/)
+[^cost]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^\*\*The cost:\*\* a token change becomes a core release plus an automated bump PR in each platform repository\.$/)
+[^copy-first]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^1\. \*\*Copy first, remove later\.\*\*/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /they stay until every open PR that touches them has merged or closed/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^   - Check before renaming: `git fetch` and `git push` on a renamed remote/)
+[^guidance]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^   - A `MIGRATION\.md` in web lists old path → new home for every moved file\.$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^   - A line in the next web release notes\.$/)
+[^no-url]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^5\. \*\*No URL moves:\*\*/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /checked by a diff of every `\/r\/\*\.json` before switching the Pages domain/)
+[^timing]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^   - Do it between releases: never during a release run or while the merge queue is busy\.$/) verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^   - Don't rebase or force-push anyone's branch\.$/)
+[^rollback]: evidence:docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md verify:fileLine(docs/decisions/2026-11-03-platforms-and-repositories/evidence/naming-and-repos.md, /^6\. \*\*Rollback:\*\* a repository rename can be reversed while the old name is free\. The Pages domain can move back in minutes\.$/)
