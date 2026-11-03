@@ -4,17 +4,18 @@ import type { PortholeState } from "@/registry/ouro/lib/ouro/porthole-view";
 const PERSON_ONLY = "You can't change what the status spot shows; only the person opens or dismisses it.";
 
 /**
- * Porthole's agent side: one read, `status`, the JSON `portholeStatus` gives, and the person's actions (open, close,
- * dismiss and the shown item's own action), each person-only. An agent reads the status spot; it never adds, removes
- * or changes what it shows. Bind the read to the app's status command with `bindAx`, and name the words an agent might
- * try for each action in `refuseAs`.
+ * Porthole's agent side: one read, `status`, the JSON `portholeStatus` gives, and Porthole's own actions (expand,
+ * collapse and dismiss), each person-only. An agent reads the status spot; it never adds, removes or changes what it
+ * shows. The shown item's action belongs to the service, not to Porthole: its button carries the item action's id
+ * (`data-ax-action="restart"`), so the app declares that action, person-only, in its own agent side. Bind the read to
+ * the app's status command with `bindAx`, and name in `refuseAs` the words an agent might try for the actions.
  *
  * @example
  * const ui = bindAx(portholeAx, {
  *   reads: { status: "app status --json" },
- *   refuseAs: { expand: "app status open", collapse: "app status close", dismiss: "app status dismiss", act: "app status act" },
+ *   refuseAs: { expand: "app status open", collapse: "app status close", dismiss: "app status dismiss" },
  * });
- * @claim "each person-only" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole agent side > declares one status read and only person-only actions, each rendered on its control)
+ * @claim "collapse and dismiss), each person-only" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole agent side > declares one status read and only person-only actions, each rendered on its control)
  * @claim "it never adds, removes or" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole agent side > declares one status read and only person-only actions, each rendered on its control)
  */
 export const portholeAx = defineComponentAx({
@@ -31,12 +32,6 @@ export const portholeAx = defineComponentAx({
     { id: "expand", summary: "Open the status spot's detail lines.", effect: "private", personOnly: PERSON_ONLY },
     { id: "collapse", summary: "Close the status spot's detail lines.", effect: "private", personOnly: PERSON_ONLY },
     { id: "dismiss", summary: "Dismiss news the person has seen, such as Up to date.", effect: "private", personOnly: PERSON_ONLY },
-    {
-      id: "act",
-      summary: "Take the action the shown item offers, such as Restart to update.",
-      effect: "private",
-      personOnly: "You can't take the status spot's action for the person; only they decide.",
-    },
   ],
 });
 

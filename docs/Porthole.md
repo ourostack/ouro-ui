@@ -2,7 +2,7 @@
 
 # Porthole
 
-The status spot: a small round window that always says one thing about how current the app's data is, and opens into the facts behind it. It shows one item at a time, an action over an error over working over rest; at rest it says "Updated just now" only while every area was verified within `freshWithinMs`, otherwise the real age, and "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "just now", a beat never renders it, and it waits while the page is hidden. It opens on hover or press into the detail lines, never takes focus on its own, and speaks only when it changes into an action or an error, at most once every ten seconds. Its state is on `data-porthole-state` for a fault-injection check.
+The status spot: a small round window with one line about how current the app's data is, which opens into the facts behind it. It shows one item at a time, an action over an error over working over rest; at rest it says "Updated just now" only while every area was verified within `freshWithinMs`, otherwise the real age, and "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "just now", a beat never renders it, and it waits while the page is hidden. It opens into the detail lines while a mouse is over it, and a press keeps it open until a second press or Escape. It never takes focus on its own, and speaks only when it changes into an action or an error, at most once every ten seconds. Its state is on `data-porthole-state` for a fault-injection check.
 
 ```tsx
 import { Porthole } from "@/registry/ouro/components/ouro/porthole/porthole";
@@ -26,7 +26,7 @@ Type: `PortholeProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, placement (`ms-auto`). Appearance classes warn in development. |
 | `defaultOpen` | `boolean` | `false` | Starts open, showing the detail lines, as on a page about the app's status. |
-| `freshWithinMs` | `number` | `60_000` | "Updated just now" only while every area was verified within this many ms. |
+| `freshWithinMs` | `number` | `60_000` | How recently, in ms, the areas must have been verified for "Updated just now". |
 | `heartbeatTimeoutMs` | `number` | `5_000` | "Status unknown" once the last beat is older than this many ms. |
 | `label` (required) | `string` |  | The status spot's name for screen readers, such as `"Status"`. |
 | `labels` | `PortholeWords` |  | Words for other languages. |
@@ -45,7 +45,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `items`: Not a prop. Porthole reads items from `source`: `getSnapshot().items`.
-- `status`: Not a prop. Porthole decides what to say from `source`, and never takes it as a prop.
+- `status`: Not a prop. Porthole decides the status from `source`.
 
 ## `className` is for layout only
 

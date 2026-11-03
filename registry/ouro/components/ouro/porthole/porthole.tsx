@@ -46,7 +46,7 @@ export interface PortholeOwnProps {
   source: PortholeSource | PortholeFixed;
   /** The status spot's name for screen readers, such as `"Status"`. */
   label: string;
-  /** "Updated just now" only while every area was verified within this many ms. @default 60_000 */
+  /** How recently, in ms, the areas must have been verified for "Updated just now". @default 60_000 */
   freshWithinMs?: number | undefined;
   /** "Status unknown" once the last beat is older than this many ms. @default 5_000 */
   heartbeatTimeoutMs?: number | undefined;
@@ -68,9 +68,9 @@ export interface PortholeOwnProps {
   ref?: Ref<HTMLDivElement> | undefined;
 
   /** Not a prop. Porthole reads items from `source`: `getSnapshot().items`. */
-  items?: { "Pass items in source.getSnapshot()": never };
-  /** Not a prop. Porthole decides what to say from `source`, and never takes it as a prop. */
-  status?: { "Porthole decides the status from source": never };
+  items?: { 'Pass items in source.getSnapshot()': never };
+  /** Not a prop. Porthole decides the status from `source`. */
+  status?: { 'Porthole decides the status from source': never };
 }
 
 /** Props for {@link Porthole}: its own props and the `<div>` attributes it passes through. */
@@ -78,9 +78,9 @@ export type PortholeProps = Omit<HTMLAttributes<HTMLDivElement>, keyof PortholeO
 
 const quiet = () => () => {};
 const live = (source: PortholeSource | PortholeFixed): source is PortholeSource => typeof (source as PortholeSource).subscribe === "function";
-/** What the person sees, so a deadline that changes none of it renders nothing. */
+// What the person sees: a deadline renders only when this changes.
 const seen = (view: PortholeView) => JSON.stringify([view.state, view.text, view.detail]);
-/** When to look again: the view's next change, and each second while a live service's heartbeat is stopped, for the beat that ends it. */
+// When to look again: the view's next change, or a second on while a live service's heartbeat is stopped, for the beat that ends it.
 const due = (view: PortholeView, polls: boolean) => (view.alive || !polls ? view.nextChangeAt : Math.min(view.nextChangeAt ?? Infinity, view.asOf + 1_000));
 
 function Light({ view }: { view: PortholeView }): JSX.Element {
@@ -89,29 +89,30 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
     if (Number.isFinite(progress)) {
       const filled = Math.min(1, Math.max(0, progress!));
       return (
-        <svg aria-hidden="true" viewBox="0 0 16 16" data-ouro-part="progress" className="size-4 shrink-0 -rotate-90 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]">
+        <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 -rotate-90 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]">
           <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
           <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" pathLength="100" strokeDasharray={`${filled * 100} 100`} />
         </svg>
       );
     }
     return (
-      <svg aria-hidden="true" viewBox="0 0 16 16" data-ouro-part="progress" className="size-4 shrink-0 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] motion-safe:animate-[ouro-spin_1s_linear_infinite]">
+      <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] motion-safe:animate-[ouro-spin_1s_linear_infinite]">
         <path d="M14 8a6 6 0 1 1-4.15-5.7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     );
   }
-  return <span aria-hidden="true" data-ouro-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLight[view.state])} />;
+  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLight[view.state])} />;
 }
 
 /**
- * The status spot: a small round window that always says one thing about how current the app's data is, and opens
- * into the facts behind it. It shows one item at a time, an action over an error over working over rest; at rest it
+ * The status spot: a small round window with one line about how current the app's data is, which opens into the
+ * facts behind it. It shows one item at a time, an action over an error over working over rest; at rest it
  * says "Updated just now" only while every area was verified within `freshWithinMs`, otherwise the real age, and
  * "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again
  * only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "just now", a beat
- * never renders it, and it waits while the page is hidden. It opens on hover or press into the detail lines, never
- * takes focus on its own, and speaks only when it changes into an action or an error, at most once every ten seconds.
+ * never renders it, and it waits while the page is hidden. It opens into the detail lines while a mouse is over it, and
+ * a press keeps it open until a second press or Escape. It never takes focus on its own, and speaks only when it
+ * changes into an action or an error, at most once every ten seconds.
  * Its state is on `data-porthole-state` for a fault-injection check.
  *
  * Use `SyncStatus` instead for where one document's own changes are, and `toast()` to confirm a single action.
@@ -125,6 +126,7 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
  * @claim "so a stuck service can never" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > says Status unknown once at the heartbeat's timeout when the beats stop, and recovers on the next beat)
  * @claim "a beat never renders it" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > renders nothing for 60 beats over 60 s at rest, then once when fresh runs out)
  * @claim "it waits while the page" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > waits while the page is hidden, and looks again as it shows)
+ * @claim "a press keeps it open until" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > opens while a mouse is over it and closes as it leaves, and a touch does not open it)
  * @claim "never takes focus on its own" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > never takes focus when it changes, and gives it back to the spot when a pressed button leaves)
  * @claim "speaks only when it changes into" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > speaks when it changes into an action or an error, at most once every ten seconds)
  */
@@ -161,6 +163,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const lastBeatAt = useCallback(() => (live(source) ? source.lastBeatAt() : source.lastBeatAt), [source]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const options = { freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels };
+  // eslint-disable-next-line react-hooks/purity -- each render judges against the real clock; the one timeout renders again when that judgement would change
   const view = portholeView(snapshot, lastBeatAt(), Date.now(), options);
   const shown = seen(view);
 
@@ -225,14 +228,15 @@ export function Porthole(props: PortholeProps): JSX.Element {
     return () => clearTimeout(timer);
   }, [urgent]);
 
-  // Open while pressed open, or while a mouse is over it.
+  // Open while pressed open, or while a mouse is over it. A mouse is always over the spot when it presses, so a press
+  // pins the open spot (it stays open as the mouse leaves) and only a press on a pinned spot closes it.
   const [pressed, setPressed] = useState(defaultOpen === true);
   const [hovered, setHovered] = useState(false);
   const open = pressed || hovered;
   const panelId = useId();
   const toggle = () => {
-    setHovered(false);
-    setPressed(!open);
+    if (pressed) setHovered(false);
+    setPressed(!pressed);
   };
   const close = (event: KeyboardEvent<HTMLDivElement>) => {
     onKeyDown?.(event);
@@ -291,6 +295,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       {...rest}
       data-ouro="porthole"
       data-porthole-state={view.state}
+      data-open={open ? "" : undefined}
       role="group"
       aria-label={label}
       onKeyDown={close}
@@ -300,7 +305,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
     >
       <div
         ref={pill}
-        data-ouro-part="pill"
+        data-porthole-part="pill"
         className="inline-flex h-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-12"
       >
         <div ref={content} className="inline-flex h-full w-max shrink-0 items-center">
@@ -309,7 +314,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
             type="button"
             data-ouro-control="porthole"
             data-ouro-part="spot"
-            data-ax-action={open ? "collapse" : "expand"}
+            data-ax-action={pressed ? "collapse" : "expand"}
             aria-expanded={open}
             aria-controls={open ? panelId : undefined}
             onClick={toggle}
@@ -336,7 +341,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
               type="button"
               data-ouro-control="porthole"
               data-ouro-part="act"
-              data-ax-action="act"
+              data-ax-action={action.id}
               onClick={() => onAction!(item!, action.id)}
               className="press me-1 inline-flex h-6 shrink-0 cursor-pointer items-center rounded-full border-0 bg-primary px-2.5 font-[inherit] text-xs font-medium text-primary-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-coarse:h-11 pointer-coarse:min-w-11"
             >
@@ -369,7 +374,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
         >
           <ul className="m-0 grid list-none gap-1 p-0">
             {view.detail.map((text, index) => (
-              <li key={index} className="m-0">
+              <li key={index} className="m-0 text-pretty">
                 {text}
               </li>
             ))}

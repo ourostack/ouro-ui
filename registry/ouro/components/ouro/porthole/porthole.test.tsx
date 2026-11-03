@@ -9,6 +9,7 @@ import { PORTHOLE_ANNOUNCE_GAP_MS, portholeAx } from "@/registry/ouro/components
 import type { PortholeArea, PortholeItem, PortholeSnapshot, PortholeSource } from "@/registry/ouro/lib/ouro/porthole-view";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
 const SECOND = 1_000;
 const MINUTE = 60 * SECOND;
@@ -141,19 +142,19 @@ describe("Porthole", () => {
 
   it("shows a working item's progress as a ring, and turns while the amount is unknown", async () => {
     const view = await render(base(fixed([item("sync", "working", { progress: 0.4 })])));
-    const ring = view.host.querySelector('[data-ouro-part="progress"]')!;
+    const ring = view.host.querySelector('[data-porthole-part="progress"]')!;
     expect(ring.querySelectorAll("circle")[1]!.getAttribute("stroke-dasharray")).toBe("40 100");
     await view.rerender(base(fixed([item("sync", "working", { progress: 3 })])));
-    expect(view.host.querySelectorAll('[data-ouro-part="progress"] circle')[1]!.getAttribute("stroke-dasharray")).toBe("100 100");
+    expect(view.host.querySelectorAll('[data-porthole-part="progress"] circle')[1]!.getAttribute("stroke-dasharray")).toBe("100 100");
     await view.rerender(base(fixed([item("sync", "working", { progress: -1 })])));
-    expect(view.host.querySelectorAll('[data-ouro-part="progress"] circle')[1]!.getAttribute("stroke-dasharray")).toBe("0 100");
+    expect(view.host.querySelectorAll('[data-porthole-part="progress"] circle')[1]!.getAttribute("stroke-dasharray")).toBe("0 100");
     await view.rerender(base(fixed([item("sync", "working")])));
-    const spinner = view.host.querySelector('[data-ouro-part="progress"]')!;
+    const spinner = view.host.querySelector('[data-porthole-part="progress"]')!;
     expect(spinner.querySelector("circle")).toBeNull();
     expect(spinner.getAttribute("class")).toContain("motion-safe:animate-[ouro-spin_1s_linear_infinite]");
     await view.rerender(base(fixed()));
-    expect(view.host.querySelector('[data-ouro-part="progress"]')).toBeNull();
-    expect(view.host.querySelector('[data-ouro-part="light"]')).not.toBeNull();
+    expect(view.host.querySelector('[data-porthole-part="progress"]')).toBeNull();
+    expect(view.host.querySelector('[data-porthole-part="light"]')).not.toBeNull();
   });
 
   it("opens on a press into the detail lines, closes on a second press or Escape, and keeps focus on the spot", async () => {
@@ -201,17 +202,40 @@ describe("Porthole", () => {
     expect(onPointerLeave).toHaveBeenCalled();
     await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" })));
     expect(view.panel).toBeNull();
-    // A press while a mouse holds it open closes it, as the button says.
+    // A mouse is over the spot when it presses, so the press pins it open past the mouse leaving, and a second closes it.
     await userEvent.hover(view.spot);
     await expect.poll(() => view.spot.getAttribute("aria-expanded")).toBe("true");
+    expect(view.spot.getAttribute("data-ax-action")).toBe("expand");
+    await userEvent.click(view.spot);
+    expect(view.panel).not.toBeNull();
+    expect(view.spot.getAttribute("data-ax-action")).toBe("collapse");
+    await userEvent.unhover(view.spot);
+    await act(async () => {});
+    expect(view.panel).not.toBeNull();
     await userEvent.click(view.spot);
     expect(view.panel).toBeNull();
+    expect(view.spot.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("starts open with defaultOpen", async () => {
     const view = await render(base(fixed(), { defaultOpen: true }));
     expect(view.panel).not.toBeNull();
     expect(view.spot.getAttribute("aria-expanded")).toBe("true");
+    expect(view.porthole.hasAttribute("data-open")).toBe(true);
+  });
+
+  it("fades the detail lines in and lowers them a little as it opens, and with reduced motion only fades them", async () => {
+    const view = await render(base(fixed()));
+    const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      expect(view.porthole.hasAttribute("data-open")).toBe(false);
+      await act(() => view.spot.click());
+      const opacity = token(reduced ? "--ouro-duration-fast" : "--ouro-duration-base");
+      await expectMotion(view.panel!, { stem: "porthole", state: "data-open", properties: reduced ? { opacity } : { opacity, translate: opacity }, reduced });
+      await act(() => view.spot.click());
+      expect(view.panel).toBeNull();
+    }
   });
 
   it("presses the item's action and dismisses news through the app, and never changes an item itself", async () => {
@@ -333,7 +357,7 @@ describe("Porthole", () => {
 
   it("eases its width to fit the line, and with reduced motion changes it at once", async () => {
     const view = await render(base(fixed()));
-    const pill = view.host.querySelector<HTMLElement>('[data-ouro-part="pill"]')!;
+    const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
     const content = pill.firstElementChild as HTMLElement;
     await expect.poll(() => pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
     expect(getComputedStyle(pill).transitionProperty).toBe("width");
@@ -500,21 +524,22 @@ describe("Porthole agent side", () => {
     expect(portholeAx.component).toBe("Porthole");
     expect(portholeAx.reads.map((read) => [read.id, read.consent])).toEqual([["status", "none"]]);
     expect(portholeAx.reads[0]!.fields).toEqual(["asOf", "state", "headline", "fresh", "alive", "heartbeatAt", "heartbeatAgeMs", "areas", "priority", "shown"]);
-    expect(portholeAx.actions.map((action) => action.id)).toEqual(["expand", "collapse", "dismiss", "act"]);
+    expect(portholeAx.actions.map((action) => action.id)).toEqual(["expand", "collapse", "dismiss"]);
     for (const action of portholeAx.actions) {
       expect(action.agent).toBeUndefined();
       expect(action.personOnly).toMatch(/^You can't .+; only (the person|they) .+\.$/);
       expect(action.effect).toBe("private");
     }
-    const refuseAs = { expand: "app status open", collapse: "app status close", dismiss: "app status dismiss", act: "app status act" };
+    const refuseAs = { expand: "app status open", collapse: "app status close", dismiss: "app status dismiss" };
     expect(() => bindAx(portholeAx, { reads: { status: "app status --json" }, actions: { dismiss: "app status dismiss" }, refuseAs })).toThrow(/it is the person's, so it has no twin/);
     const entries = bindAx(portholeAx, { reads: { status: "app status --json" }, refuseAs });
     expect(entries.filter((entry) => entry.kind === "action").every((entry) => entry.personOnly !== undefined && entry.twin === undefined)).toBe(true);
     const both = item("update", "action", { action: { id: "restart", label: "Restart" }, dismissable: true });
     const view = await render(base(fixed([both]), { onAction: () => {}, onDismiss: () => {} }));
-    expectAxRendered(portholeAx, view.host, { ids: ["expand", "act", "dismiss"] });
+    expectAxRendered(portholeAx, view.host, { ids: ["expand", "dismiss"] });
     expect(() => expectAxRendered(portholeAx, view.host, { ids: ["collapse"] })).toThrow();
+    expect(view.host.querySelector('[data-ouro-part="act"]')!.getAttribute("data-ax-action")).toBe("restart");
     await userEvent.click(view.spot);
-    expectAxRendered(portholeAx, view.host, { ids: ["collapse", "act", "dismiss"] });
+    expectAxRendered(portholeAx, view.host, { ids: ["collapse", "dismiss"] });
   });
 });
