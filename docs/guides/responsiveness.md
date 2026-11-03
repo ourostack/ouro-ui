@@ -65,7 +65,7 @@ The budgets live in the check's own settings, so changing a number there moves t
 3. Optimistic updates with rollback, then the cache, then prefetch, which uses it.
 4. View transitions, then background sync.
 
-The first adopters are Tandem, through its polish lane, and CIT Pages.
+The first adopters are a chat app built on Ouro UI, through its polish pass, and a team's documentation site.
 
 ## Open questions
 
