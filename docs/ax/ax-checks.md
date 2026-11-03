@@ -5,7 +5,7 @@
 A tool's checks, such as a doctor or a self-check, declared once: progress while they run, the verdict first and the results grouped for a person, the same facts as `--json` for an agent, the time taken and the exit code. A problem comes with its fix: the exact command, or the thing to do by hand.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-checks#v1.3.1
+npx shadcn@latest add ourostack/ouro-ui/ax-checks#v1.3.2
 ```
 
 It installs `lib/ouro/ax/checks.ts`, with `ax-outcome`, `ax-terminal`. Its tests are `ax-checks-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
