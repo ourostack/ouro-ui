@@ -949,6 +949,99 @@ describe("Menu context trigger", () => {
   });
 });
 
+describe("Menu anchor", () => {
+  /** A list's one menu, opened by the app at a row: here, a button that opens it at a point or beside a row. */
+  function Shared({ at, onCopy = () => {}, onChoose }: { at: (row: HTMLElement) => Element | { x: number; y: number }; onCopy?: () => void; onChoose?: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [row, setRow] = useState<HTMLElement | null>(null);
+    return (
+      <>
+        <div data-testid="row" tabIndex={-1} style={{ width: 300, height: 40 }}>
+          A row
+        </div>
+        <Button
+          onClick={() => {
+            setRow(document.querySelector<HTMLElement>("[data-testid=row]"));
+            setOpen(true);
+          }}
+        >
+          Open
+        </Button>
+        <input aria-label="Elsewhere" />
+        {row && (
+          <Menu anchor={at(row)} open={open} onOpenChange={setOpen} aria-label="Actions for the row" returnFocus={row}>
+            <MenuItem onClick={onCopy}>Copy</MenuItem>
+            <MenuItem onClick={onChoose}>Choose</MenuItem>
+          </Menu>
+        )}
+      </>
+    );
+  }
+  const row = () => document.querySelector<HTMLElement>("[data-testid=row]")!;
+
+  it("opens at a point the app gives, named by its aria-label, and puts focus back where the app says when it closes", async () => {
+    await render(<Shared at={(target) => ({ x: target.getBoundingClientRect().left + 40, y: target.getBoundingClientRect().top + 20 })} />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    const element = await settled();
+    await expect.element(page.getByRole("menu", { name: "Actions for the row" })).toBeVisible();
+    expect(element.getAttribute("data-ouro-presentation")).toBe("menu");
+    const box = element.getBoundingClientRect();
+    expect(Math.abs(box.left - (row().getBoundingClientRect().left + 40))).toBeLessThanOrEqual(2);
+    expect(Math.abs(box.top - (row().getBoundingClientRect().top + 20))).toBeLessThanOrEqual(2);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+    expect(document.activeElement).toBe(row());
+  });
+
+  it("opens beside an element, as a bottom sheet below 640px, and at a point as a menu", async () => {
+    await render(<Shared at={(target) => target} />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    const beside = (await settled()).getBoundingClientRect();
+    expect(Math.abs(beside.top - row().getBoundingClientRect().bottom - 4)).toBeLessThanOrEqual(2);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+    await page.viewport(390, 844);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    expect((await settled()).getAttribute("data-ouro-presentation")).toBe("sheet");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+    await act(async () => roots.pop()!.unmount());
+    await render(<Shared at={() => ({ x: 20, y: 20 })} />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    expect((await settled()).getAttribute("data-ouro-presentation")).toBe("menu");
+  });
+
+  it("leaves focus where a chosen item moved it", async () => {
+    const onChoose = () => page.getByRole("textbox", { name: "Elsewhere" }).element().focus();
+    await render(<Shared at={(target) => target} onChoose={onChoose} />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    await settled();
+    await userEvent.click(item("Choose"));
+    await expect.poll(menu).toBeNull();
+    expect(document.activeElement).toBe(page.getByRole("textbox", { name: "Elsewhere" }).element());
+  });
+
+  it("closes when focus moves outside it", async () => {
+    await render(<Shared at={(target) => target} />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    await settled();
+    await act(async () => page.getByRole("textbox", { name: "Elsewhere" }).element().focus());
+    await expect.poll(menu).toBeNull();
+  });
+
+  it("throws the exact fix without open or aria-label", () => {
+    const fix = `<Menu anchor={row} open={open} onOpenChange={setOpen} aria-label="Actions for Ana's message">`;
+    const point = { x: 0, y: 0 };
+    const Loose = Menu as unknown as (props: Record<string, unknown>) => ReactNode;
+    expect(() => renderToString(<Loose anchor={point} aria-label="Actions" items={[{ label: "Copy" }]} />)).toThrow(
+      `[ouro-ui] Menu: anchor needs open: the app opens a menu it anchors. Fix: ${fix}.`,
+    );
+    expect(() => renderToString(<Loose anchor={point} open={false} onOpenChange={() => {}} items={[{ label: "Copy" }]} />)).toThrow(
+      `[ouro-ui] Menu: anchor needs aria-label: no button names the menu. Fix: ${fix}.`,
+    );
+  });
+});
+
 describe("MenuBar", () => {
   async function renderBar() {
     await render(
@@ -1106,18 +1199,19 @@ describe("Menu server rendering", () => {
 });
 
 describe("Menu dev messages", () => {
-  const OPEN_FIX = "Pass trigger={<Button>…</Button>} for a dropdown, contextTrigger={<div>…</div>} for a right-click or long-press area, or label inside <MenuBar>";
+  const OPEN_FIX =
+    "Pass trigger={<Button>…</Button>} for a dropdown, contextTrigger={<div>…</div>} for a right-click or long-press area, label inside <MenuBar>, or anchor={element} with open for a menu the app opens";
 
   it("throws the exact fix with no way to open", () => {
     // @ts-expect-error -- no trigger, contextTrigger or label
     const element = <Menu>{basicItems}</Menu>;
-    expect(() => renderToString(element)).toThrow(`[ouro-ui] Menu: needs trigger, contextTrigger or label. Fix: ${OPEN_FIX}.`);
+    expect(() => renderToString(element)).toThrow(`[ouro-ui] Menu: needs trigger, contextTrigger, label or anchor. Fix: ${OPEN_FIX}.`);
   });
 
   it("throws the exact fix with two ways to open", () => {
     // @ts-expect-error -- both trigger and contextTrigger
     const element = <Menu trigger={<Button>A</Button>} contextTrigger={<div>B</div>}>{basicItems}</Menu>;
-    expect(() => renderToString(element)).toThrow(`[ouro-ui] Menu: takes one of trigger, contextTrigger and label. Fix: ${OPEN_FIX}.`);
+    expect(() => renderToString(element)).toThrow(`[ouro-ui] Menu: takes one of trigger, contextTrigger, label and anchor. Fix: ${OPEN_FIX}.`);
   });
 
   it("throws the exact fix for label outside a MenuBar, and for a trigger inside one", () => {
