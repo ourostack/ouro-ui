@@ -59,7 +59,12 @@ function rows(cli: Cli, effect: "private" | "others"): { name: string; summary: 
   return out;
 }
 
-/** The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the footer. */
+/**
+ * The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only
+ * the person acts on, the footer.
+ *
+ * @claim "the words only the person acts on" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it)
+ */
 function renderOverview(cli: Cli, options: OverviewOptions = {}): string {
   const width = options.width ?? DEFAULT_WIDTH;
   const mine = rows(cli, "private");
@@ -67,7 +72,9 @@ function renderOverview(cli: Cli, options: OverviewOptions = {}): string {
   const pad = Math.max(...[...mine, ...theirs].map((r) => r.name.length)) + 2;
   const line = (r: { name: string; summary: string }) => `  ${r.name.padEnd(pad)} ${r.summary}`;
   const footer = options.footer ?? [...wrap(`Output: --json on every command. ${cli.exits.line()} Errors: one line that says what to do instead.`, 0, 0, width), `Details: ${cli.name} help <command>`];
-  return [...cli.about, "", cli.headings.private, ...mine.map(line), "", `${cli.headings.others}${options.othersNote ?? ""}`, ...theirs.map(line), "", ...footer, ""].join("\n");
+  const theirsOnly = Object.keys(cli.personOnly);
+  const person = theirsOnly.length ? [...wrap(`Only the person does these, never you: ${theirsOnly.join(", ")}. Why and where: ${cli.name} help --json.`, 0, 0, width), ""] : [];
+  return [...cli.about, "", cli.headings.private, ...mine.map(line), "", `${cli.headings.others}${options.othersNote ?? ""}`, ...theirs.map(line), "", ...person, ...footer, ""].join("\n");
 }
 
 const COL = 34;
@@ -153,7 +160,8 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
 }
 
 /**
- * The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (for a checker
+ * The help as data: the tool, its headings, the commands, the words only the person acts on (`personOnly`: name, reason
+ * and how), the exit codes, the tool's fixed voice lines (for a checker
  * that looks for them in an agent's output) and the one error shape.
  */
 function helpJson(cli: Cli) {
@@ -162,6 +170,7 @@ function helpJson(cli: Cli) {
     about: cli.about,
     effects: { private: cli.headings.private, others: cli.headings.others },
     commands: cli.commands.map((c) => commandManifest(cli, c)),
+    personOnly: Object.entries(cli.personOnly).map(([name, p]) => ({ name, reason: p.reason, how: p.how })),
     exitCodes: cli.exits.codes,
     voice: voiceLines(cli.voice),
     errorShape: { error: { code: "<slug>", exit: "<exit code>", thing: "<command or flag>", problem: "<what's wrong>", fix: "<exact code to run instead, or null>", message: "<thing>: <problem>. Fix: <fix>." } },

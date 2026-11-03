@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -8,6 +9,7 @@ import { Message, type MessageAction } from "@/registry/ouro/components/ouro/mes
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { ReactionBar, type Reaction, type ReactionOption } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
+import { Table } from "@/registry/ouro/components/ouro/table/table";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -79,6 +81,39 @@ export const Streaming: Story = {
       <Message role="assistant" name="Ouro" streaming>
         About an hour, covered
       </Message>
+    </Surface>
+  ),
+};
+
+const launchTasks = [
+  { task: "Launch post", owner: "Mara Quill", status: "Waiting on the final copy", channel: "Announcements", due: "Friday" },
+  { task: "Demo video", owner: "Jonah Vale", status: "Recording", channel: "Engineering", due: "Thursday" },
+];
+
+/**
+ * A table and a line of code wider than the bubble scroll sideways, and fade out at the side
+ * where they go on, so they never look cut off. Shown at a phone's width.
+ */
+export const WideContent: Story = {
+  render: () => (
+    <Surface>
+      <div style={{ maxWidth: 360, minWidth: 0 }}>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
+          <Table
+            caption="Launch tasks"
+            rows={launchTasks}
+            rowKey="task"
+            columns={[
+              { key: "task", header: "Task" },
+              { key: "owner", header: "Owner" },
+              { key: "status", header: "Status" },
+              { key: "channel", header: "Channel" },
+              { key: "due", header: "Due" },
+            ]}
+          />
+          <CodeBlock language="bash" code="curl https://api.example.com/v1/launches?status=waiting&owner=mara" />
+        </Message>
+      </div>
     </Surface>
   ),
 };
@@ -597,6 +632,21 @@ export const Agent: Story = {
       </Message>
       <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="3:33 PM" dateTime="2026-05-04T15:33">
         Thanks, Halden. I'll add the photos.
+      </Message>
+    </Surface>
+  ),
+};
+
+/** While the author's name is still loading (`name={null}`), a name-sized line holds its place and the avatar shimmers; nothing moves when the name arrives. */
+export const NameLoading: Story = {
+  parameters: { screenshot: { name: "message-name-loading" } },
+  render: () => (
+    <Surface>
+      <Message variant="post" role="assistant" name={null} time="9:41">
+        The dough is ready when it springs back slowly.
+      </Message>
+      <Message variant="chat" role="assistant" name={null} time="9:42">
+        Cover it and leave it somewhere warm.
       </Message>
     </Surface>
   ),

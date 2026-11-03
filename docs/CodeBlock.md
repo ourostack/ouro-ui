@@ -2,7 +2,7 @@
 
 # CodeBlock
 
-Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. The code shows exactly as given and scrolls sideways rather than wrapping (unless `wrap`), and the block becomes a tab stop while it overflows, so a keyboard can scroll it. Copying says "Copied" to screen readers.
+Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. The code shows exactly as given and scrolls sideways rather than wrapping (unless `wrap`), fading out at the side where a long line goes on, and the block becomes a tab stop while it overflows, so a keyboard can scroll it. Copying says "Copied" to screen readers.
 
 ```tsx
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";

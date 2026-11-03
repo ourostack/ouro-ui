@@ -5,7 +5,7 @@
 A tool's exit codes as one table: the overview, every command's footer, `help --json` and the MCP error shape read it, so the numbers never drift. Codes 0, 1 and 2 mean the same thing in every Ouro AX tool.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-exit-codes#v1.3.2
+npx shadcn@latest add ourostack/ouro-ui/ax-exit-codes#v1.3.3
 ```
 
 It installs `lib/ouro/ax/exit-codes.ts`. Its tests are `ax-exit-codes-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -48,4 +48,12 @@ interface ExitTable {
   has(name: string): boolean;
   line(): string;
 }
+```
+
+### `FINDINGS_EXIT_CODE`
+
+The code a check or doctor tool declares beside the base codes: its checks ran and found a problem, with a fix beside it. A check that couldn't run is a crash and exits with the base `error` code instead, so an agent tells "the tool found something" from "the tool broke" by the code alone.
+
+```ts
+const FINDINGS_EXIT_CODE: ExitCode
 ```

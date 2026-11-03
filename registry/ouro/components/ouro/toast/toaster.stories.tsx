@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
@@ -111,6 +111,52 @@ export const Stack: Story = {
     <Surface>
       <span style={{ color: "var(--muted-foreground)" }}>Hover the toasts to fan them out.</span>
       <Toaster {...args} />
+      <ShowOnMount />
+    </Surface>
+  ),
+};
+
+/**
+ * `avoid` keeps the toasts clear of a control in their corner, here a call's Join button: they sit
+ * just above it while it shows. Press "Show a toast", then "Hide Join".
+ */
+export const KeepClear: Story = {
+  render: function Render(args) {
+    const [join, setJoin] = useState(true);
+    return (
+      <Surface>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Button onClick={() => toast("Recording saved", { description: "It's in the meeting's chat." })}>Show a toast</Button>
+          <Button variant="outline" tone="secondary" onClick={() => setJoin(!join)}>
+            {join ? "Hide Join" : "Show Join"}
+          </Button>
+        </div>
+        {join && (
+          <div data-keep-clear="" style={{ position: "fixed", insetInlineEnd: 24, bottom: 24 }}>
+            <Button tone="success">Join</Button>
+          </div>
+        )}
+        <Toaster {...args} avoid="[data-keep-clear]" />
+      </Surface>
+    );
+  },
+};
+
+/** At the top of the screen, placed with layout classes: the newest toast at the top, older ones peeking out below, fanning out downward. */
+export const AtTheTop: Story = {
+  parameters: {
+    screenshot: { name: "toaster-top" },
+    conformance: {
+      focusExit: {
+        // As in Stack: the last toast's dismiss button, pressed with focus from nowhere, leaves focus on the page.
+        "toaster/close Dismiss": "the last toast's dismiss button, pressed with focus from nowhere, leaves focus on the page, as Toaster does on purpose",
+      },
+    },
+  },
+  render: (args) => (
+    <Surface>
+      <span style={{ color: "var(--muted-foreground)" }}>Hover the toasts to fan them out, downward.</span>
+      <Toaster {...args} className="top-4 bottom-auto" />
       <ShowOnMount />
     </Surface>
   ),

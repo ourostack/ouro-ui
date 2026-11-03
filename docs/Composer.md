@@ -108,6 +108,18 @@ interface ComposerQuote {
    * What they wrote, or its start. One line shows, cut with an ellipsis.
    */
   excerpt: string;
+  /**
+   * What the quote shows in place of `author`, when plain text cannot draw it: a name with its
+   * emoji as pictures (`<EmojiText text={name} catalogue={catalogue} />`). `author` stays the
+   * name in the remove button's and screen readers' words.
+   */
+  authorContent?: ReactNode;
+  /**
+   * What the quote shows in place of `excerpt`, when plain text cannot draw it: the line with its
+   * emoji as pictures (`<EmojiText text={line} catalogue={catalogue} />`), on one line, cut with an
+   * ellipsis. `excerpt` stays what screen readers hear.
+   */
+  excerptContent?: ReactNode;
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Removes the quote: called by the remove button, and by Escape while the box is empty. Set `quote` to `undefined` in it. */

@@ -10,6 +10,7 @@ import { useFocusHandoff, type FocusHandoffOptions } from "@/registry/ouro/lib/o
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
+import { keepClear } from "@/registry/ouro/lib/ouro/keep-clear";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useDrag, type DragState } from "@/registry/ouro/lib/ouro/use-drag";
@@ -50,6 +51,20 @@ export interface ToasterProps {
    * @claim "The accessible name of each toast's" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > translates the region name and the dismiss button with label and closeLabel)
    */
   closeLabel?: string | undefined;
+  /**
+   * A CSS selector for controls the toasts must stay clear of, such as a call's Join button in a
+   * corner. While one is on screen in the lower half of the window, under the toasts' column, the
+   * toasts rise to sit 8px above it, and they come back down when it goes. They measure again when
+   * the page changes outside the toasts and when the window resizes. Mark the controls and
+   * pass the selector: `<Toaster avoid="[data-keep-clear]" />`. It clears controls for a toaster at
+   * the bottom only; at the top, the app's own top offset (`className="top-18 bottom-auto"`) keeps
+   * the toasts clear of its header.
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > keeps the toasts clear of a control the selector matches under them, and comes back down when it goes)
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > stays where it is for a matched control away from its column or in the window's top half)
+   * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > measures again when the window resizes: a control beside the column on a wide screen is under it on a phone)
+   * @claim "They measure again when" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > measures again when the window resizes: a control beside the column on a wide screen is under it on a phone)
+   */
+  avoid?: string | undefined;
 
   /** Not a prop. Toasts default to the bottom: full width on phones, at the bottom end from `sm`; className adjusts viewport layout. */
   position?: { 'Not a prop: toasts show at the bottom. Use <Toaster />': never };
@@ -83,6 +98,10 @@ export interface ToasterProps {
  * touch screen reader too, while the stack is collapsed, and focus in a toast fans the stack out
  * and pauses it, however it got there, even while a pointer passes over and away.
  *
+ * Put it at the top with layout classes (`className="top-4 bottom-auto"`) and the stack hangs
+ * from the top: the newest toast is at the top, older ones peek out below it, it fans out
+ * downward, toasts slide in from above, and a swipe up dismisses one.
+ *
  * Render one Toaster. A second one warns in development and shows nothing until the
  * first unmounts, then takes over.
  *
@@ -98,6 +117,7 @@ export interface ToasterProps {
  * Use `Alert` instead for a message that stays on the page, and `Dialog` when the user
  * must answer before going on.
  *
+ * @claim "Put it at the top with layout" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hangs from the top and unfurls downward when its layout classes put it at the top)
  * @group Feedback
  * @see https://ui.ouro.bot/docs/toaster
  *
@@ -124,7 +144,20 @@ export interface ToasterProps {
  * @claim "Each toast is read to screen" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  */
 export function Toaster(props: ToasterProps): JSX.Element | null {
-  const { className, label = "Notifications", closeLabel = "Dismiss", position, richColors, theme, duration } = props;
+  const { className, label = "Notifications", closeLabel = "Dismiss", avoid, position, richColors, theme, duration } = props;
+  const viewportElement = useRef<HTMLElement | null>(null);
+  const edgeRef = useCallback(
+    (element: HTMLElement | null) => {
+      viewportElement.current = element;
+      return readEdge(element);
+    },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes keeps the same ref, as this one does.
+    [],
+  );
+  // Read the edge again when the layout classes change, as they may move the toasts to the other edge.
+  useLayoutEffect(() => {
+    if (viewportElement.current) markEdge(viewportElement.current);
+  }, [className]);
   const [active, setActive] = useState(false);
   useAppearanceClassNameCheck(
     "Toaster",
@@ -147,6 +180,8 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // Stryker disable next-line ConditionalExpression: without a selector it would match the tag name "undefined", which no page has.
+  const keepingClear = avoid !== undefined && <KeepClear avoid={avoid} />;
   return (
     <Toast.Provider limit={VISIBLE}>
       <Connect onActive={setActive} />
@@ -161,6 +196,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
               aria-atomic={undefined}
               aria-relevant={undefined}
               data-ouro="toaster"
+              ref={edgeRef}
               className={cn(viewportClass, className)}
               onFocus={onViewportFocus}
               onBlur={onViewportBlur}
@@ -168,12 +204,23 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
             >
               <ToastList closeLabel={closeLabel} />
               <ToastAnnouncer />
+              {keepingClear}
             </Toast.Viewport>
           </PortalScope>
         </Toast.Portal>
       )}
     </Toast.Provider>
   );
+}
+
+/**
+ * Keeps the toasts' viewport clear of the elements `avoid` matches (see keepClear). It lives in the
+ * viewport, so it runs while there are toasts.
+ */
+function KeepClear({ avoid }: { avoid: string }): JSX.Element {
+  const mark = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => keepClear(mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!, avoid), [avoid]);
+  return <span ref={mark} hidden data-ouro-toaster-keep-clear="" />;
 }
 
 /** Whether a toast waits ahead of the others: a destructive one. */
@@ -301,6 +348,8 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
  */
 function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
   const { toasts } = Toast.useToastManager();
+  // Read the edge again as toasts come and go: the app's own CSS may have moved the toaster since.
+  useLayoutEffect(() => markEdge(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!), [toasts.length]);
   return toasts.map((item) => <ToastItem key={item.id} item={item} closeLabel={closeLabel} />);
 }
 
@@ -318,6 +367,29 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
   // Focus that comes from nowhere (a handoff from a toast that left, after focus fell to <body>)
   // keeps the place it entered from.
   if (from instanceof HTMLElement && !event.currentTarget.contains(from)) cameFrom.set(event.currentTarget, from);
+}
+
+/**
+ * Marks the viewport with the edge it sits at, `data-edge="top"` or `"bottom"`, from where its
+ * layout classes put it: its top edge above the window's middle, or not (a bottom toaster `avoid` lifted stays at the bottom). The stack unfurls away from that
+ * edge, and a toast swipes away toward it. Read again when the window is resized, when Toaster's className changes and as toasts come and go.
+ */
+function markEdge(viewport: HTMLElement): void {
+  // keepClear (`avoid`) lifts a bottom toaster with an inline `bottom`, which can raise it past the
+  // middle: it is still at the bottom.
+  const edge = viewport.style.bottom || viewport.getBoundingClientRect().top >= window.innerHeight / 2 ? "bottom" : "top";
+  if (viewport.getAttribute("data-edge") !== edge) viewport.setAttribute("data-edge", edge);
+}
+
+function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
+  /* istanbul ignore if @preserve -- React 19 calls a ref that returns a cleanup only with the element */
+  // Stryker disable next-line ConditionalExpression,BooleanLiteral: React 19 calls a ref that returns a cleanup only with the element.
+  if (!viewport) return undefined;
+  const read = () => markEdge(viewport);
+  // Stryker disable next-line CallExpression: Toaster's layout effect on className reads the edge again at mount, so the mark stays the same without this call.
+  read();
+  window.addEventListener("resize", read);
+  return () => window.removeEventListener("resize", read);
 }
 
 /**
@@ -598,6 +670,23 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
   const reduced = useReducedMotion();
   const state = useRef<SwipeState>({ element: null, axis: null, offset: 0, grab: 0, pressed: { x: false, y: false }, moved: false, leaving: false, control: false, settle: undefined });
 
+  /**
+   * Whether a y offset points back past rest, the one way a toast cannot leave: up at the bottom
+   * edge, down at the top (the viewport's `data-edge`).
+   */
+  const inward = useCallback(
+    // Stryker disable next-line EqualityOperator: at an offset of 0 the band and its inverse are both 0, so < and <= agree.
+    (offset: number) => (state.current.element!.closest('[data-edge="top"]') !== null ? offset > 0 : offset < 0),
+    // Stryker disable next-line ArrayDeclaration: it reads only the element, so any list that never changes keeps it the same.
+    [],
+  );
+  /** Whether a y offset points the way a toast leaves: down at the bottom edge, up at the top. */
+  const outward = useCallback(
+    // Stryker disable next-line EqualityOperator: an offset of 0 is at rest, where a release settles whichever way it counts.
+    (offset: number) => (state.current.element!.closest('[data-edge="top"]') !== null ? offset < 0 : offset > 0),
+    // Stryker disable next-line ArrayDeclaration: it reads only the element, so any list that never changes keeps it the same.
+    [],
+  );
   const write = useCallback((offset: number) => {
     const now = state.current;
     now.offset = offset;
@@ -667,25 +756,28 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
       now.moved = true;
       now.pressed[axis] = false;
       // Above rest the toast is held back: start from the finger travel that puts it there.
-      now.grab = axis === "y" && now.offset < 0 ? unband(now.offset, size()) : now.offset;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: a toast caught mid-band is a finger's move; the touch tests take it above rest without a jump.
+      now.grab = axis === "y" && inward(now.offset) ? unband(now.offset, size()) : now.offset;
       return true;
     },
-    [size],
+    // Stryker disable next-line ArrayDeclaration: these callbacks never change, so any list keeps this one the same.
+    [size, inward],
   );
   const move = useCallback(
     (axis: Axis, { delta }: DragState) => {
       const wanted = state.current.grab + delta;
       // Following a finger is not an animation: the toast does it with reduced motion too.
-      write(axis === "y" && wanted < 0 ? rubberband(wanted, size()) : wanted);
+      write(axis === "y" && inward(wanted) ? rubberband(wanted, size()) : wanted);
     },
-    [size, write],
+    // Stryker disable next-line ArrayDeclaration: these callbacks never change, so any list keeps this one the same.
+    [size, write, inward],
   );
   const end = (axis: Axis, { velocity, flick, cancelled }: DragState & { cancelled: boolean }) => {
     const now = state.current;
     const { offset } = now;
     // Whether the finger was moving the toast away from rest when it lifted.
     const toward = velocity * offset;
-    const canLeave = axis === "x" || offset > 0;
+    const canLeave = axis === "x" || outward(offset);
     if (cancelled || !canLeave || !(flick ? toward > 0 : Math.abs(offset) > AWAY && toward >= 0)) return settle(cancelled ? 0 : velocity, flick && !cancelled);
     now.leaving = true;
     // Before the close: a swiped toast fades on its way, and does not slide down as a closed one does.

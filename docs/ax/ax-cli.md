@@ -5,10 +5,10 @@
 The whole front door for a tool built on the kit: parse, help, run (or, on `--dry-run`, plan), print the result as text or `--json`, and turn every failure into the one error line and its exit code. An outcome or a wait sets the exit code from its state.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.2
+npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.3
 ```
 
-It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-checks`, `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-terminal`, `ax-voice`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports of cli.ts
 
@@ -42,10 +42,10 @@ function isEmptyResult(result: unknown): boolean
 
 ### `printResult`
 
-Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, anything else as its text or `--json`. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
+Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks all ran and passed may get the voice's `healthy` line. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
 
 ```ts
-function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined): number
+function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined, env?: Readonly<Record<string, string | undefined>>): number
 ```
 
 ### `quietPipes`
@@ -130,10 +130,10 @@ function flagLines(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, w
 
 ### `helpJson`
 
-The help as data: the tool, its headings, the commands, the exit codes, the tool's fixed voice lines (for a checker that looks for them in an agent's output) and the one error shape.
+The help as data: the tool, its headings, the commands, the words only the person acts on (`personOnly`: name, reason and how), the exit codes, the tool's fixed voice lines (for a checker that looks for them in an agent's output) and the one error shape.
 
 ```ts
-function helpJson(cli: Cli<RunContext>): { tool: string; about: readonly string[]; effects: { private: string; others: string; }; commands: CommandManifest[]; exitCodes: readonly ExitCode[]; voice: string[]; errorShape: { error: { code: string; exit: string; thing: string; problem: string; fix: string; message: string; }; }; }
+function helpJson(cli: Cli<RunContext>): { tool: string; about: readonly string[]; effects: { private: string; others: string; }; commands: CommandManifest[]; personOnly: { name: string; reason: string; how: string; }[]; exitCodes: readonly ExitCode[]; voice: string[]; errorShape: { error: { code: string; exit: string; thing: string; problem: string; fix: string; message: string; }; }; }
 ```
 
 ### `OverviewOptions`
@@ -156,7 +156,7 @@ function renderCommand(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext
 
 ### `renderOverview`
 
-The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the footer.
+The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer.
 
 ```ts
 function renderOverview(cli: Cli<RunContext>, options?: OverviewOptions): string

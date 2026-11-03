@@ -34,11 +34,25 @@ export interface MessageListOwnProps {
   /**
    * Whether older messages are loading above, as after the reader reaches the top: a small
    * "Loading older messages" shows over the top of the list, and screen readers hear it once.
-   * It sits over the messages, not among them, so starting and ending it moves no message.
+   * It sits over the messages, not among them, so starting and ending it moves no message. At
+   * the very top it covers the first message unless `hasOlder` keeps room for it.
    * @claim "Whether older messages are loading above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
    * @claim "It sits over the messages, not" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
+   * @claim "At the very top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
    */
   loadingOlder?: boolean | undefined;
+  /**
+   * Whether older messages may still load above, until the reader reaches the start of the
+   * conversation. While it is true the list keeps room above the first message, where "Loading
+   * older messages" shows, so at the top it covers no message or focus ring, and nothing moves as
+   * loading starts. Set it to `false` once there is nothing older: the room stays until it has left
+   * the view, or the list is at its end, and then goes without moving a message.
+   * @default false
+   * @claim "so at the top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
+   * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view)
+   * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message)
+   */
+  hasOlder?: boolean | undefined;
   /** What shows while older messages load, for other languages. @default "Loading older messages" */
   loadingOlderLabel?: string | undefined;
   /**
@@ -55,6 +69,16 @@ export interface MessageListOwnProps {
    * @claim "A key pressed while a message itself has focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > hands the app a key pressed on the focused message, and not one pressed in a control inside it)
    */
   onMessageKeyDown?: ((message: HTMLElement, event: KeyboardEvent<HTMLElement>) => void) | undefined;
+  /**
+   * Whether Page Up and Page Down on a focused message move a page through the messages, as ⌥↑ and
+   * ⌥↓ do on a Mac. With `false` the list leaves those keys alone: it neither acts on them nor calls
+   * `preventDefault()`, so an app's own shortcut on them, such as ⌥↓ for the next conversation, gets
+   * them as pressed, and the browser scrolls the list. The other keys still move between messages.
+   * @default true
+   * @claim "With `false` the list leaves those" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys)
+   * @claim "The other keys still move between" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys)
+   */
+  pageKeys?: boolean | undefined;
   /**
    * Whether the messages spring as the reader scrolls, as in a phone's messages app: each one
    * trails the scroll a little, the farther from where the reader scrolls (the finger, the
@@ -472,6 +496,9 @@ interface Spoken {
  * bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
  * it too, even as the first messages arrive. Scrolling is never announced.
  *
+ * While older history may load, set `hasOlder`, and `loadingOlder` while it loads: the list keeps
+ * room above the first message for "Loading older messages", so nothing moves as it shows.
+ *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  * Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view
  * scrolls the list, not the page around it.
@@ -494,6 +521,12 @@ interface Spoken {
  * place. Each message that is an article carries its place among them for screen readers
  * (`aria-posinset`, `aria-setsize`). `onMessageKeyDown` adds keys of your own on the focused
  * message, such as 1 to 6 for quick reactions.
+ *
+ * On a Mac the list reads ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a focused message as Home, End, Page Up and Page
+ * Down, and calls `preventDefault()` on them. Listen for an app shortcut on those keys in the
+ * capture phase (`window.addEventListener("keydown", onKey, { capture: true })`), which runs
+ * before the list: call `preventDefault()` there and the list leaves the key alone. Or set
+ * `pageKeys={false}` to leave Page Up, Page Down, ⌥↑ and ⌥↓ to the app.
  *
  * Your own message components work too: mark each one's root `data-ouro-message-list-item`, the
  * reader's own with `data-role="user"` and one still streaming with `aria-busy="true"`, and put its
@@ -535,6 +568,7 @@ interface Spoken {
  * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
  * @claim "The scroll position never moves" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
  * @claim "`springy={false}` turns it off" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > moves nothing with reduced motion, or with springy={false})
+ * @claim "the list keeps room above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
  * @claim "Your own message components work too" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the reader's place among an app's own messages marked data-ouro-message-list-item, and announces them as it does Messages)
  * @claim "A conversation: `Message`s in a scrolling" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > is a named region that opens at the newest message, which is its Tab stop)
  * @claim "The messages are one Tab stop" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > is one Tab stop: Tab lands on the newest message, goes through its controls, and leaves the list)
@@ -548,6 +582,8 @@ interface Spoken {
  * @claim "A new message never takes focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > keeps focus where it is when a message arrives, and the Tab stop on the message focused last while it shows)
  * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app)
  * @claim "Each message that is an article carries" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives each message its place among them for screen readers, and keeps an app's own)
+ * @claim "On a Mac the list reads" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reads ⌘↑ and ⌘↓ as Home and End, and ⌥↑ and ⌥↓ as Page Up and Page Down, on a Mac)
+ * @claim "which runs before the list" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > leaves ⌘↑, ⌘↓, ⌥↑ and ⌥↓ alone on a Mac once an app's capture-phase shortcut prevented them)
  * @claim "`onMessageKeyDown` adds keys of your own" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > hands the app a key pressed on the focused message, and not one pressed in a control inside it)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply still streaming in the first messages to fill an empty list, once it finishes)
  * @claim "Each new message from someone else" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > announces a reply that was streaming when the list mounted, once it finishes)
@@ -574,9 +610,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     jumpLabel = "Jump to latest",
     initialAnchor,
     loadingOlder = false,
+    hasOlder = false,
     loadingOlderLabel = "Loading older messages",
     newMessageLabel = (author: string, text: string) => `${author}: ${text}`,
     onMessageKeyDown,
+    pageKeys = true,
     springy = true,
     maxWidth,
     className,
@@ -620,10 +658,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const labelFor = useRef(newMessageLabel);
   const keyFor = useRef(onMessageKeyDown);
   const anchorFor = useRef(initialAnchor);
+  const pagesFor = useRef(pageKeys);
   useLayoutEffect(() => {
     labelFor.current = newMessageLabel;
     keyFor.current = onMessageKeyDown;
     anchorFor.current = initialAnchor;
+    pagesFor.current = pageKeys;
   });
   // The list's ends, which Tab passes through to leave the messages behind (see the keyboard effect).
   const startRef = useRef<HTMLSpanElement | null>(null);
@@ -661,6 +701,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line all: a step left from before goes in the same render as the next one; cancelling it only spares the call.
     return () => cancelAnimationFrame(frame);
   }, [edge]);
+
+  // While older messages may load, room above the first message holds "Loading older messages". It outlasts `hasOlder`
+  // until it has left the view, or the list is at its end, so it goes without moving a message.
+  const [room, setRoom] = useState(hasOlder);
+  if (hasOlder && !room) setRoom(true);
+  const roomRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (hasOlder || !room) return;
+    const scroller = scrollerRef.current!;
+    const drop = () => {
+      // Stryker disable next-line EqualityOperator: room whose bottom meets the view's top to the pixel is out of view either way.
+      if (pinned.current || roomRef.current!.getBoundingClientRect().bottom <= scroller.getBoundingClientRect().top) setRoom(false);
+    };
+    drop();
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
+    scroller.addEventListener("scroll", drop, { passive: true });
+    // Stryker disable next-line all: once the room is gone or wanted again, nothing reads what this listener would change; removing it frees memory only.
+    return () => scroller.removeEventListener("scroll", drop);
+  }, [hasOlder, room]);
 
   const keyboardRef = useKeyboardScrollable<HTMLDivElement>(!hasItems);
   const setScroller = useMergedRef<HTMLDivElement | null>(keyboardRef, scrollerRef);
@@ -1087,6 +1146,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         case "PageUp": {
           const forward = key.endsWith("Down");
           const paging = key.startsWith("Page");
+          // The app's, with pageKeys={false}: not acted on, nor prevented.
+          if (paging && !pagesFor.current) return;
           // A message taller than the list scrolls through first, a line or a page at a time.
           const beyond = forward ? box.bottom - view.bottom + EDGE : view.top + EDGE - box.top;
           // Stryker disable next-line EqualityOperator: a pixel past the edge is a rounding, not more message.
@@ -1173,6 +1234,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3"
           style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
         >
+          {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
+          {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
           {shown}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
