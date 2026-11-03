@@ -71,13 +71,13 @@ const wordsOfId = (id: string) =>
     .replace(/\blet in\b/g, "letin")
     .split(" ");
 
-/** The words that only reduce what the person exposes; they free an id only when no turn-on word is in it. */
+// Reducing words: off, stop, end, disable and mute.
 const REDUCING = ["off", "stop", "end", "disable", "mute"];
-/** The words that can turn something on, so an id with one is never freed by a reducing word. */
+// Turn-on words, which keep a reducing word from freeing an id.
 const TURN_ON = ["on", "toggle", "resume", "start", "enable", "unmute", "un"];
 /** The words that may sit beside a device or capture noun without changing what the id turns on. */
 const ON = [...TURN_ON, "turn"];
-/** The person's devices and captures, each with the canonical id it means. */
+// Device and capture nouns, keyed by the canonical id they mean.
 const DEVICES: Readonly<Record<string, readonly string[]>> = {
   unmute: ["mic", "microphone", "audio", "mute"],
   camera: ["camera", "cam", "webcam", "video"],
@@ -123,6 +123,7 @@ function reservedAs(id: string): string | null {
  * `mute-off` is, since it unmutes. Captions are not reserved: they are the person's own and private, and a component
  * declares its captions action person-only itself. The declaration and the X-ray both ask it.
  *
+ * @claim "is not reserved, but `mute-off` is, since it unmutes" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's)
  * @claim "by meaning rather than spelling" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::reserved ids are matched by meaning: every alias and case is the person's, and what reduces exposure stays an agent's)
  */
 function isReservedPersonOnly(id: string): boolean {
