@@ -7,6 +7,7 @@ import { sizeFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 
 /**
  * Avatar sizes: 24, 32, 40, 48, 64, 72 and 112px.
@@ -38,10 +39,15 @@ export interface AvatarOwnProps {
   /**
    * The person's or thing's name. Screen readers hear it, and the initials come from it
    * (the first letters of the first and last words) until the image loads, or when it
-   * fails. Required, so no avatar is silent.
+   * fails. Required, so no avatar is silent. Pass `null` while the name is still loading: the
+   * avatar keeps its size and shape and shimmers as a Skeleton, and screen readers hear
+   * `nameLoadingLabel`.
    * @claim "Required, so no avatar is silent" registry/ouro/components/ouro/avatar/avatar.test-d.ts verify:fileLine(registry/ouro/components/ouro/avatar/avatar.test-d.ts, /expectTypeOf<\{\ssrc:\s"\/ana\.jpg"\s\}>\(\)\.not\.toExtend<AvatarProps>/)
+   * @claim "Pass `null` while the name is" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shimmers in its own size and shape while the name loads, and says so)
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /** The image URL. Until it loads, and if it fails, the initials show. */
   src?: string | undefined;
   /**
@@ -347,6 +353,7 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
 export function Avatar(props: AvatarProps): JSX.Element {
   const {
     name: nameProp,
+    nameLoadingLabel = "Name loading",
     src,
     alt,
     initials,
@@ -364,6 +371,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
     ...rest
   } = props;
   const name = nameProp ?? "";
+  const nameLoading = nameProp === null;
   const groupSize = useContext(GroupSize);
   // A size, shape, color or presence that is not one of Ouro UI's (a type error) warns and renders the default.
   const size = groupSize ?? checkSize(sizeProp) ?? "md";
@@ -411,7 +419,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   // A presence's words follow the name, so a screen reader hears "Ana Lind, Busy"; with
   // alt="" (the name written beside it) only the presence is read.
   const spoken = presence ? presenceLabel || presence.replaceAll("-", " ") : "";
-  const label = [alt ?? name, spoken].filter(Boolean).join(", ");
+  const label = [alt ?? (nameLoading ? nameLoadingLabel : name), spoken].filter(Boolean).join(", ");
   const iconShown = icon !== undefined && icon !== null;
   const tint = color === "neutral" ? neutral : color === "brand" ? brand : hueOf(idForColor ?? name);
   return (
@@ -422,12 +430,13 @@ export function Avatar(props: AvatarProps): JSX.Element {
       data-image={image}
       data-shape={shape}
       data-presence={presence}
+      data-name-loading={nameLoading ? "" : undefined}
       style={shape === "hexagon" ? { ...rest.style, clipPath: hexagon } : rest.style}
       className={cn(
         "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
         "font-medium leading-none select-none",
         shape === "square" ? squareRadii[size] : shape === "circle" && "rounded-full",
-        tint,
+        !nameLoading && tint,
         sizes[size],
         className,
       )}
@@ -440,8 +449,13 @@ export function Avatar(props: AvatarProps): JSX.Element {
           className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
         />
       )}
-      <BaseAvatar.Fallback className={cn("box-border flex size-full items-center justify-center", iconShown && "*:size-[55%]")}>
-        {iconShown ? (
+      <BaseAvatar.Fallback
+        className={cn("box-border flex size-full items-center justify-center", iconShown && "*:size-[55%]", nameLoading && "overflow-hidden rounded-[inherit]")}
+      >
+        {nameLoading ? (
+          // The avatar's own box and corners, so it is the avatar's exact shape; the presence dot stays whole outside it.
+          <Skeleton className="size-full [border-radius:inherit]" />
+        ) : iconShown ? (
           icon
         ) : (
           // Trimmed to the letters' cap height and baseline, so the letters themselves sit in the

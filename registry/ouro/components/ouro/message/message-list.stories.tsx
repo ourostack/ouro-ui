@@ -263,12 +263,12 @@ export const OpenedAtMessage: Story = {
   ),
 };
 
-/** Older messages loading over the top of a conversation scrolled back to its start: no message moves as it shows. */
+/** Older messages loading over the top of a conversation scrolled back to its start, in the room `hasOlder` keeps above the first message: no message moves as it shows, and it covers none. */
 export const LoadingOlder: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => (
     <Surface>
-      <MessageList label="Conversation with Ouro" style={{ height: 420 }} loadingOlder>
+      <MessageList label="Conversation with Ouro" style={{ height: 420 }} hasOlder loadingOlder>
         {start.map((item) => (
           <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana Lind" : "Ouro"}>
             {item.text}

@@ -20,6 +20,7 @@ import {
 } from "@/registry/ouro/components/ouro/menu/menu";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -623,6 +624,50 @@ describe("Menu items", () => {
     expect(warnings()).toEqual([
       "[ouro-ui] Menu: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
     ]);
+  });
+});
+
+describe("Menu focus", () => {
+  it("closes when focus moves outside it, so a forward Tab from before its trigger goes on to the trigger", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>
+        <button type="button">After</button>
+      </>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const before = page.getByRole("button", { name: "Before", exact: true }).element() as HTMLElement;
+    await act(async () => before.focus());
+    await expect.poll(menu).toBeNull();
+    expect(document.activeElement).toBe(before);
+    // Left open, Base UI's focus guard before the trigger sent this Tab back to Before.
+    await pressTab();
+    expect(document.activeElement).toBe(trigger());
+    await pressTab();
+    expect(document.activeElement?.textContent).toBe("After");
+  });
+
+  it("stays open while focus is in it, in its submenu or on its trigger", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await act(async () => trigger().focus());
+    await act(nextFrame);
+    expect(menu()).not.toBeNull();
+    await act(async () => (item("Edit").element() as HTMLElement).focus());
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
+    await act(nextFrame);
+    expect(menus()).toHaveLength(2);
   });
 });
 

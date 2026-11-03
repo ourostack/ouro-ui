@@ -2,7 +2,7 @@ import { type CSSProperties, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -143,6 +143,48 @@ describe("Avatar", () => {
     const { avatar } = await render(<Avatar name="Ana" className="ms-2" ref={(node) => void (element = node)} />);
     expect(element).toBe(avatar);
     expect(getComputedStyle(avatar).marginInlineStart).toBe("8px");
+  });
+
+  it("keeps a loading avatar's edge in forced colours, in each shape", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      for (const shape of ["circle", "square", "hexagon"] as const) {
+        const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
+        const style = getComputedStyle(avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!);
+        expect(style.outlineStyle).toBe("solid");
+        expect(style.outlineWidth).toBe("1px");
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("shimmers in its own size and shape while the name loads, and says so", async () => {
+    for (const shape of ["circle", "square", "hexagon"] as const) {
+      const named = (await render(<Avatar name="Ana Lind" size="lg" shape={shape} />)).avatar.getBoundingClientRect();
+      const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
+      expect(avatar.getAttribute("aria-label")).toBe("Name loading");
+      expect(avatar.getAttribute("data-name-loading")).toBe("");
+      expect(avatar.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(avatar.querySelector("[data-ouro-avatar-initials]")).toBeNull();
+      const fallback = avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!.parentElement!;
+      expect(getComputedStyle(fallback).overflow).toBe("hidden");
+      expect(getComputedStyle(fallback).borderTopLeftRadius).toBe(getComputedStyle(avatar).borderTopLeftRadius);
+      const box = avatar.getBoundingClientRect();
+      expect([box.width, box.height]).toEqual([named.width, named.height]);
+      expect(avatar.querySelector('[data-ouro="skeleton"]')!.getBoundingClientRect().width).toBe(box.width);
+    }
+    const busy = (await render(<Avatar name={null} nameLoadingLabel="Nom en cours" presence="busy" presenceLabel="Occupé" />)).avatar;
+    expect(busy.getAttribute("aria-label")).toBe("Nom en cours, Occupé");
+    // The presence dot stays whole: the same box as beside a name.
+    const dot = (avatar: HTMLElement) => {
+      const [box, at] = [avatar.querySelector("[data-ouro-avatar-presence]")!.getBoundingClientRect(), avatar.getBoundingClientRect()];
+      return [box.left - at.left, box.top - at.top, box.width, box.height];
+    };
+    expect(dot(busy)).toEqual(dot((await render(<Avatar name="Ana Lind" presence="busy" presenceLabel="Busy" />)).avatar));
+    expect(busy.querySelector("[data-ouro-avatar-presence]")!.checkVisibility()).toBe(true);
+    expect((await render(<Avatar name={null} alt="" />)).avatar.getAttribute("aria-hidden")).toBe("true");
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

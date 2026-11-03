@@ -2,10 +2,11 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { page, server, userEvent } from "vitest/browser";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -184,6 +185,40 @@ describe("CodeBlock", () => {
     pre.blur();
     await act(async () => new Promise(requestAnimationFrame));
     expect(pre.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("fades out at the side where a long line goes on, with its focus ring over the fade", async () => {
+    const { host, pre } = await render(
+      <div style={{ width: 320 }}>
+        <CodeBlock code={long} language="ts" />
+      </div>,
+    );
+    await expect.poll(() => pre.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+    expect(getComputedStyle(pre).maskImage).toContain("linear-gradient");
+    expect(pre.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
+    const ring = host.querySelector<HTMLElement>('[data-slot="focus-ring"]')!;
+    expect(ring.getAttribute("aria-hidden")).toBe("true");
+    expect(ring.getBoundingClientRect().toJSON()).toEqual(pre.getBoundingClientRect().toJSON());
+    expect(getComputedStyle(ring).outlineStyle).toBe("none");
+    await pressTab();
+    await pressTab();
+    expect(document.activeElement).toBe(pre);
+    expect(getComputedStyle(pre).outlineStyle).toBe("none");
+    expect(getComputedStyle(ring).outlineStyle).toBe("solid");
+    // WebKit under Playwright scrolls a focused box with no arrow key, masked or not, so it scrolls by script there.
+    if (server.browser === "chromium") await userEvent.keyboard("{ArrowRight}");
+    else pre.scrollLeft = 40;
+    await expect.poll(() => pre.style.getPropertyValue("--ouro-scroll-fade-left")).not.toBe("0px");
+    // Without a bar, the ring still covers the code.
+    const bare = await render(<div style={{ width: 320 }}><CodeBlock code={long} copy={false} /></div>);
+    expect(bare.host.querySelector('[data-slot="focus-ring"]')!.getBoundingClientRect().toJSON()).toEqual(bare.pre.getBoundingClientRect().toJSON());
+    // Short code and wrapped code don't fade.
+    for (const node of [<CodeBlock key="short" code="short" />, <CodeBlock key="wrap" code={long} wrap />]) {
+      const { pre: plain } = await render(<div style={{ width: 320 }}>{node}</div>);
+      await act(async () => new Promise(requestAnimationFrame));
+      expect(plain.hasAttribute("data-ouro-scroll-fade")).toBe(false);
+      expect(getComputedStyle(plain).maskImage).toBe("none");
+    }
   });
 
   it("stops listening for focus leaving when it unmounts", async () => {

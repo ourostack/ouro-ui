@@ -47,6 +47,8 @@ expectTypeOf<{ key: "reply"; icon: "↩"; onClick: () => void }>().not.toExtend<
 // role and name are required; other roles and the names agents bring from other chat kits name the fix.
 expectTypeOf<{ name: "Ana" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user" }>().not.toExtend<MessageProps>();
+// A name still loading is null, not missing.
+expectTypeOf<{ role: "assistant"; name: null; nameLoadingLabel: "Nom en cours" }>().toExtend<MessageProps>();
 expectTypeOf<{ role: "bot"; name: "Ouro" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; from: "user" }>().not.toExtend<MessageProps>();
 expectTypeOf<{ role: "user"; name: "Ana"; sender: "Ana" }>().not.toExtend<MessageProps>();

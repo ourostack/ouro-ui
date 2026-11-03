@@ -46,8 +46,9 @@ The props the modes share. Type: `MessageProps`.
 | `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
-| `name` (required) | `string` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. |
+| `name` (required) | `string \| null` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's place on its line, the avatar shimmers in its own shape, and screen readers hear `nameLoadingLabel`. Nothing moves when the name arrives. |
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
+| `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `nameTag` | `string` |  | A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both are still read. |
 | `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
@@ -311,8 +312,14 @@ interface MessageOwnProps {
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   *
+   * Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's
+   * place on its line, the avatar shimmers in its own shape, and screen readers hear
+   * `nameLoadingLabel`. Nothing moves when the name arrives.
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /**
    * What shows as the author's name in place of `name`, when plain text cannot draw it: their
    * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).

@@ -4,9 +4,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
+import { Table } from "@/registry/ouro/components/ouro/table/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -261,6 +264,64 @@ describe("Message", () => {
     expect(element).toBe(message);
     expect(getComputedStyle(message).marginTop).toBe("16px");
   });
+
+  it("keeps the loading name's line and avatar visible in forced colours", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { message } = await render(
+        <Message variant="post" role="assistant" name={null} time="9:41">
+          Hi
+        </Message>,
+      );
+      for (const shape of message.querySelectorAll<HTMLElement>('[data-ouro="skeleton"]')) {
+        const bar = shape.matches("[data-shape=text]") ? shape.querySelector<HTMLElement>(":scope > span > span")! : shape;
+        expect(getComputedStyle(bar).outlineStyle).toBe("solid");
+      }
+      expect(message.querySelectorAll('[data-ouro="skeleton"]').length).toBe(2);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("holds the name's place with a name-sized line while it loads, so nothing moves when it arrives", async () => {
+    for (const variant of ["default", "chat", "post", "reply"] as const) {
+      const shown = (name: string | null) => (
+        <Message variant={variant} role="assistant" name={name} time="9:41">
+          Preheat the oven to 220°C.
+        </Message>
+      );
+      const { message, rerender } = await render(shown(null));
+      const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+      const loading = author.querySelector<HTMLElement>("[data-ouro-message-name-loading]")!;
+      expect(loading.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(loading.querySelector(".sr-only")!.textContent).toBe("Name loading");
+      expect(loading.getBoundingClientRect().width).toBeGreaterThan(20);
+      const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]');
+      expect(avatar!.getAttribute("data-name-loading")).toBe("");
+      const [height, authorHeight] = [message.getBoundingClientRect().height, author.getBoundingClientRect().height];
+      await rerender(shown("Ana Lind"));
+      expect(message.querySelector("[data-ouro-message-name-loading]")).toBeNull();
+      expect(message.querySelector("[data-ouro-message-author]")!.textContent).toContain("Ana Lind");
+      expect(message.querySelector("[data-name-loading]")).toBeNull();
+      expect(message.getBoundingClientRect().height).toBe(height);
+      expect(message.querySelector<HTMLElement>("[data-ouro-message-author]")!.getBoundingClientRect().height).toBe(authorHeight);
+    }
+    await render(
+      <Message role="assistant" name={null} nameLoadingLabel="Nom en cours" nameContent={<b>Ana</b>}>
+        Hi
+      </Message>,
+    );
+    const last = mounted.at(-1)!.querySelector<HTMLElement>("[data-ouro-message-name-loading] .sr-only")!;
+    expect(last.textContent).toBe("Nom en cours");
+    expect(mounted.at(-1)!.querySelector("b")).toBeNull();
+    // An Avatar element with a presence gets a fix that keeps the name loading.
+    await render(
+      <Message role="assistant" name={null} avatar={<Avatar name={null} alt="" />} presence="busy" presenceLabel="Busy">
+        Hi
+      </Message>,
+    );
+    expect(String(warn.mock.calls.at(-1)?.[0])).toContain('avatar={<Avatar name={null} alt="" size="sm" presence="busy"');
+  });
 });
 
 describe("Message development messages", () => {
@@ -464,6 +525,42 @@ describe("Message quote", () => {
 });
 
 describe("Message chat", () => {
+  it("shows that a wide table or a long line of code in a bubble scrolls sideways, with a fade where it goes on", async () => {
+    const columns = ["Task", "Owner", "Status", "Due", "Notes"];
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <Table caption="Launch tasks">
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead key={column}>{column}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              {columns.map((column) => (
+                // No-break spaces, so each cell is one long line.
+                <TableCell key={column}>{`Waiting on the final copy of the ${column.toLowerCase()}`.replaceAll(" ", "\u00a0")}</TableCell>
+              ))}
+            </TableRow>
+          </TableBody>
+        </Table>
+        <CodeBlock code={`curl https://api.example.com/v1/launches?${"status=waiting&".repeat(8)}`} />
+      </Message>,
+    );
+    const viewport = message.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const code = message.querySelector<HTMLElement>('[data-ouro-part="code"]')!;
+    for (const box of [viewport, code]) {
+      await expect.poll(() => box.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+      expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
+      expect(getComputedStyle(box).maskImage).toContain("linear-gradient");
+      expect(box.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
+    }
+    // The bubble stays inside the list's width, rather than growing to the table's.
+    expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
+  });
+
   it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
     const { host } = await render(
       <>

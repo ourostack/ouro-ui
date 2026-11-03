@@ -72,6 +72,8 @@ const componentFiles = [
   "registry/ouro/lib/ouro/share.ts",
   "registry/ouro/lib/ouro/use-install-prompt.ts",
   "registry/ouro/lib/ouro/claims.ts",
+  "registry/ouro/lib/ouro/people-cache.ts",
+  "registry/ouro/lib/ouro/use-person.ts",
 ];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(
@@ -744,7 +746,7 @@ const readmeItems = [
   "",
   `Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool \`ax-example\`, \`ouro-ax-tests\` with their \`<name>-tests\` items, and \`ouro-ax\`, which is:\n${axItemNames.map(code).join(",\n")}.`,
   "",
-  "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, and `ouro-source-rules`, which finds the controls your source still builds by hand ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
+  "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, and `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
   "",
   `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })}\n${helperItems.map(code).join(",\n")}.\n${claim(
     "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",

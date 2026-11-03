@@ -26,6 +26,22 @@ export interface ComposerQuote {
    * @claim "One line shows, cut with" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows the quote inside the frame above the text: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
    */
   excerpt: string;
+  /**
+   * What the quote shows in place of `author`, when plain text cannot draw it: a name with its
+   * emoji as pictures (`<EmojiText text={name} catalogue={catalogue} />`). `author` stays the
+   * name in the remove button's and screen readers' words.
+   *
+   * @claim "What the quote shows in place of `author`" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows authorContent and excerptContent in place of the author and the excerpt, while screen readers hear the text)
+   */
+  authorContent?: ReactNode;
+  /**
+   * What the quote shows in place of `excerpt`, when plain text cannot draw it: the line with its
+   * emoji as pictures (`<EmojiText text={line} catalogue={catalogue} />`), on one line, cut with an
+   * ellipsis. `excerpt` stays what screen readers hear.
+   *
+   * @claim "What the quote shows in place of `excerpt`" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > shows authorContent and excerptContent in place of the author and the excerpt, while screen readers hear the text)
+   */
+  excerptContent?: ReactNode;
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /** Removes the quote: called by the remove button, and by Escape while the box is empty. Set `quote` to `undefined` in it. */
@@ -194,10 +210,17 @@ function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Ele
           {quote.label ?? `Quoting ${quote.author}`}:{" "}
         </span>
         <span aria-hidden="true" data-ouro-composer-quote-author="" className="truncate text-xs font-semibold text-foreground">
-          {quote.author}
+          {quote.authorContent ?? quote.author}
         </span>
         <span id={`${id}-excerpt`} data-ouro-composer-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
-          {quote.excerpt}
+          {quote.excerptContent === undefined ? (
+            quote.excerpt
+          ) : (
+            <>
+              <span aria-hidden="true">{quote.excerptContent}</span>
+              <span className="sr-only">{quote.excerpt}</span>
+            </>
+          )}
         </span>
       </span>
     </>

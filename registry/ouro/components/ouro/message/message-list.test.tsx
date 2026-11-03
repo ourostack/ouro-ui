@@ -68,6 +68,7 @@ function Chat({
   newMessageLabel?: (author: string, text: string) => string;
   loadingOlder?: boolean;
   loadingOlderLabel?: string;
+  hasOlder?: boolean;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
@@ -916,6 +917,97 @@ describe("MessageList", () => {
     expect(tops()).toEqual(before);
   });
 
+  it("keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    // The first message, focused from the keyboard, so its focus ring shows.
+    await pressTab();
+    await userEvent.keyboard("{Home}");
+    const first = scroller.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    expect(document.activeElement).toBe(first);
+    expect(scroller.scrollTop).toBe(0);
+    const style = getComputedStyle(first);
+    expect(style.outlineStyle).not.toBe("none");
+    const ring = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const before = tops();
+    const height = scroller.scrollHeight;
+    await rerender(<Chat items={items} hasOlder loadingOlder />);
+    const pill = page.getByText("Loading older messages").element();
+    await expect.poll(() => pill.getBoundingClientRect().height).toBeGreaterThan(0);
+    expect(pill.getBoundingClientRect().bottom).toBeLessThanOrEqual(first.getBoundingClientRect().top - ring);
+    expect(tops()).toEqual(before);
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.scrollTop).toBe(0);
+    await rerender(<Chat items={items} hasOlder />);
+    await expect.element(page.getByText("Loading older messages")).not.toBeInTheDocument();
+    expect(tops()).toEqual(before);
+  });
+
+  it("keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const room = () => scroller.querySelector("[data-ouro-message-list-older-room]");
+    const before = tops();
+    // The start is reached at the top: the room stays, so nothing moves.
+    await rerender(<Chat items={items} />);
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    expect(tops()).toEqual(before);
+    // A scroll that leaves part of it in view keeps it.
+    await act(async () => void (scroller.scrollTop = 10));
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    // Scrolled out of view, it goes, and the messages stay where the scroll put them.
+    await act(async () => void (scroller.scrollTop = 200));
+    const scrolled = tops();
+    await expect.poll(room).toBeNull();
+    await settle(scroller);
+    tops().forEach((top, index) => near(top, scrolled[index]!));
+  });
+
+  it("drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message", async () => {
+    const items = history(20, 10);
+    const room = () => scroller.querySelector("[data-ouro-message-list-older-room]");
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    expect(room()).toBeNull();
+    // Added at the end: the list stays at its end.
+    await rerender(<Chat items={items} hasOlder />);
+    expect(room()).not.toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    // Ended at the end: it goes at once, and the list stays at its end.
+    let before = tops();
+    await rerender(<Chat items={items} />);
+    expect(room()).toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    tops().forEach((top, index) => near(top, before[index]!));
+    // So in a short conversation, where it shows at the end.
+    const short = await render(<Chat items={history(2)} hasOlder />);
+    const shortRoom = short.scroller.querySelector("[data-ouro-message-list-older-room]")!;
+    expect(shortRoom.getBoundingClientRect().bottom).toBeGreaterThan(short.scroller.getBoundingClientRect().top);
+    const shortTops = [...short.scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    await short.rerender(<Chat items={history(2)} />);
+    expect(short.scroller.querySelector("[data-ouro-message-list-older-room]")).toBeNull();
+    expect([...short.scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top)).toEqual(shortTops);
+    // Added mid-conversation: the reader's messages stay where they are.
+    await wheel(scroller, -400);
+    before = tops();
+    await rerender(<Chat items={items} hasOlder />);
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    tops().forEach((top, index) => near(top, before[index]!));
+    // Ended out of view: it goes at once, with no scroll to wait for.
+    await rerender(<Chat items={items} />);
+    expect(room()).toBeNull();
+    tops().forEach((top, index) => near(top, before[index]!));
+  });
+
   it("takes a translated label for older messages loading", async () => {
     await render(<Chat items={history(3)} loadingOlder loadingOlderLabel="Cargando mensajes anteriores" />);
     await expect.element(page.getByText("Cargando mensajes anteriores")).toBeVisible();
@@ -1219,11 +1311,21 @@ const posts = (count = 6, extra: (index: number) => ReactNode = () => null) =>
   ));
 
 /** A list between two buttons, so Tab has somewhere to come from and go to. */
-function Channel({ children, height = 300, onMessageKeyDown }: { children: ReactNode; height?: number; onMessageKeyDown?: (message: HTMLElement, event: React.KeyboardEvent<HTMLElement>) => void }) {
+function Channel({
+  children,
+  height = 300,
+  onMessageKeyDown,
+  pageKeys,
+}: {
+  children: ReactNode;
+  height?: number;
+  onMessageKeyDown?: (message: HTMLElement, event: React.KeyboardEvent<HTMLElement>) => void;
+  pageKeys?: boolean;
+}) {
   return (
     <div>
       <button type="button">Before</button>
-      <MessageList label="Channel" style={{ height }} onMessageKeyDown={onMessageKeyDown}>
+      <MessageList label="Channel" style={{ height }} onMessageKeyDown={onMessageKeyDown} pageKeys={pageKeys}>
         {children}
       </MessageList>
       <button type="button">After</button>
@@ -1288,6 +1390,63 @@ describe("MessageList keyboard", () => {
     expect(focusedId()).toBe(`post-${up}`);
     await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
     expect(Number(focusedId().slice(5))).toBeGreaterThan(up + 1);
+  });
+
+  it("leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    // An app's window shortcut, listening in the bubble phase, as most do.
+    const heard: string[] = [];
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Alt" || event.key === "Meta") return;
+      heard.push(`${event.altKey ? "Alt+" : ""}${event.metaKey ? "Meta+" : ""}${event.key}${event.defaultPrevented ? " prevented" : ""}`);
+    };
+    const { rerender } = await render(<Channel>{posts(14)}</Channel>);
+    await rerender(<Channel pageKeys={false}>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("post-13");
+    window.addEventListener("keydown", onKey);
+    try {
+      await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+      await userEvent.keyboard("{PageUp}");
+      expect(focusedId()).toBe("post-13");
+      await userEvent.keyboard("{ArrowUp}");
+      expect(focusedId()).toBe("post-12");
+      await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+      await userEvent.keyboard("{PageDown}");
+      expect(focusedId()).toBe("post-12");
+      // ⌘↑ is still Home.
+      await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+      expect(focusedId()).toBe("post-0");
+      expect(heard).toEqual(["Alt+ArrowUp", "PageUp", "ArrowUp prevented", "Alt+ArrowDown", "PageDown", "Meta+ArrowUp prevented"]);
+    } finally {
+      window.removeEventListener("keydown", onKey);
+    }
+  });
+
+  it("leaves ⌘↑, ⌘↓, ⌥↑ and ⌥↓ alone on a Mac once an app's capture-phase shortcut prevented them", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const heard: string[] = [];
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.key.startsWith("Arrow") || !(event.altKey || event.metaKey)) return;
+      heard.push(`${event.metaKey ? "Meta" : "Alt"}+${event.key}`);
+      event.preventDefault();
+    };
+    await render(<Channel>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    window.addEventListener("keydown", onKey, { capture: true });
+    try {
+      for (const press of ["{Alt>}{ArrowUp}{/Alt}", "{Meta>}{ArrowUp}{/Meta}", "{Alt>}{ArrowDown}{/Alt}", "{Meta>}{ArrowDown}{/Meta}"]) {
+        await userEvent.keyboard(press);
+        expect(focusedId()).toBe("post-13");
+      }
+      expect(heard).toEqual(["Alt+ArrowUp", "Meta+ArrowUp", "Alt+ArrowDown", "Meta+ArrowDown"]);
+    } finally {
+      window.removeEventListener("keydown", onKey, { capture: true });
+    }
   });
 
   it("moves between messages with the arrow keys, Home, End, Page Up and Page Down, with a focus ring", async () => {

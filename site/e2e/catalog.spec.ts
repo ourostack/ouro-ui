@@ -61,8 +61,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  */
 const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 
-/** The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). */
-const CSS_CEILINGS = { voyage: 36 * 1024, docs: 40 * 1024 } as const;
+/**
+ * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
+ * ceiling also pays for the component classes its pages reach (site/src/voyage/voyage-sources.generated.css).
+ */
+const CSS_CEILINGS = { voyage: 37 * 1024, docs: 40 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
