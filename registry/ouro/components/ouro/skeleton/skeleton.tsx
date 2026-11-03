@@ -24,7 +24,11 @@ interface SkeletonCommonProps {
   height?: { 'Use <Skeleton className="h-6">, or <Skeleton shape="text" lines={3}>': never };
 }
 
-type ShapeHint = string & { 'Use "rect", "text", "circle", "row" or "card"; for an avatar use "circle"': never };
+/** The `shape` prop, declared once and shared by the shapes, so hovering it shows its JSDoc. */
+interface ShapeOf<S> {
+  /** The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. Leave it out for `rect`. */
+  shape: S;
+}
 
 /**
  * The outline of what is loading, and the sizes that make it take the content's exact space.
@@ -37,15 +41,12 @@ type ShapeHint = string & { 'Use "rect", "text", "circle", "row" or "card"; for 
  * @claim "`rect` is a block (an image, a chart)" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact box of an Avatar at each of its sizes)
  */
 export type SkeletonShapeProps =
-  | {
-      /** @default "rect" */
-      shape?: "rect" | ShapeHint | undefined;
+  | (Partial<ShapeOf<"rect">> & {
       size?: never;
       lines?: never;
       count?: never;
-    }
-  | {
-      shape: "text";
+    })
+  | (ShapeOf<"text"> & {
       /**
        * Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size.
        * @claim "Text's size, so each line is one line box" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > takes the space of the text it stands in for at each of Text's sizes, the last of several lines shorter)
@@ -57,9 +58,8 @@ export type SkeletonShapeProps =
        */
       lines?: number | undefined;
       count?: never;
-    }
-  | {
-      shape: "circle";
+    })
+  | (ShapeOf<"circle"> & {
       /**
        * Avatar's size, so it is the avatar's exact box. Leave it out to size it with a layout class.
        * @default "md"
@@ -67,9 +67,8 @@ export type SkeletonShapeProps =
       size?: SkeletonAvatarSize | (string & { 'Use Avatar\'s sizes: "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
       lines?: never;
       count?: never;
-    }
-  | {
-      shape: "row" | "card";
+    })
+  | (ShapeOf<"row" | "card"> & {
       /**
        * Item's or Card's size, so each placeholder is that component's exact height.
        * @claim "Item's or Card's size, so each placeholder" registry/ouro/components/ouro/skeleton/skeleton.test.tsx verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > is the exact height of an Item row and an outline Card, at each size, so nothing moves when they arrive)
@@ -83,7 +82,7 @@ export type SkeletonShapeProps =
        */
       count?: number | undefined;
       lines?: never;
-    };
+    });
 
 /** The props Skeleton adds to the `<div>` attributes it passes through. */
 export type SkeletonOwnProps = SkeletonCommonProps & SkeletonShapeProps;

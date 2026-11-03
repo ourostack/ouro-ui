@@ -34,16 +34,13 @@ The props the modes share. Type: `SkeletonProps`.
 | --- | --- | --- |
 | `className` | `string` | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
 | `ref` | `Ref<HTMLDivElement>` | Reaches the rendered element. |
+| `shape` | `S` | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. Leave it out for `rect`. |
 
 ## Modes
 
 `SkeletonProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
-### With `shape`
-
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `shape` | `"rect"` | `"rect"` |  |
+### With 
 
 Not in this mode (typed `never`):
 
@@ -51,11 +48,10 @@ Not in this mode (typed `never`):
 - `lines`: 
 - `size`: 
 
-### With `shape` and `size`
+### With `size`
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `shape` (required) | `"circle"` |  |  |
 | `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | Avatar's size, so it is the avatar's exact box. Leave it out to size it with a layout class. |
 
 Not in this mode (typed `never`):
@@ -63,24 +59,22 @@ Not in this mode (typed `never`):
 - `count`: 
 - `lines`: 
 
-### With `shape` and `size` and `count`
+### With `size` and `count`
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `count` | `number` | `1` | How many rows or cards to show. Each is its own element, so they sit in the list or grid the content will fill. |
-| `shape` (required) | `"row" \| "card"` |  |  |
 | `size` | `"sm" \| "md"` | `"md"` | Item's or Card's size, so each placeholder is that component's exact height. |
 
 Not in this mode (typed `never`):
 
 - `lines`: 
 
-### With `shape` and `size` and `lines`
+### With `size` and `lines`
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `lines` | `number` | `1` | How many lines of text it stands in for; the last of several is shorter, like a paragraph's. |
-| `shape` (required) | `"text"` |  |  |
 | `size` | `"sm" \| "md" \| "lg"` |  | Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size. |
 
 Not in this mode (typed `never`):
