@@ -571,6 +571,7 @@ function useAutoHide(
     // then: a layer that opens after it and takes focus is the one that control opened, and it
     // lends the bar a hold while it stays open, so the bar is in place to take focus back.
     let opener: Element | null = null;
+    // Stryker disable next-line ArrayDeclaration: every press or key sets it with opener, and it is read only while opener is set.
     let open: Element[] = [];
     let lent: Element | null = null;
     const held = () => {

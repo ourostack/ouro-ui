@@ -813,6 +813,7 @@ describe("Toolbar autoHide", () => {
     await point(picture, "pointerdown", 131, 130);
     await wait(5000);
     expect(isHidden(toolbar)).toBe(false);
+    expect(onHiddenChange.mock.calls).toEqual([[true], [false]]);
   });
 
   it("starts a new rest when autoHide changes", async () => {
