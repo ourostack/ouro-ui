@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -108,7 +108,11 @@ describe("Ouro check", () => {
     const pressed = measured.filter((f) => f.rule === "inp");
     assert.deepEqual(pressed.map((f) => `${f.width}x${f.height} ${f.theme} ${f.element}`), ['1280x800 dark button#slow "Save"']);
     assert.ok(pressed[0]!.value! >= 400 && pressed[0]!.budget === BUDGETS.inp && pressed[0]!.unit === "ms", pressed[0]!.detail);
-    assert.match(pressed[0]!.detail, /^\d+ ms from the press to its paint, over the budget of 200 ms$/);
+    assert.match(pressed[0]!.detail, /^\d+ ms from the press to its paint at the 75th percentile of 5 presses, over the budget of 200 ms$/);
+    // Pressed five times, and gated on the 75th percentile of the five.
+    const samples = pressed[0]!.samples!;
+    assert.equal(samples.length, 5);
+    assert.equal(pressed[0]!.value, [...samples].sort((a, b) => a - b)[3]);
     const shifted = measured.find((f) => f.rule === "layout-shift")!;
     assert.ok(shifted.value! > BUDGETS["layout-shift"] && shifted.budget === BUDGETS["layout-shift"] && shifted.unit === "", shifted.detail);
     assert.equal(shifted.element, "div#board");
@@ -116,7 +120,8 @@ describe("Ouro check", () => {
     assert.ok(late.value! >= 3000 && late.unit === "ms" && late.element.startsWith('p#late "This paragraph'), late.detail);
     for (const f of measured.filter((f) => f.closeUp)) assert.ok(existsSync(join(out, f.closeUp!)), f.closeUp);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms"));
+    assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms" && f.samples!.length === 5));
+    assert.ok(report.findings.filter((f) => f.rule !== "inp").every((f) => !("samples" in f)));
     assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
     assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
 
@@ -128,11 +133,29 @@ describe("Ouro check", () => {
     assert.deepEqual(off.findings, []);
   });
 
+  test("presses only what a page or the config lists, never a destructive control, as often as the config says", async () => {
+    const slow = '<script>for (const b of document.querySelectorAll("button")) b.addEventListener("click", () => { const t = performance.now(); while (performance.now() - t < 400); });</script>';
+    const folder = site("opt-in", {
+      "page.html": page(`<h1>Opt in</h1><button id="save" type="button">Save</button><button id="delete" type="button" class="bg-destructive">Delete</button><button id="buy" type="button" data-ouro-check-no-press>Buy</button>${slow}`),
+    });
+    const run = (config: Gate) => check({ targets: [folder], out: dir("opt-in"), sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
+    const inp = (result: { findings: Finding[] }) => result.findings.filter((f) => f.rule === "inp");
+    // Nothing is listed: nothing is pressed.
+    assert.deepEqual(inp(await run({})), []);
+    // A listed control is pressed, as often as pressRepeat says.
+    const listed = inp(await run({ press: ["#save"], pressRepeat: 3 }));
+    assert.deepEqual(listed.map((f) => f.element), ['button#save "Save"']);
+    assert.equal(listed[0]!.samples!.length, 3);
+    // A destructive or opted-out control is never pressed, even when listed.
+    assert.deepEqual(inp(await run({ press: ["#delete", "#buy", ".bg-destructive"] })), []);
+    await assert.rejects(run({ press: ["[unclosed"] }), /ouro-check.json's "press" has a selector the browser refuses: /);
+  });
+
   test("presses in a context of its own, so what a press saves reaches no other page", async () => {
     // The pages after the pressed one load slowly, so the tab that pressed takes the last page next.
     const slow = page("<h1>Slow</h1>", '<script>document.documentElement.setAttribute("data-app-ready", "false"); setTimeout(() => document.documentElement.setAttribute("data-app-ready", "true"), 2500);</script>');
     const folder = site("pressed", {
-      "a-press.html": page('<h1>Press</h1><button type="button" onclick="localStorage.setItem(\'pressed\', \'1\')">Remember</button>'),
+      "a-press.html": page('<h1>Press</h1><button type="button" data-ouro-check-press onclick="localStorage.setItem(\'pressed\', \'1\')">Remember</button>'),
       "b-slow.html": slow,
       "c-slow.html": slow,
       "d-slow.html": slow,

@@ -10,8 +10,8 @@ import type { PageIssue } from "./size-check.ts";
 //                  largest burst of shifts no input caused, as browsers score it
 //   first-content  how long the page took to draw its largest text or picture, its first useful content; a skeleton
 //                  draws neither, so a page that shows one first is timed to what replaces it
-//   inp            how long a press took to paint: for each pressable control, the longest event of its press, from
-//                  the press to the next frame drawn after its handlers ran
+//   inp            how long a press took to paint: for each control the app lists for pressing, the longest event of
+//                  its press, from the press to the next frame drawn after its handlers ran
 //
 // An element opts out with data-ouro-allow="<rule>" and a reason in data-ouro-allow-why, as the other rules do.
 
@@ -118,27 +118,30 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
   return issues;
 }
 
-// Marks the first `limit` controls a person can press, shown and enabled, and names each. Not a link, whatever its role,
-// which would leave the page, nor a form's submit button, inside the form or tied to it by its form attribute, which
-// would send it.
-function markPressables(limit: number): Pressable[] {
+// Marks the first `limit` controls listed for pressing, shown and enabled, and names each: the ones ouro-check.json's
+// "press" selectors match, and the ones marked data-ouro-check-press. Pressing is opt-in because a press does what it
+// says, on whatever server the app talks to. Even when listed, it never marks a control with a destructive tone or
+// inside one (Ouro's and shadcn's destructive classes, or data-tone or data-variant "destructive"), one marked
+// data-ouro-check-no-press, a link, whatever its role, which would leave the page, or a form's submit button, inside
+// the form or tied to it by its form attribute, which would send it.
+function markPressables({ limit, press }: { limit: number; press: string[] }): Pressable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
+  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
+  for (const el of document.querySelectorAll("[data-ouro-allow-why]")) el.setAttribute("data-ouro-allow-why", el.getAttribute("data-ouro-allow-why")!.trim());
   const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
-  const selector = 'button, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="option"], summary, input[type="checkbox"], input[type="radio"]';
+  const never = `a[href], area[href], [data-ouro-check-no-press], [data-tone="destructive"], [data-variant="destructive"], [class*="destructive"], [data-ouro-allow~="inp"]${why}, [data-ouro-allow~="all"]${why}`;
   const words = (el: Element) => (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ");
   const name = (el: Element) => {
     const w = words(el);
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}${w ? ` "${w.slice(0, 40)}${w.length > 40 ? "…" : ""}"` : ""}`;
   };
-  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
-  for (const el of document.querySelectorAll("[data-ouro-allow-why]")) el.setAttribute("data-ouro-allow-why", el.getAttribute("data-ouro-allow-why")!.trim());
   const pressable = (el: Element) => {
-    if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(`a[href], area[href], [data-ouro-allow~="inp"]${why}, [data-ouro-allow~="all"]${why}`)) return false;
+    if (el.matches(':disabled, [aria-disabled="true"]') || el.closest(never)) return false;
     if (el.matches("button") && (el as HTMLButtonElement).form && (el as HTMLButtonElement).type === "submit") return false;
     const r = el.getBoundingClientRect();
     return r.width >= 2 && r.height >= 2 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   };
-  return [...document.querySelectorAll(selector)]
+  return [...document.querySelectorAll([...press, "[data-ouro-check-press]"].join(", "))]
     .filter(pressable)
     .slice(0, limit)
     .map((el) => {

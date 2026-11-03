@@ -40,6 +40,8 @@ interface Finding {
   value?: number;
   budget?: number;
   unit?: string;
+  // inp's presses of the control, each in ms, whose 75th percentile is its value.
+  samples?: number[];
   // The device pixel ratio the page was drawn at (dprAt); missing in a report written before it was recorded.
   dpr?: number;
   box?: Box;
@@ -96,6 +98,10 @@ interface Budgets {
 interface Gate {
   waive?: Record<string, Record<string, string>>;
   budgets?: Partial<Budgets>;
+  // The controls inp may press, as CSS selectors, besides those marked data-ouro-check-press; and how often it presses
+  // each.
+  press?: string[];
+  pressRepeat?: number;
 }
 
 interface CheckOptions {
@@ -163,8 +169,10 @@ const HINTS: Record<string, string> = {
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
 // calls good, a 0.1 layout shift, 2500 ms to the largest content and 200 ms from a press to its paint.
 const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500 });
-// inp presses at most this many controls a page, at one size and theme: a laptop's, or the widest given.
+// inp presses at most this many controls a page, each PRESS_REPEAT times unless ouro-check.json says otherwise, at one
+// size and theme: a laptop's, or the widest given.
 const MAX_PRESSES = 24;
+const PRESS_REPEAT = 5;
 const INP_SIZE = "1440x900";
 // The device pixel ratio a screen `width` CSS pixels wide is drawn at: 2 up to 3072, the widest real 2x screen (a 6K
 // display), and 1 above it, so a 3840 screen asks for the pictures a 4K monitor shows, not 8K-class files.
@@ -172,6 +180,14 @@ const dprAt = (width: number) => (width <= 3072 ? 2 : 1);
 const MAX_CLOSE_UPS = 40;
 const TABS = 4;
 
+// Whether a page has a control listed for pressing, as an expression run in the page; and the error for a selector the
+// browser refuses.
+const anyListed = (press: string[]) => `document.querySelector(${JSON.stringify([...press, "[data-ouro-check-press]"].join(", "))}) !== null`;
+const refused = (problem: Error): never => {
+  throw new Error(`ouro-check.json's "press" has a selector the browser refuses: ${problem.message}`);
+};
+// The 75th percentile of some numbers, 0 for none.
+const p75 = (samples: number[]) => [...samples].sort((a, b) => a - b)[Math.ceil(samples.length * 0.75) - 1] ?? 0;
 const keyOf = (f: Finding) => `${f.site}\u0000${f.page}\u0000${f.rule}\u0000${f.element}`;
 const spotOf = (f: Finding) => `${keyOf(f)}\u0000${f.width}x${f.height}\u0000${f.theme}`;
 const pageOf = (f: { site: string; page: string }) => `${f.site} ${f.page}`;
@@ -244,6 +260,7 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
 async function check(options: CheckOptions): Promise<CheckResult> {
   const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measure = true, readyEvents = [], readyTimeout = 15000, log = console.log } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
+  const repeats = config.pressRepeat ?? PRESS_REPEAT;
   const { list, close } = await targetsOf(options.targets, options.pages);
   // --shard k/n: the kth of every n (page, size) pairs, taken along the diagonal so each job gets a share of the pages
   // at every size and a share of the sizes of every page, whatever the counts.
@@ -288,8 +305,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
   const record = async (page: Page, target: Target, issue: PageIssue, width: number, height: number, theme: string) => {
-    const { ref, rule, element, detail, value, budget, unit } = issue;
-    const measured = value === undefined ? {} : { value, budget: budget!, unit: unit! };
+    const { ref, rule, element, detail, value, budget, unit, samples } = issue;
+    const measured = value === undefined ? {} : { value, budget: budget!, unit: unit!, ...(samples ? { samples } : {}) };
     const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width) };
     findings.push(f);
     const key = keyOf(f);
@@ -302,30 +319,39 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     f.box = await shoot(page, join(out, raw(f.closeUp)), box);
     await page.evaluate(outline, { ref, on: false });
   };
-  // inp: presses each control in turn, each finding photographed as the press left the page, and Escape after it, to
-  // close what it opened. A press that leaves the page opens it again for the next.
+  // inp: presses each listed control in turn, a few times, and Escape after each press, to close what it opened. A
+  // press that leaves the page opens it again and ends that control's presses. The finding is the presses' 75th
+  // percentile, so one slow press on a busy machine does not make one; its photograph is the page after the presses.
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
     let at = page.url();
-    let controls = await page.evaluate(markPressables, MAX_PRESSES);
+    const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [] });
+    let controls = await mark();
     // By index: a page opened again is marked again, in the same order.
     for (let i = 0; i < controls.length; i++) {
       const { ref, element } = controls[i]!;
-      const point = await page.evaluate(pressPoint, ref);
-      if (!point) continue;
-      const since = (await page.evaluate("performance.now()")) as number;
-      await page.mouse.click(point.x, point.y);
-      /* node:coverage ignore next */
-      const ms = await page.evaluate(interactionSince, since).catch(() => 0);
-      if (page.url() === at && ms > budgets.inp) {
-        found++;
-        await record(page, target, { ref, rule: "inp", element, detail: `${ms} ms from the press to its paint, over the budget of ${budgets.inp} ms`, value: ms, budget: budgets.inp, unit: "ms" }, width, height, theme);
+      const samples: number[] = [];
+      for (let n = 0; n < repeats; n++) {
+        const point = await page.evaluate(pressPoint, ref);
+        if (!point) break;
+        const since = (await page.evaluate("performance.now()")) as number;
+        await page.mouse.click(point.x, point.y);
+        /* node:coverage ignore next */
+        const ms = await page.evaluate(interactionSince, since).catch(() => 0);
+        await page.keyboard.press("Escape");
+        if (page.url() !== at) {
+          await open(page, target.url, readyTimeout);
+          at = page.url();
+          controls = await mark();
+          break;
+        }
+        samples.push(ms);
       }
-      await page.keyboard.press("Escape");
-      if (page.url() !== at) {
-        await open(page, target.url, readyTimeout);
-        at = page.url();
-        controls = await page.evaluate(markPressables, MAX_PRESSES);
+      const value = p75(samples);
+      if (value > budgets.inp) {
+        found++;
+        const detail = `${value} ms from the press to its paint at the 75th percentile of ${samples.length} presses, over the budget of ${budgets.inp} ms`;
+        await record(page, target, { ref, rule: "inp", element, detail, value, budget: budgets.inp, unit: "ms", samples }, width, height, theme);
       }
     }
     return found;
@@ -359,8 +385,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await page.evaluate("window.scrollTo(0, 0)");
     await page.screenshot({ path: join(out, "sheets/shots", file), type: "jpeg", quality: 70, scale: "css" });
     // Pressed in a context of its own, so what a press saves (a theme, a dismissed banner) reaches no other page.
+    // Only on a page with a control listed for pressing: pressing is opt-in.
     let pressed = 0;
-    if (measure && !failed && inpAt === `${width}x${height} ${theme}`) {
+    const listed = measure && !failed && inpAt === `${width}x${height} ${theme}` && ((await page.evaluate(anyListed(config.press ?? [])).catch(refused)) as boolean);
+    if (listed) {
       const own = await contextFor(width, height, theme);
       const tab = await own.newPage();
       await open(tab, target.url, readyTimeout);

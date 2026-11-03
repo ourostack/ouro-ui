@@ -26,6 +26,7 @@ interface PageIssue {
   value?: number;
   budget?: number;
   unit?: string;
+  samples?: number[];
 }
 
 interface SizeCheckOptions {

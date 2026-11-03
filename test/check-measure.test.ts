@@ -115,37 +115,51 @@ describe("findLoadingIssues", () => {
 });
 
 describe("markPressables", () => {
-  it("marks and names the controls a person can press, shown and enabled, up to the limit, and no link or form submit", () => {
+  it("marks nothing unless it is listed for pressing", () => {
+    render('<button id="one">One</button><div role="button">Two</div><input type="checkbox" aria-label="Three">');
+    expect(markPressables({ limit: 24, press: [] })).toEqual([]);
+    expect(document.querySelector("[data-ouro-check-ref]")).toBeNull();
+  });
+
+  it("marks and names the listed controls, shown and enabled, up to the limit, and never a destructive one, a link or a form submit", () => {
     render(`
-      <button id="one" class="a b c d">One</button>
-      <div role="tab" aria-label="Second tab">2</div>
-      <summary>More</summary>
-      <input type="checkbox" aria-label="Agree">
-      <button disabled>Off</button>
-      <div role="button" aria-disabled="true">Off too</div>
-      <button hidden>Hidden</button>
-      <button style="visibility:hidden">Invisible</button>
-      <span data-ouro-allow="inp" data-ouro-allow-why="slow on purpose"><button>Allowed</button></span>
-      <form id="f"><button>Send</button><button type="button">Add a row</button></form>
-      <button form="f">Send too</button>
-      <a href="#">A link</a>
-      <a href="#" role="button">A link as a button</a>
-      <button>${"A long label ".repeat(5)}</button>
-      <button>Past the limit</button>`);
-    expect(markPressables(7)).toEqual([
+      <button id="one" class="a b c d" data-ouro-check-press>One</button>
+      <div role="tab" aria-label="Second tab" class="listed">2</div>
+      <summary class="listed">More</summary>
+      <input type="checkbox" aria-label="Agree" class="listed">
+      <button class="listed">Left out by the selector</button>
+      <button disabled data-ouro-check-press>Off</button>
+      <div role="button" aria-disabled="true" data-ouro-check-press>Off too</div>
+      <button hidden data-ouro-check-press>Hidden</button>
+      <button style="visibility:hidden" data-ouro-check-press>Invisible</button>
+      <button class="bg-destructive text-destructive-foreground" data-ouro-check-press>Delete</button>
+      <div data-tone="destructive"><button data-ouro-check-press>Inside a destructive menu item</button></div>
+      <button data-variant="destructive" class="listed">Remove</button>
+      <button data-ouro-check-no-press class="listed">Buy</button>
+      <span data-ouro-allow="inp" data-ouro-allow-why="slow on purpose"><button data-ouro-check-press>Allowed</button></span>
+      <span data-ouro-allow="inp" data-ouro-allow-why="  "><button id="spaces" data-ouro-check-press>A reason of spaces</button></span>
+      <form id="f"><button data-ouro-check-press>Send</button><button type="button" data-ouro-check-press>Add a row</button></form>
+      <button form="f" data-ouro-check-press>Send too</button>
+      <a href="#" role="button" data-ouro-check-press>A link as a button</a>
+      <button data-ouro-check-press>${"A long label ".repeat(5)}</button>
+      <button data-ouro-check-press>Past the limit</button>`);
+    expect(markPressables({ limit: 8, press: [".listed:not(button)"] })).toEqual([
       { ref: "p1", element: 'button#one.a.b.c "One"' },
-      { ref: "p2", element: 'div "Second tab"' },
-      { ref: "p3", element: 'summary "More"' },
-      { ref: "p4", element: 'input "Agree"' },
-      { ref: "p5", element: 'button "Add a row"' },
-      { ref: "p6", element: 'button "A long label A long label A long label A…"' },
-      { ref: "p7", element: 'button "Past the limit"' },
+      { ref: "p2", element: 'div.listed "Second tab"' },
+      { ref: "p3", element: 'summary.listed "More"' },
+      { ref: "p4", element: 'input.listed "Agree"' },
+      { ref: "p5", element: 'button#spaces "A reason of spaces"' },
+      { ref: "p6", element: 'button "Add a row"' },
+      { ref: "p7", element: 'button "A long label A long label A long label A…"' },
+      { ref: "p8", element: 'button "Past the limit"' },
     ]);
-    expect(markPressables(1)).toEqual([{ ref: "p8", element: 'button#one.a.b.c "One"' }]);
-    expect(document.getElementById("one")!.getAttribute("data-ouro-check-ref")).toBe("p1 p8");
+    expect(markPressables({ limit: 1, press: [] })).toEqual([{ ref: "p9", element: 'button#one.a.b.c "One"' }]);
+    expect(document.getElementById("one")!.getAttribute("data-ouro-check-ref")).toBe("p1 p9");
+    // Listed by a selector, a destructive or opted-out control is still never pressed.
+    expect(markPressables({ limit: 24, press: ["[data-variant]", "[data-ouro-check-no-press]", ".bg-destructive"] }).map((p) => p.element)).not.toContain('button "Remove"');
     host.remove();
-    render('<button aria-label="" style="width:24px;height:24px"></button>');
-    expect(markPressables(20).at(-1)!.element).toBe("button");
+    render('<button aria-label="" style="width:24px;height:24px" data-ouro-check-press></button>');
+    expect(markPressables({ limit: 20, press: [] }).at(-1)!.element).toBe("button");
   });
 });
 
