@@ -150,17 +150,25 @@ describe("Avatar", () => {
       const named = (await render(<Avatar name="Ana Lind" size="lg" shape={shape} />)).avatar.getBoundingClientRect();
       const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
       expect(avatar.getAttribute("aria-label")).toBe("Name loading");
-      expect(avatar.hasAttribute("data-name-loading")).toBe(true);
+      expect(avatar.getAttribute("data-name-loading")).toBe("");
       expect(avatar.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
       expect(avatar.querySelector("[data-ouro-avatar-initials]")).toBeNull();
-      expect(getComputedStyle(avatar).overflow).toBe("hidden");
+      const fallback = avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!.parentElement!;
+      expect(getComputedStyle(fallback).overflow).toBe("hidden");
+      expect(getComputedStyle(fallback).borderTopLeftRadius).toBe(getComputedStyle(avatar).borderTopLeftRadius);
       const box = avatar.getBoundingClientRect();
       expect([box.width, box.height]).toEqual([named.width, named.height]);
       expect(avatar.querySelector('[data-ouro="skeleton"]')!.getBoundingClientRect().width).toBe(box.width);
     }
-    expect((await render(<Avatar name={null} nameLoadingLabel="Nom en cours" presence="busy" presenceLabel="Occupé" />)).avatar.getAttribute("aria-label")).toBe(
-      "Nom en cours, Occupé",
-    );
+    const busy = (await render(<Avatar name={null} nameLoadingLabel="Nom en cours" presence="busy" presenceLabel="Occupé" />)).avatar;
+    expect(busy.getAttribute("aria-label")).toBe("Nom en cours, Occupé");
+    // The presence dot stays whole: the same box as beside a name.
+    const dot = (avatar: HTMLElement) => {
+      const [box, at] = [avatar.querySelector("[data-ouro-avatar-presence]")!.getBoundingClientRect(), avatar.getBoundingClientRect()];
+      return [box.left - at.left, box.top - at.top, box.width, box.height];
+    };
+    expect(dot(busy)).toEqual(dot((await render(<Avatar name="Ana Lind" presence="busy" presenceLabel="Busy" />)).avatar));
+    expect(busy.querySelector("[data-ouro-avatar-presence]")!.checkVisibility()).toBe(true);
     expect((await render(<Avatar name={null} alt="" />)).avatar.getAttribute("aria-hidden")).toBe("true");
     expect(warn).not.toHaveBeenCalled();
   });

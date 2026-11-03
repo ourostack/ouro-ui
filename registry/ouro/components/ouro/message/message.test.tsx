@@ -276,7 +276,7 @@ describe("Message", () => {
       expect(loading.querySelector(".sr-only")!.textContent).toBe("Name loading");
       expect(loading.getBoundingClientRect().width).toBeGreaterThan(20);
       const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]');
-      if (variant !== "default") expect(avatar!.hasAttribute("data-name-loading")).toBe(true);
+      expect(avatar!.getAttribute("data-name-loading")).toBe("");
       const [height, authorHeight] = [message.getBoundingClientRect().height, author.getBoundingClientRect().height];
       await rerender(shown("Ana Lind"));
       expect(message.querySelector("[data-ouro-message-name-loading]")).toBeNull();
@@ -293,6 +293,13 @@ describe("Message", () => {
     const last = mounted.at(-1)!.querySelector<HTMLElement>("[data-ouro-message-name-loading] .sr-only")!;
     expect(last.textContent).toBe("Nom en cours");
     expect(mounted.at(-1)!.querySelector("b")).toBeNull();
+    // An Avatar element with a presence gets a fix that keeps the name loading.
+    await render(
+      <Message role="assistant" name={null} avatar={<Avatar name={null} alt="" />} presence="busy" presenceLabel="Busy">
+        Hi
+      </Message>,
+    );
+    expect(String(warn.mock.calls.at(-1)?.[0])).toContain('avatar={<Avatar name={null} alt="" size="sm" presence="busy"');
   });
 });
 

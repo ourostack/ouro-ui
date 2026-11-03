@@ -498,7 +498,7 @@ export function Message(props: MessageProps): JSX.Element {
           presence !== undefined &&
             isValidElement(avatar) && [
               "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
-              `avatar={<Avatar name="${name}" alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
+              `avatar={<Avatar name=${nameLoading ? "{null}" : `"${name}"`} alt="" size="sm" presence="${presence}" presenceLabel="${wordsFor(presence, presenceLabel)}" />}`,
             ],
           presence !== undefined &&
             !presenceLabel && [

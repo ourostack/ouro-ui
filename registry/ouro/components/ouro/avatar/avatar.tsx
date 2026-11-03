@@ -436,7 +436,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
         "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
         "font-medium leading-none select-none",
         shape === "square" ? squareRadii[size] : shape === "circle" && "rounded-full",
-        nameLoading ? "overflow-hidden" : tint,
+        !nameLoading && tint,
         sizes[size],
         className,
       )}
@@ -449,10 +449,12 @@ export function Avatar(props: AvatarProps): JSX.Element {
           className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
         />
       )}
-      <BaseAvatar.Fallback className={cn("box-border flex size-full items-center justify-center", iconShown && "*:size-[55%]")}>
+      <BaseAvatar.Fallback
+        className={cn("box-border flex size-full items-center justify-center", iconShown && "*:size-[55%]", nameLoading && "overflow-hidden rounded-[inherit]")}
+      >
         {nameLoading ? (
-          // The avatar's own box and corners clip it, so it is the avatar's exact shape.
-          <Skeleton className="size-full" />
+          // The avatar's own box and corners, so it is the avatar's exact shape; the presence dot stays whole outside it.
+          <Skeleton className="size-full [border-radius:inherit]" />
         ) : iconShown ? (
           icon
         ) : (
