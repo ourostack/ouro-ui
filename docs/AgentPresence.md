@@ -23,7 +23,7 @@ import { AgentPresence } from "@/registry/ouro/components/ouro/agent-presence/ag
 
 The chip is a button named by the count and the names ("2 agents listening: inbox agent, research agent"). When an agent starts or stops listening, screen readers hear it once, politely ("inbox agent is now listening", "inbox agent stopped"). When a Stop goes with its agent, focus moves to the next Stop, and when the last agent goes, to the control after the chip.
 
-Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`, lets agents read who is listening and what for (consent `none`). Stop and Stop all are the person's only: an agent stops its own listening through the app's own command, never through this component.
+Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`, lets agents read who is listening and what for (consent `none`), and take Stop and Stop all, since stopping only reduces what is heard. It offers no way to start listening: that stays the person's.
 
 ## Use instead when
 

@@ -4,6 +4,8 @@ export { agentPresenceAx, agentPresenceSizes, doingClass, unreadDotClass };
 // file exports only components (React Fast Refresh). Class strings are literal so the app's
 // Tailwind finds them when it compiles.
 
+import { defineComponentAx } from "@/registry/ouro/ax/component";
+
 /** The chip's sizes, which are Button's. @internal */
 const agentPresenceSizes = ["sm", "md", "lg"] as const;
 
@@ -17,17 +19,17 @@ const unreadDotClass = "inline-block size-2 shrink-0 rounded-full bg-primary for
 const doingClass = "text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
- * AgentPresence's agent side, for Ouro AX's kit. Agents may read which of the person's agents
- * are listening and what each listens for. Stopping one, or all, is the person's alone: an
- * agent stops its own listening through the app's own command, not through this component.
+ * AgentPresence's agent side, declared with Ouro AX's `defineComponentAx`. Agents may read which
+ * of the person's agents are listening and what each listens for, and may stop one, or all, since
+ * stopping only reduces what is heard. Nothing here starts listening: that stays the person's,
+ * from the app.
  *
  * @example
  * agentPresenceAx.actions.map((action) => action.id); // ["stop", "stop-all"]
- * @claim "Agents may read which of the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two actions only the person takes, each on a control that names it)
- * @claim "Stopping one, or all, is the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two actions only the person takes, each on a control that names it)
+ * @claim "Agents may read which of the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
+ * @claim "Nothing here starts listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
  */
-// TODO(ourostack/ouro-ui ax/component): wrap with defineComponentAx once it lands
-const agentPresenceAx = {
+const agentPresenceAx = defineComponentAx({
   component: "AgentPresence",
   reads: [
     {
@@ -38,17 +40,7 @@ const agentPresenceAx = {
     },
   ],
   actions: [
-    {
-      id: "stop",
-      summary: "Stop an agent listening for the person.",
-      effect: "private",
-      personOnly: "You can't decide who listens for the person; only they can.",
-    },
-    {
-      id: "stop-all",
-      summary: "Stop every agent listening for the person.",
-      effect: "private",
-      personOnly: "You can't decide who listens for the person; only they can.",
-    },
+    { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", agent: true },
+    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", agent: true },
   ],
-} as const;
+});

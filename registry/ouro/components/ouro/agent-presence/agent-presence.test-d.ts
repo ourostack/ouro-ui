@@ -1,6 +1,7 @@
 import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { AgentPresence, type AgentPresenceLabels, type AgentPresenceProps, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
+import type { ComponentAx } from "@/registry/ouro/ax/component";
 import { agentPresenceAx } from "@/registry/ouro/components/ouro/agent-presence/agent-presence-styles";
 
 // Type tests: `pnpm typecheck` compiles this file.
@@ -37,13 +38,8 @@ expectTypeOf<{ label: string; agents: ListeningAgent[]; onStop: (id: string) => 
 expectTypeOf<{ label: string; agents: ListeningAgent[]; onStop: (id: string) => void; autoHide: true }>().not.toExtend<AgentPresenceProps>();
 expectTypeOf<{ label: string; agents: ListeningAgent[]; onStop: (id: string) => void; variant: "compact" }>().not.toExtend<AgentPresenceProps>();
 
-// The agent side: one read, and two actions only the person takes.
-expectTypeOf(agentPresenceAx.reads[0].id).toEqualTypeOf<"listening">();
-expectTypeOf(agentPresenceAx.reads[0].consent).toEqualTypeOf<"none">();
-expectTypeOf(agentPresenceAx.actions[0].id).toEqualTypeOf<"stop">();
-expectTypeOf(agentPresenceAx.actions[1].id).toEqualTypeOf<"stop-all">();
-expectTypeOf(agentPresenceAx.actions[0].effect).toEqualTypeOf<"private">();
-expectTypeOf(agentPresenceAx.actions[1].personOnly).toEqualTypeOf<"You can't decide who listens for the person; only they can.">();
+// The agent side is a checked Ouro AX declaration.
+expectTypeOf(agentPresenceAx).toEqualTypeOf<ComponentAx>();
 
 // @ts-expect-error size is "sm", "md" or "lg".
 createElement(AgentPresence, { label: "Agents listening", agents, onStop: () => {}, size: "xs" });

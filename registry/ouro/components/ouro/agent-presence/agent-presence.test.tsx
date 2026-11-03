@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { AX_ACTION_ATTRIBUTE, expectAxRendered, isReservedPersonOnly } from "@/registry/ouro/ax/component";
 import { AgentPresence, type AgentPresenceProps, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { agentPresenceAx } from "@/registry/ouro/components/ouro/agent-presence/agent-presence-styles";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -484,22 +485,23 @@ describe("AgentPresence", () => {
 });
 
 describe("AgentPresence agent side", () => {
-  it("declares one read and two actions only the person takes, each on a control that names it", async () => {
+  it("declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening", async () => {
     expect(agentPresenceAx).toEqual({
       component: "AgentPresence",
       reads: [{ id: "listening", summary: "Which of the person's agents are listening, and what each listens for.", fields: ["agent", "doing"], consent: "none" }],
       actions: [
-        { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", personOnly: "You can't decide who listens for the person; only they can." },
-        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't decide who listens for the person; only they can." },
+        { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", agent: true },
+        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", agent: true },
       ],
     });
-    for (const action of agentPresenceAx.actions) expect(Object.hasOwn(action, "agent")).toBe(false);
+    for (const action of agentPresenceAx.actions) expect(isReservedPersonOnly(action.id)).toBe(false);
     await render(<AgentPresence {...base} agents={[inbox, research]} />);
-    expect(chip().hasAttribute("data-ax-action")).toBe(false);
+    expect(chip().hasAttribute(AX_ACTION_ATTRIBUTE)).toBe(false);
     await userEvent.click(chip());
     await settled();
-    const marked = [...document.querySelectorAll<HTMLElement>("[data-ax-action]")];
-    expect(marked.map((element) => element.getAttribute("data-ax-action"))).toEqual(["stop", "stop", "stop-all"]);
+    expectAxRendered(agentPresenceAx, document);
+    const marked = [...document.querySelectorAll<HTMLElement>(`[${AX_ACTION_ATTRIBUTE}]`)];
+    expect(marked.map((element) => element.getAttribute(AX_ACTION_ATTRIBUTE))).toEqual(["stop", "stop", "stop-all"]);
     expect(marked.map((element) => element.getAttribute("data-ouro-part"))).toEqual(["stop", "stop", "stop-all"]);
   });
 });

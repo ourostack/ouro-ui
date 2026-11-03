@@ -154,8 +154,8 @@ function Sparkle(): JSX.Element {
  * chip.
  *
  * Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`, lets agents read who is
- * listening and what for (consent `none`). Stop and Stop all are the person's only: an agent
- * stops its own listening through the app's own command, never through this component.
+ * listening and what for (consent `none`), and take Stop and Stop all, since stopping only
+ * reduces what is heard. It offers no way to start listening: that stays the person's.
  *
  * Use `Avatar` or `Badge` instead to show who is present in a conversation, and `toast()` for
  * a one-off notice.
@@ -169,7 +169,8 @@ function Sparkle(): JSX.Element {
  * @claim "When an agent starts or stops listening," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence > says once, politely, when an agent starts or stops listening)
  * @claim "When a Stop goes with its agent," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence > stops one agent, says so once it has gone, and keeps focus in the list)
  * @claim "When a Stop goes with its agent," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence > moves focus to the control after the chip when the last agent goes)
- * @claim "Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two actions only the person takes, each on a control that names it)
+ * @claim "Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
+ * @claim "It offers no way to start listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
  * @group Feedback
  * @see https://ui.ouro.bot/docs/agent-presence
  *
