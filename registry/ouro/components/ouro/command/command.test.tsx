@@ -917,8 +917,11 @@ describe("Command server search", () => {
     );
     await render(jump(true));
     await settled();
-    await userEvent.keyboard("{ArrowDown}");
     const highlighted = () => document.querySelector<HTMLElement>("[data-highlighted]");
+    // The arrow key reaches the list only once the search input has focus and the first result is highlighted.
+    await expect.poll(() => document.activeElement?.getAttribute("role")).toBe("combobox");
+    await expect.poll(() => highlighted()?.textContent).toBe("Noor Haddad");
+    await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => highlighted()?.textContent).toBe("Ana Lind");
     const top = highlighted()!.getBoundingClientRect().top;
     await act(async () => roots[0]!.render(jump(false)));
