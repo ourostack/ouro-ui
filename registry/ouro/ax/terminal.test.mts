@@ -6,7 +6,7 @@ const TTY = { isTTY: true };
 const PIPE = {};
 const style = (stream: { isTTY?: boolean }, env: Record<string, string> = {}) => terminalStyle(stream, env);
 
-test("colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb is no terminal", () => {
+test("colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb and CI are no terminal", () => {
   assert.deepEqual(style(TTY), { tty: true, color: true, symbols: true });
   assert.deepEqual(style(PIPE), { tty: false, color: false, symbols: false });
   assert.deepEqual(style(TTY, { NO_COLOR: "1" }), { tty: true, color: false, symbols: true });
@@ -17,6 +17,9 @@ test("colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on f
   assert.deepEqual(style(PIPE, { FORCE_COLOR: "false", CLICOLOR_FORCE: "" }), { tty: false, color: false, symbols: false });
   assert.deepEqual(style(PIPE, { FORCE_COLOR: "1", NO_COLOR: "1" }), { tty: false, color: false, symbols: true });
   assert.deepEqual(style(TTY, { TERM: "dumb" }), { tty: false, color: false, symbols: false });
+  assert.deepEqual(style(TTY, { CI: "true" }), { tty: false, color: false, symbols: false }, "a terminal in CI gets words and no colour");
+  assert.deepEqual(style(TTY, { CI: "true", FORCE_COLOR: "1" }), { tty: false, color: true, symbols: true }, "FORCE_COLOR still wins in CI");
+  assert.deepEqual(style(TTY, { CI: "false" }), { tty: true, color: true, symbols: true });
 });
 
 test("paint wraps text in escape codes only with colour, and stripAnsi takes them out", () => {
@@ -38,7 +41,7 @@ test("a mark is a coloured symbol on a terminal and a word elsewhere", () => {
   assert.equal(markOf("failed", style(TTY, { NO_COLOR: "1" })), "✗");
   assert.deepEqual(
     (Object.keys(MARKS) as (keyof typeof MARKS)[]).map((m) => markOf(m, style(PIPE))),
-    ["ok", "FAIL", "warn", "skip", "plan"],
+    ["ok", "FAIL", "ERROR", "warn", "skip", "plan"],
   );
 });
 

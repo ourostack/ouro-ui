@@ -1,19 +1,26 @@
 // A tool built from the kit whose one read is a doctor (ax-checks), for the X-ray's tests: `node fixtures/doctor-cli.mts <args>`.
-// DOCTOR_BROKEN=1 makes its cache check fail, so the doctor exits with the tool's not-ready code; DOCTOR_TEXT_EXIT=1
-// makes its text exit 1 whatever the report says, a text that disagrees with its JSON; DOCTOR_SHARED=1 passes the share check.
+// DOCTOR_BROKEN=1 makes its cache check fail, so the doctor exits with the findings code; DOCTOR_CRASH=1 makes its
+// config check throw, so it exits 1; DOCTOR_TEXT_EXIT=1 makes its text exit 1 whatever the report says, a text that
+// disagrees with its JSON; DOCTOR_SHARED=1 passes the share check.
 import { defineChecks } from "../checks.ts";
 import { quietPipes, runCli } from "../cli.ts";
 import { defineCli, defineCommand } from "../command.ts";
-import { BASE_EXIT_CODES, defineExitCodes } from "../exit-codes.ts";
+import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "../exit-codes.ts";
 
-const exits = defineExitCodes([...BASE_EXIT_CODES, { code: 3, name: "not-ready", short: "not ready", meaning: "a check failed; its fix says what to do" }]);
+const exits = defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE]);
 const broken = process.env["DOCTOR_BROKEN"] === "1";
 
 const doctor = defineChecks<null>({
   command: "kit doctor",
-  failCode: exits.code("not-ready"),
   checks: [
-    { id: "config", label: "Read the config", run: () => ({ state: "passed", detail: "kit.json" }) },
+    {
+      id: "config",
+      label: "Read the config",
+      run: () => {
+        if (process.env["DOCTOR_CRASH"] === "1") throw new Error("kit.json is not JSON");
+        return { state: "passed", detail: "kit.json" };
+      },
+    },
     {
       id: "cache",
       label: "Cache freshness",

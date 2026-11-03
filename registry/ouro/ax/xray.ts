@@ -29,7 +29,7 @@ import { checkWorkEvent } from "./work-event.ts";
  * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
  * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
-const XRAY_VERSION = "1.2.0";
+const XRAY_VERSION = "1.3.0";
 
 type Verdict = "pass" | "fail" | "skip";
 
@@ -569,11 +569,14 @@ async function checkCli(ctx: Context) {
   // Exit codes, documented.
   let documented: Set<number> | null = null;
   let usageCode: number | null = null;
+  let findingsCode: number | null = null;
   const exitCodes = help && Array.isArray(help["exitCodes"]) ? help["exitCodes"].filter(isRecord) : null;
   if (exitCodes) {
     documented = new Set(exitCodes.map((e) => Number(e["code"])));
     const u = exitCodes.find((e) => /usage/i.test(JSON.stringify([e["name"], e["short"], e["meaning"]])));
     usageCode = u ? Number(u["code"]) : null;
+    const f = exitCodes.find((e) => e["name"] === "findings");
+    findingsCode = f ? Number(f["code"]) : null;
   } else {
     const m = /Exit codes?:([^\n]*(?:\n(?!\S*:)[^\n]*)*)/i.exec(overview.stdout);
     if (m?.[1]) {
@@ -683,8 +686,10 @@ async function checkCli(ctx: Context) {
       continue;
     }
     const j = parseJson(c.stdout);
-    const ok = c.code === 0 && j.ok && !c.stderr.trim();
-    rec.add("cli.read-json", cmd.name, ok ? "pass" : "fail", ok ? `\`${c.shown}\` → one JSON document` : `${brief(c)}${c.code === 0 && !j.ok ? "; stdout is not one JSON document" : ""}`);
+    // A check command's findings may exit with the declared findings code, as its report says.
+    const findings = j.ok && isChecksReport(j.value) && findingsCode !== null && c.code === findingsCode && j.value.exitCode === findingsCode;
+    const ok = (c.code === 0 || findings) && j.ok && !c.stderr.trim();
+    rec.add("cli.read-json", cmd.name, ok ? "pass" : "fail", ok ? `\`${c.shown}\` → one JSON document${findings ? `, exit ${c.code} (findings)` : ""}` : `${brief(c)}${c.code === 0 && !j.ok ? "; stdout is not one JSON document" : ""}`);
     if (j.ok) harvest(j.value, samples, cmd.name.split(" ").at(-1)!);
     if (j.ok && isChecksReport(j.value)) reports.push({ cmd, report: j.value, json: c, text: await call(args) });
     const refs = ok && j.ok ? refsOf(j.value) : [];

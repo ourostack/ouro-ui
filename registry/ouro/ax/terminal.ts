@@ -13,11 +13,11 @@ import { isCi } from "./voice.ts";
  * off, and `FORCE_COLOR` turns it on for a capture. Off a terminal, the marks are words and nothing is redrawn, so a pipe,
  * a log or an agent gets plain text with no escape codes.
  *
- * @claim "`NO_COLOR` always turns it off" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb is no terminal)
+ * @claim "`NO_COLOR` always turns it off" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb and CI are no terminal)
  * @claim "nothing is redrawn" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::off a terminal, progress is one plain line for a step still running after the slow mark, and no escape codes)
  */
 interface TerminalStyle {
-  /** The stream is a terminal a person is looking at (and `TERM` is not `dumb`). */
+  /** The stream is a terminal a person is looking at: `TERM` is not `dumb`, and `CI` is not set. */
   tty: boolean;
   /** ANSI colour is on. */
   color: boolean;
@@ -29,15 +29,15 @@ interface TerminalStyle {
 const truthy = (value: string | undefined) => value !== undefined && !["", "0", "false"].includes(value.trim().toLowerCase());
 
 /**
- * The style for one stream: a terminal gets colour and symbols; a pipe gets words and no colour. `NO_COLOR` (set and
- * not empty) always turns colour off, and `FORCE_COLOR` or `CLICOLOR_FORCE` turns colour and symbols on off a terminal,
- * for a screenshot or a capture.
+ * The style for one stream: a terminal gets colour and symbols; a pipe, or a terminal in CI (the `CI` variable set),
+ * gets words and no colour. `NO_COLOR` (set and not empty) always turns colour off, and `FORCE_COLOR` or
+ * `CLICOLOR_FORCE` turns colour and symbols on off a terminal and in CI, for a screenshot or a capture.
  *
- * @claim "a pipe gets words and no colour" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb is no terminal)
- * @claim "always turns colour off" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb is no terminal)
+ * @claim "gets words and no colour" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb and CI are no terminal)
+ * @claim "always turns colour off" registry/ouro/ax/terminal.test.mts verify:testExists(registry/ouro/ax/terminal.test.mts::colour only on a terminal: NO_COLOR always wins, FORCE_COLOR turns it on for a capture, TERM=dumb and CI are no terminal)
  */
 function terminalStyle(stream: { isTTY?: boolean }, env: Readonly<Record<string, string | undefined>>): TerminalStyle {
-  const tty = stream.isTTY === true && env["TERM"] !== "dumb";
+  const tty = stream.isTTY === true && env["TERM"] !== "dumb" && !isCi(env);
   const forced = truthy(env["FORCE_COLOR"]) || truthy(env["CLICOLOR_FORCE"]);
   const noColor = (env["NO_COLOR"] ?? "") !== "";
   return { tty, color: !noColor && (tty || forced), symbols: tty || forced };
@@ -76,12 +76,13 @@ function hasAnsi(text: string): boolean {
   return text.includes(ESC);
 }
 
-type Mark = "passed" | "failed" | "warned" | "skipped" | "planned";
+type Mark = "passed" | "failed" | "errored" | "warned" | "skipped" | "planned";
 
 /** A state's mark, as a symbol on a terminal and as a word elsewhere, and its colour. */
 const MARKS: Readonly<Record<Mark, { symbol: string; word: string; color: keyof Paint }>> = Object.freeze({
   passed: { symbol: "✓", word: "ok", color: "green" },
   failed: { symbol: "✗", word: "FAIL", color: "red" },
+  errored: { symbol: "⊘", word: "ERROR", color: "red" },
   warned: { symbol: "!", word: "warn", color: "yellow" },
   skipped: { symbol: "○", word: "skip", color: "dim" },
   planned: { symbol: "·", word: "plan", color: "dim" },
@@ -197,7 +198,7 @@ const unref = <T,>(h: T): T => ((h as { unref?: () => void }).unref?.(), h);
 function createProgress(stream: ProgressStream, options: ProgressOptions): Progress {
   const timers = options.timers ?? realTimers();
   const style = terminalStyle(stream, options.env);
-  const spinner = style.tty && !isCi(options.env);
+  const spinner = style.tty;
   const slowMs = options.slowMs ?? 2000;
   const delayMs = options.delayMs ?? 150;
   const frameMs = options.frameMs ?? 80;

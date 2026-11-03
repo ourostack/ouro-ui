@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CHECKS_VERSION, checksText, defineChecks, isChecksReport, printChecks, type CheckDef, type ChecksReport } from "./checks.ts";
+import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "./exit-codes.ts";
 import { hasAnsi, stripAnsi, terminalStyle, type Timers } from "./terminal.ts";
 
 const TTY = terminalStyle({ isTTY: true }, {});
@@ -30,7 +31,8 @@ async function run(checks: readonly CheckDef<Ctx>[], extra: Parameters<ReturnTyp
   return def.run({ take: clock.take }, { timers: clock.timers, ...extra });
 }
 
-test("defineChecks refuses a repeated id, an empty label and a needs that names no earlier check", () => {
+test("defineChecks refuses an empty list, a repeated id, an empty label and a needs that names no earlier check", () => {
+  assert.throws(() => defineChecks({ command: "t doctor", checks: [] }), /t doctor declares no checks/);
   const ok = { id: "a", label: "A", run: () => ({ state: "passed" as const }) };
   assert.throws(() => defineChecks({ command: "t doctor", checks: [ok, ok] }), /the id a is used twice/);
   assert.throws(() => defineChecks({ command: "t doctor", checks: [{ ...ok, label: " " }] }), /a has no label/);
@@ -47,10 +49,10 @@ test("--json carries the same facts as the text: verdict, summary, counts, each 
   const report = await run(selfcheck, { next: [{ command: "app sync", why: "dup" }, { command: "app selfcheck --yes", why: "Run the ones it found" }] });
   assert.equal(report.ax, CHECKS_VERSION);
   assert.equal(report.verdict, "failed");
-  assert.equal(report.exitCode, 1);
+  assert.equal(report.exitCode, 3, "a finding exits with the declared findings code");
   assert.equal(report.summary, "1 of 6 checks failed: React with a like. 1 passed, 1 warned, 3 not run, in 1.7s.");
   assert.equal(report.durationMs, 1700);
-  assert.deepEqual(report.counts, { passed: 1, warned: 1, failed: 1, skipped: 3 });
+  assert.deepEqual(report.counts, { passed: 1, warned: 1, failed: 1, errored: 0, skipped: 3 });
   assert.deepEqual(report.rows[1], { id: "react", label: "React with a like", state: "failed", detail: "the service refused the reaction (HTTP 400)", fix: { byHand: "Paste the report to your agent." }, kind: null, durationMs: 1400 });
   assert.deepEqual(report.rows[2], { id: "unreact", label: "Remove the like", state: "skipped", detail: "not checked: React with a like failed", fix: null, kind: "after an earlier problem", durationMs: 0 });
   assert.deepEqual(
@@ -140,7 +142,7 @@ test("quiet on success: the verdict alone, and every check with its time under -
   assert.equal((await writes.run({ take: clock.take }, { timers: clock.timers })).summary, "The write passed in 0.3s.");
 });
 
-test("off a terminal or under NO_COLOR, the same report in words, with no escape codes", async () => {
+test("off a terminal the report is in words, and under NO_COLOR it has no escape codes", async () => {
   const report = await run(selfcheck);
   const piped = checksText(report, PIPE, { command: "app selfcheck" });
   assert.ok(!hasAnsi(piped));
@@ -157,18 +159,16 @@ test("printChecks writes the JSON or the text with one trailing newline, and ret
   const report = await run(selfcheck);
   const out: string[] = [];
   const io = { stdout: { write: (s: string) => out.push(s) }, env: {} };
-  assert.equal(printChecks(report, io, { json: true }), 1);
+  assert.equal(printChecks(report, io, { json: true }), 3);
   assert.deepEqual(JSON.parse(out[0]!) as ChecksReport, report);
-  assert.equal(printChecks(report, io, { command: "app selfcheck" }), 1);
+  assert.equal(printChecks(report, io, { command: "app selfcheck" }), 3);
   assert.ok(out[1]!.startsWith("FAIL 1 of 6") && out[1]!.endsWith("app selfcheck --verbose\n") && !out[1]!.endsWith("\n\n"));
   const passed = await run([selfcheck[0]!]);
   assert.equal(printChecks(passed, io), 0);
-  const failCode = defineChecks<Ctx>({ command: "app doctor", failCode: 3, checks: [selfcheck[1]!] });
-  const clock = heldClock();
-  assert.equal((await failCode.run({ take: clock.take }, { timers: clock.timers })).exitCode, 3);
+  assert.equal(FINDINGS_EXIT_CODE.code, 3);
 });
 
-test("a check that throws fails with what it said; one after a skipped check is not run; progress shows each check and is gone after", async () => {
+test("a check that throws couldn't run, with what it said; one after a skipped check is not run; progress shows each check and is gone after", async () => {
   const report = await run([
     { id: "boom", label: "Boom", run: () => { throw new Error("no window"); } },
     { id: "odd", label: "Odd", run: () => { throw "plain"; } },
@@ -176,10 +176,10 @@ test("a check that throws fails with what it said; one after a skipped check is 
     { id: "off", label: "Off", run: () => ({ state: "skipped", detail: "off" }) },
     { id: "after", label: "After", needs: ["off"], run: () => ({ state: "passed" }) },
   ]);
-  assert.equal(report.rows[0]!.detail, "the check stopped with an error: no window");
-  assert.deepEqual(report.rows[0]!.fix, { byHand: "Report this detail to the tool's maintainers; the check itself broke." });
-  assert.equal(report.rows[1]!.detail, "the check stopped with an error: plain");
-  assert.equal(report.rows[2]!.detail, "not checked: Boom failed");
+  assert.deepEqual([report.rows[0]!.state, report.rows[0]!.detail], ["errored", "no window"]);
+  assert.deepEqual(report.rows[0]!.fix, { byHand: "Report this error to the tool's maintainers; the check itself broke." });
+  assert.equal(report.rows[1]!.detail, "plain");
+  assert.equal(report.rows[2]!.detail, "not checked: Boom couldn't run");
   assert.equal(report.rows[4]!.detail, "not checked: Off was not run");
   const written: string[] = [];
   const stream = { isTTY: false, write: (s: string) => written.push(s) };
@@ -195,4 +195,21 @@ test("a check that throws fails with what it said; one after a skipped check is 
   assert.deepEqual(quiet, [], "off: no progress, as under --json");
   const real = await defineChecks<null>({ command: "app doctor", checks: [{ id: "r", label: "R", run: () => ({ state: "passed" }) }] }).run(null);
   assert.equal(real.verdict, "passed");
+});
+
+test("findings exit with the declared findings code and a check that couldn't run exits 1, never the same code", async () => {
+  const found = await run([selfcheck[0]!, selfcheck[1]!]);
+  assert.deepEqual([found.verdict, found.exitCode], ["failed", FINDINGS_EXIT_CODE.code]);
+  const crashed = await run([selfcheck[0]!, selfcheck[1]!, { id: "boom", label: "Window", run: () => { throw new Error("no window"); } }]);
+  assert.deepEqual([crashed.verdict, crashed.exitCode], ["errored", BASE_EXIT_CODES[1]!.code]);
+  assert.notEqual(found.exitCode, crashed.exitCode);
+  assert.equal(crashed.summary, "1 of 3 checks couldn't run: Window. 1 passed, 1 failed, in 1.7s.");
+  assert.equal(
+    stripAnsi(checksText(crashed, terminalStyle({}, {}))).split("\n").slice(0, 6).join("\n"),
+    "ERROR 1 of 3 checks couldn't run: Window. 1 passed, 1 failed, in 1.7s.\n\nCouldn't run\n  ERROR Window\n    no window\n    Fix: Report this error to the tool's maintainers; the check itself broke.",
+  );
+  const one = await run([{ id: "boom", label: "Window", run: () => { throw new Error("no window"); } }]);
+  assert.equal(one.summary, "The check couldn't run: Window, in under 0.1s.");
+  const both = await run([selfcheck[3]!, { id: "boom", label: "Window", run: () => { throw new Error("x"); } }]);
+  assert.equal(both.summary, "1 of 2 checks couldn't run: Window. 0 passed, 1 warned, in under 0.1s.");
 });

@@ -5,6 +5,7 @@ export type { CheckDef, CheckFix, CheckResult, CheckRow, CheckState, Checks, Che
 // first statement, which would take the JSDoc below with it.
 
 import type { NextStep } from "./outcome.ts";
+import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "./exit-codes.ts";
 import { createProgress, markOf, nextStepsText, paint, terminalStyle, timeText, type ProgressStream, type TerminalStyle, type Timers } from "./terminal.ts";
 
 /**
@@ -17,7 +18,8 @@ type CheckFix = NextStep | { byHand: string };
 /** The version of the report's shape; `--json` carries it as `ax`, as an outcome or a wait does. */
 const CHECKS_VERSION = "checks/1";
 
-type CheckState = "passed" | "warned" | "failed" | "skipped";
+/** `errored` is a check that couldn't run: it threw, so the tool broke rather than found something. */
+type CheckState = "passed" | "warned" | "failed" | "errored" | "skipped";
 
 /**
  * What a check found. A warning or a failure carries its fix; a check that was not run says why, and `kind` names what
@@ -47,15 +49,9 @@ interface ChecksDef<C> {
   /** What one check is called in the verdict, singular and plural. Default `["check", "checks"]`. */
   noun?: readonly [string, string];
   checks: readonly CheckDef<C>[];
-  /**
-   * The exit code when something failed, from the tool's exit-code table, 1 by default.
-   *
-   * @claim "1 by default" registry/ouro/ax/checks.ts verify:fileLine(registry/ouro/ax/checks.ts, /def\.failCode \?\? 1\)/)
-   */
-  failCode?: number;
 }
 
-type Verdict = "passed" | "warned" | "failed";
+type Verdict = "passed" | "warned" | "failed" | "errored";
 
 interface CheckRow {
   id: string;
@@ -101,10 +97,10 @@ const isCommandFix = (fix: CheckFix): fix is NextStep => "command" in fix;
 /**
  * Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the
  * grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on
- * a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure
+ * an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure
  * has no fix, or its fix is the command just run, so a tool's own tests catch both.
  *
- * @claim "Throws at definition time on a repeated id, an empty label or a `needs` that names no earlier check" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::defineChecks refuses a repeated id, an empty label and a needs that names no earlier check)
+ * @claim "an empty list, a repeated id, an empty label or a `needs` that names no earlier check" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::defineChecks refuses an empty list, a repeated id, an empty label and a needs that names no earlier check)
  * @claim "at run time when a warning or failure has no fix, or its fix is the command just run" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run)
  * @example
  * const doctor = defineChecks({
@@ -117,6 +113,7 @@ const isCommandFix = (fix: CheckFix): fix is NextStep => "command" in fix;
  * const report = await doctor.run(context, { progress: process.stderr, env: process.env });
  */
 function defineChecks<C>(def: ChecksDef<C>): Checks<C> {
+  if (!def.checks.length) throw new Error(`defineChecks: ${def.command} declares no checks. Fix: declare the checks it runs.`);
   const seen = new Set<string>();
   for (const check of def.checks) {
     if (seen.has(check.id)) throw new Error(`defineChecks: the id ${check.id} is used twice. Fix: give each check its own id.`);
@@ -129,6 +126,17 @@ function defineChecks<C>(def: ChecksDef<C>): Checks<C> {
 
 const wallClock = (): Pick<Timers, "now"> => ({ now: () => Date.now() });
 
+/**
+ * The exit code for a verdict: 0 when nothing failed, warnings included; the declared `findings` code when a check
+ * found a problem; and the base `error` code when a check couldn't run, since then the tool broke.
+ *
+ * @claim "the declared `findings` code when a check found a problem" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::findings exit with the declared findings code and a check that couldn't run exits 1, never the same code)
+ */
+const EXITS: Readonly<Record<Verdict, number>> = Object.freeze({ passed: 0, warned: 0, failed: FINDINGS_EXIT_CODE.code, errored: BASE_EXIT_CODES[1]!.code });
+
+/** What a row records: a check's result, or that it couldn't run. */
+type RowResult = CheckResult | { state: "errored"; detail: string; fix: CheckFix };
+
 async function runChecks<C>(def: ChecksDef<C>, context: C, options: ChecksRunOptions): Promise<ChecksReport> {
   const clock = options.timers ?? wallClock();
   const progress = options.progress
@@ -140,19 +148,20 @@ async function runChecks<C>(def: ChecksDef<C>, context: C, options: ChecksRunOpt
   try {
     for (const [i, check] of def.checks.entries()) {
       const unmet = (check.needs ?? []).map((id) => byId.get(id)!).find((r) => r.state !== "passed" && r.state !== "warned");
-      let result: CheckResult;
+      const why = { skipped: "was not run", errored: "couldn't run", failed: "failed" } as const;
+      let result: RowResult;
       const start = clock.now();
       if (unmet) {
-        result = { state: "skipped", detail: `not checked: ${unmet.label} ${unmet.state === "skipped" ? "was not run" : "failed"}`, kind: "after an earlier problem" };
+        result = { state: "skipped", detail: `not checked: ${unmet.label} ${why[unmet.state as keyof typeof why]}`, kind: "after an earlier problem" };
       } else {
         progress?.start(check.label, { index: i + 1, total: def.checks.length });
         try {
           result = await check.run(context);
         } catch (error) {
           result = {
-            state: "failed",
-            detail: `the check stopped with an error: ${error instanceof Error ? error.message : String(error)}`,
-            fix: { byHand: "Report this detail to the tool's maintainers; the check itself broke." },
+            state: "errored",
+            detail: error instanceof Error ? error.message : String(error),
+            fix: { byHand: "Report this error to the tool's maintainers; the check itself broke." },
           };
         } finally {
           progress?.stop();
@@ -166,17 +175,17 @@ async function runChecks<C>(def: ChecksDef<C>, context: C, options: ChecksRunOpt
     progress?.stop();
   }
   const durationMs = clock.now() - began;
-  const counts: Record<CheckState, number> = { passed: 0, warned: 0, failed: 0, skipped: 0 };
+  const counts: Record<CheckState, number> = { passed: 0, warned: 0, failed: 0, errored: 0, skipped: 0 };
   for (const r of rows) counts[r.state]++;
-  const verdict: Verdict = counts.failed ? "failed" : counts.warned ? "warned" : "passed";
-  const problems = rows.filter((r) => r.state === "failed" || r.state === "warned");
+  const verdict: Verdict = counts.errored ? "errored" : counts.failed ? "failed" : counts.warned ? "warned" : "passed";
+  const problems = rows.filter((r) => r.state === "failed" || r.state === "warned" || r.state === "errored");
   const fixes = problems.flatMap((r) => (isCommandFix(r.fix!) ? [r.fix as NextStep] : []));
   const again = problems.length ? [{ command: def.command, why: "Check again once it's fixed" }] : [];
   const next = [...fixes, ...(options.next ?? []), ...again].filter((s, i, all) => all.findIndex((t) => t.command === s.command) === i);
-  return { ax: CHECKS_VERSION, verdict, summary: summaryOf(def, rows, counts, verdict, durationMs), durationMs, counts, rows, next, exitCode: verdict === "failed" ? (def.failCode ?? 1) : 0 };
+  return { ax: CHECKS_VERSION, verdict, summary: summaryOf(def, rows, counts, verdict, durationMs), durationMs, counts, rows, next, exitCode: EXITS[verdict] };
 }
 
-function rowOf<C>(def: ChecksDef<C>, check: CheckDef<C>, result: CheckResult, durationMs: number): CheckRow {
+function rowOf<C>(def: ChecksDef<C>, check: CheckDef<C>, result: RowResult, durationMs: number): CheckRow {
   const fix = "fix" in result && result.fix ? result.fix : null;
   if ((result.state === "failed" || result.state === "warned") && !fix) {
     throw new Error(`${def.command}: ${check.id} ${result.state} without a fix. Fix: give it the command that fixes it, or { byHand } when no command can.`);
@@ -205,7 +214,10 @@ function summaryOf<C>(def: ChecksDef<C>, rows: readonly CheckRow[], counts: Reco
   const labels = (state: CheckState) => someOf(rows.filter((r) => r.state === state).map((r) => r.label));
   const notRun = counts.skipped ? `, ${counts.skipped} not run` : "";
   const warned = counts.warned ? `, ${counts.warned} warned` : "";
-  if (rows.length === 1 && verdict !== "passed") return `The ${noun[0]} ${verdict === "failed" ? "failed" : "needs a look"}: ${labels(verdict)}, in ${took}.`;
+  const failed = counts.failed ? `, ${counts.failed} failed` : "";
+  const says = { failed: "failed", warned: "needs a look", errored: "couldn't run" } as const;
+  if (rows.length === 1 && verdict !== "passed") return `The ${noun[0]} ${says[verdict]}: ${labels(verdict)}, in ${took}.`;
+  if (verdict === "errored") return `${counts.errored} of ${all} couldn't run: ${labels("errored")}. ${counts.passed} passed${failed}${warned}${notRun}, in ${took}.`;
   if (verdict === "failed") return `${counts.failed} of ${all} failed: ${labels("failed")}. ${counts.passed} passed${warned}${notRun}, in ${took}.`;
   if (verdict === "warned") return `${counts.warned} of ${all} ${counts.warned === 1 ? "needs" : "need"} a look: ${labels("warned")}. ${counts.passed} passed${notRun}, in ${took}.`;
   if (!counts.passed) return `${rows.length === 1 ? `The ${noun[0]} was not run` : `None of the ${plural(rows.length, noun)} were run`}, in ${took}.`;
@@ -238,7 +250,7 @@ function fixLines(fix: CheckFix, style: TerminalStyle, broke: boolean): string[]
  *
  * @claim "the verdict on the first line" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::the text puts the verdict first, then failures with their fixes, warnings, what was not run, and the next steps)
  * @claim "On success it prints the verdict and what is left to act on" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::quiet on success: the verdict alone, and every check with its time under --verbose)
- * @claim "Off a terminal the marks are words and there is no colour" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::off a terminal or under NO_COLOR, the same report in words, with no escape codes)
+ * @claim "Off a terminal the marks are words and there is no colour" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::off a terminal the report is in words, and under NO_COLOR it has no escape codes)
  */
 function checksText(report: ChecksReport, style: TerminalStyle, options: { verbose?: boolean; command?: string } = {}): string {
   const p = paint(style);
@@ -252,6 +264,7 @@ function checksText(report: ChecksReport, style: TerminalStyle, options: { verbo
     out.push("", p.bold(title), ...rows.flatMap((r) => [`  ${markOf(r.state, style)} ${r.label}${time(r)}`, ...body(r).map((l) => `    ${l}`)]));
   };
   const problem = (r: CheckRow) => [...(r.detail ? [r.detail] : []), ...(r.fix ? fixLines(r.fix, style, r.state !== "skipped") : [])];
+  section("Couldn't run", report.rows.filter((r) => r.state === "errored"), problem);
   section("Failed", report.rows.filter((r) => r.state === "failed"), problem);
   section("Warnings", report.rows.filter((r) => r.state === "warned"), problem);
   const skipped = report.rows.filter((r) => r.state === "skipped");

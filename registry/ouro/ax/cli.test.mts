@@ -337,7 +337,6 @@ test("a person-only word refuses with its reason and how the person does it, as 
 test("a command that returns a checks report prints its verdict first, styled for stdout, and exits with its code", async () => {
   const doctor = defineChecks<null>({
     command: "kit doctor",
-    failCode: 3,
     checks: [
       { id: "config", label: "The config file reads", run: () => ({ state: "passed" }) },
       { id: "later", label: "Share with a colleague", run: () => (process.env["KIT_LATER"] ? { state: "skipped", detail: "by hand", fix: { byHand: "Share it." } } : { state: "passed" }) },

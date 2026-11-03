@@ -39,7 +39,7 @@ function hasAnsi(text: string): boolean
 ### `Mark`
 
 ```ts
-type Mark = "passed" | "failed" | "warned" | "skipped" | "planned";
+type Mark = "passed" | "failed" | "errored" | "warned" | "skipped" | "planned";
 ```
 
 ### `markOf`
@@ -125,7 +125,7 @@ function stripAnsi(text: string): string
 
 ### `terminalStyle`
 
-The style for one stream: a terminal gets colour and symbols; a pipe gets words and no colour. `NO_COLOR` (set and not empty) always turns colour off, and `FORCE_COLOR` or `CLICOLOR_FORCE` turns colour and symbols on off a terminal, for a screenshot or a capture.
+The style for one stream: a terminal gets colour and symbols; a pipe, or a terminal in CI (the `CI` variable set), gets words and no colour. `NO_COLOR` (set and not empty) always turns colour off, and `FORCE_COLOR` or `CLICOLOR_FORCE` turns colour and symbols on off a terminal and in CI, for a screenshot or a capture.
 
 ```ts
 function terminalStyle(stream: { isTTY?: boolean | undefined; }, env: Readonly<Record<string, string | undefined>>): TerminalStyle

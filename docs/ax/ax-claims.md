@@ -70,7 +70,7 @@ const CLAIM_SET: ClaimSet
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```ts
-const CLAIM_SET_VERSION: "1.2.0"
+const CLAIM_SET_VERSION: "1.3.0"
 ```
 
 ### `ClaimEvidence`

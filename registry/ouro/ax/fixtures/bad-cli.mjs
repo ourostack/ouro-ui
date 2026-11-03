@@ -19,6 +19,8 @@ if (cmd === "help" && json) {
   process.exit(0);
 }
 if (!cmd && argv.includes("--help")) {
+  // Colour forced by FORCE_COLOR even under NO_COLOR, which should win.
+  if (process.env.FORCE_COLOR) process.stdout.write("\x1b[1mbad\x1b[0m\n");
   process.stdout.write("bad: a fixture\n  rooms   List rooms, and also this line goes on and on well past any sensible terminal width so it wraps badly everywhere.\n  send    Send.\n");
   process.exit(0);
 }

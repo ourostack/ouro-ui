@@ -8,7 +8,7 @@ A tool's checks, such as a doctor or a self-check, declared once: progress while
 npx shadcn@latest add ourostack/ouro-ui/ax-checks#v1.3.2
 ```
 
-It installs `lib/ouro/ax/checks.ts`, with `ax-outcome`, `ax-terminal`. Its tests are `ax-checks-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/checks.ts`, with `ax-exit-codes`, `ax-outcome`, `ax-terminal`. Its tests are `ax-checks-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -80,7 +80,6 @@ interface ChecksDef<C> {
   command: string;
   noun?: readonly [string, string];
   checks: readonly CheckDef<C>[];
-  failCode?: number;
 }
 ```
 
@@ -115,8 +114,10 @@ interface ChecksRunOptions {
 
 ### `CheckState`
 
+`errored` is a check that couldn't run: it threw, so the tool broke rather than found something.
+
 ```ts
-type CheckState = "passed" | "warned" | "failed" | "skipped";
+type CheckState = "passed" | "warned" | "failed" | "errored" | "skipped";
 ```
 
 ### `checksText`
@@ -129,7 +130,7 @@ function checksText(report: ChecksReport, style: TerminalStyle, options?: { verb
 
 ### `defineChecks`
 
-Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure has no fix, or its fix is the command just run, so a tool's own tests catch both.
+Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure has no fix, or its fix is the command just run, so a tool's own tests catch both.
 
 ```ts
 function defineChecks<C>(def: ChecksDef<C>) => Checks<C>
@@ -167,5 +168,5 @@ function printChecks(report: ChecksReport, io: { stdout: { write(s: string): unk
 ### `Verdict`
 
 ```ts
-type Verdict = "passed" | "warned" | "failed";
+type Verdict = "passed" | "warned" | "failed" | "errored";
 ```
