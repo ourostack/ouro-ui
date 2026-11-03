@@ -386,6 +386,7 @@ function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
   // Stryker disable next-line ConditionalExpression,BooleanLiteral: React 19 calls a ref that returns a cleanup only with the element.
   if (!viewport) return undefined;
   const read = () => markEdge(viewport);
+  // Stryker disable next-line CallExpression: Toaster's layout effect on className reads the edge again at mount, so the mark stays the same without this call.
   read();
   window.addEventListener("resize", read);
   return () => window.removeEventListener("resize", read);
