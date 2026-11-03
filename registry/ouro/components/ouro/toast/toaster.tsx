@@ -742,6 +742,7 @@ function useSwipeAway(dismiss: () => void, ending: boolean) {
       now.moved = true;
       now.pressed[axis] = false;
       // Above rest the toast is held back: start from the finger travel that puts it there.
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: a toast caught mid-band is a finger's move; the touch tests take it above rest without a jump.
       now.grab = axis === "y" && inward(now.offset) ? unband(now.offset, size()) : now.offset;
       return true;
     },

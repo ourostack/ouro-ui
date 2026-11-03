@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Toaster, type ToasterProps } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast, type ToastOptions } from "@/registry/ouro/lib/ouro/toast";
-import { springAt } from "@/registry/ouro/lib/ouro/spring";
+import { rubberband, springAt } from "@/registry/ouro/lib/ouro/spring";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -1328,6 +1328,34 @@ describe("swiping", () => {
     }
     await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
     expect(showing("Follows")).toBe(true);
+  });
+
+  chromiumOnly("holds a mouse drag back toward the screen's edge it cannot leave by, and follows it 1:1 the way it can, at either edge", async () => {
+    const dragY = async (item: HTMLElement, dy: number) => {
+      const rect = item.getBoundingClientRect();
+      const [x, y] = [rect.left + 60, rect.top + rect.height / 2];
+      try {
+        await commands.drag({ from: [x, y], to: [x, y + dy], steps: 8, durationMs: 200, hold: true });
+        return parseFloat(getComputedStyle(item).translate.split(" ")[1] ?? "0");
+      } finally {
+        await commands.pointerPress({ action: "up" });
+        await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
+      }
+    };
+    const { unmount } = await render(<Toaster />);
+    let item = await show("Bottom", { duration: 0 });
+    const height = item.offsetHeight;
+    // At the bottom: up is held back, down follows the mouse (short of the 40px that would dismiss).
+    expect(await dragY(item, -60)).toBeCloseTo(rubberband(-60, height), 0);
+    expect(await dragY(item, 30)).toBe(30);
+    await act(async () => toast.dismiss());
+    await gone("Bottom");
+    await unmount();
+    await render(<Toaster className="top-4 bottom-auto" />);
+    item = await show("Top", { duration: 0 });
+    // At the top: down is held back, up follows the mouse.
+    expect(await dragY(item, 60)).toBeCloseTo(rubberband(60, height), 0);
+    expect(await dragY(item, -30)).toBe(-30);
   });
 
   chromiumOnly("dismisses on a quick flick of 30px, short of the 40px a slow release needs", async () => {
