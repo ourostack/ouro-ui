@@ -374,7 +374,7 @@ const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outlin
 function AuthorName({ name, content, loading }: { name: string; content: ReactNode; loading: string | undefined }): ReactNode {
   if (loading !== undefined) {
     return (
-      <span data-ouro-message-name-loading="" className="relative inline-block max-w-full align-baseline">
+      <span data-ouro-message-name-loading="" className="relative inline-block max-w-full">
         <span aria-hidden="true" className="invisible">
           {loading}
         </span>
