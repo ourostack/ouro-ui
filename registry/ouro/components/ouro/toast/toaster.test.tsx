@@ -1381,6 +1381,12 @@ describe("swiping", () => {
     expect(await dragY(item, 30)).toBe(30);
     // Sideways follows 1:1 both ways: the band is only along the edge's axis.
     expect(await dragY(item, 0, -30)).toBe(-30);
+    // A quick flick up, toward the edge it cannot leave by, comes back rather than leaving.
+    const below = item.getBoundingClientRect();
+    await commands.flick({ from: [below.left + 60, below.top + below.height / 2], to: [below.left + 60, below.top + below.height / 2 - 30], steps: 4, durationMs: 60 });
+    await atRest(item);
+    expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
+    expect(showing("Bottom")).toBe(true);
     await act(async () => toast.dismiss());
     await gone("Bottom");
     await unmount();
