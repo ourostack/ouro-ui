@@ -44,8 +44,9 @@ import ts from "typescript";
 //   component around it a hand-rolled control.
 // - render-index: an index built at the top level of a render: `new Map(…)`, `new Set(…)`,
 //   `new RegExp(…)`, `Object.fromEntries(…)`, `Object.groupBy(…)` or `Map.groupBy(…)` with an
-//   argument, evaluated in the body of a component (a PascalCase function, also through `memo` or
-//   `forwardRef`), a custom hook (`useX`) or a class's `render`, so it is rebuilt on every render.
+//   argument, evaluated in the body of a component (a capitalised function in a .tsx file, also
+//   through `memo` or `forwardRef`, but not an all-capitals one such as a route handler's `GET`), a
+//   custom hook (`useX`) or a class's `render`, so it is rebuilt on every render.
 //   Build it in the store, once per change, wrap it in `useMemo` on its inputs, or hoist a constant
 //   to module scope. Anything inside a nested function (a `useMemo` or `useEffect` callback, a lazy
 //   `useState` initializer, an event handler) passes, and so does an empty `new Map()`. Like a
@@ -695,7 +696,12 @@ const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 const INDEX_CONSTRUCTORS = new Set(["Map", "Set", "RegExp"]);
 const INDEX_BUILDERS = new Set(["Object.fromEntries", "Object.groupBy", "Map.groupBy"]);
 const RENDER_WRAPPERS = /^(?:React\.)?(?:memo|forwardRef)$/;
-const RENDER_NAME = /^(?:[A-Z]|use[A-Z0-9])/;
+const HOOK_NAME = /^use[A-Z0-9]/;
+const COMPONENT_NAME = /^[A-Z]/;
+// All capitals is a constant or a route handler (Next.js's `GET`, `POST`), not a component.
+const CONSTANT_NAME = /^[A-Z][A-Z0-9_]+$/;
+// Components live in files that can hold JSX; a capitalised function in a .ts file is something else.
+const JSX_FILE = /\.[jt]sx$/;
 
 function indexBuilt(node) {
   if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && INDEX_CONSTRUCTORS.has(node.expression.text)) {
@@ -707,8 +713,9 @@ function indexBuilt(node) {
   return undefined;
 }
 
-// The name of the render a function is: a component (PascalCase, also through memo or forwardRef),
-// a custom hook (useX), or a class's render method; else undefined.
+// The name of the render a function is: a component (a capitalised name that is not all capitals,
+// in a .tsx file, also through memo or forwardRef), a custom hook (useX), or a class's render
+// method; else undefined.
 function renderName(fn) {
   if (ts.isMethodDeclaration(fn)) {
     const owner = fn.parent;
@@ -730,7 +737,9 @@ function renderName(fn) {
     }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) name = node.name.text;
   }
-  return name && RENDER_NAME.test(name) ? name : undefined;
+  if (!name) return undefined;
+  if (HOOK_NAME.test(name)) return name;
+  return COMPONENT_NAME.test(name) && !CONSTANT_NAME.test(name) && JSX_FILE.test(fn.getSourceFile().fileName) ? name : undefined;
 }
 
 // The render whose own body evaluates `node`, or undefined at module scope or inside a nested function.

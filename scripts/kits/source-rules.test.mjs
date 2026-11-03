@@ -359,6 +359,16 @@ describe("render-index", () => {
           export const helper = { render() { return new Set([1]); } };`;
         expect(scan(source)).toEqual([]);
     });
+    it("skips a route handler, an all-capitals function and a capitalised function in a .ts file, and still finds a hook there", () => {
+        const route = `
+          export async function GET(request) { const ids = new Set(request.ids); return Response.json([...ids]); }
+          export const POST = async (request) => Object.fromEntries(await request.formData());
+          export function Format(rows) { return new Map(rows); }
+          export function useIndex(rows) { return new Map(rows); }`;
+        expect(fingerprints(route, "app/routes/api.ts")).toEqual(["app/routes/api.ts::useIndex::render-index::Map::"]);
+        expect(scan(`export function GET(request) { const ids = new Set(request.ids); return null; }`, "app/routes/api.tsx")).toEqual([]);
+        expect(fingerprints(`export function C({ rows }) { const byId = new Map(rows); return byId.size; }`)).toEqual(["app/routes/fixture.tsx::C::render-index::Map::byId"]);
+    });
     it("leaves a callback that runs during render uncounted, a known gap", () => {
         expect(scan(`export function Rows({ rows }) { return rows.map((row) => new Set(row.tags).size); }`)).toEqual([]);
     });
