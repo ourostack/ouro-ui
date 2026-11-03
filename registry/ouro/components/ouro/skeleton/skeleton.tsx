@@ -108,7 +108,7 @@ export type SkeletonShapeProps = SkeletonRectShape | SkeletonTextShape | Skeleto
 /** The props Skeleton adds to the `<span>` attributes it passes through. */
 export type SkeletonOwnProps = SkeletonCommonProps & SkeletonShapeProps;
 
-/** The `<span>` attributes Skeleton passes through, and its props that every shape takes. */
+/** The `<span>` attributes Skeleton passes through, and its props shared by the shapes. */
 type SkeletonBaseProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof SkeletonCommonProps | "shape" | "size" | "lines" | "count" | "children"> &
   SkeletonCommonProps;
 /** Skeleton's props for a block. */
