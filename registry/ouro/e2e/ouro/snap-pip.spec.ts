@@ -34,7 +34,9 @@ test("a mouse throw up and to the left lands in the top-left corner", async ({ p
   await expect(pip).not.toHaveAttribute("data-ouro-settling");
   const rest = await settledBox(pip);
   expect(rest.x - stage.x).toBeCloseTo(16, 0);
-  expect(rest.y - stage.y).toBeCloseTo(16, 0);
+  // The name tag is a keep-out, so the top-left corner sits below it.
+  const tag = (await page.getByText("Mara Lind", { exact: true }).boundingBox())!;
+  expect(rest.y - (tag.y + tag.height)).toBeCloseTo(16, 0);
 });
 
 test("double-clicking the picture makes it large, in the same corner", async ({ page }) => {
