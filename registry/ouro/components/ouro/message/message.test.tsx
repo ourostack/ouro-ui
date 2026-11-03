@@ -734,6 +734,11 @@ describe("Message chat", () => {
     const bubble = bubbleOf(host.querySelector<HTMLElement>('[data-ouro="message"]')!);
     const link = getComputedStyle(host.querySelector("a")!).color;
     expect(contrast(link, getComputedStyle(bubble).backgroundColor)).toBeGreaterThanOrEqual(4.5);
+    // Muted text in it, such as a table's header, is a shade nearer the text color too.
+    const quiet = document.createElement("span");
+    quiet.style.color = "var(--muted-foreground)";
+    bubble.append(quiet);
+    expect(contrast(getComputedStyle(quiet).color, getComputedStyle(bubble).backgroundColor)).toBeGreaterThan(contrast(probeColor(host, "var(--muted-foreground)"), getComputedStyle(bubble).backgroundColor));
     // A shade of the primary color nearer the text color: neither the theme's own primary nor the text color itself.
     expect(link).not.toBe(probeColor(host, "var(--primary)"));
     expect(rgb(link)).not.toEqual(rgb(getComputedStyle(bubble).color));

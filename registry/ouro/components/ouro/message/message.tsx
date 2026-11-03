@@ -384,12 +384,13 @@ const filledInk =
   "[--ouro-action-active:color-mix(in_oklab,var(--ouro-bubble-ink)_76%,var(--ouro-bubble))] " +
   // Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined.
   "selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a]:underline";
-// On others' bubble, the muted surface: the primary and success colors take a little of the foreground, so a link, a
-// mention or a success mark keeps 4.5:1 on it, as it has on the page. The message mixes them (mutedColors) and the
+// On others' bubble, the muted surface: the primary, success and muted text colors take a little of the foreground, so
+// a link, a mention, a success mark or a table's header keeps 4.5:1 on it, as it has on the page. The message mixes them (mutedColors) and the
 // bubble reads them: a variable can't be mixed from itself.
 const mutedColors =
-  "[--ouro-bubble-link:color-mix(in_oklab,var(--primary)_85%,var(--foreground))] [--ouro-bubble-success:color-mix(in_oklab,var(--success)_85%,var(--foreground))]";
-const mutedInk = "[--primary:var(--ouro-bubble-link)] [--success:var(--ouro-bubble-success)]";
+  "[--ouro-bubble-link:color-mix(in_oklab,var(--primary)_85%,var(--foreground))] [--ouro-bubble-success:color-mix(in_oklab,var(--success)_85%,var(--foreground))] " +
+  "[--ouro-bubble-quiet:color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))]";
+const mutedInk = "[--primary:var(--ouro-bubble-link)] [--success:var(--ouro-bubble-success)] [--muted-foreground:var(--ouro-bubble-quiet)]";
 
 const layouts = {
   filled: {
