@@ -1,0 +1,9 @@
+{
+  "waive": {
+    "**": {
+      "inp": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
+      "layout-shift": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
+      "first-content": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners."
+    }
+  }
+}

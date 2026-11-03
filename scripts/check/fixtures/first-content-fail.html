@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First content: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<main data-app-ready="false"><div id="skeleton" aria-hidden="true"><div style="height:24px;width:60%;background:#e8e4dc;margin:8px 0"></div><div style="height:16px;width:90%;background:#e8e4dc;margin:8px 0"></div><div style="height:16px;width:80%;background:#e8e4dc;margin:8px 0"></div></div></main>
+<script>
+setTimeout(() => {
+  document.querySelector("main").innerHTML = "<h1>First content</h1><p id='late'>This paragraph is the page's content, and it took three seconds to arrive, which is longer than a person waits before they wonder whether the page works at all.</p>";
+  document.querySelector("main").setAttribute("data-app-ready", "true");
+}, 3000);
+</script>

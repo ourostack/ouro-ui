@@ -22,6 +22,11 @@ interface PageIssue {
   rule: string;
   element: string;
   detail: string;
+  // A measured rule's number, its budget and their unit ("ms", or "" for a score).
+  value?: number;
+  budget?: number;
+  unit?: string;
+  samples?: number[];
 }
 
 // A declared measure: the elements it holds (a CSS selector, or null for the page's prose: p, li, dd, blockquote,
