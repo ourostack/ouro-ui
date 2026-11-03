@@ -126,7 +126,8 @@ let clock = 1000;
 async function fire(type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel", x: number, y: number, ms = 16) {
   clock += ms;
   const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
-  const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: x, clientY: y });
+  // Not the mouse's id (1), so a real pointer event the browser sends mid-test is no part of this gesture.
+  const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: x, clientY: y });
   Object.defineProperty(event, "timeStamp", { value: clock });
   await act(async () => {
     pip().dispatchEvent(event);
