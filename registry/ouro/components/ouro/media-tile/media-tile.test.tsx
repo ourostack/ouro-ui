@@ -441,14 +441,14 @@ describe("MediaTile", () => {
   it("warns about a hysteresis it can't use on either side, and a fit a share can't take", async () => {
     await render(<MediaTile name="Mara Lind" hysteresis={{ off: -5 }} />);
     await render(<MediaTile name="Theo Okafor" source="screen" fit={"stretch" as "cover"} />);
+    const hysteresis = "[ouro-ui] MediaTile: hysteresis takes milliseconds from 0. Fix: <MediaTile hysteresis={{ on: 300, off: 600 }}>.";
+    const fit = '[ouro-ui] MediaTile: fit="stretch" is not a fit; use "cover", "contain". Fix: <MediaTile fit="contain">.';
+    // Zero on both sides is a hysteresis it can use.
     await render(<MediaTile name="Jonas Ek" hysteresis={{ on: 0, off: 0 }} />);
+    expect(warnings()).toEqual([hysteresis, fit]);
     // Milliseconds as words, on the on side with a good off side.
     await render(<MediaTile name="Priya Raman" hysteresis={{ on: "300" as unknown as number, off: 600 }} />);
-    expect(warnings()).toEqual([
-      "[ouro-ui] MediaTile: hysteresis takes milliseconds from 0. Fix: <MediaTile hysteresis={{ on: 300, off: 600 }}>.",
-      '[ouro-ui] MediaTile: fit="stretch" is not a fit; use "cover", "contain". Fix: <MediaTile fit="contain">.',
-      "[ouro-ui] MediaTile: hysteresis takes milliseconds from 0. Fix: <MediaTile hysteresis={{ on: 300, off: 600 }}>.",
-    ]);
+    expect(warnings()).toEqual([hysteresis, fit, hysteresis]);
   });
 
   it("declares its agent side: a participant read anyone may take, and a private pin an agent may take", async () => {
