@@ -337,7 +337,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     if (moved.current && now !== settled.current) announce(latest.current.cornerLabels[now]);
     moved.current = false;
     settled.current = now;
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: any constant dependency list keeps rested the same for the component's life, as this one does.
+  []);
 
   /**
    * Takes it to `to`'s place: with the spring from where it is, at `velocity` (or the speed it was
