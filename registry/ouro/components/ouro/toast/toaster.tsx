@@ -56,7 +56,9 @@ export interface ToasterProps {
    * corner. While one is on screen in the lower half of the window, under the toasts' column, the
    * toasts rise to sit 8px above it, and they come back down when it goes. They measure again when
    * the page changes outside the toasts and when the window resizes. Mark the controls and
-   * pass the selector: `<Toaster avoid="[data-keep-clear]" />`.
+   * pass the selector: `<Toaster avoid="[data-keep-clear]" />`. It clears controls for a toaster at
+   * the bottom only; at the top, the app's own top offset (`className="top-18 bottom-auto"`) keeps
+   * the toasts clear of its header.
    * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > keeps the toasts clear of a control the selector matches under them, and comes back down when it goes)
    * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > stays where it is for a matched control away from its column or in the window's top half)
    * @claim "While one is on screen in" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster avoid > measures again when the window resizes: a control beside the column on a wide screen is under it on a phone)
@@ -346,6 +348,8 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
  */
 function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
   const { toasts } = Toast.useToastManager();
+  // Read the edge again as toasts come and go: the app's own CSS may have moved the toaster since.
+  useLayoutEffect(() => markEdge(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!), [toasts.length]);
   return toasts.map((item) => <ToastItem key={item.id} item={item} closeLabel={closeLabel} />);
 }
 
@@ -366,20 +370,15 @@ function rememberEntry(event: FocusEvent<HTMLElement>): void {
 }
 
 /**
- * Focus in the toasts fans the stack out and pauses it, however it came. Base UI does so only for
- * keyboard focus (`:focus-visible`), so a screen reader that moves focus to a toast behind the
- * front one, or a script, would leave it covered and fading out while it is read. A hover says the
- * same to Base UI, so the region gets one, as a finger's press does in `useSwipeAway`.
- *
- * @claim "Focus in the toasts fans the stack out" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves)
- */
-/**
  * Marks the viewport with the edge it sits at, `data-edge="top"` or `"bottom"`, from where its
- * layout classes put it: its top edge above the window's middle, or not. The stack unfurls away from that
- * edge, and a toast swipes away toward it. Read again when the window is resized, and by Toaster when its className changes.
+ * layout classes put it: its top edge above the window's middle, or not (a bottom toaster `avoid` lifted stays at the bottom). The stack unfurls away from that
+ * edge, and a toast swipes away toward it. Read again when the window is resized, when Toaster's className changes and as toasts come and go.
  */
 function markEdge(viewport: HTMLElement): void {
-  viewport.setAttribute("data-edge", viewport.getBoundingClientRect().top < window.innerHeight / 2 ? "top" : "bottom");
+  // keepClear (`avoid`) lifts a bottom toaster with an inline `bottom`, which can raise it past the
+  // middle: it is still at the bottom.
+  const edge = viewport.style.bottom || viewport.getBoundingClientRect().top >= window.innerHeight / 2 ? "bottom" : "top";
+  if (viewport.getAttribute("data-edge") !== edge) viewport.setAttribute("data-edge", edge);
 }
 
 function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
@@ -392,6 +391,14 @@ function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
   return () => window.removeEventListener("resize", read);
 }
 
+/**
+ * Focus in the toasts fans the stack out and pauses it, however it came. Base UI does so only for
+ * keyboard focus (`:focus-visible`), so a screen reader that moves focus to a toast behind the
+ * front one, or a script, would leave it covered and fading out while it is read. A hover says the
+ * same to Base UI, so the region gets one, as a finger's press does in `useSwipeAway`.
+ *
+ * @claim "Focus in the toasts fans the stack out" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > fans the stack out and waits while focus is in a toast though no key moved it there, as a screen reader moves it, and folds it when focus leaves)
+ */
 function onViewportFocus(event: FocusEvent<HTMLElement>): void {
   rememberEntry(event);
   hover(event.currentTarget, true);

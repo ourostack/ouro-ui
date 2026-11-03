@@ -142,6 +142,36 @@ describe("Toaster", () => {
     expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
     await act(async () => roots.at(-1)!.render(<Toaster className="top-4 bottom-auto" />));
     expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    // A toast arriving reads the edge again, after the app's own CSS moved the toaster with no resize.
+    await act(async () => toast.dismiss());
+    await gone("Older");
+    await gone("Newer");
+    await act(async () => roots.at(-1)!.render(<Toaster />));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    const sheet = document.head.appendChild(document.createElement("style"));
+    sheet.textContent = '[data-ouro="toaster"] { top: 72px !important; bottom: auto !important; }';
+    try {
+      await show("Moved", { duration: 0 });
+      expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    } finally {
+      sheet.remove();
+    }
+    // The attribute is written only when the edge changes.
+    const writes: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => writes.push(...records));
+    observer.observe(viewport()!, { attributeFilter: ["data-edge"] });
+    window.dispatchEvent(new Event("resize"));
+    window.dispatchEvent(new Event("resize"));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    observer.disconnect();
+    expect(writes.length).toBe(1);
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    // A bottom toaster `avoid` lifted past the middle (an inline bottom) stays at the bottom.
+    viewport()!.style.bottom = `${window.innerHeight / 2 + 40}px`;
+    window.dispatchEvent(new Event("resize"));
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
+    viewport()!.style.bottom = "";
+    await act(async () => roots.at(-1)!.render(<Toaster className="top-4 bottom-auto" />));
     // A resize reads the edge again: a viewport whose top edge is at the middle counts as the bottom.
     viewport()!.style.top = "50vh";
     window.dispatchEvent(new Event("resize"));

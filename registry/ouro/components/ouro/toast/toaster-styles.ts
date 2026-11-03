@@ -39,21 +39,22 @@ const viewportClass =
   "sm:[&]:[&]:[--ouro-toaster-width:var(--spacing-90,--spacing(90))] sm:[&]:[--ouro-toaster-width:--theme(--spacing-90)]";
 
 /**
- * One toast. Collapsed, the newest is in front and the older ones peek out above it,
- * smaller; hovering or focusing the stack (`data-expanded`) fans them out. Base UI sets
+ * One toast. Collapsed, the newest is in front and the older ones peek out behind it, smaller,
+ * toward the middle of the screen (above it at the bottom edge, below it at the top); hovering or
+ * focusing the stack (`data-expanded`) fans them out the same way. Base UI sets
  * `--toast-index`, `--toast-offset-y` and `--toast-height`. The swipe (`useSwipeAway`)
  * moves the toast with `translate`, which adds to this `transform` and is not in the
  * transition, so it follows the finger at once. A swiped toast (`data-ouro-swiped`)
- * fades on the way it was thrown; a toast closed any other way slides back down. With
+ * fades on the way it was thrown; a toast closed any other way slides back out past its edge. With
  * reduced motion nothing slides or springs: toasts fade in and out where they are.
- * A toast swipes away downward as well as sideways, so it takes every touch gesture
- * (`touch-none`, not `touch-pan-y`): otherwise a downward swipe on a scrollable page
- * scrolls the page, and the browser cancels the swipe.
+ * A toast swipes away toward its edge (down at the bottom, up at the top) as well as sideways, so
+ * it takes every touch gesture (`touch-none`, not `touch-pan-y`): otherwise a swipe on a
+ * scrollable page scrolls the page, and the browser cancels the swipe.
  *
  * @internal
- * @claim "A toast swipes away downward as" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
- * @claim "A toast swipes away downward as" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > goes back to rest when the browser cancels the touch, however far out it was)
- * @claim "A toast swipes away downward as" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
+ * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
+ * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > goes back to rest when the browser cancels the touch, however far out it was)
+ * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
  * @claim "Collapsed, the newest is in front" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
  * @claim "Collapsed, the newest is in front" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::waits while a finger is on a toast, and fans the stack out, as a mouse over it does)
  */
@@ -62,7 +63,7 @@ const rootClass =
   // At the top edge (the viewport's `data-edge="top"`) the stack hangs from the top and unfurls downward:
   // `--ouro-toast-dir` turns every offset below toward the screen's middle.
   "group-data-[edge=top]/toaster:top-0 group-data-[edge=top]/toaster:bottom-auto group-data-[edge=top]/toaster:origin-top " +
-  " select-none [-webkit-tap-highlight-color:transparent] " +
+  "select-none [-webkit-tap-highlight-color:transparent] " +
   "rounded-lg border border-solid border-border bg-popover text-popover-foreground shadow-(--shadow-lg) " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "[--gap:0.75rem] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] " +
@@ -71,9 +72,7 @@ const rootClass =
   "z-[calc(1000-var(--toast-index))] h-(--height) data-expanded:h-(--toast-height) " +
   "[transform:translateY(calc(var(--ouro-toast-dir)*(var(--toast-index)*var(--peek)+var(--shrink)*var(--height))))_scale(var(--scale))] " +
   "data-expanded:[transform:translateY(var(--offset-y))] " +
-  // A strip under each toast bridges the gap, so moving between fanned-out toasts keeps them open.
-  "after:absolute after:inset-x-0 after:top-full after:h-[calc(var(--gap)+1px)] after:content-[''] " +
-  "group-data-[edge=top]/toaster:after:top-auto group-data-[edge=top]/toaster:after:bottom-full " +
+
   "data-starting-style:opacity-0 data-ending-style:opacity-0 data-limited:opacity-0 " +
   "motion-safe:data-starting-style:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] motion-safe:data-expanded:data-starting-style:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] " +
   "motion-safe:[&[data-ending-style]:not([data-limited]):not([data-ouro-swiped])]:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] " +
@@ -87,7 +86,13 @@ const rootClass =
  */
 const contentClass =
   "flex h-full items-start gap-3 overflow-hidden p-4 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
-  "data-behind:opacity-0 data-expanded:opacity-100";
+  "data-behind:opacity-0 data-expanded:opacity-100 " +
+  // A strip bridges the gap between a fanned-out toast and the one in front of it (below it at the
+  // bottom edge, above it at the top), so moving between them keeps the stack open. The front toast
+  // has none, so no dead strip sits over the page beside the stack. Positioned against the toast.
+  "data-expanded:data-behind:after:absolute data-expanded:data-behind:after:inset-x-0 data-expanded:data-behind:after:top-full " +
+  "data-expanded:data-behind:after:h-[calc(var(--gap)+1px)] data-expanded:data-behind:after:content-[''] " +
+  "group-data-[edge=top]/toaster:data-expanded:data-behind:after:top-auto group-data-[edge=top]/toaster:data-expanded:data-behind:after:bottom-full";
 
 /**
  * The action button: a quiet bordered button, 44px to touch on a coarse pointer.
