@@ -141,3 +141,23 @@ export const KeepClear: Story = {
     );
   },
 };
+
+/** At the top of the screen, placed with layout classes: the newest toast at the top, older ones peeking out below, fanning out downward. */
+export const AtTheTop: Story = {
+  parameters: {
+    screenshot: { name: "toaster-top" },
+    conformance: {
+      focusExit: {
+        // As in Stack: the last toast's dismiss button, pressed with focus from nowhere, leaves focus on the page.
+        "toaster/close Dismiss": "the last toast's dismiss button, pressed with focus from nowhere, leaves focus on the page, as Toaster does on purpose",
+      },
+    },
+  },
+  render: (args) => (
+    <Surface>
+      <span style={{ color: "var(--muted-foreground)" }}>Hover the toasts to fan them out, downward.</span>
+      <Toaster {...args} className="top-4 bottom-auto" />
+      <ShowOnMount />
+    </Surface>
+  ),
+};
