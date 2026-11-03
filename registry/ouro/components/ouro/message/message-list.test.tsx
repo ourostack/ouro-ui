@@ -1219,11 +1219,21 @@ const posts = (count = 6, extra: (index: number) => ReactNode = () => null) =>
   ));
 
 /** A list between two buttons, so Tab has somewhere to come from and go to. */
-function Channel({ children, height = 300, onMessageKeyDown }: { children: ReactNode; height?: number; onMessageKeyDown?: (message: HTMLElement, event: React.KeyboardEvent<HTMLElement>) => void }) {
+function Channel({
+  children,
+  height = 300,
+  onMessageKeyDown,
+  pageKeys,
+}: {
+  children: ReactNode;
+  height?: number;
+  onMessageKeyDown?: (message: HTMLElement, event: React.KeyboardEvent<HTMLElement>) => void;
+  pageKeys?: boolean;
+}) {
   return (
     <div>
       <button type="button">Before</button>
-      <MessageList label="Channel" style={{ height }} onMessageKeyDown={onMessageKeyDown}>
+      <MessageList label="Channel" style={{ height }} onMessageKeyDown={onMessageKeyDown} pageKeys={pageKeys}>
         {children}
       </MessageList>
       <button type="button">After</button>
@@ -1288,6 +1298,63 @@ describe("MessageList keyboard", () => {
     expect(focusedId()).toBe(`post-${up}`);
     await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
     expect(Number(focusedId().slice(5))).toBeGreaterThan(up + 1);
+  });
+
+  it("leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    // An app's window shortcut, listening in the bubble phase, as most do.
+    const heard: string[] = [];
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Alt" || event.key === "Meta") return;
+      heard.push(`${event.altKey ? "Alt+" : ""}${event.metaKey ? "Meta+" : ""}${event.key}${event.defaultPrevented ? " prevented" : ""}`);
+    };
+    const { rerender } = await render(<Channel>{posts(14)}</Channel>);
+    await rerender(<Channel pageKeys={false}>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("post-13");
+    window.addEventListener("keydown", onKey);
+    try {
+      await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+      await userEvent.keyboard("{PageUp}");
+      expect(focusedId()).toBe("post-13");
+      await userEvent.keyboard("{ArrowUp}");
+      expect(focusedId()).toBe("post-12");
+      await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+      await userEvent.keyboard("{PageDown}");
+      expect(focusedId()).toBe("post-12");
+      // ⌘↑ is still Home.
+      await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+      expect(focusedId()).toBe("post-0");
+      expect(heard).toEqual(["Alt+ArrowUp", "PageUp", "ArrowUp prevented", "Alt+ArrowDown", "PageDown", "Meta+ArrowUp prevented"]);
+    } finally {
+      window.removeEventListener("keydown", onKey);
+    }
+  });
+
+  it("leaves ⌘↑, ⌘↓, ⌥↑ and ⌥↓ alone on a Mac once an app's capture-phase shortcut prevented them", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const heard: string[] = [];
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.key.startsWith("Arrow") || !(event.altKey || event.metaKey)) return;
+      heard.push(`${event.metaKey ? "Meta" : "Alt"}+${event.key}`);
+      event.preventDefault();
+    };
+    await render(<Channel>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    window.addEventListener("keydown", onKey, { capture: true });
+    try {
+      for (const press of ["{Alt>}{ArrowUp}{/Alt}", "{Meta>}{ArrowUp}{/Meta}", "{Alt>}{ArrowDown}{/Alt}", "{Meta>}{ArrowDown}{/Meta}"]) {
+        await userEvent.keyboard(press);
+        expect(focusedId()).toBe("post-13");
+      }
+      expect(heard).toEqual(["Alt+ArrowUp", "Meta+ArrowUp", "Alt+ArrowDown", "Meta+ArrowDown"]);
+    } finally {
+      window.removeEventListener("keydown", onKey, { capture: true });
+    }
   });
 
   it("moves between messages with the arrow keys, Home, End, Page Up and Page Down, with a focus ring", async () => {
