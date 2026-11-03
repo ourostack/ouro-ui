@@ -1624,6 +1624,48 @@ describe("Message actions", () => {
     expect(document.activeElement).toBe(reply);
   });
 
+  it("puts the quick reactions at the top of the menu, named, and the arrow keys move along them", async () => {
+    const reacted = vi.fn();
+    const { message } = await render(
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Jonah Vale"
+        quickReactions={[
+          { key: "like", label: "Like", icon: "👍", onClick: () => reacted("like") },
+          { key: "laugh", label: "Laugh", icon: "😄", onClick: () => reacted("laugh") },
+          { key: "more", label: "More reactions", icon: "+", onClick: () => reacted("more"), disabled: true },
+        ]}
+        quickReactionsLabel="Réactions"
+        menu={[{ label: "Copy link", onClick: () => {} }]}
+      >
+        Agenda
+      </Message>,
+    );
+    const more = () => barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
+    await expect.poll(() => message.querySelector('[data-ouro-part="menu"]')).not.toBeNull();
+    await act(async () => more().focus());
+    await userEvent.keyboard("{Enter}");
+    const reactions = page.getByRole("group", { name: "Réactions" });
+    await expect.element(reactions.getByRole("menuitem", { name: "Like" })).toBeVisible();
+    // Each reaction is a menu item named by its label; the emoji is not read.
+    expect(reactions.getByRole("menuitem").elements().map((item) => item.textContent)).toEqual(["👍Like", "😄Laugh", "+More reactions"]);
+    await act(async () => (reactions.getByRole("menuitem", { name: "Like" }).element() as HTMLElement).focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(reactions.getByRole("menuitem", { name: "Laugh" }).element());
+    // Past the end (a disabled one is passed over), round to the start; and back.
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(reactions.getByRole("menuitem", { name: "Like" }).element());
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(reactions.getByRole("menuitem", { name: "Laugh" }).element());
+    await userEvent.keyboard("{Enter}");
+    expect(reacted).toHaveBeenCalledWith("laugh");
+    // A line between the reactions and the rest.
+    await expect.poll(() => document.querySelector('[data-ouro="menu"]')).toBeNull();
+    await userEvent.click(more());
+    await expect.poll(() => document.querySelector('[data-ouro-message-menu-reactions]')?.nextElementSibling?.getAttribute("role")).toBe("separator");
+  });
+
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
     const copied = vi.fn();
     const { message } = await render(

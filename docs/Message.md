@@ -31,8 +31,9 @@ The props the modes share. Type: `MessageProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
+| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. In a `MessageList` the list draws one bar for all its messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens, so at most one bar shows and none stays behind. Escape hides it. |
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
+| `actionsMenuLabel` | `string` | `Message actions for ${name}` | What screen readers hear for the menu a `MessageList` opens for the message. |
 | `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
 | `attachments` | `ReactNode` |  | Files and pictures sent with the message, shown under it: `<Attachment>` elements, and pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them full size. |
 | `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
@@ -45,12 +46,14 @@ The props the modes share. Type: `MessageProps`.
 | `failed` | `MessageFailed \| false` |  | The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
 | `failedLabel` | `string` | `"Not sent"` | What the marker under a `failed` message says, for other languages. |
 | `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
-| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
+| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label and its `shortcut` at its end. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. In a `MessageList`, the list has one menu for all its messages: the bar's menu button, a right-click on the message (except on a field or selected text) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and closing it puts focus back on the message. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string \| null` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's place on its line, the avatar shimmers in its own shape, and screen readers hear `nameLoadingLabel`. Nothing moves when the name arrives. |
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
 | `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `nameTag` | `string` |  | A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both are still read. |
+| `quickReactions` | `readonly MessageAction[]` |  | Reactions at the top of the message's menu, as a row of emoji: each an action whose `icon` is the emoji and whose `label` names it ("Like"). Left and right move along the row. Put one that opens a picker of every reaction last ("More reactions"). |
+| `quickReactionsLabel` | `string` | `"Reactions"` | What screen readers hear for the row of reactions in the menu, for other languages. |
 | `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
@@ -403,7 +406,10 @@ interface MessageOwnProps {
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
    * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
-   * keys moving between its buttons.
+   * keys moving between its buttons. In a `MessageList` the list draws one bar for all its
+   * messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and
+   * hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens,
+   * so at most one bar shows and none stays behind. Escape hides it.
    */
   actions?: readonly MessageAction[] | undefined;
   /**
@@ -419,13 +425,26 @@ interface MessageOwnProps {
   actionsPlacement?: MessageActionsPlacement | (string & { 'Use "corner" or "beside"': never }) | undefined;
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
-   * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
+   * entries as Menu's `items`, each with an optional `icon` before its label and its `shortcut` at its end. The bar stays while the menu is open. The bar renders in the
    * browser once its code loads, so server HTML has the message without it; Menu's code loads the
-   * first time someone opens a message's menu.
+   * first time someone opens a message's menu. In a `MessageList`, the list has one menu for all its
+   * messages: the bar's menu button, a right-click on the message (except on a field or selected
+   * text) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and
+   * closing it puts focus back on the message.
    */
   menu?: readonly MenuEntry[] | undefined;
+  /**
+   * Reactions at the top of the message's menu, as a row of emoji: each an action whose `icon` is the
+   * emoji and whose `label` names it ("Like"). Left and right move along the row. Put one that opens
+   * a picker of every reaction last ("More reactions").
+   */
+  quickReactions?: readonly MessageAction[] | undefined;
+  /** What screen readers hear for the row of reactions in the menu, for other languages. @default "Reactions" */
+  quickReactionsLabel?: string | undefined;
   /** What screen readers hear for the action bar, for other languages. @default "Message actions" */
   actionsLabel?: string | undefined;
+  /** What screen readers hear for the menu a `MessageList` opens for the message. @default `Message actions for ${name}` */
+  actionsMenuLabel?: string | undefined;
   /** The menu button's name, for other languages. @default "More actions" */
   menuLabel?: string | undefined;
   /**

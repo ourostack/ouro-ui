@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
+import { useEffect, useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type RefObject, type SVGProps } from "react";
+import { createPortal, flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import type { Menu as MenuComponent, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
+import type { MenuAnchor, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useRowHover, type RowLayer, type RowMenuAt } from "@/registry/ouro/lib/ouro/row-hover";
 
 // The action bar: a small raised pill above the bubble's top corner (over a post's top end)
 // or beside the bubble's top end, shown on hover (a mouse's only), while focus is in the message,
@@ -28,9 +30,76 @@ const buttons = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLElement>("[da
 // Stryker disable next-line StringLiteral: any key no action uses works the same.
 const MENU_KEY = " menu";
 
-// Menu's code, loaded once, the first time someone opens a message's menu.
-let menuModule: Promise<typeof MenuComponent> | undefined;
-const loadMenu = () => (menuModule ??= import("@/registry/ouro/components/ouro/menu/menu").then((module) => module.Menu));
+type MenuModule = typeof import("@/registry/ouro/components/ouro/menu/menu");
+
+// Menu's code, loaded once, the first time someone opens a message's menu (in a MessageList, the first time its bar shows).
+let menuModule: Promise<MenuModule> | undefined;
+let menuLoaded: MenuModule | undefined;
+const loadMenu = () => (menuModule ??= import("@/registry/ouro/components/ouro/menu/menu").then((module) => (menuLoaded = module)));
+
+/**
+ * What a message in a `MessageList` gives the list's one action bar and menu, in place of drawing its own.
+ *
+ * @internal
+ */
+export interface MessageBarData {
+  actions: readonly MessageAction[];
+  menu: readonly MenuEntry[] | undefined;
+  reactions: readonly MessageAction[] | undefined;
+  /** The toolbar's name. */
+  label: string;
+  /** The menu button's name. */
+  menuLabel: string;
+  /** The menu's own name, for the menu the list opens. */
+  menuName: string;
+  /** The name of the row of reactions at the top of the menu. */
+  reactionsLabel: string;
+  start: boolean;
+  post: boolean;
+  beside: string | undefined;
+  /** Where in the message the bar goes. */
+  slot: () => HTMLElement | null;
+}
+
+/** The reactions at the top of a message's menu, as a row of menu items named by their labels, then the rest of its entries. */
+function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; reactions: readonly MessageAction[] | undefined; entries: readonly MenuEntry[] | undefined; label: string }): JSX.Element {
+  const shown = reactions ?? [];
+  // Left and right move along the row, as they would along a toolbar; up and down are the menu's, through every item.
+  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const items = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')];
+    const at = items.indexOf(event.target as HTMLElement);
+    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const step = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1 }[event.key];
+    if (step === undefined || at < 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    items[(at + step + items.length) % items.length]!.focus();
+  };
+  return (
+    <>
+      {shown.length > 0 && (
+        <div
+          role="group"
+          aria-label={label}
+          data-ouro-message-menu-reactions=""
+          onKeyDown={keyDown}
+          className="flex items-center gap-0.5 pb-1 [&>[role=menuitem]]:w-auto [&>[role=menuitem]]:flex-1 [&>[role=menuitem]]:justify-center [&>[role=menuitem]]:px-1.5"
+        >
+          {shown.map((reaction) => (
+            <M.MenuItem key={reaction.key} onClick={reaction.onClick} disabled={reaction.disabled}>
+              <span aria-hidden="true" data-ouro-message-menu-reaction={reaction.key} className="inline-flex size-5 items-center justify-center text-lg leading-none [&>svg]:size-5">
+                {reaction.icon}
+              </span>
+              <span className="sr-only">{reaction.label}</span>
+            </M.MenuItem>
+          ))}
+        </div>
+      )}
+      {shown.length > 0 && entries !== undefined && entries.length > 0 && <M.MenuSeparator />}
+      {M.renderEntries(entries ?? [])}
+    </>
+  );
+}
 
 /**
  * The action bar of `Message`: a toolbar of icon buttons with tooltips, and the menu button
@@ -42,14 +111,20 @@ const loadMenu = () => (menuModule ??= import("@/registry/ouro/components/ouro/m
 export function MessageActionBar({
   actions,
   menu,
+  reactions,
+  reactionsLabel = "Reactions",
   label,
   menuLabel,
   start,
   post,
   beside,
+  onMenu,
 }: {
   actions: readonly MessageAction[];
   menu: readonly MenuEntry[] | undefined;
+  /** The reactions at the top of the menu. */
+  reactions?: readonly MessageAction[] | undefined;
+  reactionsLabel?: string | undefined;
   label: string;
   menuLabel: string;
   start: boolean;
@@ -61,16 +136,22 @@ export function MessageActionBar({
    * avatar's column takes before the bubble. Undefined puts the bar over the corner.
    */
   beside?: string | undefined;
+  /**
+   * The bar is a MessageList's shared bar, on the message it is over: shown while it is there, and its
+   * menu button opens the list's shared menu, from this button.
+   */
+  onMenu?: ((button: HTMLElement) => void) | undefined;
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   // Menu, once this bar's menu button has been pressed: until then the button stands alone.
-  const [LoadedMenu, setLoadedMenu] = useState<typeof MenuComponent | undefined>(undefined);
+  const [M, setM] = useState<MenuModule | undefined>(undefined);
   const openMenu = () =>
     void loadMenu().then((Loaded) => {
-      setLoadedMenu(() => Loaded);
+      setM(() => Loaded);
       setMenuOpen(true);
     });
-  const hasMenu = menu !== undefined && menu.length > 0;
+  const layered = onMenu !== undefined;
+  const hasMenu = (menu !== undefined && menu.length > 0) || (reactions !== undefined && reactions.length > 0);
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
   if (hasMenu) keys.push(MENU_KEY);
   const [current, setCurrent] = useState<string | undefined>(undefined);
@@ -98,10 +179,11 @@ export function MessageActionBar({
       role="toolbar"
       aria-label={label}
       data-ouro-message-actions=""
+      data-ouro-row-layer={layered && beside === undefined ? "" : undefined}
       data-menu-open={menuOpen ? "" : undefined}
       onKeyDown={keyDown}
       onFocus={focus}
-      className={cn(barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", post ? "-top-5" : "-top-8"] : "pointer-events-auto")}
+      className={cn(layered ? layerClass : barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", post ? "-top-5" : "-top-8"] : "pointer-events-auto")}
       // A little way from the bubble while there is room; with none, the auto margin goes and the bar ends at the message's edge.
       // Stryker disable next-line ConditionalExpression: a bar over the corner is placed by one inset, so these margins would move it nowhere.
       style={beside === undefined ? undefined : { marginInline: start ? "auto 0.25rem" : "0.25rem auto" }}
@@ -133,9 +215,11 @@ export function MessageActionBar({
         );
       })}
       {hasMenu &&
-        (LoadedMenu ? (
-          <LoadedMenu
-            items={menu}
+        (M && !layered ? (
+          <M.Menu
+            {...(reactions !== undefined && reactions.length > 0
+              ? { children: <MessageMenuItems M={M} reactions={reactions} entries={menu} label={reactionsLabel} /> }
+              : { items: menu })}
             open={menuOpen}
             onOpenChange={setMenuOpen}
             // No tooltip here: one reopened as focus comes back from the menu would cover the bar of
@@ -169,8 +253,9 @@ export function MessageActionBar({
             className={iconButton}
             aria-haspopup="menu"
             aria-expanded={false}
-            // Menu's trigger takes this button's place, and Menu gives it focus when it closes.
-            onClick={openMenu}
+            // Menu's trigger takes this button's place, and Menu gives it focus when it closes. In a
+            // MessageList, the list's one menu opens instead.
+            onClick={layered ? (event) => onMenu(event.currentTarget) : openMenu}
           >
             {more}
           </Button>
@@ -191,10 +276,112 @@ export function MessageActionBar({
     pointerEvents: "none",
   };
   return (
-    <div data-ouro-message-actions-room="" style={room}>
+    <div data-ouro-message-actions-room="" data-ouro-row-layer={layered ? "" : undefined} style={room}>
       {bar}
     </div>
   );
+}
+
+// Loaded with this file: the list's one bar shows as soon as the pointer is over a message.
+const layerClass =
+  "z-10 flex items-center gap-0.5 rounded-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";
+
+/**
+ * A MessageList's shared action bar and menu: the bar on the message the pointer is over (or that
+ * has keyboard focus, or was tapped), in that message's place for it, and the menu, which opens from
+ * the bar's menu button, a right-click on a message, or `Shift+F10` or the context-menu key on one.
+ * The list renders this once, whatever its length, and loads it with the first message that has
+ * actions.
+ *
+ * @internal
+ */
+export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLElement | null>; layer: RowLayer<MessageBarData> }): JSX.Element {
+  const [opened, setOpened] = useState<{ row: HTMLElement; data: MessageBarData; anchor: MenuAnchor; open: boolean } | null>(null);
+  const [M, setM] = useState<MenuModule | undefined>(menuLoaded);
+  // A virtual element for where the menu opens: the bar goes as it opens, so a box measured now.
+  const show = (row: HTMLElement, data: MessageBarData, anchor: MenuAnchor) => {
+    const open = (Loaded: MenuModule) => {
+      hover.hold(true);
+      setM(() => Loaded);
+      setOpened({ row, data, anchor, open: true });
+    };
+    // Loaded already (the bar's first showing loads it), it opens within this event, before the next frame.
+    if (menuLoaded) flushSync(() => open(menuLoaded!));
+    else void loadMenu().then(open);
+  };
+  const fromRow = (row: HTMLElement, at: RowMenuAt) => {
+    const data = layer.get(row)!;
+    if (!hasMenuEntries(data)) return false;
+    // From the keyboard, at the message's end: where its bar's menu button would be.
+    const box = data.slot()?.parentElement ?? row;
+    show(row, data, at ?? frozen(box));
+    return true;
+  };
+  const hover = useRowHover(scroller, layer, { menu: fromRow });
+  const data = hover.row ? layer.get(hover.row) : undefined;
+  const slot = data?.slot() ?? null;
+  // The menu's code, once the bar first shows, so the menu then opens at once.
+  const showing = slot !== null;
+  useEffect(() => {
+    if (showing) void loadMenu();
+  }, [showing]);
+  const close = (open: boolean) => {
+    if (open) return;
+    hover.hold(false);
+    setOpened((previous) => previous && { ...previous, open: false });
+  };
+  return (
+    <>
+      {hover.row !== null &&
+        data !== undefined &&
+        slot !== null &&
+        createPortal(
+          <MessageActionBar
+            key={rowKey(hover.row)}
+            actions={data.actions}
+            menu={data.menu}
+            reactions={data.reactions}
+            label={data.label}
+            menuLabel={data.menuLabel}
+            start={data.start}
+            post={data.post}
+            beside={data.beside}
+            onMenu={(button) => show(hover.row!, data, frozen(button))}
+          />,
+          slot,
+        )}
+      {opened !== null && M !== undefined && (
+        <M.Menu
+          anchor={opened.anchor}
+          open={opened.open}
+          onOpenChange={close}
+          aria-label={opened.data.menuName}
+          returnFocus={opened.row}
+          side="bottom"
+          align="end"
+        >
+          <MessageMenuItems M={M} reactions={opened.data.reactions} entries={opened.data.menu} label={opened.data.reactionsLabel} />
+        </M.Menu>
+      )}
+    </>
+  );
+}
+
+const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && data.menu.length > 0) || (data.reactions !== undefined && data.reactions.length > 0);
+
+/** An element's box as it is now, for a menu that stays where it opened after the element goes. */
+function frozen(element: Element): MenuAnchor {
+  const box = element.getBoundingClientRect();
+  return { getBoundingClientRect: () => box };
+}
+
+// A key per row, so the bar's own state (which button has the Tab stop) starts afresh on each message.
+const rowKeys = new WeakMap<Element, number>();
+let lastRowKey = 0;
+function rowKey(row: Element): number {
+  let key = rowKeys.get(row);
+  if (key === undefined) rowKeys.set(row, (key = ++lastRowKey));
+  return key;
 }
 
 /** A row of dots: more actions. */
