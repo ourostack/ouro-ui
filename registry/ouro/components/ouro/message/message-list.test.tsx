@@ -68,6 +68,7 @@ function Chat({
   newMessageLabel?: (author: string, text: string) => string;
   loadingOlder?: boolean;
   loadingOlderLabel?: string;
+  hasOlder?: boolean;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
@@ -914,6 +915,97 @@ describe("MessageList", () => {
     await rerender(<Chat items={items} />);
     await expect.element(status).not.toBeInTheDocument();
     expect(tops()).toEqual(before);
+  });
+
+  it("keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    // The first message, focused from the keyboard, so its focus ring shows.
+    await pressTab();
+    await userEvent.keyboard("{Home}");
+    const first = scroller.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    expect(document.activeElement).toBe(first);
+    expect(scroller.scrollTop).toBe(0);
+    const style = getComputedStyle(first);
+    expect(style.outlineStyle).not.toBe("none");
+    const ring = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const before = tops();
+    const height = scroller.scrollHeight;
+    await rerender(<Chat items={items} hasOlder loadingOlder />);
+    const pill = page.getByText("Loading older messages").element();
+    await expect.poll(() => pill.getBoundingClientRect().height).toBeGreaterThan(0);
+    expect(pill.getBoundingClientRect().bottom).toBeLessThanOrEqual(first.getBoundingClientRect().top - ring);
+    expect(tops()).toEqual(before);
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.scrollTop).toBe(0);
+    await rerender(<Chat items={items} hasOlder />);
+    await expect.element(page.getByText("Loading older messages")).not.toBeInTheDocument();
+    expect(tops()).toEqual(before);
+  });
+
+  it("keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const room = () => scroller.querySelector("[data-ouro-message-list-older-room]");
+    const before = tops();
+    // The start is reached at the top: the room stays, so nothing moves.
+    await rerender(<Chat items={items} />);
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    expect(tops()).toEqual(before);
+    // A scroll that leaves part of it in view keeps it.
+    await act(async () => void (scroller.scrollTop = 10));
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    // Scrolled out of view, it goes, and the messages stay where the scroll put them.
+    await act(async () => void (scroller.scrollTop = 200));
+    const scrolled = tops();
+    await expect.poll(room).toBeNull();
+    await settle(scroller);
+    tops().forEach((top, index) => near(top, scrolled[index]!));
+  });
+
+  it("drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message", async () => {
+    const items = history(20, 10);
+    const room = () => scroller.querySelector("[data-ouro-message-list-older-room]");
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    expect(room()).toBeNull();
+    // Added at the end: the list stays at its end.
+    await rerender(<Chat items={items} hasOlder />);
+    expect(room()).not.toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    // Ended at the end: it goes at once, and the list stays at its end.
+    let before = tops();
+    await rerender(<Chat items={items} />);
+    expect(room()).toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    tops().forEach((top, index) => near(top, before[index]!));
+    // So in a short conversation, where it shows at the end.
+    const short = await render(<Chat items={history(2)} hasOlder />);
+    const shortRoom = short.scroller.querySelector("[data-ouro-message-list-older-room]")!;
+    expect(shortRoom.getBoundingClientRect().bottom).toBeGreaterThan(short.scroller.getBoundingClientRect().top);
+    const shortTops = [...short.scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    await short.rerender(<Chat items={history(2)} />);
+    expect(short.scroller.querySelector("[data-ouro-message-list-older-room]")).toBeNull();
+    expect([...short.scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top)).toEqual(shortTops);
+    // Added mid-conversation: the reader's messages stay where they are.
+    await wheel(scroller, -400);
+    before = tops();
+    await rerender(<Chat items={items} hasOlder />);
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    tops().forEach((top, index) => near(top, before[index]!));
+    // Ended out of view: it goes at once, with no scroll to wait for.
+    await rerender(<Chat items={items} />);
+    expect(room()).toBeNull();
+    tops().forEach((top, index) => near(top, before[index]!));
   });
 
   it("takes a translated label for older messages loading", async () => {

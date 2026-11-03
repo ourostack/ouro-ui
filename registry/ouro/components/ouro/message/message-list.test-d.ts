@@ -8,6 +8,7 @@ expectTypeOf<{ label: "Conversation"; children: null }>().toExtend<MessageListPr
 expectTypeOf<{ label: "Conversation"; children: null; jumpLabel: "Aller au dernier"; newMessageLabel: (author: string, text: string) => string }>().toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; maxWidth: 960 }>().toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; pageKeys: false }>().toExtend<MessageListProps>();
+expectTypeOf<{ label: "Conversation"; children: null; hasOlder: true; loadingOlder: true }>().toExtend<MessageListProps>();
 expectTypeOf<ComponentProps<typeof MessageList>>().toEqualTypeOf<MessageListProps>();
 
 // label is required; the scrolling switches other kits have name the fix.
