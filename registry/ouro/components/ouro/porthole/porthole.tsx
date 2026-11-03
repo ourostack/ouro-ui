@@ -116,8 +116,8 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
  * "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again
  * only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "just now", a beat
  * never renders it, and it waits while the page is hidden. It opens into the detail lines while a mouse is over it, and
- * a press keeps it open until a second press or Escape. It never takes focus on its own, and speaks only when it
- * changes into an action or an error, at most once every ten seconds.
+ * a press keeps it open until a second press, Escape or a press anywhere else. It never takes focus on its own, and
+ * speaks only when it changes into an action or an error, at most once every ten seconds.
  * Its state is on `data-porthole-state` for a fault-injection check.
  *
  * Use `SyncStatus` instead for where one document's own changes are, and `toast()` to confirm a single action.
@@ -131,7 +131,7 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
  * @claim "so a stuck service can never" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > says Status unknown once at the heartbeat's timeout when the beats stop, and recovers on the next beat)
  * @claim "a beat never renders it" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > renders nothing for 60 beats over 60 s at rest, then once when fresh runs out)
  * @claim "it waits while the page" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > waits while the page is hidden, and looks again as it shows)
- * @claim "a press keeps it open until" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > opens while a mouse is over it and closes as it leaves, and a touch does not open it)
+ * @claim "a press keeps it open until" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > opens while a mouse is over it and closes as it leaves, and a touch does not open it) verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > puts pinned lines away at a press anywhere else, and keeps them at a press inside)
  * @claim "never takes focus on its own" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > never takes focus when it changes, and gives it back to the spot when a pressed button leaves)
  * @claim "speaks only when it changes into" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > speaks when it changes into an action or an error, at most once every ten seconds)
  */
@@ -276,6 +276,15 @@ export function Porthole(props: PortholeProps): JSX.Element {
     observer.observe(content.current!);
     return () => observer.disconnect();
   }, []);
+  // A press anywhere else puts pinned lines away, as a popover's would.
+  useEffect(() => {
+    if (!pressed) return;
+    const away = (event: Event) => {
+      if (!pill.current!.parentElement!.contains(event.target as Node)) setPressed(false);
+    };
+    document.addEventListener("pointerdown", away, true);
+    return () => document.removeEventListener("pointerdown", away, true);
+  }, [pressed]);
 
   // A pressed button that leaves with its item (the service acted on it) hands focus back to the spot rather than
   // the page. React detaches the ref before it removes the button, while focus is still on it.

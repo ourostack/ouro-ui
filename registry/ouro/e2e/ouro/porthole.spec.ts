@@ -10,11 +10,12 @@ test("porthole says Status unknown within six seconds of the heartbeat stopping,
   await openStory(page, "feedback-porthole--live");
   const spot = page.locator('[data-ouro="porthole"]');
   await expect(spot).toHaveAttribute("data-porthole-state", "rest-fresh");
-  await page.getByRole("switch", { name: "Heartbeat" }).click();
+  // Held first, so the beat stops at a known time.
   await holdClock(page);
-  await page.clock.runFor(HEARTBEAT_TIMEOUT_MS);
+  await page.getByRole("switch", { name: "Heartbeat" }).click();
+  await page.clock.runFor(HEARTBEAT_TIMEOUT_MS - 1_000);
   await expect(spot).toHaveAttribute("data-porthole-state", "rest-fresh");
-  await page.clock.runFor(1_000);
+  await page.clock.runFor(2_000);
   await expect(spot).toHaveAttribute("data-porthole-state", "unknown");
   await expect(spot.getByRole("button", { name: "Status unknown" })).toBeVisible();
   await page.clock.resume();
@@ -28,8 +29,9 @@ test("porthole stops saying just now five seconds into a hung read, and says so 
   await page.clock.install();
   await openStory(page, "feedback-porthole--live");
   const spot = page.locator('[data-ouro="porthole"]');
-  await page.getByRole("switch", { name: "Calendar read hangs" }).click();
+  // Held first, so the trouble starts at a known time.
   await holdClock(page);
+  await page.getByRole("switch", { name: "Calendar read hangs" }).click();
   await page.clock.runFor(TROUBLE_AFTER_MS - 1_000);
   await expect(spot).toHaveAttribute("data-porthole-state", "rest-fresh");
   await page.clock.runFor(1_000);
@@ -37,6 +39,9 @@ test("porthole stops saying just now five seconds into a hung read, and says so 
   await expect(spot.getByRole("button", { name: "Updated less than a minute ago" })).toBeVisible();
   await spot.getByRole("button", { name: "Updated less than a minute ago" }).click();
   await expect(spot.getByText(/^Calendar: verified less than a minute ago, in trouble for/)).toBeVisible();
+  // The press pinned the lines open over the page; Escape puts them away.
+  await page.keyboard.press("Escape");
+  await expect(spot.getByText(/^Calendar: verified/)).toBeHidden();
   await page.clock.resume();
   await page.getByRole("switch", { name: "Calendar read hangs" }).click();
   await expect(spot).toHaveAttribute("data-porthole-state", "rest-fresh");

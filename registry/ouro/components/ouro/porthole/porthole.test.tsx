@@ -217,6 +217,20 @@ describe("Porthole", () => {
     expect(view.spot.getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("puts pinned lines away at a press anywhere else, and keeps them at a press inside", async () => {
+    const outside = document.createElement("button");
+    outside.textContent = "Elsewhere";
+    document.body.append(outside);
+    mounted.push(outside);
+    const view = await render(base(fixed([item("update", "action", { action: { id: "restart", label: "Restart" } })]), { onAction: () => {} }));
+    await act(() => view.spot.click());
+    await act(() => view.act!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+    expect(view.panel).not.toBeNull();
+    await act(() => outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+    expect(view.panel).toBeNull();
+    expect(view.spot.getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("starts open with defaultOpen", async () => {
     const view = await render(base(fixed(), { defaultOpen: true }));
     expect(view.panel).not.toBeNull();

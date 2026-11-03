@@ -124,9 +124,11 @@ function useService() {
       source,
       tick,
       verify,
+      // Its last beat is the moment it stops, and the moment it starts again its first.
       setBeating: (on: boolean) => {
-        beating = on;
+        beating = true;
         tick();
+        beating = on;
       },
       setHung: (id: string, hung: boolean) => set({ ...snapshot, areas: { ...snapshot.areas, [id]: { ...snapshot.areas[id]!, troubleSince: hung ? Date.now() : null } } }),
       setOffline: (on: boolean) => set({ ...snapshot, items: on ? [...without("offline"), { ...offline, since: Date.now() }] : without("offline") }),
