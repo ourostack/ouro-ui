@@ -116,7 +116,9 @@ function printResult(
   }
   if (isChecksReport(result)) {
     const style = terminalStyle(io.stdout, env);
-    io.stdout.write(render(result, { json, text: (r) => checksText(r, style, { command: `${cli.name} ${cmd.name}`, verbose: input["verbose"] === true }) }));
+    // The --verbose hint is offered only by a command that takes the flag.
+    const command = "verbose" in flagsOf(cli, cmd) ? { command: `${cli.name} ${cmd.name}` } : {};
+    io.stdout.write(render(result, { json, text: (r) => checksText(r, style, { ...command, verbose: input["verbose"] === true }) }));
     if (result.verdict === "passed" && result.counts.passed && !result.counts.skipped) say("healthy");
     return result.exitCode;
   }

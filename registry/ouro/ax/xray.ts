@@ -1114,7 +1114,7 @@ async function checkCli(ctx: Context) {
   }
 
   // A check command's verdict: the text's first line holds the JSON's summary, timings aside, and both exit alike.
-  const untimed = (s: string) => s.replace(/\d+m \d{2}s|\d+(?:\.\d+)?s\b/g, "<time>");
+  const untimed = (s: string) => s.replace(/(?:under )?(?:\d+m \d{2}s|\d+(?:\.\d+)?s\b)/g, "<time>");
   if (!reports.length) rec.add("cli.check-verdict", "reads", "skip", "no read's --json is a checks report (ax-checks)");
   for (const { cmd, report, json, text } of reports) {
     const first = stripAnsi(firstLine(text.stdout));

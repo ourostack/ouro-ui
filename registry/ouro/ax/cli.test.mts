@@ -359,6 +359,15 @@ test("a command that returns a checks report prints its verdict first, styled fo
         examples: ["kit doctor --verbose"],
         run: () => doctor.run(null),
       }),
+      defineCommand({
+        name: "health",
+        summary: "The same checks, without a --verbose flag.",
+        effect: "private",
+        readOnly: true,
+        output: "{ ax, verdict, summary, counts, rows, next, exitCode }",
+        examples: ["kit health"],
+        run: () => doctor.run(null),
+      }),
     ],
   });
   const call = async (argv: string[], tty: boolean, env: Record<string, string> = {}) => {
@@ -386,6 +395,8 @@ test("a command that returns a checks report prints its verdict first, styled fo
     assert.equal(failed.code, 3);
     assert.match(failed.out, /^✗ 1 of 3 checks failed: Cache freshness\./);
     assert.ok(!failed.out.includes("All clear"), "no healthy line on a failure");
+    assert.match(failed.out, /kit doctor --verbose/);
+    assert.ok(!(await call(["health"], true)).out.includes("--verbose"), "a command without a --verbose flag is never told to use one");
     const json = await call(["doctor", "--json"], false);
     assert.equal(json.code, 3);
     assert.equal(JSON.parse(json.out).verdict, "failed");
