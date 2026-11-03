@@ -147,6 +147,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
   const edgeRef = useCallback((element: HTMLElement | null) => {
     viewportElement.current = element;
     return readEdge(element);
+    // Stryker disable next-line ArrayDeclaration: any list that never changes keeps the same ref, as this one does.
   }, []);
   // Read the edge again when the layout classes change, as they may move the toasts to the other edge.
   useLayoutEffect(() => {
