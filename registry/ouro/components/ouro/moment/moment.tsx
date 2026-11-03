@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   artFrameClass,
@@ -10,6 +10,8 @@ import {
   kindToneClass,
   periods,
   rootClass,
+  SETTLE_MS,
+  seenThisSession,
   sparkClasses,
   sparkleClass,
   subscribeMoments,
@@ -52,7 +54,12 @@ export interface MomentOwnProps {
    * when the moment is narrower than 24rem, 40px when quiet, 24px inline). It is decorative
    * and hidden from screen readers unless you pass `artLabel`. Draw it with `currentColor`
    * and the theme's variables so it follows the kind, the theme and dark mode. With reduced
-   * motion, its CSS animations stop and its SVG animations pause.
+   * motion, its CSS animations stop and its SVG animations pause. Its motion has a budget too:
+   * its loops settle at the end of their turn about 5 s after it appears, and with a `dismissKey`
+   * or `id` its entrance plays once a session, so a moment that comes back as people switch
+   * views or filters arrives still.
+   * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone)
+   * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > plays the art's entrance once a session for a moment with a key, and every time without one)
    * @claim "which fills the art's height (160px," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
    * @claim "It is decorative and hidden from" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > hides the art from screen readers, or names it with artLabel)
    * @claim "With reduced motion, its CSS animations" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > stops the art's CSS animations and pauses its SVG animations with reduced motion, and lets them run again after)
@@ -361,6 +368,34 @@ export function Moment(props: MomentProps): JSX.Element | null {
     for (const svg of svgs) svg.pauseAnimations();
     return () => svgs.forEach((svg) => svg.unpauseAnimations());
   }, [reduced, art]);
+
+  // The art's own motion has a budget: its entrance plays once a session for a moment with a key,
+  // and its loops settle, at the end of the turn they are on, a few seconds after it appears.
+  // Whether this moment's key had already appeared is asked once per key, so a second run of the
+  // effect, as React's StrictMode makes in development, does not count as a second showing.
+  const repeat = useRef<{ key: string; seen: boolean }>(undefined);
+  useLayoutEffect(() => {
+    const host = artRef.current;
+    if (!host || key === undefined) return;
+    if (repeat.current?.key !== key) repeat.current = { key, seen: seenThisSession(key) };
+    if (!repeat.current.seen) return;
+    for (const animation of host.getAnimations({ subtree: true })) if (animation.effect!.getComputedTiming().endTime !== Infinity) animation.finish();
+  }, [art, key]);
+  useEffect(() => {
+    const host = artRef.current;
+    if (!host) return;
+    const timer = setTimeout(() => {
+      for (const animation of host.getAnimations({ subtree: true })) {
+        const timing = animation.effect!.getComputedTiming();
+        if (timing.endTime === Infinity) animation.effect!.updateTiming({ iterations: timing.currentIteration! + 1 });
+      }
+      for (const svg of host.querySelectorAll("svg")) {
+        svg.pauseAnimations();
+        svg.setCurrentTime(0);
+      }
+    }, SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [art, kind]);
 
   const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
   if (!visible) return null;

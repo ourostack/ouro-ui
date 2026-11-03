@@ -8,6 +8,8 @@ export {
   MOMENT_STORAGE_PREFIX,
   periods,
   rootClass,
+  SETTLE_MS,
+  seenThisSession,
   shownKey,
   sparkClasses,
   sparkleClass,
@@ -92,6 +94,35 @@ function subscribeMoments(onChange: () => void): () => void {
     listeners.delete(onChange);
     removeEventListener("storage", onChange);
   };
+}
+
+/**
+ * How long an art's looping motion runs before it settles, in milliseconds.
+ *
+ * @internal
+ * @claim "How long an art's looping motion" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone)
+ */
+const SETTLE_MS = 5000;
+
+const seenInMemory = new Set<string>();
+
+/**
+ * Whether a moment with this key has appeared before in this session (this tab, until it
+ * closes), and from now on it has.
+ *
+ * @internal
+ */
+function seenThisSession(key: string): boolean {
+  const name = `${MOMENT_STORAGE_PREFIX}seen:${key}`;
+  try {
+    if (sessionStorage.getItem(name) !== null) return true;
+    sessionStorage.setItem(name, "1");
+    return false;
+  } catch {
+    if (seenInMemory.has(name)) return true;
+    seenInMemory.add(name);
+    return false;
+  }
 }
 
 /** Whether the moment with this key was dismissed. @internal */
