@@ -904,6 +904,32 @@ describe("Command server search", () => {
     expect(document.querySelector("[data-ouro-command-loading-rows]")).toBeNull();
   });
 
+  it("keeps the highlighted result where it is, and highlighted, as the loading rows go", async () => {
+    const jump = (loading: boolean) => (
+      <Command
+        title="Jump to a chat"
+        open
+        onOpenChange={() => {}}
+        items={[{ label: "Noor Haddad", onSelect() {} }, { label: "Ana Lind", onSelect() {} }]}
+        onQueryChange={() => {}}
+        loading={loading}
+      />
+    );
+    await render(jump(true));
+    await settled();
+    const highlighted = () => document.querySelector<HTMLElement>("[data-highlighted]");
+    // The arrow key reaches the list only once the search input has focus and the first result is highlighted.
+    await expect.poll(() => document.activeElement?.getAttribute("role")).toBe("combobox");
+    await expect.poll(() => highlighted()?.textContent).toBe("Noor Haddad");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => highlighted()?.textContent).toBe("Ana Lind");
+    const top = highlighted()!.getBoundingClientRect().top;
+    await act(async () => roots[0]!.render(jump(false)));
+    expect(document.querySelector("[data-ouro-command-loading-rows]")).toBeNull();
+    expect(highlighted()?.textContent).toBe("Ana Lind");
+    expect(highlighted()!.getBoundingClientRect().top).toBe(top);
+  });
+
   it("takes content for its empty state, such as a picture with words, with the loading line under it while loading", async () => {
     const empty = (
       <figure data-testid="nothing" style={{ margin: 0 }}>
