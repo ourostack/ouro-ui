@@ -1012,6 +1012,29 @@ describe("Message rows", () => {
     expect(Math.abs(box.left - hostBox.left - (hostBox.right - box.right))).toBeLessThan(2);
   });
 
+  it("marks a chat's message with its bubble, and leaves a post and the default layout as they are when given one", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="user" name="Priya Okafor">
+          Mine
+        </Message>
+        <Message variant="post" bubble="filled" role="user" name="Priya Okafor">
+          A post
+        </Message>
+        <Message bubble="filled" role="assistant" name="Ouro">
+          Default
+        </Message>
+      </>,
+    );
+    const [chat, post, plain] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(chat!.dataset.bubble).toBe("filled");
+    expect(post!.hasAttribute("data-bubble")).toBe(false);
+    expect(getComputedStyle(bubbleOf(post!)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(plain!.hasAttribute("data-bubble")).toBe(false);
+    // A chat's message with no bubble given takes the default and says nothing about it.
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("keeps a bubble to 85% of its row and 36rem, however wide the window", async () => {
     for (const bubble of ["filled", "raised"] as const) {
       const { host, message } = await render(
