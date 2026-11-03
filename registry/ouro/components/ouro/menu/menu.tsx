@@ -316,12 +316,8 @@ function useMenuPart(part: string, inner: string): { sheet: boolean } {
   return context;
 }
 
-/**
- * The items for `items`, as `MenuItem`s and the rest, for a menu that puts more before them.
- *
- * @internal
- */
-export function renderEntries(entries: readonly MenuEntry[]): ReactNode {
+/** The items for `items`. */
+function renderEntries(entries: readonly MenuEntry[]): ReactNode {
   return entries.map((entry, index) => {
     switch (entry.type) {
       case "separator":
@@ -701,6 +697,15 @@ export function Menu(props: MenuProps): JSX.Element {
       </MenuSurface>
     </BaseMenu.Root>
   );
+}
+
+/**
+ * The items for `items`, as `MenuItem`s and the rest, for a menu that puts more before them.
+ *
+ * @internal
+ */
+export function MenuEntries({ entries }: { entries: readonly MenuEntry[] }): JSX.Element {
+  return <>{renderEntries(entries)}</>;
 }
 
 /** Props for {@link MenuBar}. */
