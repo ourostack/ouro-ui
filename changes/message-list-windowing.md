@@ -1,0 +1,3 @@
+- MessageList: a conversation of more than 60 children draws only the messages near its view, keeping the reader's place, following the end, Jump to latest, the keys and announcements as before; `windowing={false}` keeps every message in the page.
+- MessageList: new `actionsRef` with `reveal(id)` and `jumpToNewest()`, for a quote, a link to a message or find in chat to show a message the list has not drawn.
+- MessageList: each child now sits in an element of its own that draws no box (`display: contents`, `data-ouro-message-list-slot`), so CSS that selected the list content's direct children selects those elements now.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -107,6 +107,25 @@ export interface MessageListOwnProps {
    */
   maxWidth?: number | undefined;
   /**
+   * Whether a long conversation draws only the messages near its view. Above 60 children the list
+   * draws those within a screen or 800 pixels of the view, whichever is more, the newest, the one with focus, and any
+   * still streaming, each measured as it draws, with space for the rest kept above and below, so a long
+   * conversation opens and redraws in about the time a screenful does. The browser's find in page, and
+   * code that reads messages from the page, see only the messages drawn: search your own messages and
+   * call `actionsRef.current.reveal(id)` to show a match. Set `false` to keep every message in the page.
+   * @default true
+   * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
+   * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const OVERSCAN = 800;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /Math\.max\(OVERSCAN, scroller\.clientHeight\)/)
+   * @claim "Set `false` to keep every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps every message in the page with windowing={false})
+   */
+  windowing?: boolean | undefined;
+  /**
+   * Gets the list's actions: `reveal(id)` brings a message into view, drawing it first if it is not
+   * drawn, for a quote, a link to a message, or find in chat; `jumpToNewest()` goes to the end and
+   * follows new messages again. See {@link MessageListActions}.
+   */
+  actionsRef?: Ref<MessageListActions> | undefined;
+  /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
    */
@@ -121,6 +140,40 @@ export interface MessageListOwnProps {
 
 /** Props for {@link MessageList}: its own props and the `<div>` attributes it passes through. */
 export type MessageListProps = Omit<HTMLAttributes<HTMLDivElement>, keyof MessageListOwnProps | "role"> & MessageListOwnProps;
+
+/** Where `reveal` puts a message: in the middle of the view, at its top, or scrolled only as far as it needs. */
+export type MessageListRevealBlock = "center" | "start" | "nearest";
+
+/** How `reveal` shows a message. */
+export interface MessageListRevealOptions {
+  /** Whether the message takes focus, as for a quote the reader pressed. @default false */
+  focus?: boolean | undefined;
+  /** Where in the view it goes. @default "center" */
+  block?: MessageListRevealBlock | undefined;
+}
+
+/**
+ * What a MessageList does on request, through its `actionsRef`.
+ *
+ * @example
+ * const actions = useRef<MessageListActions>(null);
+ * <Message quote={{ author: "Ana", excerpt: "Lunch?", onActivate: () => actions.current?.reveal("m-41", { focus: true }) }}>Yes</Message>
+ */
+export interface MessageListActions {
+  /**
+   * Brings the message whose `id` is given into view, drawing it first if the list has not, and
+   * stops following new messages. Returns false when no child has that `id`. Find in chat searches
+   * your own messages, then reveals each match: the browser's find in page sees only what is drawn.
+   * @claim "Brings the message whose `id` is given" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals a message that is not drawn, by its id, in the middle of the view, and focuses it when asked)
+   * @claim "Returns false when no child has" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals nothing, and says so, for an id no message has)
+   */
+  reveal(id: string, options?: MessageListRevealOptions): boolean;
+  /**
+   * Goes to the newest message and follows new messages again, as "Jump to latest" does, leaving focus where it is.
+   * @claim "Goes to the newest message and follows" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > jumps to the newest message from far up, and follows new messages again)
+   */
+  jumpToNewest(): void;
+}
 
 /**
  * The messages in the list: Ouro's `Message`s, and an app's own message components, each marked
@@ -158,6 +211,17 @@ function mark(element: Element, name: string, value: string): void {
   if (element.getAttribute(name) !== value) element.setAttribute(name, value);
 }
 
+/** The key of the child a message is in, from its slot. */
+function slotKeyOf(item: Element): string {
+  return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
+}
+
+/** From `index`, stepping by `step`, the first child not known to hold no message; out of range when there is none. */
+function holding(keys: readonly string[], counts: ReadonlyMap<string, number>, index: number, step: number): number {
+  while (index >= 0 && index < keys.length && counts.get(keys[index]!) === 0) index += step;
+  return index;
+}
+
 /** The messages in `content`, leaving out any message inside another one. */
 function topItems(content: Element): HTMLElement[] {
   return [...content.querySelectorAll<HTMLElement>(items)].filter((item) => !content.contains(item.parentElement!.closest(items)));
@@ -183,6 +247,80 @@ const CHUNK = 20;
 
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
+
+/**
+ * Above this many children the list draws only the messages near its view.
+ * @claim "Above this many children the list" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is)
+ */
+const WINDOW_ABOVE = 60;
+/** How far past the view's edges, in pixels, messages still draw: a page key, or a short scroll, finds them drawn. At least the view's height. */
+const OVERSCAN = 800;
+/** How much of the conversation draws before the view is known (server HTML, the first draw), in pixels: from its end, or around `initialAnchor`. */
+const FIRST_VIEW = 1600;
+/** A message's height, with its margins, before any is measured. */
+const ESTIMATE = 96;
+/** How many messages that arrive at once draw where the reader is not, so each is heard. */
+const KEEP_ARRIVED = 20;
+/** What marks each child's slot, holding the child's key. */
+const SLOT = "data-ouro-message-list-slot";
+
+/** Each child's height as last measured, by key, with its margins and without the gap before it; and the gap. */
+interface Measured {
+  heights: ReadonlyMap<string, number>;
+  gap: number;
+}
+/** The children drawn around the view: the first and last, by key, and where they were when found. */
+interface Band {
+  from: string;
+  to: string;
+  at: readonly [number, number];
+}
+/** A message to draw and bring into view: by key, the element with `id` in it or its first or last message, and whether to focus it. */
+interface Reach {
+  key: string;
+  id: string | null;
+  forward: boolean;
+  focus: boolean;
+  block: MessageListRevealBlock;
+}
+
+/** The average measured height, or the estimate before any is measured. */
+function estimateOf(heights: ReadonlyMap<string, number>): number {
+  if (heights.size === 0) return ESTIMATE;
+  let sum = 0;
+  for (const height of heights.values()) sum += height;
+  return sum / heights.size;
+}
+
+/**
+ * Where a slot's child sits, from the top of its first box's margin to the bottom of its last one's, in viewport pixels
+ * (less the springs): a slot draws no box of its own (`display: contents`). One with nothing drawn has no size.
+ */
+function extentOf(slot: Element): { top: number; size: number } {
+  const parts = [...slot.children].filter((part) => part.getClientRects().length > 0);
+  if (parts.length === 0) return { top: 0, size: 0 };
+  const first = parts[0]!;
+  const last = parts.at(-1)!;
+  const top = boxOf(first).top - parseFloat(getComputedStyle(first).marginTop);
+  return { top, size: boxOf(last).bottom + parseFloat(getComputedStyle(last).marginBottom) - top };
+}
+
+/**
+ * The children to draw before the view is known: those within FIRST_VIEW pixels of the end, or around the child at
+ * `anchor`. The same on the server as in the browser, so the HTML hydrates.
+ */
+function firstRange(count: number, size: (index: number) => number, anchor: number): [number, number] {
+  if (anchor < 0) {
+    let from = count - 1;
+    for (let height = size(from); from > 0 && height < FIRST_VIEW; height += size(--from));
+    return [from, count - 1];
+  }
+  let from = anchor;
+  let to = anchor;
+  for (let height = 0; from > 0 && height < FIRST_VIEW / 2; height += size(--from));
+  for (let height = 0; to < count - 1 && height < FIRST_VIEW / 2; height += size(++to));
+  return [from, to];
+}
 
 // The springs (`springy`). Tuned to feel like a phone's messages app, subtle rather than wobbly:
 // a slow trackpad scroll opens the messages farthest from the pointer by a few pixels, a fling by
@@ -503,6 +641,16 @@ interface Spoken {
  * Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view
  * scrolls the list, not the page around it.
  *
+ * A conversation of more than 60 children draws only the messages near its view (`windowing`),
+ * each measured as it draws, with space kept for the rest, so a long conversation opens and redraws
+ * in about the time a screenful does. The reader's place holds as the messages above them are
+ * measured and as older ones load above, in one frame. The newest message, the one with focus and
+ * any still streaming stay drawn, and the arrow keys, Home and End reach every message, drawing the
+ * one they reach. The browser's find in page sees only what is drawn: search your own messages and
+ * call `actionsRef.current.reveal(id)` to show a match, as a quote does. Each child sits in an element
+ * of its own that draws no box (`display: contents`, marked `data-ouro-message-list-slot`), so CSS
+ * that selects the list's direct children selects those elements, in a list of any length.
+ *
  * The messages spring as the reader scrolls, as in a phone's messages app: each trails the scroll a
  * little and catches up, the farther from the pointer, finger or focused message the more, and a
  * fling or a push past either end spreads them apart for a moment. The scroll position never moves
@@ -600,6 +748,16 @@ interface Spoken {
  * @claim "Nothing in it overflows the boxes around it" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
  * @claim "At the bottom it also follows" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > follows its end at the bottom when something in a message reaches past it, though no message changes size)
+ * @claim "A conversation of more than 60 children draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
+ * @claim "A conversation of more than 60 children draws" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList windowing benchmark > draws a conversation of 2000 messages in a fraction of the elements and time it takes whole)
+ * @claim "The reader's place holds as the messages above" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place while messages above are measured, scrolling up through them)
+ * @claim "The reader's place holds as the messages above" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place when a page of older messages loads above, putting it in at once)
+ * @claim "The newest message, the one with focus" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the message with focus drawn, and focus on it, as the reader scrolls far away)
+ * @claim "The newest message, the one with focus" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > follows new messages and streaming text at the bottom, and shows Jump to latest once the reader scrolls up)
+ * @claim "and the arrow keys, Home and End reach every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves focus to the first message with Home and back to the newest with End, drawing the message it reaches)
+ * @claim "and the arrow keys, Home and End reach every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > walks up past the messages first drawn with the Up arrow, each one drawn and shown as focus reaches it)
+ * @claim "The browser's find in page sees only" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > finds a message by its text among the app's messages, which the page does not hold, and reveals it)
+ * @claim "as a quote does" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > shows the quoted message far up the conversation when the reader presses its quote)
  * @claim "A short conversation sits at" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits a short conversation at its bottom, by the composer under it, with the room above it empty)
  * @claim "put what starts it (who" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits what starts a short conversation, its first child, right above the first message)
  */
@@ -617,6 +775,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     pageKeys = true,
     springy = true,
     maxWidth,
+    windowing = true,
+    actionsRef,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -679,11 +839,87 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // work stays short, and the reader's place is kept as each chunk goes in. A few go in at once.
   const all = Children.toArray(children);
   const top = keyOf(all[0]);
+  // Above WINDOW_ABOVE children, only the messages near the view draw; see "The window" below.
+  const windowed = windowing && all.length > WINDOW_ABOVE;
   // The key of the first child, and of the first one drawn: a page of older ones above it waits.
   // Stryker disable next-line ObjectLiteral: an empty start takes the first child's key in the first render instead; this only spares that render.
   const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
-  if (top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
-  const shown = all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
+  // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
+  // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
+  if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
+  const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
+  const keys = all.map((child, index) => String(keyOf(child) ?? index));
+
+  // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
+  // no box, so the list's spacing and the continued messages' margins work as without one.
+  const [measured, setMeasured] = useState<Measured>({ heights: new Map(), gap: 16 });
+  const [band, setBand] = useState<Band | null>(null);
+  const [reach, setReach] = useState<Reach | null>(null);
+  if (!windowed && band !== null) setBand(null);
+  // Whether the list drew whole with messages in it: one that then grows long draws them all once more, and finds its
+  // window from where they are, so the view stays where it is.
+  const [whole, setWhole] = useState(false);
+  if (whole !== (all.length > 0 && (!windowed || whole))) setWhole(!whole);
+  // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
+  const [heard, setHeard] = useState<string | null>(null);
+  // The key of the child focus was last in, kept drawn so focus stays as the reader scrolls away.
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const estimate = estimateOf(measured.heights);
+  const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? estimate;
+  let draws: (index: number) => boolean = () => true;
+  if (windowed) {
+    const indexes = new Map(keys.map((key, index) => [key, index]));
+    const last = keys.length - 1;
+    const clamp = (index: number) => Math.min(Math.max(index, 0), last);
+    let range: readonly [number, number];
+    if (band !== null) {
+      const from = indexes.get(band.from) ?? clamp(band.at[0]);
+      const to = indexes.get(band.to) ?? clamp(band.at[1]);
+      range = [Math.min(from, to), Math.max(from, to)];
+    } else if (whole) range = [0, last];
+    else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : all.findIndex((child) => isValidElement(child) && (child.props as { id?: unknown }).id === initialAnchor));
+    const kept = new Set<number | undefined>([last, indexes.get(focusKey!), indexes.get(reach?.key ?? "")]);
+    // What just arrived after the newest, so it is heard, and what still streams, so its end is.
+    const since = indexes.get(heard!);
+    if (since !== undefined) for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.add(index);
+    all.forEach((child, index) => {
+      if (!isValidElement(child)) return;
+      const props = child.props as { streaming?: unknown; "aria-busy"?: unknown };
+      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.add(index);
+    });
+    draws = (index) => (index >= range[0] && index <= range[1]) || kept.has(index);
+  }
+  // The slots, with space kept for each run of children not drawn: their heights and the gaps between them, less the gap the
+  // list puts before the space itself.
+  const slots: ReactNode[] = [];
+  let run: number | null = null;
+  const space = (end: number) => {
+    let height = 0;
+    for (let index = run!; index < end; index++) height += sizeOf(index) + (index > 0 && sizeOf(index) > 0 ? measured.gap : 0);
+    // Children that draw nothing take no space, and no gap either.
+    if (height > 0) slots.push(<div key={`space:${keys[run!]}`} aria-hidden="true" data-ouro-message-list-space="" className="shrink-0" style={{ height: Math.max(0, height - (run! > 0 ? measured.gap : 0)) }} />);
+    run = null;
+  };
+  shown.forEach((child, at) => {
+    const index = at + all.length - shown.length;
+    if (!draws(index)) {
+      run ??= index;
+      return;
+    }
+    if (run !== null) space(index);
+    slots.push(
+      <div key={keys[index]} {...{ [SLOT]: keys[index] }} className="contents">
+        {child}
+      </div>,
+    );
+  });
+  // The newest always draws, so no run is left after it.
+  // What the window's effects read: the latest render's.
+  const view = { windowed, all, keys, measured, band, reach, sizeOf };
+  const viewRef = useRef(view);
+  useLayoutEffect(() => {
+    viewRef.current = view;
+  });
   const latest = useRef(all);
   useLayoutEffect(() => {
     latest.current = all;
@@ -743,6 +979,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
   }, [springy]);
 
+  // Keeps the reader's place after messages came, went, moved or changed size: set by the effect below.
+  const holdRef = useRef<() => void>(undefined);
+
   const toBottom = useCallback(() => {
     const scroller = scrollerRef.current!;
     const before = scroller.scrollTop;
@@ -776,7 +1015,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const atOf = (node: Element) => boxOf(node).top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      const all = [...content.querySelectorAll(items)];
+      // In a windowed list, no message past the space kept below the view for those not drawn: that space changes as
+      // they are measured, so a message past it (the newest, kept drawn far away) moves without the reader's.
+      const space = [...content.querySelectorAll(":scope > [data-ouro-message-list-space]")].find((node) => node.getBoundingClientRect().top >= view.top);
+      // There, what a child draws that holds no message (a day's heading) holds the place too: it may be all the view shows,
+      // as when it is revealed.
+      const all = [...content.querySelectorAll(viewRef.current.windowed ? `${items}, [${SLOT}] > :not(${items}):not(:has(${items}))` : items)].filter(
+        (message) => space === undefined || boxOf(message).top < space.getBoundingClientRect().top,
+      );
       // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading.
       // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
       const below = all.filter((message) => boxOf(message).top >= view.top && boxOf(message).top < view.bottom);
@@ -813,6 +1059,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     toBottom();
     keepAnchor();
     open();
+    // The window keeps the reader's place this way too, before it reads where the view is.
+    holdRef.current = () => hold();
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
     const hold = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
@@ -871,6 +1119,177 @@ export function MessageList(props: MessageListProps): JSX.Element {
     return () => (follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll));
   }, [toBottom]);
 
+  // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
+  // keeps the reader's place as their heights replace the estimates, brings a message asked for into view, and draws the
+  // children the view and OVERSCAN reach.
+  const windowSync = useRef<(scrolled: boolean) => void>(undefined);
+  // Where each slot drawn sits in the content, and its size, as last measured.
+  const tops = useRef(new Map<string, { top: number; size: number }>());
+  // How many messages each child drawn holds: a child that starts the conversation holds none.
+  const counts = useRef(new Map<string, number>());
+  // What the window last read, so a render that changed none of it (the app drawing again as someone types) reads no layout.
+  const synced = useRef<{ keys: readonly string[]; band: Band | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current!;
+    const content = contentRef.current!;
+    const slotOf = (key: string) => [...content.children].find((node) => node.getAttribute(SLOT) === key);
+    // Scrolls a message into view: to the middle, to the top, or as little as it takes.
+    const bring = (element: HTMLElement, block: MessageListRevealBlock) => {
+      const box = boxOf(element);
+      const top = scroller.getBoundingClientRect().top;
+      const room = scroller.clientHeight;
+      const before = scroller.scrollTop;
+      if (block === "center") scroller.scrollTop += box.top - top - Math.max(0, (room - box.height) / 2);
+      // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
+      else if (block === "start" || box.top < top + EDGE || box.height > room - 2 * EDGE) scroller.scrollTop += box.top - top - EDGE;
+      // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
+      else if (box.bottom > top + room - EDGE) scroller.scrollTop += box.bottom - top - room + EDGE;
+      springsRef.current?.moved(scroller.scrollTop - before);
+    };
+    windowSync.current = (scrolled) => {
+      const { windowed, keys, measured, band, reach, sizeOf } = viewRef.current;
+      // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
+      if (windowed && content.getClientRects().length === 0) return;
+      if (windowed && !scrolled) {
+        const contentTop = content.getBoundingClientRect().top;
+        let heights: Map<string, number> | undefined;
+        const found = new Map<string, { top: number; size: number }>();
+        for (const slot of content.children) {
+          const key = slot.getAttribute(SLOT);
+          if (key === null) continue;
+          const { top, size } = extentOf(slot);
+          found.set(key, { top: top - contentTop, size });
+          counts.current.set(key, topItems(slot).length);
+          if (measured.heights.get(key) !== size) (heights ??= new Map(measured.heights)).set(key, size);
+        }
+        tops.current = found;
+        if (heights !== undefined) {
+          // The heights of children gone are forgotten.
+          const present = new Set(keys);
+          for (const key of heights.keys()) if (!present.has(key)) heights.delete(key);
+          // A render follows at once, which comes back here with the space kept at its new size. The gap is 1rem, so it
+          // changes only with the font size, which changes the heights too.
+          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap) });
+          return;
+        }
+        holdRef.current!();
+      }
+      if (reach !== null && !scrolled) {
+        const slot = slotOf(reach.key);
+        if (slot === undefined) {
+          // Not drawn yet (a page of older messages going in a few at a time), or gone.
+          if (!keys.includes(reach.key)) setReach(null);
+        } else {
+          const found = topItems(slot);
+          // By id: the message it is in, else what the child draws around it (what starts the conversation).
+          const named = reach.id === null ? undefined : [...slot.querySelectorAll<HTMLElement>("[id]")].find((node) => node.id === reach.id);
+          const target =
+            reach.id === null
+              ? (reach.forward ? found[0] : found.at(-1))
+              : named && named.closest<HTMLElement>(`${items}, [${SLOT}] > *`)!;
+          if (target === undefined) {
+            // A child with no message in it (a day's heading), or none with the id: by key, the next child that may hold one, that way.
+            const step = reach.forward ? 1 : -1;
+            const index = holding(keys, counts.current, keys.indexOf(reach.key) + step, step);
+            setReach(reach.id === null && index >= 0 && index < keys.length ? { ...reach, key: keys[index]! } : null);
+          } else {
+            bring(target, reach.block);
+            if (reach.focus) {
+              // A message drawn in this frame is not focusable from code yet: the keyboard effect marks it after.
+              if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
+              target.focus({ preventScroll: true });
+            }
+            setReach(null);
+            // The place is now where the message went.
+            holdRef.current!();
+          }
+        }
+      }
+      if (!windowed) return;
+      // Where each child starts, with the gap before it, from the slot drawn nearest the view, which is where it is.
+      // The view as it is now, once the reader's place is kept.
+      const viewTop = scroller.getBoundingClientRect().top - content.getBoundingClientRect().top;
+      const viewBottom = viewTop + scroller.clientHeight;
+      const over = Math.max(OVERSCAN, scroller.clientHeight);
+      const indexes = new Map(keys.map((key, index) => [key, index]));
+      let near: number | undefined;
+      let nearTop = 0;
+      for (const [key, { top, size }] of tops.current) {
+        const index = indexes.get(key);
+        // Stryker disable next-line EqualityOperator: of two slots exactly as near, either places the others as well.
+        if (size === 0 || index === undefined || (near !== undefined && Math.abs(top - viewTop) >= Math.abs(nearTop - viewTop))) continue;
+        near = index;
+        nearTop = top;
+      }
+      // Every child drawn draws nothing (the app hid them all): nothing to place by, until one draws.
+      /* istanbul ignore if @preserve -- the newest message always draws; this only keeps a list whose messages are all hidden from drawing every child */
+      if (near === undefined) return;
+      const sizeAt = (index: number) => tops.current.get(keys[index]!)?.size ?? sizeOf(index);
+      const extent = (index: number) => sizeAt(index) + (index > 0 && sizeAt(index) > 0 ? measured.gap : 0);
+      const starts: number[] = [];
+      starts[near] = nearTop - (near > 0 ? measured.gap : 0);
+      for (let index = near + 1; index < keys.length; index++) starts[index] = starts[index - 1]! + extent(index - 1);
+      for (let index = near - 1; index >= 0; index--) starts[index] = starts[index + 1]! - extent(index);
+      let from = 0;
+      // Stryker disable next-line EqualityOperator: a child that ends exactly at the overscan's edge draws or not, and the next scroll corrects it.
+      while (from < keys.length - 1 && starts[from]! + extent(from) <= viewTop - over) from++;
+      let to = keys.length - 1;
+      // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
+      while (to > from && starts[to]! >= viewBottom + over) to--;
+      if (band === null || band.from !== keys[from] || band.to !== keys[to]) setBand({ from: keys[from]!, to: keys[to]!, at: [from, to] });
+    };
+    const now = viewRef.current;
+    const last = synced.current;
+    synced.current = { keys: now.keys, band: now.band, measured: now.measured, reach: now.reach, windowed: now.windowed };
+    if (
+      last !== null &&
+      last.windowed === now.windowed &&
+      last.band === now.band &&
+      last.measured === now.measured &&
+      last.reach === now.reach &&
+      last.keys.length === now.keys.length &&
+      last.keys.every((key, index) => key === now.keys[index])
+    )
+      return;
+    windowSync.current(false);
+  });
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current!;
+    const content = contentRef.current!;
+    const onScroll = () => windowSync.current!(true);
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    const resized = new ResizeObserver(() => windowSync.current!(false));
+    resized.observe(scroller);
+    resized.observe(content);
+    // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
+    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll));
+  }, []);
+
+  useImperativeHandle(
+    actionsRef,
+    () => ({
+      reveal(id, options) {
+        const { all: children, keys: order } = viewRef.current;
+        let index = children.findIndex((child) => isValidElement(child) && (child.props as { id?: unknown }).id === id);
+        if (index < 0) {
+          // An id inside a message, or on one an app's component sets: found if it is drawn.
+          const inside = [...contentRef.current!.querySelectorAll("[id]")].find((node) => node.id === id);
+          index = inside === undefined ? -1 : order.indexOf(slotKeyOf(inside));
+        }
+        if (index < 0) return false;
+        setReach({ key: order[index]!, id, forward: true, focus: options?.focus ?? false, block: options?.block ?? "center" });
+        return true;
+      },
+      jumpToNewest() {
+        pinned.current = true;
+        toBottom();
+        setShowJump(false);
+      },
+    }),
+    [toBottom],
+  );
+
   // Announce each message from someone else once: when it is appended after the last
   // message already seen, when it replaces one with different text (a regenerated reply), or,
   // if it is streaming, when streaming ends, including a message that streams again.
@@ -897,6 +1316,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let texts = new Map(known.map((message) => [message, textOf(message)]));
     // Messages to read once they stop streaming.
     let waiting = new Set(known.filter(busy));
+    // The children's keys when last checked: in a windowed list, a message drawn again as the reader scrolls is one of
+    // them, not a new one. The newest of them is the last heard, and what comes after it is drawn until it is.
+    let keysHeard = new Set(viewRef.current.keys);
+    setHeard(viewRef.current.keys.at(-1) ?? null);
+    const redrawn = (message: Element) => viewRef.current.windowed && keysHeard.has(slotKeyOf(message));
     const check = () => {
       const now = messages();
       const before = new Set(known);
@@ -910,6 +1334,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const replaced = known.slice(known.indexOf(now[last]!) + 1);
         now.slice(last + 1).forEach((message, index) => {
           const old = replaced[index];
+          if (redrawn(message)) return;
           if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) waiting.add(message);
         });
       } else if (known.length === 0 && now.length === 1) {
@@ -922,6 +1347,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       for (const message of now) if (busy(message)) waiting.add(message);
       known = now;
       texts = new Map(now.map((message) => [message, textOf(message)]));
+      keysHeard = new Set(viewRef.current.keys);
+      setHeard(viewRef.current.keys.at(-1) ?? null);
       if (content.closest("[hidden]")) {
         waiting = new Set(now.filter(busy));
         return;
@@ -1037,17 +1464,35 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       if (!changed) return;
       const list = topItems(content);
+      // In a windowed list a message's place counts the children not drawn: one message each, until one is drawn and
+      // found to hold none (what starts the conversation) or more.
+      const { windowed, keys } = viewRef.current;
+      const before = new Map<string, number>();
+      let size = list.length;
+      if (windowed) {
+        size = 0;
+        for (const key of keys) {
+          before.set(key, size);
+          size += counts.current.get(key) ?? 1;
+        }
+      }
+      // How many messages of each child came before, in order.
+      const within = new Map<string, number>();
       list.forEach((item, index) => {
         // Focusable from code and by a click, in the Tab order only as the current message.
         if (item !== current) mark(item, "tabindex", "-1");
         mark(item, "data-ouro-control", "message-list");
         mark(item, "data-ouro-part", "item");
+        const key = slotKeyOf(item);
+        const place = within.get(key) ?? 0;
+        within.set(key, place + 1);
+        const position = String(windowed ? before.get(key)! + place + 1 : index + 1);
         // Only an article takes a position (ARIA allows it there), and one the app set stands.
         const own = item.getAttribute("aria-posinset");
         if (!item.matches('article:not([role]), [role="article"]') || (own !== null && own !== written.get(item))) return;
-        written.set(item, String(index + 1));
-        mark(item, "aria-posinset", String(index + 1));
-        mark(item, "aria-setsize", String(list.length));
+        written.set(item, position);
+        mark(item, "aria-posinset", position);
+        mark(item, "aria-setsize", String(size));
       });
       // Stryker disable next-line ConditionalExpression: placing it again picks the same message, since a scroll places it too; this only spares reading the layout.
       if (!current?.isConnected) place(list);
@@ -1074,6 +1519,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const item = itemOf(target);
       focused = item;
       if (item === null) return;
+      // Kept drawn while the reader scrolls away from it, so focus stays.
+      setFocusKey(slotKeyOf(item));
       setCurrent(item);
       last = item;
       lastIndex = topItems(content).indexOf(item);
@@ -1119,6 +1566,26 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a Mac are its Home, End, Page Up and Page Down.
       const key = navigationKey(event);
       if (event.defaultPrevented) return;
+      // In a windowed list, Home, End and the arrow keys find the message among the children, which may not be drawn:
+      // drawn first, it then takes focus.
+      const { windowed, keys } = viewRef.current;
+      if (windowed && (key === "Home" || key === "End" || key === "ArrowUp" || key === "ArrowDown")) {
+        const slot = item.closest(`[${SLOT}]`)!;
+        const own = topItems(slot);
+        const forward = key === "Home" || key === "ArrowDown";
+        let target: HTMLElement | undefined = key === "ArrowUp" ? own[own.indexOf(item) - 1] : key === "ArrowDown" ? own[own.indexOf(item) + 1] : undefined;
+        event.preventDefault();
+        if (target === undefined) {
+          const step = forward ? 1 : -1;
+          const index = holding(keys, counts.current, key === "Home" ? 0 : key === "End" ? keys.length - 1 : keys.indexOf(slot.getAttribute(SLOT)!) + step, step);
+          if (index < 0 || index >= keys.length) return;
+          const drawn = [...content.children].find((node) => node.getAttribute(SLOT) === keys[index]);
+          const inside = drawn === undefined ? [] : topItems(drawn);
+          target = forward ? inside[0] : inside.at(-1);
+          if (target === undefined) return setReach({ key: keys[index]!, id: null, forward, focus: true, block: "nearest" });
+        }
+        return move(target);
+      }
       const list = topItems(content);
       const at = list.indexOf(item);
       const box = boxOf(item);
@@ -1231,12 +1698,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         <div
           ref={contentRef}
           data-ouro-message-list-content=""
-          className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3"
+          className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-3"
           style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
         >
           {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
           {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
-          {shown}
+          {slots}
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
       </div>

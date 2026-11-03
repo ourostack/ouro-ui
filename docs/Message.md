@@ -522,7 +522,10 @@ interface MessageQuote {
   excerpt: string;
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
-  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  /**
+   * Makes the quote a button that shows the quoted message, as by scrolling to it. In a `MessageList`, which may not
+   * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
+   */
   onActivate?: (() => void) | undefined;
   /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
   label?: string | undefined;
