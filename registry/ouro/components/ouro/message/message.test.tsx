@@ -262,6 +262,24 @@ describe("Message", () => {
     expect(getComputedStyle(message).marginTop).toBe("16px");
   });
 
+  it("keeps the loading name's line and avatar visible in forced colours", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { message } = await render(
+        <Message variant="post" role="assistant" name={null} time="9:41">
+          Hi
+        </Message>,
+      );
+      for (const shape of message.querySelectorAll<HTMLElement>('[data-ouro="skeleton"]')) {
+        const bar = shape.matches("[data-shape=text]") ? shape.querySelector<HTMLElement>(":scope > span > span")! : shape;
+        expect(getComputedStyle(bar).outlineStyle).toBe("solid");
+      }
+      expect(message.querySelectorAll('[data-ouro="skeleton"]').length).toBe(2);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("holds the name's place with a name-sized line while it loads, so nothing moves when it arrives", async () => {
     for (const variant of ["default", "chat", "post", "reply"] as const) {
       const shown = (name: string | null) => (

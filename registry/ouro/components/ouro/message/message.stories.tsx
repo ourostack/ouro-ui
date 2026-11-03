@@ -604,6 +604,7 @@ export const Agent: Story = {
 
 /** While the author's name is still loading (`name={null}`), a name-sized line holds its place and the avatar shimmers; nothing moves when the name arrives. */
 export const NameLoading: Story = {
+  parameters: { screenshot: { name: "message-name-loading" } },
   render: () => (
     <Surface>
       <Message variant="post" role="assistant" name={null} time="9:41">
