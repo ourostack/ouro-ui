@@ -137,6 +137,22 @@ The screen check (`ouro-check`) opens every page of your built app in headless C
 | `http-error` | A page that answered with a status other than 2xx, or did not answer.[^check-pages] |
 | `not-ready` | A page that gave no ready signal in time.[^check-pages] It is checked as it is, but never passes.[^check-pages] |
 
+It also measures how a page responds, each against a budget:[^check-measured]
+
+| Rule | What it measures | Budget |
+| --- | --- | --- |
+| `layout-shift` | How far the page moved under the reader while it loaded: its cumulative layout shift, scored as browsers score it, leaving out shifts just after input.[^check-shift] The close-up outlines the element whose own shift scored highest.[^check-shift] | 0.1[^check-budgets] |
+| `first-content` | How long the page took to draw its largest text or picture, its largest contentful paint.[^check-measured] A skeleton draws neither, so a page that shows one first is timed to the content that replaces it.[^check-measured] | 2500 ms[^check-budgets] |
+| `inp` | How long a press of a control took to paint: its longest event, from the press to the next frame drawn after its handlers ran.[^check-measured] | 200 ms[^check-budgets] |
+
+The budgets are the thresholds browsers' own field data calls good.[^check-budgets] Each measured finding records its number, its budget and their unit in `report.json` (`value`, `budget` and `unit`), so a later run can be compared with it.[^check-measured] `inp` presses up to 24 controls a page, at 1440×900 (or the widest size you give) in the first theme, after the contact sheet's shot.[^check-budgets] It presses no link and no form's submit button, and presses Escape after each control to close what it opened, so point it at made-up data.[^check-press] `--no-measure` skips the measured rules, and `ouro-check.json` can change a budget:[^check-measured]
+
+```json
+{ "budgets": { "inp": 150, "layout-shift": 0.05, "first-content": 2000 } }
+```
+
+A new rule can start without failing a build: waive it on all pages, with the reason, and remove the waiver once its findings are fixed.[^check-shard] This repository's own site does that while the measured rules settle.[^check-site]
+
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
@@ -219,4 +235,9 @@ jobs:
 [^check-sizes]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^  \[320, 640\], /) verify:fileLine(registry/ouro/check/check.ts, /\[3840, 2160\],$/) verify:fileLine(registry/ouro/check/check.ts, /^  \[640, 360\], \[720, 420\], \[900, 500\], \[1000, 600\],$/) verify:fileLine(registry/ouro/check/check.ts, /^const dprAt = \(width: number\) => \(width <= 3072 \? 2 : 1\);$/) verify:testExists(scripts/check/check.test.mts::Ouro check > draws a screen wider than 3072px at density 1, holds its pictures to that, and records the density of each finding)
 [^check-long-lines]: registry/ouro/check/size-check.ts verify:fileLine(registry/ouro/check/size-check.ts, /\{ maxChars = 100, /)
 [^check-truncate]: test:test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there; test:test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere)
+[^check-measured]: test:scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number verify:testExists(scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number)
+[^check-shift]: test:test/check-measure.test.ts::listenForMeasures > scores the largest burst of shifts no input caused, and keeps the element that moved most verify:testExists(test/check-measure.test.ts::listenForMeasures > scores the largest burst of shifts no input caused, and keeps the element that moved most)
+[^check-press]: test:test/check-measure.test.ts::markPressables > marks and names the controls a person can press, shown and enabled, up to the limit, and no link or form submit verify:testExists(test/check-measure.test.ts::markPressables > marks and names the controls a person can press, shown and enabled, up to the limit, and no link or form submit)
+[^check-budgets]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^const BUDGETS: Budgets = Object.freeze\(\{ inp: 200, "layout-shift": 0.1, "first-content": 2500 \}\);$/) verify:fileLine(registry/ouro/check/check.ts, /^const MAX_PRESSES = 24;$/) verify:fileLine(registry/ouro/check/check.ts, /^const INP_SIZE = "1440x900";$/)
+[^check-site]: .github/ouro-check.json verify:fileLine(.github/ouro-check.json, /"inp": "/) verify:fileLine(.github/workflows/screens.yml, /config: .github\/ouro-check.json/)
 [^check-pages]: test:test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason; test:scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it; test:scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out verify:testExists(test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason) verify:testExists(scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it) verify:testExists(scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out)

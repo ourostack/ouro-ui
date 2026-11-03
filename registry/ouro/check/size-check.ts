@@ -19,6 +19,10 @@ interface PageIssue {
   rule: string;
   element: string;
   detail: string;
+  // A measured rule's number, its budget and their unit ("ms", or "" for a score).
+  value?: number;
+  budget?: number;
+  unit?: string;
 }
 
 interface SizeCheckOptions {

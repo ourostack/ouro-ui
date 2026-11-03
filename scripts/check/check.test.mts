@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -64,10 +64,10 @@ describe("Ouro check", () => {
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
-    assert.equal(result.shots.length, 14 * 2);
+    assert.equal(result.shots.length, 20 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 14);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 14 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 20);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 20 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -88,12 +88,44 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 7);
+    assert.equal(merged.pages.length, 10);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
     assert.ok(waived.gated.length > 0 && waived.gated.every((f) => !f.page.startsWith("/axe-") && !(f.page === "/overlap-fail.html" && f.rule === "overlap")));
     assert.ok(waived.findings.some((f) => !f.gated && f.rule === "overlap"));
+  });
+
+  test("measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number", async () => {
+    const out = dir("measured");
+    const sizes: [number, number][] = [[390, 844], [1280, 800]];
+    const pages = ["inp", "layout-shift", "first-content"].flatMap((rule) => ["fail", "pass"].map((kind) => `${rule}-${kind}.html`));
+    const folder = site("measured", Object.fromEntries(pages.map((file) => [file, readFileSync(join(fixtures, file), "utf8")])));
+    const result = await check({ targets: [folder], out, sizes, themes: ["dark", "light"], chromium, log: quiet });
+    const measured = result.findings.filter((f) => f.rule === "inp" || f.rule === "layout-shift" || f.rule === "first-content");
+    assert.deepEqual(new Set(measured.map((f) => f.page)), new Set(["/inp-fail.html", "/layout-shift-fail.html", "/first-content-fail.html"]));
+    // Pressed at the widest size given, without 1440×900, in the first theme only.
+    const pressed = measured.filter((f) => f.rule === "inp");
+    assert.deepEqual(pressed.map((f) => `${f.width}x${f.height} ${f.theme} ${f.element}`), ['1280x800 dark button#slow "Save"']);
+    assert.ok(pressed[0]!.value! >= 400 && pressed[0]!.budget === BUDGETS.inp && pressed[0]!.unit === "ms", pressed[0]!.detail);
+    assert.match(pressed[0]!.detail, /^\d+ ms from the press to its paint, over the budget of 200 ms$/);
+    const shifted = measured.find((f) => f.rule === "layout-shift")!;
+    assert.ok(shifted.value! > BUDGETS["layout-shift"] && shifted.budget === BUDGETS["layout-shift"] && shifted.unit === "", shifted.detail);
+    assert.equal(shifted.element, "div#board");
+    const late = measured.find((f) => f.rule === "first-content")!;
+    assert.ok(late.value! >= 3000 && late.unit === "ms" && late.element.startsWith('p#late "This paragraph'), late.detail);
+    for (const f of measured.filter((f) => f.closeUp)) assert.ok(existsSync(join(out, f.closeUp!)), f.closeUp);
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
+    assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms"));
+    assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
+    assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
+
+    // Budgets from the config, and none with the measured rules off.
+    const config = { budgets: { inp: 5000, "layout-shift": 5, "first-content": 60000 } };
+    const relaxed = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
+    assert.deepEqual(relaxed.findings.filter((f) => f.value !== undefined), []);
+    const off = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], measure: false, chromium, log: quiet });
+    assert.deepEqual(off.findings, []);
   });
 
   test("gives a finding gone since --before a captioned before and after, and none to one still there at another size", async () => {
@@ -246,7 +278,7 @@ describe("Ouro check's command", () => {
   const fast = ["--sizes", "390x844", "--themes", "light"];
 
   test("reads every option, and refuses what it cannot run", () => {
-    assert.deepEqual(parseArgs(["site", "--pages", "docs/**", "--out", "o", "--sizes", " 390x844 ,1440x900", "--themes", "dark", "--shard", "2/4", "--before", "b.json", "--config", "c.json", "--no-axe", "--ready-event", "a", "--ready-event", "b"]), {
+    assert.deepEqual(parseArgs(["site", "--pages", "docs/**", "--out", "o", "--sizes", " 390x844 ,1440x900", "--themes", "dark", "--shard", "2/4", "--before", "b.json", "--config", "c.json", "--no-axe", "--no-measure", "--ready-event", "a", "--ready-event", "b"]), {
       merge: false,
       targets: ["site"],
       out: "o",
@@ -257,6 +289,7 @@ describe("Ouro check's command", () => {
       before: "b.json",
       config: "c.json",
       axe: false,
+      measure: false,
       readyEvents: ["a", "b"],
       help: false,
     });

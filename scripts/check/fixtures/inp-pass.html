@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slow press: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<style>.cover{position:relative}.cover::after{content:"";position:absolute;inset:0}</style>
+<main><h1>Slow press</h1><p>Each button answers at once, or is one the check does not press.</p>
+<button id="quick" type="button">Toggle</button>
+<button id="remove" type="button">Remove the next</button>
+<button id="removed" type="button">Removed</button>
+<span class="cover"><button id="covered" type="button">Covered</button></span>
+<button id="disabled" type="button" disabled>Disabled</button>
+<button id="hidden" type="button" hidden>Hidden</button>
+<span data-ouro-allow="inp" data-ouro-allow-why="a slow button on purpose"><button id="allowed" type="button">Allowed</button></span>
+<form><input aria-label="Name"><button id="send">Send</button></form>
+<button id="hash" type="button">Change the hash</button>
+<button id="away" type="button">Leave the page</button>
+</main>
+<script>
+const slow = () => {
+  const start = performance.now();
+  while (performance.now() - start < 400);
+};
+document.getElementById("quick").addEventListener("click", (event) => event.currentTarget.toggleAttribute("aria-pressed"));
+document.getElementById("remove").addEventListener("click", () => document.getElementById("removed").remove());
+for (const id of ["removed", "covered", "allowed", "send"]) document.getElementById(id).addEventListener("click", slow);
+document.getElementById("hash").addEventListener("click", () => (location.hash = "moved"));
+document.getElementById("away").addEventListener("click", () => (location.search = "?moved"));
+</script>

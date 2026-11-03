@@ -281,7 +281,10 @@ const kits = [
             { fileLine: "registry/ouro/check/check.ts", pattern: "\\[3840, 2160\\],$" },
           ],
         },
-      )} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} It installs lib/ouro/check/.`,
+      )} ${claim("It measures layout shift while loading, the time to the first content and each press's time to paint, each against a budget, and records each number in its report.", {
+        source: { test: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
+        verify: { testExists: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
+      })} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} It installs lib/ouro/check/.`,
     docs: `Ouro check is in lib/ouro/check/. Build your app, run node lib/ouro/check/check.ts <built folder | URL> and fix what it reports. Docs: ${DOCS_URL}/guardrails.md`,
     uses: ["axe-core", "playwright"],
   },
