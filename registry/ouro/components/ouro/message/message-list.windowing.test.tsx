@@ -752,6 +752,31 @@ describe("MessageList windowing", () => {
     await rerender(<Chat items={items} />);
     await expect.poll(() => document.activeElement?.id).toBe("m996");
     expect(inView(scroller, "m996")).toBe(true);
+    // Messages not drawn deleted far above, then the focused one: focus goes to the one after it.
+    items = items.filter((item) => item.id > 20);
+    await rerender(<Chat items={items} />);
+    items = items.filter((item) => item.id !== 996);
+    await rerender(<Chat items={items} />);
+    await expect.poll(() => document.activeElement?.id).toBe("m997");
+    // The newest deleted while focused: focus goes to the newest left.
+    await act(async () => document.getElementById("m999")!.focus());
+    items = items.filter((item) => item.id !== 999);
+    await rerender(<Chat items={items} />);
+    await expect.poll(() => document.activeElement?.id).toBe("m998");
+  });
+
+  it("follows the message the reader sends after code took the list to its end in the same moment", async () => {
+    let items = conversation(500, 0, true);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await scrollTo(scroller, 0);
+    items = [...items, { id: 500, text: "Sent from far up." }];
+    await act(async () => {
+      scroller.scrollTop = scroller.scrollHeight;
+      roots.at(-1)!.render(<Chat items={items} />);
+    });
+    await rerender(<Chat items={items} />);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "m500")).toBe(true);
   });
 
   it("draws the newest screenful in server HTML and hydrates it without a warning", async () => {

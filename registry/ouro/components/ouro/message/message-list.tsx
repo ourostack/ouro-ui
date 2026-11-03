@@ -1086,9 +1086,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
     const hold = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
-      // In a windowed list it never starts it: there the browser may pull the scroll down to a bottom that came up as
-      // heights replaced estimates above the view, which holding the place below undoes. The reader's own scroll does.
-      pinned.current = (pinned.current || !viewRef.current.windowed) && atBottom();
+      // A list at the old bottom follows. In a windowed list, one the bottom came up to does not start following: there the
+      // browser may pull the scroll down to a bottom that came up as heights replaced estimates above the view, which
+      // holding the place below undoes. The reader's own scroll at the bottom does.
+      // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
+      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || ((pinned.current || !viewRef.current.windowed) && farthest() - scroller.scrollTop <= AT_BOTTOM);
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -1425,11 +1427,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The message focus was last in, and its place among the messages.
     let last: HTMLElement | null = null;
     let lastIndex = 0;
-    // And its child's place among all the children, for a windowed list.
-    let lastKey = 0;
+    // And, for a windowed list, its child's key and the children's keys then: children not drawn may come and go
+    // without a message coming or going in the page.
+    let lastKey = "";
+    let lastKeys: readonly string[] = [];
     const remember = (item: HTMLElement) => {
       lastIndex = topItems(content).indexOf(item);
-      lastKey = viewRef.current.keys.indexOf(slotKeyOf(item));
+      lastKey = slotKeyOf(item);
+      lastKeys = viewRef.current.keys;
     };
     // The message focus is in, until focus leaves it.
     let focused: HTMLElement | null = null;
@@ -1493,8 +1498,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (focused?.isConnected === false && doc.activeElement === doc.body) {
         focused = null;
         const { windowed, keys } = viewRef.current;
-        // In a windowed list, the child now in its place among them all, which may not be drawn: drawn, then focused.
-        const key = keys[Math.min(lastKey, keys.length - 1)];
+        // In a windowed list, the child now in its place among them all (the first after it still there, else the newest),
+        // which may not be drawn: drawn, then focused.
+        const present = new Set(keys);
+        const key = lastKeys.slice(lastKeys.indexOf(lastKey) + 1).find((later) => present.has(later)) ?? keys.at(-1);
         const slot = [...content.children].find((node) => node.getAttribute(SLOT) === key);
         const found = slot === undefined ? [] : topItems(slot);
         if (windowed && found.length === 0 && key !== undefined) setReach({ key, id: null, forward: true, focus: true, block: "nearest" });
