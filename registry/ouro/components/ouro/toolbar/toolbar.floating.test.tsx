@@ -825,6 +825,15 @@ describe("Toolbar autoHide", () => {
     expect(isHidden(toolbar)).toBe(true);
   });
 
+  it("leaves no rest running once it is gone", async () => {
+    const onHiddenChange = vi.fn();
+    const { rerender } = await render(<Toolbar label="Call controls" autoHide={1000} onHiddenChange={onHiddenChange} items={controls} />);
+    await wait(600);
+    await rerender(null);
+    await wait(1000);
+    expect(onHiddenChange).not.toHaveBeenCalled();
+  });
+
   it.each<[string, unknown]>([
     ["zero", 0],
     ["a negative time", -1],
