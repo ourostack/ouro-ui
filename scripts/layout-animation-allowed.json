@@ -1,0 +1,11 @@
+{
+  "registry/ouro/components/ouro/accordion/accordion-styles.ts": {
+    "transition-[height]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
+  },
+  "registry/ouro/components/ouro/collapsible/collapsible-styles.ts": {
+    "transition-[height]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
+  },
+  "registry/ouro/components/ouro/checklist/checklist-styles.ts": {
+    "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),grid-template-rows_var(--ouro-duration-base)_var(--ouro-ease-out)]": "a row added or removed closes its gap so the rows below follow it, which a transform would overlap; with reduced motion it only fades"
+  }
+}
