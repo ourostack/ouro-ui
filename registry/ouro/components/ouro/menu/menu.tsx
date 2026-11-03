@@ -6,6 +6,8 @@ import { Menubar } from "@base-ui/react/menubar";
 import {
   createContext,
   useContext,
+  useEffect,
+  useRef,
   useState,
   type HTMLAttributes,
   type JSX,
@@ -412,6 +414,9 @@ function MenuSurface({
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
  * ouro-base.css), like Dialog and Sheet.
  *
+ * A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab
+ * goes on from wherever focus went.
+ *
  * @group Menus
  * @see https://ui.ouro.bot/docs/menu
  *
@@ -425,6 +430,7 @@ function MenuSurface({
  * <Menu contextTrigger={<RecipeCard recipe={recipe} />} items={[{ label: "Copy link", onClick: copy }]} />
  * @claim "Below 640px a dropdown is a" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
  * @claim "a context menu opens at the pointer at every width" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu context trigger > stays a menu at the pointer on a phone, not a sheet)
+ * @claim "A dropdown closes when focus moves" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus > closes when focus moves outside it, so a forward Tab from before its trigger goes on to the trigger)
  * @claim "It stacks above the page at" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu stacking > puts the portal on the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  * @claim "A list of actions that opens" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu dropdown > opens a menu below its trigger, aligned to its start, named by the trigger)
@@ -509,7 +515,33 @@ export function Menu(props: MenuProps): JSX.Element {
   // the pointer, where the finger is, at every width.
   const sheet = useSheetPresentation(context ? "menu" : "auto");
   const body = items !== undefined ? renderEntries(items) : children;
-  const control = open !== undefined ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : onOpenChange ? { onOpenChange: (next: boolean) => onOpenChange(next) } : {};
+  // Focus that moves anywhere else closes a dropdown (a menubar's menus are the bar's). Left open, Base UI keeps its
+  // focus guards beside the trigger, and the one before it, met by a forward Tab, sends focus back to what Tab was
+  // leaving.
+  // Stryker disable next-line BooleanLiteral: a menu's close() before it first opens does nothing, so the listener that starts with it changes nothing.
+  const [shown, setShown] = useState(false);
+  const isShown = open ?? shown;
+  const actions = useRef<BaseMenu.Root.Actions | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    const doc = triggerRef.current?.ownerDocument;
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: a closed menu's close() does nothing; this only spares a listener.
+    if (!isShown || doc === undefined) return;
+    const away = (event: FocusEvent) => {
+      const target = event.target as Element;
+      if (triggerRef.current!.contains(target) || target.closest('[data-ouro="menu-positioner"], [data-base-ui-focus-guard]')) return;
+      actions.current!.close();
+    };
+    doc.addEventListener("focusin", away);
+    // Stryker disable next-line ArrowFunction: a listener left on a closed menu's page only calls close(), which does nothing.
+    return () => doc.removeEventListener("focusin", away);
+  }, [isShown]);
+  const changed = (next: boolean) => {
+    setShown(next);
+    onOpenChange?.(next);
+  };
+  // Stryker disable next-line ConditionalExpression: Base UI reads an `open` of undefined as uncontrolled, as it reads none.
+  const control = open !== undefined ? { open, onOpenChange: changed } : { onOpenChange: changed };
 
   if (context) {
     return (
@@ -532,13 +564,13 @@ export function Menu(props: MenuProps): JSX.Element {
 
   return (
     // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
-    <BaseMenu.Root {...control} modal={label === undefined ? sheet || modal : undefined}>
+    <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
       {label !== undefined ? (
         <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass}>
           {label}
         </BaseMenu.Trigger>
       ) : (
-        <BaseMenu.Trigger render={trigger} {...holdPageAtPress.listButton} />
+        <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
       )}
       <MenuSurface sheet={sheet} context={false} side={side} align={align} className={className} closeLabel={closeLabel}>
         {body}

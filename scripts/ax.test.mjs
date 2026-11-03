@@ -52,3 +52,9 @@ test("the guide shows the tasks tool as it is, and the answers it gives", () => 
     assert.equal(r.stdout + r.stderr, out, argv.join(" "));
   }
 });
+
+test("the guide shows the calling components' declarations as they are", () => {
+  const guide = readFileSync(join(root, "docs/guides/ax.md"), "utf8");
+  const declarations = readFileSync(join(root, dir, "fixtures/call-components.mts"), "utf8").replaceAll('from "../', 'from "./lib/ouro/ax/');
+  assert.ok(guide.includes(`\`\`\`ts\n${declarations}\`\`\``), "docs/guides/ax.md shows registry/ouro/ax/fixtures/call-components.mts, with the app's import paths");
+});

@@ -20,7 +20,7 @@ it("gives an AttentionCard's message a target at least 44px square to a finger",
   root = createRoot(host);
   await act(async () =>
     root!.render(
-      <AttentionCard reason="Asked you" title="Design review" from="Ada" onOpen={() => {}}>
+      <AttentionCard reason="Asked you" title="Design review" from="Ana" onOpen={() => {}}>
         OK?
       </AttentionCard>,
     ),

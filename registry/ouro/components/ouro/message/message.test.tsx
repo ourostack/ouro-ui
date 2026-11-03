@@ -4,9 +4,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
+import { Table } from "@/registry/ouro/components/ouro/table/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -105,7 +108,7 @@ describe("Message", () => {
   it("puts the user's messages at the end in the primary color and others at the start", async () => {
     const { host } = await render(
       <>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           How hot?
         </Message>
         <Message role="assistant" name="Ouro">
@@ -133,12 +136,12 @@ describe("Message", () => {
 
   it("hides the user's own name visually but keeps it for screen readers", async () => {
     const { message } = await render(
-      <Message role="user" name="Ada">
+      <Message role="user" name="Ana">
         Hi
       </Message>,
     );
     const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
-    expect(author.textContent).toBe("Ada");
+    expect(author.textContent).toBe("Ana");
     expect(author.getBoundingClientRect().width).toBeLessThanOrEqual(1);
   });
 
@@ -148,7 +151,7 @@ describe("Message", () => {
         <Message role="assistant" name="Ouro Agent">
           Hi
         </Message>
-        <Message role="user" name="Ada" avatar={false}>
+        <Message role="user" name="Ana" avatar={false}>
           Hi
         </Message>
       </>,
@@ -162,7 +165,7 @@ describe("Message", () => {
   it("shows a system message centered and quiet, without avatar or bubble", async () => {
     const { host, message } = await render(
       <Message role="system" name="Ouro">
-        Ada joined the conversation
+        Ana joined the conversation
       </Message>,
     );
     expect(message.querySelector('[data-ouro="avatar"]')).toBeNull();
@@ -175,7 +178,7 @@ describe("Message", () => {
 
   it("lists attachments under the bubble", async () => {
     const { message } = await render(
-      <Message role="user" name="Ada" attachments={<Attachment name="menu.pdf" />}>
+      <Message role="user" name="Ana" attachments={<Attachment name="menu.pdf" />}>
         Here it is
       </Message>,
     );
@@ -254,12 +257,70 @@ describe("Message", () => {
   it("forwards a ref and lets app layout classes win", async () => {
     let element: HTMLElement | null = null;
     const { message } = await render(
-      <Message role="user" name="Ada" className="mt-4" ref={(node) => void (element = node)}>
+      <Message role="user" name="Ana" className="mt-4" ref={(node) => void (element = node)}>
         Hi
       </Message>,
     );
     expect(element).toBe(message);
     expect(getComputedStyle(message).marginTop).toBe("16px");
+  });
+
+  it("keeps the loading name's line and avatar visible in forced colours", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { message } = await render(
+        <Message variant="post" role="assistant" name={null} time="9:41">
+          Hi
+        </Message>,
+      );
+      for (const shape of message.querySelectorAll<HTMLElement>('[data-ouro="skeleton"]')) {
+        const bar = shape.matches("[data-shape=text]") ? shape.querySelector<HTMLElement>(":scope > span > span")! : shape;
+        expect(getComputedStyle(bar).outlineStyle).toBe("solid");
+      }
+      expect(message.querySelectorAll('[data-ouro="skeleton"]').length).toBe(2);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("holds the name's place with a name-sized line while it loads, so nothing moves when it arrives", async () => {
+    for (const variant of ["default", "chat", "post", "reply"] as const) {
+      const shown = (name: string | null) => (
+        <Message variant={variant} role="assistant" name={name} time="9:41">
+          Preheat the oven to 220°C.
+        </Message>
+      );
+      const { message, rerender } = await render(shown(null));
+      const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+      const loading = author.querySelector<HTMLElement>("[data-ouro-message-name-loading]")!;
+      expect(loading.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(loading.querySelector(".sr-only")!.textContent).toBe("Name loading");
+      expect(loading.getBoundingClientRect().width).toBeGreaterThan(20);
+      const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]');
+      expect(avatar!.getAttribute("data-name-loading")).toBe("");
+      const [height, authorHeight] = [message.getBoundingClientRect().height, author.getBoundingClientRect().height];
+      await rerender(shown("Ana Lind"));
+      expect(message.querySelector("[data-ouro-message-name-loading]")).toBeNull();
+      expect(message.querySelector("[data-ouro-message-author]")!.textContent).toContain("Ana Lind");
+      expect(message.querySelector("[data-name-loading]")).toBeNull();
+      expect(message.getBoundingClientRect().height).toBe(height);
+      expect(message.querySelector<HTMLElement>("[data-ouro-message-author]")!.getBoundingClientRect().height).toBe(authorHeight);
+    }
+    await render(
+      <Message role="assistant" name={null} nameLoadingLabel="Nom en cours" nameContent={<b>Ana</b>}>
+        Hi
+      </Message>,
+    );
+    const last = mounted.at(-1)!.querySelector<HTMLElement>("[data-ouro-message-name-loading] .sr-only")!;
+    expect(last.textContent).toBe("Nom en cours");
+    expect(mounted.at(-1)!.querySelector("b")).toBeNull();
+    // An Avatar element with a presence gets a fix that keeps the name loading.
+    await render(
+      <Message role="assistant" name={null} avatar={<Avatar name={null} alt="" />} presence="busy" presenceLabel="Busy">
+        Hi
+      </Message>,
+    );
+    expect(String(warn.mock.calls.at(-1)?.[0])).toContain('avatar={<Avatar name={null} alt="" size="sm" presence="busy"');
   });
 });
 
@@ -295,14 +356,14 @@ describe("Message development messages", () => {
 
   it.each([
     ["an unknown role", { role: "bot" }, 'role="bot" is not a role; use "user", "assistant" or "system"', '<Message role="assistant" name="Ouro">'],
-    ["from", { from: "user" }, "from is not a prop", '<Message role="user" name="Ada">'],
-    ["sender", { sender: "Ada" }, "sender is not a prop", '<Message role="user" name="Ada">'],
-    ["author", { author: "Ada" }, "author is not a prop", '<Message role="user" name="Ada">'],
-    ["content", { content: "Hi" }, "content is not a prop; the message is the children", '<Message role="user" name="Ada">Hi</Message>'],
+    ["from", { from: "user" }, "from is not a prop", '<Message role="user" name="Ana">'],
+    ["sender", { sender: "Ana" }, "sender is not a prop", '<Message role="user" name="Ana">'],
+    ["author", { author: "Ana" }, "author is not a prop", '<Message role="user" name="Ana">'],
+    ["content", { content: "Hi" }, "content is not a prop; the message is the children", '<Message role="user" name="Ana">Hi</Message>'],
     ["an unknown variant", { variant: "bubble" }, 'variant="bubble" is not a variant; use "default", "chat", "post" or "reply"', '<Message variant="chat" role="assistant" name="Grace">'],
     ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
-    ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ada", excerpt: "Lunch?" }}>'],
+    ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>'],
     ["error", { error: "Not sent" }, "error is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
     ["status", { status: "failed" }, "status is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
     ["onRetry", { onRetry: () => {} }, "onRetry is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
@@ -354,7 +415,7 @@ describe("Message development messages", () => {
 
   it("checks the className", async () => {
     await render(
-      <Message role="user" name="Ada" className="bg-blue-500">
+      <Message role="user" name="Ana" className="bg-blue-500">
         Hi
       </Message>,
     );
@@ -381,7 +442,7 @@ describe("Message quote", () => {
   it("shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis", async () => {
     for (const variant of ["default", "chat", "post", "reply"] as const) {
       const { message } = await render(
-        <Message variant={variant} role="assistant" name="Mara Quill" subject={variant === "post" ? "Friday" : undefined} quote={{ author: "Ada Lovelace", excerpt: lunch }}>
+        <Message variant={variant} role="assistant" name="Mara Quill" subject={variant === "post" ? "Friday" : undefined} quote={{ author: "Ana Lind", excerpt: lunch }}>
           Count me in.
         </Message>,
       );
@@ -396,7 +457,7 @@ describe("Message quote", () => {
       expect(bar.getAttribute("aria-hidden"), variant).toBe("true");
       expect(bar.getBoundingClientRect().width, variant).toBe(4);
       expect(getComputedStyle(author).fontWeight, variant).toBe("600");
-      expect(author.textContent, variant).toBe("Ada Lovelace");
+      expect(author.textContent, variant).toBe("Ana Lind");
       expect(getComputedStyle(excerpt).textOverflow, variant).toBe("ellipsis");
       expect(getComputedStyle(excerpt).whiteSpace, variant).toBe("nowrap");
       expect(excerpt.scrollWidth, variant).toBeGreaterThan(excerpt.clientWidth);
@@ -406,24 +467,24 @@ describe("Message quote", () => {
 
   it("is read before the text, as the label and the excerpt", async () => {
     const { message } = await render(
-      <Message variant="chat" role="user" name="Priya Okafor" quote={{ author: "Ada Lovelace", excerpt: "Lunch on Friday?" }}>
+      <Message variant="chat" role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
         Count me in.
       </Message>,
     );
     const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
     expect(quote.querySelector("[data-ouro-message-quote-author]")!.getAttribute("aria-hidden")).toBe("true");
-    expect(quote.querySelector(".sr-only")!.textContent).toBe("Quoting Ada Lovelace: ");
-    expect(bubbleOf(message).textContent).toBe("Quoting Ada Lovelace: Ada LovelaceLunch on Friday?Count me in.");
+    expect(quote.querySelector(".sr-only")!.textContent).toBe("Quoting Ana Lind: ");
+    expect(bubbleOf(message).textContent).toBe("Quoting Ana Lind: Ana LindLunch on Friday?Count me in.");
   });
 
   it("reads label for other languages, and shows the author's avatar before the name", async () => {
     const { message } = await render(
-      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ada Lovelace", excerpt: "Mittagessen?", label: "Zitat von Ada", avatar: <Avatar name="Ada Lovelace" alt="" size="xs" /> }}>
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Mittagessen?", label: "Zitat von Ana", avatar: <Avatar name="Ana Lind" alt="" size="xs" /> }}>
         Ja.
       </Message>,
     );
     const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
-    expect(quote.querySelector(".sr-only")!.textContent).toBe("Zitat von Ada: ");
+    expect(quote.querySelector(".sr-only")!.textContent).toBe("Zitat von Ana: ");
     const avatar = quote.querySelector('[data-ouro="avatar"]')!;
     expect(quote.querySelector("[data-ouro-message-quote-bar]")!.compareDocumentPosition(avatar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(avatar.compareDocumentPosition(quote.querySelector("[data-ouro-message-quote-author]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -432,11 +493,11 @@ describe("Message quote", () => {
   it("is a button with onActivate, named by the quote, which keyboard and pointer press", async () => {
     const onActivate = vi.fn();
     const { message } = await render(
-      <Message role="user" name="Priya Okafor" quote={{ author: "Ada Lovelace", excerpt: "Lunch on Friday?", onActivate }}>
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?", onActivate }}>
         Count me in.
       </Message>,
     );
-    const button = page.getByRole("button", { name: "Quoting Ada Lovelace: Lunch on Friday?" });
+    const button = page.getByRole("button", { name: "Quoting Ana Lind: Lunch on Friday?" });
     await userEvent.click(button);
     expect(onActivate).toHaveBeenCalledTimes(1);
     const element = button.element() as HTMLButtonElement;
@@ -464,6 +525,42 @@ describe("Message quote", () => {
 });
 
 describe("Message chat", () => {
+  it("shows that a wide table or a long line of code in a bubble scrolls sideways, with a fade where it goes on", async () => {
+    const columns = ["Task", "Owner", "Status", "Due", "Notes"];
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <Table caption="Launch tasks">
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead key={column}>{column}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              {columns.map((column) => (
+                // No-break spaces, so each cell is one long line.
+                <TableCell key={column}>{`Waiting on the final copy of the ${column.toLowerCase()}`.replaceAll(" ", "\u00a0")}</TableCell>
+              ))}
+            </TableRow>
+          </TableBody>
+        </Table>
+        <CodeBlock code={`curl https://api.example.com/v1/launches?${"status=waiting&".repeat(8)}`} />
+      </Message>,
+    );
+    const viewport = message.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const code = message.querySelector<HTMLElement>('[data-ouro-part="code"]')!;
+    for (const box of [viewport, code]) {
+      await expect.poll(() => box.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+      expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
+      expect(getComputedStyle(box).maskImage).toContain("linear-gradient");
+      expect(box.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
+    }
+    // The bubble stays inside the list's width, rather than growing to the table's.
+    expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
+  });
+
   it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
     const { host } = await render(
       <>
@@ -591,11 +688,11 @@ describe("Message chat", () => {
         <Message role="assistant" name="Ouro" continued>
           Second
         </Message>
-        <Message role="user" name="Ada" continued>
+        <Message role="user" name="Ana" continued>
           Mine
         </Message>
         <Message role="system" name="Ouro" continued>
-          Ada joined
+          Ana joined
         </Message>
       </>,
     );
@@ -692,10 +789,10 @@ describe("Message rows", () => {
         <Message role="assistant" name="Ouro">
           Hi
         </Message>
-        <Message role="user" name="Ada" attachments={null}>
+        <Message role="user" name="Ana" attachments={null}>
           Hi
         </Message>
-        <Message variant="chat" role="user" name="Ada" attachments={null}>
+        <Message variant="chat" role="user" name="Ana" attachments={null}>
           Hi
         </Message>
       </>,
@@ -706,7 +803,7 @@ describe("Message rows", () => {
   it("centers a system note over a wider footer", async () => {
     const { host, message } = await render(
       <Message role="system" name="Ouro" footer={<span style={{ display: "inline-block", width: 300, height: 20 }} />}>
-        Ada joined
+        Ana joined
       </Message>,
     );
     const box = bubbleOf(message).getBoundingClientRect();
@@ -826,7 +923,7 @@ describe("Message post", () => {
     const order = (message: HTMLElement, selector: string) => getComputedStyle(message.querySelector(selector)!).order;
     const unanswered = <ThreadSummary count={0} onOpen={() => {}} />;
     const post = await render(
-      <Message variant="post" role="user" name="Ada Lovelace" time="7:52 AM" failed={{ onRetry: () => {} }} footer={unanswered} thread={unanswered}>
+      <Message variant="post" role="user" name="Ana Lind" time="7:52 AM" failed={{ onRetry: () => {} }} footer={unanswered} thread={unanswered}>
         Notes
       </Message>,
     );
@@ -835,7 +932,7 @@ describe("Message post", () => {
     expect(order(post.message, "[data-ouro-message-footer]")).toBe("3");
     expect(order(post.message, "[data-ouro-message-thread]")).toBe("2");
     const chat = await render(
-      <Message variant="chat" role="user" name="Ada Lovelace" time="7:52 AM" failed={{ onRetry: () => {} }} footer={<span>Seen</span>} thread={unanswered}>
+      <Message variant="chat" role="user" name="Ana Lind" time="7:52 AM" failed={{ onRetry: () => {} }} footer={<span>Seen</span>} thread={unanswered}>
         Notes
       </Message>,
     );
@@ -1402,7 +1499,7 @@ describe("Message actions", () => {
         <Message variant="chat" role="user" name="Priya Okafor" actions={actionsFor([])}>
           Mine
         </Message>
-        <Message role="user" name="Ada" actions={actionsFor([])}>
+        <Message role="user" name="Ana" actions={actionsFor([])}>
           Default
         </Message>
         <Message role="assistant" name="Ouro" actions={actionsFor([])}>
@@ -1810,10 +1907,10 @@ describe("Message not sent", () => {
     const { host } = await render(
       <>
         <p id="hint">Sent from your phone</p>
-        <Message role="user" name="Ada" aria-describedby="hint" failed={{ onRetry: () => {}, onDelete: () => {} }} failedLabel="No enviado" retryLabel="Reintentar" deleteLabel="Eliminar">
+        <Message role="user" name="Ana" aria-describedby="hint" failed={{ onRetry: () => {}, onDelete: () => {} }} failedLabel="No enviado" retryLabel="Reintentar" deleteLabel="Eliminar">
           Hola
         </Message>
-        <Message role="user" name="Ada" aria-describedby="hint">
+        <Message role="user" name="Ana" aria-describedby="hint">
           Hola
         </Message>
       </>,

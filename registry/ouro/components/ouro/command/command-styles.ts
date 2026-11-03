@@ -6,10 +6,14 @@ export {
   commandItemClass,
   commandListClass,
   commandLoadingClass,
+  commandLoadingRowClass,
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
+  commandMarkClass,
   matchesQuery,
+  queryRanges,
+  type TextRange,
 };
 
 // Class strings and the search for Command, apart from the component so command.tsx exports
@@ -123,9 +127,57 @@ function fold(text: string): string {
  * @internal
  * @claim "Whether a command matches the query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
  */
-function matchesQuery(label: string, keywords: readonly string[] | undefined, query: string): boolean {
-  const text = fold([label, ...(keywords ?? [])].join(" "));
+function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
+  const text = fold([label, ...keywords].join(" "));
   return fold(query)
     .split(/\s+/)
     .every((word) => text.includes(word));
 }
+
+/**
+ * A row's shape while results are on their way: the item's own height, padding and line, so
+ * the results that arrive take its place without moving the rows around them.
+ *
+ * @internal
+ */
+const commandLoadingRowClass =
+  "box-border flex min-h-11 pointer-fine:min-h-9 items-center gap-3 px-2 py-1.5 text-base leading-5 pointer-fine:text-sm";
+
+/** A range of a text, from `start` up to, and not including, `end`. */
+type TextRange = readonly [start: number, end: number];
+
+/**
+ * Where the words of a query appear in a text, ignoring case and accents, merged where they touch,
+ * in order. Nothing when folding the text changes its length, so a range would land off its letters.
+ *
+ * @internal
+ * @claim "Where the words of a query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks the words of the search in each command's label and description, and keeps the text as it was)
+ */
+function queryRanges(text: string, query: string): TextRange[] {
+  const folded = fold(text);
+  if (folded.length !== text.length) return [];
+  const ranges: [number, number][] = [];
+  // Stryker disable next-line Regex: an empty word between two spaces is dropped by the filter after it.
+  for (const word of fold(query).split(/\s+/).filter(Boolean)) {
+    for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + word.length)) ranges.push([at, at + word.length]);
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const range of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+    else merged.push(range);
+  }
+  return merged;
+}
+
+/**
+ * A marked word: a tint of the primary colour behind the text colour, in semibold, and the system's
+ * mark colours under forced colours.
+ *
+ * @internal
+ * @claim "A marked word: a tint of" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > draws marked words that keep their contrast in light and dark, highlighted or not, and in forced colours)
+ */
+const commandMarkClass =
+  "rounded-[0.2em] bg-[color-mix(in_oklab,var(--primary)_22%,transparent)] font-semibold text-foreground " +
+  "forced-colors:bg-[Mark] forced-colors:text-[MarkText]";

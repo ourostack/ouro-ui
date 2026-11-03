@@ -137,7 +137,7 @@ async function render(css: string, surface: "background" | "popover") {
           />
         ))}
         <Kbd keys={["mod", "k"]} data-probe="Kbd" />
-        <Avatar name="Ada Lovelace" data-probe="Avatar" />
+        <Avatar name="Ana Lind" data-probe="Avatar" />
         <SwipeActions label="Short ribs" trailing={tones.map((tone) => ({ label: "Archive", tone, onClick: () => {} }))}>
           Short ribs
         </SwipeActions>

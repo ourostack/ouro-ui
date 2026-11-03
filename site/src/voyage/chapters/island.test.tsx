@@ -6,7 +6,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { fleschKincaid } from "../../../test/readability";
 import { App } from "../../app";
 import { ISLAND_FALLBACK } from "../copy";
-import { island, IslandBoundary } from "./island";
+import { island, IslandBoundary, waitingIslands } from "./island";
 
 // An island whose chunk fails to load (island.tsx) shows its fallback while the rest of the page
 // hydrates, answers, and marks itself ready (html[data-site-ready], which the end-to-end specs wait
@@ -133,6 +133,24 @@ describe("an island", () => {
     expect(button("island")!.textContent).toBe("island 0");
   });
 
+  it("is waiting from when it mounts until its chunk's content commits, and not once it unmounts", async () => {
+    let arrive!: (module: { default: ComponentType }) => void;
+    const load = vi.fn(() => new Promise<{ default: ComponentType }>((resolve) => (arrive = resolve)));
+    await hydrate(load);
+    expect(waitingIslands()).toEqual(["test-island"]);
+    await expect.poll(() => load.mock.calls.length).toBe(1);
+    expect(waitingIslands()).toEqual(["test-island"]);
+    await act(() => arrive({ default: Chapter }));
+    await expect.poll(waitingIslands).toEqual([]);
+    await act(() => root?.unmount());
+    root = undefined;
+    await hydrate(() => new Promise(() => {}));
+    expect(waitingIslands()).toEqual(["test-island"]);
+    await act(() => root?.unmount());
+    root = undefined;
+    expect(waitingIslands()).toEqual([]);
+  });
+
   it("shows its fallback when its chunk fails to load, while the rest of the page answers and the page marks itself ready", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const load = vi.fn(() => Promise.reject(new TypeError("Importing a module script failed.")));
@@ -140,6 +158,7 @@ describe("an island", () => {
     await expect.poll(() => host.querySelector("[data-island-failed]")).not.toBeNull();
     const fallback = host.querySelector("[data-island-failed]")!;
     expect(fallback.id).toBe("test-island");
+    expect(waitingIslands(), "a failed island waits for nothing more").toEqual([]);
     expect(fallback.textContent).toBe(`${ISLAND_FALLBACK.text} ${ISLAND_FALLBACK.reload}`);
     expect(fallback.querySelector("a")?.getAttribute("href")).toBe("");
     expect(button("island")).toBeNull();

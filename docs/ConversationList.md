@@ -2,7 +2,7 @@
 
 # ConversationList
 
-A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. The open conversation's row is highlighted, under the pointer too, and marked `aria-current`. The list is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows move between rows, Home and End jump to the first and last, and Enter, Space or a click calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
+A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. The open conversation's row is highlighted, under the pointer too, and marked `aria-current`. The list is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows move between rows, Home and End jump to the first and last, and Enter, Space or a click calls `onSelect`. Rows can group under `sections`, whose headers open and close them. A list of more than 60 conversations renders only the rows near the view, and the Tab stop and the open row, each placed where it would be in the whole list and measured as it renders, so a long list costs about what a screenful does. The arrow keys, Home and End still reach every row, and the open conversation's row scrolls into view. A long list's other rows are not in the page, so code that reads the rows from the page, and the browser's find in page, see only the rows rendered: read `items` instead.
 
 ```tsx
 import { ConversationList } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
@@ -12,7 +12,7 @@ import { ConversationList } from "@/registry/ouro/components/ouro/conversation-l
 
 ```tsx
 <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />
-<ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ada", title: "Ada Lovelace", section: "pinned" }]} onSelect={open} />
+<ConversationList label="Chats" sections={[{ id: "pinned", title: "Pinned" }]} items={[{ id: "ana", title: "Ana Lind", section: "pinned" }]} onSelect={open} />
 ```
 
 ## Use instead when

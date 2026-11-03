@@ -21,6 +21,8 @@ toast("Recipe saved", { tone: "success" });
 
 ## Usage
 
+Put it at the top with layout classes (`className="top-4 bottom-auto"`) and the stack hangs from the top: the newest toast is at the top, older ones peek out below it, it fans out downward, toasts slide in from above, and a swipe up dismisses one.
+
 Render one Toaster. A second one warns in development and shows nothing until the first unmounts, then takes over.
 
 The viewport is portaled to the body. A variable set only on an app-shell wrapper does not reach it: put app clearance variables on a real ancestor of the portal (such as `:root`) or declare them through the viewport's supplied classes. Do not construct arbitrary-value class names from runtime numbers. A width override changes the width, not the anchoring mode or centering. Bottom overrides replace the default phone safe-area expression; the app owns its clearance and safe area. Shared `--popover`, `--popover-foreground` and `--radius` theme tokens style the toast surface and also affect other components; a wrapper cannot style this portal.
@@ -35,6 +37,7 @@ Type: `ToasterProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `avoid` | `string` |  | A CSS selector for controls the toasts must stay clear of, such as a call's Join button in a corner. While one is on screen in the lower half of the window, under the toasts' column, the toasts rise to sit 8px above it, and they come back down when it goes. They measure again when the page changes outside the toasts and when the window resizes. Mark the controls and pass the selector: `<Toaster avoid="[data-keep-clear]" />`. It clears controls for a toaster at the bottom only; at the top, the app's own top offset (`className="top-18 bottom-auto"`) keeps the toasts clear of its header. |
 | `className` | `string` |  | Layout classes on the actual portaled toast viewport, not on each toast. For example, `bottom-[calc(5rem+max(1rem,env(safe-area-inset-bottom)))]` clears persistent bottom controls. A bottom override replaces the default safe-area expression; include the appropriate inset in your own clearance. Use statically written classes matching your app's visibility/breakpoints, which need not match the Toaster's `sm` breakpoint. |
 | `closeLabel` | `string` | `"Dismiss"` | The accessible name of each toast's dismiss button, which shows an icon only. |
 | `label` | `string` | `"Notifications"` | The name screen readers give the region the toasts appear in. Translate it with the rest of your interface. |

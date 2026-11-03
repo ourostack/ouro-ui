@@ -64,6 +64,15 @@ describe("Celebrate", () => {
     expect(getComputedStyle(badge).color).toBe(getComputedStyle(probe).color);
   });
 
+  it("carries data-celebrate while the moment lasts, and not before or after", async () => {
+    const { root, celebrate } = await render(<Celebrate show={false} message="List cleared" />);
+    expect(celebrate.hasAttribute("data-celebrate")).toBe(false);
+    await act(async () => root.render(<Celebrate show message="List cleared" />));
+    expect(celebrate.getAttribute("data-celebrate")).toBe("");
+    await act(async () => root.render(<Celebrate show={false} message="List cleared" />));
+    expect(celebrate.hasAttribute("data-celebrate")).toBe(false);
+  });
+
   it("bursts its pieces outward and fades in its message, and with reduced motion only fades the message in", async () => {
     const { root, host } = await render(<Celebrate show={false} message="All done" />);
     for (const reduced of [false, true]) {

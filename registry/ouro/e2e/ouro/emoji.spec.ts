@@ -45,3 +45,24 @@ test("steps a filmstrip emoji through its frames while its button is under the m
   await expect(image).toHaveAttribute("src", still!);
   await expect.poll(() => image.evaluate((element) => element.getAnimations().length)).toBe(0);
 });
+
+test("shows each picture over its placeholder once it has loaded, keeps the placeholder for one that cannot load, and shows it again for a fresh load", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openStory(page, "chat-emoji--placeholder");
+  const emoji = page.locator('[data-ouro="emoji"]');
+  await expect(emoji).toHaveCount(5);
+  const party = page.getByRole("img", { name: "Party popper" });
+  await expect(party).toHaveCSS("opacity", "1");
+  await expect(page.getByRole("img", { name: "Waving hand" })).toHaveCSS("opacity", "1");
+  await expect(emoji.filter({ has: party })).toHaveAttribute("data-loaded", "");
+  // The picture that cannot load keeps its name and its placeholder.
+  const missing = emoji.filter({ has: page.getByRole("img", { name: "Missing star" }) });
+  await expect.poll(() => missing.locator(":scope > img").evaluate((element: HTMLImageElement) => element.decode().then(() => "decoded", () => "failed"))).toBe("failed");
+  await expect(missing).not.toHaveAttribute("data-loaded");
+  await expect(missing.locator(":scope > img")).toHaveCSS("opacity", "0");
+  await expect(missing.locator(':scope > [aria-hidden="true"]')).toBeVisible();
+  // Every emoji drawn afresh shows its picture again once it has loaded.
+  await page.getByRole("button", { name: "Load again" }).click();
+  await expect(emoji.filter({ has: page.getByRole("img", { name: "Party popper" }) })).toHaveAttribute("data-loaded", "");
+  await expect(page.getByRole("img", { name: "Party popper" })).toHaveCSS("opacity", "1");
+});

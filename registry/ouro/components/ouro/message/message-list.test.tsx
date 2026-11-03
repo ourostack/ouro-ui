@@ -68,11 +68,12 @@ function Chat({
   newMessageLabel?: (author: string, text: string) => string;
   loadingOlder?: boolean;
   loadingOlderLabel?: string;
+  hasOlder?: boolean;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
-        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"} streaming={item.streaming}>
+        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"} streaming={item.streaming}>
           {item.text}
         </Message>
       ))}
@@ -141,9 +142,9 @@ describe("MessageList", () => {
     const { scroller } = await render(
       <MessageList label="Conversation" style={{ height: 300 }}>
         <p data-start="" style={{ margin: 0 }}>
-          The start of your conversation with Ada
+          The start of your conversation with Ana
         </p>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           Hello
         </Message>
       </MessageList>,
@@ -221,7 +222,7 @@ describe("MessageList", () => {
     const Overhang = ({ late }: { late: boolean }) => (
       <MessageList label="Conversation" style={{ height: 300 }}>
         {items.map((item, index) => (
-          <Message key={item.id} role={item.role} name="Ada">
+          <Message key={item.id} role={item.role} name="Ana">
             <span style={{ position: "relative", display: "block" }}>
               {item.text}
               {late && index === items.length - 1 && <span data-overhang="" style={{ position: "absolute", insetInlineStart: 0, top: 0, width: 8, height: 400 }} />}
@@ -250,11 +251,11 @@ describe("MessageList", () => {
     const { scroller } = await render(
       <MessageList label="Conversation" style={{ height: 300 }}>
         {items.map((item) => (
-          <Message key={item.id} role={item.role} name="Ada">
+          <Message key={item.id} role={item.role} name="Ana">
             {item.text}
           </Message>
         ))}
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           <TextArea label="Edit your message" hideLabel variant="plain" autoGrow rows={1} maxRows={8} defaultValue={"Line one\nLine two\nLine three"} />
         </Message>
       </MessageList>,
@@ -611,7 +612,7 @@ describe("MessageList", () => {
       <MessageList label="Conversation" style={{ height: 300 }}>
         <section aria-label="Today">
           {order.map((item) => (
-            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
               {item.text}
             </Message>
           ))}
@@ -644,7 +645,7 @@ describe("MessageList", () => {
     return (
       <MessageList label="Conversation" style={{ height: 300, marginTop: 120 }} initialAnchor={initialAnchor}>
         {items.map((item) => (
-          <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+          <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
             {item.text}
           </Message>
         ))}
@@ -916,6 +917,97 @@ describe("MessageList", () => {
     expect(tops()).toEqual(before);
   });
 
+  it("keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    // The first message, focused from the keyboard, so its focus ring shows.
+    await pressTab();
+    await userEvent.keyboard("{Home}");
+    const first = scroller.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    expect(document.activeElement).toBe(first);
+    expect(scroller.scrollTop).toBe(0);
+    const style = getComputedStyle(first);
+    expect(style.outlineStyle).not.toBe("none");
+    const ring = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const before = tops();
+    const height = scroller.scrollHeight;
+    await rerender(<Chat items={items} hasOlder loadingOlder />);
+    const pill = page.getByText("Loading older messages").element();
+    await expect.poll(() => pill.getBoundingClientRect().height).toBeGreaterThan(0);
+    expect(pill.getBoundingClientRect().bottom).toBeLessThanOrEqual(first.getBoundingClientRect().top - ring);
+    expect(tops()).toEqual(before);
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.scrollTop).toBe(0);
+    await rerender(<Chat items={items} hasOlder />);
+    await expect.element(page.getByText("Loading older messages")).not.toBeInTheDocument();
+    expect(tops()).toEqual(before);
+  });
+
+  it("keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const room = () => scroller.querySelector("[data-ouro-message-list-older-room]");
+    const before = tops();
+    // The start is reached at the top: the room stays, so nothing moves.
+    await rerender(<Chat items={items} />);
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    expect(tops()).toEqual(before);
+    // A scroll that leaves part of it in view keeps it.
+    await act(async () => void (scroller.scrollTop = 10));
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    // Scrolled out of view, it goes, and the messages stay where the scroll put them.
+    await act(async () => void (scroller.scrollTop = 200));
+    const scrolled = tops();
+    await expect.poll(room).toBeNull();
+    await settle(scroller);
+    tops().forEach((top, index) => near(top, scrolled[index]!));
+  });
+
+  it("drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message", async () => {
+    const items = history(20, 10);
+    const room = () => scroller.querySelector("[data-ouro-message-list-older-room]");
+    const tops = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    expect(room()).toBeNull();
+    // Added at the end: the list stays at its end.
+    await rerender(<Chat items={items} hasOlder />);
+    expect(room()).not.toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    // Ended at the end: it goes at once, and the list stays at its end.
+    let before = tops();
+    await rerender(<Chat items={items} />);
+    expect(room()).toBeNull();
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    tops().forEach((top, index) => near(top, before[index]!));
+    // So in a short conversation, where it shows at the end.
+    const short = await render(<Chat items={history(2)} hasOlder />);
+    const shortRoom = short.scroller.querySelector("[data-ouro-message-list-older-room]")!;
+    expect(shortRoom.getBoundingClientRect().bottom).toBeGreaterThan(short.scroller.getBoundingClientRect().top);
+    const shortTops = [...short.scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top);
+    await short.rerender(<Chat items={history(2)} />);
+    expect(short.scroller.querySelector("[data-ouro-message-list-older-room]")).toBeNull();
+    expect([...short.scroller.querySelectorAll('[data-ouro="message"]')].map((message) => message.getBoundingClientRect().top)).toEqual(shortTops);
+    // Added mid-conversation: the reader's messages stay where they are.
+    await wheel(scroller, -400);
+    before = tops();
+    await rerender(<Chat items={items} hasOlder />);
+    await settle(scroller);
+    expect(room()).not.toBeNull();
+    tops().forEach((top, index) => near(top, before[index]!));
+    // Ended out of view: it goes at once, with no scroll to wait for.
+    await rerender(<Chat items={items} />);
+    expect(room()).toBeNull();
+    tops().forEach((top, index) => near(top, before[index]!));
+  });
+
   it("takes a translated label for older messages loading", async () => {
     await render(<Chat items={history(3)} loadingOlder loadingOlderLabel="Cargando mensajes anteriores" />);
     await expect.element(page.getByText("Cargando mensajes anteriores")).toBeVisible();
@@ -926,7 +1018,7 @@ describe("MessageList", () => {
     function Post({ item }: { item: Item }) {
       return (
         <article data-ouro-message-list-item="" data-role={item.role} aria-busy={item.streaming || undefined} style={{ padding: 8 }}>
-          <span data-ouro-message-author="">{item.role === "user" ? "Ada" : "Grace"}</span>
+          <span data-ouro-message-author="">{item.role === "user" ? "Ana" : "Grace"}</span>
           <p data-ouro-message-content="">{item.text}</p>
         </article>
       );
@@ -963,7 +1055,7 @@ describe("MessageList", () => {
   it("looks for messages only when one comes, goes or stops streaming, not when a streamed reply gains a formatted word", async () => {
     const chat = (reply: ReactNode, streaming = true) => (
       <MessageList label="Conversation" style={{ height: 300 }}>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           How long does the dough rest?
         </Message>
         <Message role="assistant" name="Ouro" streaming={streaming}>
@@ -991,7 +1083,7 @@ describe("MessageList", () => {
         {days.map((day, index) => (
           <section key={index} aria-label={`Day ${index + 1}`}>
             {day.map((item) => (
-              <Message key={item.id} role={item.role} name={item.role === "user" ? "Ada" : "Ouro"}>
+              <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
                 {item.text}
               </Message>
             ))}
@@ -1174,7 +1266,7 @@ describe("MessageList", () => {
         <Message role="assistant" name="Ouro" id="theirs">
           Rest the dough for an hour.
         </Message>
-        <Message role="user" name="Ada" id="mine">
+        <Message role="user" name="Ana" id="mine">
           Covered?
         </Message>
       </MessageList>
@@ -1199,7 +1291,7 @@ describe("MessageList", () => {
     let element: HTMLElement | null = null;
     const { list } = await render(
       <MessageList label="Chat" className="mt-4" ref={(node) => void (element = node)}>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           Hi
         </Message>
       </MessageList>,
@@ -1212,18 +1304,28 @@ describe("MessageList", () => {
 /** Six posts by default, each `Post <n>: …` with whatever `extra` puts in it. */
 const posts = (count = 6, extra: (index: number) => ReactNode = () => null) =>
   Array.from({ length: count }, (_, index) => (
-    <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Grace" : "Ada"} id={`post-${index}`}>
+    <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Grace" : "Ana"} id={`post-${index}`}>
       Post {index}: {"a short note ".repeat(6)}
       {extra(index)}
     </Message>
   ));
 
 /** A list between two buttons, so Tab has somewhere to come from and go to. */
-function Channel({ children, height = 300, onMessageKeyDown }: { children: ReactNode; height?: number; onMessageKeyDown?: (message: HTMLElement, event: React.KeyboardEvent<HTMLElement>) => void }) {
+function Channel({
+  children,
+  height = 300,
+  onMessageKeyDown,
+  pageKeys,
+}: {
+  children: ReactNode;
+  height?: number;
+  onMessageKeyDown?: (message: HTMLElement, event: React.KeyboardEvent<HTMLElement>) => void;
+  pageKeys?: boolean;
+}) {
   return (
     <div>
       <button type="button">Before</button>
-      <MessageList label="Channel" style={{ height }} onMessageKeyDown={onMessageKeyDown}>
+      <MessageList label="Channel" style={{ height }} onMessageKeyDown={onMessageKeyDown} pageKeys={pageKeys}>
         {children}
       </MessageList>
       <button type="button">After</button>
@@ -1288,6 +1390,63 @@ describe("MessageList keyboard", () => {
     expect(focusedId()).toBe(`post-${up}`);
     await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
     expect(Number(focusedId().slice(5))).toBeGreaterThan(up + 1);
+  });
+
+  it("leaves Page Up and Page Down, and ⌥↑ and ⌥↓ on a Mac, to the app with pageKeys={false}, and moves with the other keys", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    // An app's window shortcut, listening in the bubble phase, as most do.
+    const heard: string[] = [];
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Alt" || event.key === "Meta") return;
+      heard.push(`${event.altKey ? "Alt+" : ""}${event.metaKey ? "Meta+" : ""}${event.key}${event.defaultPrevented ? " prevented" : ""}`);
+    };
+    const { rerender } = await render(<Channel>{posts(14)}</Channel>);
+    await rerender(<Channel pageKeys={false}>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("post-13");
+    window.addEventListener("keydown", onKey);
+    try {
+      await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+      await userEvent.keyboard("{PageUp}");
+      expect(focusedId()).toBe("post-13");
+      await userEvent.keyboard("{ArrowUp}");
+      expect(focusedId()).toBe("post-12");
+      await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+      await userEvent.keyboard("{PageDown}");
+      expect(focusedId()).toBe("post-12");
+      // ⌘↑ is still Home.
+      await userEvent.keyboard("{Meta>}{ArrowUp}{/Meta}");
+      expect(focusedId()).toBe("post-0");
+      expect(heard).toEqual(["Alt+ArrowUp", "PageUp", "ArrowUp prevented", "Alt+ArrowDown", "PageDown", "Meta+ArrowUp prevented"]);
+    } finally {
+      window.removeEventListener("keydown", onKey);
+    }
+  });
+
+  it("leaves ⌘↑, ⌘↓, ⌥↑ and ⌥↓ alone on a Mac once an app's capture-phase shortcut prevented them", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "macOS" } as never);
+    const heard: string[] = [];
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.key.startsWith("Arrow") || !(event.altKey || event.metaKey)) return;
+      heard.push(`${event.metaKey ? "Meta" : "Alt"}+${event.key}`);
+      event.preventDefault();
+    };
+    await render(<Channel>{posts(14)}</Channel>);
+    button("Before").focus();
+    await pressTab();
+    window.addEventListener("keydown", onKey, { capture: true });
+    try {
+      for (const press of ["{Alt>}{ArrowUp}{/Alt}", "{Meta>}{ArrowUp}{/Meta}", "{Alt>}{ArrowDown}{/Alt}", "{Meta>}{ArrowDown}{/Meta}"]) {
+        await userEvent.keyboard(press);
+        expect(focusedId()).toBe("post-13");
+      }
+      expect(heard).toEqual(["Alt+ArrowUp", "Meta+ArrowUp", "Alt+ArrowDown", "Meta+ArrowDown"]);
+    } finally {
+      window.removeEventListener("keydown", onKey, { capture: true });
+    }
   });
 
   it("moves between messages with the arrow keys, Home, End, Page Up and Page Down, with a focus ring", async () => {
@@ -1377,7 +1536,7 @@ describe("MessageList keyboard", () => {
     const list = (hide: boolean) => (
       <Channel>
         {posts(2, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
-        <Message role="user" name="Ada" id="hidden" style={hide ? { display: "none" } : undefined}>
+        <Message role="user" name="Ana" id="hidden" style={hide ? { display: "none" } : undefined}>
           <a href="#hidden-link">Hidden link</a>
         </Message>
       </Channel>
@@ -1396,7 +1555,7 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="long">
           {"A long post that runs on. ".repeat(120)}
         </Message>
-        <Message role="user" name="Ada" id="short">
+        <Message role="user" name="Ana" id="short">
           Thanks
         </Message>
       </Channel>,
@@ -1441,7 +1600,7 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="long">
           {"A long post that runs on. ".repeat(60)}
         </Message>
-        <Message role="user" name="Ada" id="short">
+        <Message role="user" name="Ana" id="short">
           Thanks
         </Message>
       </Channel>,
@@ -1471,7 +1630,7 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="link">
           With a link <a href="#b">Link B</a>
         </Message>
-        <Message role="user" name="Ada" id="plain">
+        <Message role="user" name="Ana" id="plain">
           Plain
         </Message>
       </>
@@ -1545,7 +1704,7 @@ describe("MessageList keyboard", () => {
     await render(
       <Channel>
         {posts(2)}
-        <Message role="user" name="Ada" id="editing">
+        <Message role="user" name="Ana" id="editing">
           <button type="button" onKeyDown={hold}>
             Hold
           </button>
@@ -1566,7 +1725,7 @@ describe("MessageList keyboard", () => {
         {posts(4, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
         <a href="#older">Older replies</a>
         {[0, 1].map((index) => (
-          <Message key={`late-${index}`} role="user" name="Ada" id={`late-${index}`}>
+          <Message key={`late-${index}`} role="user" name="Ana" id={`late-${index}`}>
             Late {index}
           </Message>
         ))}
@@ -1630,7 +1789,7 @@ describe("MessageList keyboard", () => {
           <Message role="assistant" name="Grace" id="long">
             {"A long post that runs on. ".repeat(120)}
           </Message>
-          <Message role="user" name="Ada" id="short">
+          <Message role="user" name="Ana" id="short">
             Thanks
           </Message>
         </Channel>
@@ -1741,7 +1900,7 @@ describe("MessageList keyboard", () => {
     await render(
       <Channel>
         {posts(2)}
-        <Message role="user" name="Ada" id="with-popup">
+        <Message role="user" name="Ana" id="with-popup">
           A popup
           <Popup />
         </Message>
@@ -1804,7 +1963,7 @@ describe("MessageList keyboard", () => {
           <span data-ouro-message-author="">Grace</span>
           <div data-ouro-message-content="">
             A message quoting another:
-            <Message role="user" name="Ada" id="quoted">
+            <Message role="user" name="Ana" id="quoted">
               Quoted
             </Message>
           </div>
@@ -1850,12 +2009,12 @@ describe("MessageList keyboard", () => {
         <Message role="assistant" name="Grace" id="outer">
           A thread:
           <MessageList label="Replies" style={{ height: 120 }}>
-            <Message role="user" name="Ada" id="inner">
+            <Message role="user" name="Ana" id="inner">
               A reply
             </Message>
           </MessageList>
         </Message>
-        <Message role="user" name="Ada" id="newest">
+        <Message role="user" name="Ana" id="newest">
           Newest
         </Message>
       </Channel>,
@@ -1957,7 +2116,7 @@ describe("MessageList keyboard", () => {
     function Swap() {
       const [swapped, setSwapped] = useState(false);
       return (
-        <Message role="user" name="Ada" id="swap">
+        <Message role="user" name="Ana" id="swap">
           {swapped ? (
             <button type="button" key="after">
               After the swap
@@ -2012,7 +2171,7 @@ describe("MessageList keyboard", () => {
           <Channel>
             {posts(2)}
             {sent ? null : (
-              <Message role="user" name="Ada" id="draft">
+              <Message role="user" name="Ana" id="draft">
                 <button
                   type="button"
                   onClick={() => {
@@ -2066,7 +2225,7 @@ describe("MessageList keyboard", () => {
       <Channel>
         {posts(9, (index) => <a href={`#link-${index}`}>Link {index}</a>)}
         <a href="#more">More below</a>
-        <Message role="user" name="Ada" id="newest">
+        <Message role="user" name="Ana" id="newest">
           Newest
         </Message>
       </Channel>,
@@ -2179,7 +2338,7 @@ describe("MessageList keyboard", () => {
     // A message 8px shorter than the list, below the one in focus, comes in at its top.
     await rerender(
       <Channel height={300}>
-        <Message role="user" name="Ada" id="short">
+        <Message role="user" name="Ana" id="short">
           Short
         </Message>
         <Message role="assistant" name="Grace" id="sized">
@@ -2288,9 +2447,9 @@ describe("MessageList development messages", () => {
   it.each([
     ["autoScroll", { autoScroll: true }, "autoScroll is not a prop; the list follows new messages while the reader is at the bottom", '<MessageList label="Conversation">'],
     ["stickToBottom", { stickToBottom: true }, "stickToBottom is not a prop; the list follows new messages while the reader is at the bottom", '<MessageList label="Conversation">'],
-    ["loose text", { children: "Hi" }, "MessageList holds Messages", '<MessageList label="Conversation"><Message role="user" name="Ada">Hi</Message></MessageList>'],
+    ["loose text", { children: "Hi" }, "MessageList holds Messages", '<MessageList label="Conversation"><Message role="user" name="Ana">Hi</Message></MessageList>'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
-    const props = { label: "Conversation", children: <Message role="user" name="Ada">Hi</Message>, ...extra } as unknown as Parameters<typeof MessageList>[0];
+    const props = { label: "Conversation", children: <Message role="user" name="Ana">Hi</Message>, ...extra } as unknown as Parameters<typeof MessageList>[0];
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { list } = await render(<MessageList {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] MessageList: ${problem}. Fix: ${fix}.`);

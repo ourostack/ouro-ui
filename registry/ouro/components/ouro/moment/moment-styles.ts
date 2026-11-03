@@ -8,6 +8,8 @@ export {
   MOMENT_STORAGE_PREFIX,
   periods,
   rootClass,
+  SETTLE_MS,
+  seenThisSession,
   shownKey,
   sparkClasses,
   sparkleClass,
@@ -94,6 +96,35 @@ function subscribeMoments(onChange: () => void): () => void {
   };
 }
 
+/**
+ * How long an art's looping motion runs before it settles, in milliseconds.
+ *
+ * @internal
+ * @claim "How long an art's looping motion" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone)
+ */
+const SETTLE_MS = 5000;
+
+const seenInMemory = new Set<string>();
+
+/**
+ * Whether a moment with this key has appeared before in this session (this tab, until it
+ * closes), and from now on it has.
+ *
+ * @internal
+ */
+function seenThisSession(key: string): boolean {
+  const name = `${MOMENT_STORAGE_PREFIX}seen:${key}`;
+  try {
+    if (sessionStorage.getItem(name) !== null) return true;
+    sessionStorage.setItem(name, "1");
+    return false;
+  } catch {
+    if (seenInMemory.has(name)) return true;
+    seenInMemory.add(name);
+    return false;
+  }
+}
+
 /** Whether the moment with this key was dismissed. @internal */
 function isDismissed(key: string): boolean {
   return read(dismissedKey(key)) !== null;
@@ -163,6 +194,7 @@ const rootClass = {
  */
 const artFrameClass = {
   default: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:10rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
+  hero: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:13.75rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
   quiet: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:2.5rem]",
   inline: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:1.5rem]",
 } as const;

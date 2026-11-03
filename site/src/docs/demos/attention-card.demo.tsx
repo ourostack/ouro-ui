@@ -18,7 +18,7 @@ export default function AttentionCardDemo(): JSX.Element {
       reason="Asked you"
       tone="warning"
       title="Design review"
-      from="Ada Lovelace"
+      from="Ana Lind"
       time="9:41"
       onOpen={() => {}}
       actions={

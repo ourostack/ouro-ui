@@ -125,7 +125,7 @@ const subjects = [...storySubjects, ...demoSubjects];
  * What this run scans: on a pull request's reduced run, only the selected components' stories and
  * demos (test/stories.tsx); in a CI shard, its slice of them (test/slice.ts).
  */
-const scanned = sliced(subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id))));
+const scanned = sliced(subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id))), "text size");
 
 const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 

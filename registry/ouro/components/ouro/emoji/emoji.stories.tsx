@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 
@@ -147,6 +147,41 @@ export const SkinTones: Story = {
       ))}
     </div>
   ),
+};
+
+// What stands in while a picture loads: a soft disc, as an image's address and as an element in the theme's colours.
+const waiting = svg('<circle cx="16" cy="16" r="13" fill="#a1a1aa" fill-opacity="0.35"/>');
+const disc = (
+  <svg viewBox="0 0 32 32" style={{ width: "100%", height: "100%" }}>
+    <circle cx="16" cy="16" r="13" fill="var(--muted)" />
+  </svg>
+);
+// A picture that cannot load, so its placeholder stays.
+const missing: EmojiItem = { id: "missing", name: "Missing star", src: "data:image/png;base64,AAAA" };
+
+/**
+ * `placeholder` stands in, in the emoji's own box, until each picture has loaded and decoded;
+ * the picture then fades in, at once with reduced motion. The last picture cannot load, so its
+ * placeholder stays. Load again draws them afresh.
+ */
+export const Placeholder: Story = {
+  render: function Render() {
+    const [round, setRound] = useState(0);
+    return (
+      <div style={{ display: "grid", gap: 12, justifyItems: "start" }}>
+        <p key={round} style={{ ...row, margin: 0, fontSize: "24px", lineHeight: "32px" }}>
+          {["smile", "heart", "party"].map((id) => (
+            <Emoji key={id} item={find(id)} placeholder={waiting} />
+          ))}
+          <Emoji item={wave} skinTone="medium" placeholder={disc} />
+          <Emoji item={missing} placeholder={waiting} />
+        </p>
+        <Button variant="soft" tone="secondary" onClick={() => setRound((count) => count + 1)}>
+          Load again
+        </Button>
+      </div>
+    );
+  },
 };
 
 /** `EmojiText` draws a message's tokens and emoji text as the catalogue's images, and leaves a token it does not know as typed. */

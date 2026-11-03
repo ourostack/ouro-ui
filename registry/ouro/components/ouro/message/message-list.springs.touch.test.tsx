@@ -31,7 +31,7 @@ async function render(node: ReactNode) {
 const chat = (count: number) => (
   <MessageList label="Conversation" style={{ height: 600 }}>
     {Array.from({ length: count }, (_, index) => (
-      <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Ouro" : "Ada"}>
+      <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Ouro" : "Ana"}>
         {`Message ${index}: ${"knead ".repeat(14)}`}
       </Message>
     ))}
