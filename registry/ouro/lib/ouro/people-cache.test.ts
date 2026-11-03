@@ -197,7 +197,8 @@ describe("createPeopleCache", () => {
     const cache = createPeopleCache({ read, pauseFor: MINUTE });
     const down = new Error("down");
     expect(await pausesOf(cache, calls, [down, down])).toEqual([MINUTE, 2 * MINUTE]);
-    for (const answer of [{}, { b: { value: "Bo" } }]) {
+    const answers: Record<string, PersonRead<string>>[] = [{}, { b: { value: "Bo" } }];
+    for (const answer of answers) {
       const load = cache.load("b");
       await run();
       calls.at(-1)!.resolve(answer);
