@@ -9,7 +9,7 @@ The ask, from the app's owner, is quoted in [the issue](https://github.com/ouros
 - **Show something true at once.** A press answers in the next frame. Content that is still on its way holds its place with the shape of what is coming.
 - **Never pretend.** Anything shown before the server agrees is marked as pending. When the server refuses, the change rolls back in view, and the person hears why.
 - **The agent sees what the person sees.** Pending changes, cache age and queued writes go into the components' AX state, so an agent can read them as the person sees them.
-- **Measured, not judged.** Checks in `ouro-check` fail a build when the app is too slow or moves under the reader.
+- **Measured, not judged.** Planned checks in `ouro-check` will fail a build when the app is too slow or moves under the reader.
 - **Reduced motion keeps the speed.** With reduced motion nothing slides or scales, but nothing waits either. A transition becomes an instant swap or a fade.
 
 ## The primitives
@@ -20,8 +20,8 @@ This one is under way. In [the Skeleton shapes PR](https://github.com/ourostack/
 
 ### Optimistic updates with rollback
 
-- **HX:** a hook, `useOptimisticAction({ apply, commit, describe })`. `apply` changes what is shown at once, `commit` sends the change, and a refusal undoes `apply` and shows `describe(reason)` in a toast. The control that started the action carries `data-pending` until the server answers. Components that show a pending item, such as Message beside its existing `failed` state, and ReactionBar, draw it quietly, not as an error.
-- **AX:** a pending change appears in the component's AX state with what it is, when it started and its outcome once known. The AX kit's existing Proposal envelope says who did it.
+- **HX:** a hook, `useOptimisticAction({ apply, commit, describe })`. `apply` changes what is shown at once and `commit` sends the change. A refusal doesn't undo `apply` by hand: the shown state is rebuilt from the server's state with the changes still pending applied again, so overlapping changes to one item survive a refusal of the first, and `describe(reason)` shows in a toast. The control that started the action carries `data-pending` until the server answers. Components that show a pending item, such as Message beside its existing `failed` state, and ReactionBar, draw it quietly, not as an error.
+- **AX:** a pending change appears in the component's AX state with what it is, when it started and its outcome once known. Who did it comes from the AX kit's work events (`actor`, `onBehalfOf` in `registry/ouro/ax/work-event.ts`) and the outcome receipt's `by`.
 - **Tests to write:** a refusal rolls back in view and says why; a slow commit keeps the change pending without blocking the next press; quick changes to the same item settle in the order they were made.
 
 ### Prefetch on intent
@@ -38,13 +38,13 @@ This one is under way. In [the Skeleton shapes PR](https://github.com/ourostack/
 
 ### Instant navigation with view transitions
 
-- **HX:** the router adapter in OuroProvider runs a navigation inside `document.startViewTransition` where the browser has it. Elements that persist across views (an avatar, a title) take a `view-transition-name` from a prop. With reduced motion, or where the browser lacks view transitions, the swap is instant.
+- **HX:** this is new work. Today OuroProvider's `linkComponent` only renders links, and the app's router navigates. The plan is a navigation hook in OuroProvider that the router adapter calls, running the swap inside `document.startViewTransition` where the browser has it, for links, back and forward. Only the element that moves between views (the opened row's avatar or title) takes a `view-transition-name`, since a name repeated across rows makes the browser skip the transition. Transitions stay short, because presses during one land on the transition's overlay. With reduced motion (OuroProvider's `motion` setting as well as the device's), or where the browser lacks view transitions, the swap is instant.
 - **Tests:** a navigation with view transitions and one without leave the same focus and the same announced title.
 
 ### Background sync
 
-- **HX:** a write queue under SyncStatus. Writes made offline are kept across a reload and sent in order when the connection returns, with backoff. SyncStatus shows how many are waiting, and a waiting item shows as pending, as in the optimistic updates above.
-- **AX:** an agent can list the queue, retry it and cancel a queued write. These actions name their actor, as the AX kit's Proposal envelope does.
+- **HX:** a write queue under SyncStatus. Writes made offline are kept across a reload, per account and cleared on sign-out, and sent in order when the connection returns, with backoff. A queued write is planned to carry an idempotency key, so a retry after a lost reply doesn't apply it twice. SyncStatus shows how many are waiting, and a waiting item shows as pending, as in the optimistic updates above.
+- **AX:** an agent can list the queue, retry it and cancel a queued write. These actions name their actor through the AX kit's work events.
 
 ## Measured checks in `ouro-check`
 
@@ -53,10 +53,10 @@ These come after [the ouro-check PR](https://github.com/ourostack/ouro-ui/pull/5
 | Rule id | What it measures | How it fails |
 |---|---|---|
 | `inp` | Input to next paint for the pressable controls a flow presses | A press whose next paint misses the budget |
-| `layout-shift` | Layout shift while a screen loads, from the first paint until its content settles | Any shift above the budget, with the element that moved and the one that pushed it |
+| `layout-shift` | The cumulative layout shift score while a screen loads, from the first paint until its content settles | A score above the budget, with the elements that moved and the ones that pushed them |
 | `first-content` | Time from navigation to the first useful content (the first real row, message or heading, not a skeleton) | First content after the budget |
 
-The budgets are planned to start at the web's published "good" thresholds for these measures, kept in the check's own settings, so changing a number there moves the apps that use it. A finding names the component that caused it, so a fix goes into Ouro first when the cause is a component.
+The budgets live in the check's own settings, so changing a number there moves the apps that use it. `inp` is planned to start at the site's existing latency budget (`LATENCY.p95` in `site/e2e/latency.ts`, on its throttled CPU), which is stricter than the web's published "good" input threshold. `layout-shift` and `first-content` are planned to start at the web's published "good" thresholds. A finding names the component that caused it, so a fix goes into Ouro first when the cause is a component.
 
 ## Order of work
 
