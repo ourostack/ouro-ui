@@ -10,7 +10,7 @@ import type { Browser, BrowserType, Page } from "playwright";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
-import { findSizeIssues, type PageIssue } from "./size-check.ts";
+import { findSizeIssues, type Measure, type PageIssue } from "./size-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -84,6 +84,9 @@ interface CheckResult extends Report {
 
 interface Gate {
   waive?: Record<string, Record<string, string>>;
+  // Where long lines are checked, and against what: a page glob (two stars for all pages) holds the page's prose, a
+  // CSS selector ("main .chat-message") holds what it matches. Without one the rule is off.
+  measure?: Record<string, string>;
 }
 
 interface CheckOptions {
@@ -171,6 +174,16 @@ async function shoot(page: Page, path: string, box: Box): Promise<Box> {
   return { x: clip.x + at.sx, y: clip.y + at.sy, width: clip.width, height: clip.height };
 }
 
+// A measure key is a page glob when it starts with a slash, or is only stars (two of them for all pages); anything else
+// is a CSS selector, which may hold a slash of its own, as an attribute selector on an address can.
+const isPageGlob = (key: string) => key.startsWith("/") || /^\*+$/.test(key);
+const MEASURE = /^\d+(?:\.\d+)?\s*(?:px|ch|chars)$/;
+// The measures that hold on `page`, in the order the config lists them.
+const measuresFor = (config: Gate, page: string): Measure[] =>
+  Object.entries(config.measure ?? {}).flatMap(([key, measure]): Measure[] =>
+    !isPageGlob(key) ? [{ selector: key, measure }] : globToRegExp(key.startsWith("/") ? key : `/${key}`).test(page) ? [{ selector: null, measure }] : [],
+  );
+
 // Whether a finding fails the check: every one does unless the config waives its rule ("*" for every rule) on a page
 // glob it matches.
 const isGated = (config: Gate, page: string, rule: string) =>
@@ -240,6 +253,16 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await close();
     throw problem;
   });
+  // A measure's selector the browser cannot read is a mistake in the config, found once before the sweep.
+  const probe = await browser.newPage();
+  const selectors = Object.keys(config.measure ?? {}).filter((key) => !isPageGlob(key));
+  const unreadable = (await probe.evaluate(`${JSON.stringify(selectors)}.filter((s) => { try { document.querySelector(s); return false; } catch { return true; } })`)) as string[];
+  await probe.close();
+  if (unreadable.length) {
+    await browser.close();
+    await close();
+    throw Object.assign(new Error(`the measure for "${unreadable[0]}" names no CSS selector a browser reads; write a valid selector, or a page glob that starts with "/".`), { usage: true });
+  }
   const { findings, shots, candidates } = report;
   const pictured = new Set<string>();
   const allowed = new Set<string>();
@@ -276,7 +299,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       }
       issues.push(...(await page.evaluate(findOverlaps, {})));
       await page.evaluate(decodeImages);
-      issues.push(...(await page.evaluate(findSizeIssues, {})));
+      issues.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
         if (allowed.has(key)) continue;
@@ -528,8 +551,9 @@ interface Args {
 const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [options]
        node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>]
 
-Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, long lines,
-blurry pictures and serious accessibility problems, and writes report.json, summary.md, a contact sheet per page and a
+Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken and blurry
+pictures, pages that fail to load or draw, and serious accessibility problems, and long lines only where ouro-check.json
+declares a measure. It writes report.json, summary.md, a contact sheet per page and a
 captioned close-up per finding. merge joins the out folders of a sharded run into one.
 
   --pages <glob>           only the built folder's pages the glob matches, such as "docs/**"
@@ -642,6 +666,15 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
   const hasConfig = args.config !== undefined || (await readFile(configFile).then(() => true, () => false));
   const config = hasConfig ? await readJson<Gate>(configFile, error) : {};
   if (!config) return EXIT.usage;
+  if (config.measure !== undefined && (typeof config.measure !== "object" || config.measure === null || Array.isArray(config.measure))) {
+    error(`${configFile}: "measure" maps page globs and CSS selectors to measures, such as { "**": "100 chars" }.`);
+    return EXIT.usage;
+  }
+  const unreadable = Object.entries(config.measure ?? {}).find(([, measure]) => typeof measure !== "string" || !MEASURE.test(measure.trim()));
+  if (unreadable) {
+    error(`${configFile}: the measure for "${unreadable[0]}" is ${JSON.stringify(unreadable[1])}; give a number of px, ch or chars, such as "800px", "75ch" or "100 chars".`);
+    return EXIT.usage;
+  }
   // The check itself failing (no browser, a full disk) is no finding: it exits 3, never 1, which means "fix these".
   try {
     const out = resolve(cwd, args.out);
@@ -695,6 +728,10 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
     log(`\n${group(result.findings).length} finding(s), ${failing.length} gated, ${result.fixed.length} fixed since --before. Report: ${relative(cwd, join(out, "report.json"))}`);
     return failing.length ? EXIT.findings : EXIT.ok;
   } catch (problem) {
+    if ((problem as { usage?: boolean }).usage) {
+      error(`${configFile}: ${(problem as Error).message}`);
+      return EXIT.usage;
+    }
     error(`Ouro check could not run: ${(problem as Error).message}`);
     return EXIT.error;
   }

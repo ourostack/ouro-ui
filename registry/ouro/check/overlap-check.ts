@@ -27,13 +27,20 @@ interface Item {
 }
 
 function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIssue[] {
-  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
-  for (const name of ["data-ouro-allow-why", "data-overlap-ignore"]) for (const el of document.querySelectorAll(`[${name}]`)) el.setAttribute(name, el.getAttribute(name)!.trim());
-  const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
-  const ignored = `[hidden], .visually-hidden, .sr-only, template, details:not([open]) > :not(summary), [data-overlap-ignore]:not([data-overlap-ignore=""]), [data-ouro-allow~="overlap"]${why}, [data-ouro-allow~="all"]${why}`;
+  const ignored = "[hidden], .visually-hidden, .sr-only, template, details:not([open]) > :not(summary)";
+  // Whether an element, or one around it, opts out: data-ouro-allow="overlap" (or "all") with a reason, or
+  // data-overlap-ignore with its reason as its value. A reason of spaces is no reason; the page is read, never rewritten.
+  const reasonOf = (el: Element, name: string) => (el.getAttribute(name) ?? "").trim();
+  const optedOut = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const rules = reasonOf(n, "data-ouro-allow").split(/\s+/);
+      if (reasonOf(n, "data-overlap-ignore") || ((rules.includes("overlap") || rules.includes("all")) && reasonOf(n, "data-ouro-allow-why"))) return true;
+    }
+    return false;
+  };
   const sectionOf = (el: Element) => el.closest("main > section, section, footer, [data-ouro-section]") ?? document.body;
   const visible = (el: Element) => {
-    if (el.closest(ignored)) return false;
+    if (el.closest(ignored) || optedOut(el)) return false;
     const style = getComputedStyle(el);
     if (style.visibility === "hidden" || style.display === "none") return false;
     // Opacity isn't inherited in computed style, so a faded-out ancestor (a hover-only toolbar) hides its text too.

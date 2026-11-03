@@ -1,5 +1,5 @@
 export { findSizeIssues };
-export type { PageIssue, SizeCheckOptions };
+export type { Measure, PageIssue, SizeCheckOptions };
 
 // Runs in the page (page.evaluate), so nothing in it may close over anything outside the function. With
 // overlap-check.ts (text on text or on a picture) and axe, check.ts holds pages to these at every size:
@@ -7,7 +7,7 @@ export type { PageIssue, SizeCheckOptions };
 //   sideways-scroll  the page is wider than the screen; names the outermost elements that stick out
 //   clipped-text     a block of text cut off by its box: overflow, an ellipsis or a line clamp
 //   blurry-image     a raster picture drawn larger than its file's own pixels allow at the screen's density, at most 2
-//   long-lines       a paragraph whose lines average more than maxChars characters
+//   long-lines       only where the project declares a measure (`measures`): an element whose lines run past it
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and data-ouro-allow-why="<reason>"; an allow without
 // a reason does not count. For an app whose own rules keep data-ouro-* for Ouro's components, plain aliases do the same,
@@ -24,14 +24,22 @@ interface PageIssue {
   detail: string;
 }
 
+// A declared measure: the elements it holds (a CSS selector, or null for the page's prose: p, li, dd, blockquote,
+// figcaption and [data-prose]) and how long a line may run: "800px", "75ch" (the width of 75 zeros in the element's
+// font), or "100 chars" (characters a rendered line holds on average, counted from the text).
+interface Measure {
+  selector: string | null;
+  measure: string;
+}
+
 interface SizeCheckOptions {
-  maxChars?: number;
+  measures?: Measure[];
   density?: number;
   tolerance?: number;
   minImage?: number;
 }
 
-async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.devicePixelRatio), tolerance = 1.1, minImage = 96 }: SizeCheckOptions = {}): Promise<PageIssue[]> {
+async function findSizeIssues({ measures = [], density = Math.min(2, window.devicePixelRatio), tolerance = 1.1, minImage = 96 }: SizeCheckOptions = {}): Promise<PageIssue[]> {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -40,12 +48,17 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${id}`.trim());
     return id;
   };
-  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
-  for (const name of ["data-ouro-allow-why", "data-scroll-x", "data-clip-ok", "data-long-lines-ok", "data-size-ignore"]) for (const el of document.querySelectorAll(`[${name}]`)) el.setAttribute(name, el.getAttribute(name)!.trim());
-  const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
-  // An alias counts only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why.
-  const alias = (name: string) => `[${name}]:not([${name}=""])`;
-  const allowed = (rule: string, aliases: string) => `${aliases}, [data-ouro-allow~="${rule}"]${why}, [data-ouro-allow~="all"]${why}`;
+  // Whether an element, or one around it, opts out of `rule`: data-ouro-allow with a reason in data-ouro-allow-why, or
+  // one of `aliases` with its reason as its value. A reason of spaces is no reason; the page's attributes are read, never
+  // rewritten.
+  const reasonOf = (el: Element, name: string) => (el.getAttribute(name) ?? "").trim();
+  const optedOut = (el: Element, rule: string, aliases: string[]) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const rules = reasonOf(n, "data-ouro-allow").split(/\s+/);
+      if (aliases.some((name) => reasonOf(n!, name)) || ((rules.includes(rule) || rules.includes("all")) && reasonOf(n, "data-ouro-allow-why"))) return true;
+    }
+    return false;
+  };
   const describe = (el: Element) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}`;
   // The text as written, not as drawn (innerText): a line clamp or a narrow box would name the element differently at
   // each size.
@@ -68,18 +81,17 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
 
   // Sideways scrolling.
   const over = document.documentElement.scrollWidth - document.documentElement.clientWidth;
-  const sideways = allowed("sideways-scroll", `${alias("data-scroll-x")}, ${alias("data-size-ignore")}`);
-  if (over > 1 && !document.body.closest(sideways)) {
+  const sideways = (el: Element) => optedOut(el, "sideways-scroll", ["data-scroll-x", "data-size-ignore"]);
+  if (over > 1 && !sideways(document.body)) {
     const edge = document.documentElement.clientWidth + 1;
-    const out = [...document.body.querySelectorAll("*")].filter((el) => !el.closest(sideways) && shown(el) && el.getBoundingClientRect().right > edge);
+    const out = [...document.body.querySelectorAll("*")].filter((el) => !sideways(el) && shown(el) && el.getBoundingClientRect().right > edge);
     const outermost = out.filter((el) => !out.some((o) => o !== el && o.contains(el))).slice(0, 3);
     issues.push({ ref: ref(outermost[0] ?? document.body), rule: "sideways-scroll", element: outermost.map(describe).join(", ") || "the page", detail: `${over}px wider than the screen` });
   }
 
   // Clipped text.
-  const clipping = allowed("clipped-text", `${alias("data-clip-ok")}, ${alias("data-size-ignore")}, svg, select, textarea, script, style`);
   for (const el of document.body.querySelectorAll("*")) {
-    if (el.closest(clipping)) continue;
+    if (el.closest("svg, select, textarea, script, style") || optedOut(el, "clipped-text", ["data-clip-ok", "data-size-ignore"])) continue;
     if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()) || !inlineOnly(el)) continue;
     const s = getComputedStyle(el);
     const clipsX = /hidden|clip/.test(s.overflowX);
@@ -106,8 +118,6 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
 
   // Blurry pictures. naturalWidth is in CSS pixels, divided by the srcset density the browser chose, so the file's own
   // pixels come from loading the chosen source into an Image of its own.
-  const blur = allowed("blurry-image", alias("data-size-ignore"));
-  const broken = `[data-ouro-allow~="broken-image"]${why}, [data-ouro-allow~="all"]${why}`;
   // By its path's last two folders, never its host: a run's local server has a new port each time. A data: or blob:
   // picture has no lasting address, so it goes by its name.
   const nameOf = (img: HTMLImageElement, src: string) => (/^(data|blob):/.test(src) ? `img${quoted(img)}` : new URL(src).pathname.split("/").filter(Boolean).slice(-2).join("/"));
@@ -115,11 +125,11 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
     const src = img.currentSrc || img.src;
     // Loaded and empty: the file is missing or is no picture. (An SVG without a size of its own is empty too, so it is
     // left out.)
-    if (src && img.complete && !img.naturalWidth && !/\.svg(\?|#|$)|^data:image\/svg/.test(src) && !img.closest(broken)) {
+    if (src && img.complete && !img.naturalWidth && !/\.svg(\?|#|$)|^data:image\/svg/.test(src) && !optedOut(img, "broken-image", [])) {
       issues.push({ ref: ref(img), rule: "broken-image", element: nameOf(img, src), detail: "the picture did not load" });
       continue;
     }
-    if (!img.naturalWidth || /\.svg(\?|#|$)|^data:image\/svg/.test(src) || img.closest(blur) || !shown(img)) continue;
+    if (!img.naturalWidth || /\.svg(\?|#|$)|^data:image\/svg/.test(src) || optedOut(img, "blurry-image", ["data-size-ignore"]) || !shown(img)) continue;
     const r = img.getBoundingClientRect();
     if (r.width < minImage && r.height < minImage) continue;
     const fit = getComputedStyle(img).objectFit;
@@ -141,17 +151,43 @@ async function findSizeIssues({ maxChars = 100, density = Math.min(2, window.dev
     }
   }
 
-  // Long lines.
-  const prose = allowed("long-lines", `${alias("data-long-lines-ok")}, ${alias("data-size-ignore")}, pre, code, table, nav`);
-  for (const el of document.body.querySelectorAll("p, li, dd, blockquote, figcaption, [data-prose]")) {
-    if (el.closest(prose) || !inlineOnly(el) || !shown(el)) continue;
-    const text = el.textContent!.replace(/\s+/g, " ").trim();
-    if (text.length <= maxChars) continue;
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const tops = new Set([...range.getClientRects()].filter((b) => b.width > 1).map((b) => Math.round(b.top)));
-    const perLine = text.length / Math.max(1, tops.size);
-    if (perLine > maxChars) issues.push({ ref: ref(el), rule: "long-lines", element: `${describe(el)}${quoted(el)}`, detail: `about ${Math.round(perLine)} characters a line (keep to ${maxChars})` });
+  // Long lines, only against a measure the project declared: none is assumed, since a fixed measure is a design choice,
+  // not a default. An element two measures hold is checked against the first.
+  const checked = new Set<Element>();
+  for (const { selector, measure } of measures) {
+    const [, amount, unit] = /^(\d+(?:\.\d+)?)\s*(px|ch|chars)$/.exec(measure.trim())!;
+    const limit = Number(amount);
+    for (const el of document.body.querySelectorAll(selector ?? "p, li, dd, blockquote, figcaption, [data-prose]")) {
+      if (checked.has(el)) continue;
+      checked.add(el);
+      // The page's prose leaves out code, tables, navigation and blocks of blocks; a selector holds exactly what it names,
+      // a container of paragraphs included.
+      const prose = selector === null;
+      if ((prose && (el.closest("pre, code, table, nav") || !inlineOnly(el))) || optedOut(el, "long-lines", ["data-long-lines-ok", "data-size-ignore"]) || !shown(el)) continue;
+      const text = el.textContent!.replace(/\s+/g, " ").trim();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const boxes = [...range.getClientRects()].filter((b) => b.width > 1);
+      const rows = new Map<number, { left: number; right: number }>();
+      for (const b of boxes) {
+        const row = rows.get(Math.round(b.top)) ?? { left: b.left, right: b.right };
+        rows.set(Math.round(b.top), { left: Math.min(row.left, b.left), right: Math.max(row.right, b.right) });
+      }
+      if (unit === "chars") {
+        // As a reader meets it: the characters a rendered line holds on average, fixed by how the text is composed.
+        const perLine = text.length / Math.max(1, rows.size);
+        if (perLine > limit) issues.push({ ref: ref(el), rule: "long-lines", element: `${describe(el)}${quoted(el)}`, detail: `about ${Math.round(perLine)} characters a line (keep to ${limit})` });
+        continue;
+      }
+      const context = document.createElement("canvas").getContext("2d")!;
+      // From its parts: the font shorthand reads empty once a font feature or variant is set, and the canvas would
+      // keep its own 10px font.
+      const s = getComputedStyle(el);
+      context.font = `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+      const px = unit === "px" ? limit : limit * context.measureText("0").width;
+      const widest = Math.max(0, ...[...rows.values()].map((row) => row.right - row.left));
+      if (widest > px + 1) issues.push({ ref: ref(el), rule: "long-lines", element: `${describe(el)}${quoted(el)}`, detail: `lines up to ${Math.round(widest)}px wide (measure ${measure.trim()})` });
+    }
   }
   return issues;
 }
