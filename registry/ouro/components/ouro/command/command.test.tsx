@@ -302,7 +302,7 @@ describe("Command width", () => {
     expect(width(element)).toBe(opened);
   });
 
-  it("keeps the widest it has been while a server search's results change", async () => {
+  it("keeps the width it opened at while a server search's results change, and cuts a longer result with an ellipsis", async () => {
     function Server() {
       const [items, setItems] = useState<CommandEntry[]>([{ label: "Switch theme", onSelect: run }]);
       return (
@@ -320,10 +320,13 @@ describe("Command width", () => {
     expect(width(element)).toBe(512);
     await userEvent.type(input(), "ex");
     await expect.poll(options).toEqual([long]);
-    expect(width(element)).toBe(640);
+    expect(width(element)).toBe(512);
+    const label = element.querySelector<HTMLElement>("[data-ouro-command-label]")!;
+    expect(getComputedStyle(label).textOverflow).toBe("ellipsis");
+    expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
     await userEvent.type(input(), "t");
     await expect.poll(options).toEqual(["Switch theme"]);
-    expect(width(element)).toBe(640);
+    expect(width(element)).toBe(512);
   });
 });
 

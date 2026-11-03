@@ -83,12 +83,17 @@ export const Empty: Story = {
 };
 
 const recipes = ["Shakshuka", "Pasta al limone", "Paella", "Pad thai", "Lentil soup", "Banana bread", "Baklava", "Saag paneer"];
+/** Found only by a search, and longer than the palette opened for. */
+const searched = ["Slow-roasted tomato and white bean stew with garlic toast, basil oil and a crisp green salad"];
 
 /** A stand-in for a server: answers after a delay, slower for shorter queries, and fails on "fail". */
 function searchRecipes(query: string, signal: AbortSignal): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => (query === "fail" ? reject(new Error("offline")) : resolve(recipes.filter((name) => name.toLowerCase().includes(query.toLowerCase())))),
+      () =>
+        query === "fail"
+          ? reject(new Error("offline"))
+          : resolve((query ? [...recipes, ...searched] : recipes).filter((name) => name.toLowerCase().includes(query.toLowerCase()))),
       900 - Math.min(query.length, 6) * 120,
     );
     signal.addEventListener("abort", () => clearTimeout(timer));
