@@ -580,20 +580,29 @@ describe("TimeGrid", () => {
     expect(hours(named("Thursday"))).toEqual([17, 0.5]);
   });
 
-  it("is one Tab stop: the arrow keys move through events in time order and across days", async () => {
-    // Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys.
+  // The roving Tab stop, in parts: each key goes to the browser and back, about half a second
+  // apiece on a loaded runner, so one test of every key ran out of time (issue #545).
+  /** Elsewhere than a Mac, where ⌘ and ⌥ with an arrow are its missing Home, End and Page keys. */
+  const notMac = () => {
     vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
     if ("userAgentData" in navigator) vi.spyOn(navigator as Navigator & { userAgentData: { platform: string } }, "userAgentData", "get").mockReturnValue({ platform: "Windows" } as never);
-    const keys = vi.fn();
-    const { grid } = await render({ events: [forum, focus, standup, demo, { id: "closed", title: "Office closed", start: "2026-03-13" }], onKeyDown: keys });
+  };
+  const roving = [forum, focus, standup, demo, { id: "closed", title: "Office closed", start: "2026-03-13" }];
+
+  it("is one Tab stop, whose arrow keys do not scroll the page as well", async () => {
+    notMac();
+    await render({ events: roving });
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Standup")]);
     expect(events().filter((element) => element.tabIndex === -1)).toHaveLength(4);
     titled("Standup").focus();
-    // The arrow key is the grid's, so it does not scroll the page as well.
     const key = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
     titled("Standup").dispatchEvent(key);
     expect(key.defaultPrevented).toBe(true);
-    await act(async () => {});
+  });
+
+  it("is one Tab stop: the arrow keys move through events in time order and across days", async () => {
+    notMac();
+    await render({ events: roving });
     titled("Standup").focus();
     await press("{ArrowDown}");
     expect(document.activeElement).toBe(titled("Architecture forum"));
@@ -604,6 +613,12 @@ describe("TimeGrid", () => {
     expect(document.activeElement).toBe(titled("Demo day"));
     await press("{ArrowUp}");
     expect(document.activeElement).toBe(titled("Office closed"));
+  });
+
+  it("moves the Tab stop to the first event with Home and the last with End, and no further back than the first", async () => {
+    notMac();
+    await render({ events: roving });
+    titled("Office closed").focus();
     await press("{Home}");
     expect(document.activeElement).toBe(titled("Standup"));
     await press("{ArrowLeft}");
@@ -612,24 +627,33 @@ describe("TimeGrid", () => {
     expect(document.activeElement).toBe(titled("Demo day"));
     await press("{ArrowLeft}");
     expect(document.activeElement).toBe(titled("Focus time"));
-    // Modifier keys and other keys are the browser's.
+  });
+
+  it("leaves the arrow keys with a modifier, and other keys, to the browser", async () => {
+    notMac();
+    const keys = vi.fn();
+    await render({ events: roving, onKeyDown: keys });
+    titled("Focus time").focus();
     await press("{Alt>}{ArrowDown}{/Alt}");
     await press("{Control>}{ArrowDown}{/Control}");
     await press("{Meta>}{ArrowDown}{/Meta}");
     await press("{PageDown}");
     expect(document.activeElement).toBe(titled("Focus time"));
     expect(keys).toHaveBeenCalled();
-    // A key the app handled first is the app's.
-    await render({ events: [forum, focus], onKeyDown: (event) => event.preventDefault(), view: "day" });
-    const second = [...document.querySelectorAll('[data-ouro="time-grid"]')][1]!;
-    second.querySelector<HTMLElement>("[data-ouro-event-key]")!.focus();
+  });
+
+  it("leaves a key the app handled first, and keys pressed elsewhere in the grid, alone", async () => {
+    notMac();
+    const { grid } = await render({ events: [forum, focus], onKeyDown: (event) => event.preventDefault(), view: "day" });
+    grid.querySelector<HTMLElement>("[data-ouro-event-key]")!.focus();
     await press("{ArrowDown}");
-    expect(document.activeElement).toBe(second.querySelector("[data-ouro-event-key]"));
-    // Keys pressed elsewhere in the grid are left alone.
-    viewport().focus();
+    expect(document.activeElement).toBe(grid.querySelector("[data-ouro-event-key]"));
+    await render({ events: roving });
+    const second = [...document.querySelectorAll<HTMLElement>('[data-ouro="time-grid"]')][1]!;
+    second.querySelector<HTMLElement>("[data-scroll-viewport]")!.focus();
     await press("{ArrowDown}");
-    expect(document.activeElement).toBe(viewport());
-    expect(grid.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(second.querySelector("[data-scroll-viewport]"));
+    expect(second.contains(document.activeElement)).toBe(true);
   });
 
   it("moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y", async () => {

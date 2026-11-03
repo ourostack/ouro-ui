@@ -246,31 +246,48 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
-  it("stays at the end while the reader edits the newest message in place and it grows", async () => {
-    const items = history(20);
+  /** The list with the newest message as an editor holding `text`, followed to its end. */
+  async function editing(text: string) {
     const { scroller } = await render(
       <MessageList label="Conversation" style={{ height: 300 }}>
-        {items.map((item) => (
+        {history(20).map((item) => (
           <Message key={item.id} role={item.role} name="Ana">
             {item.text}
           </Message>
         ))}
         <Message role="user" name="Ana">
-          <TextArea label="Edit your message" hideLabel variant="plain" autoGrow rows={1} maxRows={8} defaultValue={"Line one\nLine two\nLine three"} />
+          <TextArea label="Edit your message" hideLabel variant="plain" autoGrow rows={1} maxRows={8} defaultValue={text} />
         </Message>
       </MessageList>,
     );
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     await settle(scroller);
-    const editor = page.getByRole("textbox", { name: "Edit your message" });
+    return { scroller, editor: page.getByRole("textbox", { name: "Edit your message" }) };
+  }
+
+  // In two tests, a new line and more on a line: each key goes to the browser and back, and the
+  // two together ran out of time on a loaded runner (issue #545).
+  it("stays at the end while the reader edits the newest message in place and it grows", async () => {
+    const { scroller, editor } = await editing("Line one\nLine two\nLine three");
     // A new line: the editor and the message grow, and the list follows to the end.
     await userEvent.type(editor, "{End}{Enter}Line four");
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("stays at the end while the reader types more on the newest message's last line, which keeps its height", async () => {
+    const text = "Line one\nLine two\nLine three\nLine four";
+    const { scroller, editor } = await editing(text);
+    const textarea = editor.element() as HTMLTextAreaElement;
+    textarea.focus();
+    textarea.setSelectionRange(text.length, text.length);
+    const height = textarea.offsetHeight;
     // More on the same line: the editor measures itself on each key and stays its height.
-    await userEvent.type(editor, " and five");
+    await userEvent.keyboard(" and five");
     await settle(scroller);
+    expect(textarea.value).toBe(`${text} and five`);
+    expect(textarea.offsetHeight).toBe(height);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
