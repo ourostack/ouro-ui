@@ -261,6 +261,39 @@ describe("Message", () => {
     expect(element).toBe(message);
     expect(getComputedStyle(message).marginTop).toBe("16px");
   });
+
+  it("holds the name's place with a name-sized line while it loads, so nothing moves when it arrives", async () => {
+    for (const variant of ["default", "chat", "post", "reply"] as const) {
+      const shown = (name: string | null) => (
+        <Message variant={variant} role="assistant" name={name} time="9:41">
+          Preheat the oven to 220°C.
+        </Message>
+      );
+      const { message, rerender } = await render(shown(null));
+      const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
+      const loading = author.querySelector<HTMLElement>("[data-ouro-message-name-loading]")!;
+      expect(loading.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(loading.querySelector(".sr-only")!.textContent).toBe("Name loading");
+      expect(loading.getBoundingClientRect().width).toBeGreaterThan(20);
+      const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]');
+      if (variant !== "default") expect(avatar!.hasAttribute("data-name-loading")).toBe(true);
+      const [height, authorHeight] = [message.getBoundingClientRect().height, author.getBoundingClientRect().height];
+      await rerender(shown("Ana Lind"));
+      expect(message.querySelector("[data-ouro-message-name-loading]")).toBeNull();
+      expect(message.querySelector("[data-ouro-message-author]")!.textContent).toContain("Ana Lind");
+      expect(message.querySelector("[data-name-loading]")).toBeNull();
+      expect(message.getBoundingClientRect().height).toBe(height);
+      expect(message.querySelector<HTMLElement>("[data-ouro-message-author]")!.getBoundingClientRect().height).toBe(authorHeight);
+    }
+    await render(
+      <Message role="assistant" name={null} nameLoadingLabel="Nom en cours" nameContent={<b>Ana</b>}>
+        Hi
+      </Message>,
+    );
+    const last = mounted.at(-1)!.querySelector<HTMLElement>("[data-ouro-message-name-loading] .sr-only")!;
+    expect(last.textContent).toBe("Nom en cours");
+    expect(mounted.at(-1)!.querySelector("b")).toBeNull();
+  });
 });
 
 describe("Message development messages", () => {

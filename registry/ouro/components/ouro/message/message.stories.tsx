@@ -601,3 +601,17 @@ export const Agent: Story = {
     </Surface>
   ),
 };
+
+/** While the author's name is still loading (`name={null}`), a name-sized line holds its place and the avatar shimmers; nothing moves when the name arrives. */
+export const NameLoading: Story = {
+  render: () => (
+    <Surface>
+      <Message variant="post" role="assistant" name={null} time="9:41">
+        The dough is ready when it springs back slowly.
+      </Message>
+      <Message variant="chat" role="assistant" name={null} time="9:42">
+        Cover it and leave it somewhere warm.
+      </Message>
+    </Surface>
+  ),
+};

@@ -144,6 +144,26 @@ describe("Avatar", () => {
     expect(element).toBe(avatar);
     expect(getComputedStyle(avatar).marginInlineStart).toBe("8px");
   });
+
+  it("shimmers in its own size and shape while the name loads, and says so", async () => {
+    for (const shape of ["circle", "square", "hexagon"] as const) {
+      const named = (await render(<Avatar name="Ana Lind" size="lg" shape={shape} />)).avatar.getBoundingClientRect();
+      const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
+      expect(avatar.getAttribute("aria-label")).toBe("Name loading");
+      expect(avatar.hasAttribute("data-name-loading")).toBe(true);
+      expect(avatar.querySelector('[data-ouro="skeleton"]')).not.toBeNull();
+      expect(avatar.querySelector("[data-ouro-avatar-initials]")).toBeNull();
+      expect(getComputedStyle(avatar).overflow).toBe("hidden");
+      const box = avatar.getBoundingClientRect();
+      expect([box.width, box.height]).toEqual([named.width, named.height]);
+      expect(avatar.querySelector('[data-ouro="skeleton"]')!.getBoundingClientRect().width).toBe(box.width);
+    }
+    expect((await render(<Avatar name={null} nameLoadingLabel="Nom en cours" presence="busy" presenceLabel="Occupé" />)).avatar.getAttribute("aria-label")).toBe(
+      "Nom en cours, Occupé",
+    );
+    expect((await render(<Avatar name={null} alt="" />)).avatar.getAttribute("aria-hidden")).toBe("true");
+    expect(warn).not.toHaveBeenCalled();
+  });
 });
 
 // Colors as the browser resolves them, through a 1px canvas, as in the theme's contrast test.

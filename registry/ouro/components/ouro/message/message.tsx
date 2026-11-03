@@ -18,6 +18,7 @@ import {
 } from "react";
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -102,10 +103,17 @@ export interface MessageOwnProps {
    * The author's name. Screen readers hear it before the message, and the avatar's
    * initials come from it. Required, so every message says who wrote it. The user's own
    * name is read but not shown.
+   *
+   * Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's
+   * place on its line, the avatar shimmers in its own shape, and screen readers hear
+   * `nameLoadingLabel`. Nothing moves when the name arrives.
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is an article that says who wrote it, then what they wrote)
    * @claim "Required, so every message says who" registry/ouro/components/ouro/message/message.test-d.ts verify:fileLine(registry/ouro/components/ouro/message/message.test-d.ts, /expectTypeOf<\{\srole:\s"user"\s\}>\(\)\.not\.toExtend<MessageProps>/)
+   * @claim "Pass `null` while the name is" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > holds the name's place with a name-sized line while it loads, so nothing moves when it arrives)
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /**
    * What shows as the author's name in place of `name`, when plain text cannot draw it: their
    * name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`).
@@ -358,8 +366,25 @@ const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/mes
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
 const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
-/** The author's name as text, or the app's content for it shown while screen readers hear the text. */
-function AuthorName({ name, content }: { name: string; content: ReactNode }): ReactNode {
+/**
+ * The author's name as text, or the app's content for it shown while screen readers hear the text.
+ * While the name loads (`loading` is its label), the label laid out invisibly gives the line its
+ * height and baseline and the placeholder its width, and a Skeleton line shows over it.
+ */
+function AuthorName({ name, content, loading }: { name: string; content: ReactNode; loading: string | undefined }): ReactNode {
+  if (loading !== undefined) {
+    return (
+      <span data-ouro-message-name-loading="" className="relative inline-block max-w-full align-baseline">
+        <span aria-hidden="true" className="invisible">
+          {loading}
+        </span>
+        <span aria-hidden="true" className="absolute inset-0 flex items-center">
+          <Skeleton shape="text" />
+        </span>
+        <span className="sr-only">{loading}</span>
+      </span>
+    );
+  }
   if (content === undefined) return name;
   return (
     <>
@@ -394,6 +419,7 @@ export function Message(props: MessageProps): JSX.Element {
   const {
     role: roleProp,
     name: nameProp,
+    nameLoadingLabel = "Name loading",
     nameContent,
     nameTag,
     variant: variantProp = "default",
@@ -435,6 +461,7 @@ export function Message(props: MessageProps): JSX.Element {
     ...rest
   } = props;
   const name = nameProp ?? "";
+  const nameLoading = nameProp === null;
   // A role that is not one of Ouro UI's (a type error) warns and renders as the assistant's.
   const role = (roles as readonly string[]).includes(roleProp) ? (roleProp as MessageRole) : "assistant";
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as MessageVariant) : "default";
@@ -594,7 +621,7 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
+        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
         <div
           className={cn(
             "flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
@@ -602,7 +629,7 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
-            <AuthorName name={name} content={nameContent} />
+            <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
             {nameTag && (
               <>
                 <span className="sr-only">, </span>
@@ -657,7 +684,7 @@ export function Message(props: MessageProps): JSX.Element {
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
-        <AuthorName name={name} content={nameContent} />
+        <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
       </span>
       {nameTag && (
         <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
@@ -717,7 +744,7 @@ export function Message(props: MessageProps): JSX.Element {
               </time>
             )
           ) : (
-            <AvatarSlot avatar={avatar} name={name} presence={presence} presenceLabel={presenceLabel} size="sm" />
+            <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" />
           )}
         </span>
       )}
@@ -777,7 +804,7 @@ function AvatarSlot({
   className,
 }: {
   avatar: string | ReactElement | undefined;
-  name: string;
+  name: string | null;
   presence: string | undefined;
   presenceLabel: string | undefined;
   size: "sm" | "md";
