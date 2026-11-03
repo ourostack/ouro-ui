@@ -501,7 +501,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
         </div>
       )}
       {status && (
-        <div aria-hidden="true" className="absolute start-2 top-2 z-20 flex gap-1">
+        <div aria-hidden="true" data-ouro-media-tile-status="" className="absolute start-2 top-2 z-20 flex gap-1">
           {handRaised && (
             <span data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-7 items-center justify-center rounded-md")}>
               <HandGlyph />

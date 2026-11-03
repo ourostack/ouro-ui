@@ -202,6 +202,12 @@ describe("MediaTile", () => {
     );
     expect(tile.getAttribute("data-picture")).toBe("");
     expect(getComputedStyle(media).visibility).toBe("visible");
+    // Children that render nothing are no picture.
+    for (const nothing of [null, false]) {
+      await rerender(<MediaTile name="Mara Lind" avatar={{ initials: "ML" }}>{nothing}</MediaTile>);
+      expect(tile.hasAttribute("data-picture")).toBe(false);
+      expect(tile.querySelector('[data-ouro="avatar"]')).not.toBeNull();
+    }
     // The camera is on before its first picture arrives: the photo shows, and the sentence says so.
     await rerender(<MediaTile name="Mara Lind" cameraOn />);
     expect(tile.getAttribute("aria-label")).toBe("Mara Lind, camera on");
@@ -246,6 +252,8 @@ describe("MediaTile", () => {
     const { tile, rerender } = await render(<MediaTile name="Jonas Ek" connection="good" />);
     const glyph = () => tile.querySelector("[data-ouro-media-tile-connection]");
     expect(glyph()).toBeNull();
+    // With neither, the corner isn't drawn at all.
+    expect(tile.querySelector("[data-ouro-media-tile-status]")).toBeNull();
     expect(tile.getAttribute("data-connection")).toBe("good");
     await rerender(<MediaTile name="Jonas Ek" connection="fair" />);
     expect(glyph()).toBeNull();
@@ -658,10 +666,23 @@ describe("MediaTile controls", () => {
     expect(page.getByRole("button", { name: "More" }).query()).not.toBeNull();
     await rerender(<MediaTile name="Mara Lind" actions={null} />);
     expect(page.getByRole("button", { name: "More" }).query()).toBeNull();
+    expect(host.querySelector("[data-ouro-media-tile-controls]")).toBeNull();
+    await rerender(<MediaTile name="Mara Lind" actions={false} />);
+    expect(host.querySelector("[data-ouro-media-tile-controls]")).toBeNull();
+    await rerender(<MediaTile name="Mara Lind" />);
+    expect(host.querySelector("[data-ouro-media-tile-controls]")).toBeNull();
   });
 });
 
 describe("MediaTile visibility", () => {
+  it("starts reporting when the app adds a callback later", async () => {
+    const report = vi.fn();
+    const { rerender } = await render(<MediaTile name="Mara Lind" />, 320);
+    await frames();
+    await rerender(<MediaTile name="Mara Lind" onVisibilityChange={report} />);
+    await expect.poll(() => report.mock.calls).toEqual([[true, 320, 180]]);
+  });
+
   it("calls nothing until the browser has said whether the tile is on screen, so it never starts unseen by mistake", async () => {
     const Real = window.IntersectionObserver;
     const held: (() => void)[] = [];
