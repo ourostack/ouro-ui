@@ -5,15 +5,19 @@ export type { CheckDef, CheckFix, CheckResult, CheckRow, CheckState, Checks, Che
 // first statement, which would take the JSDoc below with it.
 
 import type { NextStep } from "./outcome.ts";
+import { devCommandsIn } from "./dev-commands.ts";
 import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "./exit-codes.ts";
 import { createProgress, markOf, nextStepsText, paint, terminalStyle, timeText, type ProgressStream, type TerminalStyle, type Timers } from "./terminal.ts";
 
 /**
  * A tool's checks, such as a doctor or a self-check, declared once: progress while they run, the verdict first and the
  * results grouped for a person, the same facts as `--json` for an agent, the time taken and the exit code. A problem
- * comes with its fix: the exact command, or the thing to do by hand.
+ * comes with its fix: the exact command, or the thing to do by hand, and never a developer command or a repository
+ * path (ax-dev-commands) unless the fix is marked `sourceCheckout: true`.
+ *
+ * @claim "never a developer command or a repository path" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::a fix or next step that asks for a developer command throws, unless it is marked sourceCheckout)
  */
-type CheckFix = NextStep | { byHand: string };
+type CheckFix = NextStep | { byHand: string; sourceCheckout?: true };
 
 /** The version of the report's shape; `--json` carries it as `ax`, as an outcome or a wait does. */
 const CHECKS_VERSION = "checks/1";
@@ -98,10 +102,12 @@ const isCommandFix = (fix: CheckFix): fix is NextStep => "command" in fix;
  * Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the
  * grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on
  * an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure
- * has no fix, or its fix is the command just run, so a tool's own tests catch both.
+ * has no fix, or its fix is the command just run, so a tool's own tests catch both. A fix or a next step that asks for
+ * a developer command or a repository path throws too, so a doctor never tells a person to run a repository script.
  *
  * @claim "an empty list, a repeated id, an empty label or a `needs` that names no earlier check" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::defineChecks refuses an empty list, a repeated id, an empty label and a needs that names no earlier check)
  * @claim "at run time when a warning or failure has no fix, or its fix is the command just run" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run)
+ * @claim "A fix or a next step that asks for a developer command or a repository path throws too" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::a fix or next step that asks for a developer command throws, unless it is marked sourceCheckout)
  * @example
  * const doctor = defineChecks({
  *   command: "notes doctor",
@@ -181,6 +187,8 @@ async function runChecks<C>(def: ChecksDef<C>, context: C, options: ChecksRunOpt
   const problems = rows.filter((r) => r.state === "failed" || r.state === "warned" || r.state === "errored");
   const fixes = problems.flatMap((r) => (isCommandFix(r.fix!) ? [r.fix as NextStep] : []));
   const again = problems.length ? [{ command: def.command, why: "Check again once it's fixed" }] : [];
+  const dev = devCommandsIn(options.next ?? [])[0];
+  if (dev) throw new Error(`${def.command}: the next step \`${dev.text}\` asks for ${dev.match}, which only works in a source checkout. Fix: name the command the installed tool runs, or mark the step sourceCheckout: true.`);
   const next = [...fixes, ...(options.next ?? []), ...again].filter((s, i, all) => all.findIndex((t) => t.command === s.command) === i);
   return { ax: CHECKS_VERSION, verdict, summary: summaryOf(def, rows, counts, verdict, durationMs), durationMs, counts, rows, next, exitCode: EXITS[verdict] };
 }
@@ -193,6 +201,8 @@ function rowOf<C>(def: ChecksDef<C>, check: CheckDef<C>, result: RowResult, dura
   if (fix && isCommandFix(fix) && fix.command.trim() === def.command.trim()) {
     throw new Error(`${def.command}: ${check.id}'s fix is \`${def.command}\`, the command just run. Fix: name the command that changes something.`);
   }
+  const dev = devCommandsIn(fix)[0];
+  if (dev) throw new Error(`${def.command}: ${check.id}'s fix \`${dev.text}\` asks for ${dev.match}, which only works in a source checkout. Fix: name the command the installed tool runs, or mark the fix sourceCheckout: true.`);
   return { id: check.id, label: check.label, state: result.state, detail: result.detail ?? "", fix, kind: result.state === "skipped" ? (result.kind ?? null) : null, durationMs };
 }
 

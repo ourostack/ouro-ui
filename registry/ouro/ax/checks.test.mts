@@ -45,6 +45,18 @@ test("a warning or failure without a fix, or with the command just run as its fi
   await assert.rejects(run([{ id: "x", label: "X", run: () => ({ state: "warned", detail: "old", fix: { command: " app selfcheck ", why: "again" } }) }]), /the command just run/);
 });
 
+test("a fix or next step that asks for a developer command throws, unless it is marked sourceCheckout", async () => {
+  const writesOff = (fix: CheckDef<Ctx>["run"]) => run([{ id: "writes", label: "Writes", run: fix }]);
+  await assert.rejects(writesOff(() => ({ state: "failed", detail: "writes are off", fix: { command: "npm run writes -- on", why: "Turn writes on" } })), /writes's fix `npm run writes -- on` asks for npm run writes -- on, which only works in a source checkout/);
+  await assert.rejects(writesOff(() => ({ state: "warned", detail: "stale", fix: { byHand: "Run `pnpm build` in the repository." } })), /asks for pnpm build/);
+  await assert.rejects(run(selfcheck, { next: [{ command: "node scripts/selfcheck.mjs --all", why: "Run them all" }] }), /the next step `node scripts\/selfcheck.mjs --all` asks for/);
+  const marked = await writesOff(() => ({ state: "failed", detail: "writes are off", fix: { command: "npm run writes -- on", why: "Turn writes on", sourceCheckout: true } }));
+  assert.equal(marked.rows[0]!.fix && "command" in marked.rows[0]!.fix && marked.rows[0]!.fix.sourceCheckout, true);
+  const byHand = await writesOff(() => ({ state: "warned", detail: "stale", fix: { byHand: "Run `pnpm build` in the repository.", sourceCheckout: true } }));
+  assert.equal(byHand.verdict, "warned");
+  assert.equal((await run(selfcheck, { next: [{ command: "pnpm dev", why: "Start the dev server", sourceCheckout: true }] })).next.some((s) => s.command === "pnpm dev"), true);
+});
+
 test("--json carries the same facts as the text: verdict, summary, counts, each check's state, detail, fix and duration, and the next steps", async () => {
   const report = await run(selfcheck, { next: [{ command: "app sync", why: "dup" }, { command: "app selfcheck --yes", why: "Run the ones it found" }] });
   assert.equal(report.ax, CHECKS_VERSION);

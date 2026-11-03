@@ -70,7 +70,7 @@ const CLAIM_SET: ClaimSet
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```ts
-const CLAIM_SET_VERSION: "1.3.0"
+const CLAIM_SET_VERSION: "1.4.0"
 ```
 
 ### `ClaimEvidence`
@@ -147,6 +147,7 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `cli.wait-on-refs` | must | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |
 | `cli.reads-stay-reads` | must | hazard |
 | `cli.refusals-change-nothing` | must | hazard |
+| `cli.no-dev-commands` | must | hazard |
 | `http.inventory` | must | hazard |
 | `http.wrong-ref-first` | must | hazard |
 | `http.others-need-why` | must | hazard |
