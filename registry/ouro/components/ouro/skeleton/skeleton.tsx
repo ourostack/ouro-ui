@@ -120,8 +120,8 @@ const cardSizes = {
 } as const;
 
 // Widths that vary from row to row, the same on the server and in the browser.
-const titleWidths = ["w-3/5", "w-2/5", "w-1/2", "w-2/3", "w-1/3"] as const;
-const detailWidths = ["w-4/5", "w-3/4", "w-11/12", "w-2/3", "w-5/6"] as const;
+const titleWidths = ["w-2/3", "w-1/2", "w-3/4", "w-1/3", "w-1/2"] as const;
+const detailWidths = ["w-full", "w-3/4", "w-full", "w-2/3", "w-3/4"] as const;
 
 type Shape = "rect" | "text" | "circle" | "row" | "card";
 const sizesFor = { rect: {}, text: textSizes, circle: avatarSizes, row: rowSizes, card: cardSizes } as const;
@@ -224,7 +224,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
       <div {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
         {Array.from({ length: lines }, (_, index) => (
           <span key={index} className={line}>
-            <Bar className={lines > 1 && index === lines - 1 ? "w-3/5" : "w-full"} />
+            <Bar className={lines > 1 && index === lines - 1 ? "w-2/3" : "w-full"} />
           </span>
         ))}
       </div>
@@ -274,7 +274,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
                 <Bar className="w-full" />
               </span>
               <span className={line}>
-                <Bar className="w-3/5" />
+                <Bar className="w-2/3" />
               </span>
             </span>
           </div>
