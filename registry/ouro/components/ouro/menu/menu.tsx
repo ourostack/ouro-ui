@@ -77,6 +77,11 @@ export interface MenuItemEntry {
   tone?: "destructive" | undefined;
   /** Shown, but cannot be chosen. */
   disabled?: boolean | undefined;
+  /**
+   * The id of the agent action this item performs, set as `data-ax-action` on it, so the component
+   * that declares its actions links each one to the control that does it: `axAction: "mute"`.
+   */
+  axAction?: string | undefined;
 }
 
 /** A menu entry for `items`: an on/off setting that stays in the menu when toggled. */
@@ -88,6 +93,8 @@ export interface MenuCheckboxEntry {
   onCheckedChange?: ((checked: boolean) => void) | undefined;
   shortcut?: MenuShortcut | undefined;
   disabled?: boolean | undefined;
+  /** The id of the agent action it performs, set as `data-ax-action` on it, as on an item. */
+  axAction?: string | undefined;
 }
 
 /** A menu entry for `items`: one choice of several, as radio items under an optional label. */
@@ -283,6 +290,7 @@ function renderEntries(entries: readonly MenuEntry[]): ReactNode {
             onCheckedChange={entry.onCheckedChange}
             shortcut={entry.shortcut}
             disabled={entry.disabled}
+            axAction={entry.axAction}
           >
             {entry.label}
           </MenuCheckboxItem>
@@ -324,6 +332,7 @@ function renderEntries(entries: readonly MenuEntry[]): ReactNode {
             shortcut={entry.shortcut}
             tone={entry.tone}
             disabled={entry.disabled}
+            axAction={entry.axAction}
           >
             {entry.icon !== undefined && (
               <span aria-hidden="true" data-ouro-menu-icon="" className="flex shrink-0">
@@ -654,6 +663,11 @@ export interface MenuItemProps {
   tone?: "destructive" | (string & { 'Only "destructive": danger is "destructive"': never }) | undefined;
   /** Shown, but cannot be chosen. */
   disabled?: boolean | undefined;
+  /**
+   * The id of the agent action the item performs, set as `data-ax-action` on it, so the component
+   * that declares its actions links each one to its control: `<MenuItem axAction="mute">`.
+   */
+  axAction?: string | undefined;
 
   /** Not a prop. The handler is `onClick`: `<MenuItem onClick={edit}>`. (A `Command` item is the one that takes `onSelect`.) */
   onSelect?: { "Use <MenuItem onClick={edit}>": never };
@@ -710,7 +724,7 @@ function ItemBody({ children, shortcut }: { children: ReactNode; shortcut: MenuS
  * <MenuItem tone="destructive" onClick={remove}>Delete</MenuItem>
  */
 export function MenuItem(props: MenuItemProps): JSX.Element {
-  const { children, onClick, href, current, shortcut, tone: toneProp, disabled, onSelect, variant, asChild, checked } = props;
+  const { children, onClick, href, current, shortcut, tone: toneProp, disabled, axAction, onSelect, variant, asChild, checked } = props;
   useMenuPart("MenuItem", "<MenuItem>Edit</MenuItem>");
   const tone = toneProp === "destructive" ? "destructive" : undefined;
   useDevWarnings(
@@ -729,7 +743,7 @@ export function MenuItem(props: MenuItemProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const shared = { className: menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, ...keyShortcutProps(shortcut), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
+  const shared = { className: menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
   const body = <ItemBody shortcut={shortcut}>{children}</ItemBody>;
   // A disabled link is a disabled item: nothing to follow.
   if (href !== undefined && !disabled) {
@@ -769,6 +783,8 @@ export interface MenuCheckboxItemProps {
   shortcut?: MenuShortcut | undefined;
   /** Shown, but cannot be toggled. */
   disabled?: boolean | undefined;
+  /** The id of the agent action it performs, set as `data-ax-action` on it, as on a `MenuItem`. */
+  axAction?: string | undefined;
 }
 
 /**
@@ -782,14 +798,14 @@ export interface MenuCheckboxItemProps {
  * @example
  * <MenuCheckboxItem checked={showNotes} onCheckedChange={setShowNotes}>Show notes</MenuCheckboxItem>
  */
-export function MenuCheckboxItem({ children, shortcut, onCheckedChange, ...rest }: MenuCheckboxItemProps): JSX.Element {
+export function MenuCheckboxItem({ children, shortcut, onCheckedChange, axAction, ...rest }: MenuCheckboxItemProps): JSX.Element {
   useMenuPart("MenuCheckboxItem", "<MenuCheckboxItem>Pin</MenuCheckboxItem>");
   useDevWarnings(
     "MenuCheckboxItem",
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuCheckboxItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.CheckboxItem data-ouro-control="menu" data-ouro-part="checkbox-item" {...rest} {...keyShortcutProps(shortcut)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
+    <BaseMenu.CheckboxItem data-ouro-control="menu" data-ouro-part="checkbox-item" data-ax-action={axAction} {...rest} {...keyShortcutProps(shortcut)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
       <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
         <BaseMenu.CheckboxItemIndicator className="flex">
           <CheckIcon />

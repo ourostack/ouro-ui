@@ -49,7 +49,7 @@ useEffect(() => {
 
 `floating` draws the bar as glass over content, such as a calling app's controls over video, and `autoHide` fades it out while the pointer rests, until the pointer moves over the stage or focus enters it: `<Toolbar label="Call controls" floating autoHide={3000} items={controls} />`, in a wrapper your layout places over the video (`pointer-events-none absolute inset-x-0 bottom-4 flex justify-center` inside the `relative` stage, so the wrapper does not take presses meant for the pictures beside the bar; a floating bar takes its own). `autoHideArea` names the stage when the layout cannot, and `onHiddenChange` tells your layout when the bar fades and comes back. Keys pressed outside the bar leave it faded, so typing in a chat leaves it faded too; to show it when the person uses your app's own call shortcuts, control it with `hidden`, as the second example does.
 
-Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent to read or do, so it declares no agent side; the controls inside declare their own, and a calling app declares its call controls once, in the component that holds them, not in the bar.
+Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent to read or do, so it declares no agent side; the controls inside declare their own, and a calling app declares its call controls once, in the component that holds them, not in the bar. Give each control the id of its action with `axAction`, which the control and its More-menu item carry as `data-ax-action`, so that component's declaration finds its controls.
 
 ## Use instead when
 

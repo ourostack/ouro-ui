@@ -26,6 +26,7 @@ Type: `MenuItemProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `axAction` | `string` | The id of the agent action the item performs, set as `data-ax-action` on it, so the component that declares its actions links each one to its control: `<MenuItem axAction="mute">`. |
 | `children` (required) | `ReactNode` | The item's text, or text with an icon. |
 | `current` | `boolean` | Marks a link item as the page being shown (`aria-current="page"`, a medium-weight label with a bar at the start edge, which the highlight does not have), for a menu of pages. It does nothing on an item without `href`. |
 | `disabled` | `boolean` | Shown, but cannot be chosen. |

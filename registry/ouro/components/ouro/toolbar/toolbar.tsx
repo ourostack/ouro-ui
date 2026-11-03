@@ -37,6 +37,12 @@ interface ToolbarControlEntry {
   shortcut?: ToolbarShortcut | undefined;
   /** Shown, and still reachable with the arrow keys, but cannot be pressed. */
   disabled?: boolean | undefined;
+  /**
+   * The id of the agent action this control performs, set as `data-ax-action` on the control and
+   * on its item in the More menu, so the component that holds the bar and declares its actions
+   * links each one to its control wherever it shows: `axAction: "mute"`.
+   */
+  axAction?: string | undefined;
 }
 
 /** A toolbar entry: a command, such as Insert link. The default `type`. */
@@ -260,6 +266,8 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  * Its agent side is its controls'. Toolbar is a container with nothing of its own for an agent
  * to read or do, so it declares no agent side; the controls inside declare their own, and a
  * calling app declares its call controls once, in the component that holds them, not in the bar.
+ * Give each control the id of its action with `axAction`, which the control and its More-menu
+ * item carry as `data-ax-action`, so that component's declaration finds its controls.
  *
  * Use `ToggleGroup` instead for toggles that share one value (text alignment), `ButtonGroup`
  * for a few joined buttons that are one control, and `Menu` with `MenuBar` for an
@@ -302,6 +310,7 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  * />
  * @claim "Keys pressed outside the bar leave it faded" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar autoHide > stays faded while someone types in a field elsewhere or presses keys on the page)
  * @claim "control it with `hidden`, as" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar hidden > shows when the app sets hidden to false for its own shortcut, and fades after a new rest)
+ * @claim "Give each control the id of its action with `axAction`" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > sets each control's axAction as data-ax-action on the control in the row and on its More-menu item)
  * @claim "Toolbar is a container with nothing of its own" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar > exports no agent side of its own)
  */
 export function Toolbar(props: ToolbarProps): JSX.Element {
@@ -701,6 +710,7 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
   const shortcut = keysOf(entry);
   const shared = {
     "aria-keyshortcuts": shortcut && ariaKeyShortcuts(shortcut),
+    "data-ax-action": entry.axAction,
     onMouseDown: keepFocus ? keepFocusOnPress : undefined,
     className: "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
   };
@@ -755,9 +765,10 @@ function asMenuEntry(entry: ToolbarEntry, toggles: Toggles): MenuEntry {
       onCheckedChange: (next) => toggles.press(entry, next),
       shortcut,
       disabled: entry.disabled,
+      axAction: entry.axAction,
     };
   }
-  return { label: entry.label, onClick: entry.onClick, shortcut, disabled: entry.disabled };
+  return { label: entry.label, onClick: entry.onClick, shortcut, disabled: entry.disabled, axAction: entry.axAction };
 }
 
 // The button that opens what does not fit. A disabled toolbar has no menu to open.

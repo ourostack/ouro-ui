@@ -170,14 +170,14 @@ const CameraIcon = icon(<path d="M3 7h12v10H3zM15 10l6-3v10l-6-3" />);
 const ShareIcon = icon(<path d="M3 5h18v12H3zM12 14V8M9 11l3-3 3 3M8 21h8" />);
 const CaptionsIcon = icon(<path d="M3 5h18v14H3zM10 10.5a2 2 0 1 0 0 3M17 10.5a2 2 0 1 0 0 3" />);
 
-/** A call's controls, as a calling app lays them out: the person's own Mic and Camera, then Share and Captions, then Leave after a divider. */
+/** A call's controls, as a calling app lays them out: the person's own Mic and Camera, then Share and Captions, then Leave after a divider. Each carries the id of its agent action (`axAction`). */
 const callControls: ToolbarEntry[] = [
-  { type: "toggle", label: "Mute", icon: MicIcon, hideLabel: true, shortcut: ["mod", "shift", "m"] },
-  { type: "toggle", label: "Camera off", icon: CameraIcon, hideLabel: true, shortcut: ["mod", "shift", "o"] },
-  { label: "Share", icon: ShareIcon, hideLabel: true, shortcut: ["mod", "shift", "e"] },
-  { type: "toggle", label: "Captions", icon: CaptionsIcon, hideLabel: true },
+  { type: "toggle", label: "Mute", icon: MicIcon, hideLabel: true, shortcut: ["mod", "shift", "m"], axAction: "mute" },
+  { type: "toggle", label: "Camera off", icon: CameraIcon, hideLabel: true, shortcut: ["mod", "shift", "o"], axAction: "camera" },
+  { label: "Share", icon: ShareIcon, hideLabel: true, shortcut: ["mod", "shift", "e"], axAction: "share" },
+  { type: "toggle", label: "Captions", icon: CaptionsIcon, hideLabel: true, axAction: "captions" },
   { type: "separator" },
-  { label: "Leave" },
+  { label: "Leave", axAction: "leave" },
 ];
 
 /** A person's tile in the made-up meeting: a shape for their picture and their name on a plate. */
@@ -232,6 +232,7 @@ export const Floating: Story = {
       <Toolbar label="Call controls" floating size="lg" items={callControls} />
     </Stage>
   ),
+  parameters: { screenshot: { name: "toolbar-floating" } },
 };
 
 /**

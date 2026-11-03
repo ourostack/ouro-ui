@@ -24,6 +24,7 @@ Type: `MenuCheckboxItemProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `axAction` | `string` | The id of the agent action it performs, set as `data-ax-action` on it, as on a `MenuItem`. |
 | `checked` | `boolean` | Whether it is on, to control it; pass `onCheckedChange` with it. |
 | `children` (required) | `ReactNode` | The setting's text. |
 | `defaultChecked` | `boolean` | Whether it starts on, uncontrolled. |
