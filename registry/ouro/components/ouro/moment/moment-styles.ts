@@ -194,6 +194,7 @@ const rootClass = {
  */
 const artFrameClass = {
   default: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:10rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
+  hero: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:13.75rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
   quiet: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:2.5rem]",
   inline: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:1.5rem]",
 } as const;

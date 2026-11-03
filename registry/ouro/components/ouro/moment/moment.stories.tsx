@@ -196,3 +196,15 @@ export const AnimatedArt: Story = {
     </Page>
   ),
 };
+
+/** The main state of a large, otherwise empty pane: hero art up to 220px, 96px in a narrow pane. */
+export const Hero: Story = {
+  parameters: { screenshot: { name: "moment-hero" } },
+  render: () => (
+    <Page>
+      <Panel>
+        <Moment size="hero" art={<TrayArt />} title="Pick a conversation" description="It opens here, at the newest message." />
+      </Panel>
+    </Page>
+  ),
+};
