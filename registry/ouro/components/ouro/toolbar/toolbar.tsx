@@ -39,8 +39,8 @@ interface ToolbarControlEntry {
   disabled?: boolean | undefined;
   /**
    * The id of the agent action this control performs, set as `data-ax-action` on the control and
-   * on its item in the More menu, so the component that holds the bar and declares its actions
-   * links each one to its control wherever it shows: `axAction: "mute"`.
+   * on its item in the More menu, so the component that holds the bar and declares the action
+   * finds its control wherever it shows: `axAction: "mute"`.
    */
   axAction?: string | undefined;
 }

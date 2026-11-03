@@ -79,7 +79,7 @@ export interface MenuItemEntry {
   disabled?: boolean | undefined;
   /**
    * The id of the agent action this item performs, set as `data-ax-action` on it, so the component
-   * that declares its actions links each one to the control that does it: `axAction: "mute"`.
+   * that declares the action finds its control: `axAction: "mute"`.
    */
   axAction?: string | undefined;
 }
@@ -665,7 +665,7 @@ export interface MenuItemProps {
   disabled?: boolean | undefined;
   /**
    * The id of the agent action the item performs, set as `data-ax-action` on it, so the component
-   * that declares its actions links each one to its control: `<MenuItem axAction="mute">`.
+   * that declares the action finds its control: `<MenuItem axAction="mute">`.
    */
   axAction?: string | undefined;
 
