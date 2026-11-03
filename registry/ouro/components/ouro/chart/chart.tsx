@@ -1,11 +1,12 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useId } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useId, useRef } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   chartTones,
@@ -277,6 +278,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   );
   const id = useId();
   const summaryId = `${id}-summary`;
+  const tableRef = useRef<HTMLDivElement>(null);
+  useScrollFade(tableRef);
   const state: ChartState = { byKey: new Map(series.map((item) => [item.key, item])), formatValue };
   const colors = Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties;
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
@@ -308,7 +311,7 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
         {summary({ title, type: child ? undefined : type, series: series.map((item) => item.label), category, count: rows.length })}
       </p>
       {/* A table can't shrink below its content, so the wrapper is what hides it. */}
-      <div data-ouro-chart-table="" className={showTable ? "max-w-full overflow-x-auto" : "sr-only"}>
+      <div ref={tableRef} data-ouro-chart-table="" className={showTable ? cn("max-w-full overflow-x-auto", scrollFadeClass) : "sr-only"}>
         <table className="w-full border-collapse text-sm tabular-nums">
           <caption className="sr-only">{title}</caption>
           <thead>

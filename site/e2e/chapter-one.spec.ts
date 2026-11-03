@@ -193,13 +193,13 @@ test.describe("each control in Chapter I", () => {
     await expect(signCrew(page)).toContainText(SIGN.mine("Ned Land").text);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     // Changing the field clears its message.
-    await nameField(page).fill("Ada");
+    await nameField(page).fill("Ana");
     await expect(nameField(page)).not.toHaveAttribute("aria-invalid", "true");
   });
 
   test("control: trade is required, and takes the trade you choose", async ({ page }) => {
     await open(page);
-    await nameField(page).fill("Ada");
+    await nameField(page).fill("Ana");
     await tickOath(page);
     await sign(page);
     await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
@@ -211,7 +211,7 @@ test.describe("each control in Chapter I", () => {
 
   test("control: oath must be ticked before you can sign", async ({ page }) => {
     await open(page);
-    await nameField(page).fill("Ada");
+    await nameField(page).fill("Ana");
     await chooseTrade(page, "Cook");
     await sign(page);
     await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
@@ -227,14 +227,14 @@ test.describe("each control in Chapter I", () => {
     await open(page);
     await expect(signCrew(page)).toContainText(SIGN.opening.text);
     const toasts = await watchToasts(page, { selector: "[data-composition='articles'] [data-chapter-control='leave'] button", kind: "row" });
-    await signOn(page, "Ada Lovelace");
+    await signOn(page, "Ana Lind");
     const roster = page.getByRole("list", { name: ARTICLES.roster });
-    await expect(roster.getByText("Ada Lovelace")).toBeVisible();
+    await expect(roster.getByText("Ana Lind")).toBeVisible();
     await expect(roster.getByText(ARTICLES.you, { exact: true })).toBeVisible();
     await expect(roster.getByText("Engineer", { exact: true })).toBeVisible();
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
-    await expect(signCrew(page)).toContainText(SIGN.welcome("Ada Lovelace", "Engineer").text);
-    await expect.poll(toasts.titles).toContain(ARTICLES.signed("Ada Lovelace"));
+    await expect(signCrew(page)).toContainText(SIGN.welcome("Ana Lind", "Engineer").text);
+    await expect.poll(toasts.titles).toContain(ARTICLES.signed("Ana Lind"));
     // The articles are blank again for the next hand, and focus is on your row, clear of the toast.
     await expect(nameField(page)).toHaveValue("");
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
@@ -246,7 +246,7 @@ test.describe("each control in Chapter I", () => {
 
   test("Sign hands focus straight to your row's Leave, with nothing unfocused in between", async ({ page }) => {
     await open(page);
-    await nameField(page).fill("Ada Lovelace");
+    await nameField(page).fill("Ana Lind");
     await chooseTrade(page, "Engineer");
     await tickOath(page);
     // Records each moment the page has nothing focused: after any change to the articles (a
@@ -286,13 +286,13 @@ test.describe("each control in Chapter I", () => {
 
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {
     await open(page);
-    await nameField(page).fill("Ada");
+    await nameField(page).fill("Ana");
     await sign(page);
     await expect(tradeField(page)).toHaveAttribute("aria-invalid", "true");
     await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
     await expect(signCrew(page)).toContainText(SIGN.refuse(["trade", "oath"]).text);
     const pencilled = articles(page).locator("[data-chapter-pending]");
-    await expect(pencilled).toContainText("Ada");
+    await expect(pencilled).toContainText("Ana");
     await expect(pencilled).toContainText(SIGN.waiting(["trade", "oath"]));
     await expect(pencilled).toContainText(ARTICLES.pending);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
@@ -300,24 +300,24 @@ test.describe("each control in Chapter I", () => {
     await tickOath(page);
     await sign(page);
     await expect(pencilled).toHaveCount(0);
-    await expect(signCrew(page)).toContainText(SIGN.welcome("Ada", "Cook").text);
+    await expect(signCrew(page)).toContainText(SIGN.welcome("Ana", "Cook").text);
   });
 
   test("control: sign with the name taken away again rubs out the pencilled name", async ({ page }) => {
     await open(page);
     const pencilled = articles(page).locator("[data-chapter-pending]");
     // Emptied: the browser's own check stops the signing, and the waiting row goes.
-    await nameField(page).fill("Ada");
+    await nameField(page).fill("Ana");
     await sign(page);
-    await expect(pencilled).toContainText("Ada");
+    await expect(pencilled).toContainText("Ana");
     await nameField(page).fill("");
     await sign(page);
     await expect(pencilled).toHaveCount(0);
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
     // Spaces only: the browser lets it through, the site refuses it, and the waiting row goes.
-    await nameField(page).fill("Ada");
+    await nameField(page).fill("Ana");
     await sign(page);
-    await expect(pencilled).toContainText("Ada");
+    await expect(pencilled).toContainText("Ana");
     await nameField(page).fill("   ");
     await chooseTrade(page, "Cook");
     await tickOath(page);
@@ -329,9 +329,9 @@ test.describe("each control in Chapter I", () => {
 
   test("control: leave takes you off the crew list", async ({ page }) => {
     await open(page);
-    await signOn(page, "Ada");
+    await signOn(page, "Ana");
     await articles(page).getByRole("button", { name: ARTICLES.leave }).click();
-    await expect(page.getByRole("list", { name: ARTICLES.roster }).getByText("Ada", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("list", { name: ARTICLES.roster }).getByText("Ana", { exact: true })).toHaveCount(0);
     // Back to the articles, to sign again.
     await expect(nameField(page)).toBeFocused();
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
@@ -342,7 +342,7 @@ test.describe("each control in Chapter I", () => {
 test("every operable element in Chapter I is one of its listed controls, in page order", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
-  await signOn(page, "Ada");
+  await signOn(page, "Ana");
   const found = await page.locator("#chapter-one").evaluate((chapter) => {
     const operable = [...chapter.querySelectorAll<HTMLElement>("a[href], button, input:not([type='hidden']), select, textarea, [tabindex]:not([tabindex='-1']), [role='checkbox'], [role='combobox']")].filter((element) => element.checkVisibility());
     const loose = operable.filter((element) => !element.closest("[data-chapter-control]")).map((element) => element.outerHTML.slice(0, 120));
@@ -405,7 +405,7 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   // The plan is above the button on a phone: Launch brings it into view to watch her float.
   await expect.poll(async () => { const box = (await plan(page).boundingBox())!; return box.y >= 56 && box.y + box.height <= 844; }).toBe(true);
   await nameField(page).tap();
-  await nameField(page).fill("Ada");
+  await nameField(page).fill("Ana");
   await tradeField(page).tap();
   await page.getByRole("option", { name: "Cook" }).tap();
   await oath(page).tap();
@@ -465,7 +465,7 @@ test("under reduced motion, building, launching and signing change only colour a
   });
   await buildAll(page);
   await launchButton(page).click();
-  await signOn(page, "Ada");
+  await signOn(page, "Ana");
   await page.waitForTimeout(600);
   expect(await page.evaluate(() => (window as unknown as { __moved: string[] }).__moved)).toEqual([]);
   // No element that was there before sits anywhere else now, by transition or by a jump.
@@ -516,8 +516,8 @@ test("the rail beside the chapter shows how the voyage stands, and the yard on t
   await launchButton(page).click();
   await expect(rail).toContainText(EXPEDITION.afloat(true));
   await expect(yard).toHaveAttribute("data-launched", "");
-  await signOn(page, "Ada", "Cook");
-  await expect(rail).toContainText(EXPEDITION.signed({ name: "Ada", trade: "Cook" }));
+  await signOn(page, "Ana", "Cook");
+  await expect(rail).toContainText(EXPEDITION.signed({ name: "Ana", trade: "Cook" }));
   // The pennant flies on both ships: the one that sails off, and the one drawn afloat for reduced motion.
   for (const flag of await yard.locator(".yd-flag").all()) await expect(flag).toHaveCSS("opacity", "1");
   await expect(yard.locator(".yd-afloat")).toHaveCSS("opacity", "1");
@@ -558,7 +558,7 @@ test.describe("by keyboard alone", () => {
   test("the articles: fill them in, Enter to sign, and Enter to leave", async ({ page }) => {
     await open(page);
     await nameField(page).focus();
-    await page.keyboard.type("Ada");
+    await page.keyboard.type("Ana");
     await page.keyboard.press("Tab");
     await expect(tradeField(page)).toBeFocused();
     await page.keyboard.press("Enter");
@@ -593,7 +593,7 @@ test.describe("by keyboard alone", () => {
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     await expect(nameField(page)).toBeFocused();
     // Enter in the name field signs too, and Conseil says what is still wanting.
-    await page.keyboard.type("Ada");
+    await page.keyboard.type("Ana");
     await page.keyboard.press("Enter");
     await expect(signCrew(page)).toContainText(SIGN.refuse(["trade", "oath"]).text);
   });

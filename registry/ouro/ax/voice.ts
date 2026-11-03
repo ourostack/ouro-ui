@@ -17,7 +17,7 @@ import type { Outcome } from "./outcome.ts";
  * @claim "never where an agent parses" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
  * @claim "a process celebrates (`done`) at most once" registry/ouro/ax/voice.test.mts verify:testExists(registry/ouro/ax/voice.test.mts::variants rotate, never the same line twice in a row, and a process celebrates once)
  */
-type VoiceSlot = "banner" | "done" | "summary" | "empty";
+type VoiceSlot = "banner" | "done" | "summary" | "empty" | "healthy";
 
 interface VoiceDef {
   /** Leads the help overview. */
@@ -28,6 +28,12 @@ interface VoiceDef {
   summary?: readonly string[];
   /** After a list that came back empty, once its text has said what is empty. */
   empty?: readonly string[];
+  /**
+   * After a check command's report (ax-checks) when every check ran and passed.
+   *
+   * @claim "when every check ran and passed" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a command that returns a checks report prints its verdict first, styled for stdout, and exits with its code)
+   */
+  healthy?: readonly string[];
 }
 
 /**
@@ -48,7 +54,7 @@ function checkVoiceLine(line: string): string | null {
 
 /** Throws at definition time when a fixed voice line breaks the rules; `done` lines are checked as they are made. */
 function checkVoice(tool: string, voice: VoiceDef): void {
-  for (const slot of ["banner", "summary", "empty"] as const) {
+  for (const slot of ["banner", "summary", "empty", "healthy"] as const) {
     for (const line of voice[slot] ?? []) {
       const problem = checkVoiceLine(line);
       if (problem) throw new Error(`${tool}: the voice's ${slot} line ${JSON.stringify(line)} ${problem}. Fix: one line of plain ASCII, at most ${VOICE_MAX} characters.`);
@@ -56,9 +62,9 @@ function checkVoice(tool: string, voice: VoiceDef): void {
   }
 }
 
-/** The fixed voice lines (banner, summary and empty), as `help --json` lists them for a checker. */
+/** The fixed voice lines (banner, summary, empty and healthy), as `help --json` lists them for a checker. */
 function voiceLines(voice: VoiceDef): string[] {
-  return [...(voice.banner ?? []), ...(voice.summary ?? []), ...(voice.empty ?? [])];
+  return [...(voice.banner ?? []), ...(voice.summary ?? []), ...(voice.empty ?? []), ...(voice.healthy ?? [])];
 }
 
 /**

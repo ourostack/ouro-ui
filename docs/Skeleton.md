@@ -2,7 +2,7 @@
 
 # Skeleton
 
-A shimmering placeholder in the shape of content that is still loading. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion it is a flat fill that pulses instead of shimmering.
+A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion the shimmer holds still.
 
 ```tsx
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
@@ -11,26 +11,91 @@ import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 ## Example
 
 ```tsx
-<div aria-busy="true" className="grid gap-2">
-  <Skeleton shape="circle" />
-  <Skeleton shape="text" className="w-1/2" />
-  <Skeleton className="h-32" />
-</div>
+<>
+  <div aria-busy="true" aria-label="Messages" role="group">
+    <Skeleton shape="row" count={6} />
+  </div>
+  <Skeleton shape="text" size="sm" lines={3} />
+  <Skeleton shape="circle" size="lg" />
+</>
 ```
+
+## Usage
+
+Pick the shape of what is coming: `shape="text"` with `lines` and Text's `size` for a paragraph, `shape="circle"` with Avatar's `size` for an avatar, `shape="row"` with `count` for a list of Items, `shape="card"` for Cards, and `rect` sized with a layout class for an image or a chart. A placeholder stands in for content; a spinner does not, so an app shows a Skeleton wherever content loads.
 
 ## Use instead when
 
-- Use `Spinner` instead for a wait with no layout to hold, and `Progress` when you know how far along the work is.
+- Use `Button`'s `loading` instead for an action in progress, and `Progress` when you know how far along the work is.
 
 ## Props
 
-Type: `SkeletonProps`.
+The props the modes share. Type: `SkeletonProps`.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `className` | `string` | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
+| `ref` | `Ref<HTMLSpanElement>` | Reaches the rendered element. |
+
+## Modes
+
+`SkeletonProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
+
+### Circle: `SkeletonCircleProps`
+
+Skeleton's props for an avatar.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `className` | `string` |  | Layout only: size, margins and placement (`h-32`, `w-1/2`, `size-12`). The color and corners come from the theme and `shape`. |
-| `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `shape` | `"text" \| "rect" \| "circle"` | `"rect"` | The outline of what is loading: `rect` for a block such as an image or a card, `text` for a line of text, `circle` for an avatar. Size it with layout classes: `className="h-32"`, `className="w-1/2"`, `className="size-12"`. |
+| `shape` (required) | `"circle"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
+| `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | Avatar's size, so it is the avatar's exact box. A layout class (`size-12`) sizes it instead. |
+
+Not in this mode (typed `never`):
+
+- `count`: Only with `shape="row"` or `"card"`.
+- `lines`: Only with `shape="text"`.
+
+### Rect: `SkeletonRectProps`
+
+Skeleton's props for a block.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `shape` | `"rect"` | `"rect"` | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
+
+Not in this mode (typed `never`):
+
+- `count`: Only with `shape="row"` or `"card"`.
+- `lines`: Only with `shape="text"`.
+- `size`: Only with `shape="text"`, `"circle"`, `"row"` or `"card"`. Size a block with a layout class.
+
+### Row or card: `SkeletonRowOrCardProps`
+
+Skeleton's props for list rows or Cards.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `count` | `number` | `1` | How many rows or cards to show. Each is its own element, so they sit in the grid or the `div` the content will fill (not directly in a `ul`: the rows are `span`s with `display: grid`). |
+| `shape` (required) | `"row" \| "card"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
+| `size` | `"sm" \| "md"` | `"md"` | Item's or Card's size, so each placeholder is that component's exact height. |
+
+Not in this mode (typed `never`):
+
+- `lines`: Only with `shape="text"`.
+
+### Text: `SkeletonTextProps`
+
+Skeleton's props for lines of text.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `lines` | `number` | `1` | How many lines of text it stands in for; the last of several is shorter, like a paragraph's. |
+| `shape` (required) | `"text"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
+| `size` | `"sm" \| "md" \| "lg"` |  | Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size. |
+
+Not in this mode (typed `never`):
+
+- `count`: Only with `shape="row"` or `"card"`. For several lines use `lines`.
 
 ## Native attributes
 
@@ -40,8 +105,8 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `animation`: Not a prop. Skeleton shimmers, and pulses instead with reduced motion.
-- `height`: Not a prop. Size it with a layout class: `<Skeleton className="h-6">`.
+- `animation`: Not a prop. Skeleton shimmers, and holds still with reduced motion.
+- `height`: Not a prop. Size it with a layout class, or give `shape="text"` its `lines`: `<Skeleton className="h-6">`.
 - `variant`: Not a prop. Ouro UI uses `shape`: `<Skeleton shape="circle">`.
 - `width`: Not a prop. Size it with a layout class: `<Skeleton className="w-32">`.
 

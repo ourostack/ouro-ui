@@ -232,12 +232,16 @@ export function checkSources(app, root, aliases) {
   // Only module specifiers on import and export lines, and in a dynamic import("..."), are
   // rewritten: JSDoc may quote an installed import such as `from "@/components/ouro/sheet/sheet-parts"`,
   // which an app with the @/components alias also has.
-  const specifier = (alias) =>
-    new RegExp(`(^(?:import|export)\\b.*?from\\s*|^\\}\\s*from\\s*|^import\\s*|\\bimport\\(\\s*)"${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/ouro/`, "gm");
+  const at = (prefix) =>
+    new RegExp(`(^(?:import|export)\\b.*?from\\s*|^\\}\\s*from\\s*|^import\\s*|\\bimport\\(\\s*)"${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/`, "gm");
+  const specifier = (alias) => at(`${alias}/ouro`);
+  // The ax kit installs to lib/ouro/ax/ from registry/ouro/ax/, so a component's `@/registry/ouro/ax/<file>`
+  // import is installed as the lib alias's `ouro/ax/<file>`.
   const toSource = (text) =>
     text
       .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')
-      .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/');
+      .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/')
+      .replace(at("@/registry/ouro/lib/ouro/ax"), '$1"@/registry/ouro/ax/');
   const sources = treeFiles(join(root, "registry/ouro")).map((file) => `registry/ouro/${file}`);
   for (const path of sources) {
     const target = installedPath(path);

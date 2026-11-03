@@ -372,7 +372,7 @@ test("timerBoundReads finds a toast the page raises, read by its text, as the fo
   assert.equal(site("site/src/voyage/stage/stage.test.tsx", 'await expect.element(page.getByText("Copied the install command", { exact: true })).toBeVisible();').length, 1);
   assert.equal(site("site/src/voyage/stage/stage.test.tsx", "await expect.element(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();").length, 1);
   assert.equal(spec("site/e2e/stage.spec.ts", "await expect(page.getByText(`${BELL_TOASTS[0]!.name}: ${BELL_TOASTS[0]!.text}`)).toBeVisible();").length, 1);
-  assert.equal(spec("site/e2e/chapter-one.spec.ts", 'await expect(page.getByText(ARTICLES.signed("Ada Lovelace"))).toBeVisible();').length, 1);
+  assert.equal(spec("site/e2e/chapter-one.spec.ts", 'await expect(page.getByText(ARTICLES.signed("Ana Lind"))).toBeVisible();').length, 1);
   // Outside site/, a file that imports toast() or the Toaster has toasts; one that imports neither has none.
   const dialog = 'await expect.element(page.getByRole("dialog", { name: "Saved" })).toBeVisible();';
   assert.equal(site("registry/a.test.tsx", dialog, 'import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";').length, 1);

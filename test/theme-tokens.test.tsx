@@ -125,7 +125,7 @@ describe("theme fixtures", () => {
 });
 
 describe("standard shadow and font tokens", () => {
-  it.each(sliced(selectedStories))("$id reads its shadows and fonts from the theme, closed and with each overlay open", async ({ id, Story }) => {
+  it.each(sliced(selectedStories, "theme tokens"))("$id reads its shadows and fonts from the theme, closed and with each overlay open", async ({ id, Story }) => {
     setSentinels();
     const host = await renderStory(Story);
     await settle();

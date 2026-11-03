@@ -9,7 +9,7 @@ import { MessageList } from "@/components/ouro/message/message-list";
 export default function MessageListSection() {
   return (
     <MessageList label="Ouro conversation" className="h-64">
-      <Message role="user" name="Ada">
+      <Message role="user" name="Ana">
         Ouro list question
       </Message>
       <Message role="assistant" name="Ouro">
