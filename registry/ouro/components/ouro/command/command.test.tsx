@@ -1123,7 +1123,7 @@ describe("Command media", () => {
     expect(picked.getBoundingClientRect().width).toBe(24);
     expect(before(picked, label(grace!))).toBe(true);
     // The app's own element, as it is, not a picture's URL.
-    expect(ana!.querySelector("[data-ouro-command-avatar]")!.textContent).toBe("A");
+    expect(ana!.querySelector("[data-ouro-command-avatar]")!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("A");
     const icon = settings!.querySelector<HTMLElement>("[data-ouro-command-icon]")!;
     expect(icon.getAttribute("aria-hidden")).toBe("true");
     expect(icon.querySelector("svg")!.getBoundingClientRect().width).toBe(16);

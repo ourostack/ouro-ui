@@ -16,6 +16,10 @@ import { AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
 </AvatarGroup>
 ```
 
+## Usage
+
+The "+N" count is drawn like Avatar's initials, not written, and screen readers hear `moreLabel`, so a button that wraps the group and names itself shows no text its name must hold.
+
 ## Use instead when
 
 - Use a list of `Avatar`s with names beside them instead when readers need to see who each person is.
