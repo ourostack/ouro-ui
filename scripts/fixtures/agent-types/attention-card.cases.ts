@@ -5,8 +5,8 @@ export const agentCases: AgentCase[] = [
   {
     id: "attentionCard01",
     habit: "a text prop for the message",
-    tsc: [hint("string", 'Use <AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>')],
-    dev: '<AttentionCard reason="Asked you" title="Review" from="Ada">Can you review?</AttentionCard>',
+    tsc: [hint("string", 'Use <AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>')],
+    dev: '<AttentionCard reason="Asked you" title="Review" from="Ana">Can you review?</AttentionCard>',
     names: ["tsc", "dev"],
   },
   { id: "attentionCard02", habit: "onClick to open the card", tsc: [hint("() => void", "Use onOpen={open}")], dev: "<AttentionCard onOpen={open}>", names: ["tsc", "dev"] },

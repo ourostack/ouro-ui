@@ -15,7 +15,7 @@ export default function ConversationListSection() {
       label="Conversations"
       items={[
         { id: "trail", title: "Ouro trail crew", where: "Hikes", preview: "Meet at eight.", time: "9:41", unread: true },
-        { id: "ada", title: "Ada Lovelace", section: "pinned" },
+        { id: "ana", title: "Ana Lind", section: "pinned" },
       ]}
       sections={[{ id: "pinned", title: "Ouro pinned" }]}
       selectedId="trail"

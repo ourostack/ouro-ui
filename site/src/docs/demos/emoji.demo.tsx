@@ -92,6 +92,8 @@ const catalogue: EmojiCatalogue = {
 };
 
 const find = (id: string) => catalogue.categories.flatMap((category) => category.items).find((item) => item.id === id)!;
+// What each emoji shows until its picture has loaded: a soft disc in the emoji's own box.
+const waiting = svg('<circle cx="16" cy="16" r="13" fill="#a1a1aa" fill-opacity="0.35"/>');
 
 export default function EmojiDemo(): JSX.Element {
   const [draft, setDraft] = useState("Release notes are out :party: thanks all");
@@ -100,7 +102,7 @@ export default function EmojiDemo(): JSX.Element {
       <div className="flex flex-wrap gap-2">
         {["smile", "blink", "heart", "party", "fern"].map((id) => (
           <Button key={id} variant="soft" tone="secondary" aria-label={`Add ${find(id).name}`} onClick={() => setDraft((text) => `${text} :${find(id).shortcodes![0]}:`)}>
-            <Emoji item={find(id)} alt="" />
+            <Emoji item={find(id)} alt="" placeholder={waiting} />
           </Button>
         ))}
       </div>

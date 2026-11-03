@@ -3,7 +3,7 @@ import { type AgentCase, notAssignable, hint } from "./shared.ts";
 const sizes = `AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never; }) | undefined`;
 const presences = `AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never; }) | undefined`;
 const shapes = `AvatarShape | (string & { 'Use "circle", "square" or "hexagon"; rounded is "square", an agent "hexagon"': never; }) | undefined`;
-const initials = '<Avatar name="Ada Lovelace" initials="AL" />';
+const initials = '<Avatar name="Ana Lind" initials="AL" />';
 
 /** The avatar snippets in avatar.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [
@@ -13,7 +13,7 @@ export const agentCases: AgentCase[] = [
     tsc: [
       `error TS2322: Type '{ src: string; alt: string; }' is not assignable to type 'IntrinsicAttributes & AvatarProps'.\n  Property 'name' is missing in type '{ src: string; alt: string; }' but required in type 'AvatarOwnProps'.`,
     ],
-    dev: '<Avatar name="Ada Lovelace" src={url} />',
+    dev: '<Avatar name="Ana Lind" src={url} />',
     names: ["tsc", "dev"],
   },
   {

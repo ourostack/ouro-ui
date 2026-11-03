@@ -47,7 +47,7 @@ function Chat({ count, from = 0, height = 300, springy }: { count: number; from?
       <button type="button">Before</button>
       <MessageList label="Conversation" style={{ height }} springy={springy}>
         {Array.from({ length: count }, (_, index) => (
-          <Message key={from + index} id={`m-${from + index}`} role={(from + index) % 2 ? "assistant" : "user"} name={(from + index) % 2 ? "Ouro" : "Ada"}>
+          <Message key={from + index} id={`m-${from + index}`} role={(from + index) % 2 ? "assistant" : "user"} name={(from + index) % 2 ? "Ouro" : "Ana"}>
             {`Message ${from + index}: ${"rest the dough ".repeat(3)}`}
           </Message>
         ))}
@@ -684,7 +684,7 @@ describe("MessageList springs", () => {
         <Message role="assistant" name="Ouro" id="long">
           {"A long reply that runs on. ".repeat(60)}
         </Message>
-        <Message role="user" name="Ada">
+        <Message role="user" name="Ana">
           Thanks
         </Message>
       </MessageList>,

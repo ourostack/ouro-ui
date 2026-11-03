@@ -74,7 +74,7 @@ describe.each([
   });
 
   describe.each(["light", "dark"] as const)("%s", (scheme) => {
-    it.each(sliced(selectedStories))("$id has no axe violations, closed and with each overlay open", async ({ id, Story }) => {
+    it.each(sliced(selectedStories, "stories: axe"))("$id has no axe violations, closed and with each overlay open", async ({ id, Story }) => {
       setScheme(scheme);
       expect(await scanStory(id, Story)).toBe("");
     }, storyScanTimeout);
@@ -85,7 +85,7 @@ describe.each([
 // parent's `space-y-4` puts it on its children with a zero-specificity rule, which any margin
 // class on the child, even `m-0`, would beat.
 describe("component roots leave their margin to the app", () => {
-  it.each(sliced(selectedStories))("$id has no margin reset on a component root", async ({ id, Story }) => {
+  it.each(sliced(selectedStories, "stories: margin"))("$id has no margin reset on a component root", async ({ id, Story }) => {
     const host = await renderStory(Story);
     await settle();
     const resets = (root: ParentNode) =>

@@ -26,6 +26,8 @@ Pass `trigger` for a dropdown, `contextTrigger` for a context menu, or `label` f
 
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet.
 
+A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab goes on from wherever focus went.
+
 ## Use instead when
 
 - Use `Select` instead to pick a value for a form, `Popover` for a panel with fields or text, and `Command` for a searchable list of every action in the app.

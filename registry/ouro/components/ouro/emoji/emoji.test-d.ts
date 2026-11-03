@@ -1,4 +1,4 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type ReactElement } from "react";
 import { expectTypeOf } from "vitest";
 import {
   Emoji,
@@ -53,6 +53,10 @@ expectTypeOf<{ item: EmojiItem; skinTone: "tan" }>().not.toExtend<EmojiProps>();
 expectTypeOf<{ item: EmojiItem; src: "/party.png" }>().not.toExtend<EmojiProps>();
 expectTypeOf<{ item: EmojiItem; emoji: "🎉" }>().not.toExtend<EmojiProps>();
 expectTypeOf<{ item: EmojiItem; animate: true }>().not.toExtend<EmojiProps>();
+// A placeholder shows until the picture has decoded: an image's address, or an element.
+expectTypeOf<{ item: EmojiItem; placeholder: "/emoji/waiting.png" }>().toExtend<EmojiProps>();
+expectTypeOf<{ item: EmojiItem; placeholder: ReactElement }>().toExtend<EmojiProps>();
+expectTypeOf<{ item: EmojiItem; placeholder: 0 }>().not.toExtend<EmojiProps>();
 
 // EmojiText takes the text and the catalogue, not children.
 expectTypeOf<{ text: "Shipped :party:"; catalogue: EmojiCatalogue }>().toExtend<EmojiTextProps>();

@@ -21,7 +21,7 @@ expectTypeOf<{
   disabled: false;
   attachments: null;
   attachmentsLabel: "Files";
-  quote: { author: "Ada"; excerpt: "Lunch?"; onRemove: () => void; onActivate: () => void; label: "Quoting Ada"; removeLabel: "Remove quote" };
+  quote: { author: "Ana"; excerpt: "Lunch?"; onRemove: () => void; onActivate: () => void; label: "Quoting Ana"; removeLabel: "Remove quote" };
   actions: null;
   toolbar: false;
   description: "Ctrl+Enter to send";
@@ -39,10 +39,10 @@ expectTypeOf<{ onSend: (text: string) => void }>().not.toExtend<ComposerProps>()
 expectTypeOf<{ label: "Message" }>().not.toExtend<ComposerProps>();
 
 // A quote says who wrote it and what, and how to remove it.
-expectTypeOf<{ author: "Ada"; excerpt: "Lunch?"; onRemove: () => void }>().toExtend<ComposerQuote>();
-expectTypeOf<{ author: "Ada"; excerpt: "Lunch?" }>().not.toExtend<ComposerQuote>();
+expectTypeOf<{ author: "Ana"; excerpt: "Lunch?"; onRemove: () => void }>().toExtend<ComposerQuote>();
+expectTypeOf<{ author: "Ana"; excerpt: "Lunch?" }>().not.toExtend<ComposerQuote>();
 expectTypeOf<{ excerpt: "Lunch?"; onRemove: () => void }>().not.toExtend<ComposerQuote>();
-expectTypeOf<{ author: "Ada"; onRemove: () => void }>().not.toExtend<ComposerQuote>();
+expectTypeOf<{ author: "Ana"; onRemove: () => void }>().not.toExtend<ComposerQuote>();
 
 // sendOn is a named key.
 for (const sendOn of ["enter", "mod-enter"] as const) createElement(Composer, { label: "Message", onSend: () => {}, sendOn });
