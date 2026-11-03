@@ -798,7 +798,7 @@ export function Message(props: MessageProps): JSX.Element {
   const surfaceColors = filled ? (mine ? filledColors : mutedInk) : undefined;
   // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
   const containerStyle = hasBar && beside !== undefined ? { containerType: "inline-size" as const } : undefined;
-  const articleStyle = ownColors || containerStyle ? { ...rest.style, ...ownColors, ...containerStyle } : rest.style;
+  const articleStyle = { ...rest.style, ...ownColors, ...containerStyle };
   const titled = post && subject !== undefined && subject !== null;
   // A message of pictures or files alone draws no empty bubble above them.
   const worded = !empty || streaming || quote !== undefined || titled;
