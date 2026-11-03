@@ -1,4 +1,4 @@
-# Porthole: the status spot's snapshot
+# The Porthole snapshot
 
 Porthole is a small round window onto how current an app's data is: one line at a time, opened for detail. This page describes the contract it reads: the snapshot a service produces, the heartbeat beside it, and `portholeView`, the pure function that decides what to show. The window, a CLI status command and an agent read the same snapshot, so they agree.
 
