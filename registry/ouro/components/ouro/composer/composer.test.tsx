@@ -725,7 +725,8 @@ describe("Composer quote", () => {
     const { host } = await render(
       <>
         <Composer label="Reply to Ana" quote={quoteOf()} onSend={() => {}} />
-        <Message variant="chat" role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: lunch }}>
+        {/* A raised bubble: inside a filled one, the quote takes the bubble's own colors. */}
+        <Message variant="chat" bubble="raised" role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: lunch }}>
           Sounds good
         </Message>
       </>,

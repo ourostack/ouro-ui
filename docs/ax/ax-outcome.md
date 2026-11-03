@@ -64,6 +64,7 @@ One next valid action: an exact command an agent can run, and why it would.
 interface NextStep {
   command: string;
   why: string;
+  sourceCheckout?: true;
 }
 ```
 

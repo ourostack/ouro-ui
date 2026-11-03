@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // A tiny CLI that breaks most Ouro AX CLI claims, for xray.test.mts: no help JSON, ignored flags, errors on stdout,
-// a stack trace, an ambiguous verb that acts, and a send that needs no --why. Every call is appended to $FIXTURE_CALLS.
+// a stack trace, an ambiguous verb that acts, a send that needs no --why, and developer commands in its help, its
+// errors and its doctor's fix. Every call is appended to $FIXTURE_CALLS.
 import fs from "node:fs";
 
 const argv = process.argv.slice(2);
@@ -15,7 +16,7 @@ const [cmd, ...rest] = argv.filter((a) => !a.startsWith("--"));
 const json = argv.includes("--json");
 if (cmd === "help" && json) {
   // Help that parses, but with no exit codes.
-  process.stdout.write(JSON.stringify({ commands: [{ name: "rooms", effect: "private", usage: ["rooms [--limit N]"] }, { name: "send", effect: "others", usage: ["send <room> <text>"] }, { name: "doctor", effect: "private", usage: ["doctor"] }] }) + "\n");
+  process.stdout.write(JSON.stringify({ commands: [{ name: "rooms", effect: "private", usage: ["rooms [--limit N]"] }, { name: "send", effect: "others", usage: ["send <room> <text>"] }, { name: "doctor", effect: "private", usage: ["doctor"], summary: "Checks the setup; run `pnpm build` first" }] }) + "\n");
   process.exit(0);
 }
 if (!cmd && argv.includes("--help")) {
@@ -43,15 +44,18 @@ switch (cmd) {
   case "doctor":
     // A doctor whose JSON is a checks report, but whose text is coloured, redrawn and puts the verdict last.
     if (json) {
-      const row = { id: "cache", label: "The cache", state: "failed", detail: "missing", fix: { byHand: "Open the app." }, kind: null, durationMs: 5 };
-      process.stdout.write(JSON.stringify({ ax: "checks/1", verdict: "failed", summary: "1 of 1 check failed: The cache. 0 passed, in under 0.1s.", durationMs: 5, counts: { passed: 0, warned: 0, failed: 1, skipped: 0 }, rows: [row], next: [], exitCode: 1 }) + "\n");
+      const row = { id: "cache", label: "The cache", state: "failed", detail: "missing src/cache.json", fix: { command: "node scripts/doctor.mjs --fix", why: "Rebuild it" }, kind: null, durationMs: 5 };
+      process.stdout.write(JSON.stringify({ ax: "checks/1", verdict: "failed", summary: "1 of 1 check failed: The cache. 0 passed, in under 0.1s.", durationMs: 5, counts: { passed: 0, warned: 0, failed: 1, skipped: 0 }, rows: [row], next: [{ command: "pnpm dev", why: "Start the dev server", sourceCheckout: true }], exitCode: 1 }) + "\n");
       process.exit(1);
     }
-    process.stdout.write("\x1b[35mDOCTOR\x1b[0m\nchecking...\r  cache  missing\n1 of 1 check failed: The cache. 0 passed, in under 0.1s.\n");
+    process.stdout.write("\x1b[35mDOCTOR\x1b[0m\nchecking...\r  cache  missing\n1 of 1 check failed: The cache. 0 passed, in under 0.1s.\nNext: pnpm dev\n");
+    process.stderr.write("Writes are off: run npm run writes -- on.\n");
     process.exit(4);
     break;
   case "edit":
     bump();
+    // The doctor marks "pnpm dev" sourceCheckout; that lets its own text pass, not this.
+    process.stderr.write("Start the dev server with pnpm dev.\n");
     process.stdout.write("editing\redited\n");
     process.exit(0);
     break;

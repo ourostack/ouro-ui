@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout shift: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<main data-app-ready="false"><h1>Layout shift</h1><p id="read">What follows is pushed down by a banner that arrives above it, with no room kept for it.</p><div id="board" style="height:1200px;background:#d7e3ef"></div></main>
+<script>
+setTimeout(() => {
+  const banner = document.createElement("div");
+  banner.style.height = "600px";
+  banner.style.background = "#e8e4dc";
+  document.querySelector("h1").after(banner);
+  document.querySelector("main").setAttribute("data-app-ready", "true");
+}, 300);
+</script>

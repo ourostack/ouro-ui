@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { boxOf, decodeImages, isReady, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
 
@@ -64,7 +64,7 @@ describe("findSizeIssues: sideways-scroll", () => {
   });
 
   it("names the page when only an allowed element sticks out, and passes a page that allows it with a reason", async () => {
-    render(`<div data-scroll-x style="width:${innerWidth + 300}px;height:20px"></div>`);
+    render(`<div data-scroll-x="a timeline people pan sideways" style="width:${innerWidth + 300}px;height:20px"></div><div data-scroll-x="" style="width:10px;height:1px"></div>`);
     expect(await findSizeIssues()).toMatchObject([{ rule: "sideways-scroll", element: "the page" }]);
     document.body.setAttribute("data-ouro-allow", "sideways-scroll");
     expect(rules(await findSizeIssues())).toEqual(["sideways-scroll"]);
@@ -102,7 +102,7 @@ describe("findSizeIssues: clipped-text", () => {
       <div style="width:1px;overflow:hidden;white-space:nowrap">Too small to read</div>
       <div style="width:60px;overflow-y:hidden;height:200px">Tall enough below</div>
       <div style="width:300px;overflow-x:clip">Fits across</div>
-      <p data-clip-ok style="width:60px;overflow:hidden;white-space:nowrap">An older alias allows this</p>
+      <p data-clip-ok="a code that fits once copied" style="width:60px;overflow:hidden;white-space:nowrap">The plain alias allows this</p>
       <p data-ouro-allow="clipped-text long-lines" data-ouro-allow-why="a one-line preview" style="width:60px;overflow:hidden;white-space:nowrap">A preview cut on purpose</p>
       <p data-ouro-allow="all" data-ouro-allow-why="" style="width:60px;overflow:hidden;white-space:nowrap">An allow without a reason does not count</p>
       <svg><text>svg text</text></svg>
@@ -158,7 +158,7 @@ describe("findSizeIssues: blurry-image", () => {
       <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/%3E" alt="svg" style="width:200px;height:200px">
       <img src="${small}" alt="small" style="width:60px;height:30px">
       <img src="${small}" alt="hidden" hidden style="width:200px;height:100px">
-      <span data-size-ignore><img src="${small}" alt="alias" style="width:200px;height:100px"></span>
+      <span data-size-ignore="a soft backdrop on purpose"><img src="${small}" alt="alias" style="width:200px;height:100px"></span>
       <img src="${small}" alt="allowed" data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop on purpose" style="width:200px;height:100px">
       <img alt="no source yet" style="width:200px;height:100px">`);
     await decodeImages();
@@ -206,13 +206,47 @@ describe("findSizeIssues: broken-image", () => {
 });
 
 describe("findSizeIssues: long-lines", () => {
-  it("finds prose whose lines average more than the limit, and marks an element once per finding", async () => {
+  const prose = (measure: string) => ({ measures: [{ selector: null, measure }] });
+
+  it("finds nothing without a declared measure, however long the lines run", async () => {
+    render(`<p style="width:2000px">${LONG} ${LONG}</p>`);
+    expect(rules(await findSizeIssues())).not.toContain("long-lines");
+  });
+
+  it("with 100 chars on the prose, finds prose whose lines average more than 100 characters, as the rule always counted, and marks an element once per finding", async () => {
     render(`<p id="wide" style="width:2000px;white-space:nowrap;overflow:hidden">${LONG}</p>`);
-    const issues = await findSizeIssues({ maxChars: 100 });
+    const issues = await findSizeIssues(prose("100 chars"));
     expect(rules(issues)).toContain("long-lines");
     const long = issues.find((issue) => issue.rule === "long-lines")!;
     expect(long.detail).toBe(`about ${LONG.length} characters a line (keep to 100)`);
     expect(document.getElementById("wide")!.getAttribute("data-ouro-check-ref")!.split(" ").length).toBe(issues.filter((i) => i.element.startsWith("p#wide")).length);
+  });
+
+  it("holds the elements a selector names to a measure in px, and leaves the rest alone", async () => {
+    render(`
+      <div class="chat"><p id="wide" style="width:1000px">${LONG} <b>${LONG}</b></p><p style="width:700px">${LONG} ${LONG}</p></div>
+      <p style="width:1600px">${LONG} ${LONG}</p>`);
+    const issues = (await findSizeIssues({ measures: [{ selector: ".chat p", measure: " 800px " }] })).filter((issue) => issue.rule === "long-lines");
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#wide"]);
+    expect(issues[0]!.detail).toMatch(/^lines up to (9\d\d|1000)px wide \(measure 800px\)$/);
+    // A selector holds what it names, a container of paragraphs included.
+    host.remove();
+    render(`<div class="message" style="width:1000px"><p>${LONG} ${LONG}</p><p>Short.</p></div>`);
+    expect(rules(await findSizeIssues({ measures: [{ selector: ".message", measure: "800px" }] })).filter((rule) => rule === "long-lines")).toEqual(["long-lines"]);
+  });
+
+  it("holds prose to a measure in ch, the width of so many zeros in its own font", async () => {
+    // A font feature empties the font shorthand; the measure still reads the element's own font, not the canvas's 10px.
+    render(`<p id="wide" style="width:1200px;font-size:16px">${LONG} ${LONG}</p><p style="width:300px;font-size:16px">${LONG}</p><p style="width:640px;font-size:16px;font-feature-settings:'tnum' on;font-variant-numeric:tabular-nums">${LONG} ${LONG}</p>`);
+    const issues = (await findSizeIssues(prose("75ch"))).filter((issue) => issue.rule === "long-lines");
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#wide"]);
+    expect(issues[0]!.detail).toMatch(/^lines up to \d+px wide \(measure 75ch\)$/);
+  });
+
+  it("checks an element two measures hold against the first only", async () => {
+    render(`<p id="wide" style="width:1800px">${LONG} ${LONG}</p>`);
+    const issues = await findSizeIssues({ measures: [{ selector: "#wide", measure: "1900px" }, { selector: null, measure: "100 chars" }] });
+    expect(issues.filter((issue) => issue.rule === "long-lines")).toEqual([]);
   });
 
   it("passes short lines, short text, code, tables, navigation and allowed prose", async () => {
@@ -221,11 +255,11 @@ describe("findSizeIssues: long-lines", () => {
       <p style="width:2000px">Short.</p>
       <pre><p style="width:2000px">${LONG}</p></pre>
       <nav><p style="width:2000px">${LONG}</p></nav>
-      <p style="width:2000px" data-long-lines-ok>${LONG}</p>
+      <p style="width:2000px" data-long-lines-ok="a one-line ticker">${LONG}</p>
       <p style="width:2000px">A <div>block</div> inside ${LONG}</p>
       <p style="width:2000px" hidden>${LONG}</p>
       <p style="width:2000px" data-ouro-allow="long-lines" data-ouro-allow-why="a one-line ticker">${LONG}</p>`);
-    expect(rules(await findSizeIssues())).not.toContain("long-lines");
+    expect(rules(await findSizeIssues(prose("100 chars")))).not.toContain("long-lines");
   });
 });
 
@@ -284,7 +318,7 @@ describe("findOverlaps", () => {
         <p style="position:absolute;top:0;margin:0;visibility:hidden">Invisible</p><p style="position:absolute;top:0;margin:0;opacity:0">Faded</p>
         <p style="position:absolute;top:0;margin:0;display:none">None</p>
         <div style="position:absolute;top:0;left:0;width:1px;height:1px;overflow:hidden">Clipped away</div>
-        <p data-overlap-ignore style="position:absolute;top:0;margin:0">Older alias</p>
+        <p data-overlap-ignore="a stamp over the words" style="position:absolute;top:0;margin:0">Plain alias</p>
         <p data-ouro-allow="overlap" data-ouro-allow-why="a stamp" style="position:absolute;top:0;margin:0">Stamp</p>
         <script>/* not text */</script><svg width="100" height="100"><text y="10">svg text</text><svg width="80" height="80"></svg></svg>
       </div>
@@ -304,6 +338,50 @@ describe("findOverlaps", () => {
     } finally {
       loose.remove();
     }
+  });
+});
+
+describe("aliases", () => {
+  it("counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why", async () => {
+    for (const [name, rule] of [["data-clip-ok", "clipped-text"], ["data-size-ignore", "clipped-text"]]) {
+      render(`<p ${name}="" style="width:60px;overflow:hidden;white-space:nowrap">Cut, and the alias gives no reason</p>`);
+      expect(rules(await findSizeIssues())).toEqual([rule]);
+      host.remove();
+    }
+    render(`<section style="position:relative"><p style="margin:0">Under</p><p data-overlap-ignore=" " style="position:absolute;top:0;margin:0">Over</p></section>`);
+    expect(rules(findOverlaps())).toEqual(["overlap"]);
+    host.remove();
+    render(`<p data-ouro-allow="clipped-text" data-ouro-allow-why="   " style="width:60px;overflow:hidden;white-space:nowrap">Cut, and the reason is spaces</p>`);
+    expect(rules(await findSizeIssues())).toEqual(["clipped-text"]);
+  });
+
+  it("keeps a broken picture a finding under data-size-ignore, since it is broken at any size", async () => {
+    render(`<span data-size-ignore="a soft backdrop"><img src="data:image/png;base64,broken" alt="Backdrop" style="width:200px;height:100px"></span>`);
+    await decodeImages();
+    expect(await findSizeIssues()).toMatchObject([{ rule: "broken-image", element: 'img "Backdrop"' }]);
+  });
+
+  it("lists every opt-out with a reason, and none without one", () => {
+    render(`
+      <p id="ticker" data-ouro-allow="long-lines clipped-text" data-ouro-allow-why="a ticker">${LONG}</p>
+      <p data-ouro-allow="overlap" data-ouro-allow-why="">No reason</p>
+      <div class="a b c d" data-overlap-ignore="  a stamp " aria-label="Stamp"></div>
+      <img data-size-ignore="a soft backdrop" alt="Backdrop">
+      <span data-long-lines-ok="">No reason</span>
+      <span data-clip-ok="   ">Spaces are no reason</span>
+      <p data-ouro-allow="overlap" data-ouro-allow-why="  ">Spaces are no reason</p>
+      <span data-clip-ok="a code"></span>
+      <div data-scroll-x="a timeline"></div>`);
+    const allowances = listAllowances(ALIASES);
+    // Read, never rewritten: the page keeps its own attributes.
+    expect(host.querySelector("[data-overlap-ignore]")!.getAttribute("data-overlap-ignore")).toBe("  a stamp ");
+    expect(allowances).toEqual([
+      { rules: "long-lines clipped-text", element: `p#ticker "${LONG.slice(0, 40)}…"`, reason: "a ticker" },
+      { rules: "overlap", element: 'div.a.b.c "Stamp" [data-overlap-ignore]', reason: "a stamp" },
+      { rules: "clipped-text", element: "span [data-clip-ok]", reason: "a code" },
+      { rules: "sideways-scroll", element: "div [data-scroll-x]", reason: "a timeline" },
+      { rules: "sideways-scroll clipped-text long-lines blurry-image", element: 'img "Backdrop" [data-size-ignore]', reason: "a soft backdrop" },
+    ]);
   });
 });
 
@@ -369,15 +447,19 @@ describe("close-ups", () => {
 });
 
 describe("runAxe", () => {
-  it("reports serious and critical violations, one per rule, and leaves out allowed elements", async () => {
+  it("reports serious and critical violations, one per rule, and leaves out allowed elements, read with their reasons trimmed", async () => {
     render(`
       <button id="unnamed"><svg width="10" height="10" aria-hidden="true"></svg></button>
       <button class="nameless"><svg width="10" height="10" aria-hidden="true"></svg></button>
       <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20">
-      <div data-ouro-allow="axe" data-ouro-allow-why="a third-party widget we do not own"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>`);
+      <div data-ouro-allow="axe" data-ouro-allow-why="a third-party widget we do not own"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow=" all " data-ouro-allow-why="a vendor's frame"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow="axe"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow="all" data-ouro-allow-why="   "><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>
+      <div data-ouro-allow="overlap" data-ouro-allow-why="another rule"><button><svg width="10" height="10" aria-hidden="true"></svg></button></div>`);
     const issues = await runAxe();
     const button = issues.find((issue) => issue.element.startsWith("button-name"))!;
-    expect(button).toMatchObject({ rule: "axe", impact: "critical", element: "button-name: #unnamed", detail: "critical: Buttons must have discernible text (2 elements)" });
+    expect(button).toMatchObject({ rule: "axe", impact: "critical", element: "button-name: #unnamed", detail: "critical: Buttons must have discernible text (5 elements)" });
     expect(document.getElementById("unnamed")!.getAttribute("data-ouro-check-ref")).toBe(button.ref);
     const image = issues.find((issue) => issue.element.startsWith("image-alt"))!;
     expect(image.detail).toBe("critical: Images must have alternative text");

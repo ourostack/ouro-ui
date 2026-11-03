@@ -63,6 +63,7 @@
 @source not "../../../registry/ouro/census";
 @source not "../../../registry/ouro/check";
 @source not "../../../registry/ouro/e2e";
+@source not "../../../registry/ouro/images";
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
 @source not "../ax/art/manifest.json";

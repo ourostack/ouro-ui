@@ -8,8 +8,9 @@ import type { PageIssue } from "./size-check.ts";
 // section. Sticky headings are checked where they sit at each scroll position. Text that belongs to one block (its own
 // lines, or a block and the blocks inside it) never counts against itself; text a line clamp or overflow cuts away
 // doesn't count; and an opaque sticky or fixed bar covers what scrolls under it rather than colliding with it.
-// An element opts out with data-ouro-allow="overlap" and data-ouro-allow-why="<reason>" (data-overlap-ignore is the
-// older alias), which art drawn as a backdrop behind words needs.
+// An element opts out with data-ouro-allow="overlap" and data-ouro-allow-why="<reason>", or, in an app whose own rules
+// keep data-ouro-* for Ouro's components, data-overlap-ignore="<reason>", which stays; art drawn as a backdrop behind
+// words needs it.
 
 interface OverlapOptions {
   slack?: number;
@@ -26,11 +27,20 @@ interface Item {
 }
 
 function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIssue[] {
-  const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
-  const ignored = `[hidden], .visually-hidden, .sr-only, template, details:not([open]) > :not(summary), [data-overlap-ignore], [data-ouro-allow~="overlap"]${why}, [data-ouro-allow~="all"]${why}`;
+  const ignored = "[hidden], .visually-hidden, .sr-only, template, details:not([open]) > :not(summary)";
+  // Whether an element, or one around it, opts out: data-ouro-allow="overlap" (or "all") with a reason, or
+  // data-overlap-ignore with its reason as its value. A reason of spaces is no reason; the page is read, never rewritten.
+  const reasonOf = (el: Element, name: string) => (el.getAttribute(name) ?? "").trim();
+  const optedOut = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const rules = reasonOf(n, "data-ouro-allow").split(/\s+/);
+      if (reasonOf(n, "data-overlap-ignore") || ((rules.includes("overlap") || rules.includes("all")) && reasonOf(n, "data-ouro-allow-why"))) return true;
+    }
+    return false;
+  };
   const sectionOf = (el: Element) => el.closest("main > section, section, footer, [data-ouro-section]") ?? document.body;
   const visible = (el: Element) => {
-    if (el.closest(ignored)) return false;
+    if (el.closest(ignored) || optedOut(el)) return false;
     const style = getComputedStyle(el);
     if (style.visibility === "hidden" || style.display === "none") return false;
     // Opacity isn't inherited in computed style, so a faded-out ancestor (a hover-only toolbar) hides its text too.

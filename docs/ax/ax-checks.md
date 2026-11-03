@@ -2,13 +2,13 @@
 
 # ax-checks
 
-A tool's checks, such as a doctor or a self-check, declared once: progress while they run, the verdict first and the results grouped for a person, the same facts as `--json` for an agent, the time taken and the exit code. A problem comes with its fix: the exact command, or the thing to do by hand.
+A tool's checks, such as a doctor or a self-check, declared once: progress while they run, the verdict first and the results grouped for a person, the same facts as `--json` for an agent, the time taken and the exit code. A problem comes with its fix: the exact command, or the thing to do by hand, and never a developer command or a repository path (ax-dev-commands) unless the fix is marked `sourceCheckout: true`.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-checks#v1.3.3
 ```
 
-It installs `lib/ouro/ax/checks.ts`, with `ax-exit-codes`, `ax-outcome`, `ax-terminal`. Its tests are `ax-checks-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/checks.ts`, with `ax-dev-commands`, `ax-exit-codes`, `ax-outcome`, `ax-terminal`. Its tests are `ax-checks-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -25,10 +25,10 @@ interface CheckDef<C> {
 
 ### `CheckFix`
 
-A tool's checks, such as a doctor or a self-check, declared once: progress while they run, the verdict first and the results grouped for a person, the same facts as `--json` for an agent, the time taken and the exit code. A problem comes with its fix: the exact command, or the thing to do by hand.
+A tool's checks, such as a doctor or a self-check, declared once: progress while they run, the verdict first and the results grouped for a person, the same facts as `--json` for an agent, the time taken and the exit code. A problem comes with its fix: the exact command, or the thing to do by hand, and never a developer command or a repository path (ax-dev-commands) unless the fix is marked `sourceCheckout: true`.
 
 ```ts
-type CheckFix = NextStep | { byHand: string };
+type CheckFix = NextStep | { byHand: string; sourceCheckout?: true };
 ```
 
 ### `CheckResult`
@@ -130,7 +130,7 @@ function checksText(report: ChecksReport, style: TerminalStyle, options?: { verb
 
 ### `defineChecks`
 
-Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure has no fix, or its fix is the command just run, so a tool's own tests catch both.
+Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure has no fix, or its fix is the command just run, so a tool's own tests catch both. A fix or a next step that asks for a developer command or a repository path throws too, so a doctor never tells a person to run a repository script.
 
 ```ts
 function defineChecks<C>(def: ChecksDef<C>) => Checks<C>

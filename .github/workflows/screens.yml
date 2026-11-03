@@ -2,7 +2,8 @@ name: Screens
 # Ouro check (registry/ouro/check/, through .github/actions/check) on the site as it builds: every
 # page at every screen size from 320 to 3840 wide and four short landscape screens, light and dark,
 # for overlap, sideways scroll, clipped text, long lines, blurry pictures and serious axe-core
-# violations. Eight shards side by side, then one report: the merge job's summary, and its artifact
+# violations, and measures layout shift, first content and each press against their budgets; the
+# measured rules are waived in .github/ouro-check.json while they settle. Eight shards side by side, then one report: the merge job's summary, and its artifact
 # with a contact sheet per page and a captioned close-up per finding. Not a required check, and it
 # reports without failing: the findings are for whoever changes the page next.
 on:
@@ -44,6 +45,7 @@ jobs:
           targets: site/dist
           shard: ${{ matrix.shard }}/8
           script: registry/ouro/check/check.ts
+          config: .github/ouro-check.json
           install-browser: "false"
   screens:
     needs: [screens-shard]
@@ -68,4 +70,5 @@ jobs:
         with:
           merge: "true"
           script: registry/ouro/check/check.ts
+          config: .github/ouro-check.json
           install-browser: "false"
