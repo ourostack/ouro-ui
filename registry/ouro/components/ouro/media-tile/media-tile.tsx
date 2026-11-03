@@ -251,6 +251,7 @@ function useTileObservers(
   presenting: boolean,
 ): { photoSize: ReturnType<typeof avatarSizeFor>; truncated: boolean } {
   const [photoSize, setPhotoSize] = useState<ReturnType<typeof avatarSizeFor>>("xl");
+  // Stryker disable next-line BooleanLiteral: the layout effect below measures the name before the first paint.
   const [truncated, setTruncated] = useState(false);
   // The latest callback, so a new function each render neither resubscribes nor reports again.
   const reportRef = useRef(report);
@@ -262,15 +263,18 @@ function useTileObservers(
     const element = nameRef.current!;
     setTruncated(element.scrollWidth > element.clientWidth);
   }, [nameRef, name, presenting]);
+  // Stryker disable next-line ConditionalExpression: without a callback nothing reads whether the tile is seen, so observing it too changes only the cost.
   const watching = report !== undefined;
   useEffect(() => {
     const element = tile.current!;
     let frame = 0;
     let width = 0;
     let height = 0;
+    // Stryker disable next-line BooleanLiteral: nothing reads it until the first intersection sets it.
     let seen = false;
     // A resize can reach a frame before the first intersection does; until then, whether the tile is seen is unknown.
     let known = false;
+    // Stryker disable next-line StringLiteral: no report's key is either start, so the first report always goes out.
     let last = "";
     const flush = () => {
       frame = 0;

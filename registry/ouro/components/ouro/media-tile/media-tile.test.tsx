@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { expectAxRendered } from "@/registry/ouro/ax/component";
 import { MediaTile, type MediaTileProps } from "@/registry/ouro/components/ouro/media-tile/media-tile";
-import { mediaTileAx } from "@/registry/ouro/components/ouro/media-tile/media-tile-styles";
+import { avatarSizeFor, mediaTileAx } from "@/registry/ouro/components/ouro/media-tile/media-tile-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -311,6 +311,14 @@ describe("MediaTile", () => {
     expect(name().getAttribute("title")).toBe(long);
     host.style.width = "900px";
     await expect.poll(() => name().hasAttribute("title")).toBe(false);
+    // Narrowed again, the tooltip comes back once the tile is measured.
+    host.style.width = "160px";
+    await expect.poll(() => name().getAttribute("title")).toBe(long);
+  });
+
+  it("picks the photo's size from the tile's shorter side, at each step's edge", () => {
+    expect([95, 96, 159, 160, 279, 280, 439, 440].map((side) => avatarSizeFor(900, side))).toEqual(["sm", "lg", "lg", "xl", "xl", "2xl", "2xl", "3xl"]);
+    expect(avatarSizeFor(120, 900)).toBe("lg");
   });
 
   it("grows the photo with the tile, 64px until the tile is measured", async () => {
@@ -684,6 +692,16 @@ describe("MediaTile visibility", () => {
     await rerender(element());
     await frames();
     expect(calls).toEqual([[true, 302, 170]]);
+    // The next change goes to the latest callback.
+    const latest = vi.fn();
+    await rerender(<MediaTile name="Mara Lind" onVisibilityChange={latest} />);
+    host.style.width = "320px";
+    await expect.poll(() => latest.mock.calls).toEqual([[true, 320, 180]]);
+    expect(calls).toEqual([[true, 302, 170]]);
+    await rerender(element());
+    host.style.width = "301.5px";
+    await expect.poll(() => calls.length).toBe(2);
+    calls.splice(1);
     // Two resizes before the frame runs are one report, of the last size.
     const held = holdFrames();
     host.style.width = "500px";
