@@ -528,7 +528,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **resetTimer** — Cancels or dismisses a timer by its timerId, including when its screen is not mounted. [Docs](docs/resetTimer.md)
 - **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)
 - **RouteProgress** — The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. [Docs](docs/RouteProgress.md)
-- **Spinner** — A spinning ring that says something is loading. [Docs](docs/Spinner.md)
+- **Spinner** — A small spinning ring that says an action is under way, inline: in a field's adornment, a toast's or a menu entry's icon, or beside the words that say what is happening. [Docs](docs/Spinner.md)
 - **SyncStatus** — One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem. [Docs](docs/SyncStatus.md)
 - **Timer** — A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. [Docs](docs/Timer.md)
 - **TimerTray** — The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. [Docs](docs/TimerTray.md)
