@@ -318,6 +318,11 @@
       "reason": "scripts/check.test.mjs, in pnpm test:scripts, runs Ouro check's Node tests with coverage"
     },
     {
+      "match": "^scripts/images/.*\\.test\\.mts$",
+      "job": "ci",
+      "reason": "scripts/images.test.mjs, in pnpm test:scripts, runs Ouro images' tests with coverage"
+    },
+    {
       "match": "\\.test\\.m[jt]s$",
       "job": "ci",
       "listedIn": "package.json#scripts.test:scripts",

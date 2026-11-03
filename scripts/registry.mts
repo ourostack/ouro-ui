@@ -285,6 +285,15 @@ const kits = [
     docs: `Ouro check is in lib/ouro/check/. Build your app, run node lib/ouro/check/check.ts <built folder | URL> and fix what it reports. Docs: ${DOCS_URL}/guardrails.md`,
     uses: ["axe-core", "playwright"],
   },
+  {
+    name: "ouro-images",
+    title: "Ouro images",
+    description: `Optional: the picture sizes. ${claim(
+      "It writes each raster picture in a folder as AVIF and WebP at each width up to its own, with sharp, and images.json with the srcset of each, for a <picture> element.",
+      { source: { test: "scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each" }, verify: { testExists: "scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each" } },
+    )} It installs lib/ouro/images/.`,
+    docs: `Ouro images is in lib/ouro/images/. Run node lib/ouro/images/images.ts <folder of pictures> --out public/images --base /images/ and draw each picture from images.json. Docs: ${DOCS_URL}/guardrails.md`,
+  },
 ];
 
 type FileType = "registry:ui" | "registry:component" | "registry:lib" | "registry:file";
@@ -330,6 +339,7 @@ const themeDir = "registry/ouro/theme/";
 const censusDir = "registry/ouro/census/";
 const sourceRulesDir = "registry/ouro/source-rules/";
 const checkDir = "registry/ouro/check/";
+const imagesDir = "registry/ouro/images/";
 // Ouro AX: the agent-experience kit, Node TypeScript with no dependencies, one item per file (ax-<stem>), its node:test
 // tests as ax-<stem>-tests, the X-ray's fixtures with its tests (a flow suite's with ax-flows'), and the example tool as
 // ax-example.
@@ -384,6 +394,8 @@ export function itemForFile(path: string): string | null {
     return "ouro-source-rules";
   } else if (path.startsWith(checkDir)) {
     return "ouro-check";
+  } else if (path.startsWith(imagesDir)) {
+    return "ouro-images";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
@@ -412,6 +424,7 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
   if (path.startsWith(checkDir)) return { path, type: "registry:file", target: `~/lib/ouro/check/${file}` };
+  if (path.startsWith(imagesDir)) return { path, type: "registry:file", target: `~/lib/ouro/images/${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
   if (path.startsWith(axDir)) return { path, type: "registry:lib", target: `@lib/ouro/ax/${path.slice(axDir.length)}` };
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
