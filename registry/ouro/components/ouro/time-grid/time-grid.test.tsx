@@ -1308,10 +1308,18 @@ describe("TimeGrid background events", () => {
     expect(getComputedStyle(spokenAs("All hands")).borderInlineStartWidth).toBe("3px");
     expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["dashed", "1px"]);
     const lane = lanes()[0]!;
-    // 40% of the day's column, from 7rem to 32rem.
+    // 40% of the day's column, at least 7rem.
     expect(Math.abs(lane.getBoundingClientRect().width - lane.parentElement!.clientWidth * 0.4)).toBeLessThan(1);
     await render({ view: "day", events: [forum], backgroundEvents: [hands], className: "h-[30rem] w-[20rem]" });
     expect(lanes()[1]!.offsetWidth).toBe(112);
+    expect(titled("Architecture forum").getBoundingClientRect().left).toBeGreaterThanOrEqual(lane.getBoundingClientRect().right);
+  });
+
+  it("gives a day's lane 40% of a wide day, past 32rem, so a wide window has room to label each event", async () => {
+    await render({ view: "day", events: [forum], backgroundEvents: [hands, review], className: "h-[30rem] w-[160rem]" });
+    const lane = lanes()[0]!;
+    expect(Math.abs(lane.getBoundingClientRect().width - lane.parentElement!.clientWidth * 0.4)).toBeLessThan(1);
+    expect(lane.offsetWidth).toBeGreaterThan(32 * 16);
     expect(titled("Architecture forum").getBoundingClientRect().left).toBeGreaterThanOrEqual(lane.getBoundingClientRect().right);
   });
 
