@@ -1,6 +1,7 @@
 import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { MediaTile, type MediaTileProps } from "@/registry/ouro/components/ouro/media-tile/media-tile";
+import type { ComponentAx } from "@/registry/ouro/ax/component";
 import { mediaTileAx } from "@/registry/ouro/components/ouro/media-tile/media-tile-styles";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
@@ -47,12 +48,5 @@ expectTypeOf<{ name: "Mara Lind"; avatar: { name: "Mara" } }>().not.toExtend<Med
 // @ts-expect-error name is required.
 createElement(MediaTile, { speaking: true });
 
-// The agent side, as literal types for Ouro AX's kit: every action has an effect and agent: true.
-expectTypeOf(mediaTileAx.component).toEqualTypeOf<"MediaTile">();
-expectTypeOf(mediaTileAx.reads[0]).toEqualTypeOf<{
-  readonly id: "participant";
-  readonly summary: "Who is in the tile, and what they are doing.";
-  readonly fields: readonly ["name", "muted", "camera", "speaking", "handRaised", "connection"];
-  readonly consent: "none";
-}>();
-expectTypeOf(mediaTileAx.actions[0]).toEqualTypeOf<{ readonly id: "pin"; readonly summary: "Keep this tile in the person's main view."; readonly effect: "private"; readonly agent: true }>();
+// The agent side is a checked Ouro AX declaration.
+expectTypeOf(mediaTileAx).toEqualTypeOf<ComponentAx>();

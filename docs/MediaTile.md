@@ -52,7 +52,7 @@ Type: `MediaTileProps`.
 | `muted` | `boolean` |  | Whether the person is muted: a crossed-out microphone on the name plate, and "muted" in the sentence. |
 | `name` (required) | `string` |  | Who is in the tile: "Mara Lind". The name plate shows it, its photo's initials come from it, and it starts the sentence screen readers hear. Required, so no tile is silent. |
 | `onPinnedChange` | `((pinned: boolean) => void)` |  | Shows a Pin toggle in the tile's top end corner, with `data-ax-action="pin"`, and is called with the new state when it is pressed. Pinning changes only the person's own view. |
-| `onVisibilityChange` | `((visible: boolean, width: number, height: number) => void)` |  | Called with whether the tile can be seen and its size in CSS pixels, rounded up, whenever either changes, so you can stop receiving a picture nobody sees and ask for a picture size at or above the tile's (multiply by `devicePixelRatio` for device pixels). A tile counts as seen once a tenth of it is on screen, so a sliver doesn't count, and not while the page is hidden. Changes are gathered once a frame, and it is never called twice with the same values. |
+| `onVisibilityChange` | `((visible: boolean, width: number, height: number) => void)` |  | Called with whether the tile can be seen and its size in CSS pixels, rounded up, whenever either changes, so you can stop receiving a picture nobody sees and ask for a picture size at or above the tile's (multiply by `devicePixelRatio` for device pixels). A tile counts as seen once a tenth of it is on screen, so a sliver doesn't count, and not while the page is hidden. The first call waits until the browser has said whether the tile is on screen. Changes are gathered once a frame, and it is never called twice with the same values. |
 | `paused` | `boolean \| string` |  | The picture is paused (your app stopped receiving it, to save bandwidth or power): the tile shows the photo with a pause glyph. Pass the reason as words to say it, such as `paused="video paused to save power"`; `true` says "video paused". |
 | `pinned` | `boolean` |  | Whether the tile is pinned: a pin on the name plate (or the Pin control pressed), and "pinned" in the sentence. |
 | `presenting` | `boolean` |  | Whether the person is presenting: "Presenting" after the name on the name plate, and in the sentence. |
@@ -115,9 +115,13 @@ interface AvatarOwnProps {
   /**
    * The person's or thing's name. Screen readers hear it, and the initials come from it
    * (the first letters of the first and last words) until the image loads, or when it
-   * fails. Required, so no avatar is silent.
+   * fails. Required, so no avatar is silent. Pass `null` while the name is still loading: the
+   * avatar keeps its size and shape and shimmers as a Skeleton, and screen readers hear
+   * `nameLoadingLabel`.
    */
-  name: string;
+  name: string | null;
+  /** What screen readers hear while `name` is `null`, for other languages. @default "Name loading" */
+  nameLoadingLabel?: string | undefined;
   /** The image URL. Until it loads, and if it fails, the initials show. */
   src?: string | undefined;
   /**

@@ -13,6 +13,7 @@ import {
   plateClass,
   ringClass,
   sentenceFor,
+  smallPhotos,
   sources,
   tileClass,
   upperFirst,
@@ -133,8 +134,9 @@ export interface MediaTileOwnProps {
    * either changes, so you can stop receiving a picture nobody sees and ask for a picture
    * size at or above the tile's (multiply by `devicePixelRatio` for device pixels). A tile counts
    * as seen once a tenth of it is on screen, so a sliver doesn't count, and not while the page
-   * is hidden. Changes are gathered once a frame, and it is never called twice with the same
-   * values.
+   * is hidden. The first call waits until the browser has said whether the tile is on screen.
+   * Changes are gathered once a frame, and it is never called twice with the same values.
+   * @claim "The first call waits until the" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > calls nothing until the browser has said whether the tile is on screen, so it never starts unseen by mistake)
    * @claim "A tile counts as seen once a" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > counts a tile as seen only once a tenth of it is on screen, so a sliver doesn't count)
    * @claim "and not while the page is hidden" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > reports a hidden page as unseen at once, and seen again when it shows)
    * @claim "Changes are gathered once a frame, and" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > reports its size rounded up once a frame, never twice with the same values, whatever the callback)
@@ -266,6 +268,8 @@ function useTileObservers(
     let width = 0;
     let height = 0;
     let seen = false;
+    // A resize can reach a frame before the first intersection does; until then, whether the tile is seen is unknown.
+    let known = false;
     let last = "";
     const flush = () => {
       frame = 0;
@@ -273,7 +277,7 @@ function useTileObservers(
       const plateName = nameRef.current!;
       setTruncated(plateName.scrollWidth > plateName.clientWidth);
       const call = reportRef.current;
-      if (!call) return;
+      if (!call || !known) return;
       const visible = seen && document.visibilityState !== "hidden";
       const key = `${visible} ${width} ${height}`;
       if (key === last) return;
@@ -295,6 +299,7 @@ function useTileObservers(
       intersection = new IntersectionObserver(
         ([entry]) => {
           seen = entry!.isIntersecting && entry!.intersectionRatio >= VISIBLE_RATIO;
+          known = true;
           schedule();
         },
         { threshold: [VISIBLE_RATIO] },
@@ -445,6 +450,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
     { name, presenting, speaking: speakingShown, muted, source, cameraOn, paused: pausedWords, handRaised, connection, pinned },
     labels,
   );
+  const shownSize = avatar?.size ?? photoSize;
   const status = handRaised || connection === "poor";
   const controls = onPinnedChange !== undefined || (actions !== undefined && actions !== null && actions !== false);
   return (
@@ -467,12 +473,17 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
       {!picture && (
         <div aria-hidden="true" data-ouro-media-tile-photo="" className="absolute inset-0 grid place-items-center">
           <span className="relative inline-flex">
-            <Avatar {...avatar} name={name} alt="" size={avatar?.size ?? photoSize} />
+            <Avatar {...avatar} name={name} alt="" size={shownSize} />
             {pausedWords !== undefined && (
               <span
                 data-ouro-media-tile-paused=""
                 title={upperFirst(pausedWords)}
-                className={cn(plateClass, "absolute -end-1.5 -bottom-1.5 flex size-7 items-center justify-center rounded-full")}
+                className={cn(
+                  plateClass,
+                  "absolute flex size-7 items-center justify-center rounded-full",
+                  // On a photo of 48px or less the glyph would cover the initials, so it sits beside the photo.
+                  smallPhotos.includes(shownSize) ? "start-full bottom-0 ms-1" : "-end-1.5 -bottom-1.5",
+                )}
               >
                 <PauseGlyph />
               </span>

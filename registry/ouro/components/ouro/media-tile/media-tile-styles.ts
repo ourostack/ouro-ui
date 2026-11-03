@@ -10,6 +10,7 @@ export {
   plateClass,
   ringClass,
   sentenceFor,
+  smallPhotos,
   sources,
   tileClass,
   upperFirst,
@@ -20,6 +21,8 @@ export type { MediaTileConnection, MediaTileHysteresis, MediaTileLabels, MediaTi
 // Class strings, values and the agent side for MediaTile, apart from the component so its file
 // exports only components (React Fast Refresh). Class strings are literal so the app's Tailwind
 // finds them when it compiles.
+
+import { defineComponentAx } from "@/registry/ouro/ax/component";
 
 /**
  * How much of a tile must be on screen before it counts as seen: a tenth of it, so a sliver at
@@ -158,6 +161,13 @@ function avatarSizeFor(width: number, height: number): "sm" | "lg" | "xl" | "2xl
 }
 
 /**
+ * The photo sizes, 48px and smaller, beside which the paused glyph sits rather than over the
+ * corner, where it would cover the initials. @internal
+ * @claim "beside which the paused glyph sits" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile > keeps the paused glyph off the initials: beside a small photo, on the corner of a large one)
+ */
+const smallPhotos: readonly string[] = ["xs", "sm", "md", "lg"];
+
+/**
  * The tile: a 16:9 box in the muted surface with rounded corners, that clips its picture. Its
  * size is the app's layout (`aspect-square`, `h-full`, a grid cell). @internal
  * @claim "The tile: a 16:9 box in" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile > is a 16:9 tile as wide as its container, and keeps layout classes, ids, refs and div attributes)
@@ -214,15 +224,14 @@ const controlsClass =
   "data-pinned:opacity-100 pointer-coarse:opacity-100";
 
 /**
- * MediaTile's agent side, for Ouro AX's kit: it reads who is in the tile and what they are doing,
+ * MediaTile's agent side, declared with Ouro AX's `defineComponentAx`: it reads who is in the tile and what they are doing,
  * and an agent may pin the tile, which only the person sees.
  *
  * @example
  * mediaTileAx.actions[0].id; // "pin"
  * @claim "it reads who is in the tile" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile > declares its agent side: a participant read anyone may take, and a private pin an agent may take)
  */
-// TODO(ourostack/ouro-ui ax/component): wrap with defineComponentAx once it lands
-const mediaTileAx = {
+const mediaTileAx = defineComponentAx({
   component: "MediaTile",
   reads: [
     {
@@ -233,4 +242,4 @@ const mediaTileAx = {
     },
   ],
   actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
-} as const;
+});

@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { expectAxRendered } from "@/registry/ouro/ax/component";
 import { MediaTile, type MediaTileProps } from "@/registry/ouro/components/ouro/media-tile/media-tile";
 import { mediaTileAx } from "@/registry/ouro/components/ouro/media-tile/media-tile-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -323,6 +324,29 @@ describe("MediaTile", () => {
     expect(width(host)).toBe(24);
   });
 
+  it("keeps the paused glyph off the initials: beside a small photo, on the corner of a large one", async () => {
+    const overlap = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    for (const [tileWidth, size, beside] of [
+      [120, undefined, true],
+      [240, undefined, true],
+      [400, undefined, false],
+      [900, undefined, false],
+      // A size of the app's own counts the same way.
+      [900, "xs", true],
+      [900, "md", true],
+      [120, "2xl", false],
+    ] as const) {
+      const { host } = await render(<MediaTile name="Theo Okafor" paused avatar={size && { size }} />, tileWidth);
+      await frames();
+      const initials = host.querySelector("[data-ouro-avatar-initials]")!.getBoundingClientRect();
+      const photo = host.querySelector('[data-ouro="avatar"]')!.getBoundingClientRect();
+      const glyph = host.querySelector("[data-ouro-media-tile-paused]")!.getBoundingClientRect();
+      expect(overlap(glyph, initials)).toBe(false);
+      expect(overlap(glyph, photo)).toBe(!beside);
+      if (beside) expect(glyph.left - photo.right).toBe(4);
+    }
+  });
+
   it("renders the same on the server and hydrates without a mismatch", async () => {
     const node = (
       <MediaTile name="Mara Lind" speaking muted onPinnedChange={() => {}}>
@@ -414,7 +438,7 @@ describe("MediaTile", () => {
     ]);
   });
 
-  it("declares its agent side: a participant read anyone may take, and a private pin an agent may take", () => {
+  it("declares its agent side: a participant read anyone may take, and a private pin an agent may take", async () => {
     expect(mediaTileAx).toEqual({
       component: "MediaTile",
       reads: [
@@ -427,6 +451,8 @@ describe("MediaTile", () => {
       ],
       actions: [{ id: "pin", summary: "Keep this tile in the person's main view.", effect: "private", agent: true }],
     });
+    const { tile } = await render(<MediaTile name="Mara Lind" onPinnedChange={() => {}} />);
+    expectAxRendered(mediaTileAx, tile);
   });
 });
 
@@ -614,6 +640,26 @@ describe("MediaTile controls", () => {
 });
 
 describe("MediaTile visibility", () => {
+  it("calls nothing until the browser has said whether the tile is on screen, so it never starts unseen by mistake", async () => {
+    const Real = window.IntersectionObserver;
+    const held: (() => void)[] = [];
+    window.IntersectionObserver = class extends Real {
+      constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        super((entries, observer) => void held.push(() => callback(entries, observer)), options);
+      }
+    };
+    try {
+      const calls: [boolean, number, number][] = [];
+      await render(<MediaTile name="Mara Lind" onVisibilityChange={(...args) => void calls.push(args)} />);
+      await expect.poll(() => held.length).toBeGreaterThan(0);
+      await frames();
+      expect(calls).toEqual([]);
+      await act(async () => held.forEach((deliver) => deliver()));
+      await expect.poll(() => calls).toEqual([[true, 320, 180]]);
+    } finally {
+      window.IntersectionObserver = Real;
+    }
+  });
   it("reports its size rounded up once a frame, never twice with the same values, whatever the callback", async () => {
     const calls: [boolean, number, number][] = [];
     const element = () => <MediaTile name="Mara Lind" onVisibilityChange={(...args) => void calls.push(args)} />;
