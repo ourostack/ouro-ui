@@ -160,7 +160,19 @@ node lib/ouro/check/check.ts dist
 - `--before <earlier report.json>` adds a captioned before and after for each finding gone since.[^check-before]
 - A page that draws after it loads says when it is ready: it fires `ouro:ready` (or an event you name with `--ready-event`), or sets `data-app-ready`. The check waits up to 15 seconds, then checks the page as it is.[^check-ready]
 
-To keep a finding on purpose, mark the element with `data-ouro-allow="<rule>"` and a reason in `data-ouro-allow-why`; an allow without a reason does not count.[^check-allow] To waive a rule on whole pages, list it in `ouro-check.json`, with the reason:
+To keep a finding on purpose, mark the element with `data-ouro-allow="<rule>"` and a reason in `data-ouro-allow-why`; an allow without a reason does not count.[^check-allow] Every opt-out with its reason goes into `report.json`, under `allowances`.[^check-allowances]
+
+If your app's own rules keep `data-ouro-*` for Ouro's components, use the plain aliases instead. They are part of the check's interface and are not deprecated. Each takes its reason as its value, and like `data-ouro-allow`, it counts only with one; a reason of spaces is none:[^check-aliases]
+
+| Alias | Opts out of |
+| --- | --- |
+| `data-overlap-ignore="<reason>"` | `overlap` |
+| `data-long-lines-ok="<reason>"` | `long-lines` |
+| `data-clip-ok="<reason>"` | `clipped-text` |
+| `data-scroll-x="<reason>"` | `sideways-scroll` |
+| `data-size-ignore="<reason>"` | `sideways-scroll`, `clipped-text`, `long-lines` and `blurry-image`; a broken picture is broken at any size, so it is still a finding |
+
+An element that still sticks out past the screen makes the page scroll sideways, so give its content a scroller of its own (`overflow-x: auto`); the alias stops the rule naming the element, not the page.[^check-allow] To waive a rule on whole pages, list it in `ouro-check.json`, with the reason:
 
 ```json
 { "waive": { "docs/legacy/**": { "long-lines": "Imported articles keep their layout until they are rewritten." } } }
@@ -220,3 +232,5 @@ jobs:
 [^check-long-lines]: registry/ouro/check/size-check.ts verify:fileLine(registry/ouro/check/size-check.ts, /\{ maxChars = 100, /)
 [^check-truncate]: test:test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there; test:test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere)
 [^check-pages]: test:test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason; test:scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it; test:scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out verify:testExists(test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason) verify:testExists(scripts/check/check.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it) verify:testExists(scripts/check/check.test.mts::Ouro check > checks a page that never settles once its waits run out)
+[^check-allowances]: test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one; test:scripts/check/check.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one) verify:testExists(scripts/check/check.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge)
+[^check-aliases]: test:test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why; test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one verify:testExists(test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why) verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one) verify:fileLine(registry/ouro/check/in-page.ts, /^  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image",$/)

@@ -8,8 +8,9 @@ import type { PageIssue } from "./size-check.ts";
 // section. Sticky headings are checked where they sit at each scroll position. Text that belongs to one block (its own
 // lines, or a block and the blocks inside it) never counts against itself; text a line clamp or overflow cuts away
 // doesn't count; and an opaque sticky or fixed bar covers what scrolls under it rather than colliding with it.
-// An element opts out with data-ouro-allow="overlap" and data-ouro-allow-why="<reason>" (data-overlap-ignore is the
-// older alias), which art drawn as a backdrop behind words needs.
+// An element opts out with data-ouro-allow="overlap" and data-ouro-allow-why="<reason>", or, in an app whose own rules
+// keep data-ouro-* for Ouro's components, data-overlap-ignore="<reason>", which stays; art drawn as a backdrop behind
+// words needs it.
 
 interface OverlapOptions {
   slack?: number;
@@ -26,8 +27,10 @@ interface Item {
 }
 
 function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIssue[] {
+  // A reason of spaces is no reason: trimmed in place, so the selectors below see it empty.
+  for (const name of ["data-ouro-allow-why", "data-overlap-ignore"]) for (const el of document.querySelectorAll(`[${name}]`)) el.setAttribute(name, el.getAttribute(name)!.trim());
   const why = '[data-ouro-allow-why]:not([data-ouro-allow-why=""])';
-  const ignored = `[hidden], .visually-hidden, .sr-only, template, details:not([open]) > :not(summary), [data-overlap-ignore], [data-ouro-allow~="overlap"]${why}, [data-ouro-allow~="all"]${why}`;
+  const ignored = `[hidden], .visually-hidden, .sr-only, template, details:not([open]) > :not(summary), [data-overlap-ignore]:not([data-overlap-ignore=""]), [data-ouro-allow~="overlap"]${why}, [data-ouro-allow~="all"]${why}`;
   const sectionOf = (el: Element) => el.closest("main > section, section, footer, [data-ouro-section]") ?? document.body;
   const visible = (el: Element) => {
     if (el.closest(ignored)) return false;
