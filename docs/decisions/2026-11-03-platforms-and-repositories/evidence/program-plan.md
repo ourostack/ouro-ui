@@ -34,7 +34,7 @@
   - Write `MIGRATION.md` and AGENTS.md pointers, and leave a note on each active card.
   - No URL moves. Work between releases. No force pushes to others' branches.
 - **Prior art (meerkat mode):** every decision record and every new library in these repositories has a Prior art section saying what to adopt, borrow, watch or ignore, with links.
-- **The existing web addresses stay working:** `ui.ouro.bot/docs/<name>/`, `/r/{name}.json`, and `shadcn add ourostack/ouro-ui/<item>#<tag>`, through the redirect.
+- **The existing web addresses stay working:** `ui.ouro.bot/docs/<name>/`, `/r/{name}.json`, and `shadcn add` of an item from `ourostack/ouro-ui` at a release tag, through the redirect.
 - **Claims discipline:** ouro-ui's AGENTS.md "Claims" section applies in core and web, and `pnpm claims:lint` runs on PR bodies there.
 - **Gatefold:** its adoption waits until build 15 is on TestFlight and Ari has not sent it back. Nothing in this program may slow the build 15 to 16 delight path.
 - **Workbench is frozen** (its README, 2026-10-10): skip it and record that.

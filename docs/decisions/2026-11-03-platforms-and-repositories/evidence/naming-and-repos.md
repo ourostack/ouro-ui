@@ -87,7 +87,7 @@ Core is platform-neutral in content, not language-free: its tooling is TypeScrip
 
 **Compatibility**
 - `ui.ouro.bot/r/{name}.json` and existing pages keep their URLs.
-- GitHub redirects `ourostack/ouro-ui` to `ouro-ui-web`. Before renaming, check that `shadcn add ourostack/ouro-ui/<item>#<tag>` resolves through the redirect.
+- GitHub redirects `ourostack/ouro-ui` to `ouro-ui-web`. Before renaming, check that `shadcn add` of an item from `ourostack/ouro-ui` at a release tag resolves through the redirect.
   - If it does not, keep the `ui.ouro.bot` registry URLs as the documented path.
   - Spoonjoy moves to the new path at its next HX bump.
 - Moving the Pages custom domain from web to core is a few minutes' gap. The DNS CNAME to `ourostack.github.io` does not change.
@@ -110,7 +110,7 @@ Ari, 2026-11-03: "others are also working on these libs and should not be interr
 1. **Copy first, remove later.** Core starts as a copy, with history, of the files that move. The copies left in web gain a one-line header pointing to core, and they stay until every open PR that touches them has merged or closed. Removing them is a separate later PR.
 2. **The rename is the only instant step, and GitHub keeps it working.**
    - Existing clones, remotes, open PRs, issues, tags and release URLs keep working through the redirect.
-   - Check before renaming: `git fetch` and `git push` on a renamed remote, `shadcn add ourostack/ouro-ui/<item>#<tag>`, release asset URLs, and the CI badges and workflows that reference the repository name.
+   - Check before renaming: `git fetch` and `git push` on a renamed remote, `shadcn add` of an item from `ourostack/ouro-ui` at a release tag, release asset URLs, and the CI badges and workflows that reference the repository name.
    - Never create a new repository named `ouro-ui`, which would break the redirect.
 3. **Guidance where each kind of reader will find it:**
    - Each repository gets an AGENTS.md and README line saying where things live now.

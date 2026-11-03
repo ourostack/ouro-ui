@@ -25,7 +25,7 @@ A Swift package is fetched by Git URL with its manifest at the repository root, 
 
 Core is platform-neutral in what it says, not language-free: its tooling is TypeScript. A checker that observes over a protocol lives in core, and one that needs a platform's SDK lives with that platform, so the App Intents X-ray lives in `ouro-ui-apple`, because AppIntentsTesting runs on a Mac.[^xray-home] Platforms meet one standard, so the Apple X-ray emits the same report shape as `ax-xray`, pinned to a claim-set version and the app's commit.
 
-The name `ouro-ui` stays free because GitHub redirects a renamed repository's old address only until a repository takes that name.[^redirect] Existing clones, open pull requests and `shadcn add ourostack/ouro-ui/<item>#<tag>` rely on that redirect.[^redirect]
+The name `ouro-ui` stays free because GitHub redirects a renamed repository's old address only until a repository takes that name.[^redirect] Existing clones, open pull requests and `shadcn add` of an item from `ourostack/ouro-ui` at a release tag rely on that redirect.[^redirect]
 
 A new platform starts as a page, not an empty repository. The site gets a placeholder page per platform saying what HX and AX would mean there; a person who has built something opens a pull request adding `docs/platforms/<platform>.md`, and if the maintainer likes it, we create `ouro-ui-<platform>`, import the work with its history, and make them a contributor.[^placeholders]
 
@@ -55,7 +55,7 @@ A platform repository pins a core tag and commits `core-provenance.json`, the ta
 Others are working in this repository, and the move must not stop them.[^interrupt]
 
 - **Copy first, remove later.** Start core as a copy, with history, of the files that move. Give the copies left here a one-line header pointing to core, and keep them until every open pull request that touches them has merged or closed; remove them in a later pull request.[^copy-first]
-- **Verify the redirect.** Before and after the rename, check `git fetch` and `git push` on an old remote, `shadcn add ourostack/ouro-ui/<item>#<tag>`, release asset URLs, and every CI badge and workflow that names the repository.[^copy-first] Look for workflows that use an action from this repository too: GitHub redirects clones, fetches and pushes after a rename, but not calls to an action.[^redirect]
+- **Verify the redirect.** Before and after the rename, check `git fetch` and `git push` on an old remote, `shadcn add` of an item from `ourostack/ouro-ui` at a release tag, release asset URLs, and every CI badge and workflow that names the repository.[^copy-first] Look for workflows that use an action from this repository too: GitHub redirects clones, fetches and pushes after a rename, but not calls to an action.[^redirect]
 - **Write it down where each reader looks.** List each moved file's old path and new home in a `MIGRATION.md` here, say where things live now in each repository's AGENTS.md and README, and say it once in the next web release notes.[^guidance]
 - **Move no URL.** Keep the addresses of `ui.ouro.bot`, its pages and `/r/{name}.json`. Move the site to core only once core's build serves every `/r/*.json` byte for byte, checked by a diff before the Pages domain moves.[^no-url]
 - **Move between releases.** Check `gh pr list` and the merge queue first, never move during a release run, and never rebase or force-push anyone's branch.[^timing]

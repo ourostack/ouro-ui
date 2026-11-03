@@ -23,7 +23,7 @@ On the native side there is no shared design system. The native shell is macOS-o
   - `registry/ouro/theme/ouro-theme.css` is the optional "Pearl" theme, using shadcn's names.
   - `ouro-base.css` is required. It adds `--success`, `--warning`, `--avatar-1..8`, motion (`--ouro-duration-*`, `--ouro-ease-*`, `--ouro-spring-duration`, `--ouro-press-scale`), layers, backdrop and sheet shadows.
   - Site presets: `site/public/css/themes/{abyss,brass,chart,cookbook,coral,pearl}.css`.
-- **Distribution:** copy-in through the shadcn CLI (`npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.2`) or `https://ui.ouro.bot/r/{name}.json`.
+- **Distribution:** copy-in through the shadcn CLI (`npx shadcn@latest add`, pinned to a release tag) or `https://ui.ouro.bot/r/{name}.json`.
 - **Docs:** generated from JSDoc, with Storybook at ui.ouro.bot.
 - **The X-ray Inspector** (`docs/Inspector.md`) outlines every HX component on a page, with docs and source links.
 - **Agent-facing parts:**
