@@ -55,9 +55,9 @@ jobs:
     # merge group's run has a job waiting for a runner, it waits, up to 20 minutes, before any of
     # this run's jobs queue, so the queue's jobs take the organisation's shared runners first. It
     # fails open, and ci-budget leaves the wait out of the critical path. Its time limit is the
-    # yield's 22 minutes and the plan's own 8.
+    # yield's 22 minutes and the plan's own 8 on a pull request, and its own 10 on every other run, which never yields.
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 10 }}
     permissions:
       actions: read
       contents: read

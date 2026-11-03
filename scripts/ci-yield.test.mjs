@@ -89,8 +89,12 @@ test("it never holds a run back past its deadline, which fits the step's and the
   const step = jobs.plan.split(/\n {6}- /).find((block) => block.startsWith("name: Yield to the merge queue\n"));
   const stepMinutes = Number(step.match(/^ {8}timeout-minutes: (\d+)$/m)[1]);
   assert.ok(DEADLINE_MS + POLL_MS <= stepMinutes * 60_000, "the deadline and its last read fit the step's time limit");
-  const planMinutes = Number(jobs.plan.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
-  assert.ok(planMinutes >= stepMinutes + 8, "the plan keeps its own 8 minutes besides the yield");
+  const limit = jobs.plan.match(/^ {4}timeout-minutes: \$\{\{ github\.event_name == 'pull_request' && (\d+) \|\| (\d+) \}\}$/m);
+  assert.ok(limit, "the plan's time limit depends on the event");
+  const [prMinutes, otherMinutes] = [Number(limit[1]), Number(limit[2])];
+  assert.ok(prMinutes >= stepMinutes + 8, "on a pull request the plan keeps its own 8 minutes besides the yield");
+  assert.equal(otherMinutes, 10, "every other run, which never yields, keeps the plan's 10 minutes");
+  assert.match(step, /^ {8}if: github\.event_name == 'pull_request'$/m, "only a pull request yields");
 });
 
 test("it fails open: a rate limit, few requests left, or repeated failed reads start the run", async () => {
