@@ -71,7 +71,7 @@ test("a runtime import whose package left dependencies fails", () => {
   const dir = app("shadcn");
   writeFileSync(
     join(dir, "src/lib/ouro/cn.ts"),
-    'import { clsx } from "clsx";\nimport { Field } from "@base-ui/react/field";\nimport "./x";\n' +
+    'import { clsx } from "clsx";\nimport { Field } from "@base-ui/react/field";\nimport "./x";\nimport { readFileSync } from "node:fs";\n' +
       // A dynamic import counts, and an import written in a comment or a string does not
       // (the TypeScript parser, as scripts/registry.mts reads imports).
       'const lazy = () => import("lazy-pkg");\n// import { a } from "commented-pkg";\nconst text = \'from "string-pkg"\';\n',
@@ -85,6 +85,8 @@ test("a runtime import whose package left dependencies fails", () => {
   assert.match(problems, /clsx is imported by an Ouro runtime file but is not in dependencies/);
   assert.match(problems, /lazy-pkg is imported by an Ouro runtime file but is not in dependencies/);
   assert.doesNotMatch(problems, /commented-pkg|string-pkg/);
+  // A Node built-in is no package.
+  assert.doesNotMatch(problems, /node:fs/);
   // A test file's imports do not count.
   assert.doesNotMatch(problems, /vitest/);
 });
