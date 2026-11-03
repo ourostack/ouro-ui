@@ -70,7 +70,7 @@ const CLAIM_SET: ClaimSet
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```ts
-const CLAIM_SET_VERSION: "1.2.0"
+const CLAIM_SET_VERSION: "1.3.0"
 ```
 
 ### `ClaimEvidence`
@@ -170,6 +170,8 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `cli.one-line-error` | should | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
 | `cli.error-teaches` | should | evaluation: [eval-baseline-pipes.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline-pipes.md) |
 | `cli.no-stack-trace` | should | principle |
+| `cli.plain-pipe` | should | hazard |
+| `cli.check-verdict` | should | principle |
 | `cli.outcome` | should | evaluation: [outcomes-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-probe.md) |
 | `cli.wait-typed` | should | evaluation: [outcomes-results.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/outcomes-results.md) |
 | `cli.work-events` | should | evaluation: [flow-probe.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/flow-probe.md) |

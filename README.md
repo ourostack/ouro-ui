@@ -352,6 +352,7 @@ Each component has an optional `<name>-tests` item (`button-tests`) with its Vit
 Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
 
 Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `ax-example`, `ouro-ax-tests` with their `<name>-tests` items, and `ouro-ax`, which is:
+`ax-checks`,
 `ax-claims`,
 `ax-cli`,
 `ax-command`,
@@ -364,6 +365,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-outcome`,
 `ax-output`,
 `ax-problem`,
+`ax-terminal`,
 `ax-voice`,
 `ax-wait`,
 `ax-work-event`,

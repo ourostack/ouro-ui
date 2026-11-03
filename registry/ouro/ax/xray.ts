@@ -11,8 +11,10 @@ import { homedir } from "node:os";
 import { basename, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
+import { isChecksReport, type ChecksReport } from "./checks.ts";
 import { isReservedPersonOnly, type UiEntry } from "./component.ts";
 import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
+import { hasAnsi, stripAnsi } from "./terminal.ts";
 import { isWait, validateWait } from "./wait.ts";
 import { checkWorkEvent } from "./work-event.ts";
 
@@ -27,7 +29,7 @@ import { checkWorkEvent } from "./work-event.ts";
  * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
  * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
-const XRAY_VERSION = "1.2.0";
+const XRAY_VERSION = "1.3.0";
 
 type Verdict = "pass" | "fail" | "skip";
 
@@ -567,11 +569,14 @@ async function checkCli(ctx: Context) {
   // Exit codes, documented.
   let documented: Set<number> | null = null;
   let usageCode: number | null = null;
+  let findingsCode: number | null = null;
   const exitCodes = help && Array.isArray(help["exitCodes"]) ? help["exitCodes"].filter(isRecord) : null;
   if (exitCodes) {
     documented = new Set(exitCodes.map((e) => Number(e["code"])));
     const u = exitCodes.find((e) => /usage/i.test(JSON.stringify([e["name"], e["short"], e["meaning"]])));
     usageCode = u ? Number(u["code"]) : null;
+    const f = exitCodes.find((e) => e["name"] === "findings");
+    findingsCode = f ? Number(f["code"]) : null;
   } else {
     const m = /Exit codes?:([^\n]*(?:\n(?!\S*:)[^\n]*)*)/i.exec(overview.stdout);
     if (m?.[1]) {
@@ -660,6 +665,7 @@ async function checkCli(ctx: Context) {
   const withPlan = plans.filter((p): p is Planned => p.plan !== null);
   const planned = [...withPlan.filter((p) => !p.plan.placeholder), ...withPlan.filter((p) => p.plan.placeholder)];
   const reads: { cmd: CliCommand; args: string[] }[] = [];
+  const reports: { cmd: CliCommand; report: ChecksReport; json: RunResult & { shown: string }; text: RunResult & { shown: string } }[] = [];
   for (const { cmd, plan } of planned) {
     let words = plan.words;
     if (plan.placeholder) {
@@ -680,9 +686,12 @@ async function checkCli(ctx: Context) {
       continue;
     }
     const j = parseJson(c.stdout);
-    const ok = c.code === 0 && j.ok && !c.stderr.trim();
-    rec.add("cli.read-json", cmd.name, ok ? "pass" : "fail", ok ? `\`${c.shown}\` → one JSON document` : `${brief(c)}${c.code === 0 && !j.ok ? "; stdout is not one JSON document" : ""}`);
+    // A check command's findings may exit with the declared findings code, as its report says.
+    const findings = j.ok && isChecksReport(j.value) && findingsCode !== null && c.code === findingsCode && j.value.exitCode === findingsCode;
+    const ok = (c.code === 0 || findings) && j.ok && !c.stderr.trim();
+    rec.add("cli.read-json", cmd.name, ok ? "pass" : "fail", ok ? `\`${c.shown}\` → one JSON document${findings ? `, exit ${c.code} (findings)` : ""}` : `${brief(c)}${c.code === 0 && !j.ok ? "; stdout is not one JSON document" : ""}`);
     if (j.ok) harvest(j.value, samples, cmd.name.split(" ").at(-1)!);
+    if (j.ok && isChecksReport(j.value)) reports.push({ cmd, report: j.value, json: c, text: await call(args) });
     const refs = ok && j.ok ? refsOf(j.value) : [];
     if (refs.length) {
       const t = await call(args);
@@ -1109,6 +1118,17 @@ async function checkCli(ctx: Context) {
     if (!unlisted.length) rec.add("cli.named-is-listed", `${namedBy.size} commands named`, "pass", namedBy.size ? `each is in --help: ${[...namedBy.keys()].join(", ")}` : "no output names a command");
   }
 
+  // A check command's verdict: the text's first line holds the JSON's summary, timings aside, and both exit alike.
+  const untimed = (s: string) => s.replace(/(?:under )?(?:\d+m \d{2}s|\d+(?:\.\d+)?s\b)/g, "<time>");
+  if (!reports.length) rec.add("cli.check-verdict", "reads", "skip", "no read's --json is a checks report (ax-checks)");
+  for (const { cmd, report, json, text } of reports) {
+    const first = stripAnsi(firstLine(text.stdout));
+    const leads = untimed(first).includes(untimed(report.summary));
+    const same = text.code === json.code && json.code === report.exitCode;
+    const note = !leads ? `\`${clip(text.shown, 120)}\` starts "${clip(first, 120)}", not the verdict "${clip(report.summary, 120)}"` : `exit ${text.code} as text, ${json.code} with --json, ${report.exitCode} in the report`;
+    rec.add("cli.check-verdict", cmd.name, leads && same ? "pass" : "fail", leads && same ? `first line: ${clip(first, 160)}` : note);
+  }
+
   // Across every call.
   const traced = calls.filter((c) => hasStack(c.stdout) || hasStack(c.stderr));
   if (traced.length) for (const c of traced) rec.add("cli.no-stack-trace", c.shown, "fail", clip(c.stderr.split("\n").slice(0, 3).join(" | ")));
@@ -1119,6 +1139,12 @@ async function checkCli(ctx: Context) {
     if (bad.length) for (const c of bad) rec.add("cli.exit-codes", c.shown, "fail", `exit ${c.code} is not documented (${[...known].join(", ")})`);
     else rec.add("cli.exit-codes", `all ${calls.length} calls`, "pass", `documented: ${[...known].join(", ")}`);
   } else rec.add("cli.exit-codes", "help", "fail", "no exit codes in help --json or an `Exit codes:` line");
+  // Piped output is plain, and NO_COLOR wins even where colour is forced.
+  const forced = { ...(await run([...base, "--help"], { ...env, NO_COLOR: "1", FORCE_COLOR: "1" }, opts.timeoutMs)), shown: `NO_COLOR=1 FORCE_COLOR=1 ${name} --help` };
+  const redraws = (t: string) => /\r(?!\n)/.test(t);
+  const decorated = [...calls, forced].filter((c) => hasAnsi(c.stdout + c.stderr) || redraws(c.stdout + c.stderr));
+  if (decorated.length) for (const c of decorated) rec.add("cli.plain-pipe", c.shown, "fail", hasAnsi(c.stdout + c.stderr) ? `escape codes in piped output: ${clip(JSON.stringify(firstLine(c.stdout + c.stderr)), 140)}` : "a carriage return redraws piped output");
+  else rec.add("cli.plain-pipe", `all ${calls.length + 1} calls`, "pass", "plain text, NO_COLOR beside FORCE_COLOR included");
 
   return { name, calls: calls.length, commands: unique.length };
 }
