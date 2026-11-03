@@ -1,6 +1,7 @@
 import { createElement, createRef, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
+import type { ComponentAx } from "@/registry/ouro/ax/component";
 import { snapPipAx } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
@@ -39,16 +40,5 @@ expectTypeOf<{ label: "Your camera"; cornerLabels: { "top-left": "Oben links" } 
 // @ts-expect-error label is required.
 createElement(SnapPiP, { corner: "top-left" });
 
-// The agent side: no reads, and one move only the person makes, as literal types for Ouro AX's kit.
-expectTypeOf(snapPipAx).toEqualTypeOf<{
-  readonly component: "SnapPiP";
-  readonly reads: readonly [];
-  readonly actions: readonly [
-    {
-      readonly id: "move";
-      readonly summary: "Move the person's own picture to another corner.";
-      readonly effect: "private";
-      readonly personOnly: "You can't move the person's own picture; only they can.";
-    },
-  ];
-}>();
+// The agent side is a checked Ouro AX declaration.
+expectTypeOf(snapPipAx).toEqualTypeOf<ComponentAx>();

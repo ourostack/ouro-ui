@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
+import { AX_ACTION_ATTRIBUTE, expectAxRendered } from "@/registry/ouro/ax/component";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 import { anchorFor, cornerToward, HINT_DELAY, nearestCorner, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
@@ -1049,7 +1050,8 @@ describe("SnapPiP", () => {
       actions: [{ id: "move", summary: "Move the person's own picture to another corner.", effect: "private", personOnly: "You can't move the person's own picture; only they can." }],
     });
     const element = await render(self());
-    expect(element.getAttribute("data-ax-action")).toBe("move");
+    expectAxRendered(snapPipAx, element.parentElement!);
+    expect(element.getAttribute(AX_ACTION_ATTRIBUTE)).toBe("move");
     expect(element.getAttribute("data-ouro-control")).toBe("snap-pip");
     expect(element.getAttribute("data-ouro-part")).toBe("pip");
   });
