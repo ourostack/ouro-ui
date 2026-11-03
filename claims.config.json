@@ -154,6 +154,16 @@
       "file": "site/src/voyage/chapters/copy.ts",
       "sentence": "The sea is not for all.",
       "reason": "the Nautilus story: Ned Land when you leave the crew"
+    },
+    {
+      "file": "registry/ouro/check/check.ts",
+      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers (default ouro-check.json, when it exists) --no-axe skip axe-core --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
+      "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe flag's name"
+    },
+    {
+      "file": "registry/ouro/check/check.ts",
+      "sentence": "Exit codes: 0 ok, 1 error (the check could not run), 2 usage, 3 findings to fix.`;",
+      "reason": "Ouro check's --help names its exit codes, every Ouro tool's table, which scripts/check/check.test.mts asserts (Ouro check's command > exits as every Ouro tool does: …)"
     }
   ],
   "instructionVerbs": [
@@ -301,6 +311,11 @@
       "match": "^registry/ouro/ax/.*\\.test\\.mts$",
       "job": "ci",
       "reason": "scripts/ax.test.mjs, in pnpm test:scripts, runs every Ouro AX test with coverage"
+    },
+    {
+      "match": "^scripts/check/.*\\.test\\.mts$",
+      "job": "ci",
+      "reason": "scripts/check.test.mjs, in pnpm test:scripts, runs Ouro check's Node tests with coverage"
     },
     {
       "match": "\\.test\\.m[jt]s$",

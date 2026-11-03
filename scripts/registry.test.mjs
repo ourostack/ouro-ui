@@ -115,6 +115,7 @@ test("the registry is named ouro and lists every item", () => {
     "ouro-tests",
     "ouro-census",
     "ouro-source-rules",
+    "ouro-check",
     ...axRuntime,
     ...axRuntime.filter((name) => name !== "ax-example").map((name) => `${name}-tests`),
     "ouro-ax",
@@ -370,6 +371,8 @@ test("a helper's Node script names what it imports as devDependencies without a 
   assert.equal(item("lib-claims").dependencies, undefined);
   assert.deepEqual(item("lib-claims").devDependencies, ["typescript"]);
   assert.deepEqual(item("ouro-source-rules").devDependencies, ["postcss", "typescript"]);
+  // Ouro check loads axe-core's script by path rather than importing it, and names it all the same.
+  assert.deepEqual(item("ouro-check").devDependencies, ["axe-core", "playwright"]);
   assert.ok(!registry.items.some((entry) => (entry.dependencies ?? []).some((spec) => spec.startsWith("typescript"))), "no item depends on typescript");
 });
 
