@@ -128,6 +128,21 @@ describe("Ouro check", () => {
     assert.deepEqual(off.findings, []);
   });
 
+  test("presses in a context of its own, so what a press saves reaches no other page", async () => {
+    // The pages after the pressed one load slowly, so the tab that pressed takes the last page next.
+    const slow = page("<h1>Slow</h1>", '<script>document.documentElement.setAttribute("data-app-ready", "false"); setTimeout(() => document.documentElement.setAttribute("data-app-ready", "true"), 2500);</script>');
+    const folder = site("pressed", {
+      "a-press.html": page('<h1>Press</h1><button type="button" onclick="localStorage.setItem(\'pressed\', \'1\')">Remember</button>'),
+      "b-slow.html": slow,
+      "c-slow.html": slow,
+      "d-slow.html": slow,
+      "e-reads.html": page('<h1>Reads</h1><div id="wide" style="height:8px"></div>', '<script>addEventListener("DOMContentLoaded", () => { if (localStorage.getItem("pressed")) document.getElementById("wide").style.width = "3000px"; });</script>'),
+    });
+    const result = await check({ targets: [folder], out: dir("pressed"), sizes: [[1440, 900]], themes: ["light"], chromium, log: quiet });
+    assert.deepEqual(result.findings, []);
+    assert.equal(result.shots.length, 5);
+  });
+
   test("gives a finding gone since --before a captioned before and after, and none to one still there at another size", async () => {
     const wide = (width: number) => `<h1>Fixes</h1><div id="w" style="width:${width}px;height:8px"></div>`;
     const overlap = '<section style="position:relative"><p>Text under a label.</p><p class="tag" style="position:absolute;top:0;left:0;margin:0">A label</p></section>';
