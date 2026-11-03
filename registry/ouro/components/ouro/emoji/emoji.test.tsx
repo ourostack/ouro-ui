@@ -3,7 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiSkinTone, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex, emojiTextToTokens, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -377,13 +377,20 @@ describe("Emoji's animation", () => {
   it("is fetched once the still image has loaded, so the first play starts at once, the still showing until then", async () => {
     await motion();
     const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
-    const { host } = await render(
+    const stills = [party.src, blink.src, heart.src, wave.src, tones[2]!.src];
+    // What was fetched ahead: every address but the stills the page draws.
+    const ahead = () => fetched(sources).filter((src) => !stills.includes(src as string));
+    const drawn = (item: EmojiItem, skinTone?: EmojiSkinTone) => (
       <p>
-        <Emoji item={party} /> <Emoji item={blink} /> <Emoji item={heart} />
-      </p>,
+        <Emoji item={party} /> <Emoji item={blink} /> <Emoji item={heart} /> <Emoji item={item} skinTone={skinTone} />
+      </p>
     );
-    await expect.poll(() => fetched(sources)).toEqual(expect.arrayContaining([party.animatedSrc, blink.filmstrip!.src]));
-    expect(images(host).map((picture) => picture.getAttribute("src"))).toEqual([party.src, blink.src, heart.src]);
+    const { host, rerender } = await render(drawn(wave));
+    await expect.poll(() => ahead().sort()).toEqual([party.animatedSrc, blink.filmstrip!.src, wave.animatedSrc].sort());
+    expect(images(host).map((picture) => picture.getAttribute("src"))).toEqual([party.src, blink.src, heart.src, wave.src]);
+    // Another tone is another animation.
+    await rerender(drawn(wave, "medium"));
+    await expect.poll(ahead).toContain(tones[2]!.animatedSrc);
   });
 
   it("is not fetched under reduced motion, which plays nothing, or for a still that fails to load", async () => {
