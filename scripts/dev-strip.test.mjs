@@ -8,6 +8,7 @@ import { build } from "vite";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const probe = join(root, "scripts/fixtures/dev-strip-probe.ts");
 const appProbe = join(root, "scripts/fixtures/dev-strip-app-probe.ts");
+const emojiProbe = join(root, "scripts/fixtures/dev-strip-emoji-probe.ts");
 
 // Peer dependencies stay external, so the output is only Ouro UI's code.
 const external = [/^react($|\/)/, /^react-dom($|\/)/, /^@base-ui\/react($|\/)/, /^motion($|\/)/];
@@ -112,4 +113,36 @@ test("in a production bundle devWarn is silent and devThrow carries no fix", asy
   assert.throws(() => mod.throwProbe(), {
     message: "[ouro-ui] Sheet.Title: PROBE_THROW_PROBLEM",
   });
+});
+
+const REBUILD_TEXT = "the index of the same emoji was built";
+
+/** What `run` writes with console.warn. */
+function warningsOf(run) {
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  try {
+    run();
+  } finally {
+    console.warn = original;
+  }
+  return warnings;
+}
+
+test("a Vite development bundle warns once when the same emoji are indexed again and again (control)", async () => {
+  const mod = await load(await bundle("development", emojiProbe));
+  const warnings = warningsOf(() => mod.rebuildProbe(20));
+  assert.equal(warnings.length, 1);
+  assert.ok(warnings[0].includes(REBUILD_TEXT), warnings[0]);
+});
+
+test("in a production bundle the emoji index never warns about rebuilds and carries no message", async () => {
+  const code = await bundle("production", emojiProbe);
+  assert.ok(!code.includes(REBUILD_TEXT), "still contains the rebuild message");
+  const mod = await load(code);
+  assert.deepEqual(
+    warningsOf(() => mod.rebuildProbe(20)),
+    [],
+  );
 });

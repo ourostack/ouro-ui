@@ -1,4 +1,5 @@
 import type { EmojiCatalogue, EmojiItem, EmojiItemTone } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 
 export {
   catalogueIndex,
@@ -110,10 +111,96 @@ const indexes = new WeakMap<EmojiCatalogue, CatalogueIndex>();
 const VARIATION = /\uFE0F/g;
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** The catalogue's index, built on first use and kept while the catalogue object lives. @internal */
+/** A step in a path of objects, held weakly, with the index the path ends at. */
+interface IndexPath {
+  next: WeakMap<object, IndexPath>;
+  index?: CatalogueIndex;
+}
+
+const paths: IndexPath = { next: new WeakMap() };
+
+/**
+ * Where a sequence of objects leads, a lookup per object: the same objects in the same order
+ * lead to the same place.
+ *
+ * @claim "the same objects in the same order lead to the same place" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
+ */
+function pathOf(steps: readonly object[]): IndexPath {
+  let path = paths;
+  for (const step of steps) {
+    let next = path.next.get(step);
+    if (!next) path.next.set(step, (next = { next: new WeakMap() }));
+    path = next;
+  }
+  return path;
+}
+
+/**
+ * The indexes of catalogues an app named with an `id`, at most `NAMED` of them, the oldest let go first.
+ *
+ * @claim "at most `NAMED` of them" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between catalogues with the same id, and keeps the most recent ids)
+ */
+const named = new Map<string, CatalogueIndex>();
+const NAMED = 16;
+
+/** When a set of emoji, named by their ids, was built in the last `REBUILD_SPAN` milliseconds, in development only. */
+const builds = new Map<string, number[]>();
+const REBUILD_SPAN = 1000;
+const REBUILD_LIMIT = 3;
+
+/**
+ * Warns once, in development, when the index of the same emoji is built more than
+ * `REBUILD_LIMIT` times within a second, as when an app makes its catalogue's emoji afresh for
+ * each message. Catalogues of different emoji, such as a page of examples, never count together.
+ *
+ * @claim "the same emoji is built more than `REBUILD_LIMIT` times within a second" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > warns once in development when the same emoji are indexed more than three times within a second)
+ * @claim "Catalogues of different emoji, such as a page of examples, never count together" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > stays quiet for many different catalogues, and for equivalent fresh ones however often an app makes them)
+ */
+function noteBuild(items: readonly EmojiItem[]): void {
+  const now = Date.now();
+  const key = items.map((item) => item.id).join();
+  // Stryker disable next-line ArrayDeclaration: the filter keeps only recent times, so anything else the empty list starts with is dropped.
+  const times = (builds.get(key) ?? []).filter((time) => time > now - REBUILD_SPAN);
+  times.push(now);
+  builds.set(key, times);
+  /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+  if (process.env.NODE_ENV !== "production") {
+    if (times.length > REBUILD_LIMIT) {
+      devWarn(
+        "EmojiCatalogue",
+        `the index of the same emoji was built more than ${REBUILD_LIMIT} times within a second, each time for a catalogue of new emoji objects. Each build maps every emoji and compiles two patterns of their text, so drawing a conversation this way can take seconds`,
+        "build the catalogue once and pass that object every time (useMemo(() => toCatalogue(emoji), [emoji])), or give every copy the same id that changes only when the emoji do: { id: \"contoso-2026-11\", categories }",
+      );
+    }
+  }
+}
+
+/**
+ * The catalogue's index, built on first use and kept while the catalogue's emoji live. A fresh
+ * catalogue object with the same emoji shares it: one with the same `id`, or else one whose
+ * categories hold the same `items` arrays (a lookup per category), or the same emoji objects in
+ * the same order (a lookup per emoji). @internal
+ *
+ * @claim "A fresh catalogue object with the same emoji shares it" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
+ */
 function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
-  const known = indexes.get(catalogue);
-  if (known) return known;
+  let index = indexes.get(catalogue) ?? named.get(catalogue.id!);
+  if (!index) {
+    const arrays = pathOf(catalogue.categories.map((category) => category.items));
+    const emoji = arrays.index ? arrays : pathOf(catalogue.categories.flatMap((category) => category.items));
+    index = emoji.index ?? buildCatalogueIndex(catalogue);
+    arrays.index = emoji.index = index;
+    if (catalogue.id !== undefined) {
+      named.set(catalogue.id, index);
+      if (named.size > NAMED) named.delete(named.keys().next().value!);
+    }
+  }
+  indexes.set(catalogue, index);
+  return index;
+}
+
+/** Builds a catalogue's index: maps of its emoji and the patterns that find their text. */
+function buildCatalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
   const items: EmojiItem[] = [];
   const byId = new Map<string, FoundEmoji>();
   const byToken = new Map<string, FoundEmoji>();
@@ -129,6 +216,8 @@ function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
       if (form.text) byText.set(form.text.replace(VARIATION, ""), found);
     }
   }
+  /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+  if (process.env.NODE_ENV !== "production") noteBuild(items);
   // Shortcodes win over ids that look the same, so they go in last.
   for (const item of items) item.shortcodes?.forEach((shortcode) => byToken.set(shortcode.toLowerCase(), { item, tone: "default" }));
   // Longest first, so a sequence wins over the emoji it starts with; a variation selector may follow any character.
@@ -136,9 +225,7 @@ function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
   const pattern = new RegExp([":[^\\s:]+(?=:)", ...texts].join("|"), "gu");
   // (?!) matches nothing, for a catalogue that lists no text.
   const textPattern = new RegExp(["(?!)", ...texts].join("|"), "gu");
-  const index = { items, byId, byToken, byText, pattern, textPattern };
-  indexes.set(catalogue, index);
-  return index;
+  return { items, byId, byToken, byText, pattern, textPattern };
 }
 
 /** A run of text, or an emoji found in it with the text it was found as. */
