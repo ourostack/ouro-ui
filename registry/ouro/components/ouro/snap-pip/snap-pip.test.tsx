@@ -966,6 +966,7 @@ describe("SnapPiP", () => {
     expect(anchorFor("top-left", stageBox, small, 16, [{ x: 0, y: 0, width: 300, height: 480 }])).toEqual({ x: 16, y: 16 });
     expect(anchorFor("top-left", stageBox, small, 16, [{ x: -40, y: 0, width: 30, height: 480 }, { x: 170, y: 0, width: 20, height: 150 }])).toEqual({ x: 16, y: 166 });
     expect(anchorFor("top-right", stageBox, small, 16, [{ x: 390, y: 0, width: 30, height: 480 }, { x: 190, y: 0, width: 20, height: 150 }])).toEqual({ x: 204, y: 166 });
+    expect(anchorFor("bottom-right", stageBox, small, 16, [{ x: 0, y: 490, width: 380, height: 30 }, { x: 0, y: 364, width: 380, height: 5 }])).toEqual({ x: 204, y: 248 });
     // With no inset, a place that only touches a keep-out clears it, on every side.
     expect([
       anchorFor("top-left", stageBox, small, 0, [{ x: 0, y: 0, width: 40, height: 480 }]),
