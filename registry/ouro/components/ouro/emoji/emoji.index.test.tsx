@@ -73,6 +73,37 @@ describe("catalogueIndex", () => {
     expect(renamed.byText.get("🦊")!.item.id).toBe(moved[0]!.id);
   });
 
+  it("keeps a shape in use among the 8 most recent, not only the 8 built most recently", () => {
+    const kept = freshEmoji();
+    const first = catalogueIndex(wrap([{ id: "all", label: "All", items: kept }]));
+    const moved = (version: number) => wrap([{ id: "all", label: "All", items: kept.map((item) => ({ ...item, src: `${item.src}?v=${version}` })) }]);
+    for (let round = 0; round < 3; round++) {
+      for (let other = 0; other < 7; other++) catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }]));
+      expect(catalogueIndex(moved(round)).pattern).toBe(first.pattern);
+    }
+  });
+
+  it("tells apart catalogues whose emoji say different things, and not those that say the same in other words", () => {
+    const base = (): EmojiItem[] => [{ id: "a", name: "A", text: "🦊", shortcodes: ["ab", "c"], src: "/a.png", skinTones: [{ id: "a-1", src: "/a1.png", text: "🦊🏻" }] }];
+    const patternOf = (items: EmojiItem[]) => catalogueIndex(wrap([{ id: "all", label: "All", items }])).pattern;
+    const original = patternOf(base());
+    expect(patternOf(base())).toBe(original);
+    const changes: [string, (item: EmojiItem) => EmojiItem][] = [
+      ["a shortcode", (item) => ({ ...item, shortcodes: ["ab", "d"] })],
+      ["where shortcodes divide", (item) => ({ ...item, shortcodes: ["a", "bc"] })],
+      ["no shortcodes", (item) => ({ ...item, shortcodes: undefined })],
+      ["a tone's id", (item) => ({ ...item, skinTones: [{ id: "a-2", src: "/a1.png", text: "🦊🏻" }] })],
+      ["a tone's text", (item) => ({ ...item, skinTones: [{ id: "a-1", src: "/a1.png", text: "🦊🏼" }] })],
+      ["no tones", (item) => ({ ...item, skinTones: undefined })],
+      ["no text", (item) => ({ ...item, text: undefined })],
+    ];
+    for (const [, change] of changes) expect(patternOf(base().map(change))).not.toBe(original);
+    const bare = (): EmojiItem[] => [{ id: "b", name: "B", src: "/b.png", skinTones: [{ id: "b-1", src: "/b1.png" }] }];
+    const spelledOut = (): EmojiItem[] => [{ id: "b", name: "B", text: "", shortcodes: [], src: "/b.png", skinTones: [{ id: "b-1", src: "/b1.png", text: "" }] }];
+    expect(patternOf(spelledOut())).toBe(patternOf(bare()));
+    expect(patternOf([{ id: "b", name: "B", src: "/b.png" }])).toBe(patternOf([{ id: "b", name: "B", src: "/b.png", skinTones: [] }]));
+  });
+
   it("shares one index between fresh catalogue objects holding the same emoji", () => {
     const smileys = freshEmoji();
     const people = freshEmoji();

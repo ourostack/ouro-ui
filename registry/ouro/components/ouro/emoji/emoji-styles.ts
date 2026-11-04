@@ -255,6 +255,7 @@ const SHAPES = 8;
  * @claim "What a catalogue's emoji say, each" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
  */
 function signatureOf(items: readonly EmojiItem[]): string {
+  // Stryker disable next-line StringLiteral: the signature only has to be the same for the same emoji, whatever it starts with.
   let signature = "";
   for (const item of items) {
     signature += `\u0001${item.id}\u0002${item.text ?? ""}\u0002${item.shortcodes?.join("\u0003") ?? ""}`;
