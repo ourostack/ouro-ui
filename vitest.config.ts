@@ -21,6 +21,11 @@ const themeTests = "test/themes/**";
 // announcements), only with OURO_CONFORMANCE=1 (`pnpm conformance`, CI's sharded `conformance` job).
 const conformance = process.env["OURO_CONFORMANCE"] === "1";
 const conformanceTests = "test/conformance/**";
+// test/webkit-layout/: how WebKit on macOS lays out a long conversation, timed against a flex column and block flow on
+// one page, only with OURO_WEBKIT_LAYOUT=1 (`pnpm test:webkit-layout`, the nightly and release-rehearsal run of
+// .github/workflows/webkit-layout.yml on a macOS runner); WebKit elsewhere has nothing to hold, so it is skipped there.
+const webkitLayout = process.env["OURO_WEBKIT_LAYOUT"] === "1";
+const webkitLayoutTests = "test/webkit-layout/**";
 // A mutation run (`pnpm mutation`, scripts/mutation.mjs): Stryker's mutants are switched on in the
 // browser by scripts/mutation/setup.ts, from the mutant the runner in scripts/mutation/plugins.mjs
 // is running, which the `ouroMutant` command reads in this process.
@@ -107,7 +112,7 @@ export default defineConfig({
     // `pnpm motion:coverage` (scripts/motion-reporter.mts). A themes or conformance run proves no
     // motion and writes none, so it leaves `pnpm test`'s partitions as they were. A shard also writes
     // how long each file took, for the next split (`node scripts/shard.mjs refresh`).
-    reporters: [...configDefaults.reporters, ...(themes || conformance ? [] : [new MotionReporter()]), ...(shard && !themes && !conformance ? [new TimingsReporter()] : [])],
+    reporters: [...configDefaults.reporters, ...(themes || conformance || webkitLayout ? [] : [new MotionReporter()]), ...(shard && !themes && !conformance ? [new TimingsReporter()] : [])],
     coverage: {
       provider: "istanbul",
       // The census kit's in-page collector is JavaScript an app's Playwright runs in the page; its
@@ -127,7 +132,7 @@ export default defineConfig({
         ...project,
         test: {
           ...project.test,
-          exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests],
+          exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests, webkitLayoutTests],
           ...(mutation
             ? {
                 setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"],
@@ -172,6 +177,25 @@ export default defineConfig({
                   headless: true,
                   provider: playwright(),
                   instances: [{ browser: "chromium" as const }],
+                  commands,
+                },
+              },
+            },
+          ]
+        : []),
+      ...(webkitLayout
+        ? [
+            {
+              extends: true as const,
+              test: {
+                name: "webkit-layout",
+                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts"],
+                include: [`${webkitLayoutTests}/*.test.{ts,tsx}`],
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "webkit" as const }],
                   commands,
                 },
               },
