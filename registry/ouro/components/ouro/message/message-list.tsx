@@ -1274,6 +1274,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           }
         }
       }
+      // Stryker disable next-line ConditionalExpression: a list drawn whole measures no slot to place a band by, and draws every child whatever the band says.
       if (!windowed) return;
       // Where each child starts, with the gap before it, from a slot drawn, which is where it is: the space kept for the
       // children not drawn is built from the heights this reads, so any slot drawn places all of them alike.
