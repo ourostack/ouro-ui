@@ -45,7 +45,7 @@ test.describe("interaction latency", () => {
   const controls: Record<(typeof STAGE_CONTROLS)[number], (page: Page) => Presses> = {
     // X-ray's press turns it on; switching it off again is set-up.
     xray: (page) => ({
-      press: () => page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }).click(),
+      press: () => page.locator("[data-stage-control='xray']").getByRole("button", { name: STAGE_COPY.xray }),
       setUp: async (index) => {
         if (index > 0) await page.getByRole("switch", { name: "X-ray" }).click();
       },
@@ -56,24 +56,24 @@ test.describe("interaction latency", () => {
         await page.keyboard.press(index % 2 ? "ArrowLeft" : "ArrowRight");
       },
     }),
-    "tank-fore": (page) => ({ press: () => tank(page, TANKS[0].name).click() }),
-    "tank-middle": (page) => ({ press: () => tank(page, TANKS[1].name).click() }),
-    "tank-aft": (page) => ({ press: () => tank(page, TANKS[2].name).click() }),
+    "tank-fore": (page) => ({ press: () => tank(page, TANKS[0].name) }),
+    "tank-middle": (page) => ({ press: () => tank(page, TANKS[1].name) }),
+    "tank-aft": (page) => ({ press: () => tank(page, TANKS[2].name) }),
     // Dive, then Surface (which empties the tanks), so each Dive needs the tanks filled first.
     dive: (page) => ({
-      press: (index) => (index % 2 === 0 ? diveButton(page) : page.getByRole("button", { name: STAGE_COPY.surface, exact: true })).click(),
+      press: (index) => (index % 2 === 0 ? diveButton(page) : page.getByRole("button", { name: STAGE_COPY.surface, exact: true })),
       setUp: async (index) => {
         if (index % 2 === 0) await fillTanks(page);
       },
     }),
-    speed: (page) => ({ press: (index) => page.getByRole("radio", { name: index % 2 ? "Half" : "Full" }).click() }),
-    lights: (page) => ({ press: () => page.getByRole("switch", { name: STAGE_COPY.lights }).click() }),
+    speed: (page) => ({ press: (index) => page.getByRole("radio", { name: index % 2 ? "Half" : "Full" }) }),
+    lights: (page) => ({ press: () => page.getByRole("switch", { name: STAGE_COPY.lights }) }),
     // The fold holds lines once something has happened.
     log: (page) => ({
       prepare: () => page.getByRole("radio", { name: "Full" }).click(),
-      press: () => page.getByRole("button", { name: /^Ship's log \(/ }).click(),
+      press: () => page.getByRole("button", { name: /^Ship's log \(/ }),
     }),
-    bell: (page) => ({ press: () => page.getByRole("button", { name: STAGE_COPY.bell }).click() }),
+    bell: (page) => ({ press: () => page.getByRole("button", { name: STAGE_COPY.bell }) }),
   };
 
   for (const id of STAGE_CONTROLS) {

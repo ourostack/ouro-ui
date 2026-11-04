@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
 // `pnpm test:latency`, playwright.latency.config.ts, and CI's latency job). Each control is pressed
@@ -7,6 +7,15 @@ import { expect, test, type Page } from "@playwright/test";
 // 20, so one slow frame on a shared runner is not a failure) is within LATENCY.p95, the hard ceiling
 // for every control, and its median is within its own ceiling, set from the median it measures on CI
 // (medianCeiling): that catches a fast control that got much slower but stays under 100 ms.
+//
+// A click is pressed as a person presses: the pointer is already resting on the control, and the
+// press is the button going down and up. Playwright's locator.click() does more in the page, inside
+// the press: it waits for the control to hold still over animation frames, moves the pointer onto it
+// (its hover styles), and hit-tests the point from a listener on the press's own pointerdown, which
+// forces a style and layout pass of the whole page. On the throttled CPU that pass costs most while
+// something animates, so Event Timing counted the harness's work as the page's, and more on some
+// presses than others. So the harness aims at full speed, moving the pointer onto the control once it
+// is ready, and only the press runs on the throttled CPU.
 //
 // Event Timing reports durations in 8 ms steps, so every sample is a multiple of 8 and a median of
 // 20 a multiple of 4: a bound sits between steps or it is really the step below it.
@@ -25,8 +34,11 @@ export const LATENCY = {
 
 /** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1. */
 export interface Presses {
-  /** Presses the control once. */
-  press: (index: number) => Promise<unknown>;
+  /**
+   * Presses the control once: the control to click, which measure aims at and presses as a person
+   * does, or a promise for a press made another way, such as a key.
+   */
+  press: (index: number) => Locator | Promise<unknown>;
   /** Runs once before the first press, at full speed: what the presses need (an earlier line in the log). */
   prepare?: () => Promise<unknown>;
   /** Runs before a press, at full speed: what that press needs (full tanks before Dive). */
@@ -60,7 +72,9 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
  * so a press with no entry counts as 16 ms, if the browser's interaction count says it happened; a
  * press with neither is a broken measurement, and fails. Setting up a press runs at full speed, and
  * so does its tail (the porthole's repaint after the press), so a press is measured from a settled page, as
- * a person's would be a beat later.
+ * a person's would be a beat later. A click is aimed at full speed too (the pointer moved onto the
+ * control once it is ready), so the throttled CPU runs only the press: the button going down
+ * and up.
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
   await page.evaluate(() => {
@@ -87,16 +101,42 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     if (setUp) await unthrottled(() => setUp(index));
     await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
     const before = await interactions();
-    await press(index);
+    const pressed = press(index);
+    if (isLocator(pressed)) {
+      // Aiming dispatches no interaction: a pointer that moves is not one.
+      await unthrottled(() => aim(pressed));
+      // A frame or two on the throttled CPU first, as Playwright's own round trips gave the press
+      // before: a press the instant the throttle comes on was slower some of the time.
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+      await page.mouse.down();
+      await page.mouse.up();
+    } else {
+      await pressed;
+    }
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
     const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
-    const pressed = (await interactions()) > before;
-    expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
+    const happened = (await interactions()) > before;
+    expect(durations.length > 0 || happened, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
     if (index >= LATENCY.warmUps) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
   return samples;
+}
+
+/** Whether a press is a control to click rather than a press already made. */
+function isLocator(press: Locator | Promise<unknown>): press is Locator {
+  return typeof (press as Promise<unknown>).then !== "function";
+}
+
+/**
+ * Readies a click as a person's pointer is ready: the control enabled, and the pointer resting on it
+ * (hover waits for it to show, hold still and be hit at its point). Not click({ trial: true }), which
+ * presses the mouse button with the page's handlers blocked: Event Timing counts that as a press.
+ */
+async function aim(control: Locator): Promise<void> {
+  await expect(control).toBeEnabled();
+  await control.hover();
 }
 
 /** Holds a control's samples to the budget and its baseline's median ceiling, reporting every sample, pass or fail. */

@@ -85,9 +85,12 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .site-porthole .sq-glass-arm {
-    transform-box: fill-box;
-    transform-origin: 90% 10%;
+  /*
+   * The arm on the glass turns about the point 90% across and 10% down its own box (x 92 to 229, y 196
+   * to 313 of the squid's 400): a drawing of its own (chapter-three.tsx), so the compositor turns it.
+   */
+  .site-porthole .ph-glass-arm {
+    transform-origin: 53.825% 51.925%;
     animation: sq-stir 2.6s ease-in-out 3;
   }
   /*
