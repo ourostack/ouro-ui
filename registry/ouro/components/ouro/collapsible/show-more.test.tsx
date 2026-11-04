@@ -1171,6 +1171,27 @@ describe("ShowMore's first guess", () => {
     await expect.poll(() => toggle(narrow)).not.toBeNull();
   });
 
+  it("takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded", () => {
+    const short = guessed(
+      <ShowMore maxHeight={120} estimate={{ text: "Lunch at noon?" }}>
+        <Opaque height={20} />
+      </ShowMore>,
+    );
+    expect(toggle(short)).toBeNull();
+    expect(foldOf(short).hasAttribute("data-folded")).toBe(false);
+    expect(foldOf(short).className).not.toContain("max-h-");
+    expect(toggle(guessed(<ShowMore maxHeight={120} estimate={{}}><Opaque height={20} /></ShowMore>))).toBeNull();
+    const long = guessed(
+      <ShowMore maxHeight={120} estimate={{ text: "The plan, with photos", height: 400 }}>
+        <Opaque />
+      </ShowMore>,
+    );
+    expect(toggle(long)).not.toBeNull();
+    expect(foldOf(long).hasAttribute("data-folded")).toBe(true);
+    expect(toggle(guessed(<ShowMore lines={4} estimate={{ text: "Hi" }}><Opaque height={10} /></ShowMore>))).toBeNull();
+    expect(toggle(guessed(<ShowMore lines={2} estimate={{ text: "中文".repeat(50) }}><Opaque height={10} /></ShowMore>))).not.toBeNull();
+  });
+
   it("keeps the guess for text shown whole when its line height is not a length", async () => {
     const host = guessed(
       <div style={{ lineHeight: "normal" }}>
