@@ -3,6 +3,7 @@
 import {
   isValidElement,
   type CSSProperties,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -21,9 +22,10 @@ import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/ava
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
-import type { MessageActionBar } from "@/registry/ouro/components/ouro/message/message-parts";
+import type { MessageActionBar, MessageBarData } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { RowLayerContext } from "@/registry/ouro/lib/ouro/row-hover";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** Who wrote a message: the person using the app, the assistant, or the app itself. */
@@ -222,8 +224,13 @@ export interface MessageOwnProps {
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
    * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
-   * keys moving between its buttons.
+   * keys moving between its buttons. In a `MessageList` the list draws one bar for all its
+   * messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and
+   * hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens,
+   * so at most one bar shows and none stays behind. Escape hides it.
    *
+   * @claim "In a `MessageList` the list draws" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > draws one bar for the whole list, on the message the pointer is over, and listens the same for a hundred messages as for two)
+   * @claim "so at most one bar shows" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > leaves no bar behind when the pointer leaves, the list scrolls, the window loses focus or the menu opens)
    * @claim "It is a toolbar: one Tab" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > is one Tab stop, and the arrow keys, Home and End move between its buttons)
    * @claim "The bar shows while the pointer" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > shows the bar on hover and while focus is in the message, and hides it otherwise)
    */
@@ -244,16 +251,31 @@ export interface MessageOwnProps {
   actionsPlacement?: MessageActionsPlacement | (string & { 'Use "corner" or "beside"': never }) | undefined;
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
-   * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
-   * browser once its code loads, so server HTML has the message without it; Menu's code loads as
-   * soon as a bar with a menu is on the page, so the first press opens it without a wait.
+   * entries as Menu's `items`, each with an optional `icon` before its label and its `shortcut` at its end. The bar stays while the menu is open. The bar renders in the
+   * browser once its code loads, so server HTML has the message without it; Menu's code loads the
+   * first time someone opens a message's menu. In a `MessageList`, the list has one menu for all its
+   * messages: the bar's menu button, a right-click on the message (except on a field or selected
+   * text) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and
+   * closing it puts focus back on the message.
    *
-   * @claim "Menu's code loads as soon as" registry/ouro/components/ouro/message/message.warm.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.warm.test.tsx::Message's menu code > is fetched as a bar with a menu mounts, before anyone presses its button)
+   * @claim "In a `MessageList`, the list has one menu" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > opens one menu from the bar's button and a right-click, with the reactions on top, and the same menu again for another message)
+   * @claim "Shift+F10 or the context-menu key" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > opens the menu from the keyboard on the focused message, and Escape puts focus back on it)
    * @claim "More actions, in a menu that" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > opens the menu from the last button, and keeps the bar while it is open)
    */
   menu?: readonly MenuEntry[] | undefined;
+  /**
+   * Reactions at the top of the message's menu, as a row of emoji: each an action whose `icon` is the
+   * emoji and whose `label` names it ("Like"). Left and right move along the row. Put one that opens
+   * a picker of every reaction last ("More reactions").
+   * @claim "Reactions at the top of the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > puts the quick reactions at the top of the menu, named, and the arrow keys move along them)
+   */
+  quickReactions?: readonly MessageAction[] | undefined;
+  /** What screen readers hear for the row of reactions in the menu, for other languages. @default "Reactions" */
+  quickReactionsLabel?: string | undefined;
   /** What screen readers hear for the action bar, for other languages. @default "Message actions" */
   actionsLabel?: string | undefined;
+  /** What screen readers hear for the menu a `MessageList` opens for the message. @default `Message actions for ${name}` */
+  actionsMenuLabel?: string | undefined;
   /** The menu button's name, for other languages. @default "More actions" */
   menuLabel?: string | undefined;
   /**
@@ -522,7 +544,10 @@ export function Message(props: MessageProps): JSX.Element {
     actions,
     actionsPlacement,
     menu,
+    quickReactions,
+    quickReactionsLabel = "Reactions",
     actionsLabel = "Message actions",
+    actionsMenuLabel,
     menuLabel = "More actions",
     streaming = false,
     streamingLabel = "Writing",
@@ -609,12 +634,16 @@ export function Message(props: MessageProps): JSX.Element {
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
   }, [active, element]);
-  const hasBar = (actions !== undefined && actions.length > 0) || (menu !== undefined && menu.length > 0);
+  const hasBar =
+    (actions !== undefined && actions.length > 0) || (menu !== undefined && menu.length > 0) || (quickReactions !== undefined && quickReactions.length > 0);
+  // In a MessageList, the list draws one bar for all its messages: this message gives it what to show, and where.
+  const layer = useContext(RowLayerContext);
+  const layered = layer !== null && hasBar;
   const tap = (event: PointerEvent<HTMLElement>) => {
     rest.onPointerUp?.(event);
     // A tap on a control is the control's; the message itself takes a tabindex in a MessageList, and a tap on it is the message's.
     const control = (event.target as Element).closest("a, button, input, textarea, select, [tabindex]");
-    if (hasBar && event.pointerType === "touch" && (control === null || control === event.currentTarget)) setActive(true);
+    if (hasBar && !layered && event.pointerType === "touch" && (control === null || control === event.currentTarget)) setActive(true);
   };
   const ref = (node: HTMLElement | null) => {
     setElement(node);
@@ -664,8 +693,9 @@ export function Message(props: MessageProps): JSX.Element {
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression: the bar's code for a message without one renders nothing; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
-    if (hasBar) void loadBar().then((Loaded) => setBar(() => Loaded));
-  }, [hasBar]);
+    if (hasBar && !layered) void loadBar().then((Loaded) => setBar(() => Loaded));
+  }, [hasBar, layered]);
+  const slot = useRef<HTMLSpanElement | null>(null);
   // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
   // avatar's column takes when it is at the start (w-8, and the row's gap-2 in a chat or gap-3 in a reply).
   const beside =
@@ -676,10 +706,45 @@ export function Message(props: MessageProps): JSX.Element {
           ? peopleGutter
           : "2.5rem"
       : undefined;
-  const bar =
-    hasBar && Bar ? (
-      <Bar actions={actions ?? []} menu={menu} label={actionsLabel} menuLabel={menuLabel} start={shape === "chat" && role === "user"} post={variant === "post"} beside={beside} />
-    ) : null;
+  const start = shape === "chat" && role === "user";
+  const bar = layered ? (
+    // The list's one bar goes here while it is on this message.
+    <span ref={slot} data-ouro-message-bar-slot="" className="contents" />
+  ) : hasBar && Bar ? (
+    <Bar
+      actions={actions ?? []}
+      menu={menu}
+      reactions={quickReactions}
+      reactionsLabel={quickReactionsLabel}
+      label={actionsLabel}
+      menuLabel={menuLabel}
+      start={start}
+      post={variant === "post"}
+      beside={beside}
+    />
+  ) : null;
+  // What the list's bar and menu show for this message, given again on every render, so they show what it shows now.
+  useLayoutEffect(() => {
+    if (!layered || element === null) return;
+    const data: MessageBarData = {
+      actions: actions ?? [],
+      menu,
+      reactions: quickReactions,
+      label: actionsLabel,
+      menuLabel,
+      menuName: actionsMenuLabel ?? (name ? `Message actions for ${name}` : "Message actions"),
+      reactionsLabel: quickReactionsLabel,
+      start,
+      post: variant === "post",
+      beside,
+      slot: () => slot.current,
+    };
+    layer.set(element, data);
+  });
+  useLayoutEffect(() => {
+    if (!layered || element === null) return;
+    return () => layer.delete(element);
+  }, [layer, layered, element]);
 
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";

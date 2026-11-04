@@ -2,8 +2,10 @@
 
 import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
+import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
@@ -226,6 +228,10 @@ let shifted = 0;
  * @claim "How far the springs draw each" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
  */
 const shifts = new WeakMap<Element, number>();
+
+// The list's one action bar and menu, loaded with the first message that has actions.
+let layerModule: Promise<typeof MessageBarLayer> | undefined;
+const loadLayer = () => (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageBarLayer));
 
 /** Where an element is laid out: its box, less the spring of the message it is in. */
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
@@ -653,6 +659,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  // One action bar and one menu for every message, rather than one each: the messages give the layer what to show.
+  const [Layer, setLayer] = useState<typeof MessageBarLayer | undefined>(undefined);
+  const [layer] = useState(() => createRowLayer<MessageBarData>(() => void loadLayer().then((Loaded) => setLayer(() => Loaded))));
   // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
   const [showJump, setShowJump] = useState(false);
@@ -1240,10 +1249,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         >
           {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
           {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
-          {shown}
+          <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{shown}</RowLayerContext.Provider>
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
       </div>
+      {Layer && <Layer scroller={scrollerRef} layer={layer} />}
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
       <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
         {spoken.map((item) => (
