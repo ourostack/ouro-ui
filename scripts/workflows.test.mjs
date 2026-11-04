@@ -1549,8 +1549,11 @@ test("every job of a workflow that runs on pull requests or in the merge queue e
     const jobs = text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/);
     for (const job of jobs) {
       const id = job.match(/^ {2}([\w-]+):/)[1];
-      const minutes = Number(job.match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-      assert.ok(minutes >= 10 && minutes <= 60, `${file}: ${id} has timeout-minutes ${minutes}`);
+      // A limit is a number, or `${{ github.event_name == 'pull_request' && <a> || <b> }}`: then both must be within the hour.
+      const line = job.match(/^ {4}timeout-minutes: (.+)$/m)?.[1] ?? "";
+      const byEvent = /^\$\{\{ github\.event_name == '[a-z_]+' && (\d+) \|\| (\d+) \}\}$/.exec(line);
+      const limits = byEvent ? [Number(byEvent[1]), Number(byEvent[2])] : [Number(/^\d+$/.test(line) ? line : NaN)];
+      for (const minutes of limits) assert.ok(minutes >= 10 && minutes <= 60, `${file}: ${id} has timeout-minutes ${minutes}`);
     }
   }
 });
