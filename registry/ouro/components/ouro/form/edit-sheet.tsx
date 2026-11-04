@@ -50,7 +50,8 @@ export interface EditSheetBaseProps {
   closeLabel?: string | undefined;
   /**
    * What the sheet shows, at the top of the form, when `onSubmit` rejects or throws. Translate it with your app.
-   * @default "Your changes were not saved: <the error's message>. Press Save to try again.", or, for an error without a message, "Your changes were not saved. The save stopped without saying why. Press Save to try again."
+   * By default it shows the rejected error's own message, so reject with one a person can read.
+   * @default "Your changes were not saved: <the error's message>. Press <submitLabel> to try again.", or, for an error without a message, "Your changes were not saved. The save stopped without saying why. Press <submitLabel> to try again."
    */
   failureMessage?: string | undefined;
   /**
@@ -127,10 +128,11 @@ const serialize = (form: HTMLFormElement) =>
  */
 const discardClass = "flex w-full flex-wrap items-center justify-end gap-2";
 
-/** What a rejected save says by default: the error's own message where it has one, and the way on. */
-const failureText = (error: unknown): string => {
+/** What a rejected save says by default: the error's own message where it has one, and the way on, by the save button's label. */
+const failureText = (error: unknown, submitLabel: string): string => {
   const reason = (error instanceof Error ? error.message : typeof error === "string" ? error : "").trim().replace(/\.$/, "");
-  return reason ? `Your changes were not saved: ${reason}. Press Save to try again.` : "Your changes were not saved. The save stopped without saying why. Press Save to try again.";
+  const retry = `Press ${submitLabel} to try again.`;
+  return reason ? `Your changes were not saved: ${reason}. ${retry}` : `Your changes were not saved. The save stopped without saying why. ${retry}`;
 };
 
 /** Whether `onSubmit` returned errors to show, rather than nothing or an empty object. */
@@ -323,7 +325,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
         const stale = attempt.current !== current;
         if (!stale) {
           setPending(false);
-          refuse({ form: failureMessage ?? failureText(error) });
+          refuse({ form: failureMessage ?? failureText(error, submitLabel) });
         }
         /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
         if (process.env.NODE_ENV !== "production") {

@@ -711,8 +711,8 @@ async function watchTarget(
       traceStep(trace, `the gesture's frame answered: ${answer.url}`);
       if (answer.error === undefined) return { calls };
       // A lift is sent all the same, so the finger is not left down.
-      const gone = `${command}: lost its watch on ${answer.url}, the frame the gesture's touchstart went to: ${answer.error}.`;
-      if (expected.type === "touchEnd") return { calls, gone: `${gone} The touchEnd was sent, but nothing could see it.` };
+      const gone = `${command}: the watch for the ${expected.type} did not start in ${answer.url}, the frame the gesture's touchstart went to: ${answer.error}.`;
+      if (expected.type === "touchEnd") return { calls, gone: `${gone} The touchEnd was sent, but no watcher saw it.` };
       throw new Error(`${gone} The ${expected.type} was not sent.`);
     }
     // Whether the frame at the point is armed but the hit test there does not reach inside it yet, which no change announces.
@@ -785,7 +785,7 @@ async function watchTarget(
           ),
         ).then((notes) => notes.filter((note) => note !== undefined));
         throw new Error(
-          `${command}: found no watcher in the frame at (${Math.round(target.point.x)}, ${Math.round(target.point.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms, so the ${expected.type} was not sent. ` +
+          `${command}: the frame at (${Math.round(target.point.x)}, ${Math.round(target.point.y)}) was not ready for the ${expected.type} within ${TOUCH_HANDLED_TIMEOUT_MS}ms, so it was not sent. ` +
             (inside === false
               ? `The frame there is ${at.where}: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet`
               : `The frame there is ${at.where}, and it has no watcher`) +

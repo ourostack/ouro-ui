@@ -505,12 +505,19 @@ describe("EditSheet failures outside a field (review fix round 1, finding 3)", (
 
   it.each([
     ["a string, trimmed and without its full stop", " The server is read-only. ", "Your changes were not saved: The server is read-only. Press Save to try again."],
+    ["a message with a full stop inside it", new Error("Version 2.1 of the recipe is read-only."), "Your changes were not saved: Version 2.1 of the recipe is read-only. Press Save to try again."],
     ["an error with no message", new Error(""), "Your changes were not saved. The save stopped without saying why. Press Save to try again."],
     ["something that is no error", { status: 500 }, "Your changes were not saved. The save stopped without saying why. Press Save to try again."],
   ])("by default says why the save was refused when onSubmit rejects with %s", async (_what, reason, said) => {
     await open({ onSubmit: () => Promise.reject(reason) });
     await userEvent.click(dialogButton("Save"));
     await expect.poll(() => alert().textContent).toBe(said);
+  });
+
+  it("by default names the save button by its own label in the way on", async () => {
+    await open({ submitLabel: "Save recipe", onSubmit: () => Promise.reject(new Error("The server is read-only")) });
+    await userEvent.click(dialogButton("Save recipe"));
+    await expect.poll(() => alert().textContent).toBe("Your changes were not saved: The server is read-only. Press Save recipe to try again.");
   });
 
   it("takes the failure message as a prop, and shows it when onSubmit throws", async () => {

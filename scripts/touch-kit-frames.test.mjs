@@ -222,7 +222,7 @@ test("a touchstart on a frame in another process that Playwright never lists is 
     const started = Date.now();
     await assert.rejects(
       start(),
-      /^Error: touchStep: found no watcher in the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. Playwright lists http:\/\/localhost:63315\/, http:\/\/localhost:63315\/__vitest_test__\/\. Steps: \+\d+ms asked Chromium: .+\.$/,
+      /^Error: touchStep: the frame at \(100, 350\) was not ready for the touchStart within 5000ms, so it was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. Playwright lists http:\/\/localhost:63315\/, http:\/\/localhost:63315\/__vitest_test__\/\. Steps: \+\d+ms asked Chromium: .+\.$/,
     );
     assert.ok(Date.now() - started >= 5000);
     assert.deepEqual(sent, []);
@@ -247,7 +247,7 @@ test("a refused touch logs no trace: its error says why", async () => {
   const warn = mock.method(console, "warn", () => {});
   const { start, stop } = stage({ listAfter: 60_000 });
   try {
-    await assert.rejects(start(), /found no watcher in the frame/);
+    await assert.rejects(start(), /was not ready for the touchStart within 5000ms/);
     assert.equal(warn.mock.callCount(), 0);
   } finally {
     warn.mock.restore();
@@ -265,7 +265,7 @@ test("a touch refused at the time limit is refused no sooner, though Node's time
   globalThis.setTimeout = (run, ms = 0, ...args) => early(run, Math.max(0, ms - 10), ...args);
   try {
     const started = performance.now();
-    await assert.rejects(start(), /^Error: touchStep: found no watcher in the frame at \(100, 350\) within 5000ms/);
+    await assert.rejects(start(), /^Error: touchStep: the frame at \(100, 350\) was not ready for the touchStart within 5000ms/);
     assert.ok(performance.now() - started >= 5000, `refused after ${performance.now() - started}ms`);
     assert.deepEqual(sent, []);
   } finally {
@@ -442,7 +442,7 @@ test("a touchstart into a frame that never answers is still refused once the kit
     const started = performance.now();
     let held = 0;
     await assert.rejects(start(), (error) => {
-      assert.match(error.message, /^touchStep: found no watcher in the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. /);
+      assert.match(error.message, /^touchStep: the frame at \(100, 350\) was not ready for the touchStart within 5000ms, so it was not sent\. The frame there is a frame in another process, at about:srcdoc, and it has no watcher\. /);
       held = Number(/ Node's event loop was held up for (\d+)ms meanwhile, which the kit's limits leave out\./.exec(error.message)?.[1]);
       assert.ok(held >= 900 && held <= 1100, error.message);
       assert.match(error.message, / Steps: \+\d+ms asked Chromium: /);
@@ -484,7 +484,7 @@ test("a touchstart into a frame that never answers is refused at the command's c
   try {
     const started = performance.now();
     await assert.rejects(start(), (error) => {
-      assert.match(error.message, /^touchStep: found no watcher in the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. /);
+      assert.match(error.message, /^touchStep: the frame at \(100, 350\) was not ready for the touchStart within 5000ms, so it was not sent\. /);
       assert.match(error.message, / Node's event loop was held up for \d+ms meanwhile, which the kit's limits leave out, up to their ceiling of 10000ms in all, which this command reached\./);
       return true;
     });
@@ -545,7 +545,7 @@ test("a frame whose hit test never answers is refused at the time limit, not wai
   const { sent, start, stop } = stage({ listAfter: 0, hitTestHangs: Infinity });
   try {
     const started = performance.now();
-    await assert.rejects(start(), /^Error: touchStep: found no watcher in the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is a frame in another process, at about:srcdoc: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet\b/);
+    await assert.rejects(start(), /^Error: touchStep: the frame at \(100, 350\) was not ready for the touchStart within 5000ms, so it was not sent\. The frame there is a frame in another process, at about:srcdoc: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet\b/);
     assert.ok(performance.now() - started < 7000);
     assert.deepEqual(sent, []);
   } finally {
