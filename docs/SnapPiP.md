@@ -21,15 +21,15 @@ import { SnapPiP } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 
 ## Usage
 
-It follows the pointer from the first pixel and lifts while held. On release it works out where the throw would coast to (`project`, at scrolling's deceleration of 0.998), picks the corner nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after a flick, so it overshoots a little, and 1 after a slow drop). Pressing it in flight catches it. Dragged past the container's edge, it resists more and more (`rubberband`).
+It follows the pointer from the first pixel and lifts while dragged. On release it works out where the throw would coast to (`project`, at scrolling's deceleration of 0.998), picks the corner whose place, clear of the keep-outs, is nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after a flick, so it overshoots a little, and 1 after a slow drop). Pressing it in flight catches it. Dragged past the container's edge, it resists more and more (`rubberband`).
 
-The corners sit `inset` in from the edges and keep clear of `keepOut`. It keeps its corner, not its position: when the keep-outs change it follows its corner with the spring, and while the container resizes it stays in its corner without one. While it springs it carries `data-ouro-settling`.
+The corners sit `inset` in from the edges and keep clear of `keepOut`. It keeps its corner, not its position: when the keep-outs change it follows its corner with the spring, and while the container resizes it stays in its corner without one, placed in the same frame as the resize. While it springs it carries `data-ouro-settling`.
 
-It is focusable: Option and an arrow key move it to the next corner that way, with the same spring, and the new corner is announced politely once it settles, never during the move. Its name, corner and `hint` are what screen readers read, and the hint shows on it while it has keyboard focus. Double-click it, or press Option-Return, to toggle small and large.
+It is focusable: Option and an arrow key move it to the next corner that way, with the same spring, and the new corner is announced politely once it settles, never during the move; a key toward the side it is already on says the corner again. Its name, corner and `hint` are what screen readers read. The hint also shows beside it, toward the middle of the stage and never over it, when it gets keyboard focus or the pointer rests on it, and stays while the pointer is on either. Escape, a move or a press puts it away until focus and the pointer have both left. Double-click it, or press Option-Return, to toggle small and large.
 
 With reduced motion it jumps straight to its corner: no spring, no lift and no rubberband.
 
-Its agent side, `snapPipAx` in `snap-pip-styles.ts`, declares no reads and one action, `move`, which only the person takes: where their own picture sits is theirs.
+Its agent side, `snapPipAx` in `snap-pip-styles.ts`, declares no reads and one action, `move`, which only the person takes: where their own picture sits is theirs. Hiding the picture is the app's, from its own menu, so the app declares that `hide` action, not SnapPiP.
 
 ## Use instead when
 
@@ -48,10 +48,10 @@ Type: `SnapPiPProps`.
 | `cornerLabels` | `SnapPiPCornerLabels` | { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" } | The words for each corner, read after its name and announced when it settles in a new one. |
 | `defaultCorner` | `"top-left" \| "top-right" \| "bottom-left" \| "bottom-right"` | `"bottom-right"` | The corner it starts in, uncontrolled. |
 | `defaultSize` | `"small" \| "large"` | `"small"` | The size it starts at, uncontrolled. |
-| `hint` | `string` | `"Option-arrow keys to move it"` | How to move it from the keyboard, read after its name and corner and shown on it while it has keyboard focus. Translate it with the rest of your interface. |
+| `hint` | `string` | `"Option-arrow keys to move it"` | How to move it from the keyboard, read after its name and corner, and shown beside it as a tooltip. Translate it with the rest of your interface. |
 | `id` | `string` |  | The picture's id. |
 | `inset` | `number` | `16` | How far the corners sit in from the container's edges, and from a keep-out, in px. |
-| `keepOut` | `readonly SnapPiPKeepOut[]` |  | What the corners keep clear of: rectangles in the container (`{ x, y, width, height }`, px from its top-left corner), or refs to elements, such as a toolbar's band, a captions band or another SnapPiP, measured whenever they or the container resize. A corner that would overlap one moves just clear of it, toward the middle. When they change, the picture follows its corner with the spring. |
+| `keepOut` | `readonly SnapPiPKeepOut[]` |  | What the corners keep clear of: rectangles in the container (`{ x, y, width, height }`, px from its top-left corner), or refs to elements, such as a toolbar's band, a captions band or another SnapPiP, measured whenever they or the container resize. A ref is read again after each render and whenever the container's content changes, so an element the app shows or takes away behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner that would overlap one moves just clear of it, toward the middle. When they change, the picture follows its corner with the spring. |
 | `label` (required) | `string` |  | What the picture is: "Your camera". It names it for screen readers, before its corner and the hint. |
 | `onCornerChange` | `((corner: SnapPiPCorner) => void)` |  | Called with the new corner when the person throws or moves it there, so the app can remember it. |
 | `onSizeChange` | `((size: SnapPiPSize) => void)` |  | Called with the new size when the person double-clicks it or presses Option-Return on it. |

@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory, settledBox } from "./story";
+import { openStory, pressTab, settledBox } from "./story";
 
 test("the picture rests above the call's controls, and Option and an arrow key move it to the next corner and announce it", async ({ page }) => {
   await openStory(page, "layout-snappip--in-call");
@@ -64,4 +64,19 @@ test("with reduced motion it jumps to the next corner and never lifts", async ({
   await expect(pip).not.toHaveAttribute("data-dragging");
   expect(await pip.evaluate((element) => getComputedStyle(element).scale)).toBe("none");
   await page.mouse.up();
+});
+
+test("the keyboard hint shows beside the picture, not over it, and Escape puts it away", async ({ page }) => {
+  await openStory(page, "layout-snappip--in-call");
+  const pip = page.getByRole("group", { name: "Your camera" });
+  const hint = pip.locator('[data-ouro="snap-pip-hint"]');
+  await pressTab(page);
+  await expect(pip).toBeFocused();
+  await expect(hint).toHaveAttribute("data-open", "");
+  const picture = await settledBox(pip);
+  const box = (await hint.boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(picture.y + 0.5);
+  await page.keyboard.press("Escape");
+  await expect(hint).not.toHaveAttribute("data-open");
+  await expect(pip).toBeFocused();
 });
