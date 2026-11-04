@@ -278,10 +278,16 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   // The messages near view at the last frame.
   let seen = new Set<HTMLElement>();
 
+  const mode = () => (globalThis as { __springMode?: string }).__springMode ?? "current";
+  let wrapperValue = 0;
   const draw = (item: HTMLElement, value: number) => {
+    if (mode() === "wrapper") {
+      if (Math.abs(value) > Math.abs(wrapperValue)) wrapperValue = value;
+      return;
+    }
     if (!shifts.has(item)) {
       shifted++;
-      item.style.willChange = "transform";
+      if (mode() === "current") item.style.willChange = "transform";
       // Stryker disable next-line StringLiteral: the attribute's presence is what styles and tests read.
       item.setAttribute("data-ouro-settling", "");
     }
@@ -358,6 +364,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       }
     }
     seen = near;
+    wrapperValue = 0;
     for (const [item, state] of moving) {
       const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
       // Stryker disable next-line EqualityOperator: a spring lands exactly on the rest speed only by chance, and a frame later it rests either way.
@@ -365,6 +372,15 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       else {
         moving.set(item, next);
         draw(item, next.value);
+      }
+    }
+    if (mode() === "wrapper") {
+      if (moving.size > 0) {
+        content.style.willChange = "transform";
+        content.style.transform = `translateY(${wrapperValue}px)`;
+      } else {
+        content.style.removeProperty("will-change");
+        content.style.removeProperty("transform");
       }
     }
     if (moving.size > 0) frame = requestAnimationFrame(tick);
@@ -737,7 +753,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     motionRef.current = motion;
   }, [motion]);
   useLayoutEffect(() => {
-    if (!springy) return;
+    if (!springy || (globalThis as { __springMode?: string }).__springMode === "off") return;
     const handle = springs(scrollerRef.current!, contentRef.current!, () => reducesMotion(motionRef.current));
     springsRef.current = handle;
     return () => {
