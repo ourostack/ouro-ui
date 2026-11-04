@@ -99,7 +99,8 @@ export function checkInstall(app, variant, stage) {
       // The TypeScript parser, as scripts/registry.mts reads imports: dynamic imports count, and
       // an import written in a comment or a string does not.
       for (const { fileName: specifier } of ts.preProcessFile(read(path), true, true).importedFiles) {
-        if (/^(\.|~\/|@\/|#)/.test(specifier)) continue;
+        // A Node built-in (`node:fs`, as the Ouro AX kit's x-ray uses) is no package to depend on.
+        if (/^(\.|~\/|@\/|#|node:)/.test(specifier)) continue;
         needed.add(specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]);
       }
     }
