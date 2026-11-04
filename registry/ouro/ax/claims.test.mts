@@ -6,7 +6,8 @@ test("the claim set follows its own admission rule: every must claim cites a run
   assert.deepEqual(checkClaimSet(CLAIM_SET), []);
   assert.equal(CLAIM_SET.version, CLAIM_SET_VERSION);
   for (const c of CLAIM_SET.claims) {
-    assert.ok(c.id.startsWith(`${c.surface}.`), c.id);
+    // A claim about the words an interface uses starts with `copy.`, and names the surface it is checked on.
+    assert.ok(c.id.startsWith(`${c.surface}.`) || c.id.startsWith("copy."), c.id);
     assert.ok(CLAIM_SCOPES.includes(c.applies), c.id);
     if (c.tier === "must") assert.notEqual(c.evidence.basis, "principle", c.id);
     if (c.evidence.basis === "evaluation") assert.match(c.evidence.source, /^docs\/decisions\/2026-10-30-ouro-ax\/evidence\/[\w.-]+\.md$/, c.id);
