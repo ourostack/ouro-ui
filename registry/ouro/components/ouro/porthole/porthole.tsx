@@ -413,7 +413,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
               data-porthole-part="words"
               className={cn(
                 "relative min-w-0 overflow-hidden transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)",
-                hushed && "opacity-0 group-focus-within/pill:opacity-100 pointer-fine:group-hover/pill:opacity-100",
+                // Forced colours paint the pill's edge, so its words show there too rather than leave an empty frame.
+                hushed && "opacity-0 group-focus-within/pill:opacity-100 pointer-fine:group-hover/pill:opacity-100 forced-colors:opacity-100",
               )}
             >
               <span ref={sizer} aria-hidden="true" data-porthole-part="sizer" className="invisible absolute start-0 top-0 whitespace-nowrap">
@@ -437,7 +438,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
               data-ouro-part="act"
               data-ax-action={action.id}
               onClick={() => onAction!(item!, action.id)}
-              className="press me-1 inline-flex h-6 shrink-0 cursor-pointer items-center rounded-full border-0 bg-primary px-2.5 font-[inherit] text-xs font-medium text-primary-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-coarse:h-11 pointer-coarse:min-w-11"
+              className="press me-1 inline-flex h-6 shrink-0 cursor-pointer items-center rounded-full border-0 bg-primary px-2.5 font-[inherit] text-xs font-medium text-primary-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-coarse:h-11 pointer-coarse:min-w-11 forced-colors:border forced-colors:border-solid"
             >
               {action.label}
             </button>
@@ -451,7 +452,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
               data-ax-action="dismiss"
               aria-label={labels?.dismiss ?? "Dismiss"}
               onClick={() => onDismiss!(item!)}
-              className="press me-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-fine:hover:bg-muted pointer-coarse:size-11"
+              className="press me-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-fine:hover:bg-muted pointer-coarse:size-11 forced-colors:border forced-colors:border-solid"
             >
               <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
                 <path d="M4 4l8 8M12 4l-8 8" />

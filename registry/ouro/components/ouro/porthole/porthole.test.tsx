@@ -665,12 +665,15 @@ describe("Porthole", () => {
       const rest = await lightOf(fixed());
       expect(rest.view.porthole.hasAttribute("data-porthole-quiet")).toBe(true);
       expect(rest.light.backgroundColor).toBe(system("CanvasText"));
+      // Quiet still shows its words here, inside the frame forced colours draw.
+      expect(getComputedStyle(rest.view.host.querySelector('[data-porthole-part="words"]')!).opacity).toBe("1");
       expect(rest.light.backgroundColor).not.toBe(system("Canvas"));
       const unknown = await lightOf(fixed([], undefined, Date.now() - MINUTE));
       expect(unknown.light.backgroundColor).toBe(system("Canvas"));
       expect([unknown.light.outlineStyle, unknown.light.outlineColor]).toEqual(["solid", system("CanvasText")]);
-      const action = await lightOf(fixed([item("update", "action")]));
+      const action = await lightOf(fixed([item("update", "action", { action: { id: "restart", label: "Restart" }, dismissable: true })]), { onAction: () => {}, onDismiss: () => {} });
       expect(action.light.backgroundColor).toBe(system("Highlight"));
+      for (const button of [action.view.act!, action.view.dismiss!]) expect([getComputedStyle(button).borderTopStyle, getComputedStyle(button).borderTopWidth]).toEqual(["solid", "1px"]);
       expect([action.light.outlineStyle, action.light.outlineColor]).toEqual(["solid", system("Highlight")]);
       const open = await lightOf(fixed(), { defaultOpen: true });
       expect([getComputedStyle(open.view.panel!).borderTopStyle, getComputedStyle(open.view.panel!).borderTopWidth]).toEqual(["solid", "1px"]);
