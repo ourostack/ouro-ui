@@ -698,8 +698,12 @@ describe("SnapPiP", () => {
   });
 
   it("notices a keep-out element that comes deep inside the container, with no render", async () => {
+    const observe = vi.spyOn(MutationObserver.prototype, "observe");
     const ref: { current: HTMLElement | null } = { current: null };
+    await park();
     await render(self({ keepOut: [ref] }));
+    // The whole container, not only its children.
+    expect(observe).toHaveBeenCalledWith(stage, { childList: true, subtree: true });
     const wrapper = document.createElement("div");
     stage.append(wrapper);
     await rest();
