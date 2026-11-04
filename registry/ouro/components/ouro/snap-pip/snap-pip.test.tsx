@@ -245,6 +245,26 @@ describe("SnapPiP", () => {
     await fire("pointerup", x, y);
   });
 
+  it("keeps the hint keyboard focus showed when the pointer comes and goes", async () => {
+    await render(self());
+    await park();
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    await enter("mouse");
+    await leave("mouse");
+    expect(hintShown()).toBe(true);
+  });
+
+  it("moves to a corner a key asks for with no overshoot", async () => {
+    const element = await render(self());
+    element.focus();
+    freeze();
+    await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+    const seen = path();
+    expect(Math.min(...seen.map(([left]) => left))).toBeGreaterThanOrEqual(LEFT);
+    expect(at()).toEqual([LEFT, BOTTOM]);
+  });
+
   it("shows the hint when the pointer rests on it, keeps it while the pointer moves onto it, and never on touch", async () => {
     const element = await render(self());
     await userEvent.hover(element);
