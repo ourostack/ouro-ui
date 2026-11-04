@@ -21,7 +21,7 @@ import {
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
-import type { MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
+import type { MenuEntry, MenuShortcut } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar, MessageBarData } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -62,6 +62,12 @@ export interface MessageAction {
   onClick: (event: MouseEvent<HTMLElement>) => void;
   /** Shown, but cannot be pressed: an action the app has turned off for now. */
   disabled?: boolean | undefined;
+  /**
+   * The keys that run it, as `Kbd` takes them (`["1"]`), shown after its name in its tooltip and
+   * under its emoji in the menu's row of reactions, and given to screen readers. It only shows the keys; bind them in your app.
+   * @claim "shown after its name in its tooltip" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > shows each action's shortcut in its tooltip and under its reaction in the menu, and gives it to screen readers)
+   */
+  shortcut?: MenuShortcut | undefined;
 }
 
 /** The message a message replies to, for Message's `quote`: who wrote it and a line of what they wrote. */

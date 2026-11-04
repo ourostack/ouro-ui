@@ -254,6 +254,11 @@ interface MessageAction {
   onClick: (event: MouseEvent<HTMLElement>) => void;
   /** Shown, but cannot be pressed: an action the app has turned off for now. */
   disabled?: boolean | undefined;
+  /**
+   * The keys that run it, as `Kbd` takes them (`["1"]`), shown after its name in its tooltip and
+   * under its emoji in the menu's row of reactions, and given to screen readers. It only shows the keys; bind them in your app.
+   */
+  shortcut?: MenuShortcut | undefined;
 }
 ```
 

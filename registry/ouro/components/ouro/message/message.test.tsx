@@ -1666,6 +1666,43 @@ describe("Message actions", () => {
     await expect.poll(() => document.querySelector('[data-ouro-message-menu-reactions]')?.nextElementSibling?.getAttribute("role")).toBe("separator");
   });
 
+  it("shows each action's shortcut in its tooltip and under its reaction in the menu, and gives it to screen readers", async () => {
+    const { message } = await render(
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Jonah Vale"
+        actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {}, shortcut: ["1"] }, { key: "plain", label: "Plain", icon: "+", onClick: () => {} }]}
+        quickReactions={[
+          { key: "like", label: "Like", icon: "👍", onClick: () => {}, shortcut: ["1"] },
+          { key: "more", label: "More reactions", icon: "+", onClick: () => {} },
+        ]}
+        menu={[{ label: "Copy link", onClick: () => {} }]}
+      >
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => message.querySelector('[data-ouro-part="menu"]')).not.toBeNull();
+    const [like, plain] = [...barOf(message).querySelectorAll<HTMLElement>("[data-ouro-message-action]")];
+    expect(like!.getAttribute("aria-keyshortcuts")).toBe("1");
+    expect(plain!.hasAttribute("aria-keyshortcuts")).toBe(false);
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
+    await userEvent.hover(bubbleOf(message));
+    await userEvent.hover(like!);
+    await expect.poll(() => tip()?.textContent).toBe("Like1");
+    expect(tip()!.querySelector('[data-ouro="kbd"]')!.getAttribute("aria-hidden")).toBe("true");
+    await userEvent.hover(plain!);
+    await expect.poll(() => tip()?.textContent).toBe("Plain");
+    await userEvent.click(barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!);
+    const row = page.getByRole("group", { name: "Reactions" });
+    const item = row.getByRole("menuitem", { name: "Like" });
+    await expect.element(item).toHaveAttribute("aria-keyshortcuts", "1");
+    // Under the emoji, in the item's own column.
+    const box = (selector: string) => item.element().querySelector(selector)!.getBoundingClientRect();
+    expect(box('[data-ouro="kbd"]').top).toBeGreaterThanOrEqual(box("[data-ouro-message-menu-reaction]").bottom);
+    expect(row.getByRole("menuitem", { name: "More reactions" }).element().hasAttribute("aria-keyshortcuts")).toBe(false);
+  });
+
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
     const copied = vi.fn();
     const { message } = await render(

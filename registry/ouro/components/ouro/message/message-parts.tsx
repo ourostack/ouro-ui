@@ -3,10 +3,12 @@
 import { useEffect, useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type RefObject, type SVGProps } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import type { MenuAnchor, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { useRowHover, type RowLayer, type RowMenuAt } from "@/registry/ouro/lib/ouro/row-hover";
 
 // The action bar: a small raised pill above the bubble's top corner (over a post's top end)
@@ -83,10 +85,11 @@ function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; rea
           aria-label={label}
           data-ouro-message-menu-reactions=""
           onKeyDown={keyDown}
-          className="flex items-center gap-0.5 pb-1 [&>[role=menuitem]]:w-auto [&>[role=menuitem]]:flex-1 [&>[role=menuitem]]:justify-center [&>[role=menuitem]]:px-1.5"
+          // Each reaction's shortcut sits under its emoji, small, so the row keeps its width.
+          className="flex items-center gap-0.5 pb-1 [&>[role=menuitem]]:w-auto [&>[role=menuitem]]:flex-1 [&>[role=menuitem]]:flex-col [&>[role=menuitem]]:justify-center [&>[role=menuitem]]:gap-0.5 [&>[role=menuitem]]:px-1.5 [&>[role=menuitem]>kbd]:ms-0 [&>[role=menuitem]>kbd]:text-[0.625rem] [&>[role=menuitem]>kbd]:text-muted-foreground"
         >
           {shown.map((reaction) => (
-            <M.MenuItem key={reaction.key} onClick={reaction.onClick} disabled={reaction.disabled}>
+            <M.MenuItem key={reaction.key} onClick={reaction.onClick} disabled={reaction.disabled} shortcut={reaction.shortcut}>
               <span aria-hidden="true" data-ouro-message-menu-reaction={reaction.key} className="inline-flex size-5 items-center justify-center text-lg leading-none [&>svg]:size-5">
                 {reaction.icon}
               </span>
@@ -198,6 +201,7 @@ export function MessageActionBar({
             variant="plain"
             size="sm"
             aria-label={action.label}
+            aria-keyshortcuts={action.shortcut === undefined ? undefined : ariaKeyShortcuts(action.shortcut as readonly string[])}
             disabled={action.disabled}
             tabIndex={action.key === tabStop ? 0 : -1}
             onClick={action.onClick}
@@ -209,7 +213,19 @@ export function MessageActionBar({
           </Button>
         );
         return (
-          <Tooltip key={action.key} content={action.label}>
+          <Tooltip
+            key={action.key}
+            content={
+              action.shortcut === undefined ? (
+                action.label
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  {action.label}
+                  <Kbd keys={action.shortcut as readonly string[]} aria-hidden="true" />
+                </span>
+              )
+            }
+          >
             {button}
           </Tooltip>
         );
