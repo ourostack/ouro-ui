@@ -1,3 +1,4 @@
+import axe from "axe-core";
 import { createRef, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -1360,7 +1361,7 @@ describe("TimeGrid background events", () => {
     // Four side by side in a day's 112px lane would be 28px each: one block with their count and time instead.
     await rerender({ ...narrow, view: "day" });
     await expect.poll(stack).not.toBeNull();
-    expect(plain(stack()!.textContent)).toBe("4 crowd9:00 – 10:20 AM");
+    expect(plain(stack()!.textContent)).toBe("4 crowd 9:00 – 10:20 AM");
     // From the first one's start to the last one's end.
     expect(hours(stack()!)).toEqual([9, 80 / 60]);
     // The block holds the selected event, so it says so; it is the Tab stop, as the first event in time.
@@ -1412,7 +1413,7 @@ describe("TimeGrid background events", () => {
     await render({ view: "day", backgroundEvents: spread, className: "h-[30rem] w-[32rem]" });
     const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
     await expect.poll(stack).not.toBeNull();
-    expect(plain(stack()!.textContent)).toBe("4 events9:00 – 11:00 AM");
+    expect(plain(stack()!.textContent)).toBe("4 events 9:00 – 11:00 AM");
     // None of its events is selected.
     expect(stack()!.hasAttribute("aria-current")).toBe(false);
     // Without onEventSelect, choosing one from the list does nothing more.
@@ -1510,6 +1511,40 @@ describe("TimeGrid background events", () => {
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
     expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
     expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
+  });
+});
+
+describe("TimeGrid label in name", () => {
+  // What a speech-input user can say to press an event must be in its name (WCAG 2.5.3, Label in
+  // Name). axe's label-content-name-mismatch joins the text nodes a control shows with nothing
+  // between them, so lines a column stacks run together ("Standup9:30 AM") unless a space parts them.
+  async function labelInName(node: Element): Promise<string[]> {
+    const result = await axe.run({ include: [node] }, { runOnly: ["label-content-name-mismatch"], resultTypes: ["violations", "incomplete"] });
+    return [...result.violations, ...result.incomplete].flatMap((rule) => rule.nodes.map(() => rule.id));
+  }
+  const day: TimeGridEvent[] = [
+    { id: "short", title: "Standup", start: at(12, "09:30"), end: at(12, "09:45") },
+    { id: "hour", title: "Design review", start: at(12, "13:00"), end: at(12, "14:00"), description: "Room 2" },
+    { id: "long", title: "Launch rehearsal", start: at(12, "15:00"), end: at(12, "16:30"), description: "Room 4" },
+    { id: "unanswered", title: "Architecture forum + prep", start: at(12, "10:00"), end: at(12, "11:00"), status: "unanswered" },
+    { id: "holiday", title: "Holiday", start: "2026-03-12" },
+  ];
+
+  it("shows each event's lines as words its name holds in order, on one line, two or three", async () => {
+    await render({ view: "day", events: day });
+    const shown = events().filter((event) => !event.hasAttribute("data-background"));
+    expect(shown).toHaveLength(day.length);
+    for (const event of shown) expect(await labelInName(event), event.getAttribute("aria-label")!).toEqual([]);
+    expect(plain(titled("Launch rehearsal").textContent)).toBe("Launch rehearsal 3:00 – 4:30 PM Room 4");
+    expect(plain(titled("Architecture forum + prep").textContent)).toBe("Architecture forum + prep 10:00 – 11:00 AM");
+  });
+
+  it("the same event with its lines run together fails the rule, so the check can fail", async () => {
+    await render({ view: "day", events: day });
+    const event = titled("Launch rehearsal");
+    for (const node of [...event.querySelectorAll("span")].flatMap((span) => [...span.childNodes])) if (node.nodeType === Node.TEXT_NODE && !node.textContent!.trim()) node.remove();
+    expect(plain(event.textContent)).toBe("Launch rehearsal3:00 – 4:30 PMRoom 4");
+    expect(await labelInName(event)).toEqual(["label-content-name-mismatch"]);
   });
 });
 
