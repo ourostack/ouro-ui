@@ -284,11 +284,13 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const target = useRef<SnapPiPCorner>(corner);
   const settled = useRef<SnapPiPCorner>(corner);
   // Whether the person moved it, so the corner it settles in is announced.
+  // Stryker disable next-line BooleanLiteral: the first placement rests at once, which sets it false before anything moves.
   const moved = useRef(false);
   // A drag under way: where it was when the pointer took it.
   const drag = useRef<{ x: number; y: number } | undefined>(undefined);
   const stageRef = useRef(stage);
   // The latest props and measurements, for the callbacks that outlive a render.
+  // Stryker disable next-line ObjectLiteral: the layout effect below fills it before anything reads it.
   const latest = useRef({ inset, keepOut, reduced, cornerLabels });
   useLayoutEffect(() => {
     stageRef.current = stage;
@@ -367,6 +369,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       };
       element.current!.setAttribute("data-ouro-settling", "");
     },
+    // Stryker disable next-line ArrayDeclaration: anchor, halt, place and rested keep their identity for the component's life, so any constant list keeps go the same.
     [anchor, halt, place, rested],
   );
 
@@ -380,6 +383,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       if (x === goal.x && y === goal.y) return;
       go(target.current, { jump });
     },
+    // Stryker disable next-line ArrayDeclaration: anchor and go keep their identity for the component's life, so any constant list keeps reflow the same.
     [anchor, go],
   );
 
@@ -449,6 +453,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     if (!drag.current && corner !== target.current) go(corner);
   }, [corner, release, go]);
   // Unmounted while it springs, it stops.
+  // Stryker disable next-line ArrayDeclaration: halt keeps its identity for the component's life, so any constant list stops it only on unmount, as this one does.
   useEffect(() => () => void halt(), [halt]);
 
   const choose = (next: SnapPiPCorner) => {
