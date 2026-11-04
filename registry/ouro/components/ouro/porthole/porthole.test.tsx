@@ -650,10 +650,19 @@ describe("Porthole timing", () => {
   });
 
   it("looks no more once nothing it shows can change with time, but looks each second for a live service's first beat", async () => {
-    const view = await render(base(fixed([], { chats: area(null) }, Number.NaN)));
+    const unreadable = { snapshot: { ...snapshot(), version: 2 }, lastBeatAt: Number.NaN } as unknown as PortholeFixed;
+    const view = await render(base(unreadable));
     expect(view.state).toBe("unknown");
     expect(vi.getTimerCount()).toBe(0);
-    const live = service(snapshot([], { chats: area(null) }));
+    // A stopped beat is looked for again a heartbeat timeout on, and nothing renders while it stays away.
+    await view.rerender(base(fixed([], { chats: area(null) }, Number.NaN)));
+    commits = 0;
+    expect(vi.getTimerCount()).toBe(1);
+    await run(5 * SECOND);
+    expect(vi.getTimerCount()).toBe(1);
+    expect(commits).toBe(0);
+    // A live service still looks each second, even for a snapshot it cannot read, for the beat and snapshot to come.
+    const live = service({ ...snapshot([], { chats: area(null) }), version: 2 } as unknown as PortholeSnapshot);
     live.source.lastBeatAt = () => Number.NaN;
     await view.rerender(base(live.source));
     expect(vi.getTimerCount()).toBe(1);
