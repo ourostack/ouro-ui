@@ -103,7 +103,8 @@ describe("Emoji", () => {
     expect(img.getBoundingClientRect().width).toBe(25);
     expect(img.getBoundingClientRect().height).toBe(25);
     expect(img.draggable).toBe(false);
-    expect(img.getAttribute("loading")).toBe("lazy");
+    // Fetched as soon as it is drawn, not when it nears the screen.
+    expect(img.hasAttribute("loading")).toBe(false);
     expect(img.getAttribute("decoding")).toBe("async");
     await rerender(<Emoji item={wave} skinTone="medium" />);
     expect(emoji(host).getAttribute("src")).toBe(image("wave tone3"));

@@ -174,6 +174,17 @@ describe("EmojiPicker with a catalogue", () => {
     expect(quickCells()).toEqual([]);
   });
 
+  it("fetches every image as it opens, the quick row and the first two sections of the grid first, then the rest in order", async () => {
+    const priorities = (list: HTMLElement[]) => list.map((element) => element.querySelector("img")!.getAttribute("fetchpriority"));
+    const { rerender } = await open({ frequent: ["heart"], quick: ["party"] });
+    expect(panel().querySelector("img[loading]")).toBeNull();
+    expect(priorities(quickCells())).toEqual(["high"]);
+    // Frequently used and Smileys, then Symbols and Fernwood.
+    expect(priorities(cells())).toEqual(["high", "high", "high", "low", "low", "low", "low"]);
+    await rerender(picker({ quick: [] }));
+    expect(priorities(cells())).toEqual(["high", "high", "high", "high", "low", "low"]);
+  });
+
   it("chooses an emoji: onSelect gets its id, name, token, tone and catalogue item, and the token draws as its image", async () => {
     const onSelect = vi.fn<(selection: EmojiPickerCatalogueSelection) => void>();
     const { rerender } = await open({ onSelect } as Partial<EmojiPickerProps>);

@@ -322,6 +322,8 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * while the mouse is on it or on the button around it, or that button has focus, or while
  * `play` says so. With reduced motion it always shows the still image. `skinTone` draws an
  * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
+ * Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji in an
+ * older message is there when the reader scrolls back to it.
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
  * app that uses the platform's emoji font.
@@ -334,6 +336,7 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * <Emoji item={party} placeholder="/emoji/waiting.svg" />
  * <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
  * @claim "named by its `alt` (the emoji's name)" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > draws the still image named by the emoji's name, the size of the text, in the tone asked for)
+ * @claim "Its picture is fetched as soon as" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:fileLine(registry/ouro/components/ouro/emoji/emoji.test.tsx, /expect\(img\.hasAttribute\("loading"\)\)\.toBe\(false\)/)
  * @claim "With reduced motion it always shows the" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
  * @claim "while the mouse is on it or on" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays while the mouse is on its button or the button has focus, and stops after)
  */
@@ -391,7 +394,6 @@ export function Emoji(props: EmojiProps): JSX.Element {
   usePictureReady(box, own, shown, form.src, waits);
   const picture = (
     <img
-      loading="lazy"
       {...rest}
       ref={mergedRef}
       data-ouro={waits ? undefined : "emoji"}
