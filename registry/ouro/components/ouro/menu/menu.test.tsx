@@ -9,6 +9,7 @@ import {
   Menu,
   MenuBar,
   MenuCheckboxItem,
+  MenuEntries,
   MenuGroup,
   MenuItem,
   MenuRadioGroup,
@@ -1045,6 +1046,22 @@ describe("Menu anchor", () => {
     await settled();
     await act(async () => page.getByRole("textbox", { name: "Elsewhere" }).element().focus());
     await expect.poll(menu).toBeNull();
+  });
+
+  it("puts entries after items of its own with MenuEntries", async () => {
+    const onCopy = vi.fn();
+    await render(
+      <Menu anchor={{ x: 20, y: 20 }} open onOpenChange={() => {}} aria-label="Actions">
+        <MenuItem>Reply</MenuItem>
+        <MenuSeparator />
+        <MenuEntries entries={[{ label: "Copy", onClick: onCopy }, { type: "separator" }, { label: "Delete" }]} />
+      </Menu>,
+    );
+    const element = await settled();
+    expect([...element.querySelectorAll("[role=menuitem]")].map((entry) => entry.textContent)).toEqual(["Reply", "Copy", "Delete"]);
+    expect(element.querySelectorAll("[role=separator]")).toHaveLength(2);
+    await userEvent.click(item("Copy"));
+    expect(onCopy).toHaveBeenCalledOnce();
   });
 
   it("throws the exact fix without open or aria-label", () => {
