@@ -3,7 +3,8 @@
 //
 // - the critical path: the longest chain of jobs that wait on one another, each job counted from its
 //   start to its end (the slowest of a matrix's jobs), so time spent queued for a free runner does
-//   not count, and the run's load on the shared runner pool cannot fail it;
+//   not count, nor the plan's yield to the merge queue (`waitSteps`), and the run's load on the
+//   shared runner pool cannot fail it;
 // - the wall time: from the first job's creation to the last job's end, queues included, which is
 //   what a developer waits for, and the median and 90th percentile of it over the last runs of the
 //   same event (the workflow runs API);
@@ -45,6 +46,16 @@ export const budget = { targetMinutes: 10, margin: 0.2, baselineRuns: 5, regress
  */
 export const setupSteps = [/^Set up job$/, /^Run actions\/checkout@/, /^Run pnpm\/action-setup@/, /^Run actions\/setup-node@/, /^Run pnpm i\b/, /^Run \.\/\.github\/actions\/playwright-browsers\b/, /^Browser system packages\b/, /install-deps/];
 
+/**
+ * The steps that wait for runners rather than use one for the change: the plan's yield to the
+ * merge queue (scripts/ci-yield.mjs). Like a queue for a free runner, their time is left out of the
+ * critical path and the work time, and counted in the wall time and the runner time.
+ */
+export const waitSteps = [/^Yield to the merge queue$/];
+
+/** The seconds a job spent in `patterns`' steps. */
+const stepSeconds = (job, patterns) => (job.steps ?? []).filter((step) => patterns.some((pattern) => pattern.test(step.name))).reduce((total, step) => total + seconds(step.started_at, step.completed_at), 0);
+
 /** This job, which is still running when it reads the run, and never on its own critical path. */
 const self = "ci-budget";
 
@@ -71,10 +82,14 @@ export function jobGraph(text) {
 
 const seconds = (from, to) => (from && to ? Math.max(0, (Date.parse(to) - Date.parse(from)) / 1000) : 0);
 
-/** A job's run time without its setup steps (`setupSteps`); a job reported without steps counts whole. */
+/** A job's run time without its setup steps (`setupSteps`) and its waits for runners (`waitSteps`); a job reported without steps counts whole. */
 export function workSeconds(job) {
-  const setup = (job.steps ?? []).filter((step) => setupSteps.some((pattern) => pattern.test(step.name))).reduce((total, step) => total + seconds(step.started_at, step.completed_at), 0);
-  return Math.max(0, seconds(job.started_at, job.completed_at) - setup);
+  return Math.max(0, seconds(job.started_at, job.completed_at) - stepSeconds(job, [...setupSteps, ...waitSteps]));
+}
+
+/** A job's run time without the steps that wait for runners (`waitSteps`). */
+export function heldSeconds(job) {
+  return Math.max(0, seconds(job.started_at, job.completed_at) - stepSeconds(job, waitSteps));
 }
 
 /**
@@ -96,7 +111,7 @@ export function criticalPath(jobs, graph, { work = false } = {}) {
       if (!graph.some((candidate) => (candidate.id === self || candidate.id === watcher) && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
     }
-    const duration = job.conclusion === "skipped" ? 0 : work ? workSeconds(job) : seconds(job.started_at, job.completed_at);
+    const duration = job.conclusion === "skipped" ? 0 : work ? workSeconds(job) : heldSeconds(job);
     if (!slowest.has(node.id) || duration > slowest.get(node.id).seconds) slowest.set(node.id, { name: job.name, seconds: duration });
   }
   const memo = new Map();
