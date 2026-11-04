@@ -42,6 +42,18 @@ const ready = "the index of the same emoji was built more than 3 times within a 
 const warnings = () => warn.mock.calls.filter(([message]) => String(message).includes(ready));
 
 describe("catalogueIndex", () => {
+  it("keeps the shapes of the 8 catalogues indexed most recently, and compiles again for one indexed before them", () => {
+    const kept = freshEmoji();
+    const first = catalogueIndex(wrap([{ id: "all", label: "All", items: kept }]));
+    for (let other = 0; other < 7; other++) catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }]));
+    // Seven others since: its shape is still kept.
+    const moved = (version: number) => wrap([{ id: "all", label: "All", items: kept.map((item) => ({ ...item, src: `${item.src}?v=${version}` })) }]);
+    expect(catalogueIndex(moved(1)).pattern).toBe(first.pattern);
+    for (let other = 0; other < 8; other++) catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }]));
+    // Eight others since: let go, so it compiles again.
+    expect(catalogueIndex(moved(2)).pattern).not.toBe(first.pattern);
+  });
+
   it("compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures", () => {
     const emoji = [...freshEmoji(), { ...freshEmoji(1)[0]!, skinTones: [{ id: `toned-${made}`, src: "/tone/1.png", text: "👋🏻" }] }];
     const before = catalogueIndex(wrap([{ id: "all", label: "All", items: emoji }]));

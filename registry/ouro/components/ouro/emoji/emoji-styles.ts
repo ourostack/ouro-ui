@@ -94,7 +94,8 @@ interface CatalogueIndex {
   /**
    * The catalogue's emoji in order, each id once.
    *
-   * @claim "each id once" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
+  
+ * @claim "each id once" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
    */
   items: readonly EmojiItem[];
   /** An emoji by its id or a tone's id. */
@@ -108,13 +109,15 @@ interface CatalogueIndex {
   /**
    * Finds only the emoji text the catalogue lists, longest first, and nothing when it lists none.
    *
-   * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
+  
+ * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
    */
   textPattern: RegExp;
   /**
    * The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji.
    *
-   * @claim "The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji." registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji)
+  
+ * @claim "The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji." registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji)
    */
   textStarts: ReadonlySet<string>;
 }
@@ -228,6 +231,8 @@ function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
  * each id, token and text leads (an emoji's place in the catalogue, times 8, plus its tone's), and the patterns that find
  * the text. Shared by every catalogue whose emoji say the same, so a catalogue that changes only its pictures' addresses
  * (a new `src` for each, as a CDN's signed addresses do) compiles nothing again.
+ * @claim "What a catalogue's index holds that" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ * @claim "Shared by every catalogue whose emoji" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
  */
 interface IndexShape {
   byId: ReadonlyMap<string, number>;
@@ -238,11 +243,17 @@ interface IndexShape {
   textStarts: ReadonlySet<string>;
 }
 
-/** The shapes of the catalogues indexed most recently, by what their emoji say, at most `SHAPES` of them. */
+/**
+ * The shapes of the catalogues indexed most recently, by what their emoji say, at most `SHAPES` of them.
+ * @claim "The shapes of the catalogues indexed" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > keeps the shapes of the 8 catalogues indexed most recently, and compiles again for one indexed before them)
+ */
 const shapes = new Map<string, IndexShape>();
 const SHAPES = 8;
 
-/** What a catalogue's emoji say, each id, text and shortcode in order: the same for catalogues whose emoji differ only in their pictures. */
+/**
+ * What a catalogue's emoji say, each id, text and shortcode in order: the same for catalogues whose emoji differ only in their pictures.
+ * @claim "What a catalogue's emoji say, each" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ */
 function signatureOf(items: readonly EmojiItem[]): string {
   let signature = "";
   for (const item of items) {
@@ -252,7 +263,11 @@ function signatureOf(items: readonly EmojiItem[]): string {
   return signature;
 }
 
-/** Compiles the shape of a catalogue's emoji: where each id, token and text leads, and the patterns that find their text. */
+/**
+ * Compiles the shape of a catalogue's emoji: where each id, token and text leads, and the patterns that find their text.
+ * @claim "Compiles the shape of a catalogue's" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ * @claim "Compiles the shape of a catalogue's" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
+ */
 function buildShape(items: readonly EmojiItem[]): IndexShape {
   const byId = new Map<string, number>();
   const byToken = new Map<string, number>();
@@ -287,7 +302,11 @@ function lookup(places: ReadonlyMap<string, number>, items: readonly EmojiItem[]
   };
 }
 
-/** Builds a catalogue's index: its emoji, each id once, with the shape of what they say, compiled only when no catalogue indexed lately said the same. */
+/**
+ * Builds a catalogue's index: its emoji, each id once, with the shape of what they say, compiled only when no catalogue indexed lately said the same.
+ * @claim "Builds a catalogue's index: its emoji" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > keeps the shapes of the 8 catalogues indexed most recently, and compiles again for one indexed before them)
+ * @claim "Builds a catalogue's index: its emoji" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
+ */
 function buildCatalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
   const items: EmojiItem[] = [];
   const seen = new Set<string>();
