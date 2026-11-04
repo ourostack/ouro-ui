@@ -2,7 +2,7 @@
 
 # CopyButton
 
-A button that puts a piece of text on the clipboard: an API key, a link, a command. On a click it copies `value`, then for two seconds shows a check and says "Copied" (or a cross and "The browser blocked copying. Select the text and copy it by hand." when the browser refuses), and screen readers hear the same, politely, once. It uses the Clipboard API, and a text selection where that is not available.
+A button that puts a piece of text on the clipboard: an API key, a link, a command. On a click it copies `value`, then for two seconds shows a check and says "Copied", and screen readers hear the same, politely, once. When the browser refuses, it shows a cross and "Browser blocked copying" for two seconds, with the whole of `failedMessage` ("The browser blocked copying. Select the text and copy it by hand.") as its tooltip, and screen readers hear that whole sentence once. It uses the Clipboard API, and a text selection where that is not available.
 
 ```tsx
 import { CopyButton } from "@/registry/ouro/components/ouro/copy-button/copy-button";
@@ -27,7 +27,8 @@ Type: `CopyButtonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. |
 | `copiedLabel` | `string` | `"Copied"` | What the button says, and screen readers hear, once the text is on the clipboard. |
-| `failedLabel` | `string` | `"The browser blocked copying. Select the text and copy it by hand."` | What the button says, and screen readers hear, when the browser refused to copy. |
+| `failedLabel` | `string` | `"Browser blocked copying"` | What the button says for two seconds when the browser refused to copy: short, so the button keeps its width. |
+| `failedMessage` | `string` | `"The browser blocked copying. Select the text and copy it by hand."`, or `failedLabel` when only that is given | What screen readers hear, and the button's tooltip says while it shows `failedLabel`, when the browser refused to copy: what happened and what to do instead. |
 | `hideLabel` | `boolean` |  | Shows only the icon; the label stays the button's name for screen readers. For a corner of a code block or a field. |
 | `label` | `string` | `"Copy"` | The button's label, and its name for screen readers when `hideLabel` is set. |
 | `onCopy` | `((value: string) => void)` |  | Called with the text once it is on the clipboard. |
