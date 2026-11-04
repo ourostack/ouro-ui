@@ -14,9 +14,9 @@
         "data-open": {
           "kind": "motion",
           "parts": {
-            "panel": {"properties": ["opacity", "translate"], "reduced": ["opacity"]}
+            "panel": {"properties": ["opacity"], "reduced": ["opacity"]}
           },
-          "tests": ["registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > fades the detail lines in and lowers them a little as it opens, and with reduced motion only fades them"]
+          "tests": ["registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > fades the detail lines in as it opens, faster with reduced motion, and moves nothing"]
         }
       }
     }

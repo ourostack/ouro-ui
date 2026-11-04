@@ -239,7 +239,7 @@ describe("Porthole", () => {
     expect(view.porthole.getAttribute("data-open")).toBe("");
   });
 
-  it("fades the detail lines in and lowers them a little as it opens, and with reduced motion only fades them", async () => {
+  it("fades the detail lines in as it opens, faster with reduced motion, and moves nothing", async () => {
     const view = await render(base(fixed()));
     const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
     for (const reduced of [false, true]) {
@@ -251,7 +251,7 @@ describe("Porthole", () => {
       expect(view.porthole.hasAttribute("data-open")).toBe(false);
       await act(() => view.spot.click());
       const opacity = token(reduced ? "--ouro-duration-fast" : "--ouro-duration-base");
-      await expectMotion(view.panel!, { stem: "porthole", state: "data-open", properties: reduced ? { opacity } : { opacity, translate: opacity }, reduced });
+      await expectMotion(view.panel!, { stem: "porthole", state: "data-open", properties: { opacity }, reduced });
       await act(() => view.spot.click());
       expect(view.panel).toBeNull();
     }
