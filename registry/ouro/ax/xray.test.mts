@@ -220,7 +220,8 @@ test("a CLI that breaks the claims fails them, each with what it saw", async () 
 });
 
 test("a doctor built with ax-checks: its verdict leads its text and matches its --json, and its piped output is plain", async () => {
-  for (const env of [{}, { DOCTOR_BROKEN: "1" }]) {
+  const envs: Record<string, string>[] = [{}, { DOCTOR_BROKEN: "1" }];
+  for (const env of envs) {
     const report = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env }));
     for (const id of ["cli.check-verdict", "cli.plain-pipe", "cli.exit-codes", "cli.read-json"]) assert.equal(holds(report, id), true, `${id} ${JSON.stringify(env)}`);
     assert.match(report.results.find((r) => r.claim === "cli.check-verdict")!.note, env.DOCTOR_BROKEN ? /^first line: FAIL 1 of 3 checks failed/ : /^first line: ok 2 of 3 checks passed/);
