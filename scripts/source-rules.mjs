@@ -25,6 +25,9 @@
 //   side in a right-to-left page. Components use the logical side (`start-2`, `ms-2`, `pe-4`,
 //   `border-s`, `rounded-e-xl`, `text-start`), unless `physicalAllowed` lists the class with why
 //   it must follow the screen, not the text.
+// - layoutAnimationAllowed: the layout-property animations (ouro-source-rules' `layout-animation`)
+//   that Ouro's own components keep, each with its reason; scripts/source-rules.test.mjs fails on
+//   any other, and on an allowance no longer used.
 // - timerBoundReads: a test or spec that waits for a state that lasts a set time on the real
 //   clock: a confirmation label (Copied, Link copied), a toast with a countdown, a story's save in
 //   progress. A loaded runner can take longer than that time between two steps, and the state is
@@ -289,6 +292,13 @@ function utilityOf(token) {
  * pull request that adds one names it in its description (scripts/conformance-exemptions.mjs).
  */
 export const physicalAllowed = JSON.parse(readFileSync(new URL("./physical-allowed.json", import.meta.url), "utf8"));
+
+/**
+ * The layout-property animations Ouro's own components keep, by file and class, each with why it
+ * must move the content around it (scripts/layout-animation-allowed.json). The kit's
+ * `layout-animation` rule finds every other one.
+ */
+export const layoutAnimationAllowed = JSON.parse(readFileSync(new URL("./layout-animation-allowed.json", import.meta.url), "utf8"));
 
 /**
  * The physical-side class tokens in a file's string literals and template text, as "line: token",

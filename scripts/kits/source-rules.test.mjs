@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -24,6 +24,7 @@ describe("findOffendersInSource: each category", () => {
             "plain-element-handler",
             "data-ouro-attr",
             "control-state-style",
+            "layout-animation",
             "third-party-control",
             "content-spinner",
             "render-index",
@@ -402,6 +403,129 @@ describe("render-index", () => {
         expect(RENDER_INDEX_FIX).toContain("in the store or loader that holds the data");
         expect(RENDER_INDEX_FIX).toContain("useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])");
         expect(RENDER_INDEX_FIX).toContain("module scope");
+    });
+});
+describe("layout-animation", () => {
+    const layout = (source, file) => scan(source, file).filter((offender) => offender.category === "layout-animation").map((offender) => offender.fingerprint);
+    it("finds transition-all and a transition of a layout property in a class, under any variant, counted where it is written", () => {
+        expect(scan(`export function Panel() { return <div className="rounded-md transition-all duration-200" />; }`)).toEqual([
+            { category: "layout-animation", fingerprint: "app/routes/fixture.tsx::Panel::layout-animation::transition-all::", file: "app/routes/fixture.tsx", line: 1 },
+        ]);
+        const source = `
+          const popover = "data-open:!transition-[width,opacity] md:transition-[max-height]";
+          const menu = \`[transition:top_200ms_ease,opacity_200ms] \${"x"} [transition-property:margin-left]\`;
+          const tooltip = "[transition:150ms_ease-out]";
+          export const Menu = () => <div className={popover + menu + tooltip} />;`;
+        expect(layout(source)).toEqual([
+            "app/routes/fixture.tsx::(module)::layout-animation::data-open:!transition-[width,opacity]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::md:transition-[max-height]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::[transition:top_200ms_ease,opacity_200ms]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::[transition-property:margin-left]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::[transition:150ms_ease-out]::",
+        ]);
+    });
+    it("passes a class that animates only transform, opacity or colour, and Tailwind's plain transition", () => {
+        const source = `export function Popover() {
+          return <div className="transition transition-colors transition-opacity transition-transform transition-[opacity,translate,scale] [transition:transform_var(--d)_var(--e),opacity_var(--d)] [transition-property:translate,scale] [transition:none] data-ending-style:opacity-0 w-64 h-auto top-2" />;
+        }`;
+        expect(layout(source)).toEqual([]);
+    });
+    it("finds a transition style value, an element's animate() keyframes and Motion's animate, exit and while props", () => {
+        const source = `
+          import { motion } from "motion/react";
+          export function Drawer({ el, open }) {
+            el.style.transition = "height 200ms ease";
+            el.style.transitionProperty = "opacity, padding-top";
+            el.animate([{ opacity: 0 }, { maxHeight: "0px" }], 200);
+            el.animate({ "margin-top": [0, 8] }, 200);
+            return <motion.div style={{ transition: "all 0.2s", WebkitTransition: "left .2s" }} animate={{ width: open ? 240 : 0 }} exit={{ height: 0 }} whileHover={{ fontSize: "2rem" }} />;
+          }`;
+        expect(layout(source)).toEqual([
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.transition:height::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.transitionProperty:padding-top::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::animate():max-height::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::animate():margin-top::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.transition:all::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.WebkitTransition:left::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::animate:width::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::exit:height::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::whileHover:font-size::",
+        ]);
+    });
+    it("passes transform and opacity in styles, keyframes and Motion, and strings that only look alike", () => {
+        const source = `
+          import { motion } from "motion/react";
+          const base = { opacity: 0 };
+          const key = "width";
+          export function Sheet({ el, frames }) {
+            el.style.transition = "transform 200ms, opacity 200ms";
+            el.style.transform += "translateY(0)";
+            el.animate([base, frames, { ...base, [key]: 1, translate: "0 8px", "object-position": "50% 0%" }], 200);
+            el.animate();
+            el.show({ height: 0 });
+            const copy = { "transition": "width" ? "a" : "b", [key]: "transition: width 1s" };
+            return <motion.div style={{ transition: "opacity .2s", width: 240 }} animate="open" initial={{ height: 0 }} exit={/* later */} whileTap={{ scale: 0.96 }} title=" transition with  width " />;
+          }`;
+        expect(layout(source)).toEqual([]);
+    });
+    it("finds a stylesheet's transition of a layout property or all, @apply transition-all, and keyframes that set a layout property", () => {
+        const css = `
+          .popover { transition: opacity 150ms, height 150ms; }
+          .menu { transition-property: inset-inline-start; }
+          @media (hover: hover) { .tooltip:hover { -webkit-transition: .2s; } }
+          .card { @apply  rounded transition-all; }
+          @keyframes grow { from { opacity: 0; width: 0; } to { width: 100%; height: 4rem; } }
+          @-webkit-keyframes slide { to { LEFT: 0; } }`;
+        expect(layout(css, "app/app.css")).toEqual([
+            "app/app.css::(stylesheet)::layout-animation::.popover::transition: height",
+            "app/app.css::(stylesheet)::layout-animation::.menu::transition-property: inset-inline-start",
+            "app/app.css::(stylesheet)::layout-animation::.tooltip:hover::-webkit-transition: all",
+            "app/app.css::(stylesheet)::layout-animation::.card::@apply transition-all",
+            "app/app.css::(stylesheet)::layout-animation::@keyframes grow::width",
+            "app/app.css::(stylesheet)::layout-animation::@-webkit-keyframes slide::left",
+        ]);
+    });
+    it("passes a stylesheet that animates transform, opacity and colours only", () => {
+        const css = `
+          .popover { transition: transform 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms; transition-property: opacity, background-color,; }
+          .press { transition: none; @apply transition-opacity; }
+          @keyframes ouro-spin { to { rotate: 1turn; } }
+          @keyframes shimmer { from { background-position: 100% 0; } }`;
+        expect(layout(css, "app/app.css")).toEqual([]);
+    });
+    it("reads a transition value as a shorthand or a property list", () => {
+        expect(layoutTransitionProperty("200ms ease-in-out 50ms")).toBe("all");
+        expect(layoutTransitionProperty("200ms ease-in-out 50ms", { list: true })).toBe(undefined);
+        expect(layoutTransitionProperty("var(--duration) var(--ease)")).toBe(undefined);
+        expect(layoutTransitionProperty("opacity steps(4, end), Gap 1s")).toBe("gap");
+        expect(layoutTransitionProperty("border-inline-start-width 1s linear(0, 1)")).toBe("border-inline-start-width");
+        expect(layoutAnimationClass("hover:transition-all!")).toBe("all");
+        expect(layoutAnimationClass("transition-[grid-template-columns]")).toBe("grid-template-columns");
+        expect(layoutAnimationClass("transition-shadow")).toBe(undefined);
+    });
+    it("reads a shorthand of keywords only, or with a zero or missing duration, as naming no property", () => {
+        for (const value of ["unset", "initial", "inherit", "revert", "revert-layer", "none", "0s", "0ms ease", "all 0s", "height 0.0s 200ms", "height", "ease-in"]) {
+            expect(layoutTransitionProperty(value)).toBe(undefined);
+        }
+        expect(layoutTransitionProperty("opacity 0s, height 200ms")).toBe("height");
+        expect(layoutTransitionProperty("height var(--duration)")).toBe("height");
+        expect(layoutTransitionProperty("height", { list: true })).toBe("height");
+        expect(layoutAnimationClass("[transition:unset]")).toBe(undefined);
+        expect(layoutAnimationClass("[transition:0s]")).toBe(undefined);
+        expect(layout(`.reset { transition: initial; } .instant { transition: width 0s; }`, "app/app.css")).toEqual([]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/panel.tsx": `export function Panel() { return <div className="transition-all" />; }`,
+            "app/routes/home.tsx": `import { Panel } from "~/components/panel"; export function Home() { return <Panel />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["layout-animation"]);
+    });
+    it("names transform and opacity in its message", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::Menu::layout-animation::transition-all::", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New animation of a layout property: app/x.tsx::Menu::layout-animation::transition-all:: (+1) at app/x.tsx:4. ${LAYOUT_ANIMATION_FIX}`]);
+        expect(LAYOUT_ANIMATION_FIX).toContain("Animate transform and opacity instead, which the compositor runs without layout");
+        expect(LAYOUT_ANIMATION_FIX).toContain("rather than transition-all");
     });
 });
 describe("third-party-control", () => {
@@ -1601,6 +1725,18 @@ describe("main", () => {
             const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + R));
             expect(line).toContain("or in useMemo on its inputs");
             expect(line).toContain("on every render, a keystroke or a hover included; or record why:");
+            expect(line).not.toContain("Use an Ouro component instead");
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives a layout animation's rise the transform and opacity advice, not \"use an Ouro component\"", () => {
+            const L = "app/routes/l.tsx::L::layout-animation::transition-all::";
+            const panel = { "/repo/app/routes/l.tsx": `export function L() {\n  return <div className="transition-all" />;\n}` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [L]: 1 }), panel);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + L));
+            expect(line).toContain("Animate transform and opacity instead");
+            expect(line).toContain("a size that must change changes at once; or record why:");
             expect(line).not.toContain("Use an Ouro component instead");
             expect(exit).toHaveBeenCalledWith(1);
         });

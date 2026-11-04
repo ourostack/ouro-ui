@@ -53,6 +53,17 @@ import ts from "typescript";
 //   spinner, it counts where it is written and never makes the component around it a hand-rolled
 //   control. Known gap: a callback that runs during render (`rows.map((row) => new Set(row.tags))`)
 //   is not counted.
+// - layout-animation: an animation of a property that re-runs layout on every frame (width,
+//   height, top, left, inset, margin, padding, border width, gap, flex, grid tracks, font size,
+//   line height) or of `all`: Tailwind's `transition-all`, `transition-[height]`, an arbitrary
+//   `[transition:…]` or `[transition-property:…]` in any string; a `transition` or
+//   `transitionProperty` style value; keyframes passed to an element's `animate()`, or Motion's
+//   `animate`, `exit` and `while…` props, as an object of layout properties; and in stylesheets, a
+//   `transition` or `transition-property` declaration (a shorthand with no property animates `all`),
+//   `@apply` of such a class, and `@keyframes` that set one. Animate `transform` and `opacity`
+//   instead, which the compositor runs without layout. Tailwind's plain `transition`,
+//   `transition-colors`, `transition-opacity` and `transition-transform` pass. Like a spinner, it
+//   counts where it is written and never makes the component around it a hand-rolled control.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -105,6 +116,7 @@ export const CATEGORIES = [
   "plain-element-handler",
   "data-ouro-attr",
   "control-state-style",
+  "layout-animation",
   "third-party-control",
   "content-spinner",
   "render-index",
@@ -140,11 +152,16 @@ export const RENDER_INDEX_FIX =
   "Build the index where its data changes, once per change: in the store or loader that holds the data, " +
   "or in useMemo on its inputs (useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])); move a constant to module scope. " +
   "Built in render, it is rebuilt on every render, a keystroke or a hover included.";
+/** What the layout-animation rule tells an app to do. */
+export const LAYOUT_ANIMATION_FIX =
+  "Animate transform and opacity instead, which the compositor runs without layout: slide with translate, grow or shrink with scale, fade with opacity. " +
+  "Name the properties a transition runs (transition-[opacity,translate], transition-opacity, transition-transform) rather than transition-all; a size that must change changes at once.";
 
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
   "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
   "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
+  "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
 };
 
 export const BASELINE_PATH = "ouro-source-rules.baseline.json";
@@ -359,6 +376,76 @@ export function isControlStateClass(token) {
   const parts = splitVariants(token);
   const utility = parts.pop();
   return utility !== "" && parts.some((variant) => STATE_SELECTOR.test(variantSelector(variant)));
+}
+
+// A property whose change re-runs layout, so animating it lays the page out again on every frame.
+const LAYOUT_PROPERTY =
+  /^(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|top|right|bottom|left|inset(?:-[a-z-]+)?|(?:margin|padding)(?:-[a-z-]+)?|border(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?-width|(?:row-|column-)?gap|flex(?:-basis|-grow|-shrink)?|grid-template-(?:rows|columns)|font-size|line-height)$/;
+// The words of a transition shorthand that are not a property: times, easings and behaviors.
+const TRANSITION_TIMING = /^(?:-?[\d.]+m?s|ease(?:-in|-out|-in-out)?|linear(?:\(.*)?|step-start|step-end|steps\(.*|cubic-bezier\(.*|normal|allow-discrete)$/;
+const TRANSITION_TIME = /^-?([\d.]+)m?s$/;
+
+/**
+ * The first layout property, or `all`, that a CSS transition names: a `transition` shorthand
+ * (one with no property animates `all`) or, with `{ list: true }`, a `transition-property` list.
+ * A shorthand transition whose duration is zero or left out animates nothing, so one made only of
+ * keywords (`unset`, `initial`, `inherit`, `revert`, `none`) or with `0s` names no property; a
+ * duration from a variable counts as one that runs.
+ *
+ * @claim "one with no property animates" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::layout-animation > reads a transition value as a shorthand or a property list)
+ * @claim "A shorthand transition whose duration" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::layout-animation > reads a shorthand of keywords only, or with a zero or missing duration, as naming no property)
+ */
+export function layoutTransitionProperty(value, { list = false } = {}) {
+  for (const segment of value.split(/,(?![^(]*\))/)) {
+    const words = segment.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!list) {
+      // A shorthand's first time is its duration; with none, it lasts 0s unless a variable sets it.
+      const duration = words.find((word) => TRANSITION_TIME.test(word));
+      if (duration ? Number(duration.match(TRANSITION_TIME)[1]) === 0 : !words.some((word) => word.includes("var("))) continue;
+    }
+    const found = words.find((word) => word === "all" || LAYOUT_PROPERTY.test(word));
+    if (found) return found;
+    if (!list && words.every((word) => TRANSITION_TIMING.test(word))) return "all";
+  }
+  return undefined;
+}
+
+/** The layout property, or `all`, that one Tailwind class token transitions, after its variants. */
+export function layoutAnimationClass(token) {
+  const utility = splitVariants(token).at(-1).replace(/^!|!$/g, "");
+  if (utility === "transition-all") return "all";
+  const listed = utility.match(/^transition-\[(.+)\]$/);
+  if (listed) return layoutTransitionProperty(listed[1].replace(/_/g, " "), { list: true });
+  const arbitrary = utility.match(/^\[(transition(?:-property)?):(.+)\]$/);
+  if (arbitrary) return layoutTransitionProperty(arbitrary[2].replace(/_/g, " "), { list: arbitrary[1] !== "transition" });
+  return undefined;
+}
+
+// The first layout property an object of keyframes sets (`{ height: [0, 120] }`, camelCase or not).
+function layoutKeyframe(node) {
+  const objects = ts.isArrayLiteralExpression(node) ? node.elements : [node];
+  for (const object of objects) {
+    if (!ts.isObjectLiteralExpression(object)) continue;
+    for (const property of object.properties) {
+      const name = property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : "";
+      const css = name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+      if (LAYOUT_PROPERTY.test(css)) return css;
+    }
+  }
+  return undefined;
+}
+
+const STYLE_TRANSITION = /^(?:transition|transitionProperty|WebkitTransition|WebkitTransitionProperty)$/;
+const MOTION_ANIMATE = /^(?:animate|exit|while[A-Z]\w*)$/;
+
+// The style property a string is assigned to (`{ transition: "…" }`, `el.style.transition = "…"`).
+function styleProperty(node) {
+  const parent = node.parent;
+  if (ts.isPropertyAssignment(parent) && parent.initializer === node && (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name))) return parent.name.text;
+  if (ts.isBinaryExpression(parent) && parent.right === node && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(parent.left)) {
+    return parent.left.name.text;
+  }
+  return undefined;
 }
 
 const hasControlStateClass = (strings) =>
@@ -964,6 +1051,26 @@ function scanScript(module, resolver) {
       // Counted where it is written; an index is not a control, so the component around it stays clean.
       offenders.push({ category: "render-index", fingerprint: [file, render, "render-index", built, assignedName(node)].join("::"), file, line: lineOf(node) });
     }
+    // Counted where it is written; an animation is not a control, so the component around it stays clean.
+    const addLayout = (tag) => offenders.push({ category: "layout-animation", fingerprint: [file, componentName(node), "layout-animation", tag, ""].join("::"), file, line: lineOf(node) });
+    if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node)) {
+      const property = styleProperty(node);
+      if (property && STYLE_TRANSITION.test(property)) {
+        const found = layoutTransitionProperty(node.text, { list: /Property$/.test(property) });
+        if (found) addLayout(`style.${property}:${found}`);
+      }
+      for (const token of node.text.split(/\s+/)) {
+        if (token && layoutAnimationClass(token)) addLayout(token);
+      }
+    }
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "animate" && node.arguments[0]) {
+      const found = layoutKeyframe(node.arguments[0]);
+      if (found) addLayout(`animate():${found}`);
+    }
+    if (ts.isJsxAttribute(node) && MOTION_ANIMATE.test(node.name.getText()) && node.initializer && ts.isJsxExpression(node.initializer) && node.initializer.expression) {
+      const found = layoutKeyframe(node.initializer.expression);
+      if (found) addLayout(`${node.name.getText()}:${found}`);
+    }
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
@@ -1024,6 +1131,15 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
       line: node.source.start.line,
     });
   };
+  // Counted where it is written, like a spinner: a stylesheet animation is not a control.
+  const addLayout = (node, scope, what) => {
+    offenders.push({
+      category: "layout-animation",
+      fingerprint: [file, "(stylesheet)", "layout-animation", scope, what].join("::"),
+      file,
+      line: node.source.start.line,
+    });
+  };
   const ancestors = (node) => {
     const rules = [];
     const atRules = [];
@@ -1046,6 +1162,21 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
     if (node.type === "atrule" && node.name === "apply") {
       const scope = rules.join(" ");
       if (hook.test(scope) && hasControlStateClass([node.params])) add(node, scope, [...atRules, "@apply"]);
+      for (const token of node.params.split(/\s+/)) {
+        const found = token && layoutAnimationClass(token);
+        if (found) addLayout(node, scope, `@apply ${token}`);
+      }
+    }
+    if (node.type === "decl" && /^(?:-webkit-)?transition(?:-property)?$/i.test(node.prop)) {
+      const found = layoutTransitionProperty(node.value, { list: /property$/i.test(node.prop) });
+      if (found) addLayout(node, rules.join(" "), `${node.prop}: ${found}`);
+    }
+    if (node.type === "atrule" && /keyframes$/i.test(node.name)) {
+      let found;
+      node.walkDecls((decl) => {
+        if (!found && LAYOUT_PROPERTY.test(decl.prop.toLowerCase())) found = decl.prop.toLowerCase();
+      });
+      if (found) addLayout(node, `@${node.name} ${node.params}`, found);
     }
   });
   return offenders;
