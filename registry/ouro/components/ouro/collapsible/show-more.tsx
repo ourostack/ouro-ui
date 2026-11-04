@@ -529,6 +529,10 @@ function ShowMoreText({
   // layout: a ResizeObserver reads after the browser lays the text out, and writes nothing, so no instance makes it lay
   // the page out again.
   const [overflowing, setOverflowing] = useState(() => !clearlyFewerLines(estimate ?? children, lines));
+  // What the text says, as the guess reads it with no layout: the observer starts again only when that changes, not each time
+  // the app renders the same text anew. A change it cannot see that resizes the text, the observer sees.
+  const size = guessSize(estimate ?? children);
+  const said = `${size.lines}:${size.px}:${size.unseen}`;
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
   useEffect(() => {
@@ -544,7 +548,7 @@ function ShowMoreText({
     });
     observer.observe(text);
     return () => observer.disconnect();
-  }, [expanded, children, lines]);
+  }, [expanded, said, lines]);
   return (
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div

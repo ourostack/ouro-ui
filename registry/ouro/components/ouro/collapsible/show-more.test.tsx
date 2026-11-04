@@ -1051,6 +1051,33 @@ describe("ShowMore in its first frame", () => {
   });
 });
 
+describe("ShowMore as its app renders again", () => {
+  it("reads no layout when the app renders the same text again, and measures text that changed", async () => {
+    const { root, rerender } = await render(<ShowMore lines={2}><>{longText}</></ShowMore>);
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollHeight")!;
+    let reads = 0;
+    Object.defineProperty(Element.prototype, "scrollHeight", {
+      configurable: true,
+      get(this: Element) {
+        reads++;
+        return own.get!.call(this);
+      },
+    });
+    try {
+      // The same text, in new elements, as a parent's render makes them.
+      for (let again = 0; again < 5; again++) await rerender(<ShowMore lines={2}><>{longText}</></ShowMore>);
+      await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      expect(reads).toBe(0);
+      await rerender(<ShowMore lines={2}>Short now.</ShowMore>);
+      await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+      expect(reads).toBeGreaterThan(0);
+    } finally {
+      Object.defineProperty(Element.prototype, "scrollHeight", own);
+    }
+  });
+});
+
 describe("ShowMore in a long list", () => {
   it.each([
     ["lines", (index: number) => <ShowMore lines={2}>{`${index}: ${longText}`}</ShowMore>],
