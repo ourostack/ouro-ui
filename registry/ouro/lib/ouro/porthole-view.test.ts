@@ -193,9 +193,9 @@ describe("portholeView", () => {
     expect(view(snap([twin, a])).item).toBe(twin);
   });
 
-  it("a stopped heartbeat outranks error, working and rest items, but not an action", () => {
+  it("a stopped heartbeat outranks every item, an action too, which waits in the open lines", () => {
     const dead = NOW - 12 * SECOND;
-    for (const shown of [item("offline", "error"), item("sync", "working"), item("current", "rest")]) {
+    for (const shown of [item("update", "action"), item("offline", "error"), item("sync", "working"), item("current", "rest")]) {
       const result = view(snap([shown]), dead);
       expect(result).toMatchObject({
         state: "unknown",
@@ -208,10 +208,12 @@ describe("portholeView", () => {
       expect(result.waiting).toBe(shown);
       expect(result.detail).toEqual([shown.label, "chats: verified just now", "No heartbeat for less than a minute"]);
     }
+    // The action waits with its own lines, and comes back with the next beat.
     const action = item("update", "action", NOW, { detail: ["Version 2 is ready"] });
     const result = view(snap([action, item("offline", "error")]), dead);
-    expect(result).toMatchObject({ state: "action", item: action, waiting: null, alive: false });
-    expect(result.detail).toEqual(["Version 2 is ready", "chats: verified just now", "No heartbeat for less than a minute"]);
+    expect(result).toMatchObject({ state: "unknown", status: "unknown", item: null, waiting: action, alive: false });
+    expect(result.detail).toEqual(["update label", "Version 2 is ready", "chats: verified just now", "No heartbeat for less than a minute"]);
+    expect(view(snap([action, item("offline", "error")]))).toMatchObject({ state: "action", item: action, alive: true });
   });
 
   it("says Status unknown when the heartbeat is stamped too far ahead of this clock, or missing, and accepts skew within the tolerance", () => {
@@ -281,10 +283,25 @@ describe("portholeView", () => {
     expect(view(snap([error], { chats: area(NOW - SECOND, NOW - 10 * SECOND) }))).toMatchObject({ state: "error", item: error });
   });
 
-  it("counts trouble stamped ahead of this clock at once, and trouble a little ahead from now", () => {
-    expect(view(snap([], { chats: area(NOW - SECOND, NOW + 10 * SECOND) })).areas[0]).toMatchObject({ fresh: false, troubleMs: 5 * SECOND });
-    expect(view(snap([], { chats: area(NOW - SECOND, NOW + 10 * SECOND) })).state).toBe("rest-stale");
+  it("counts trouble stamped too far ahead of this clock at once, with no length since none was measured, and trouble a little ahead from now", () => {
+    const ahead = view(snap([], { chats: area(NOW - SECOND, NOW + 10 * SECOND) }));
+    expect(ahead.areas[0]).toMatchObject({ fresh: false, troubleSince: NOW + 10 * SECOND, troubleMs: null, line: "chats: verified less than a minute ago" });
+    expect(ahead).toMatchObject({
+      state: "rest-stale",
+      priority: { why: 'Nothing is under way, and "chats" is in trouble since a time too far ahead of this clock to time, and "chats" was verified longest ago' },
+    });
+    expect(portholeStatus(ahead).areas[0]).toMatchObject({ troubleSince: NOW + 10 * SECOND, troubleMs: null });
     expect(view(snap([], { chats: area(NOW - SECOND, NOW + SECOND) })).areas[0]).toMatchObject({ fresh: true, troubleMs: 0 });
+  });
+
+  it("says Status unknown for an area whose trouble time it cannot read, as for a lastVerifiedAt it cannot read", () => {
+    for (const troubleSince of ["2026-11-03T18:40:00Z", Number.NaN, {}]) {
+      const result = view(snap([], { chats: { lastVerifiedAt: NOW - SECOND, troubleSince } as unknown as PortholeArea, calendar: area(NOW - SECOND) }));
+      expect(result).toMatchObject({ state: "unknown", text: "Status unknown", oldestAgeMs: null, priority: { why: '"chats" reports trouble at a time this view cannot read' } });
+      expect(result.areas[0]).toMatchObject({ troubleSince: null, troubleMs: null, fresh: false });
+    }
+    // Missing trouble is no trouble.
+    expect(view(snap([], { chats: { lastVerifiedAt: NOW - SECOND } as unknown as PortholeArea })).state).toBe("rest-fresh");
   });
 
   it("ignores items it cannot rank: an unknown priority, a missing id or label, or no since", () => {
@@ -396,10 +413,30 @@ describe("portholeView", () => {
       expect(view(snap([], { chats: area(NOW, NOW - 20 * SECOND) }), NOW, { heartbeatTimeoutMs: HOUR }).nextChangeAt).toBe(NOW + 40 * SECOND);
       expect(view(snap([], { chats: area(NOW, NOW + 10 * SECOND) }), NOW, { heartbeatTimeoutMs: HOUR }).nextChangeAt).toBe(NOW + 9 * SECOND);
       expect(view(snap([], { chats: area(NOW - 30 * SECOND, NOW + 10 * MINUTE) }), NOW, { heartbeatTimeoutMs: HOUR }).nextChangeAt).toBe(NOW + 30 * SECOND);
+      // Trouble that has just reached troubleAfterMs has already stopped fresh; next its age turns a minute.
+      expect(view(snap([], { chats: area(NOW, NOW - 5 * SECOND) }), NOW, { heartbeatTimeoutMs: HOUR }).nextChangeAt).toBe(NOW + 55 * SECOND);
     });
 
-    it("with the heartbeat stopped, is the moment its age shown next changes", () => {
-      expect(view(snap([], { chats: area(null) }), NOW - 3 * MINUTE - 20 * SECOND).nextChangeAt).toBe(NOW + 40 * SECOND);
+    it("waits on an area never verified for nothing but the heartbeat, since it has no age to grow", () => {
+      expect(view(snap([], { chats: area(null) }), NOW, { heartbeatTimeoutMs: 10 * DAY }).nextChangeAt).toBe(NOW + 10 * DAY + 1);
+    });
+
+    it("with the heartbeat stopped, is the moment its age shown next changes, or the look for its return when that comes first", () => {
+      const stopped = NOW - 3 * MINUTE - 20 * SECOND;
+      expect(view(snap([], { chats: area(null) }), stopped, { heartbeatTimeoutMs: MINUTE }).nextChangeAt).toBe(NOW + 40 * SECOND);
+      expect(view(snap([], { chats: area(null) }), stopped).nextChangeAt).toBe(NOW + 5 * SECOND);
+    });
+
+    it("with the heartbeat stopped, looks for its return a heartbeat timeout on, and sees it come back from a stale, a missing or a NaN beat", () => {
+      for (const beat of [NOW - 12 * SECOND, undefined as unknown as number, Number.NaN]) {
+        const stopped = portholeView(snap([item("update", "action")], { chats: area(NOW) }), beat, NOW);
+        expect(stopped).toMatchObject({ state: "unknown", alive: false, nextChangeAt: NOW + 5 * SECOND });
+        // At that moment, with a beat that came back meanwhile, the view is live again.
+        const back = portholeView(snap([item("update", "action")], { chats: area(NOW) }), NOW + 4 * SECOND, stopped.nextChangeAt!);
+        expect(back).toMatchObject({ state: "action", alive: true, fresh: true });
+        expect(portholeStatus(back)).toMatchObject({ state: "needs-person", alive: true, heartbeatAgeMs: SECOND });
+      }
+      expect(view(snap(), Number.NaN, { heartbeatTimeoutMs: 20 * SECOND }).nextChangeAt).toBe(NOW + 20 * SECOND);
     });
 
     it("is the moment a time stamped too far ahead becomes checkable", () => {
@@ -409,9 +446,9 @@ describe("portholeView", () => {
       expect(view(snap([], { chats: area(NOW + 3 * SECOND) }), NOW, { heartbeatTimeoutMs: HOUR }).nextChangeAt).toBe(NOW + 2 * SECOND);
     });
 
-    it("is null when nothing shown changes with time alone", () => {
-      expect(view(snap([], { chats: area(null) }), Number.NaN).nextChangeAt).toBeNull();
-      expect(view(snap([], { chats: area(null) }), Number.POSITIVE_INFINITY).nextChangeAt).toBeNull();
+    it("is null when nothing shown changes with time alone, as for a snapshot of another version", () => {
+      expect(portholeView({ ...snap([], { chats: area(null) }), version: 2 } as unknown as PortholeSnapshot, Number.NaN, NOW).nextChangeAt).toBeNull();
+      expect(portholeView(null as unknown as PortholeSnapshot, NOW, NOW).nextChangeAt).toBeNull();
     });
   });
 });
