@@ -18,6 +18,14 @@ const startPages = [
 ];
 
 const guidePages = pageIndex.filter((page) => page.kind === "guide" && page.name !== "installing");
+/** The Platforms section's pages (docs/platforms), in the order `pnpm run docs` lists them. */
+const platformPages = pageIndex.filter((page) => page.kind === "platform");
+/** A platform page's sidebar label: a product page's part from "for" ("For Apple"), so a platform's name only ever follows "for"; the section's index is its Overview, and the guide keeps its title. */
+const platformLabel = (page: { name: string; title: string }) => {
+  if (page.name === "platforms") return "Overview";
+  const at = page.title.startsWith("Ouro ") ? page.title.indexOf(" for ") : -1;
+  return at === -1 ? page.title : `For ${page.title.slice(at + " for ".length)}`;
+};
 /** The skill comparisons fold under one item, so the guides stay short. */
 const isComparison = (name: string) => name.startsWith("why-no-skill-");
 
@@ -26,7 +34,7 @@ const searchable = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, ""
 
 /**
  * The docs sidebar's sections: Start, then each catalog group's components under its own
- * label, then the guides. With a filter, only the components whose name matches remain.
+ * label, then the guides, then the platforms. With a filter, only the components whose name matches remain.
  */
 export function docsSections(filter = ""): SidebarSection[] {
   const wanted = searchable(filter);
@@ -53,6 +61,7 @@ export function docsSections(filter = ""): SidebarSection[] {
         },
       ],
     },
+    { label: "Platforms", items: platformPages.map((page) => link(`/docs/${page.name}/`, platformLabel(page))) },
   ];
 }
 

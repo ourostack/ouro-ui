@@ -679,13 +679,30 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
     if (!title) throw new Error(`docs/guides/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
     return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
   });
+// The Platforms section (docs/platforms/, written by hand): README.md is its index at docs/platforms,
+// and each other file is one platform's page, or the contributor guide, at docs/platforms/<file>.
+// The index comes first, then Apple, the platforms that shipped first, then the others by name,
+// with "your platform" and the contributor guide last. A page starts as a guide does.
+const platformsDir = join(root, "docs/platforms");
+const platformLast = ["your-platform.md", "contributing.md"];
+const platformRank = (file: string) => (file === "README.md" ? 0 : file === "apple.md" ? 1 : platformLast.includes(file) ? 3 + platformLast.indexOf(file) : 2);
+const platformPages = (existsSync(platformsDir) ? readdirSync(platformsDir) : [])
+  .filter((file) => file.endsWith(".md"))
+  .sort((a, b) => platformRank(a) - platformRank(b) || a.localeCompare(b))
+  .map((file) => {
+    const text = readFileSync(join(platformsDir, file), "utf8");
+    const title = /^# (.+)\n\n(.+)\n/.exec(text);
+    if (!title) throw new Error(`docs/platforms/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
+    const name = file === "README.md" ? "platforms" : `platforms/${file.slice(0, -3)}`;
+    return { name, title: title[1]!, kind: "platform" as const, group: "Platforms", markdown: `docs/platforms/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
+  });
 // Ouro AX's page per ax item (docs/ax/, scripts/ax-docs.mts), published at docs/<item> as a component's page is.
 const axOutputs = axDocs(root, latestRelease(root));
 const axPages = [...axOutputs.keys()].sort().map((path) => {
   const name = path.slice("docs/ax/".length, -3);
   return { name, title: name, kind: "guide" as const, group: "Ouro AX", markdown: path, summary: summary(axOutputs.get(path)!.replace(/^# .*$/m, "")) };
 });
-const sitePages = [...guidePages, ...axPages, ...exportPages];
+const sitePages = [...guidePages, ...axPages, ...exportPages, ...platformPages];
 const taken = new Map<string, string>(siteItems.map((item) => [item.name, `the ${item.name} item`]));
 for (const page of sitePages) {
   if (taken.has(page.name)) throw new Error(`${page.markdown} would be published at docs/${page.name}, the address of ${taken.get(page.name)}. Rename one.`);

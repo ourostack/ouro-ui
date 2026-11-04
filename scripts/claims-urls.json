@@ -55,6 +55,18 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://developer.android.com/ai/appfunctions": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://developer.apple.com/documentation/appintents/siri-ai-developer-preview": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://developer.apple.com/news/?id=gdk2umrf": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
   "https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent": {
     "status": 200,
     "checked": "2026-10-30"
@@ -127,6 +139,70 @@
     "status": 200,
     "checked": "2026-11-01"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/21282fa5ffd2f45f9ea378089b20e28685978728/.github/workflows/ci.yml#L18-L30": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/21282fa5ffd2f45f9ea378089b20e28685978728/Package.swift#L18-L26": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/21282fa5ffd2f45f9ea378089b20e28685978728/Package.swift#L9": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/21282fa5ffd2f45f9ea378089b20e28685978728/README.md#siri-ai": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/21282fa5ffd2f45f9ea378089b20e28685978728/README.md#whats-in-the-box": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/21282fa5ffd2f45f9ea378089b20e28685978728/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/pull/2": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.1.0": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/818bc86e3891bd2b6dab090a5336c58c2489c094/parity.json": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#pinning-a-core-release": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#whats-inside": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/compare/v0.1.0...v0.2.0": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.1.0": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.2.0": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
   "https://github.com/ourostack/ouro-ui/issues/113": {
     "status": 200,
     "checked": "2026-10-30"
@@ -195,6 +271,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.3": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53": {
     "status": 200,
     "checked": "2026-10-30"
@@ -222,6 +302,14 @@
   "https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)": {
     "status": 200,
     "checked": "2026-10-30"
+  },
+  "https://learn.microsoft.com/en-us/windows/ai/app-actions/": {
+    "status": 200,
+    "checked": "2026-11-04"
+  },
+  "https://learn.microsoft.com/en-us/windows/ai/mcp/overview": {
+    "status": 200,
+    "checked": "2026-11-04"
   },
   "https://nodejs.org/api/typescript.html#type-stripping": {
     "status": 200,
@@ -294,6 +382,10 @@
   "https://webpack.js.org/configuration/mode/": {
     "status": 200,
     "checked": "2026-10-30"
+  },
+  "https://www.apple.com/legal/intellectual-property/guidelinesfor3rdparties.html": {
+    "status": 200,
+    "checked": "2026-11-04"
   },
   "https://www.gutenberg.org/ebooks/164": {
     "status": 200,

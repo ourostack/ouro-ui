@@ -133,9 +133,11 @@ for (const item of docsItems) {
   const file = join(dist, "docs", item.name, "index.html");
   if (!existsSync(file) || !readFileSync(file, "utf8").includes(`>${item.title}</h1>`)) throw new Error(`no docs page for ${item.name}`);
 }
+/** The text of each h1 on a page, without tags and with `&amp;` read back as `&` (a platform page sets "for Apple" in smaller type, inside its h1). */
+const headings = (html: string) => [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map(([, inner]) => inner!.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&"));
 for (const page of docsPages) {
   const file = join(dist, "docs", page.name, "index.html");
-  if (!existsSync(file) || !readFileSync(file, "utf8").includes(`>${page.title}</h1>`)) throw new Error(`no docs page for ${page.file}`);
+  if (!existsSync(file) || !headings(readFileSync(file, "utf8")).includes(page.title)) throw new Error(`no docs page for ${page.file}`);
 }
 for (const file of [...docsItems.map((item) => `${item.name}.md`), ...docsPages.map((page) => `${page.name}.md`), "parts.md"]) {
   if (readFileSync(join(dist, "docs", file), "utf8").includes("@/registry/")) throw new Error(`docs/${file} still has registry paths`);

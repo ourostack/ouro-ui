@@ -45,7 +45,8 @@ export const routes: Route[] = [
   })),
   ...pageIndex.map((page) => ({
     path: `/docs/${page.name}/`,
-    title: `${page.title} · Ouro HX`,
+    // A platform page names both products itself, so its title ends with their parent's name.
+    title: `${page.title} · ${page.kind === "platform" ? "Ouro UI" : "Ouro HX"}`,
     description: page.summary.replace(/`/g, ""),
   })),
   {
