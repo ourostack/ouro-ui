@@ -16,6 +16,8 @@ import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
 
 ## Usage
 
+Under `OuroProvider`'s `quiet`, for people who want less, only the message shows and is heard: no confetti.
+
 While the moment lasts, the root carries `data-celebrate`, so a checker or a test can find it.
 
 ## Use instead when
