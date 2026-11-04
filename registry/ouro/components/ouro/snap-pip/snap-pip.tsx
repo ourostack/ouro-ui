@@ -336,6 +336,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     springs.current = undefined;
     element.current!.removeAttribute("data-ouro-settling");
     return { x: running.x.stop().velocity, y: running.y.stop().velocity };
+    // Stryker disable next-line ArrayDeclaration: halt reads only refs, so any constant list keeps it as this one does.
   }, []);
 
   const rested = useCallback(() => {
