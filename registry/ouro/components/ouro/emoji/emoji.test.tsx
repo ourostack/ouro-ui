@@ -412,6 +412,15 @@ describe("Emoji's animation", () => {
     expect(fetched(sources)).not.toContain(blink.filmstrip!.src);
   });
 
+  it("is fetched in a browser that does not say whether to save data, as Safari and Firefox do not", async () => {
+    await motion();
+    Object.defineProperty(navigator, "connection", { configurable: true, value: undefined });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    await render(<Emoji item={party} />);
+    await expect.poll(() => fetched(sources)).toContain(party.animatedSrc);
+  });
+
   it("is not fetched under reduced motion, which plays nothing, or for a still that fails to load", async () => {
     const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
     const { host, rerender } = await render(<Emoji item={party} />);
