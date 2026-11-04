@@ -42,6 +42,17 @@ import ts from "typescript";
 //   children or any of its props), which marks an action in progress, not missing content; Button's
 //   `loading` draws that one itself. It counts where the spinner is written and never makes the
 //   component around it a hand-rolled control.
+// - render-index: an index built at the top level of a render: `new Map(…)`, `new Set(…)`,
+//   `new RegExp(…)`, `Object.fromEntries(…)`, `Object.groupBy(…)` or `Map.groupBy(…)` with an
+//   argument, evaluated in the body of a component (a capitalised function in a .tsx file, also
+//   through `memo` or `forwardRef`, but not an all-capitals one such as a route handler's `GET`), a
+//   custom hook (`useX`) or a class's `render`, so it is rebuilt on every render.
+//   Build it in the store, once per change, wrap it in `useMemo` on its inputs, or hoist a constant
+//   to module scope. Anything inside a nested function (a `useMemo` or `useEffect` callback, a lazy
+//   `useState` initializer, an event handler) passes, and so does an empty `new Map()`. Like a
+//   spinner, it counts where it is written and never makes the component around it a hand-rolled
+//   control. Known gap: a callback that runs during render (`rows.map((row) => new Set(row.tags))`)
+//   is not counted.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -96,6 +107,7 @@ export const CATEGORIES = [
   "control-state-style",
   "third-party-control",
   "content-spinner",
+  "render-index",
   "uses-hand-rolled-control",
 ];
 
@@ -122,6 +134,18 @@ export const CONTENT_SPINNER_FIX =
   'Show a Skeleton shaped like the content instead (<Skeleton shape="row" count={6}>, <Skeleton shape="text" lines={3}>, <Skeleton shape="card">), ' +
   "so the content takes its place and nothing moves when it arrives. " +
   "Inline progress for an action is allowed: a spinner inside a button (<Button loading>), in a prop such as a field's endAdornment or an icon, or beside the words that say what is under way.";
+
+/** What the render-index rule tells an app to do. */
+export const RENDER_INDEX_FIX =
+  "Build the index where its data changes, once per change: in the store or loader that holds the data, " +
+  "or in useMemo on its inputs (useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])); move a constant to module scope. " +
+  "Built in render, it is rebuilt on every render, a keystroke or a hover included.";
+
+// What each category's message says, for the categories whose fix is not an Ouro component.
+const CATEGORY_MESSAGES = {
+  "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
+  "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
+};
 
 export const BASELINE_PATH = "ouro-source-rules.baseline.json";
 export const CONFIG_PATH = "ouro-source-rules.json";
@@ -668,6 +692,71 @@ const SPINNER_MODULE = /(?:^|\/)spinner\/spinner(?:\.[cm]?[jt]sx?)?$/;
 const SPIN_CLASS = /^!?animate-(?:spin|\[(?:ouro-)?spin(?:_|\]))/;
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
+// An index a render builds: `new Map(rows…)`, `Object.fromEntries(…)`, with at least one argument.
+const INDEX_CONSTRUCTORS = new Set(["Map", "Set", "RegExp"]);
+const INDEX_BUILDERS = new Set(["Object.fromEntries", "Object.groupBy", "Map.groupBy"]);
+const RENDER_WRAPPERS = /^(?:React\.)?(?:memo|forwardRef)$/;
+const HOOK_NAME = /^use[A-Z0-9]/;
+const COMPONENT_NAME = /^[A-Z]/;
+// All capitals is a constant or a route handler (Next.js's `GET`, `POST`), not a component.
+const CONSTANT_NAME = /^[A-Z][A-Z0-9_]+$/;
+// Components live in files that can hold JSX; a capitalised function in a .ts file is something else.
+const JSX_FILE = /\.[jt]sx$/;
+
+function indexBuilt(node) {
+  if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && INDEX_CONSTRUCTORS.has(node.expression.text)) {
+    return node.arguments?.length ? node.expression.text : undefined;
+  }
+  if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && INDEX_BUILDERS.has(node.expression.getText())) {
+    return node.arguments.length > 0 ? node.expression.getText() : undefined;
+  }
+  return undefined;
+}
+
+// The name of the render a function is: a component (a capitalised name that is not all capitals,
+// in a .tsx file, also through memo or forwardRef), a custom hook (useX), or a class's render
+// method; else undefined.
+function renderName(fn) {
+  if (ts.isMethodDeclaration(fn)) {
+    const owner = fn.parent;
+    return fn.name.getText() === "render" && ts.isClassLike(owner) && owner.heritageClauses?.length
+      ? owner.name?.text ?? declarationOf(owner)?.name.getText() ?? "render"
+      : undefined;
+  }
+  if (!ts.isFunctionDeclaration(fn) && !ts.isFunctionExpression(fn) && !ts.isArrowFunction(fn)) return undefined;
+  let name = fn.name?.text;
+  if (!name && !ts.isFunctionDeclaration(fn)) {
+    let node = fn.parent;
+    while (
+      ts.isParenthesizedExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isSatisfiesExpression(node) ||
+      (ts.isCallExpression(node) && RENDER_WRAPPERS.test(node.expression.getText()))
+    ) {
+      node = node.parent;
+    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) name = node.name.text;
+  }
+  if (!name) return undefined;
+  if (HOOK_NAME.test(name)) return name;
+  return COMPONENT_NAME.test(name) && !CONSTANT_NAME.test(name) && JSX_FILE.test(fn.getSourceFile().fileName) ? name : undefined;
+}
+
+// The render whose own body evaluates `node`, or undefined at module scope or inside a nested function.
+function enclosingRender(node) {
+  for (let current = node.parent; current; current = current.parent) {
+    if (ts.isFunctionLike(current) || ts.isClassStaticBlockDeclaration(current)) return renderName(current);
+  }
+  return undefined;
+}
+
+// The variable an index is assigned to (`const byId = new Map(…)`), for its fingerprint.
+function assignedName(node) {
+  let current = node.parent;
+  while (ts.isParenthesizedExpression(current) || ts.isAsExpression(current) || ts.isSatisfiesExpression(current)) current = current.parent;
+  return ts.isVariableDeclaration(current) && ts.isIdentifier(current.name) ? current.name.text : "";
+}
+
 function scanScript(module, resolver) {
   const { file, sourceFile, imports, declarations, bindingDefaults } = module;
   const offenders = [];
@@ -868,6 +957,12 @@ function scanScript(module, resolver) {
       node.arguments[0].text.startsWith("data-ouro")
     ) {
       add("data-ouro-attr", node, "setAttribute");
+    }
+    const built = indexBuilt(node);
+    const render = built && enclosingRender(node);
+    if (render) {
+      // Counted where it is written; an index is not a control, so the component around it stays clean.
+      offenders.push({ category: "render-index", fingerprint: [file, render, "render-index", built, assignedName(node)].join("::"), file, line: lineOf(node) });
     }
     ts.forEachChild(node, visit);
   };
@@ -1095,11 +1190,12 @@ export function findRegressions(offenders, baseline) {
 
 export function formatComparison({ added, removed }) {
   return [
-    ...added.map(({ fingerprint, count, at }) =>
-      fingerprint.split("::")[2] === "content-spinner"
-        ? `New spinner standing in for content: ${fingerprint} (+${count}) at ${at.join(", ")}. ${CONTENT_SPINNER_FIX}`
-        : `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`,
-    ),
+    ...added.map(({ fingerprint, count, at }) => {
+      const message = CATEGORY_MESSAGES[fingerprint.split("::")[2]];
+      return message
+        ? `${message.headline}: ${fingerprint} (+${count}) at ${at.join(", ")}. ${message.fix}`
+        : `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`;
+    }),
     ...removed.map(
       ({ fingerprint, count }) => `Fixed: ${fingerprint} (-${count}); remove it from the baseline: ${UPDATE_COMMAND}`,
     ),
@@ -1284,7 +1380,7 @@ export function main(argv, deps) {
       }
       const permits = entry ? `, but its allowed regression permits ${entry.count ?? 0}` : "";
       lines.push(
-        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${fingerprint.split("::")[2] === "content-spinner" ? CONTENT_SPINNER_FIX.replace(/\.$/, ";") : "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
+        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${CATEGORY_MESSAGES[fingerprint.split("::")[2]]?.fix.replace(/\.$/, ";") ?? "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
       );
     }
     notes.push(`ouro-source-rules: ratchet against ${options.base}: ${allowedCount} allowed regression(s), ${moves.length} move(s).`);
