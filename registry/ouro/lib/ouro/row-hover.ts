@@ -87,8 +87,10 @@ const editable = 'input, textarea, [contenteditable]:not([contenteditable="false
  * (`pointerover` and `pointerleave` delegated from the rows, focus, keys, scrolling, a tap and the
  * window's blur), so a list of a thousand rows costs what a list of one does, and the layer is on
  * at most one row at a time. A mouse or pen over a row shows it there at once (in the same event,
- * before the next frame), and moving off the row or the list hides it. Keyboard focus arriving in
- * a row shows it too, and Escape hides it, putting focus back on the row if it was in the layer.
+ * before the next frame), and moving off the row or the list hides it; a pointer already resting on a row when the
+ * layer arrives shows it there too. Keyboard focus arriving in
+ * a row shows it too, and Escape hides it, putting focus back on the row if it was in the layer; an Escape in a
+ * field in the row is the field's.
  * A tap on a row shows it until a press lands elsewhere. Scrolling under the pointer, the window
  * losing focus and the row going all hide it, so it never stays on a row the pointer has left.
  * `menu` opens the app's menu for a row: right-click (except on a field or over selected text,
@@ -105,6 +107,8 @@ const editable = 'input, textarea, [contenteditable]:not([contenteditable="false
  * @claim "It listens once, on the list" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > adds the same listeners for a thousand rows as for one)
  * @claim "the layer is on at most one row at a time" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > follows the pointer from row to row, on one row at a time, and hides when it leaves a row or the list)
  * @claim "before the next frame" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows the layer within the pointer's own event, before the next frame)
+ * @claim "an Escape in a field in the row is the field's" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
+ * @claim "a pointer already resting on a row when the" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived)
  * @claim "Keyboard focus arriving in a row shows it too" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
  * @claim "A tap on a row shows it until" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a tap until a press lands elsewhere, and a tap on a control is the control's)
  * @claim "Scrolling under the pointer, the window" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > hides on a scroll until the pointer moves again, on the window's blur and when the row goes)
@@ -136,12 +140,13 @@ export function useRowHover<T>(
       }
       return null;
     };
-    const show = (next: HTMLElement | null, how: RowHoverVia | null, sync = true) => {
+    const show = (next: HTMLElement | null, how: RowHoverVia | null, sync = true, refocus = true) => {
       const to = next === null ? null : how;
       if (next === row && to === via) return;
-      // Focus in the layer goes back to its row before the layer goes, so it never drops to the page.
+      // Focus in the layer goes back to its row before the layer goes, so it never drops to the page; not when a menu
+      // opens from it, which takes focus and gives it back to the row as it closes.
       const active = doc.activeElement;
-      if (row !== null && next !== row && active !== null && active !== row && row.contains(active) && active.closest("[data-ouro-row-layer]") !== null) {
+      if (refocus && row !== null && next !== row && active !== null && active !== row && row.contains(active) && active.closest("[data-ouro-row-layer]") !== null) {
         row.focus({ preventScroll: true });
       }
       row = next;
@@ -182,7 +187,8 @@ export function useRowHover<T>(
     };
     const key = (event: KeyboardEvent) => {
       const target = event.target as Element;
-      if (event.key === "Escape" && row !== null && row.contains(target) && !event.defaultPrevented) {
+      // Escape in a field (an editor in the row, say) is the field's: it cancels there, and the layer stays.
+      if (event.key === "Escape" && row !== null && row.contains(target) && !event.defaultPrevented && target.closest(editable) === null) {
         event.preventDefault();
         hide();
         return;
@@ -219,10 +225,16 @@ export function useRowHover<T>(
       if (layer.get(changedRow) === undefined) show(null, null, false);
       else setShown((previous) => ({ ...previous, version: previous.version + 1 }));
     };
-    api.current = { hide, hold: (on) => ((held = on), on && hide()) };
-    // Focus already in a row, from the keyboard, as the layer arrives.
+    // Held for a menu that opens: hidden in the same update as the menu, so opening it draws once.
+    api.current = { hide, hold: (on) => ((held = on), on && show(null, null, false, false)) };
+    // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one (the
+    // layer's code came after the pointer did, and a pointer that stays still sends nothing more).
     const focused = rowOf(doc.activeElement);
+    // Stryker disable next-line MethodExpression,UnaryOperator: the deepest hovered element and its outermost one inside the list are in the same row.
+    const under = rowOf([...root.querySelectorAll(":hover")].at(-1) ?? null);
     if (focused !== null && lastInput() === "keyboard") show(focused, "focus", false);
+    // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives.
+    else if (under !== null && lastInput() !== "touch") show(under, "pointer", false);
 
     root.addEventListener("pointerover", over);
     root.addEventListener("pointerleave", leave);

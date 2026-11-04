@@ -184,6 +184,14 @@ describe("useRowHover", () => {
     await act(async () => row("r2").focus());
     await act(async () => page.getByRole("button", { name: "After" }).element().focus());
     expect(layers()).toHaveLength(0);
+    // An Escape in a field in the row is the field's: never taken, and the layer stays.
+    await act(async () => row("r2").focus());
+    await act(async () => row("r2").querySelector("input")!.focus());
+    expect(layerIn("r2")).not.toBeNull();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void row("r2").querySelector("input")!.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(false);
+    expect(layerIn("r2")).not.toBeNull();
     // An Escape the app took first is the app's.
     await act(async () => row("r2").focus());
     const taken = (event: KeyboardEvent) => event.preventDefault();
@@ -291,7 +299,7 @@ describe("useRowHover", () => {
     expect(layers()).toHaveLength(0);
   });
 
-  it("shows on a row focused from the keyboard before the layer arrived", async () => {
+  it("shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived", async () => {
     function Late() {
       const [shown, setShown] = useState(false);
       return (
@@ -340,5 +348,26 @@ describe("useRowHover", () => {
     await rerender(<Focused ready />);
     expect(probe.hover.row).toBe(row("r0"));
     expect(probe.hover.via).toBe("focus");
+    await act(async () => roots.pop()!.unmount());
+    // The pointer resting on a row as the layer's hook first runs, with nothing focused in it.
+    function Rested({ ready }: { ready: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        layer.set(ref.current!, "r0");
+      }, []);
+      return (
+        <div>
+          <div ref={ref} id="r0" style={{ height: 40 }}>
+            Row
+          </div>
+          {ready ? <Layer /> : null}
+        </div>
+      );
+    }
+    const rested = await render(<Rested ready={false} />);
+    await userEvent.hover(row("r0"));
+    await rested.rerender(<Rested ready />);
+    expect(probe.hover.row).toBe(row("r0"));
+    expect(probe.hover.via).toBe("pointer");
   });
 });

@@ -152,6 +152,12 @@ function tabbables(root: Element): HTMLElement[] {
 }
 
 /** Whether a change added or removed a message. */
+// Whether a change is only the list's one action bar moving between messages or changing in place, which leaves the
+// messages as they were: the list skips placing, marking and announcing for it.
+function barOnly(record: MutationRecord): boolean {
+  return (record.target as Element).closest("[data-ouro-message-bar-slot]") !== null;
+}
+
 function touchesItems(record: MutationRecord): boolean {
   return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(items) || node.querySelector(items) !== null));
 }
@@ -863,9 +869,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
     // the reader is scrolled up, the anchor is held as they move, before the browser draws. A move that also resizes
     // the list is held here first, and the resize observer then finds it held. At the end, the list follows wherever its end
-    // went: something put in a message that reaches past the end (a reply's action bar, which loads after the message,
-    // beside its last line) moves the end without resizing anything, so the resize observer would not see it.
-    const moves = new MutationObserver((records) => {
+    // went: something put in a message that reaches past the end (a picture that loads beside its last line) moves the
+    // end without resizing anything, so the resize observer would not see it. The list's one action bar moving between
+    // messages is left out: it shows on hover, and following it would move the list under the pointer.
+    const moves = new MutationObserver((all) => {
+      const records = all.filter((record) => !barOnly(record));
+      if (records.length === 0) return;
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
@@ -1041,7 +1050,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const sync = (changed: boolean) => {
       // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
       // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
-      for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
+      for (const guard of content.querySelectorAll(guards)) mark(guard, "tabindex", "-1");
       if (focused?.isConnected === false && doc.activeElement === doc.body) {
         focused = null;
         const left = topItems(content);
@@ -1193,7 +1202,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const scrolled = () => place(topItems(content));
 
     sync(true);
-    const observer = new MutationObserver((records) => sync(records.some(touchesItems)));
+    const observer = new MutationObserver((records) => {
+      // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
+      if (!records.every(barOnly)) sync(records.some(touchesItems));
+    });
     observer.observe(content, { childList: true, subtree: true });
     scroller.addEventListener("focusin", focusIn);
     scroller.addEventListener("focusout", focusOut);
