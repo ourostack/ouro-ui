@@ -648,7 +648,8 @@ export function Menu(props: MenuProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression,LogicalOperator: Base UI opens through here only at a trigger, which an anchored menu has none of, and a dropdown has no returnFocus, so past this line either finds nothing of theirs to focus.
     if (anchor === undefined || next) return;
     setTimeout(() => {
-      const active = document.activeElement ?? document.body;
+      // The body when nothing has focus: null only in a document with no body, which a menu's page always has.
+      const active = document.activeElement as Element;
       if (active !== document.body && active.closest('[data-ouro="menu-positioner"]') === null) return;
       (movedTo.current?.isConnected ? movedTo.current : returnTo.current)?.focus({ preventScroll: true });
     });
