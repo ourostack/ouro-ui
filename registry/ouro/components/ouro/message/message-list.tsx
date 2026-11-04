@@ -16,7 +16,13 @@ import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 export interface MessageListOwnProps {
   /** What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. */
   label: string;
-  /** The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see {@link MessageList}). */
+  /**
+   * The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see {@link MessageList}).
+   * Each is its own block, 16px under the one before it and 4px under one it continues. A child's own top margin gives way
+   * to that space, and its bottom margin takes in the space after it rather than adding to it.
+   * @claim "Each is its own block, 16px under the one before it and 4px under one it continues." registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList's layout > lays the messages out in block flow, 16px apart and 4px under one they continue, the newest at the bottom of a short conversation)
+   * @claim "A child's own top margin gives way to that space, and its bottom margin takes in the space after it rather than adding to it." registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList's layout > gives a child's own top margin over to the 16px before it, and lets its bottom margin take in the 16px after it)
+   */
   children: ReactNode;
   /** The button that appears once the reader scrolls up, for other languages. @default "Jump to latest" */
   jumpLabel?: string | undefined;
@@ -182,6 +188,23 @@ const olderClass =
 
 /** How many older messages go into the list in a frame when a page of them comes at once, to keep the frame short. */
 const CHUNK = 20;
+
+/**
+ * Whether this browser sits a block container's content at its end with `align-content: end`; one that takes it only in
+ * flex and grid containers would leave a short conversation at the top. Read from a hidden box of the page's own,
+ * outside the list, so the list's observers see nothing of it.
+ */
+function endsBlocks(content: HTMLElement): boolean {
+  const probe = content.ownerDocument.createElement("div");
+  // Stryker disable next-line StringLiteral: the attribute's presence is what a test's style reads.
+  probe.setAttribute("data-ouro-message-list-probe", "");
+  probe.style.cssText = "position:absolute;visibility:hidden;display:block;align-content:end;height:4px;width:1px;overflow:hidden";
+  const inner = probe.appendChild(content.ownerDocument.createElement("div"));
+  content.ownerDocument.body.append(probe);
+  const ends = inner.offsetTop > 0;
+  probe.remove();
+  return ends;
+}
 
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
@@ -701,6 +724,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
     anchorFor.current = initialAnchor;
     pagesFor.current = pageKeys;
   });
+  // The content is a flex column in the server's HTML, so a short conversation sits at the bottom in every browser.
+  // Where block flow can sit it there too, the content becomes block flow before the first paint the browser makes of
+  // it: WebKit then lays out only what a change moves, where a flex column made it lay the whole column out again.
+  useLayoutEffect(
+    () => {
+      const content = contentRef.current!;
+      if (endsBlocks(content)) content.setAttribute("data-ouro-message-list-flow", "block");
+    },
+    // Stryker disable next-line ArrayDeclaration: any unchanging list runs the probe once, as this one does.
+    [],
+  );
   // The list's ends, which Tab passes through to leave the messages behind (see the keyboard effect).
   const startRef = useRef<HTMLSpanElement | null>(null);
   const endRef = useRef<HTMLSpanElement | null>(null);
@@ -1315,15 +1349,26 @@ export function MessageList(props: MessageListProps): JSX.Element {
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
       >
         <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+        {/* Sits a short conversation at the bottom: as block flow with its content at the end where the browser can (see
+            the effect above), else as a flex column, as in the server's HTML. The messages are in block flow either way. An
+            app found its long conversations stalling in its WKWebView as messages streamed, loaded pictures or came in
+            above, with the messages as items of a flex column, and a block-flow column around them ended the stalls. */}
         <div
           ref={contentRef}
           data-ouro-message-list-content=""
-          className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3"
+          className="box-border flex min-h-full flex-col justify-end p-4 data-[ouro-message-list-flow=block]:block data-[ouro-message-list-flow=block]:[align-content:end]"
           style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
         >
           {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
-          {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
-          {shown}
+          {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="h-11 shrink-0" />}
+          {/* Each message its own block, as a flex item was (an app's own display stands), 16px apart, and 4px under a
+              message it continues. */}
+          <div
+            data-ouro-message-list-column=""
+            className="flow-root [:where(&>*)]:flow-root [&>*+*]:mt-4! [&>*+[data-continued]]:mt-1!"
+          >
+            {shown}
+          </div>
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
       </div>

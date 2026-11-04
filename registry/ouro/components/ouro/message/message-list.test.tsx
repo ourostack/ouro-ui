@@ -3,7 +3,7 @@ import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
@@ -153,7 +153,8 @@ describe("MessageList", () => {
     );
     const start = scroller.querySelector("[data-start]")!.getBoundingClientRect();
     const first = scroller.querySelector('[data-ouro="message"]')!.getBoundingClientRect();
-    const gap = parseFloat(getComputedStyle(scroller.querySelector("[data-ouro-message-list-content]")!).rowGap);
+    const gap = parseFloat(getComputedStyle(scroller.querySelector('[data-ouro="message"]')!).marginTop);
+    expect(gap).toBe(16);
     expect(first.top - start.bottom).toBeCloseTo(gap, 0);
     expect(start.top - scroller.getBoundingClientRect().top).toBeGreaterThan(gap);
   });
@@ -2709,5 +2710,229 @@ describe("MessageList when no message starts in view", () => {
     await rerender(<Chat items={items.filter((item) => item.id !== "long")} />);
     await settle(scroller);
     expect(Math.abs(next.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("MessageList's layout", () => {
+  const boxes = (scroller: HTMLElement) => [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-column] > *")].map((node) => node.getBoundingClientRect());
+
+  it("lays the messages out in block flow, 16px apart and 4px under one they continue, the newest at the bottom of a short conversation", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 400 }}>
+        <Message role="user" name="Ana">
+          Hello
+        </Message>
+        <Message role="user" name="Ana" continued>
+          Are you there?
+        </Message>
+        <Message role="assistant" name="Ouro">
+          Yes
+        </Message>
+      </MessageList>,
+    );
+    // The messages are no flex items, nor is their column where the browser can sit block flow at its end: a change to
+    // one lays out only what follows it.
+    const column = scroller.querySelector<HTMLElement>("[data-ouro-message-list-column]")!;
+    expect(getComputedStyle(column).display).toBe("flow-root");
+    expect(column.parentElement!.getAttribute("data-ouro-message-list-flow")).toBe("block");
+    expect(getComputedStyle(column.parentElement!).display).toBe("block");
+    expect(getComputedStyle(column.parentElement!).alignContent).toBe("end");
+    const [first, continued, reply] = boxes(scroller);
+    expect(continued!.top - first!.bottom).toBeCloseTo(4, 0);
+    expect(reply!.top - continued!.bottom).toBeCloseTo(16, 0);
+    // At the bottom, above the content's padding.
+    expect(scroller.getBoundingClientRect().bottom - reply!.bottom).toBeCloseTo(16, 0);
+  });
+
+  it("keeps each message's own box: no space for a hidden one, an app's own display, and its children's margins inside it", async () => {
+    const { scroller } = await render(
+      <MessageList label="Channel" style={{ height: 400 }}>
+        <article data-ouro-message-list-item="" data-role="user" className="flex gap-2">
+          <span data-ouro-message-author="">Ana</span>
+          <span data-ouro-message-content="">Morning</span>
+        </article>
+        <article data-ouro-message-list-item="" data-role="user" style={{ display: "none" }}>
+          <span data-ouro-message-author="">Ana</span>
+          <span data-ouro-message-content="">Hidden</span>
+        </article>
+        <article data-ouro-message-list-item="" data-role="assistant">
+          <span data-ouro-message-author="" hidden>
+            Ouro
+          </span>
+          <p data-margined="" data-ouro-message-content="" style={{ margin: "10px 0" }}>
+            Morning, Ana
+          </p>
+        </article>
+      </MessageList>,
+    );
+    const [flexed, hidden, margined] = [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-column] > *")];
+    expect(getComputedStyle(flexed!).display).toBe("flex");
+    expect(hidden!.getClientRects()).toHaveLength(0);
+    expect(margined!.getBoundingClientRect().top - flexed!.getBoundingClientRect().bottom).toBeCloseTo(16, 0);
+    // Its child's margins stay inside it, as they did when it was a flex item: they neither collapse through it nor into the 16px.
+    const paragraph = margined!.querySelector("[data-margined]")!.getBoundingClientRect();
+    expect(margined!.getBoundingClientRect().height).toBeCloseTo(paragraph.height + 20, 0);
+  });
+
+  it("keeps 16px around a child that resets its own margin, as a quiet time between messages does, as the gap did", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 400 }}>
+        <Message role="assistant" name="Ouro">
+          Morning
+        </Message>
+        <p data-divider="" style={{ margin: 0, textAlign: "center" }}>
+          10:31 AM
+        </p>
+        <Message role="user" name="Ana">
+          Seating plan is printed.
+        </Message>
+      </MessageList>,
+    );
+    const [before, divider, after] = boxes(scroller);
+    expect(divider!.top - before!.bottom).toBeCloseTo(16, 0);
+    expect(after!.top - divider!.bottom).toBeCloseTo(16, 0);
+  });
+
+  // Every layout case above, in one list, and where each box sits in it.
+  const scene = (more: boolean) => (
+    <MessageList label="Conversation" style={{ height: 600 }} hasOlder={more}>
+      <Message role="user" name="Ana">
+        Hello
+      </Message>
+      <Message role="user" name="Ana" continued>
+        Are you there?
+      </Message>
+      <article data-ouro-message-list-item="" data-role="user" style={{ display: "none" }}>
+        <span data-ouro-message-content="">Hidden</span>
+      </article>
+      <p style={{ margin: 0, textAlign: "center" }}>10:31 AM</p>
+      <article data-ouro-message-list-item="" data-role="assistant" className="flex gap-2">
+        <span data-ouro-message-author="">Ouro</span>
+        <p data-ouro-message-content="" style={{ margin: "10px 0" }}>
+          Yes
+        </p>
+      </article>
+    </MessageList>
+  );
+  const places = (scroller: HTMLElement) => {
+    const origin = scroller.getBoundingClientRect();
+    return [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-older-room], [data-ouro-message-list-column] > *, [data-ouro-message-list-column] > * > *")].map((node) => {
+      // A hidden message has no box to place.
+      if (node.getClientRects().length === 0) return null;
+      const box = node.getBoundingClientRect();
+      return [box.left - origin.left, box.top - origin.top, box.width, box.height].map((value) => Math.round(value * 100) / 100);
+    });
+  };
+
+  it("lays the content out as a flex column where block flow cannot sit it at the end, with every box where block flow puts it", async () => {
+    const shown: Record<string, (number[] | null)[]> = {};
+    for (const more of [false, true]) {
+      const block = await render(scene(more));
+      expect(block.scroller.querySelector("[data-ouro-message-list-flow=block]")).not.toBeNull();
+      shown[`block ${more}`] = places(block.scroller);
+      // A browser that takes align-content only in flex and grid containers, as Safari did before 17.4.
+      const old = document.createElement("style");
+      old.textContent = "[data-ouro-message-list-probe] { display: flex !important; flex-direction: column !important; align-content: normal !important; }";
+      document.head.append(old);
+      mounted.push(old);
+      const flex = await render(scene(more));
+      old.remove();
+      const content = flex.scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+      expect(content.hasAttribute("data-ouro-message-list-flow")).toBe(false);
+      expect(getComputedStyle(content).display).toBe("flex");
+      shown[`flex ${more}`] = places(flex.scroller);
+      expect(shown[`flex ${more}`]).toEqual(shown[`block ${more}`]);
+    }
+    // The room for older messages is there in one and not the other, so both cases were laid out.
+    expect(shown["block true"]!.length).toBe(shown["block false"]!.length + 1);
+  });
+
+  it("is a flex column in the server's HTML, and block flow from the first paint after it hydrates", async () => {
+    const node = scene(false);
+    const html = renderToString(node);
+    expect(html).not.toContain("data-ouro-message-list-flow");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const content = host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    expect(getComputedStyle(content).display).toBe("flex");
+    const before = places(host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!);
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(content.getAttribute("data-ouro-message-list-flow")).toBe("block");
+    expect(places(host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!)).toEqual(before);
+    // The probe leaves nothing behind.
+    expect(document.querySelector("[data-ouro-message-list-probe]")).toBeNull();
+  });
+
+  it("gives a child's own top margin over to the 16px before it, and lets its bottom margin take in the 16px after it", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 400 }}>
+        <Message role="assistant" name="Ouro">
+          Morning
+        </Message>
+        <p style={{ margin: "40px 0 24px" }}>10:31 AM</p>
+        <Message role="user" name="Ana">
+          Seating plan is printed.
+        </Message>
+      </MessageList>,
+    );
+    const [before, divider, after] = boxes(scroller);
+    expect(divider!.top - before!.bottom).toBeCloseTo(16, 0);
+    expect(after!.top - divider!.bottom).toBeCloseTo(24, 0);
+  });
+
+  it("keeps the first message right under the room for older messages, as before the column", async () => {
+    const { scroller } = await render(<Chat items={history(3)} hasOlder />);
+    const room = scroller.querySelector("[data-ouro-message-list-older-room]")!.getBoundingClientRect();
+    expect(boxes(scroller)[0]!.top).toBeCloseTo(room.bottom, 0);
+    expect(room.height).toBe(44);
+  });
+
+  // Report only: how long WebKit takes to lay out forty changes to the newest message, in a long conversation and a short
+  // one, written to the run as an annotation. It holds the list to no bound: Playwright's WebKit takes as long with the old
+  // flex column as with the block column, so a bound here would guard nothing, and on a loaded runner it would fail at random.
+  it("records how long WebKit takes to lay out changes to the newest message, in a long conversation and a short one", async ({ annotate, skip }) => {
+    skip(server.browser !== "webkit", "the flex relayout this guards against is WebKit's");
+    const heavy = (count: number) =>
+      Array.from({ length: count }, (_, index) => (
+        <Message key={index} role={index % 2 ? "assistant" : "user"} name="Ana">
+          {`Message ${index}: ${"rest the dough ".repeat(30)}`}
+          <span style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {Array.from({ length: 12 }, (_, card) => (
+              <span key={card} style={{ display: "grid", gridTemplateColumns: "1fr 2fr", width: 120 }}>
+                <b>{card}</b>
+                <i>{"card text ".repeat(4)}</i>
+              </span>
+            ))}
+          </span>
+        </Message>
+      ));
+    const cost = async (count: number) => {
+      const { scroller } = await render(
+        <MessageList label="Conversation" style={{ height: 500 }} springy={false}>
+          {heavy(count)}
+        </MessageList>,
+      );
+      const newest = [...scroller.querySelectorAll("[data-ouro-message-content]")].at(-1)!;
+      let total = 0;
+      for (let change = 0; change < 40; change++) {
+        newest.append(document.createTextNode(" and a few more words"));
+        const start = performance.now();
+        void scroller.scrollHeight;
+        total += performance.now() - start;
+      }
+      await act(async () => roots.pop()!.unmount());
+      return total;
+    };
+    const short = await cost(50);
+    const long = await cost(600);
+    await annotate(`WebKit forced layout over 40 changes to the newest message: 50 messages ${short.toFixed(1)} ms, 600 messages ${long.toFixed(1)} ms`);
   });
 });

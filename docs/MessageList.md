@@ -59,7 +59,7 @@ Type: `MessageListProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `children` (required) | `ReactNode` |  | The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see `MessageList`). |
+| `children` (required) | `ReactNode` |  | The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see `MessageList`). Each is its own block, 16px under the one before it and 4px under one it continues. A child's own top margin gives way to that space, and its bottom margin takes in the space after it rather than adding to it. |
 | `className` | `string` |  | Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that height, so give it one. Appearance classes warn in development. |
 | `hasOlder` | `boolean` | `false` | Whether older messages may still load above, until the reader reaches the start of the conversation. While it is true the list keeps room above the first message, where "Loading older messages" shows, so at the top it covers no message or focus ring, and nothing moves as loading starts. Set it to `false` once there is nothing older: the room stays until it has left the view, or the list is at its end, and then goes without moving a message. |
 | `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it. The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them; a message it does not hold, or the newest, opens at the end, and a later change moves nothing. |
