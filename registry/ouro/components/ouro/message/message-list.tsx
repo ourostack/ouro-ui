@@ -21,11 +21,13 @@ export interface MessageListOwnProps {
   /** The button that appears once the reader scrolls up, for other languages. @default "Jump to latest" */
   jumpLabel?: string | undefined;
   /**
-   * The `id` of the message to open at, such as one found by search or a link to it. The list opens
+   * The `id` of the message to open at, such as one found by search or a link to it, or the `key` of the child that holds
+   * it (the message's own id, where a row component of yours takes no `id`). The list opens
    * with that message in the middle of its view, before it first draws, so the newest is never shown
    * first, and it follows new messages only once the reader reaches the end. The list reads it when
    * it first has messages, so it can come with them; a message it does not hold, or the newest,
    * opens at the end, and a later change moves nothing.
+   * @claim "or the `key` of the child that holds it" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals a row component that takes no id by its key, and opens at one by its key, resolving once it is in place)
    * @claim "The list opens with that message in" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the message initialAnchor names, never drawing the newest first, and stops following new messages)
    * @claim "The list reads it when it first" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at initialAnchor when it comes with the first messages, after the list mounted empty)
    * @claim "a message it does not hold" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
@@ -157,17 +159,22 @@ export interface MessageListRevealOptions {
  *
  * @example
  * const actions = useRef<MessageListActions>(null);
- * <Message quote={{ author: "Ana", excerpt: "Lunch?", onActivate: () => actions.current?.reveal("m-41", { focus: true }) }}>Yes</Message>
+ * <Message quote={{ author: "Ana", excerpt: "Lunch?", onActivate: () => void actions.current?.reveal("m-41", { focus: true }) }}>Yes</Message>
  */
 export interface MessageListActions {
   /**
    * Brings the message whose `id` is given into view, drawing it first if the list has not, and
-   * stops following new messages. Returns false when no child has that `id`. Find in chat searches
-   * your own messages, then reveals each match: the browser's find in page sees only what is drawn.
+   * stops following new messages. A child is found by its `id` prop, or by its `key` (the message's
+   * own id, where a row component of yours takes no `id`), and once drawn by the `id` of any element
+   * in it. Resolves true once the message is in place (and focused, with `focus`), and false at once
+   * when no child has that `id` or `key`, or when another reveal or a key press takes its place. Find
+   * in chat searches your own messages, then reveals each match: the browser's find in page sees only
+   * what is drawn.
+   * @claim "A child is found by its `id` prop, or by its `key`" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals a row component that takes no id by its key, and opens at one by its key, resolving once it is in place)
    * @claim "Brings the message whose `id` is given" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals a message that is not drawn, by its id, in the middle of the view, and focuses it when asked)
-   * @claim "Returns false when no child has" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals nothing, and says so, for an id no message has)
+   * @claim "and false at once when no child has" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals nothing, and says so, for an id no message has)
    */
-  reveal(id: string, options?: MessageListRevealOptions): boolean;
+  reveal(id: string, options?: MessageListRevealOptions): Promise<boolean>;
   /**
    * Goes to the newest message and follows new messages again, as "Jump to latest" does, leaving focus where it is.
    * @claim "Goes to the newest message and follows" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > jumps to the newest message from far up, and follows new messages again)
@@ -209,6 +216,20 @@ function touchesItems(record: MutationRecord): boolean {
 function mark(element: Element, name: string, value: string): void {
   // Stryker disable next-line ConditionalExpression: setting the value an attribute already has changes nothing in the page.
   if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+}
+
+/** Whether a child's key, as `Children.toArray` writes it (`.$m-41`, `.1:$m-41`, with `=` and `:` escaped), is `key`. */
+function keyIs(childKey: string, key: string): boolean {
+  return childKey.endsWith(`$${key.replace(/[=:]/g, (mark) => (mark === "=" ? "=0" : "=2"))}`);
+}
+
+/**
+ * The child whose `id` prop, or else whose key, is `target`; -1 when none is.
+ * @claim "The child whose `id` prop, or else whose key" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals a row component that takes no id by its key, and opens at one by its key, resolving once it is in place) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals nothing, and says so, for an id no message has)
+ */
+function childNamed(all: readonly ReactNode[], keys: readonly string[], target: string): number {
+  const byId = all.findIndex((child) => isValidElement(child) && (child.props as { id?: unknown }).id === target);
+  return byId >= 0 ? byId : keys.findIndex((key) => keyIs(key, target));
 }
 
 /** The key of the child a message is in, from its slot. */
@@ -296,6 +317,8 @@ interface Band {
 interface Reach {
   key: string;
   id: string | null;
+  /** Whether to show the child itself, message or not, as `reveal` by key does; the keys step on to a message. */
+  child: boolean;
   forward: boolean;
   focus: boolean;
   block: MessageListRevealBlock;
@@ -874,6 +897,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [measured, setMeasured] = useState<Measured>({ heights: new Map(), gap: 16, estimate: ESTIMATE });
   const [band, setBand] = useState<Band | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
+  // What a `reveal` waits on: told whether its message came into view, once it has or another took its place.
+  const revealed = useRef<((found: boolean) => void) | null>(null);
+  const settleRef = useRef((found: boolean) => {
+    revealed.current?.(found);
+    revealed.current = null;
+    setReach(null);
+  });
+  // A new message to reach, in place of one still on its way.
+  const requestRef = useRef((next: Reach) => {
+    revealed.current?.(false);
+    revealed.current = null;
+    setReach(next);
+  });
   if (!windowed && band !== null) setBand(null);
   // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
   const [heard, setHeard] = useState<string | null>(null);
@@ -897,7 +933,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // A list the reader scrolled up in that grows long (older history loading above) draws what it drew whole once more,
       // and finds its window from where those messages are, so the view stays where it is. One at its end opens at its end.
       range = [indexes.get(String(edge.drawn))!, last];
-    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : all.findIndex((child) => isValidElement(child) && (child.props as { id?: unknown }).id === initialAnchor));
+    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
     const kept = new Set<number | undefined>([last, indexes.get(focusKey!), indexes.get(reach?.key ?? "")]);
     // What just arrived after the newest, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!);
@@ -1066,7 +1102,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (content.querySelector(items) === null) return;
       opened = true;
       const id = anchorFor.current;
-      const target = id ? topItems(content).find((item) => item.id === id) : undefined;
+      // By id, else the first message of the child with that key.
+      const keyed = [...content.children].find((node) => keyIs(node.getAttribute(SLOT) ?? "", id ?? ""));
+      const target = id ? (topItems(content).find((item) => item.id === id) ?? (keyed && topItems(keyed)[0])) : undefined;
       // None: the list stays at the end, as it opened, and follows the messages there.
       if (!target) return;
       const view = scroller.getBoundingClientRect();
@@ -1088,9 +1126,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. In a windowed list, one the bottom came up to does not start following: there the
       // browser may pull the scroll down to a bottom that came up as heights replaced estimates above the view, which
-      // holding the place below undoes. The reader's own scroll at the bottom does.
+      // holding the place below undoes. The reader's own scroll at the bottom does. One that was following keeps on when its
+      // end came up, though something grew below in the same frame: the browser pulled it down, the reader did not scroll.
       // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
-      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || ((pinned.current || !viewRef.current.windowed) && farthest() - scroller.scrollTop <= AT_BOTTOM);
+      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || ((pinned.current || !viewRef.current.windowed) && farthest() - scroller.scrollTop <= AT_BOTTOM) || (pinned.current && farthest() < end - AT_BOTTOM);
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -1204,20 +1243,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const slot = slotOf(reach.key);
         if (slot === undefined) {
           // Not drawn yet (a page of older messages going in a few at a time), or gone.
-          if (!keys.includes(reach.key)) setReach(null);
+          if (!keys.includes(reach.key)) settleRef.current(false);
         } else {
           const found = topItems(slot);
           // By id: the message it is in, else what the child draws around it (what starts the conversation).
           const named = reach.id === null ? undefined : [...slot.querySelectorAll<HTMLElement>("[id]")].find((node) => node.id === reach.id);
           const target =
             reach.id === null
-              ? (reach.forward ? found[0] : found.at(-1))
+              ? ((reach.forward ? found[0] : found.at(-1)) ?? (reach.child ? (slot.firstElementChild as HTMLElement) : undefined))
               : named && named.closest<HTMLElement>(`${items}, [${SLOT}] > *`)!;
           if (target === undefined) {
             // A child with no message in it (a day's heading), or none with the id: by key, the next child that may hold one, that way.
             const step = reach.forward ? 1 : -1;
             const index = holding(keys, counts.current, keys.indexOf(reach.key) + step, step);
-            setReach(reach.id === null && index >= 0 && index < keys.length ? { ...reach, key: keys[index]! } : null);
+            if (reach.id === null && index >= 0 && index < keys.length) setReach({ ...reach, key: keys[index]! });
+            else settleRef.current(false);
           } else {
             bring(target, reach.block);
             if (reach.focus) {
@@ -1225,7 +1265,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
               if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
               target.focus({ preventScroll: true });
             }
-            setReach(null);
+            settleRef.current(true);
             // The place is now where the message went.
             holdRef.current!();
           }
@@ -1297,15 +1337,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
     () => ({
       reveal(id, options) {
         const { all: children, keys: order } = viewRef.current;
-        let index = children.findIndex((child) => isValidElement(child) && (child.props as { id?: unknown }).id === id);
-        if (index < 0) {
-          // An id inside a message, or on one an app's component sets: found if it is drawn.
-          const inside = [...contentRef.current!.querySelectorAll("[id]")].find((node) => node.id === id);
-          index = inside === undefined ? -1 : order.indexOf(slotKeyOf(inside));
-        }
-        if (index < 0) return false;
-        setReach({ key: order[index]!, id, forward: true, focus: options?.focus ?? false, block: options?.block ?? "center" });
-        return true;
+        // An element with the id, drawn; else the child with it as its `id` prop, or as its key.
+        const inside = [...contentRef.current!.querySelectorAll("[id]")].find((node) => node.id === id);
+        const named = childNamed(children, order, id);
+        const index = inside !== undefined ? order.indexOf(slotKeyOf(inside)) : named;
+        if (index < 0) return Promise.resolve(false);
+        // By key, the child itself; by id, the element with it.
+        const byKey = inside === undefined && !(isValidElement(children[index]) && (children[index].props as { id?: unknown }).id === id);
+        return new Promise<boolean>((resolve) => {
+          requestRef.current({ key: order[index]!, id: byKey ? null : id, child: byKey, forward: true, focus: options?.focus ?? false, block: options?.block ?? "center" });
+          revealed.current = resolve;
+        });
       },
       jumpToNewest() {
         pinned.current = true;
@@ -1504,7 +1546,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const key = lastKeys.slice(lastKeys.indexOf(lastKey) + 1).find((later) => present.has(later)) ?? keys.at(-1);
         const slot = [...content.children].find((node) => node.getAttribute(SLOT) === key);
         const found = slot === undefined ? [] : topItems(slot);
-        if (windowed && found.length === 0 && key !== undefined) setReach({ key, id: null, forward: true, focus: true, block: "nearest" });
+        if (windowed && found.length === 0 && key !== undefined) requestRef.current({ key, id: null, child: false, forward: true, focus: true, block: "nearest" });
         const left = windowed ? found : topItems(content);
         const at = windowed ? 0 : Math.min(lastIndex, left.length - 1);
         left.slice(at, at + 1).forEach(move);
@@ -1640,7 +1682,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const drawn = [...content.children].find((node) => node.getAttribute(SLOT) === keys[index]);
           const inside = drawn === undefined ? [] : topItems(drawn);
           target = forward ? inside[0] : inside.at(-1);
-          if (target === undefined) return setReach({ key: keys[index]!, id: null, forward, focus: true, block: "nearest" });
+          if (target === undefined) return requestRef.current({ key: keys[index]!, id: null, child: false, forward, focus: true, block: "nearest" });
         }
         return move(target);
       }

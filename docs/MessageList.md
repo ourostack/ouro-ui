@@ -65,7 +65,7 @@ Type: `MessageListProps`.
 | `children` (required) | `ReactNode` |  | The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see `MessageList`). |
 | `className` | `string` |  | Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that height, so give it one. Appearance classes warn in development. |
 | `hasOlder` | `boolean` | `false` | Whether older messages may still load above, until the reader reaches the start of the conversation. While it is true the list keeps room above the first message, where "Loading older messages" shows, so at the top it covers no message or focus ring, and nothing moves as loading starts. Set it to `false` once there is nothing older: the room stays until it has left the view, or the list is at its end, and then goes without moving a message. |
-| `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it. The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them; a message it does not hold, or the newest, opens at the end, and a later change moves nothing. |
+| `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it, or the `key` of the child that holds it (the message's own id, where a row component of yours takes no `id`). The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them; a message it does not hold, or the newest, opens at the end, and a later change moves nothing. |
 | `jumpLabel` | `string` | `"Jump to latest"` | The button that appears once the reader scrolls up, for other languages. |
 | `label` (required) | `string` |  | What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. |
 | `loadingOlder` | `boolean` |  | Whether older messages are loading above, as after the reader reaches the top: a small "Loading older messages" shows over the top of the list, and screen readers hear it once. It sits over the messages, not among them, so starting and ending it moves no message. At the very top it covers the first message unless `hasOlder` keeps room for it. |
@@ -107,10 +107,14 @@ What a MessageList does on request, through its `actionsRef`.
 interface MessageListActions {
   /**
    * Brings the message whose `id` is given into view, drawing it first if the list has not, and
-   * stops following new messages. Returns false when no child has that `id`. Find in chat searches
-   * your own messages, then reveals each match: the browser's find in page sees only what is drawn.
+   * stops following new messages. A child is found by its `id` prop, or by its `key` (the message's
+   * own id, where a row component of yours takes no `id`), and once drawn by the `id` of any element
+   * in it. Resolves true once the message is in place (and focused, with `focus`), and false at once
+   * when no child has that `id` or `key`, or when another reveal or a key press takes its place. Find
+   * in chat searches your own messages, then reveals each match: the browser's find in page sees only
+   * what is drawn.
    */
-  reveal(id: string, options?: MessageListRevealOptions): boolean;
+  reveal(id: string, options?: MessageListRevealOptions): Promise<boolean>;
   /**
    * Goes to the newest message and follows new messages again, as "Jump to latest" does, leaving focus where it is.
    */

@@ -356,10 +356,10 @@ describe("MessageList windowing", () => {
     const actions = createRef<MessageListActions>();
     const { scroller } = await render(<Chat items={conversation(1000, 0, true)} actionsRef={actions} />);
     expect(document.getElementById("m120")).toBeNull();
-    let found = false;
+    let found = Promise.resolve(false);
     await act(async () => void (found = actions.current!.reveal("m120")));
+    expect(await found).toBe(true);
     await settle(scroller);
-    expect(found).toBe(true);
     expect(Math.abs(offCentre(scroller, "m120"))).toBeLessThanOrEqual(ROUNDING);
     expect(document.activeElement).toBe(document.body);
     // The list stops following new messages there.
@@ -377,11 +377,56 @@ describe("MessageList windowing", () => {
     expect(document.activeElement).toBe(document.getElementById("m3"));
   });
 
+  it("reveals a row component that takes no id by its key, and opens at one by its key, resolving once it is in place", async () => {
+    // An app's row: memoized, keyed by the message's id, taking no id prop itself; the id it gives Message is its own.
+    function Row({ item }: { item: Item }) {
+      return (
+        <Message id={`row-${item.id}`} role={item.id % 2 ? "assistant" : "user"} name="Ana">
+          {item.text}
+        </Message>
+      );
+    }
+    const actions = createRef<MessageListActions>();
+    const rows = (anchor?: string) => (
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} actionsRef={actions} initialAnchor={anchor}>
+        {[<p key="older=1">Older messages load above.</p>, ...conversation(1000, 0, true).map((item) => <Row key={`m:${item.id}`} item={item} />)]}
+      </MessageList>
+    );
+    const { scroller } = await render(rows("m:300"));
+    expect(Math.abs(offCentre(scroller, "row-300"))).toBeLessThanOrEqual(ROUNDING);
+    // By key, though the row takes no id and is not drawn; resolved once it is drawn, in place and focused.
+    expect(document.getElementById("row-700")).toBeNull();
+    let found = Promise.resolve(false);
+    await act(async () => void (found = actions.current!.reveal("m:700", { focus: true })));
+    expect(await found).toBe(true);
+    expect(document.activeElement?.id).toBe("row-700");
+    expect(inView(scroller, "row-700")).toBe(true);
+    // By the id its row gives Message, once drawn.
+    await act(async () => void (found = actions.current!.reveal("row-701", { block: "start" })));
+    expect(await found).toBe(true);
+    // A child that holds no message, by its key: shown itself.
+    await act(async () => void (found = actions.current!.reveal("older=1", { block: "start" })));
+    expect(await found).toBe(true);
+    await settle(scroller);
+    const older = [...scroller.querySelectorAll("p")].find((node) => node.textContent === "Older messages load above.")!;
+    expect(Math.abs(older.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 8)).toBeLessThanOrEqual(ROUNDING);
+    // A reveal another takes the place of says so.
+    let first = Promise.resolve(true);
+    await act(async () => {
+      first = actions.current!.reveal("m:500");
+      found = actions.current!.reveal("m:900");
+    });
+    expect(await first).toBe(false);
+    expect(await found).toBe(true);
+    await settle(scroller);
+    expect(inView(scroller, "row-900")).toBe(true);
+  });
+
   it("reveals nothing, and says so, for an id no message has", async () => {
     const actions = createRef<MessageListActions>();
     const { scroller } = await render(<Chat items={conversation(200)} actionsRef={actions} />);
     const top = scroller.scrollTop;
-    expect(actions.current!.reveal("nowhere")).toBe(false);
+    expect(await actions.current!.reveal("nowhere")).toBe(false);
     await settle(scroller);
     expect(scroller.scrollTop).toBe(top);
   });
@@ -458,12 +503,12 @@ describe("MessageList windowing", () => {
     await act(async () => void actions.current!.reveal("code-51"));
     await settle(scroller);
     expect(Math.abs(offCentre(scroller, "code-51"))).toBeLessThanOrEqual(ROUNDING);
-    // A child that takes an id and draws no element with it: the list can find no element to show, and moves nothing.
+    // A child that takes an id and draws no element with it: the list finds no element to show, moves nothing, and says so.
     const still = scroller.scrollTop;
-    let found = false;
+    let found = Promise.resolve(true);
     await act(async () => void (found = actions.current!.reveal("pinned")));
+    expect(await found).toBe(false);
     await settle(scroller);
-    expect(found).toBe(true);
     expect(scroller.scrollTop).toBe(still);
   });
 
