@@ -30,6 +30,11 @@ const mutationCommands = { ouroMutant: () => (globalThis as { __ouroMutant?: str
 // measures part of the coverage, so the thresholds apply where CI merges them
 // (scripts/coverage-merge.mjs), and the sliced suites read the shard (test/slice.ts).
 const shard = shardArgument(process.argv);
+// Vitest gives each browser project its own pool of tabs, as many as the CPUs less one, and runs
+// the four projects side by side: on CI's four-CPU runner, twelve test files start at once. Their
+// first tests wait on this one process to transform and instrument the registry for coverage, and
+// clicks in them ran past the 15s test timeout (issue #545). Two tabs a project start eight.
+const browserShard = shard !== null && !themes && !conformance && !mutation;
 
 // The repository as its own app: app.css compiles the registry source with Tailwind,
 // and `@/` is the repo root, as in an app's components.json, so registry imports resolve.
@@ -91,6 +96,7 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
+    ...(browserShard ? { maxWorkers: 2 } : {}),
     // A pull request's reduced run (scripts/test-impact.mjs) names the component folders whose
     // stories the shared suites in test/ render; unset, they render every story (test/stories.tsx).
     provide: { ouroStories: process.env["OURO_STORIES"] ?? null, ouroSlice: shard, ouroShard: process.env["OURO_CONFORMANCE_SHARD"] ?? null },
