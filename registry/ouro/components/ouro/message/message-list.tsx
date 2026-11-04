@@ -1096,6 +1096,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let end = 0;
     // The scroll position then: the reader's scrolling since is what the correction leaves alone.
     let taken = 0;
+    // The part of the corrections the scroll position could not take yet: WebKit keeps it in whole pixels, and a move under
+    // half a pixel is not made, so each correction's remainder goes into the next. Dropped, the remainders of a page of older
+    // messages drawn a row a frame would add up, and the reader's place would creep.
+    let owed = 0;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
@@ -1192,8 +1196,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Where an app turned the browser's own anchoring back on, the browser corrects.
       // Stryker disable next-line ConditionalExpression,StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so whether a second correction lands depends on timing a test cannot hold.
       const native = getComputedStyle(scroller).overflowAnchor === "auto";
-      if (pinned.current) toBottom();
-      else if (near && !native) {
+      if (pinned.current) {
+        owed = 0;
+        toBottom();
+      } else if (near && !native) {
         // Each message held that is still in the page, with where it sat in the content and how far it moved since. With each, how many
         // of the others it passed or fell behind: a message that moved on its own (a post that a reply moved to the end) passed them.
         const origin = content.getBoundingClientRect().top;
@@ -1205,13 +1211,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }));
         // The place is held by the messages that moved together, not one that moved away: of those, the one that moved least (with only
         // one other in view, the one that did not go), and the first of those that moved alike.
-        const moved = ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0;
+        const moved = (ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0) + owed;
+        owed = moved;
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
-          springsRef.current?.moved(scroller.scrollTop - before);
+          const applied = scroller.scrollTop - before;
+          springsRef.current?.moved(applied);
+          // What rounding left over, carried; not a move the list's end stopped, which no later scroll can make.
+          owed = Math.abs(moved - applied) < 1 ? moved - applied : 0;
         }
-      }
+      } else owed = 0;
       keepAnchor();
     };
     const follow = new ResizeObserver(hold);
