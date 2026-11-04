@@ -201,6 +201,27 @@ describe("MessageList windowing", () => {
     }
   });
 
+  it("draws a post's hairline after the post before it, each in its own slot, long list or short", async () => {
+    for (const count of [3, 100]) {
+      const { scroller } = await render(
+        <MessageList label="Channel" style={{ height: 400, width: 360 }}>
+          {conversation(count).map((item) => (
+            <Message key={item.id} id={`m${item.id}`} variant="post" role="assistant" name="Mara Quill">
+              {item.text}
+            </Message>
+          ))}
+        </MessageList>,
+      );
+      const line = (id: string) => getComputedStyle(document.getElementById(id)!.querySelector("[data-ouro-message-body]")!, "::before");
+      expect(line(`m${count - 1}`).borderTopStyle).toBe("solid");
+      expect(line(`m${count - 2}`).borderTopWidth).toBe("1px");
+      // The first post drawn after space kept for others has none until the one before it draws.
+      const first = messages(scroller)[0]!;
+      if (count === 3) expect(line(first.id).content).toBe("none");
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
     const { scroller, rerender } = await render(<Chat items={conversation(60, 40, true)} />);
     expect(messages(scroller)).toHaveLength(60);

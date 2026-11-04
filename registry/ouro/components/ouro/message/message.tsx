@@ -435,12 +435,21 @@ const postRow = "order-3 basis-full";
 const peopleGutter = "2.75rem";
 
 // Between two posts, a hairline from the text's start to the end, midway between them as MessageList spaces them (16px,
-// and each post's 4px): a border, which forced colours keep.
+// and each post's 4px): a border, which forced colours keep. In a MessageList each post sits in a slot of its own (a
+// box it does not draw), so there the posts are each in the slot after the other's.
 const postHairline =
   "[[data-variant=post]+[data-variant=post]_&]:before:absolute [[data-variant=post]+[data-variant=post]_&]:before:inset-x-0 " +
   "[[data-variant=post]+[data-variant=post]_&]:before:-top-3 [[data-variant=post]+[data-variant=post]_&]:before:border-0 " +
   "[[data-variant=post]+[data-variant=post]_&]:before:border-t [[data-variant=post]+[data-variant=post]_&]:before:border-solid " +
-  "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-['']";
+  "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-[''] " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:absolute " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:inset-x-0 " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:-top-3 " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-0 " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-t " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-solid " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-border " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:content-['']";
 
 // The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
 // page whose messages have no bar never loads it, nor the Tooltip and Menu it uses.
