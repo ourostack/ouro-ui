@@ -71,9 +71,9 @@ interface ImageCropperLabels {
   area?: string | undefined;
   /** How to move the photo, read with the crop area. @default "Drag the photo, or move it with the arrow keys, to choose what shows. Plus and minus zoom." */
   instructions?: string | undefined;
-  /** Shown and announced when the browser cannot open the image. @default "This photo could not be opened. Choose another one." */
+  /** Shown and announced when the browser cannot open the image. @default "The browser can't read this file as a photo. Choose a JPEG or PNG photo instead." */
   openError?: string | undefined;
-  /** Shown and announced when the browser cannot save the crop; Save can be tried again. @default "The photo could not be saved. Try again." */
+  /** Shown and announced when the browser cannot save the crop; Save can be tried again. @default "The browser didn't turn the crop into a file. Press Save to try again, or choose another photo." */
   saveError?: string | undefined;
 }
 ```

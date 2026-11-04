@@ -13,7 +13,7 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 ```tsx
 <Text>Braise for three hours.</Text>
 <Text size="sm" tone="muted">Updated 2 days ago</Text>
-<Text tone="destructive">Could not save the recipe.</Text>
+<Text tone="destructive">Recipe not saved: the server is offline.</Text>
 <Text lines={2}>{recipe.description}</Text>
 ```
 

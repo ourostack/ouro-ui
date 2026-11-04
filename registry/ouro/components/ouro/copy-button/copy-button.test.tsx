@@ -175,7 +175,7 @@ describe("CopyButton", () => {
         throw new Error("blocked");
       },
     ],
-  ])("says Couldn't copy, once, when the browser refuses and the selection %s", async (_how, exec) => {
+  ])("says that the browser blocked copying, once, when the browser refuses and the selection %s", async (_how, exec) => {
     stubClipboard("refuse");
     vi.spyOn(document, "execCommand").mockImplementation(exec);
     const announced = watchAnnouncements();
@@ -191,6 +191,14 @@ describe("CopyButton", () => {
     } finally {
       announced.stop();
     }
+  });
+
+  it("by default says that the browser blocked copying, and how to copy by hand", async () => {
+    stubClipboard("refuse");
+    vi.spyOn(document, "execCommand").mockReturnValue(false);
+    const { button } = await render(<CopyButton value="x" />);
+    await userEvent.click(button);
+    await until(() => button.textContent, "The browser blocked copying. Select the text and copy it by hand.");
   });
 
   it("does nothing while disabled", async () => {

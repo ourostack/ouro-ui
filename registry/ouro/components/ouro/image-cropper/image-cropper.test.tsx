@@ -268,11 +268,11 @@ describe("ImageCropper", () => {
     const onError = vi.fn();
     await render(<Harness image={make()} onCropped={() => {}} onError={onError} />);
     await expect.poll(() => onError.mock.calls).toEqual([["open"]]);
-    const message = "This photo could not be opened. Choose another one.";
+    const message = "The browser can't read this file as a photo. Choose a JPEG or PNG photo instead.";
     await expect.poll(() => status().textContent).toBe(message);
     await expect.element(page.getByText(message)).toBeVisible();
     expect(area().hasAttribute("aria-busy")).toBe(false);
-    await expect.element(page.getByRole("application", { name: "Photo to crop" })).toHaveAccessibleDescription(/could not be opened/);
+    await expect.element(page.getByRole("application", { name: "Photo to crop" })).toHaveAccessibleDescription(/can't read this file as a photo/);
     await expect.element(save()).toBeDisabled();
     await expect.element(page.getByRole("slider", { name: "Zoom" })).toBeDisabled();
     expect(area().querySelector("img")!.style.visibility).toBe("hidden");

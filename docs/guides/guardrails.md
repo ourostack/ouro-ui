@@ -179,7 +179,7 @@ node lib/ouro/check/check.ts dist
 | Exit | Meaning |
 | --- | --- |
 | `0` | Nothing found that `ouro-check.json` does not waive. |
-| `1` | An error: the check itself could not run, such as a browser that would not start. |
+| `1` | An error: the check itself stopped before it finished, as when the browser would not start. It prints why. |
 | `2` | A usage problem, such as a folder that does not exist. |
 | `3` | Findings to fix: the summary lists them. |
 
