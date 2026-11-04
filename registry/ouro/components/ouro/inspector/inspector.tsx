@@ -545,8 +545,11 @@ function InspectorLayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Outlines React has just rendered are placed before the browser paints them.
-  useLayoutEffect(() => place(found));
+  // Outlines React has just rendered are placed before the browser paints them, and the tags again when another item
+  // is spotlit, whose tag takes the best place. Any other render places nothing: inside a commit, the boxes it reads
+  // lay out the whole page, and the frame loop above follows the page.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => place(found), [found, spotlight]);
 
   // The first spotlit component comes to the middle of the screen once per item, when X-ray first finds it.
   const spotlit = spotlitOf(found, spotlight);

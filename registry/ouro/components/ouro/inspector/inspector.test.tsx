@@ -24,6 +24,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
 const roots: Root[] = [];
@@ -391,6 +392,28 @@ describe("Inspector geometry", () => {
     await expect.poll(() => tags().map((tag) => [tag.textContent, tag.style.transform, tag.hasAttribute("data-inside")])).toEqual([
       ["badge", "translate(0px, -16px)", false],
       ["button", "translate(0px, 0px)", true],
+    ]);
+  });
+
+  it("lays nothing out when it renders again with the same components, and places the tags before paint when the spotlight moves", async () => {
+    component(100, 200, 100, 50);
+    component(120, 200, 100, 50).setAttribute("data-ouro", "button");
+    const { rerender } = await render(<Inspector open onOpenChange={() => {}} spotlight="button" />);
+    await drawn(2);
+    const placed = () => tags().map((tag) => [tag.textContent, tag.style.transform]);
+    await expect.poll(placed).toEqual([
+      ["badge", "translate(0px, 0px)"],
+      ["button", "translate(0px, -16px)"],
+    ]);
+    const reads = watchLayoutReads();
+    await rerender(<Inspector open onOpenChange={() => {}} spotlight="button" />);
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    // No frame passes: the commit that spotlights the badge places its tag first.
+    await rerender(<Inspector open onOpenChange={() => {}} spotlight="badge" />);
+    expect(placed()).toEqual([
+      ["badge", "translate(0px, -16px)"],
+      ["button", "translate(0px, 0px)"],
     ]);
   });
 
