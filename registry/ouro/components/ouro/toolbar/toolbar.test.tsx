@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 import { fitCount, splitEntries } from "@/registry/ouro/components/ouro/toolbar/toolbar-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -344,6 +345,49 @@ describe("Toolbar", () => {
 });
 
 describe("Toolbar overflow", () => {
+  it("lays nothing out when it renders again with the same entries in a new array, or a toggle pressed", async () => {
+    const entries = (bold: boolean): ToolbarEntry[] => formatting.map((entry) => (entry.type === "toggle" && entry.label === "Bold" ? { ...entry, pressed: bold, onPressedChange: () => {} } : { ...entry }));
+    const bar = await render(<Toolbar label="Formatting" size="sm" items={entries(false)} />, 200);
+    const shown = names(bar.buttons);
+    expect(bar.more).not.toBeNull();
+    // The resize observer reports the row's first size a frame later, and measures then, where layout is free.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    for (const bold of [false, true, false]) {
+      const reads = watchLayoutReads();
+      await bar.rerender(<Toolbar label="Formatting" size="sm" items={entries(bold)} />);
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+      expect(names(bar.buttons)).toEqual(shown);
+    }
+    expect(bar.buttons[0]!.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("measures again before paint when a label, an icon, hideLabel, a kind, a group, the entries or More's label changes", async () => {
+    const bar = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
+    const before = names(bar.buttons).length;
+    const edit = (label: string, change: object) => formatting.map((entry) => (entry.type !== "separator" && entry.type !== "group" && entry.label === label ? { ...entry, ...change } : entry));
+    const variants: { items: ToolbarEntry[]; moreLabel?: string }[] = [
+      { items: edit("Italic", { label: "Italic text" }) },
+      { items: edit("Bold", { hideLabel: false }) },
+      { items: edit("Insert link", { icon: undefined }) },
+      { items: edit("Bold", { type: "button" }) },
+      { items: formatting.map((entry) => (entry.type === "group" ? { ...entry, items: entry.items.slice(1) } : entry)) },
+      { items: formatting.slice(1) },
+      { items: formatting, moreLabel: "Everything else" },
+    ];
+    for (const { items, moreLabel } of variants) {
+      await bar.rerender(<Toolbar label="Formatting" size="sm" items={formatting} />);
+      const reads = watchLayoutReads();
+      await bar.rerender(<Toolbar label="Formatting" size="sm" items={items} moreLabel={moreLabel} />);
+      reads.stop();
+      expect(reads.names()).toContain("getBoundingClientRect");
+    }
+    // A label shown whole takes room, so fewer controls fit, before any frame lets the resize observer run.
+    await bar.rerender(<Toolbar label="Formatting" size="sm" items={edit("Bold", { hideLabel: false, label: "Bold text in the paragraph" })} />);
+    expect(names(bar.buttons).length).toBeLessThan(before);
+  });
+
+
   it("moves the controls that do not fit into a More menu at the end", async () => {
     const { buttons, more } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
     expect(more).not.toBeNull();
