@@ -164,10 +164,13 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
     expect(getComputedStyle(textarea).overflowY).toBe("hidden");
 
-    await userEvent.type(textarea, "one{Enter}two{Enter}three");
+    // Each edit is one input event, as a paste is: typed a key at a time, its 27 keys were each a
+    // round trip through Vitest, which took WebKit past the test's 15 seconds on a busy runner.
+    // The next test types key by key.
+    await userEvent.fill(textarea, "one\ntwo\nthree");
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
 
-    await userEvent.type(textarea, "{Enter}four{Enter}five{Enter}six");
+    await userEvent.fill(textarea, "one\ntwo\nthree\nfour\nfive\nsix");
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 4), 0);
     expect(getComputedStyle(textarea).overflowY).toBe("auto");
 
