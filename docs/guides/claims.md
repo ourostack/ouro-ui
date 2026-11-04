@@ -105,7 +105,7 @@ A source outside the repository (a desk note, a local log) cannot be checked by 
 | `equals(<file>#<field path>)=<value>` | The JSON field is exactly that value. |
 | `fileLine(<path>[#L<line>], /<pattern>/)` | The file, or that line of it, matches the regular expression. |
 | `testExists(<file>::<full test name>)` | The test exists, is not skipped, and a required CI job runs its file (`requiredTests` in `claims.config.json`), so a green main means it passed. |
-| `ciJob([<workflow>#]<job>)` | A workflow defines the job, and it is one of the required checks in `.github/required-checks.json`, read at the pull request's base. |
+| `ciJob([<workflow>#]<job>)` | A workflow defines the job, and it is one of the required checks in the `requiredChecks` file (`.github/gate-checks.json`, the checks CI's gate holds a merge to), read at the pull request's base. |
 | `urlOk(<url>)` | The address answered with a success status when it was last fetched. |
 
 The checks read only the checkout, so they give the same answer on every machine, except for a link only a pull request or a draft cites, described below.[^offline] A pull request cannot make a check of its own required: `ciJob` reads the list of required checks at the base branch.[^required] Only when the base has no list yet does the pull request's own list count, and then the ratchet makes its description name each check in it.[^required-bootstrap]

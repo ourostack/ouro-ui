@@ -1067,13 +1067,14 @@ for (const [event, ref, baseRef, headRef, expected] of [
   test(`CI's plan: ${event} ${headRef || ref}${baseRef ? ` into ${baseRef}` : ""} runs ${expected === "full" ? "everything" : "what the change can affect"}`, () => {
     const { status, calls, output } = runStep(stepScript(ciJobs().plan, "Plan the tests"), { EVENT: event, REF: ref, BASE_REF: baseRef, HEAD_REF: headRef });
     assert.equal(status, 0, calls);
+    // The full suite installs every app; the fast suite, when its install test runs, one (scripts/ci-gate.mjs).
     if (expected === "full") {
-      assert.deepEqual(output, { full: "true" });
+      assert.deepEqual(output, { full: "true", suite: "full", "install-variants": '["shadcn","ouro"]', "install-presets": '["nova","vega"]' });
       assert.doesNotMatch(calls, /CALL node/);
     } else {
       assert.match(calls, /^CALL node scripts\/test-impact\.mjs plan HEAD\^1 HEAD$/m);
       const { installs, ...planned } = output;
-      assert.deepEqual(planned, { full: "false", components: "checkbox" });
+      assert.deepEqual(planned, { full: "false", components: "checkbox", suite: "fast", "install-variants": '["shadcn"]', "install-presets": '["nova"]' });
       assert.ok(["queue", "here"].includes(installs), installs);
     }
   });
@@ -1114,10 +1115,17 @@ test("a pull request into main leaves the install test to the merge queue, unles
   assert.equal(deferred.status, 0);
   assert.match(deferred.stdout, /^::notice::The install test runs in the merge queue/m);
   assert.equal(runStep(gate, { INSTALLS: "", SHARDS: "skipped", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") }).status, 1, "with the install test due here, a skipped shard fails the check");
+  // A fast pull request whose install test runs here installs one app, (shadcn, nova); the other apps' checks pass with a notice.
+  const otherApp = runStep(gate, { INSTALLS: "here", SUITE: "fast", SHARDS: "success", VARIANT: "ouro", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") });
+  assert.equal(otherApp.status, 0);
+  assert.match(otherApp.stdout, /^::notice::A pull request runs one install app, \(shadcn, nova\); the merge queue runs \(ouro, nova\)\.$/m);
+  assert.equal(runStep(gate, { INSTALLS: "here", SUITE: "fast", SHARDS: "success", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp", "no-markers") }).status, 1, "its one app must pass every shard");
+  assert.equal(runStep(gate, { INSTALLS: "", SUITE: "full", SHARDS: "success", VARIANT: "ouro", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp", "no-markers") }).status, 1, "the full suite needs every app");
+  assert.match(jobs["install-shard"], /^ {8}variant: \$\{\{ fromJSON\(needs\.plan\.outputs\.install-variants\) \}\}\n {8}preset: \$\{\{ fromJSON\(needs\.plan\.outputs\.install-presets\) \}\}\n/m);
+  // The full suite's own install apps skip a fast pull request whole, and run every step in the full suite.
   for (const id of ["install", "install-upgrade"]) {
-    const steps = jobs[id].split("\n    steps:\n")[1].split(/\n(?= {6}- )/);
-    assert.equal(steps[0].split("\n")[0], "      - if: needs.plan.outputs.installs == 'queue'", id);
-    for (const step of steps.slice(1)) assert.match(step.split("\n")[0], /^ {6}- if: (failure\(\) && )?needs\.plan\.outputs\.installs != 'queue'$/, `${id}: ${step.split("\n")[1]}`);
+    assert.match(jobs[id], new RegExp(`^ {4}if: ${fullSuite.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"), id);
+    assert.doesNotMatch(jobs[id], /installs/, id);
   }
 });
 
@@ -1158,12 +1166,13 @@ test("a push to main whose commit the merge queue already tested runs only insta
   assert.equal(check([]), "");
   // When the API cannot answer, everything runs.
   assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")], 1), "");
-  // Every job but the plan, the GitHub install, the release-only install and fail-fast (pull
-  // requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
-  // the coverage job. Nothing else reads it.
+  // Every job but the plan, the GitHub install, the release-only install, fail-fast (pull
+  // requests only), the gate (which passes on install-github alone then, scripts/ci-gate.mjs) and
+  // its nightly report skips on it, gates included; motion-coverage waits on ci and
+  // browser-fallback on the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, fullSuite, pullRequestOnly].includes(condition(jobs[id])));
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "gate", "nightly"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1192,8 +1201,21 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   }
 });
 
-/** The values of a matrix key in a job's block, or undefined. */
-const matrixValues = (block, key) => block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
+/**
+ * The values of a matrix key in a job's block, or undefined. A key the plan sets
+ * (`${{ fromJSON(needs.plan.outputs.<name>) }}`) has the full suite's values, which the plan writes.
+ */
+const matrixValues = (block, key) => {
+  const list = block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
+  const output = block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(needs\\.plan\\.outputs\\.([\\w-]+)\\) \\}\\}$`, "m"))?.[1];
+  return list ?? (output ? JSON.parse(planOutputs("full")[output]) : undefined);
+};
+
+/** What the plan writes for a suite (`full` or `fast`) besides its test selection, from its printf line. */
+function planOutputs(suite) {
+  const line = ciJobs().plan.match(new RegExp(`printf '(suite=${suite}\\\\n.*?)\\\\n' >> "\\$GITHUB_OUTPUT"`))[1];
+  return Object.fromEntries(line.split("\\n").map((pair) => pair.split(/=(.*)/).slice(0, 2)));
+}
 
 /** Every name a job's checks report: its name with each combination of its matrix, less the excluded ones. */
 function checkNames(block, id) {
@@ -1209,11 +1231,20 @@ function checkNames(block, id) {
 /** The condition of every job a push the merge queue already tested skips (the plan's `tested`). */
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
+/** The full suite's own jobs': they skip a fast pull request (the plan's `suite`, scripts/ci-gate.mjs). */
+const fullSuite = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.suite == 'full' }}";
+
+/** Mutation testing's: it mutates a pull request's changed lines, and any other run has none. */
+const pullRequestOnly = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && github.event_name == 'pull_request' }}";
+
 /** install-shard's: it also skips on a pull request whose install test waits for the merge queue (the plan's `installs`). */
 const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}";
 
 /** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
 const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
+
+/** The checks the gate holds every merge to (.github/gate-checks.json), the claims check's required checks. */
+const gateChecks = JSON.parse(readFileSync(join(root, ".github/gate-checks.json"), "utf8"));
 
 test("every required check is still a job that reports, under the name the ruleset requires", () => {
   const jobs = ciJobs();
@@ -1223,22 +1254,31 @@ test("every required check is still a job that reports, under the name the rules
       assert.ok(!names.has(name), `${name} is reported by both ${names.get(name)} and ${id}`);
       names.set(name, id);
     }
-    // A job a required check names never skips itself on a pull request or in the merge queue: at
-    // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
+    // A job runs whatever its needs did, and skips only on a push the merge queue already tested,
+    // or where the gate's policy leaves it out of a kind of run (scripts/ci-gate.mjs, whose tests
+    // hold the full suite to every job): the full suite's own jobs on a fast pull request, mutation
+    // testing outside pull requests.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
+    const expected = { "install-shard": queuedInstalls, "mutation-plan": pullRequestOnly, "mutation-shard": pullRequestOnly, mutation: pullRequestOnly, "theme-install": fullSuite, latency: fullSuite, lighthouse: fullSuite, install: fullSuite, "install-upgrade": fullSuite, gate: "${{ always() }}" }[id] ?? untested;
     // browser-fallback is no required check: it runs only when the coverage job asks, and the ci check fails when it then did not pass.
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "nightly"].includes(id)) assert.ok(!condition || condition === expected, `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
     for (const [, name] of text.matchAll(/^ {4}name: (.+)$/gm)) names.set(name, file);
   }
-  // The ruleset's required checks, which the claims check also reads (verify:ciJob accepts only these).
+  // The ruleset's required checks (ruleset 24881709; required-checks.yml holds the file to the live
+  // rules): CI's gate, and the one check another workflow reports.
+  assert.deepEqual(requiredChecks, ["conformance exemptions", "gate"]);
   for (const check of requiredChecks) assert.ok(names.has(check), `${check} is not among ${[...names.keys()].join(", ")}`);
-  // ruleset 24881709 requires these; required-checks.yml holds the file to the live rules.
-  for (const check of ["ci-budget", "conformance", "conformance exemptions", "mutation"]) assert.ok(requiredChecks.includes(check), check);
+  // The checks the gate holds a merge to, which the claims check reads (verify:ciJob accepts only
+  // these): each is a job the gate needs, or a check the ruleset requires itself.
+  const gateNeeds = jobs.gate.match(/^ {4}needs: \[(.+)\]$/m)[1].split(", ");
+  for (const check of gateChecks) assert.ok(requiredChecks.includes(check) || gateNeeds.includes(names.get(check)), `${check} (${names.get(check)}) is no job the gate needs`);
+  for (const check of ["ci", "ci-budget", "conformance", "conformance exemptions", "mutation"]) assert.ok(gateChecks.includes(check), check);
+  assert.equal(JSON.parse(readFileSync(join(root, "claims.config.json"), "utf8")).requiredChecks, ".github/gate-checks.json");
   const installShards = shardCount(jobs["install-shard"]);
   const installs = ["shadcn, nova", "shadcn, vega", "ouro, nova"].flatMap((app) => Array.from({ length: installShards }, (_, index) => `install (${app}, ${index + 1}/${installShards})`));
   assert.deepEqual(checkNames(jobs["install-shard"], "install-shard"), installs);
@@ -1257,7 +1297,7 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
-  assert.ok(JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8")).includes("ci"));
+  assert.ok(gateChecks.includes("ci"));
 });
 
 /** A matrix job's shard count, from its `shard` list, which must count 1 to n. */
@@ -1400,8 +1440,8 @@ test("the conformance shards run only the checks' proofs on the first shard when
 
 test("conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
   const jobs = ciJobs();
-  for (const [check, needs] of [["conformance", "plan, conformance-shard"], ["mutation", "plan, mutation-plan, mutation-shard"]]) {
-    assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${needs}\\]\n {4}if: ${untested.replace(/[$(){}!.]/g, "\\$&")}$`, "m"), check);
+  for (const [check, needs, condition] of [["conformance", "plan, conformance-shard", untested], ["mutation", "plan, mutation-plan, mutation-shard", pullRequestOnly]]) {
+    assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${needs}\\]\n {4}if: ${condition.replace(/[$(){}!.=']/g, "\\$&")}$`, "m"), check);
     const script = stepScript(jobs[check], "Every shard passed");
     assert.equal(runStep(script, { RESULT: "success" }).status, 0, check);
     for (const result of ["failure", "cancelled", "skipped"]) assert.notEqual(runStep(script, { RESULT: result }).status, 0, `${check} with ${result}`);
@@ -1707,9 +1747,12 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   // Every job no other job needs: the ends of the run's chains, but fail-fast, which watches this
-  // job too and stops once it has finished (scripts/ci-fail-fast.mjs).
-  const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
-  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && !needed.has(id));
+  // job too and stops once it has finished (scripts/ci-fail-fast.mjs), and the gate and its nightly
+  // report, which wait on this job.
+  const after = ["ci-budget", "gate", "nightly"];
+  const needed = new Set(Object.entries(jobs).filter(([id]) => !after.includes(id)).flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
+  const ends = Object.keys(jobs).filter((id) => !after.includes(id) && id !== "fail-fast" && !needed.has(id));
+  assert.match(jobs.gate, /^ {4}needs: \[.*\bci-budget\]$/m);
   assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
@@ -2336,6 +2379,18 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.equal(retryPlan({ runs: runWith([]), contexts, entries: [calendarEntry] }).retry, false);
   // A judged check missing from the runs is not retried.
   assert.equal(retryPlan({ runs: runWith([calendar]), contexts: [...contexts, "lighthouse"], entries: [calendarEntry] }).retry, false);
+  // CI's gate, which reads every job it needs at once: retried when the jobs it needs that failed are
+  // explained, whatever it allowed to skip, and not when none failed or one failed beyond a test.
+  const gateStep = "Every job this run needs passed";
+  const gate = job(7, "gate", "failure", { failedSteps: [gateStep], log: logLines("gate", ["##[error]FAILED browser (5/6): failure, required"]) });
+  const gated = (jobs) => runWith([...jobs, gate, job(8, "lighthouse", "skipped")]);
+  const throughGate = retryPlan({ runs: gated(dive), contexts: ["gate"], entries: [diveEntry] });
+  assert.equal(throughGate.retry, true, throughGate.problems.join("; "));
+  assert.deepEqual(throughGate.retried.map((retried) => retried.job), ["browser (5/6)"]);
+  assert.equal(retryPlan({ runs: gated(dive), contexts: ["gate"], entries: [calendarEntry] }).retry, false);
+  assert.equal(retryPlan({ runs: gated([]), contexts: ["gate"], entries: [diveEntry] }).retry, false);
+  assert.equal(retryPlan({ runs: gated([...dive, build]), contexts: ["gate"], entries: [diveEntry] }).retry, false);
+  assert.equal(retryPlan({ runs: gated(dive).map((run) => ({ ...run, jobs: run.jobs.map((other) => (other.name === "gate" ? { ...other, failedSteps: ["Run actions/checkout"] } : other)) })), contexts: ["gate"], entries: [diveEntry] }).retry, false);
 });
 
 test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {

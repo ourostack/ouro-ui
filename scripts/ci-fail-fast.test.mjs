@@ -195,7 +195,10 @@ test("no job waits on fail-fast, so where it is skipped every job runs as before
     }
   };
   walk(LAST);
-  assert.deepEqual([...waited].sort(), Object.keys(jobs).filter((id) => id !== LAST && id !== SELF).sort());
+  // Past LAST come only the jobs that wait on it, the gate and its nightly report, which hold no runner while the rest run.
+  const after = Object.keys(jobs).filter((id) => { const seen = new Set(); const up = (job) => needsOf(job).some((need) => need === LAST || (!seen.has(need) && (seen.add(need), up(need)))); return up(id); });
+  assert.deepEqual(after.sort(), ["gate", "nightly"]);
+  assert.deepEqual([...waited].sort(), Object.keys(jobs).filter((id) => id !== LAST && id !== SELF && !after.includes(id)).sort());
   assert.match(jobs[LAST], /^ {4}if: \$\{\{ !cancelled\(\) && /m);
   // A job whose own failure the run allows (continue-on-error on the job) would be a false cancel: only the watcher has one.
   assert.deepEqual(Object.keys(jobs).filter((id) => /^ {4}continue-on-error:/m.test(jobs[id])), [SELF]);
@@ -205,6 +208,6 @@ test("no job waits on fail-fast, so where it is skipped every job runs as before
   const required = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
   for (const id of TOLERATED) {
     assert.ok(!required.includes(id), id);
-    for (const [other, block] of Object.entries(jobs)) if (needsOf(other).includes(id)) assert.match(block, /^ {4}if: \$\{\{ !cancelled\(\)/m, `${other} runs after a failed ${id}`);
+    for (const [other, block] of Object.entries(jobs)) if (needsOf(other).includes(id)) assert.match(block, /^ {4}if: \$\{\{ (!cancelled|always)\(\)/m, `${other} runs after a failed ${id}`);
   }
 });

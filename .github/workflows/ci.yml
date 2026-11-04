@@ -7,6 +7,9 @@ on:
   # release.yml runs CI on its release branch this way: pushes made with GITHUB_TOKEN
   # trigger no workflows.
   workflow_dispatch:
+  # Every night, the full suite on main, reusing nothing (the nightly job reports a failure).
+  schedule:
+    - cron: "47 3 * * *"
 permissions:
   contents: read
 # A push to a pull request cancels that pull request's run in progress, and a run waiting for it:
@@ -66,6 +69,9 @@ jobs:
       components: ${{ steps.plan.outputs.components }}
       tested: ${{ steps.tested.outputs.tested }}
       installs: ${{ steps.plan.outputs.installs }}
+      suite: ${{ steps.plan.outputs.suite }}
+      install-variants: ${{ steps.plan.outputs.install-variants }}
+      install-presets: ${{ steps.plan.outputs.install-presets }}
     steps:
       - id: tested
         name: Did the merge queue test this commit?
@@ -111,6 +117,8 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            # The fast suite (scripts/ci-gate.mjs): its install test, when it runs, is one app.
+            printf 'suite=fast\ninstall-variants=["shadcn"]\ninstall-presets=["nova"]\n' >> "$GITHUB_OUTPUT"
             node scripts/test-impact.mjs plan HEAD^1 HEAD || {
               echo "::warning::Could not plan the tests, so everything runs."
               echo "full=true" >> "$GITHUB_OUTPUT"
@@ -121,7 +129,7 @@ jobs:
             # when a component adds itself to the catalog.
             installPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|UPGRADING\.md|docs/OuroProvider\.md|test/install-fixture[^/]*/.+|scripts/(install-test\.sh|install-check\.mjs|source-rules\.mjs|readme-steps\.mjs|upgrade-note\.mjs|latest-release\.mjs|namespace\.sh|registry\.mts|generated-files\.mjs|generate\.mjs|components\.mts|shard\.mjs|shard-timings\.json|vitest-shards\.mts|test-impact\.mjs|tree\.mjs))$'
             if git diff --name-only HEAD^1 HEAD | grep -qE "$installPaths" || ! node scripts/readme-steps.mjs same HEAD^1; then
-              echo "This pull request changes the install test, so it runs here too."
+              echo "This pull request changes the install test, so one app of it, (shadcn, nova), runs here too; the merge queue runs every app."
               echo "installs=here" >> "$GITHUB_OUTPUT"
             else
               echo "The install test runs in the merge queue: its checks pass here with a notice."
@@ -130,6 +138,7 @@ jobs:
           else
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
+            printf 'suite=full\ninstall-variants=["shadcn","ouro"]\ninstall-presets=["nova","vega"]\n' >> "$GITHUB_OUTPUT"
           fi
   checks:
     # The checks that need no browser: the generated docs, the types, the lint, the site as Pages
@@ -710,9 +719,10 @@ jobs:
     # SHARD_TARGET_SECONDS of estimated work or under (scripts/mutation.mjs --count, shardCount in
     # cache.mjs), so a large change's shards each finish in about 10 minutes, at most 24; at least
     # three with results cached under the same hash, five without, so a cold run's mutants spread
-    # wider. On any other run, three shards that each report nothing to mutate.
+    # wider. Pull requests only: any other run has no changed lines to mutate, so it skips the three
+    # mutation jobs, which the gate allows there (scripts/ci-gate.mjs).
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -779,11 +789,11 @@ jobs:
     # mutant Stryker makes of them must fail a test. The changed ranges are split across the shards
     # by their estimated mutants and their tests' measured time (scripts/mutation/test-seconds.json),
     # and each shard starts from the results kept from the pull request's last run, so a push
-    # reruns only the mutants its change touched. Pull requests only; on any other run, and on a
-    # pull request that changes no runtime source, it reports that there is nothing to mutate. The
-    # `mutation` job below is the one check the rules require.
+    # reruns only the mutants its change touched. Pull requests only; on a pull request that changes
+    # no runtime source, it reports that there is nothing to mutate. The `mutation` job below is its
+    # one check, which the gate requires on a pull request.
     needs: [plan, mutation-plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -845,14 +855,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
   mutation:
-    # The one check the rules require for mutation testing: it passes when every shard did (on a
-    # merge-queue run, each shard has nothing to mutate and passes), so the shard count can change
-    # without touching the ruleset. On a pull request it first merges the shards' results into one
+    # Mutation testing's one check, which the gate requires on a pull request: it passes when every
+    # shard did, so the shard count can change without touching the gate. On a pull request it first merges the shards' results into one
     # file and keeps it for the next run, under the plan's key. It keeps them after a failed run
     # too: each shard uploads only the mutants of its own ranges (scopeReport), so a survivor stays
     # Survived in the merge and fails the next run as well, unless a test that could kill it changed.
     needs: [plan, mutation-plan, mutation-shard]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -1047,7 +1056,7 @@ jobs:
     # added, renders the same computed colours, radii, fonts and shadows as the site, light and
     # dark, and its fonts load.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.suite == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -1083,7 +1092,7 @@ jobs:
     # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
     # test shares the CPU.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.suite == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     # In Playwright's image (see the note above jobs:).
@@ -1116,7 +1125,7 @@ jobs:
     # TBT 150 ms), with the build served as Pages serves it: HTTP/2 over TLS, gzipped
     # (site/scripts/serve-pages.mjs).
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.suite == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1159,9 +1168,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [shadcn, ouro]
-        # Another shadcn preset than the README's, so its preset wording is verified.
-        preset: [nova, vega]
+        # The full suite's apps: shadcn and ouro, and another shadcn preset than the README's, so its
+        # preset wording is verified. A fast pull request's plan names only shadcn and nova.
+        variant: ${{ fromJSON(needs.plan.outputs.install-variants) }}
+        preset: ${{ fromJSON(needs.plan.outputs.install-presets) }}
         shard: [1, 2, 3, 4]
         exclude:
           - variant: ouro
@@ -1226,7 +1236,7 @@ jobs:
             preset: vega
     name: install (${{ matrix.variant }}, ${{ matrix.preset }})
     steps:
-      - if: needs.plan.outputs.installs != 'queue'
+      - if: needs.plan.outputs.installs != 'queue' && (needs.plan.outputs.suite == 'full' || format('{0}-{1}', matrix.variant, matrix.preset) == 'shadcn-nova')
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-*
@@ -1238,9 +1248,14 @@ jobs:
           PRESET: ${{ matrix.preset }}
           SHARDS: ${{ needs.install-shard.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
+          SUITE: ${{ needs.plan.outputs.suite }}
         run: |
           if [ "$INSTALLS" = queue ]; then
             echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
+            exit 0
+          fi
+          if [ "$SUITE" = fast ] && [ "$VARIANT-$PRESET" != shadcn-nova ]; then
+            echo "::notice::A pull request runs one install app, (shadcn, nova); the merge queue runs ($VARIANT, $PRESET)."
             exit 0
           fi
           failed=0
@@ -1261,7 +1276,7 @@ jobs:
     # serves, built and served locally. next: a Next.js App Router app renders every component from
     # a Server Component page and runs `next build`.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.suite == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -1273,25 +1288,17 @@ jobs:
     env:
       OURO_PRESET: ${{ matrix.preset }}
     steps:
-      - if: needs.plan.outputs.installs == 'queue'
-        name: The install test runs in the merge queue
-        run: echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
-      - if: needs.plan.outputs.installs != 'queue'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - if: needs.plan.outputs.installs != 'queue'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - if: needs.plan.outputs.installs != 'queue'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - if: needs.plan.outputs.installs != 'queue'
-        run: pnpm i --frozen-lockfile
-      - if: needs.plan.outputs.installs != 'queue'
-        run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
-      - if: failure() && needs.plan.outputs.installs != 'queue'
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: install-${{ matrix.variant }}-${{ matrix.preset }}
@@ -1332,29 +1339,21 @@ jobs:
     # commands in UPGRADING.md against this commit's registry, in a src/ and an app/
     # layout, keeping Ouro's tests and without them (scripts/install-test.sh upgrade).
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.suite == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - if: needs.plan.outputs.installs == 'queue'
-        name: The install test runs in the merge queue
-        run: echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
-      - if: needs.plan.outputs.installs != 'queue'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - if: needs.plan.outputs.installs != 'queue'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - if: needs.plan.outputs.installs != 'queue'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - if: needs.plan.outputs.installs != 'queue'
-        run: pnpm i --frozen-lockfile
-      - if: needs.plan.outputs.installs != 'queue'
-        run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
-      - if: failure() && needs.plan.outputs.installs != 'queue'
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: install-upgrade
@@ -1434,6 +1433,55 @@ jobs:
           path: ${{ runner.temp }}/ci-timings.json
           if-no-files-found: ignore
           retention-days: 90
+  gate:
+    # The one check main's rules require of CI (ruleset 24881709, .github/required-checks.json):
+    # it needs every other job but fail-fast, runs whatever they did, and passes only when each
+    # passed or was left out by design for this kind of run (scripts/ci-gate.mjs). A pull request
+    # into main runs the fast suite; the merge queue, main, a dispatched or scheduled run and a
+    # release branch run the full suite, and the gate reads which from the event, not the plan.
+    # `always()`, since a skipped check would count as passing: a cancelled run fails here instead.
+    needs: [plan, checks, browser, scripts, scripts-browser, coverage, browser-fallback, ci, motion-coverage, themes, conformance-shard, conformance, mutation-plan, mutation-shard, mutation, visual, registry, e2e-shard, e2e, theme-install, latency, lighthouse, install-shard, install-gate, install, install-latest, install-upgrade, install-github, ci-budget]
+    if: ${{ always() }}
+    name: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci-gate.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Every job this run needs passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          REF: ${{ github.ref }}
+        run: node scripts/ci-gate.mjs
+  nightly:
+    # The nightly run's report: one "Nightly CI failed" issue, opened or commented on at most daily
+    # (scripts/scheduled-failure.sh), when the full suite on main did not pass.
+    needs: [gate]
+    if: always() && github.event_name == 'schedule' && needs.gate.result != 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          QUIET_HOURS: 24
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Nightly CI failed" "The full suite failed on main"
   fail-fast:
     # Fail fast on a pull request (scripts/ci-fail-fast.mjs): beside every job after the plan, it reads this
     # run attempt's jobs and, once one has failed and finished, cancels the run, so a red job frees

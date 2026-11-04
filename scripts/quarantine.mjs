@@ -185,7 +185,12 @@ export function retryPlan({ runs, contexts, entries }) {
       const upstream = node && block && job.failedSteps.length > 0
         ? job.failedSteps.map((step) => node.needs.filter((need) => stepBlock(block, step).includes(`needs.${need}.result`)))
         : [];
-      if (upstream.length === 0 || upstream.some((needs) => needs.length === 0)) {
+      // CI's gate reads every job it needs at once (toJSON(needs), scripts/ci-gate.mjs), and passes a
+      // skip its policy allows, so it is explained by the jobs it needs that failed, and by nothing else.
+      const whole = node && block && job.failedSteps.length === 1 && /\$\{\{ toJSON\(needs\) \}\}/.test(stepBlock(block, job.failedSteps[0]));
+      if (whole) {
+        ok = upstreamExplained(new Set(node.needs));
+      } else if (upstream.length === 0 || upstream.some((needs) => needs.length === 0)) {
         problems.push(`${job.name} (run ${run.id}) failed without a test failure in its log`);
       } else {
         ok = upstreamExplained(new Set(upstream.flat()), { gate: true });

@@ -35,7 +35,8 @@ type ClaimSource =
  *   `requiredTests` in `claims.config.json`, it must also run in a required CI job, so a
  *   green main means it passed.
  * - `{ ciJob, workflow? }`: a workflow defines the job, and the job is a required check:
- *   one of the names in `.github/required-checks.json`, read at the pull request's base.
+ *   one of the names in the `requiredChecks` file of `claims.config.json`, read at the pull
+ *   request's base.
  * - `{ fileLine, line?, pattern }`: the file, or that line of it, matches the pattern
  *   (a regular expression's source).
  * - `{ equals, is }`: the value at `<file>#<field path>` in a JSON file is exactly `is`.

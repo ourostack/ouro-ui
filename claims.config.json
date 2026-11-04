@@ -72,6 +72,11 @@
       "reason": "the CLI kit decision's records: a reference doctor's output and source notes, the first adopter's selfcheck output on made-up data, and this repository's measured size, copied as they were captured"
     },
     {
+      "match": "^docs/decisions/2026-11-04-ci-same-rigor-fewer-runners/evidence/",
+      "mode": "evidence",
+      "reason": "the CI decision's measurements (runs, jobs and queue times read from the Actions API), copied as they were measured"
+    },
+    {
       "match": "^registry/ouro/ax/fixtures/",
       "mode": "input",
       "reason": "the X-ray's test fixtures"
@@ -329,6 +334,6 @@
       "reason": "the ci job runs pnpm test:scripts, which lists each Node test file"
     }
   ],
-  "requiredChecks": ".github/required-checks.json",
+  "requiredChecks": ".github/gate-checks.json",
   "urlCache": "scripts/claims-urls.json"
 }

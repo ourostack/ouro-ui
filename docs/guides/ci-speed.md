@@ -31,7 +31,7 @@ gh api graphql -f query="mutation { enqueuePullRequest(input: { pullRequestId: \
 ```
 
 - **Queue only a green pull request.** GitHub refuses the entry until the required checks in `.github/required-checks.json` have passed on the head.
-- **If it refuses a green pull request with `2 of 21 expected`,** look at the checks it names. On the night the clocks went back, GitHub recorded some job times an hour off and lost track of them.[^dst] Re-run the named jobs so their results are recorded again, then queue.
+- **If it refuses a green pull request with `1 of 2 expected`,** look at the checks it names. On the night the clocks went back, GitHub recorded some job times an hour off and lost track of them.[^dst] Re-run the named jobs so their results are recorded again, then queue.
 - **Watch the entry until it merges.** Find drops and their reasons:
 
 ```sh

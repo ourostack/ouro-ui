@@ -1,23 +1,4 @@
 [
-  "ci",
-  "ci-budget",
-  "conformance",
   "conformance exemptions",
-  "e2e",
-  "install (namespace, nova)",
-  "install (next, nova)",
-  "install (ouro, nova)",
-  "install (shadcn, nova)",
-  "install (shadcn, vega)",
-  "install-upgrade",
-  "latency",
-  "lighthouse",
-  "motion-coverage",
-  "mutation",
-  "registry",
-  "theme-install",
-  "themes (1/3)",
-  "themes (2/3)",
-  "themes (3/3)",
-  "visual"
+  "gate"
 ]

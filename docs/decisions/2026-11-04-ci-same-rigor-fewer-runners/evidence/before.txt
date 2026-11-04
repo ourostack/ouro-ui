@@ -1,0 +1,28 @@
+# Before: CI on ourostack/ouro-ui, measured 2026-11-04 from the Actions API (gh api), by run.
+# Merge-queue runs created 2026-11-02T05:00Z to 2026-11-04T03:32Z (before-merge-group-runs.tsv).
+# wall = run start to its last job's end; job-min = the sum of its jobs' run time; wait = a job's start less its creation.
+before-merge-group-runs.tsv: 86 success runs of 154
+wall min: median 27.7 p90 54 max 178.1 mean 34.9
+jobs: median 55 p90 56 max 56 mean 55.5
+job-min: median 287.4 p90 299.5 max 309.6 mean 287.7
+max job wait min: median 13.6 p90 29.4 max 58.9 mean 15.5
+longest job min: median 11.2 p90 12.1 max 15.3 mean 11.4
+conclusions: {"success":86,"cancelled":8,"failure":60}
+# Pull-request runs created 2026-11-03T04:00Z to 2026-11-04T04:00Z (before-pull-request-runs.tsv).
+before-pull-request-runs.tsv: 54 all runs of 54
+wall min: median 44.7 p90 120 max 179.1 mean 47.7
+jobs: median 47 p90 59 max 67 mean 45.6
+job-min: median 232.3 p90 704 max 937.2 mean 265.5
+max job wait min: median 24.3 p90 45.9 max 56 mean 22.1
+longest job min: median 29.4 p90 55.9 max 56 mean 31.3
+conclusions: {"cancelled":39,"success":7,"failure":8}
+pull-request runs: 54, job-minutes in all: 14337
+# Merged pull requests, 2026-11-02T05:00Z on (before-queue-latency.tsv), minutes:
+first enqueue to merge: pull requests 28, median 312, p90 1361, max 3399
+last enqueue to merge: pull requests 28, median 115, p90 828, max 1179
+times enqueued: pull requests 28, median 2, p90 6, max 8
+# One full merge-queue run, 41749612682 (before-setup-share-run-41749612682.tsv):
+job-minutes: 303, of which setup (container, install, checkout and Node): 34
+install shards: 121 job-minutes
+# Merged pull requests 2026-11-04 back to the 120th (gh pr list --state merged --limit 120):
+pull requests that change no file the install test reads (registry/, a non-test script, configuration, dependencies, README.md, UPGRADING.md, docs/OuroProvider.md, ci.yml): 30 of 120
