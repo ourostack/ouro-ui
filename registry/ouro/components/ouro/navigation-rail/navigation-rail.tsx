@@ -258,24 +258,40 @@ function currentIndex(items: readonly NavigationRailEntry[], currentPath: string
   return match === undefined ? -1 : owned.find((entry) => entry.path === match)!.index;
 }
 
+/**
+ * What the rail last measured: each entry's height, by key, so a hidden item still has one; the
+ * list's width then; and whether the text has changed since (a font loaded), which no size shows.
+ * @claim "whether the text has changed since" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail fit > measures its labels again when a font loads, so a word the new face makes too wide is set smaller, never cut)
+ */
+interface Sizes {
+  heights: Map<string, number>;
+  width: number;
+  textChanged: boolean;
+}
+
 // What fits the laid-out list: the items that move under More, from the last, with the current
-// one kept, and the labels cut short. `heights` holds each entry's last measured height, by key,
-// so a hidden item still has one. When a shown entry's height changes (the text size, the rail's
-// width or its label did), the hidden ones' are stale: they count nothing until they show again,
-// and the measure that follows puts them back if they do not fit.
-function measureFit(element: HTMLUListElement, items: readonly NavigationRailEntry[], current: number, heights: Map<string, number>): Fit {
+// one kept, and the labels cut short. When the list's width, a shown entry's height or the text
+// changed (the rail widened, the text size changed, a label changed, a font loaded), a hidden
+// entry's height is stale: it counts nothing until it shows again, and the measure that follows
+// puts it back if it does not fit.
+function measureFit(element: HTMLUListElement, items: readonly NavigationRailEntry[], current: number, sizes: Sizes): Fit {
+  const { heights } = sizes;
   const measured = new Map<string, number>();
   for (const child of element.children) {
     const height = (child as HTMLElement).offsetHeight;
     if (height > 0) measured.set((child as HTMLElement).dataset.ouroNavigationRailEntry!, height);
   }
+  const width = element.clientWidth;
+  // Stryker disable next-line MethodExpression: some and every differ only when some shown heights change and others do not, as when one label changes, which leaves the hidden heights as they were.
   const resized = [...measured].some(
     ([key, height]) =>
       // Stryker disable next-line ConditionalExpression: an entry measured for the first time that counted as resized too only shows the hidden ones once more, and the fit settles where it would.
       heights.has(key) && heights.get(key) !== height,
   );
-  if (resized) heights.clear();
+  if (resized || width !== sizes.width || sizes.textChanged) heights.clear();
   for (const [key, height] of measured) heights.set(key, height);
+  sizes.width = width;
+  sizes.textChanged = false;
   const gap = parseFloat(getComputedStyle(element).rowGap);
   const room = element.clientHeight;
   const indexes = items.flatMap((entry, index) => (entry.type === "separator" ? [] : [index]));
@@ -334,7 +350,8 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
   // Stryker disable next-line ArrayDeclaration: a place that is no item's moves and cuts nothing, as an empty list does.
   const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [], squeezed: [] });
   // One not yet measured counts nothing until it shows, and the measure that follows corrects the fit before paint.
-  const heights = useRef(new Map<string, number>());
+  // Stryker disable next-line BooleanLiteral: the first measure has no heights to forget, whatever this says.
+  const sizes = useRef<Sizes>({ heights: new Map(), width: 0, textChanged: false });
   const measure = useRef<() => void>(null);
   const observer = useRef<ResizeObserver | null>(null);
   const observed = useRef(new WeakSet<Element>());
@@ -346,7 +363,7 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
       const element = list.current!;
       // Not laid out (hidden by the app): nothing to measure.
       if (element.getClientRects().length === 0) return;
-      const next = measureFit(element, items, current, heights.current);
+      const next = measureFit(element, items, current, sizes.current);
       setFit((last) => {
         const moved = !same(last.hidden, next.hidden) || !same(last.truncated, next.truncated);
         // Stryker disable next-line LogicalOperator,ConditionalExpression,BooleanLiteral: a name left in `squeezed` sets no label smaller until a label of that name, as wide, comes back.
@@ -366,13 +383,29 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
     // A new fit can change sizes the measure read (More shows, a label is set smaller), so it measures again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputs, fit]);
+  // A font that loads changes the labels' widths, and maybe nothing the observer sees, so the rail measures again once
+  // the fonts are ready, outside any commit, where the page lays out the new text anyway. (WebKit sends no
+  // loadingdone for a face it finds at once, only loading.)
   useLayoutEffect(
-    () => () => {
-      observer.current!.disconnect();
-      observed.current = new WeakSet();
+    () => {
+      const fonts = list.current!.ownerDocument.fonts;
+      const loading = () =>
+        void fonts.ready.then(() => {
+          // Unmounted while the fonts loaded: nothing to measure.
+          if (list.current === null) return;
+          sizes.current.textChanged = true;
+          measure.current!();
+        });
+      fonts.addEventListener("loading", loading);
+      return () => {
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left behind finds the rail gone when the fonts are ready, and measures nothing.
+        fonts.removeEventListener("loading", loading);
+        observer.current!.disconnect();
+        observed.current = new WeakSet();
+      };
     },
-    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
-    [],
+    // Stryker disable next-line ArrayDeclaration: the list's ref is the same object for the rail's life, so any constant list runs it once, as this one does.
+    [list],
   );
   return fit;
 }

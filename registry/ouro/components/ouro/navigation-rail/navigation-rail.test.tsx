@@ -42,6 +42,8 @@ async function render(node: ReactNode, height = 600) {
     host,
     root,
     rerender: (next: ReactNode) => act(async () => root.render(wrap(next))),
+    /** Renders `next` and commits it at once, layout effects included, so no frame (and no resize observer) runs before the caller reads the page. */
+    renderNow: (next: ReactNode) => flushSync(() => root.render(wrap(next))),
     get nav() {
       return host.querySelector<HTMLElement>('[data-ouro="navigation-rail"]')!;
     },
@@ -578,26 +580,120 @@ describe("NavigationRail fit", () => {
   it("fits again before paint when a label changes", async () => {
     const rail = await render(<NavigationRail label="Main" items={many} />, tight);
     // A label on two lines makes its row 68px tall, so Calendar no longer fits. No frame has passed, so no resize observer has run.
-    await rail.rerender(<NavigationRail label="Main" items={renamed("Chat", "Customer support escalations")} />);
+    rail.renderNow(<NavigationRail label="Main" items={renamed("Chat", "Customer support escalations")} />);
     expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "More"]);
   });
 
   it("fits again before paint when the current item changes, the labels hide, More is renamed or the rail widens", async () => {
     const rail = await render(<NavigationRail label="Main" items={many} currentPath="/chat" />, tight);
-    await rail.rerender(<NavigationRail label="Main" items={many} currentPath="/help" />);
+    rail.renderNow(<NavigationRail label="Main" items={many} currentPath="/help" />);
     expect(rail.shown.map(labelOf)).toEqual(["Activity", "Help", "More"]);
     // 44px rows: Chat fits too.
-    await rail.rerender(<NavigationRail label="Main" items={many} currentPath="/help" hideLabels />);
+    rail.renderNow(<NavigationRail label="Main" items={many} currentPath="/help" hideLabels />);
     expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Help", "More"]);
-    await rail.rerender(<NavigationRail label="Main" items={many} currentPath="/help" moreLabel="Everything else" />);
+    rail.renderNow(<NavigationRail label="Main" items={many} currentPath="/help" moreLabel="Everything else" />);
     expect(rail.shown.map(labelOf)).toEqual(["Activity", "Help", "More"]);
     const long = renamed("Chat", "Customer support escalations");
-    await rail.rerender(<NavigationRail label="Main" items={long} />);
+    rail.renderNow(<NavigationRail label="Main" items={long} />);
     expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "More"]);
     // Wide enough for the label on one line.
-    await rail.rerender(<NavigationRail label="Main" items={long} className="w-80" />);
+    rail.renderNow(<NavigationRail label="Main" items={long} className="w-80" />);
     expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "Calendar", "More"]);
   });
+
+  it("brings back a hidden item whose label fits one line once the rail widens, though no shown item changes height", async () => {
+    const entries = ["Activity", "Chat", "Notes for the team", "Calendar", "Files"].map((label) => ({ label, href: `/${label}`, icon: icon(label) }));
+    const rail = await render(
+      <div style={{ display: "flex", width: 68 }}>
+        <NavigationRail label="Main" items={entries} className="w-full" />
+      </div>,
+      tight,
+    );
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "More"]);
+    rail.nav.parentElement!.style.width = "320px";
+    await expect.poll(() => rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Notes for the team", "More"]);
+  });
+
+  it("measures its labels again when a font loads, so a word the new face makes too wide is set smaller, never cut", async () => {
+    // A face 60% wider than the page's, from fonts every system has, loaded only once the rail is drawn in its fallback.
+    const face = new FontFace("OuroRailWide", 'local("DejaVu Sans"), local("Helvetica"), local("Arial"), local("Liberation Sans")', { sizeAdjust: "160%" } as FontFaceDescriptors);
+    const rail = await render(
+      <div lang="zxx" style={{ display: "flex", fontFamily: "OuroRailWide, sans-serif" }}>
+        <NavigationRail label="Main" items={[{ label: "Calendar", href: "/calendar", icon: icon("calendar") }]} />
+      </div>,
+    );
+    // A label cut short is drawn again inside a tooltip, so it is found afresh each time.
+    const label = () => rail.nav.querySelector<HTMLElement>("[data-ouro-navigation-rail-label]")!;
+    expect(label().hasAttribute("data-ouro-navigation-rail-squeezed")).toBe(false);
+    // The resize observer's first report comes a frame later; let it pass, so only the font can start a measure.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.fonts.add(face);
+    try {
+      await act(async () => {
+        await face.load();
+        await document.fonts.ready;
+      });
+      await expect.poll(() => label().hasAttribute("data-ouro-navigation-rail-squeezed")).toBe(true);
+      // Nothing runs past the label's edge, where it would be cut off mid-letter.
+      expect(label().scrollWidth).toBeLessThanOrEqual(label().clientWidth);
+    } finally {
+      document.fonts.delete(face);
+    }
+  });
+
+
+  it("brings back a hidden item when a font loads in which its label fits one line, though nothing it observes changes size", async () => {
+    // A face half as wide as the page's: the hidden two-line label fits one line, and the shown one-line ones stay one line.
+    const face = new FontFace("OuroRailNarrow", 'local("DejaVu Sans"), local("Helvetica"), local("Arial"), local("Liberation Sans")', { sizeAdjust: "50%" } as FontFaceDescriptors);
+    const entries = ["Activity", "Chat", "Notes for the team", "Calendar", "Files"].map((label) => ({ label, href: `/${label}`, icon: icon(label) }));
+    const rail = await render(
+      <div style={{ display: "flex", fontFamily: "OuroRailNarrow, sans-serif" }}>
+        <NavigationRail label="Main" items={entries} />
+      </div>,
+      tight,
+    );
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "More"]);
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.fonts.add(face);
+    try {
+      await act(async () => {
+        await face.load();
+        await document.fonts.ready;
+      });
+      await expect.poll(() => rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Notes for the team", "More"]);
+    } finally {
+      document.fonts.delete(face);
+    }
+  });
+
+  it("measures nothing once it is gone, for a font that finishes loading or a size the observer sees", async () => {
+    // A face fetched from an address that has none, so the fonts are still loading when the rail goes.
+    const face = new FontFace("OuroRailGone", "url(/__ouro-no-such-font.woff2)");
+    const rail = await render(<NavigationRail label="Main" items={items} />);
+    const rejected: unknown[] = [];
+    const onRejection = (event: PromiseRejectionEvent | ErrorEvent) => rejected.push("reason" in event ? event.reason : event.error);
+    addEventListener("unhandledrejection", onRejection);
+    addEventListener("error", onRejection);
+    const started = new Promise((done) => document.fonts.addEventListener("loading", done, { once: true }));
+    document.fonts.add(face);
+    try {
+      const loading = face.load().catch(() => "failed");
+      await started;
+      await act(async () => rail.root.unmount());
+      roots.splice(roots.indexOf(rail.root), 1);
+      expect(await loading).toBe("failed");
+      await document.fonts.ready;
+      // A frame or two, for a resize observer left behind to report the removed list.
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      expect(rail.host.querySelector("nav")).toBeNull();
+      expect(rejected).toEqual([]);
+    } finally {
+      removeEventListener("unhandledrejection", onRejection);
+      removeEventListener("error", onRejection);
+      document.fonts.delete(face);
+    }
+  });
+
 
   it("fits again when its width or the text size changes", async () => {
     // Two labels on two lines in a 68px rail, the second moved under More at 68px tall.
