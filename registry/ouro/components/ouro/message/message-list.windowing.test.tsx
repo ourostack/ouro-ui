@@ -1158,6 +1158,21 @@ describe("MessageList windowing", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("draws none of the newest messages it opened with, not for a moment, when it opens far up at an anchor", async () => {
+    // Which messages go into the page, from before the list's first drawing.
+    const added = new Set<string>();
+    const watch = new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes) if (node instanceof Element) for (const message of node.querySelectorAll('[data-ouro="message"]')) added.add(message.id);
+    });
+    watch.observe(document.body, { childList: true, subtree: true });
+    const { scroller } = await render(<Chat items={conversation(400, 0, true)} initialAnchor="m100" />);
+    watch.disconnect();
+    expect(ids(scroller)).toContain(100);
+    expect(added.has("m399")).toBe(true);
+    expect([...added].filter((id) => Number(id.slice(1)) >= 380 && id !== "m399")).toEqual([]);
+  });
+
   it("draws the newest 20 of many messages that arrive at once far up, so those are heard", async () => {
     let items = conversation(300, 0, true);
     const { scroller, rerender } = await render(<Chat items={items} />);
