@@ -970,7 +970,17 @@ describe("Menu context trigger", () => {
 
 describe("Menu anchor", () => {
   /** A list's one menu, opened by the app at a row: here, a button that opens it at a point or beside a row. */
-  function Shared({ at, onCopy = () => {}, onChoose }: { at: (row: HTMLElement) => Element | { x: number; y: number }; onCopy?: () => void; onChoose?: () => void }) {
+  function Shared({
+    at,
+    onCopy = () => {},
+    onChoose,
+    align,
+  }: {
+    at: (row: HTMLElement) => Element | { x: number; y: number };
+    onCopy?: () => void;
+    onChoose?: () => void;
+    align?: "start" | "end";
+  }) {
     const [open, setOpen] = useState(false);
     const [row, setRow] = useState<HTMLElement | null>(null);
     return (
@@ -988,7 +998,7 @@ describe("Menu anchor", () => {
         </Button>
         <input aria-label="Elsewhere" />
         {row && (
-          <Menu anchor={at(row)} open={open} onOpenChange={setOpen} aria-label="Actions for the row" returnFocus={row}>
+          <Menu anchor={at(row)} open={open} onOpenChange={setOpen} aria-label="Actions for the row" returnFocus={row} {...(align ? { align } : {})}>
             <MenuItem onClick={onCopy}>Copy</MenuItem>
             <MenuItem onClick={onChoose}>Choose</MenuItem>
           </Menu>
@@ -1038,6 +1048,85 @@ describe("Menu anchor", () => {
     await userEvent.click(item("Choose"));
     await expect.poll(menu).toBeNull();
     expect(document.activeElement).toBe(page.getByRole("textbox", { name: "Elsewhere" }).element());
+  });
+
+  it("leaves focus where a chosen item moved it once the menu had gone, as a dialog it opens does", async () => {
+    const field = () => page.getByRole("textbox", { name: "Elsewhere" }).element() as HTMLElement;
+    await render(<Shared at={(target) => target} onChoose={() => setTimeout(() => field().focus())} />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    await settled();
+    await userEvent.click(item("Choose"));
+    await expect.poll(menu).toBeNull();
+    await new Promise((done) => setTimeout(done, 50));
+    expect(document.activeElement).toBe(field());
+  });
+
+  it("puts focus back without scrolling to it", async () => {
+    function Far() {
+      const [open, setOpen] = useState(true);
+      const [to, setTo] = useState<HTMLElement | null>(null);
+      return (
+        <div data-testid="scroller" style={{ height: 100, overflow: "auto" }}>
+          <div style={{ height: 600 }} />
+          <div ref={setTo} data-testid="far" tabIndex={-1}>
+            Far
+          </div>
+          <Menu anchor={{ x: 20, y: 20 }} open={open} onOpenChange={setOpen} aria-label="Actions" returnFocus={to}>
+            <MenuItem>Copy</MenuItem>
+          </Menu>
+        </div>
+      );
+    }
+    await render(<Far />);
+    await settled();
+    await userEvent.click(item("Copy"));
+    await expect.poll(menu).toBeNull();
+    await expect.poll(() => document.activeElement?.getAttribute("data-testid")).toBe("far");
+    expect(document.querySelector("[data-testid=scroller]")!.scrollTop).toBe(0);
+  });
+
+  it("puts focus back on the returnFocus of its latest render", async () => {
+    let retarget: (to: HTMLElement) => void = () => {};
+    function Moving() {
+      const [open, setOpen] = useState(true);
+      const [to, setTo] = useState<HTMLElement | undefined>(undefined);
+      retarget = setTo;
+      return (
+        <>
+          <div data-testid="first" tabIndex={-1}>
+            First
+          </div>
+          <div data-testid="second" tabIndex={-1}>
+            Second
+          </div>
+          <Menu anchor={{ x: 20, y: 80 }} open={open} onOpenChange={setOpen} aria-label="Actions" returnFocus={to}>
+            <MenuItem>Copy</MenuItem>
+          </Menu>
+        </>
+      );
+    }
+    await render(<Moving />);
+    await settled();
+    const second = document.querySelector<HTMLElement>("[data-testid=second]")!;
+    await act(async () => retarget(document.querySelector<HTMLElement>("[data-testid=first]")!));
+    await act(async () => retarget(second));
+    await userEvent.click(item("Copy"));
+    await expect.poll(menu).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(second);
+  });
+
+  it("lines up with an element by align, and starts at a point whatever the align", async () => {
+    await render(<Shared at={(target) => target} align="end" />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    const beside = (await settled()).getBoundingClientRect();
+    expect(Math.abs(beside.right - row().getBoundingClientRect().right)).toBeLessThanOrEqual(2);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menu).toBeNull();
+    await act(async () => roots.pop()!.unmount());
+    await render(<Shared at={(target) => ({ x: target.getBoundingClientRect().left + 200, y: target.getBoundingClientRect().top + 20 })} align="end" />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    const at = (await settled()).getBoundingClientRect();
+    expect(Math.abs(at.left - (row().getBoundingClientRect().left + 200))).toBeLessThanOrEqual(2);
   });
 
   it("closes when focus moves outside it", async () => {
