@@ -2,7 +2,7 @@ import { Profiler, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { bindAx, expectAxRendered } from "@/registry/ouro/ax/component";
 import { Porthole, type PortholeFixed, type PortholeProps } from "@/registry/ouro/components/ouro/porthole/porthole";
 import { PORTHOLE_ANNOUNCE_GAP_MS, portholeAx } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
@@ -167,7 +167,7 @@ describe("Porthole", () => {
     await userEvent.click(view.spot);
     expect(view.spot.getAttribute("aria-expanded")).toBe("true");
     expect(view.spot.getAttribute("aria-controls")).toBe(view.panel!.id);
-    expect([...view.panel!.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Chats: verified just now", "Calendar: verified 4 min ago"]);
+    expect([...view.panel!.querySelectorAll("li:not([data-porthole-part])")].map((li) => li.textContent)).toEqual(["Chats: verified just now", "Calendar: verified 4 min ago"]);
     expect(document.activeElement).toBe(view.spot);
     await userEvent.click(view.spot);
     expect(view.panel).toBeNull();
@@ -363,10 +363,10 @@ describe("Porthole", () => {
 
   it("fades the new words in over the old, and keeps the old only to fade them out", async () => {
     const view = await render(base(fixed()));
-    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute')).toBeNull();
+    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute:not([data-porthole-part])')).toBeNull();
     expect(view.host.querySelector('[data-ouro-part="spot"] span.block')!.className).not.toContain("starting:opacity-0");
     await view.rerender(base(fixed([item("sync", "working", { label: "Catching up" })])));
-    const was = view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute')!;
+    const was = view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute:not([data-porthole-part])')!;
     expect(was.textContent).toBe("Updated just now");
     expect(getComputedStyle(was).pointerEvents).toBe("none");
     expect(was.className).toContain("starting:opacity-100");
@@ -376,18 +376,20 @@ describe("Porthole", () => {
     const is = view.host.querySelector('[data-ouro-part="spot"] span.block')!;
     await view.rerender(base(fixed([item("offline", "error", { label: "Can't reach the service" })])));
     expect(view.host.querySelector('[data-ouro-part="spot"] span.block')).not.toBe(is);
-    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute')).not.toBe(was);
-    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute')!.textContent).toBe("Catching up");
+    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute:not([data-porthole-part])')).not.toBe(was);
+    expect(view.host.querySelector('[data-ouro-part="spot"] span[aria-hidden="true"].absolute:not([data-porthole-part])')!.textContent).toBe("Catching up");
   });
 
   it("eases its width to fit the line, and with reduced motion changes it at once", async () => {
     const view = await render(base(fixed()));
     const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
     const content = pill.firstElementChild as HTMLElement;
-    await expect.poll(() => pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
+    // Once the width has eased to fit, the style holds what the content and the pill's edges need.
+    await expect.poll(() => pill.style.width === `${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
     expect(getComputedStyle(pill).transitionProperty).toBe("width");
     await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
-    await expect.poll(() => pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
+    // Once the width has eased to fit, the style holds what the content and the pill's edges need.
+    await expect.poll(() => pill.style.width === `${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(pill).transitionProperty).toBe("none");
   });
@@ -453,6 +455,82 @@ describe("Porthole", () => {
     expect(view.panel).toBeNull();
     // Closed, Escape is the page's.
     expect(await press("Escape")).toBe(false);
+  });
+
+  it("in a narrow column, cuts its line short with an ellipsis, keeps its buttons whole, and leads the open lines with the whole line", async () => {
+    const long = "Version 2.4 is ready, with a calendar that loads faster";
+    const update = item("update", "action", { label: long, action: { id: "restart", label: "Restart to update" }, dismissable: true });
+    const wide = await render(
+      <div style={{ width: 1200 }}>
+        <Porthole label="Status" source={fixed([update])} onAction={() => {}} onDismiss={() => {}} />
+      </div>,
+    );
+    const whole = { act: wide.act!.getBoundingClientRect().width, dismiss: wide.dismiss!.getBoundingClientRect().width };
+    expect(wide.porthole.hasAttribute("data-porthole-truncated")).toBe(false);
+    const column = { width: 336 } as const;
+    const view = await render(
+      <div style={column}>
+        <Porthole label="Status" source={fixed([update])} onAction={() => {}} onDismiss={() => {}} />
+      </div>,
+    );
+    const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+    const words = view.host.querySelector<HTMLElement>('[data-ouro-part="spot"] span.block')!;
+    await expect.poll(() => view.porthole.hasAttribute("data-porthole-truncated")).toBe(true);
+    expect(pill.getBoundingClientRect().width).toBeLessThanOrEqual(336);
+    expect(getComputedStyle(words).textOverflow).toBe("ellipsis");
+    expect(words.scrollWidth).toBeGreaterThan(words.clientWidth);
+    // The buttons keep their whole width, inside the pill.
+    for (const [button, width] of [
+      [view.act!, whole.act],
+      [view.dismiss!, whole.dismiss],
+    ] as const) {
+      expect(button.getBoundingClientRect().width).toBeCloseTo(width, 0);
+      expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(pill.getBoundingClientRect().right);
+    }
+    // The whole line is in the spot's name, and leads the open lines.
+    expect(page.elementLocator(view.host).getByRole("button", { name: long, exact: true }).element()).toBe(view.spot);
+    await act(() => view.spot.click());
+    const lead = view.panel!.querySelector<HTMLElement>('[data-porthole-part="whole-line"]')!;
+    expect(getComputedStyle(lead).display).toBe("list-item");
+    expect(lead.textContent).toBe(long);
+    expect(getComputedStyle(wide.host.querySelector('[data-porthole-part="whole-line"]') ?? document.body).display).not.toBe("list-item");
+    // Given the room again, it says the whole line and drops the lead.
+    await act(() => void ((view.host.firstElementChild as HTMLElement).style.width = "800px"));
+    await expect.poll(() => view.porthole.hasAttribute("data-porthole-truncated")).toBe(false);
+    expect(getComputedStyle(lead).display).toBe("none");
+    await expect.poll(() => words.scrollWidth).toBe(words.clientWidth);
+  });
+
+  it("keeps the open lines inside a narrow column, from the start edge in either direction", async () => {
+    const lines = ["Calendar: verified 3 min ago, in trouble for 1 min, while the server took its time to answer"];
+    for (const dir of ["ltr", "rtl"] as const) {
+      const view = await render(
+        <div dir={dir} style={{ width: 400 }}>
+          <Porthole label="Status" style={{ marginInlineStart: 100 }} defaultOpen source={fixed([item("sync", "working", { label: "Catching up", detail: lines })])} />
+        </div>,
+      );
+      const column = (view.host.firstElementChild as HTMLElement).getBoundingClientRect();
+      await expect.poll(() => view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("300px");
+      const panel = view.panel!.getBoundingClientRect();
+      expect(panel.width).toBeLessThanOrEqual(300);
+      expect(panel.left).toBeGreaterThanOrEqual(column.left);
+      expect(panel.right).toBeLessThanOrEqual(column.right);
+    }
+  });
+
+  it("opens under the spot by default, over it with side top, and under it for a side it does not know", async () => {
+    const under = await render(base(fixed(), { defaultOpen: true }));
+    expect(under.panel!.getBoundingClientRect().top).toBeGreaterThanOrEqual(under.spot.getBoundingClientRect().bottom);
+    const over = await render(
+      <div style={{ paddingTop: 200 }}>
+        <Porthole label="Status" source={fixed()} defaultOpen side="top" />
+      </div>,
+    );
+    expect(over.panel!.getBoundingClientRect().bottom).toBeLessThanOrEqual(over.spot.getBoundingClientRect().top);
+    expect(warn).not.toHaveBeenCalled();
+    const unknown = await render(base(fixed(), { defaultOpen: true, side: "left" }));
+    expect(unknown.panel!.getBoundingClientRect().top).toBeGreaterThanOrEqual(unknown.spot.getBoundingClientRect().bottom);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Porthole: side="left" is not an option; use "top" or "bottom". Fix: <Porthole side="top" />.');
   });
 
   it("passes its own attributes through, and warns about appearance classes", async () => {
@@ -601,7 +679,7 @@ describe("Porthole timing", () => {
     await run(399);
     await live.send(snapshot([], { chats: area(START) }));
     await run(MINUTE - 5_400 - 1);
-    const lines = () => [...view.panel!.querySelectorAll("li")].map((li) => li.textContent);
+    const lines = () => [...view.panel!.querySelectorAll("li:not([data-porthole-part])")].map((li) => li.textContent);
     const before = commits;
     expect(lines()).toContain("No heartbeat for less than a minute");
     await run(1);

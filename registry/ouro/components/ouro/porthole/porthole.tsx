@@ -19,7 +19,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { portholeView, type PortholeItem, type PortholeLabels, type PortholeSnapshot, type PortholeSource, type PortholeView } from "@/registry/ouro/lib/ouro/porthole-view";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLightClasses } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLightClasses, portholeSides, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 
 /**
  * A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a
@@ -57,6 +57,8 @@ export interface PortholeOwnProps {
   troubleAfterMs?: number | undefined;
   /** Starts open, showing the detail lines, as on a page about the app's status. @default false */
   defaultOpen?: boolean | undefined;
+  /** Where the detail lines open: under the spot, or over it for a spot at the foot of a column. @default "bottom" */
+  side?: PortholeSide | (string & { 'Use "top" or "bottom"': never }) | undefined;
   /** Words for other languages. */
   labels?: PortholeWords | undefined;
   /**
@@ -146,6 +148,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
     troubleAfterMs,
     labels,
     defaultOpen,
+    side: sideProp,
     onAction,
     onDismiss,
     className,
@@ -171,6 +174,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const lastBeatAt = useCallback(() => (live(source) ? source.lastBeatAt() : source.lastBeatAt), [source]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const options = { freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels };
+  const side: PortholeSide = portholeSides.includes(sideProp as PortholeSide) ? (sideProp as PortholeSide) : "bottom";
   // The server, and the hydration that must match it, judge as of the last beat, the one time both know; the render
   // right after hydration judges against the clock.
   const hydrated = useSyncExternalStore(quiet, onClient, onServer);
@@ -185,6 +189,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       ? () => [
           items !== undefined && ["items is not a prop; Porthole reads them from source", "<Porthole source={{ snapshot: { version: 1, items, areas }, lastBeatAt }} />"],
           status !== undefined && ["status is not a prop; Porthole decides it from source", "<Porthole source={statusSource} />"],
+          side !== sideProp && sideProp !== undefined && [`side="${String(sideProp)}" is not an option; use "top" or "bottom"`, '<Porthole side="top" />'],
           view.item?.action !== undefined &&
             onAction === undefined && [`the item "${view.item.id}" offers an action, but onAction is not set, so its button is hidden`, "<Porthole onAction={(item, actionId) => service.act(item.id, actionId)} />"],
         ]
@@ -267,22 +272,40 @@ export function Porthole(props: PortholeProps): JSX.Element {
     setHovered(false);
   };
 
-  // The pill's width follows its content, so the change can be eased; the measure writes the style, never state.
+  const item = view.item;
+  const action = item?.action !== undefined && onAction !== undefined ? item.action : null;
+  const dismissable = item?.dismissable === true && onDismiss !== undefined;
+
+  // The pill's width follows its content, so the change can be eased; the measure writes the style, never state. Where
+  // the room is narrower than the content, the line is cut short with an ellipsis (the root carries
+  // data-porthole-truncated, and the open lines lead with the whole line), and the room from the spot's start edge to
+  // its container's end bounds the open lines (--ouro-porthole-room).
   const pill = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
+  const words = useRef<HTMLSpanElement>(null);
+  const sizer = useRef<HTMLSpanElement>(null);
+  const fit = useCallback(() => {
+    const box = pill.current!;
+    const root = box.parentElement!;
+    // The cut is how much wider the whole line (its unseen, unwrapped copy) is than the room the line has.
+    const cut = sizer.current!.offsetWidth - words.current!.lastElementChild!.clientWidth;
+    box.style.width = `${content.current!.offsetWidth + cut + box.offsetWidth - box.clientWidth}px`;
+    root.toggleAttribute("data-porthole-truncated", cut > 0);
+    const host = root.parentElement!.getBoundingClientRect();
+    const at = root.getBoundingClientRect();
+    const room = getComputedStyle(root).direction === "rtl" ? at.right - host.left : host.right - at.left;
+    root.style.setProperty("--ouro-porthole-room", `${room}px`);
+  }, []);
+  useLayoutEffect(fit, [fit, line.text, action?.label, dismissable, open]);
   useLayoutEffect(
     () => {
-      const fit = () => {
-        const box = pill.current!;
-        box.style.width = `${content.current!.offsetWidth + box.offsetWidth - box.clientWidth}px`;
-      };
-      fit();
       const observer = new ResizeObserver(fit);
       observer.observe(content.current!);
+      observer.observe(sizer.current!);
+      observer.observe(pill.current!.parentElement!.parentElement!);
       return () => observer.disconnect();
     },
-    // Stryker disable next-line ArrayDeclaration: any list that never changes runs the measure once, as this does
-    [],
+    [fit],
   );
   // A press anywhere else puts pinned lines away, as a popover's would.
   useEffect(() => {
@@ -312,9 +335,6 @@ export function Porthole(props: PortholeProps): JSX.Element {
     spot.current!.focus();
   });
 
-  const item = view.item;
-  const action = item?.action !== undefined && onAction !== undefined ? item.action : null;
-  const dismissable = item?.dismissable === true && onDismiss !== undefined;
   const toneClass = view.state === "error" ? "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]" : view.state.startsWith("rest") || view.state === "unknown" ? "text-[color-mix(in_oklab,var(--muted-foreground)_88%,var(--foreground))]" : "text-foreground";
   const fadeClass = "whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)";
 
@@ -329,14 +349,14 @@ export function Porthole(props: PortholeProps): JSX.Element {
       onKeyDown={close}
       onPointerEnter={enter}
       onPointerLeave={leave}
-      className={cn("relative inline-flex max-w-full min-w-0 align-middle", className)}
+      className={cn("group/porthole relative inline-flex max-w-full min-w-0 align-middle", className)}
     >
       <div
         ref={pill}
         data-porthole-part="pill"
         className="inline-flex h-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-12"
       >
-        <div ref={content} className="inline-flex h-full w-max shrink-0 items-center">
+        <div ref={content} className="inline-flex h-full w-max max-w-full min-w-0 items-center">
           <button
             ref={spot}
             type="button"
@@ -347,18 +367,21 @@ export function Porthole(props: PortholeProps): JSX.Element {
             aria-controls={open ? panelId : undefined}
             onClick={toggle}
             className={cn(
-              "inline-flex h-full cursor-pointer items-center gap-2 rounded-full border-0 bg-transparent ps-3 pe-3 font-[inherit] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
+              "inline-flex h-full min-w-0 cursor-pointer items-center gap-2 rounded-full border-0 bg-transparent ps-3 pe-3 text-start font-[inherit] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
               toneClass,
             )}
           >
             <Light view={view} />
-            <span className="relative">
+            <span ref={words} className="relative min-w-0 overflow-hidden">
+              <span ref={sizer} aria-hidden="true" data-porthole-part="sizer" className="invisible absolute start-0 top-0 whitespace-nowrap">
+                {line.text}
+              </span>
               {line.previous === null ? null : (
-                <span key={`was-${line.turn}`} aria-hidden="true" className={cn("pointer-events-none absolute start-0 top-0 opacity-0 starting:opacity-100", fadeClass)}>
+                <span key={`was-${line.turn}`} aria-hidden="true" className={cn("pointer-events-none absolute start-0 top-0 max-w-full truncate opacity-0 starting:opacity-100", fadeClass)}>
                   {line.previous}
                 </span>
               )}
-              <span key={`is-${line.turn}`} className={cn("block opacity-100", line.turn > 0 && "starting:opacity-0", fadeClass)}>
+              <span key={`is-${line.turn}`} className={cn("block truncate opacity-100", line.turn > 0 && "starting:opacity-0", fadeClass)}>
                 {line.text}
               </span>
             </span>
@@ -398,9 +421,15 @@ export function Porthole(props: PortholeProps): JSX.Element {
         <div
           id={panelId}
           data-ouro-part="panel"
-          className="absolute start-0 top-full z-10 mt-1.5 w-max max-w-[min(24rem,calc(100vw-2rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast)"
+          className={cn(
+            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast)",
+            side === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5",
+          )}
         >
           <ul className="m-0 grid list-none gap-1 p-0">
+            <li data-porthole-part="whole-line" className="m-0 hidden font-medium text-pretty group-data-[porthole-truncated]/porthole:list-item">
+              {line.text}
+            </li>
             {view.detail.map((text, index) => (
               <li key={index} className="m-0 text-pretty">
                 {text}

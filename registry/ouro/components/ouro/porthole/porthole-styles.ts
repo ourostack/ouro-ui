@@ -45,5 +45,11 @@ export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
   action: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]",
 };
 
+/** Where the open lines show: under the spot, or over it. */
+export type PortholeSide = "bottom" | "top";
+
+/** The sides `side` takes, the default first. */
+export const portholeSides: readonly PortholeSide[] = ["bottom", "top"];
+
 /** How long after one spoken change the next may be spoken, in ms. */
 export const PORTHOLE_ANNOUNCE_GAP_MS = 10_000;
