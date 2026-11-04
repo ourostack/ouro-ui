@@ -97,6 +97,8 @@ test.skipIf(server.browser !== "chromium")("compositedLayers lists a layer for a
     expect(layered).toHaveLength(before.length + 1);
     box.style.willChange = "";
     expect(await commands.compositedLayers()).toHaveLength(before.length);
+    // A page that holds still draws no frame of its own; the count still comes, the same each time.
+    expect(await commands.compositedLayers()).toHaveLength(before.length);
   } finally {
     box.remove();
   }

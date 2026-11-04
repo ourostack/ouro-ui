@@ -1239,37 +1239,65 @@ export const compositedLayers: BrowserCommand<[]> = async (ctx) => {
   const session = await chromiumSession(ctx);
   if (!session) throw new Error("compositedLayers: CDP is Chromium only");
   type Layer = { backendNodeId?: number; width: number; height: number };
-  let layers: Layer[] | undefined;
+  const trees: Layer[][] = [];
   const changed = (event: { layers?: Layer[] }) => {
-    if (event.layers) layers = event.layers;
+    if (event.layers) trees.push(event.layers);
   };
+  // Chromium reports the tree only when it changes, so a probe of its own changes it: a layer off the page's top
+  // start, painted last, which overlaps nothing and so moves nothing else onto a layer. The tree that has it is the
+  // page's, less the probe.
+  // Runs in the page; written without DOM types, which an app's config for this file may lack.
+  type Page = {
+    document: { getElementById: (id: string) => { remove: () => void } | null; createElement: (tag: string) => { id: string; style: { cssText: string } }; body: { append: (node: object) => void } };
+    requestAnimationFrame: (callback: () => void) => number;
+  };
+  const frames = () =>
+    ctx.page.evaluate(() => {
+      const page = globalThis as unknown as Page;
+      return new Promise<void>((resolve) => page.requestAnimationFrame(() => page.requestAnimationFrame(resolve)));
+    });
+  const probe = (add: boolean) =>
+    ctx.page.evaluate((add) => {
+      const page = globalThis as unknown as Page;
+      page.document.getElementById("ouro-compositor-probe")?.remove();
+      if (!add) return;
+      const node = page.document.createElement("div");
+      node.id = "ouro-compositor-probe";
+      node.style.cssText = "position:fixed;top:-8px;left:-8px;width:1px;height:1px;will-change:transform;pointer-events:none";
+      page.document.body.append(node);
+    }, add);
   session.on("LayerTree.layerTreeDidChange", changed);
+  let tree: Layer[] | undefined;
+  let probeId: number | undefined;
   try {
     await session.send("LayerTree.enable");
-    // Chromium reports the whole tree with the next frame it draws; two frames ask for one.
-    // Runs in the page; written without DOM types, which an app's config for this file may lack.
-    for (let frame = 0; frame < 30 && layers === undefined; frame++) {
-      await ctx.page.evaluate(() => {
-        const page = globalThis as unknown as { requestAnimationFrame: (callback: () => void) => number };
-        return new Promise<void>((resolve) => page.requestAnimationFrame(() => page.requestAnimationFrame(resolve)));
-      });
-    }
+    await probe(true);
+    const { result } = await session.send("Runtime.evaluate", { expression: 'document.getElementById("ouro-compositor-probe")' });
+    probeId = (await session.send("DOM.describeNode", { objectId: result.objectId! })).node.backendNodeId;
+    const probed = () => trees.filter((layers) => layers.some((layer) => layer.backendNodeId === probeId)).at(-1);
+    for (let attempt = 0; attempt < 30 && probed() === undefined; attempt++) await frames();
+    // Two frames more, so a change the page made just before the call is in the tree too.
+    await frames();
+    tree = probed();
   } finally {
     session.off("LayerTree.layerTreeDidChange", changed);
     await session.send("LayerTree.disable");
+    await probe(false);
   }
-  if (layers === undefined) throw new Error("compositedLayers: Chromium sent no layer tree");
+  if (tree === undefined) throw new Error("compositedLayers: Chromium sent no layer tree");
   return Promise.all(
-    layers.map(async ({ backendNodeId, width, height }): Promise<CompositedLayer> => {
-      if (backendNodeId === undefined) return { element: null, width, height };
-      const { node } = await session.send("DOM.describeNode", { backendNodeId });
-      const attributes = node.attributes ?? [];
-      const named = ["data-ouro", "data-ouro-part"].flatMap((name) => {
-        const at = attributes.indexOf(name);
-        return at % 2 === 0 ? [`[${name}="${attributes[at + 1]}"]`] : [];
-      });
-      return { element: `${node.nodeName}${named.join("")}`, width, height };
-    }),
+    tree
+      .filter((layer) => layer.backendNodeId !== probeId)
+      .map(async ({ backendNodeId, width, height }): Promise<CompositedLayer> => {
+        if (backendNodeId === undefined) return { element: null, width, height };
+        const { node } = await session.send("DOM.describeNode", { backendNodeId });
+        const attributes = node.attributes ?? [];
+        const named = ["data-ouro", "data-ouro-part"].flatMap((name) => {
+          const at = attributes.indexOf(name);
+          return at % 2 === 0 ? [`[${name}="${attributes[at + 1]}"]`] : [];
+        });
+        return { element: `${node.nodeName}${named.join("")}`, width, height };
+      }),
   );
 };
 
