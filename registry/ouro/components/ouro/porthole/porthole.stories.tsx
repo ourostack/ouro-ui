@@ -70,7 +70,8 @@ export const UpToDate: Story = { render: (args) => <Porthole {...args} source={f
 export const States: Story = {
   parameters: { screenshot: { name: "porthole-states" } },
   render: (args) => (
-    <div style={column}>
+    // Clear of the page's top corner, where a test's mouse may rest and hover the first spot open.
+    <div style={{ ...column, paddingTop: 48 }}>
       <Porthole {...args} label="Rest, fresh" source={fixed([], fresh)} />
       <Porthole {...args} label="Rest, fresh, with its words" quiet={false} source={fixed([], fresh)} />
       <Porthole {...args} label="Rest, stale" source={fixed([], { ...fresh, calendar: 4 * MINUTE + 10 * SECOND })} />
@@ -110,7 +111,7 @@ const refused: PortholeItem = {
 export const Narrow: Story = {
   parameters: { screenshot: { name: "porthole-narrow" } },
   render: (args) => (
-    <div style={{ ...column, width: 336, gap: 24, paddingBottom: 8 }}>
+    <div style={{ ...column, width: 336, gap: 24, paddingTop: 48, paddingBottom: 8 }}>
       <Porthole {...args} label="Update" source={fixed([longUpdate], fresh)} />
       <Porthole {...args} label="Update check" source={fixed([refused], fresh)} />
       <div style={{ height: 120 }} />
