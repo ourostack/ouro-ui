@@ -85,6 +85,20 @@ test("the critical path follows needs through the slowest job of each matrix, an
   assert.equal(wallTime(jobs, jobGraph(workflow)), 10 * 60);
 });
 
+test("the critical path leaves out fail-fast, which waits for the whole run, queues included, and is no unmatched job", () => {
+  const graph = jobGraph(`${workflow}  fail-fast:
+    runs-on: ubuntu-latest
+`);
+  // The browser shards queued for 40 minutes; fail-fast ran for all of it.
+  const jobs = [job("plan", 0, 0, 1), job("fail-fast", 0, 0, 50), job("browser (1/2)", 1, 41, 48), job("browser (2/2)", 1, 40, 46), job("ci", 48, 48, 49), job("lint", 0, 0, 6)];
+  for (const work of [false, true]) {
+    const path = criticalPath(jobs, graph, { work });
+    assert.deepEqual(path.jobs.map((entry) => entry.name), ["plan", "browser (1/2)", "ci"]);
+    assert.equal(path.seconds, 9 * 60);
+    assert.deepEqual(path.unmatched, []);
+  }
+});
+
 test("a skipped job adds nothing, and a job no name matches is reported", () => {
   const path = criticalPath([job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 9, "skipped"), job("lint", 0, 0, 3), job("mystery", 0, 0, 30)], jobGraph(workflow));
   assert.equal(path.seconds, 3 * 60);
