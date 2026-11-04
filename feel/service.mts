@@ -49,7 +49,8 @@ export function serveWithProbe(root: string, probe: string): Promise<ProbeServic
   function deliver(): void {
     while (queue.length > 0 && waiting.length > 0) {
       const response = waiting.shift()!;
-      if (response.writableEnded) continue;
+      // A page that closed left its poll behind: a command written to it would be lost.
+      if (response.writableEnded || response.destroyed) continue;
       response.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" }).end(JSON.stringify(queue.shift()));
     }
   }
@@ -72,7 +73,11 @@ export function serveWithProbe(root: string, probe: string): Promise<ProbeServic
       const timer = setTimeout(() => {
         if (!response.writableEnded) response.writeHead(204).end();
       }, POLL_MS);
-      response.on("close", () => clearTimeout(timer));
+      response.on("close", () => {
+        clearTimeout(timer);
+        const at = waiting.indexOf(response);
+        if (at !== -1) waiting.splice(at, 1);
+      });
       deliver();
       return;
     }

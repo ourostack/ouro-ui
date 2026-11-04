@@ -60,7 +60,7 @@ test("Ouro Feel's cases each name a component and limit only measures the probe 
   }
 });
 
-test("Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll", async () => {
+test("Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page", async () => {
   const dir = scratchDir("feel-service");
   writeFileSync(join(dir, "index.html"), "<!doctype html><html><head><title>t</title></head><body></body></html>");
   writeFileSync(join(dir, "probe.js"), "window.probe = 1;");
@@ -81,6 +81,18 @@ test("Ouro Feel's probe service puts the probe first in the page's head and driv
     const result = { case: "history-prepend", settled: true, measures: { jumps: 0 }, userAgent: "page" };
     await globalThis.fetch(new globalThis.URL(`${BRIDGE}result`, service.url), { method: "POST", body: JSON.stringify({ id: 1, ok: true, result }) });
     assert.deepEqual(await reply, { ok: true, result });
+
+    // A page that closes while it polls takes nothing with it: the next page gets the next command.
+    const closing = new globalThis.AbortController();
+    const abandoned = globalThis.fetch(new globalThis.URL(`${BRIDGE}next`, service.url), { signal: closing.signal }).catch(() => "closed");
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 50));
+    closing.abort();
+    assert.equal(await abandoned, "closed");
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 50));
+    const second = service.send({ type: "run", case: "history-prepend" });
+    assert.deepEqual(await (await globalThis.fetch(new globalThis.URL(`${BRIDGE}next`, service.url))).json(), { id: 2, type: "run", case: "history-prepend" });
+    await globalThis.fetch(new globalThis.URL(`${BRIDGE}result`, service.url), { method: "POST", body: JSON.stringify({ id: 2, ok: false, error: "x" }) });
+    assert.deepEqual(await second, { ok: false, error: "x" });
   } finally {
     service.close();
   }

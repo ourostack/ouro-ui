@@ -54,7 +54,7 @@ The WKWebView leg runs nightly and by hand in [the Feel workflow](../.github/wor
 An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run, so the app can take its own medians and bands.[^runs]
 
 [^seed]: test:scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up verify:testExists(scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up)
-[^service]: test:scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll)
+[^service]: test:scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page)
 [^judge]: test:scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs)
 [^jumps]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const JUMP_PX = 100;$/)
 [^shifts]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const SHIFT_PX = 8;$/)
