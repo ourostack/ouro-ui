@@ -171,6 +171,17 @@ A read of what people say (`consent: "listening"`) gives nothing until the perso
 
 The CLI declares the words a person-only action answers to with `defineCli({ personOnly: { unmute: { reason, how } } })`. They refuse with one line that says why and where the person does it, a refused outcome under `--json`, and `help --json` lists them under `personOnly`, so the prep-agent learns them before it tries.[^person-only] In the `call` tool, `join` is person-only too: the person joins, and agents read from the app's one capture.[^join]
 
+## Agent-first surfaces
+
+When an agent drives a surface better than a person does, make it agent-first. Look for a surface that gathers from many places, follows the same steps every time, or has to decide what is safe to share: the person would otherwise copy logs, look up versions and guess what to leave out.
+
+- Give the agent one command that runs the whole surface end to end, not a series of steps it must string together. Put what each step did and what it left out in the outcome's `summary`, and what the person must still do in `next`.
+- Make it a command other people see when anything leaves the computer, so it takes `--why` and `--dry-run`.[^dry-run] Let the dry run name what would go, to whom, and what was held back, before anything is sent.
+- Shrink the person's screen to a prompt: one line to tell their agent, with a copy button. Keep the full form one press away, labelled with the task ("Report it myself"), for when no agent is at hand.
+- Write the prompt in the person's words, as they would say it to their agent, never as a command line.
+
+Take a problem report as the example. When the person tells their inbox-agent "something is off with the calendar: it's blank", have the inbox-agent run the app's one report command with `--why "<the person's words>"` and `--dry-run`. Gather the person's words, where the window was, the recent log and the app's own state. Include a performance trace only once it has passed the app's privacy screen. When the trace is missing, write that plainly in the summary. Return a `planned` outcome whose audience names the app's issue tracker and who reads it. Have the inbox-agent show the person that preview and run the command again without `--dry-run` only once they say yes. In the app, show "Tell your agent: something is off with …" with Copy, and "Report it myself" for the full form.
+
 ## Agent flows in CI
 
 The X-ray checks the rules a command must keep; a flow checks what a task needs. A flow is the calls a good agent makes for one task, as data, with what the calls must show:
