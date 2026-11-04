@@ -254,6 +254,38 @@ function boxOf(element: Element): { top: number; bottom: number; height: number 
 }
 
 /**
+ * Whether an element has a box: one hidden (`display: none`, or inside such an element) has none, and reads as all zeros.
+ * @claim "one hidden (`display: none`, or inside" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList through a long conversation > never puts the Tab stop on a hidden message, the newest or one in view, as the view shows the messages around it)
+ */
+function laidOut(element: Element): boolean {
+  return element.getClientRects().length > 0;
+}
+
+/**
+ * Halves `list`, laid out down the page, for the first message whose box `before` says is not yet past the point it looks
+ * for. A hidden message's zero box would break the halving, so a step that lands on one goes to the nearest message
+ * with a box; none in the range means the point lies past it.
+ * @claim "A hidden message's zero box would" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList through a long conversation > keeps the reader's place as they scroll and older history loads, under a header, with a hidden message in view and one below it)
+ * @claim "A hidden message's zero box would" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList through a long conversation > never puts the Tab stop on a hidden message, the newest or one in view, as the view shows the messages around it)
+ */
+function halve(list: readonly Element[], before: (box: { top: number; bottom: number }) => boolean): number {
+  let low = 0;
+  let high = list.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    let at = -1;
+    for (let offset = 0; at === -1 && (middle + offset < high || middle - offset >= low); offset++) {
+      if (middle + offset < high && laidOut(list[middle + offset]!)) at = middle + offset;
+      else if (middle - offset >= low && laidOut(list[middle - offset]!)) at = middle - offset;
+    }
+    if (at === -1) return high;
+    if (before(boxOf(list[at]!))) low = at + 1;
+    else high = at;
+  }
+  return low;
+}
+
+/**
  * The springs of one list: `moved` tells them the list scrolled itself, so no message trails it.
  * @claim "The springs of one list: `moved`" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > follows only the reader's part of a scroll the list adds to as it follows a new message)
  */
@@ -800,19 +832,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Laid out, the messages' tops only grow down the list (one inside another starts within it), so the first whose top
       // is in view is found by halving, and only the messages near the view are read: a long conversation, scrolled, costs
       // what a short one does.
-      let first = 0;
-      let after = list.length;
-      while (first < after) {
-        const at = (first + after) >> 1;
-        // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
-        if (boxOf(list[at]!).top < view.top) first = at + 1;
-        else after = at;
-      }
+      // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
+      const first = halve(list, (box) => box.top < view.top);
       // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading. When none
       // starts in view, the messages filling it, then those that start within a view's height below it.
       const held: { node: Element; at: number }[] = [];
       const take = (from: number, until: number) => {
         for (let at = from; at < list.length; at++) {
+          if (!laidOut(list[at]!)) continue;
           const top = boxOf(list[at]!).top;
           // Stryker disable next-line EqualityOperator: a message whose top meets the edge to the pixel is out of the band either way.
           if (top >= until) break;
@@ -823,6 +850,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (held.length === 0) {
         // Back from the first below the view's top, those that reach into the view, through to a message that is inside no other.
         for (let at = first - 1; at >= 0; at--) {
+          if (!laidOut(list[at]!)) continue;
           const box = boxOf(list[at]!);
           // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
           if (box.bottom > view.top) held.unshift({ node: list[at]!, at: box.top - origin });
@@ -1083,16 +1111,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (current?.isConnected && scroller.contains(doc.activeElement)) return;
       if (last?.isConnected && shows(last)) return setCurrent(last);
       const view = scroller.getBoundingClientRect();
-      let after = 0;
-      let until = list.length;
-      while (after < until) {
-        const at = (after + until) >> 1;
-        // Stryker disable next-line EqualityOperator: a message whose top meets the list's bottom to the pixel shows none of itself either way.
-        if (boxOf(list[at]!).top < view.bottom) after = at + 1;
-        else until = at;
-      }
+      // Stryker disable next-line EqualityOperator: a message whose top meets the list's bottom to the pixel shows none of itself either way.
+      const after = halve(list, (box) => box.top < view.bottom);
       let showing: HTMLElement | null = null;
       for (let at = after - 1; at >= 0; at--) {
+        // A hidden message shows nothing, so it is never the Tab stop the view puts focus on.
+        if (!laidOut(list[at]!)) continue;
         const box = boxOf(list[at]!);
         // Above the view: so is every message before it.
         // Stryker disable next-line EqualityOperator: a message whose edge meets the list's edge to the pixel counts either way.
