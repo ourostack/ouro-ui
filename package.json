@@ -29,6 +29,7 @@
     "test": "vitest run --coverage",
     "test:visual": "CI_VISUAL=1 vitest run --project visual",
     "test:themes": "OURO_THEMES=1 vitest run --project themes",
+    "test:webkit-layout": "OURO_WEBKIT_LAYOUT=1 vitest run --project webkit-layout",
     "conformance": "OURO_CONFORMANCE=1 vitest run --project conformance",
     "mutation": "node scripts/mutation.mjs",
     "typecheck": "node scripts/control-matrix.mts && tsc --noEmit && tsc -p scripts/fixtures/no-node-types",

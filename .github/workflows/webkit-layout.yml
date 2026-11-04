@@ -1,0 +1,51 @@
+name: WebKit layout
+# How WebKit on macOS lays out a long conversation in MessageList (test/webkit-layout/): WebKit there lays out every item
+# of a flex column again when one changes, so with costly rows a conversation stalls whenever a message streams, a
+# picture loads or older ones come in above. The test times the same rows as MessageList lays them out, forced into a
+# flex column, and forced into block flow, on one page, and holds MessageList to block flow's growth with length.
+# Nightly on main, and dispatched by release-rehearsal.yml for the commit it rehearses, so a release cannot bring a flex
+# column back. One macOS job: hosted macOS runners are few at a time.
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "The commit to test: the full SHA of the dispatched branch's tip (release-rehearsal.yml passes its rehearsal commit)"
+        required: true
+  push:
+    branches: ["arimendelow-webkit-layout-proof-*"]
+permissions:
+  contents: read
+concurrency:
+  group: webkit-layout-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  layout:
+    name: WebKit layout (macos-15)
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - name: Check the commit
+        env:
+          EVENT: ${{ github.event_name }}
+          DISPATCHED_SHA: ${{ github.sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::source_sha must be a full 40-character commit SHA in lower case, not '$SOURCE_SHA'."; exit 1; }
+          # Only the dispatched branch's own tip: never another commit fetched by SHA, such as a fork's.
+          [ "$EVENT" != workflow_dispatch ] || [ "$SOURCE_SHA" = "$DISPATCHED_SHA" ] || { echo "::error::source_sha $SOURCE_SHA is not the tip of the dispatched branch ($DISPATCHED_SHA)."; exit 1; }
+          [ "$(git rev-parse HEAD)" = "$SOURCE_SHA" ] || { echo "::error::Checked out $(git rev-parse HEAD), not $SOURCE_SHA."; exit 1; }
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install webkit
+      - run: pnpm test:webkit-layout
