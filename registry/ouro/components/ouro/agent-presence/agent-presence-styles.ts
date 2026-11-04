@@ -45,6 +45,6 @@ const agentPresenceAx = defineComponentAx({
   ],
   actions: [
     { id: "stop", summary: "Stop your own listening for the person: your row only, never another agent's.", effect: "private", agent: true },
-    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only they can. Stop your own listening with stop." },
+    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop." },
   ],
 });

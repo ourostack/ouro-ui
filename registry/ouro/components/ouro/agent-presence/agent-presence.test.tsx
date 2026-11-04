@@ -491,7 +491,7 @@ describe("AgentPresence agent side", () => {
       reads: [{ id: "listening", summary: "Which of the person's agents are listening, and what each listens for.", fields: ["agent", "doing"], consent: "none" }],
       actions: [
         { id: "stop", summary: "Stop your own listening for the person: your row only, never another agent's.", effect: "private", agent: true },
-        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only they can. Stop your own listening with stop." },
+        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop." },
       ],
     });
     for (const action of agentPresenceAx.actions) expect(isReservedPersonOnly(action.id)).toBe(false);
@@ -513,7 +513,7 @@ describe("AgentPresence agent side", () => {
     });
     expect(ui.filter((entry) => entry.kind === "action")).toEqual([
       { component: "AgentPresence", kind: "action", id: "stop", effect: "private", twin: "call unfollow <meeting> --agent <me>" },
-      { component: "AgentPresence", kind: "action", id: "stop-all", effect: "private", personOnly: "You can't stop every agent; only they can. Stop your own listening with stop.", refuseAs: "call unfollow <meeting> --all" },
+      { component: "AgentPresence", kind: "action", id: "stop-all", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop.", refuseAs: "call unfollow <meeting> --all" },
     ]);
     expect(() => bindAx(agentPresenceAx, { reads: { listening: "call agents <meeting>" }, actions: { stop: "call unfollow <meeting> --agent <me>", "stop-all": "call unfollow <meeting> --all" } })).toThrow(
       'AgentPresence action "stop-all": it is the person\'s, so it has no twin. Fix: move "call unfollow <meeting> --all" to refuseAs, where its words refuse.',
