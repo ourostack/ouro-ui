@@ -35,13 +35,20 @@ export interface MessageListOwnProps {
    */
   initialAnchor?: string | undefined;
   /**
-   * Which conversation the messages are, such as its id. When it changes, the list opens the new one at its newest message,
-   * as on any switch, whatever keys its messages have; while it stays the same, nothing the messages do counts as a switch:
-   * keys swapped for the server's, the newest ones regenerated or removed. Give it whenever one list shows one
-   * conversation after another. Without it, the list takes messages that share no `key` with the ones it held for another
-   * conversation, so it misses a switch between conversations whose messages share keys (`0`, `1`, … by index), and takes
-   * a short conversation whose every message gets a new key at once for another one.
-   * @claim "When it changes, the list opens the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
+   * Which conversation the messages are, such as its id. Change it with the other conversation's messages, or before they
+   * come (as an app that keeps the last messages while it fetches does): the list opens that conversation at its newest
+   * message as they come, whatever keys they have, and moves nothing while the last one's still show. While it stays the
+   * same, nothing the messages do counts as a switch: keys swapped for the server's, the newest ones regenerated or removed.
+   * The first one named for messages the list already holds names them, and moves nothing. Messages that come before
+   * their conversation is named are taken for the last one's, so a later name opens nothing; and a conversation whose
+   * messages carry exactly the last one's keys (keyed by place, as many of them) can't be told from it until they change,
+   * so key messages by their own ids. Without it, the list takes messages that share no `key` with the ones it held for
+   * another conversation, so it misses a switch between conversations whose messages share keys, and takes a short
+   * conversation whose every message gets a new key at once for another one.
+   * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does)
+   * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
+   * @claim "The first one named for messages the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > adopts a conversation first named for the messages it holds, leaving a scrolled-up reader where they are)
+   * @claim "Messages that come before their conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes messages that come before their conversation is named for the last one's, and opens nothing when it is named after them)
    * @claim "Without it, the list takes messages that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > keeps the reader's place, the messages and focus when the newest three get new keys in place, while scrolled up)
    */
   conversation?: Key | undefined;
@@ -782,14 +789,41 @@ export function MessageList(props: MessageListProps): JSX.Element {
     recent,
     keys: new Set(all.map(keyOf)),
     conversation,
+    pending: null as { conversation: Key | undefined; keys: ReadonlySet<Key | null> } | null,
     held: all.length > 0,
     switches: 0,
   }));
-  const named = conversation !== undefined && all.length > 0 && conversation !== edge.conversation;
-  if (named || top !== edge.first || recent.length !== edge.recent.length || recent.some((key, at) => key !== edge.recent[at])) {
-    const fresh =
-      all.length > 0 &&
-      (conversation === undefined ? !all.some((child) => keyOf(child) !== null && edge.keys.has(keyOf(child))) : !edge.held || conversation !== edge.conversation);
+  // Messages that share no key with `keys`: another conversation's, or the first ones.
+  const strangers = (keys: ReadonlySet<Key | null>) => !all.some((child) => keyOf(child) !== null && keys.has(keyOf(child)));
+  const changed = top !== edge.first || recent.length !== edge.recent.length || recent.some((key, at) => key !== edge.recent[at]);
+  const renamed = conversation !== edge.conversation && (edge.pending === null || conversation !== edge.pending.conversation);
+  // Named back to the conversation it holds before another one's messages came: nothing waits.
+  const back = edge.pending !== null && conversation === edge.conversation;
+  if (changed || renamed || back) {
+    // A conversation is switched to when `conversation` changes with its messages, or, named before they come (as an app
+    // that keeps the last messages while it fetches does), when messages come that share no key with those it held then.
+    // One first named for messages the list holds names them. Without `conversation`, messages that share no key with
+    // those held are another conversation's.
+    let pending = renamed || back ? null : edge.pending;
+    let fresh = false;
+    let named = edge.conversation;
+    if (all.length === 0) {
+      // None to show: whatever is named waits for its messages.
+      if (renamed) pending = { conversation, keys: edge.keys };
+    } else if (!edge.held) {
+      fresh = true;
+      named = conversation;
+    } else if (renamed && edge.conversation === undefined) {
+      fresh = changed && strangers(edge.keys);
+      named = conversation;
+    } else if (renamed && changed) {
+      fresh = true;
+      named = conversation;
+    } else if (renamed) {
+      pending = { conversation, keys: edge.keys };
+    } else if (pending !== null) {
+      if (strangers(pending.keys)) [fresh, named, pending] = [true, pending.conversation, null];
+    } else fresh = conversation === undefined && strangers(edge.keys);
     setEdge({
       first: top,
       drawn: fresh
@@ -799,8 +833,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           : top,
       recent,
       keys: new Set(all.map(keyOf)),
-      // The conversation whose messages the list holds: one named while it holds none waits for its messages.
-      conversation: all.length > 0 ? conversation : edge.conversation,
+      conversation: named,
+      pending,
       held: edge.held || all.length > 0,
       switches: edge.switches + (fresh && edge.held ? 1 : 0),
     });
