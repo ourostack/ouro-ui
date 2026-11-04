@@ -16,7 +16,7 @@ export type Block =
   | { kind: "heading"; level: number; text: string }
   | { kind: "paragraph"; text: string }
   | { kind: "code"; lang: string; text: string }
-  | { kind: "list"; items: string[] }
+  | { kind: "list"; items: string[]; ordered?: true }
   | { kind: "table"; header: string[]; rows: string[][] }
   | { kind: "sources"; items: Array<{ id: string; text: string }> };
 
@@ -64,9 +64,13 @@ export function parse(markdown: string): Block[] {
       const items: string[] = [];
       while (i < lines.length && lines[i]!.startsWith("- ")) items.push(lines[i++]!.slice(2).trim());
       blocks.push({ kind: "list", items });
+    } else if (/^\d+\. /.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i]!)) items.push(lines[i++]!.replace(/^\d+\. /, "").trim());
+      blocks.push({ kind: "list", ordered: true, items });
     } else {
       const text: string[] = [];
-      while (i < lines.length && lines[i]!.trim() !== "" && !/^(#{1,6} |```|\||- |\[\^[^\]]+\]:)/.test(lines[i]!)) text.push(lines[i++]!.trim());
+      while (i < lines.length && lines[i]!.trim() !== "" && !/^(#{1,6} |```|\||- |\d+\. |\[\^[^\]]+\]:)/.test(lines[i]!)) text.push(lines[i++]!.trim());
       blocks.push({ kind: "paragraph", text: text.join(" ") });
     }
   }
@@ -176,16 +180,18 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
             );
           case "code":
             return <CodeBlock key={index} code={block.text} className="my-4" />;
-          case "list":
+          case "list": {
+            const List = block.ordered ? "ol" : "ul";
             return (
-              <ul key={index} className="my-3 grid max-w-[68ch] list-disc gap-2 ps-5 marker:text-muted-foreground">
+              <List key={index} className={`my-3 grid max-w-[68ch] gap-2 ps-5 marker:text-muted-foreground ${block.ordered ? "list-decimal" : "list-disc"}`}>
                 {block.items.map((item, itemIndex) => (
                   <li key={itemIndex}>
                     <Text as="span">{inline(item, link)}</Text>
                   </li>
                 ))}
-              </ul>
+              </List>
             );
+          }
           case "table":
             return <Table key={index} label={labels.get(index)!} header={block.header} rows={block.rows} link={link} />;
           case "sources":

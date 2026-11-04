@@ -515,6 +515,24 @@ describe("platforms", () => {
     expect(text).toContain(`we create ${repository}, import your work with its history, and make you a contributor`);
   });
 
+  it("reads a numbered list as an ordered list, not as one paragraph", () => {
+    expect(parse("Steps:\n1. Take the tokens.\n2. Meet the bar.\n10. Pass the X-ray.\n\nAfter.")).toEqual([
+      { kind: "paragraph", text: "Steps:" },
+      { kind: "list", ordered: true, items: ["Take the tokens.", "Meet the bar.", "Pass the X-ray."] },
+      { kind: "paragraph", text: "After." },
+    ]);
+  });
+
+  it.each(["/docs/platforms/android/", "/docs/platforms/windows/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
+    "renders %s's numbered steps as list items, with no step run into a paragraph",
+    async (path) => {
+      await renderPage(path);
+      expect(document.querySelectorAll("main ol > li").length).toBeGreaterThan(1);
+      const runOn = [...document.querySelectorAll("main p")].filter((paragraph) => /(^|\s)\d+\. \S/.test(paragraph.textContent!) && /(^|\s)1\. /.test(paragraph.textContent!));
+      expect(runOn.map((paragraph) => paragraph.textContent)).toEqual([]);
+    },
+  );
+
   it("publishes each platform page's Markdown with its links relative to where it is published", () => {
     const apple = platformPages.find((doc) => doc.name === "platforms/apple")!;
     const index = platformPages.find((doc) => doc.name === "platforms")!;
